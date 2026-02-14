@@ -382,3 +382,32 @@ async def track_user(update: Update, context: ContextTypes.DEFAULT_TYPE):
              elif update.message.text.startswith('/'): cmd = 'command'
         
         crm.track_user_activity(update.effective_user, command=cmd)
+async def add_channel_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not await is_admin(update.effective_user.id):
+        return
+
+    if not context.args:
+        await update.message.reply_text("⚠️ Foydalanish: /add_channel @username")
+        return
+
+    username = context.args[0]
+
+    try:
+        add_channel(username, username)
+        await update.message.reply_text(f"✅ Kanal qo'shildi: {username}")
+    except Exception as e:
+        await update.message.reply_text(f"❌ Xato: {e}")
+async def remove_channel_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not await is_admin(update.effective_user.id):
+        return
+
+    if not context.args:
+        await update.message.reply_text("⚠️ Foydalanish: /remove_channel @username")
+        return
+
+    username = context.args[0]
+
+    if remove_channel(username):
+        await update.message.reply_text(f"✅ O'chirildi: {username}")
+    else:
+        await update.message.reply_text("❌ Kanal topilmadi.")
