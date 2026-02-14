@@ -9,7 +9,7 @@ Bot ochilganda quyidagi grid menyu chiqadi:
 - Krill-Lotin
 - Tarjima fayl
 - Rasm → PDF
-- Imlo tekshirish
+- Imlo tekshirishd
 - Premium xizmatlar
 - Balans
 - Aloqa uchun
