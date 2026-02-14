@@ -1,0 +1,333 @@
+<!doctype html>
+<html lang="uz">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Professional Ma'lumotnoma — Generator</title>
+<style>
+  :root{
+    --bg:#eef4ff; --card:#ffffff; --accent:#0b67ff; --muted:#6b7280;
+    --glass: rgba(255,255,255,0.6);
+  }
+  /* Page */
+  html,body{height:100%;margin:0;font-family:Inter, "Segoe UI", Roboto, "Helvetica Neue", Arial; background: radial-gradient(1200px 600px at 10% 10%, #eaf2ff 0%, transparent 10%), linear-gradient(180deg,var(--bg),#f7fbff); color:#111}
+  .wrap{max-width:1200px;margin:28px auto;padding:22px;display:grid;grid-template-columns:360px 1fr;gap:20px}
+  /* Left panel */
+  .panel{background:var(--card);border-radius:14px;padding:18px;box-shadow:0 8px 30px rgba(11,103,255,0.08);border:1px solid rgba(11,103,255,0.06)}
+  .brand{display:flex;align-items:center;gap:12px;margin-bottom:8px}
+  .logo{width:56px;height:56px;border-radius:12px;background:linear-gradient(135deg,var(--accent),#3ec5ff);display:flex;align-items:center;justify-content:center;color:white;font-weight:800;font-size:20px;box-shadow:0 8px 18px rgba(11,103,255,0.18)}
+  h1{font-size:16px;margin:0}
+  p.lead{margin:0;color:var(--muted);font-size:13px}
+  .pills{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+  .pill{width:36px;height:36px;border-radius:8px;background:#f1f6ff;color:var(--accent);display:flex;align-items:center;justify-content:center;font-weight:700;cursor:pointer;border:1px solid transparent;box-shadow:0 6px 18px rgba(11,103,255,0.06);transition:transform .18s, background .18s, color .18s}
+  .pill:hover{transform:translateY(-4px)}
+  .pill.active{background:var(--accent);color:white}
+  .hint{font-size:13px;color:var(--muted);margin-top:12px}
+  /* Question card */
+  .card{background:linear-gradient(180deg, rgba(255,255,255,0.9), var(--glass));border-radius:14px;padding:20px;box-shadow:0 10px 40px rgba(15,23,42,0.06);display:flex;flex-direction:column;gap:12px}
+  .qtitle{font-weight:800;font-size:18px}
+  .controls{display:flex;justify-content:space-between;align-items:center;margin-top:8px;gap:12px}
+  .btn{background:var(--accent);color:white;padding:10px 14px;border-radius:10px;border:none;cursor:pointer;font-weight:800;box-shadow:0 12px 30px rgba(11,103,255,0.12);transition:transform .16s, box-shadow .16s}
+  .btn:hover{transform:translateY(-3px);box-shadow:0 18px 40px rgba(11,103,255,0.18)}
+  .btn.ghost{background:white;color:var(--accent);border:1px solid #e6eeff;box-shadow:none}
+  input[type="text"], textarea, select{width:100%;padding:12px;border-radius:10px;border:1px solid #e6eefc;font-size:15px;outline:none}
+  textarea{min-height:120px;resize:vertical}
+  label.option{display:flex;gap:10px;align-items:center;padding:8px;border-radius:8px;border:1px solid #f0f6ff;background:#fff;margin-bottom:6px;cursor:pointer}
+  input[type="file"]{padding:6px}
+  .small{font-size:13px;color:var(--muted)}
+  /* Preview A4 */
+  .previewWrap{padding:8px}
+  .preview{width:210mm;min-height:297mm;margin:0 auto;background:white;border-radius:6px;padding:24mm;box-shadow:0 12px 40px rgba(2,6,23,0.08);position:relative;border:1px solid #eef3ff}
+  .docTitle{text-align:center;font-weight:900;font-size:22px;margin-bottom:8px}
+  .docName{text-align:center;font-weight:900;font-size:16px;margin-bottom:18px}
+  .columns{display:flex;gap:12px;justify-content:space-between}
+  .leftCol{width:62%}
+  .rightCol{width:36%;text-align:right}
+  .meta b{display:block;font-weight:900;margin-bottom:6px}
+  .meta .row{margin-bottom:6px}
+  .photoBox{position:absolute;right:36mm;top:48mm;width:3cm;height:4cm;border:1px solid #dfe9ff;overflow:hidden;border-radius:6px;background:#fafcff;display:flex;align-items:center;justify-content:center}
+  .photoBox img{width:100%;height:100%;object-fit:cover}
+  .sectionTitle{text-align:center;font-weight:900;margin:36px 0 12px}
+  /* Footer / actions */
+  .actions{display:flex;gap:12px;align-items:center;justify-content:flex-end;margin-top:12px}
+  .badge{font-size:13px;color:var(--muted);padding:6px 8px;background:#f8fafc;border-radius:8px}
+  /* responsive */
+  @media(max-width:1000px){.wrap{grid-template-columns:1fr} .photoBox{right:18mm}}
+  /* print */
+  @media print{body *{visibility:hidden} .preview, .preview *{visibility:visible} .preview{position:fixed;left:0;top:0;width:100%;height:100%;box-shadow:none;border:none}}
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <!-- left -->
+    <div class="panel">
+      <div class="brand">
+        <div class="logo">MF</div>
+        <div>
+          <h1>Ma'lumotnoma tayyorlash</h1>
+          <p class="lead">Professional, realistik dizayn — A4 bilan mos</p>
+        </div>
+      </div>
+
+      <div class="pills" id="pills"></div>
+      <div class="hint">Savollarni to'ldiring. Yuqoridagi raqamlarni bosib istalgan savolga qayta o'tishingiz mumkin.</div>
+
+      <div style="height:18px"></div>
+
+      <div class="card" id="questionCard">
+        <!-- question injected here -->
+      </div>
+
+      <div style="height:12px"></div>
+      <div class="small">Qisqacha: barcha yozuvlar MA'LUMOTNOMA da qalin (bold) ko'rinishida chiqadi. Rasm 3cm × 4cm formatida.</div>
+    </div>
+
+    <!-- right -->
+    <div class="previewWrap">
+      <div class="panel card" style="padding:12px">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div class="small">Ko'rinish (A4 preview)</div>
+          <div class="badge" id="progressBadge">1 / 16</div>
+        </div>
+
+        <div class="preview" id="docPreview">
+          <div class="docTitle">MA'LUMOTNOMA</div>
+          <div class="docName" id="previewName">Ism Familya Sharifi</div>
+
+          <div class="columns">
+            <div class="leftCol meta" id="leftMeta">
+              <!-- left meta injected -->
+              <div class="row"><b>Tug‘ulgan yili:</b> <span id="pv_birth"></span></div>
+              <div class="row"><b>Millati:</b> <span id="pv_nation"></span></div>
+              <div class="row"><b>Malumoti:</b> <span id="pv_edu"></span></div>
+              <div class="row"><b>Malumoti bo‘yicha mutaxassisligi:</b> <span id="pv_spec"></span></div>
+              <div class="row"><b>Ilmiy darajasi:</b> <span id="pv_degree"></span></div>
+              <div class="row"><b>Qaysi chet tillarini biladi:</b> <span id="pv_langs"></span></div>
+              <div class="row"><b>Davlat mukofotlari bilan taqdirlanganmi (qanaqa):</b> <span id="pv_award"></span></div>
+              <div class="row"><b>Xalq deputatlari ... a'zosimi:</b> <span id="pv_deputy"></span></div>
+            </div>
+
+            <div class="rightCol meta" id="rightMeta">
+              <div class="row"><b>Tug‘ulgan joyi:</b> <span id="pv_place"></span></div>
+              <div class="row"><b>Partiyaviyligi:</b> <span id="pv_party"></span></div>
+              <div class="row"><b>Tamomlagan:</b> <span id="pv_graduated"></span></div>
+              <div class="row"><b>Ilmiy unvoni:</b> <span id="pv_title"></span></div>
+              <div class="row"><b>Harbiy (maxsus) unvoni:</b> <span id="pv_military"></span></div>
+            </div>
+          </div>
+
+          <div class="sectionTitle">MEHNAT FAOLIYATI</div>
+          <div id="pv_career" style="min-height:90px;white-space:pre-wrap"></div>
+
+          <div class="photoBox" id="pv_photo">
+            <div class="small" style="color:#9aaedb">3cm × 4cm</div>
+          </div>
+        </div>
+
+        <div class="actions" style="margin-top:14px">
+          <button class="btn ghost" id="editBtn">Tahrirlash</button>
+          <button class="btn" id="downloadBtn" title="Word (.doc) sifatida yuklab olish">📥 Yuklab olish (.doc)</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+  /************** Questions definition **************/
+  const Q = [
+    {key:'name', title:"Ism Familya Sharifi (to'liq)", type:'text', placeholder:"Ism Familya Sharifi"},
+    {key:'birth', title:"Tug‘ulgan yili", type:'text'},
+    {key:'nation', title:"Millati", type:'text'},
+    {key:'edu', title:"Malumoti", type:'text'},
+    {key:'spec', title:"Malumoti bo'yicha mutaxassisligi", type:'text'},
+    {key:'degree', title:"Ilmiy darajasi", type:'text'},
+    {key:'langs', title:"Qaysi chet tillarini biladi", type:'checkbox', options:['Rus tili','Ingliz tili','Boshqa']},
+    {key:'award', title:"Davlat mukofotlari bilan taqdirlanganmi (qanaqa)", type:'text', placeholder:"yo'q yoki tafsilotlar"},
+    {key:'deputy', title:"Xalq deputatlari ... a'zosimi (to'liq yozing)", type:'text', placeholder:"yo'q yoki tafsilotlar"},
+    {key:'place', title:"Tug‘ulgan joyi", type:'text'},
+    {key:'party', title:"Partiyaviyligi", type:'text'},
+    {key:'graduated', title:"Tamomlagan (muassasa va yil)", type:'text'},
+    {key:'title', title:"Ilmiy unvoni", type:'text'},
+    {key:'military', title:"Harbiy (maxsus) unvoni", type:'text', placeholder:"yo'q yoki tafsilotlar"},
+    {key:'photo', title:"Rasm yuklash (3cm x 4cm)", type:'file'},
+    {key:'career', title:"MEHNAT FAOLIYATI (qisqacha)", type:'textarea'}
+  ];
+
+  /************** State **************/
+  const state = {};
+  let index = 0;
+
+  /************** Build pills **************/
+  const pillsWrap = document.getElementById('pills');
+  Q.forEach((q,i)=>{
+    const btn = document.createElement('div');
+    btn.className='pill';
+    btn.textContent = i+1;
+    btn.title = q.title;
+    btn.addEventListener('click', ()=> { index=i; renderQuestion(); });
+    pillsWrap.appendChild(btn);
+  });
+
+  /************** Render question card **************/
+  const questionCard = document.getElementById('questionCard');
+  const progressBadge = document.getElementById('progressBadge');
+
+  function renderQuestion(){
+    // badge
+    progressBadge.textContent = (index+1) + ' / ' + Q.length;
+    // pills state
+    Array.from(pillsWrap.children).forEach((p,i)=> p.classList.toggle('active', i===index));
+    const q = Q[index];
+    questionCard.innerHTML = '';
+    const title = document.createElement('div'); title.className='qtitle'; title.textContent = q.title;
+    questionCard.appendChild(title);
+
+    let control;
+    if(q.type==='text'){
+      control = document.createElement('input'); control.type='text'; control.placeholder = q.placeholder || ''; control.value = state[q.key] || '';
+      control.addEventListener('input', e=> { state[q.key]=e.target.value; updatePreview(); });
+    } else if(q.type==='textarea'){
+      control = document.createElement('textarea'); control.placeholder = q.placeholder||''; control.value = state[q.key]||'';
+      control.addEventListener('input', e=> { state[q.key]=e.target.value; updatePreview(); });
+    } else if(q.type==='file'){
+      control = document.createElement('input'); control.type='file'; control.accept='image/*';
+      control.addEventListener('change', handleFile);
+    } else if(q.type==='checkbox'){
+      control = document.createElement('div');
+      q.options.forEach(opt=>{
+        const lab = document.createElement('label'); lab.className='option';
+        const cb = document.createElement('input'); cb.type='checkbox'; cb.value=opt;
+        if((state[q.key]||[]).includes(opt)) cb.checked = true;
+        cb.addEventListener('change', ()=> {
+          const checked = Array.from(control.querySelectorAll('input[type=checkbox]:checked')).map(i=>i.value);
+          state[q.key]=checked; updatePreview();
+        });
+        lab.appendChild(cb);
+        const span = document.createElement('div'); span.textContent = opt; span.style.fontWeight='700';
+        lab.appendChild(span);
+        control.appendChild(lab);
+      });
+    }
+
+    questionCard.appendChild(control);
+
+    // nav
+    const nav = document.createElement('div'); nav.className='controls';
+    const left = document.createElement('div');
+    const btnPrev = document.createElement('button'); btnPrev.className='btn ghost'; btnPrev.textContent='Avvalgi';
+    btnPrev.onclick = ()=> { if(index>0){ index--; renderQuestion(); } };
+    left.appendChild(btnPrev);
+
+    const right = document.createElement('div');
+    const btnNext = document.createElement('button'); btnNext.className='btn'; btnNext.textContent = (index===Q.length-1 ? 'Tayyorla' : 'Keyingi');
+    btnNext.onclick = ()=> {
+      if(index < Q.length-1){ index++; renderQuestion(); } else { finish(); }
+    };
+    right.appendChild(btnNext);
+
+    nav.appendChild(left); nav.appendChild(right);
+    questionCard.appendChild(nav);
+  }
+
+  renderQuestion();
+
+  /************** File handler **************/
+  function handleFile(e){
+    const f = e.target.files[0];
+    if(!f) return;
+    const reader = new FileReader();
+    reader.onload = ev => {
+      state.photo = ev.target.result; updatePreview();
+    };
+    reader.readAsDataURL(f);
+  }
+
+  /************** Update preview **************/
+  function textOrEmpty(v){ return v? v : '' }
+  function updatePreview(){
+    document.getElementById('previewName').textContent = textOrEmpty(state.name) || 'Ism Familya Sharifi';
+    document.getElementById('pv_birth').textContent = textOrEmpty(state.birth);
+    document.getElementById('pv_nation').textContent = textOrEmpty(state.nation);
+    document.getElementById('pv_edu').textContent = textOrEmpty(state.edu);
+    document.getElementById('pv_spec').textContent = textOrEmpty(state.spec);
+    document.getElementById('pv_degree').textContent = textOrEmpty(state.degree);
+    document.getElementById('pv_langs').textContent = (state.langs||[]).join(', ');
+    document.getElementById('pv_award').textContent = textOrEmpty(state.award) || "yo'q";
+    document.getElementById('pv_deputy').textContent = textOrEmpty(state.deputy) || "yo'q";
+    document.getElementById('pv_place').textContent = textOrEmpty(state.place);
+    document.getElementById('pv_party').textContent = textOrEmpty(state.party);
+    document.getElementById('pv_graduated').textContent = textOrEmpty(state.graduated);
+    document.getElementById('pv_title').textContent = textOrEmpty(state.title);
+    document.getElementById('pv_military').textContent = textOrEmpty(state.military) || "yo'q";
+    document.getElementById('pv_career').textContent = textOrEmpty(state.career);
+
+    const photoBox = document.getElementById('pv_photo');
+    if(state.photo){
+      photoBox.innerHTML = `<img src="${state.photo}" alt="Rasm">`;
+    } else {
+      photoBox.innerHTML = `<div class="small" style="color:#9aaedb">3cm × 4cm</div>`;
+    }
+  }
+
+  /************** Finish / show preview **************/
+  function finish(){
+    // ensure preview has latest values
+    updatePreview();
+    // show preview visually by focusing it (we keep UI visible)
+    // scroll preview into view
+    document.getElementById('docPreview').scrollIntoView({behavior:'smooth'});
+  }
+
+  /************** Edit button **************/
+  document.getElementById('editBtn').addEventListener('click', ()=> {
+    // return to first question to edit
+    index = 0; renderQuestion();
+    // scroll to left panel
+    questionCard.scrollIntoView({behavior:'smooth'});
+  });
+
+  /************** Download as Word (.doc) **************/
+  function htmlToWord(docElement){
+    // Use Word-compatible HTML wrapper
+    const header = "<html xmlns:o='urn:schemas-microsoft-com:office:office' " +
+                "xmlns:w='urn:schemas-microsoft-com:office:word' " +
+                "xmlns='http://www.w3.org/TR/REC-html40'>"+
+                "<head><meta charset='utf-8'><title>Ma'lumotnoma</title></head><body>";
+    const footer = "</body></html>";
+    // Clone preview node and inline images as data URLs already handled
+    const content = document.getElementById('docPreview').outerHTML;
+    return header + content + footer;
+  }
+
+  document.getElementById('downloadBtn').addEventListener('click', ()=> {
+    // prepare final preview update
+    updatePreview();
+    const source = htmlToWord();
+    // add BOM for utf-8
+    const blob = new Blob(['\ufeff', source], {type: 'application/msword'});
+    const filename = `Ma_lumotnoma_${(state.name||'').replace(/\s+/g,'_')||'user'}.doc`;
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    // revoke after short timeout
+    setTimeout(()=> URL.revokeObjectURL(a.href), 1000);
+  });
+
+  // initialize preview with defaults
+  updatePreview();
+
+  // keyboard navigation
+  document.addEventListener('keydown', (e)=>{
+    if(e.key === 'ArrowRight') {
+      if(index < Q.length-1) { index++; renderQuestion(); }
+    } else if(e.key === 'ArrowLeft') {
+      if(index > 0) { index--; renderQuestion(); }
+    }
+  });
+
+</script>
+</body>
+</html>

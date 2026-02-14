@@ -1,0 +1,12 @@
+{
+  "channels": {},
+  "premium_users": {
+    "<ID>": {
+      "name": "<Ism>",
+      "username": "Unknown",
+      "end_date": "2026-03-16"
+    }
+  },
+  "daily_limit": 10,
+  "maintenance_mode": false
+}
