@@ -12,6 +12,7 @@ from bs4 import BeautifulSoup
 from bot.keyboards.reply_keyboards import get_back_button, get_main_menu
 from bot.utils.helpers import is_back_button
 from bot.services.ocr_service import extract_text_from_image
+from bot.utils.progress import send_progress, update_progress
 
 logger = logging.getLogger(__name__)
 
@@ -184,11 +185,8 @@ async def handle_ocr_image(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return
 
-    status_msg = await update.message.reply_text(
-        "⏳ **Rasm qabul qilindi!**\n\n"
-        "⚙️ Matn ajratilmoqda (Gemini 3 Flash)...\n"
-        "Jadvallar qayta tiklanmoqda..."
-    )
+    # Initial Progress
+    progress_msg = await send_progress(context, update.effective_chat.id, "Rasm qabul qilindi...")
     
     # Send typing action
     await context.bot.send_chat_action(chat_id=update.effective_chat.id, action=ChatAction.UPLOAD_DOCUMENT)
@@ -197,6 +195,8 @@ async def handle_ocr_image(update: Update, context: ContextTypes.DEFAULT_TYPE):
     doc_path = None
     
     try:
+        await update_progress(context, progress_msg, 10, "Fayl yuklanmoqda...")
+        
         # Get file object
         if message.document:
              file_obj = await message.document.get_file()
@@ -209,14 +209,16 @@ async def handle_ocr_image(update: Update, context: ContextTypes.DEFAULT_TYPE):
         temp_image_path = f"temp_ocr_{update.effective_user.id}_{int(time.time())}.jpg"
         await file_obj.download_to_drive(temp_image_path)
         
+        await update_progress(context, progress_msg, 40, "AI matnni o'qimoqda...")
+        
         # Extract Text (HTML format)
         extracted_text = await extract_text_from_image(temp_image_path)
         
         if not extracted_text:
-            await status_msg.edit_text("❌ **Xatolik:** Matn ajratilmadi.")
+            await progress_msg.edit_text("❌ **Xatolik:** Matn ajratilmadi.")
             return
             
-        await status_msg.edit_text("✅ **Matn ajratildi!**\n\n📄 Word xujjat yaratilmoqda...")
+        await update_progress(context, progress_msg, 70, "Word hujjat shakllantirilmoqda...")
         
         # Create Word Document
         doc = Document()
@@ -227,8 +229,9 @@ async def handle_ocr_image(update: Update, context: ContextTypes.DEFAULT_TYPE):
             add_html_to_docx(doc, extracted_text)
         except Exception as parse_err:
             logger.error(f"HTML Parse error: {parse_err}")
-            # Fallback to plain text
             doc.add_paragraph(extracted_text)
+        
+        await update_progress(context, progress_msg, 90, "Fayl yuborilmoqda...")
         
         doc_path = f"Ocr_Natija_{update.effective_user.id}.docx"
         doc.save(doc_path)
@@ -242,11 +245,11 @@ async def handle_ocr_image(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 parse_mode=ParseMode.MARKDOWN
             )
             
-        await status_msg.delete()
+        await progress_msg.delete()
         
     except Exception as e:
         logger.error(f"OCR Error: {e}", exc_info=True)
-        await status_msg.edit_text(f"❌ **Xatolik yuz berdi:** {str(e)}")
+        await progress_msg.edit_text(f"❌ **Xatolik yuz berdi:** {str(e)}")
         
     finally:
         # Cleanup

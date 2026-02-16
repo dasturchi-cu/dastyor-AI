@@ -53,20 +53,92 @@ async def admin_panel_command(update: Update, context: ContextTypes.DEFAULT_TYPE
         reply_markup=get_admin_keyboard(), parse_mode="Markdown"
     )
 
+async def send_full_stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Send full statistics with all user details"""
+    profiles = crm.get_all_profiles()
+    crm_data = crm.get_daily_crm_stats()
+    total = len(profiles)
+    
+    premiums = get_premium_users_full()
+    active_prem = sum(1 for uid in premiums if is_premium(uid))
+    total_files = sum(p.get('files_processed', 0) for p in profiles.values())
+    banned_count = sum(1 for p in profiles.values() if p.get('is_banned', False))
+    
+    # Header
+    header = (
+        f"📊 **Bot Statistikasi**\n\n"
+        f"👥 Jami obunachilar: **{total}** ta\n"
+        f"🆕 Bugungi yangi: **{crm_data['new_users']}** ta\n"
+        f"🔥 Bugungi faol: **{crm_data['active_users']}** ta\n"
+        f"💎 Premium (faol): **{active_prem}** ta\n"
+        f"📄 Jami fayllar: **{total_files}** ta\n"
+        f"🚫 Bloklangan: **{banned_count}** ta\n"
+        f"{'—' * 25}\n\n"
+    )
+    await update.message.reply_text(header, parse_mode="Markdown")
+    
+    if not profiles:
+        return
+    
+    # Sort by joined_at (newest first)
+    sorted_profiles = sorted(
+        profiles.values(),
+        key=lambda x: x.get('joined_at', ''),
+        reverse=True
+    )
+    
+    # Build user list in chunks (Telegram max 4096 chars)
+    chunk = ""
+    chunk_num = 1
+    
+    for i, p in enumerate(sorted_profiles, 1):
+        uid = p.get('id', 'N/A')
+        name = safe_md(p.get('first_name', 'Nomsiz'))
+        username = p.get('username')
+        files = p.get('files_processed', 0)
+        sessions = p.get('sessions', 0)
+        joined = p.get('joined_at', 'N/A')
+        last_active = p.get('last_active', 'N/A')
+        last_srv = safe_md(p.get('last_service', '-'))
+        is_ban = p.get('is_banned', False)
+        
+        # Premium check
+        prem_status = "💎 Ha" if is_premium(uid) else "Yo'q"
+        
+        # Name + Username
+        uname_str = f" (@{safe_md(username)})" if username else ""
+        
+        # Status icon
+        icon = "🔴" if is_ban else ("💎" if is_premium(uid) else "🟢")
+        
+        entry = (
+            f"{icon} **{i}.** {name}{uname_str}\n"
+            f"   🆔 `{uid}`\n"
+            f"   📅 Kirdi: {joined}\n"
+            f"   🕒 Faol: {last_active}\n"
+            f"   💎 Premium: {prem_status}\n"
+            f"   📄 Fayllar: {files} | 🔄 Kirdi: {sessions}\n"
+            f"   🛠 Oxirgi: {last_srv}\n\n"
+        )
+        
+        # Check if adding this entry exceeds limit
+        if len(chunk) + len(entry) > 3800:
+            await update.message.reply_text(chunk, parse_mode="Markdown")
+            chunk = ""
+            chunk_num += 1
+        
+        chunk += entry
+    
+    # Send remaining
+    if chunk:
+        await update.message.reply_text(chunk, parse_mode="Markdown")
+
 async def handle_admin_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not await is_admin(update.effective_user.id): return
     text = update.message.text
     
     if text == "📊 Statistika":
-        crm_data = crm.get_daily_crm_stats()
-        await update.message.reply_text(
-            f"📊 **Bot Statistikasi**\n\n"
-            f"👥 Yangi Foydalanuvchilar (Bugun): **{crm_data['new_users']}** ta\n"
-            f"🔥 Faol Foydalanuvchilar (Bugun): **{crm_data['active_users']}** ta\n"
-            f"💎 Premium Sotilgan (Bugun): **{crm_data['premium_sales']}** ta\n\n"
-            f"Batafsil: `/stats`",
-            parse_mode="Markdown"
-        )
+        await send_full_stats(update, context)
         
     elif text == "📨 Xabar yuborish":
         await update.message.reply_text(
@@ -91,26 +163,37 @@ async def handle_admin_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
         
     elif text == "💎 Premium Boshqaruv":
         premiums = get_premium_users_full()
-        active_list = []
-        expired_list = []
         
+        if not premiums:
+            await update.message.reply_text(
+                "💎 **Premium Foydalanuvchilar**\n\n"
+                "⚠️ Hozircha premium foydalanuvchilar yo'q.\n\n"
+                "➕ Qo'shish: `/add_premium <ID> <Kun> <Ism>`",
+                parse_mode="Markdown"
+            )
+            return
+        
+        # Build inline keyboard with premium users
+        buttons = []
         for uid, data in premiums.items():
+            name = data.get("name", "User")
             end_date = data.get("end_date", "N/A")
-            name = safe_md(data.get("name", "Unknown"))
-            info = f"👤 `{uid}` ({name}) — {end_date} gacha"
+            status = "✅" if is_premium(uid) else "❌"
             
-            if is_premium(uid):
-                active_list.append("✅ " + info)
-            else:
-                expired_list.append("❌ " + info)
+            button_text = f"{status} {name} ({uid[:8]}...) — {end_date}"
+            buttons.append([InlineKeyboardButton(button_text, callback_data=f"prem_view_{uid}")])
         
-        msg = f"💎 **Premium Foydalanuvchilar:**\n\n"
-        if active_list: msg += "**Faol:**\n" + "\n".join(active_list) + "\n\n"
-        if expired_list: msg += "**Muddati tugagan:**\n" + "\n".join(expired_list) + "\n\n"
-        if not active_list and not expired_list: msg += "Ro'yxat bo'sh.\n\n"
-            
-        msg += "➕ **Qo'shish:** `/add_premium <ID> <Kun> <Ism>`\nExample: `/add_premium 12345678 30 Ali`\n\n❌ **O'chirish:** `/remove_premium <ID>`"
-        await update.message.reply_text(msg, parse_mode="Markdown")
+        # Add "Add New" button
+        buttons.append([InlineKeyboardButton("➕ Yangi Premium Qo'shish", callback_data="prem_add_new")])
+        
+        keyboard = InlineKeyboardMarkup(buttons)
+        
+        await update.message.reply_text(
+            "💎 **Premium Foydalanuvchilar**\n\n"
+            "Boshqarish uchun foydalanuvchini tanlang:",
+            reply_markup=keyboard,
+            parse_mode="Markdown"
+        )
                
     elif text == "⚙️ Sozlamalar":
         limit = get_daily_limit()
@@ -163,13 +246,9 @@ async def show_users_list(update: Update, context: ContextTypes.DEFAULT_TYPE, pa
     for p in page_items:
         uid = p.get('id', 'N/A')
         name = safe_md(p.get('first_name', 'Unknown'))
-        username = safe_md(p.get('username'))
+        username = p.get('username')
         
-        # User Link Logic
-        if username and username != "None":
-            user_link = f"@{username}"
-        else:
-            user_link = f"[{name}](tg://user?id={uid})"
+        uname_str = f" (@{safe_md(username)})" if username else ""
         
         joined = p.get('joined_at', '').split(' ')[0]
         files = p.get('files_processed', 0)
@@ -180,7 +259,7 @@ async def show_users_list(update: Update, context: ContextTypes.DEFAULT_TYPE, pa
         elif is_premium(uid): status_icon = "💎"
         
         msg += (
-            f"{status_icon} {user_link} (`{uid}`)\n"
+            f"{status_icon} {name}{uname_str} (`{uid}`)\n"
             f"   📅 {joined} | 📄 {files} | 🔄 {sessions}\n"
         )
     
@@ -227,23 +306,21 @@ async def user_info_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     is_banned = profile.get('is_banned', False)
     
     name = safe_md(profile.get('first_name', 'Unknown'))
-    username = safe_md(profile.get('username'))
+    username = profile.get('username')
     
-    if username and username != "None":
-        link_md = f"@{username}"
-    else:
-        link_md = f"[{name}](tg://user?id={uid})"
+    uname_line = f"📱 Username: @{safe_md(username)}\n" if username else ""
             
     msg = (
         f"👤 **Foydalanuvchi Profili**\n\n"
+        f"🏷 Ism: {name}\n"
+        f"{uname_line}"
         f"🆔 ID: `{uid}`\n"
-        f"🏷 Ism: {link_md}\n"
-        f"📅 Joined: {profile.get('joined_at')}\n"
-        f"🕒 Last Active: {profile.get('last_active')}\n"
+        f"📅 Qo'shilgan: {profile.get('joined_at')}\n"
+        f"🕒 Oxirgi faol: {profile.get('last_active')}\n"
         f"🚫 Status: {'**BANNED** 🔴' if is_banned else 'ACTIVE 🟢'}\n\n"
         f"📊 **Statistika:**\n"
         f"📄 Fayllar: **{files}** ta\n"
-        f"🔄 Sessiyalar: **{sessions}** ta\n"
+        f"🔄 Kirdi: **{sessions}** marta\n"
         f"🛠 Oxirgi xizmat: **{last_srv}**\n\n"
         f"💎 **Premium Tarixi:** {prem_msg}"
     )
@@ -271,9 +348,11 @@ async def top_users_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     for i, p in enumerate(sorted_profiles, 1):
         uid = p.get('id', 'N/A')
         name = safe_md(p.get('first_name', 'Unknown'))
+        username = p.get('username')
         files = p.get('files_processed', 0)
         
-        msg += f"{i}. {name} (`{uid}`) — **{files}** ta fayl\n"
+        uname_str = f" (@{safe_md(username)})" if username else ""
+        msg += f"{i}. {name}{uname_str} (`{uid}`) — **{files}** ta fayl\n"
         
     await update.message.reply_text(msg, parse_mode="Markdown")
 
@@ -337,8 +416,7 @@ async def set_limit_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def stats_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not await is_admin(update.effective_user.id): return
-    update.message.text = "📊 Statistika"
-    await handle_admin_text(update, context)
+    await send_full_stats(update, context)
 
 async def broadcast_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Broadcast"""

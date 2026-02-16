@@ -65,6 +65,7 @@ def track_user_activity(user, command=None):
             "is_banned": False,
             "ban_reason": None,
             "ban_date": None,
+            "blocked_bot": False, # New field: User blocked bot
             "premium_history": []
         }
     else:
@@ -74,11 +75,20 @@ def track_user_activity(user, command=None):
         p["username"] = user.username
         p["last_active"] = now_str
         p["activtiy_count"] = p.get("activtiy_count", 0) + 1
+        p["blocked_bot"] = False # If they are active, they haven't blocked bot
         
         if command == "start":
             p["sessions"] = p.get("sessions", 0) + 1
         
     _save_profiles()
+
+def set_user_blocked_bot(user_id, blocked=True):
+    """Track if user blocked the bot"""
+    data = _load_profiles()
+    uid = str(user_id)
+    if uid in data:
+        data[uid]["blocked_bot"] = blocked
+        _save_profiles()
 
 def increment_file_count(user_id, service_name=None):
     """Increment file processed count"""
@@ -90,7 +100,7 @@ def increment_file_count(user_id, service_name=None):
         _save_profiles()
 
 def set_ban_status(user_id, is_banned=True, reason=None):
-    """Ban or Unban user"""
+    """Ban or Unban user (Admin action)"""
     data = _load_profiles()
     uid = str(user_id)
     if uid in data:
@@ -106,7 +116,7 @@ def set_ban_status(user_id, is_banned=True, reason=None):
     return False
 
 def is_user_banned(user_id):
-    """Check if banned"""
+    """Check if banned by admin"""
     data = _load_profiles()
     return data.get(str(user_id), {}).get("is_banned", False)
 

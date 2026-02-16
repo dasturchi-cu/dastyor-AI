@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 from telegram import Update
 from telegram.ext import (
     ApplicationBuilder, CommandHandler, MessageHandler, 
-    filters, ContextTypes, TypeHandler, CallbackQueryHandler
+    filters, ContextTypes, TypeHandler, CallbackQueryHandler, ChatMemberHandler
 )
 
 try:
@@ -19,12 +19,19 @@ from config import BOT_TOKEN, logger
 
 # Handlers
 from bot.handlers.admin import (
-    admin_panel_command, stats_command, broadcast_command, track_user,
+    admin_panel_command, stats_command, broadcast_command,
     handle_admin_text, add_channel_command, remove_channel_command,
     add_premium_command, remove_premium_command, set_limit_command,
     user_info_command, top_users_command, ban_user_command, unban_user_command,
     search_command
 )
+
+from bot.handlers.admin_middleware import track_user
+from bot.handlers.premium_callbacks import premium_callback_handler
+from bot.handlers.help import help_command
+from bot.handlers.chat_member import chat_member_updated
+from bot.handlers.common import balance_handler, contact_handler, help_button_handler
+
 
 from bot.handlers.ocr_to_word import ocr_to_word_handler as ocr_handler, handle_ocr_image as process_ocr_image
 from bot.handlers.obyektivka import obyektivka_handler, handle_obyektivka_audio as process_obyektivka_audio
@@ -200,6 +207,10 @@ def main():
     # 2. Commands
     application.add_handler(CommandHandler("start", start_command))
     application.add_handler(CommandHandler("menu", menu_command))
+    application.add_handler(CommandHandler("help", help_command))
+
+    # Track bot block/unblock
+    application.add_handler(ChatMemberHandler(chat_member_updated, ChatMemberHandler.MY_CHAT_MEMBER))
     
     # Admin Commands
     application.add_handler(CommandHandler("admin", admin_panel_command))
@@ -219,6 +230,13 @@ def main():
     application.add_handler(CommandHandler("set_limit", set_limit_command))
 
     # 3. Callback Queries
+    # Premium management callbacks (must be before generic callback handler)
+    application.add_handler(CallbackQueryHandler(
+        premium_callback_handler,
+        pattern="^prem_"
+    ))
+    
+    # Generic callback handler (for subscription checks, etc)
     application.add_handler(CallbackQueryHandler(button_callback_handler))
 
     # 4. Text Menu Navigation
@@ -227,14 +245,19 @@ def main():
     admin_buttons = "^(📊 Statistika|📨 Xabar yuborish|📢 Kanallar|💎 Premium Boshqaruv|⚙️ Sozlamalar|👥 Foydalanuvchilar|🚪 Panelni yopish)$"
     application.add_handler(MessageHandler(filters.Regex(admin_buttons), handle_admin_text))
 
-    # Features
-    application.add_handler(MessageHandler(filters.Regex("^📄 Rasm→Word AI ✨$"), ocr_handler))
-    application.add_handler(MessageHandler(filters.Regex("^📝 Obyektivka Ai ✨$"), obyektivka_handler))
-    application.add_handler(MessageHandler(filters.Regex("^🔄 Krill-lotin ✏️$"), transliterate_handler))
-    application.add_handler(MessageHandler(filters.Regex("^🌍 Tarjima fayl 📦$"), translate_handler))
-    application.add_handler(MessageHandler(filters.Regex("^🖼 Rasm→PDF$"), image_to_pdf_handler))
-    application.add_handler(MessageHandler(filters.Regex("^✍️ Imlo tekshirish ✏️$"), spell_check_handler))
-    application.add_handler(MessageHandler(filters.Regex("^💎 Premium xizmatlar 💎$"), premium_info_handler))
+    # Features (Regex must match EXACT button text from reply_keyboards.py)
+    application.add_handler(MessageHandler(filters.Regex("^Rasm→Word AI ✨$"), ocr_handler))
+    application.add_handler(MessageHandler(filters.Regex("^Obyektivka Ai ✨$"), obyektivka_handler))
+    application.add_handler(MessageHandler(filters.Regex("^Krill-lotin ✏️$"), transliterate_handler))
+    application.add_handler(MessageHandler(filters.Regex("^Tarjima fayl 📦$"), translate_handler))
+    application.add_handler(MessageHandler(filters.Regex("^Rasm→PDF$"), image_to_pdf_handler))
+    application.add_handler(MessageHandler(filters.Regex("^Imlo tekshirish ✏️$"), spell_check_handler))
+    application.add_handler(MessageHandler(filters.Regex("^Premium xizmatlar 💎$"), premium_info_handler))
+    
+    # Common Buttons
+    application.add_handler(MessageHandler(filters.Regex("^Balans 💰$"), balance_handler))
+    application.add_handler(MessageHandler(filters.Regex("^Aloqa ✉️$"), contact_handler))
+    application.add_handler(MessageHandler(filters.Regex("^Yordam 🆘$"), help_button_handler))
 
     # 5. Generic File/Text Routing (State-based)
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_router_text))

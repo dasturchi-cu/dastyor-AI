@@ -23,7 +23,8 @@ def get_main_menu():
         ],
         [
             KeyboardButton("Balans 💰"),
-            KeyboardButton("Aloqa uchun ✉️")
+            KeyboardButton("Aloqa ✉️"),
+            KeyboardButton("Yordam 🆘")
         ]
     ]
     
