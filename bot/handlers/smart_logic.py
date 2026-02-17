@@ -3,10 +3,13 @@ import os
 import time
 from telegram import Update
 from telegram.ext import ContextTypes
+from telegram.constants import ParseMode, ChatAction
 from bot.keyboards.inline_keyboards import (
     get_smart_photo_keyboard, get_smart_document_keyboard, get_smart_audio_keyboard
 )
+from bot.keyboards.reply_keyboards import get_image_to_pdf_keyboard, get_main_menu
 from bot.handlers.ocr_to_word import perform_ocr_and_send
+from bot.services.ai_service import transcribe_audio
 
 logger = logging.getLogger(__name__)
 
@@ -95,7 +98,7 @@ async def smart_callback_handler(update: Update, context: ContextTypes.DEFAULT_T
     temp_path = None
     
     try:
-        # 1. OCR (Rasm -> Word)
+        # === 1. OCR (Rasm -> Word) ===
         if data == "smart_ocr":
             await query.message.edit_text("⏳ Yuklanmoqda...")
             
@@ -111,12 +114,77 @@ async def smart_callback_handler(update: Update, context: ContextTypes.DEFAULT_T
             await perform_ocr_and_send(context, temp_path, chat_id, user_id)
             return
 
-        elif data == "smart_translate":
-             await query.message.edit_text("🌍 Tarjima funksiyasi tez orada qo'shiladi! (Beta)")
-             return
-             
+        # === 2. Image -> PDF ===
         elif data == "smart_img2pdf":
-             await query.message.edit_text("🖼 PDF ga qo'shish uchun 'Rasm->PDF' menyusidan foydalaning.")
+            # Initialize or retrieve existing PDF session
+            pdf_images = context.user_data.get("pdf_images", [])
+            pdf_images.append(file_id)
+            context.user_data["pdf_images"] = pdf_images
+            context.user_data["waiting_for"] = "pdf_images"
+            
+            # Delete "Smart Menu" message
+            await query.message.delete()
+            
+            # Send standard "Image to PDF" interface
+            await context.bot.send_message(
+                chat_id=chat_id,
+                text=(
+                    f"✅ Rasm PDF ro'yxatiga qo'shildi ({len(pdf_images)} ta).\n\n"
+                    "Yana rasm yuboring (ketma-ket) yoki tayyor bo'lsa **'Tayyor'** tugmasini bosing."
+                ),
+                reply_markup=get_image_to_pdf_keyboard(),
+                parse_mode="Markdown"
+            )
+            return
+
+        # === 3. Transcribe (Audio -> Text) ===
+        elif data == "smart_transcribe":
+            await query.message.edit_text("⏳ Audio yuklanmoqda va transkripsiya qilinmoqda...")
+            
+            # Download file
+            file_obj = await context.bot.get_file(file_id)
+            temp_path = f"smart_audio_{user_id}_{int(time.time())}.ogg"
+            await file_obj.download_to_drive(temp_path)
+            
+            # Transcribe
+            text = await transcribe_audio(temp_path)
+            
+            # Send result
+            await query.message.delete()
+            await context.bot.send_message(
+                chat_id=chat_id,
+                text=f"📝 **Transkripsiya:**\n\n{text}",
+                parse_mode="Markdown",
+                reply_markup=get_main_menu()
+            )
+            return
+
+        # === 4. Obyektivka (Audio -> Obyektivka) ===
+        elif data == "smart_obyektivka_audio":
+            # Pass to Obyektivka handler logic
+            # Since obyektivka handler is complex (state machine), we might need to "fake" it or call a service.
+            # For now, let's keep it simple: Just transcribe and say "Here is text, you can copy it to Obyektivka menu".
+            # Or better: Set state to 'obyektivka_audio' -> but we already have the file.
+            
+            # Let's use internal logic:
+            from bot.handlers.obyektivka import process_obyektivka_from_audio_path
+            
+            await query.message.edit_text("⏳ Audio tahlil qilinmoqda...")
+             # Download file
+            file_obj = await context.bot.get_file(file_id)
+            temp_path = f"smart_oby_audio_{user_id}_{int(time.time())}.ogg"
+            await file_obj.download_to_drive(temp_path)
+            
+            await query.message.delete()
+            await process_obyektivka_from_audio_path(context, temp_path, chat_id, user_id)
+            return
+            
+        # === 5. Translate (Doc -> Doc) ===
+        elif data == "smart_translate":
+             # We need to ask for direction.
+             # This requires a new Inline Keyboard for language selection specific to Smart Router.
+             # For now, let's just use default "Uzbek -> English" or tell user to use menu.
+             await query.message.edit_text("🌍 Tarjima funksiyasi menyu orqali mavjud. Iltimos, 'Tarjima fayl' bo'limini tanlang.")
              return
 
         # ... other handlers ...
@@ -128,9 +196,7 @@ async def smart_callback_handler(update: Update, context: ContextTypes.DEFAULT_T
         await query.message.edit_text(f"❌ Xatolik: {e}")
         
     finally:
-        # Cleanup if temp_path was created and used inside local scope (if passed away, cleanup there)
-        # perform_ocr_and_send does NOT delete input file (it takes path).
-        # We need to delete it here.
+        # Cleanup
         if temp_path and os.path.exists(temp_path):
             try: os.remove(temp_path)
             except: pass

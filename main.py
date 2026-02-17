@@ -93,7 +93,9 @@ async def handle_router_text(update: Update, context: ContextTypes.DEFAULT_TYPE)
     if not await unified_router_check(update, context): return
     
     state = context.user_data.get('waiting_for')
+    text = update.message.text.lower()
     
+    # 1. State-based routing
     if state == 'transliterate_text' or context.user_data.get('transliterate_direction'):
          await process_transliterate(update, context)
          increment_file_count(update.effective_user.id, "Transliterate Text")
@@ -102,7 +104,34 @@ async def handle_router_text(update: Update, context: ContextTypes.DEFAULT_TYPE)
          await process_image_to_pdf(update, context)
          return
 
-    await update.message.reply_text("❓ Iltimos, menyudan bo'lim tanlang.", reply_markup=get_main_menu())
+    # 2. NLP / Keyword Routing
+    if 'obyektivka' in text or 'resume' in text or 'cv' in text or "ma'lumotnoma" in text:
+        await update.message.reply_text("🤖 Tushundim! **Obyektivka** xizmatini ochyapman...")
+        await obyektivka_handler(update, context)
+        return
+
+    elif 'ocr' in text or 'word' in text or ('rasm' in text and 'matn' in text):
+        await update.message.reply_text("🤖 Tushundim! **Rasm -> Word** xizmatini ochyapman...")
+        await ocr_handler(update, context)
+        return
+
+    elif 'pdf' in text and 'rasm' in text:
+        await update.message.reply_text("🤖 Tushundim! **Rasm -> PDF** xizmatini ochyapman...")
+        await image_to_pdf_handler(update, context)
+        return
+
+    elif 'tarjima' in text or 'translate' in text:
+        await update.message.reply_text("🤖 Tushundim! **Tarjima** xizmatini ochyapman...")
+        await translate_handler(update, context)
+        return
+    
+    elif 'imlo' in text or 'tekshir' in text:
+        await update.message.reply_text("🤖 Tushundim! **Imlo tekshirish** xizmatini ochyapman...")
+        await spell_check_handler(update, context)
+        return
+
+    # 3. Fallback
+    await update.message.reply_text("❓ Tushunmadim. Menyudan bo'lim tanlang yoki aniqroq yozing.", reply_markup=get_main_menu())
 
 async def handle_router_doc(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not await unified_router_check(update, context): return

@@ -1,26 +1,98 @@
-from telegram import Update
+from telegram import Update, InputFile
 from telegram.ext import ContextTypes
-from bot.keyboards.reply_keyboards import get_back_button
+from bot.keyboards.reply_keyboards import get_back_button, get_main_menu
 import os
+import time
 import logging
+from bot.utils.progress import send_progress, update_progress
+from bot.services.ai_service import transcribe_audio, extract_obyektivka_data
+from bot.services.doc_generator import generate_obyektivka_docx
 
 logger = logging.getLogger(__name__)
 
+async def process_obyektivka_from_audio_path(context, audio_path, chat_id, user_id):
+    """
+    Core logic: Transcribe -> Extract Data -> Generate DOCX -> Send
+    """
+    # Initial Progress
+    progress_msg = await send_progress(context, chat_id, "Audio tahlil qilinmoqda...")
+    temp_docx = None
+    
+    try:
+        await update_progress(context, progress_msg, 20, "Matn o'qilmoqda (Whisper)...")
+        
+        # 1. Transcribe
+        transcribed_text = await transcribe_audio(audio_path)
+        
+        # Cleanup audio (optional, but good practice here if it was temp)
+        # But caller might want to keep it. Let's not delete audio here. Or maybe we should?
+        # Let caller handle audio deletion.
+        
+        if not transcribed_text:
+            await progress_msg.edit_text("❌ Audio tushunarsiz. Iltimos, aniqroq gapiring.")
+            return
+
+        await update_progress(context, progress_msg, 50, "Ma'lumotlar ajratilmoqda (AI)...")
+        
+        # 2. Extract Data
+        extracted_data = await extract_obyektivka_data(transcribed_text)
+        
+        if not extracted_data:
+            await progress_msg.edit_text("❌ Ma'lumotlarni ajratib bo'lmadi. To'liqroq gapirib bering.")
+            return
+            
+        summary = (
+            f"✅ **Ma'lumotlar topildi:**\n"
+            f"👤 {extracted_data.get('fullname', 'N/A')}\n"
+            f"📅 {extracted_data.get('birthdate', 'N/A')}\n"
+            f"📍 {extracted_data.get('birthplace', 'N/A')}\n"
+            f"🎓 {extracted_data.get('education', 'N/A')}"
+        )
+        
+        await update_progress(context, progress_msg, 80, "Hujjat tayyorlanmoqda (DOCX)...")
+        
+        # 3. Generate DOCX
+        temp_docx = generate_obyektivka_docx(extracted_data)
+        
+        if not temp_docx or not os.path.exists(temp_docx):
+            await progress_msg.edit_text("❌ Hujjat yaratishda xatolik.")
+            return
+
+        # 4. Send Document
+        await update_progress(context, progress_msg, 100, "Yuborilmoqda...")
+        
+        with open(temp_docx, 'rb') as f:
+            await context.bot.send_document(
+                chat_id=chat_id,
+                document=InputFile(f, filename=os.path.basename(temp_docx)),
+                caption=f"{summary}\n\n✅ **Obyektivka tayyor!**",
+                parse_mode="Markdown"
+            )
+            
+        await progress_msg.delete()
+        
+    except Exception as e:
+        logger.error(f"Obyektivka Process Error: {e}", exc_info=True)
+        await progress_msg.edit_text(f"❌ Xatolik: {e}")
+        
+    finally:
+        # Cleanup DOCX
+        try:
+            if temp_docx and os.path.exists(temp_docx):
+                os.remove(temp_docx)
+        except: pass
+
+
 async def obyektivka_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
-    Handle Obyektivka AI module.
-    Opens Web App for intelligent resume/CV generation.
+    Handle Obyektivka AI module entry point.
     """
     instruction_text = (
         "📄 **Obyektivka AI**\n\n"
-        "Ushbu xizmat orqali siz:\n"
-        "1️⃣ Audio xabar yuboring (malumotlaringizni o'qib bering)\n"
+        "1️⃣ Audio xabar yuboring (ma'lumotlaringizni o'qib bering)\n"
         "2️⃣ AI avtomatik ma'lumotlarni ajratadi\n"
-        "3️⃣ Shablon to'ldiriladi va preview ko'rsatiladi\n"
-        "4️⃣ DOCX va PDF formatda yuklab olasiz\n\n"
-        "💡 **Maslahat:** Aniq va ravshan gapiring, shovqinli joyda yozishdan saqlaning.\n\n"
-        "🎙 **Namuna:** 'Mening ismim Aliyev Ali, 1990-yil 15-mayda Toshkentda tug'ilganman...'\n\n"
-        "Endi audio xabar yuboring."
+        "3️⃣ Tayyor DOCX fayl olasiz\n\n"
+        "🎙 **Namuna:** 'Mening ismim Aliyev Ali, 1990-yil 15-mayda Toshkentda tug'ilganman...'"
     )
     
     await update.message.reply_text(
@@ -29,126 +101,50 @@ async def obyektivka_handler(update: Update, context: ContextTypes.DEFAULT_TYPE)
         parse_mode="Markdown"
     )
     
-    # Set user state to wait for audio
+    # Set user state
     context.user_data['waiting_for'] = 'obyektivka_audio'
 
 
 async def handle_obyektivka_audio(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Process audio for obyektivka generation using OpenAI Whisper"""
+    """Process audio upload from menu flow"""
+    message = update.message
     
-    if not (update.message.voice or update.message.audio):
-        await update.message.reply_text(
-            "❌ Iltimos, audio xabar yuboring (voice yoki audio fayl)."
-        )
+    if not (message.voice or message.audio):
+        await message.reply_text("❌ Iltimos, audio xabar yuboring.")
         return
     
-    await update.message.reply_text(
-        "🎙 Audio qabul qilindi!\n\n"
-        "⏳ Speech-to-Text jarayoni boshlandi...\n"
-        "Iltimos, kuting (taxminan 10-30 soniya)."
-    )
+    msg = await message.reply_text("⏳ Audio yuklanmoqda...")
+    audio_path = None
     
     try:
         # Get audio file
-        if update.message.voice:
-            audio_file = await update.message.voice.get_file()
-            file_extension = "ogg"
+        if message.voice:
+            audio_file = await message.voice.get_file()
+            ext = "ogg"
         else:
-            audio_file = await update.message.audio.get_file()
-            file_extension = "mp3"
+            audio_file = await message.audio.get_file()
+            ext = "mp3"
         
-        # Download audio
-        audio_path = f"temp_audio_{update.effective_user.id}.{file_extension}"
+        audio_path = f"temp_oby_{update.effective_user.id}_{int(time.time())}.{ext}"
         await audio_file.download_to_drive(audio_path)
         
-        # Transcribe using OpenAI Whisper
-        from bot.services.ai_service import transcribe_audio, extract_obyektivka_data
+        await msg.delete()
         
-        transcribed_text = await transcribe_audio(audio_path)
-        
-        # Clean up temp file (with retry)
-        try:
-            if os.path.exists(audio_path):
-                time.sleep(0.5)  # Wait a bit before deletion
-                os.remove(audio_path)
-                logger.info(f"Deleted temp audio: {audio_path}")
-        except Exception as cleanup_err:
-            logger.warning(f"Could not delete temp file: {cleanup_err}")
-        
-        if not transcribed_text:
-            await update.message.reply_text(
-                "❌ Audio tanilmadi. Iltimos, qaytadan urinib ko'ring:\n"
-                "• Aniqroq gapiring\n"
-                "• Shovqinsiz joyda yozib oling\n"
-                "• Audio sifatini yaxshilang"
-            )
-            return
-        
-        # Show transcribed text
-        await update.message.reply_text(
-            f"✅ Audio matnga o'tkazildi!\n\n"
-            f"📝 **Matn:**\n{transcribed_text[:500]}{'...' if len(transcribed_text) > 500 else ''}\n\n"
-            "⏳ Ma'lumotlar ajratilmoqda..."
-        )
-        
-        # Extract structured data using GPT
-        extracted_data = await extract_obyektivka_data(transcribed_text)
-        
-        if extracted_data:
-            # Format extracted data for display
-            summary = f"""
-✅ **Ma'lumotlar ajratildi!**
-
-👤 **FIO:** {extracted_data.get('fullname', 'N/A')}
-📅 **Tug'ilgan:** {extracted_data.get('birthdate', 'N/A')}
-📍 **Joyi:** {extracted_data.get('birthplace', 'N/A')}
-🎓 **Ma'lumot:** {extracted_data.get('education', 'N/A')}
-
-📄 Hujjat tayyorlanmoqda...
-"""
-            await update.message.reply_text(summary)
-            
-            # Generate DOCX document
-            from bot.services.doc_generator import generate_obyektivka_docx
-            
-            await update.message.reply_text("📄 Hujjat generatsiya qilinmoqda...")
-            
-            try:
-                docx_path = generate_obyektivka_docx(extracted_data)
-                
-                if os.path.exists(docx_path):
-                    await update.message.reply_document(
-                        document=open(docx_path, 'rb'),
-                        caption="✅ Obyektivka tayyor (DOCX)",
-                        filename=os.path.basename(docx_path)
-                    )
-                    # Cleanup
-                    # os.remove(docx_path) # Keep for debugging if needed, or remove
-                else:
-                     await update.message.reply_text("❌ Hujjat yaratishda xatolik: fayl topilmadi")
-
-            except Exception as e:
-                logger.error(f"Doc gen error: {e}")
-                await update.message.reply_text(f"❌ Hujjat yaratishda xatolik: {e}")
-            
-            await update.message.reply_text(
-                "PDF versiyasi tez orada qo'shiladi.\n"
-                "Yana biror xizmat kerakmi?",
-                reply_markup=get_back_button()
-            )
-        else:
-            await update.message.reply_text(
-                "❌ Ma'lumotlarni ajratib bo'lmadi.\n"
-                "Iltimos, to'liqroq ma'lumot bering va qaytadan urinib ko'ring."
-            )
+        # Process
+        await process_obyektivka_from_audio_path(context, audio_path, update.effective_chat.id, update.effective_user.id)
         
     except Exception as e:
-        logger.error(f"Obyektivka audio processing error: {e}")
-        await update.message.reply_text(
-            "❌ Xatolik yuz berdi. Iltimos, qaytadan urinib ko'ring.\n"
-            f"Xatolik: {str(e)[:100]}"
-        )
-    
+        logger.error(f"Upload Error: {e}")
+        await msg.edit_text(f"❌ Yuklashda xato: {e}")
+        
     finally:
-        # Clear state
-        context.user_data.pop('waiting_for', None)
+        # Cleanup audio
+        try:
+            if audio_path and os.path.exists(audio_path):
+                os.remove(audio_path)
+        except: pass
+        
+        # Clear state handles by logic inside or caller?
+        # Let's keep state unless back button pressed. BUT user might want to try again.
+        # Usually we clear state only on success or back.
+        # Let's leave it.
