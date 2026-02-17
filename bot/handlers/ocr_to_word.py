@@ -4,6 +4,7 @@ OCR to Word AI Handler (HTML Table Support)
 import os
 import time
 import logging
+import asyncio
 from telegram import Update, InputFile
 from telegram.ext import ContextTypes
 from telegram.constants import ParseMode, ChatAction
@@ -14,56 +15,21 @@ from bot.utils.helpers import is_back_button
 from bot.services.ocr_service import extract_text_from_image
 from bot.utils.progress import send_progress, update_progress
 
-logger = logging.getLogger(__name__)
-
-async def ocr_to_word_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Start OCR process explanation"""
-    user_id = update.message.from_user.id
-    
-    # Check if back button pressed
-    if is_back_button(update.message.text):
-        if 'waiting_for' in context.user_data:
-            del context.user_data['waiting_for']
-            
-        await update.message.reply_text(
-            "🏠 **Asosiy menyuga qaytildi**",
-            reply_markup=get_main_menu(),
-            parse_mode=ParseMode.MARKDOWN
-        )
-        return
-
-    instruction_text = (
-        "📸 **Rasm → Word AI**\n\n"
-        "Bu xizmat orqali rasm ichidagi matnni Word hujjatiga o'tkazish mumkin.\n\n"
-        "✨ **Afzalliklar:**\n"
-        "• Shrift saqlanadi\n"
-        "• Jadvallar tuzilishi saqlanadi (HTML based)\n"
-        "• Ustun va satrlar to'g'ri joylashadi\n\n"
-        "📤 **Davom etish:**\n"
-        "Menga rasm yuboring (JPG, PNG). Hozircha bitta rasm qabul qilaman."
-    )
-    
-    await update.message.reply_text(
-        instruction_text,
-        reply_markup=get_back_button(),
-        parse_mode=ParseMode.MARKDOWN
-    )
-    
-    context.user_data['waiting_for'] = 'ocr_image'
-
-
 from docx.shared import Inches, Cm
 from docx.enum.text import WD_ALIGN_PARAGRAPH
+
+logger = logging.getLogger(__name__)
 
 def add_html_to_docx(doc, html_content):
     """Parses HTML and maps it to Word layout (tables, widths, alignment)"""
     
     # Set Narrow Margins (1.27 cm) for better 1:1 fit
-    section = doc.sections[0]
-    section.left_margin = Cm(1.27)
-    section.right_margin = Cm(1.27)
-    section.top_margin = Cm(1.27)
-    section.bottom_margin = Cm(1.27)
+    if doc.sections:
+        section = doc.sections[0]
+        section.left_margin = Cm(1.27)
+        section.right_margin = Cm(1.27)
+        section.top_margin = Cm(1.27)
+        section.bottom_margin = Cm(1.27)
     
     soup = BeautifulSoup(html_content, 'html.parser')
     
@@ -99,55 +65,28 @@ def add_html_to_docx(doc, html_content):
                             width_val = total_width * (percent / 100)
                             # Apply to all cells in this column
                             for r_idx in range(len(rows)):
-                                try:
-                                    table.cell(r_idx, j).width = width_val
-                                except: pass
-                except Exception as w_err:
-                     logger.warning(f"Width error: {w_err}")
+                                table.cell(r_idx, j).width = width_val
+                except: pass
 
+                # Fill data
                 for i, row in enumerate(rows):
                     cols = row.find_all(['td', 'th'])
                     for j, col in enumerate(cols):
                         if j < max_cols:
                             cell = table.cell(i, j)
-                            # Clear default paragraph
-                            cell._element.clear_content()
-                            p = cell.add_paragraph()
-                            
-                            text = col.get_text(strip=True)
-                            if not text: continue
-                            
-                            run = p.add_run(text)
-                            
-                            if col.find('b') or col.name == 'th':
-                                run.bold = True
-                            
-                            align = col.get('align', '').lower()
-                            if align == 'center':
-                                p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-                            elif align == 'right':
-                                p.alignment = WD_ALIGN_PARAGRAPH.RIGHT
-
-        elif element.name in ['p', 'div', 'h1', 'h2', 'h3', 'h4']:
-            p = doc.add_paragraph()
+                            cell.text = col.get_text(strip=True)
+        
+        elif element.name in ['p', 'h1', 'h2', 'h3', 'div']:
             text = element.get_text(strip=True)
             if not text: continue
             
-            run = p.add_run(text)
+            style = 'Normal'
+            if element.name == 'h1': style = 'Heading 1'
+            elif element.name == 'h2': style = 'Heading 2'
             
-            # Handle Headers
-            if element.name == 'h1':
-                p.style = 'Heading 1'
-            elif element.name == 'h2':
-                p.style = 'Heading 2'
-            elif element.name == 'h3':
-                p.style = 'Heading 3'
+            p = doc.add_paragraph(text, style=style)
             
-            # Handle Bold
-            if element.name == 'b' or element.find('b'):
-                run.bold = True
-                
-            # Handle Alignment
+            # Check alignment
             align = element.get('align', '').lower()
             if align == 'center':
                 p.alignment = WD_ALIGN_PARAGRAPH.CENTER
@@ -163,56 +102,19 @@ def add_html_to_docx(doc, html_content):
                 doc.add_paragraph(li.get_text(strip=True), style='List Number')
 
 
-async def handle_ocr_image(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Handle the uploaded image for OCR"""
-    message = update.message
-    
-    # Check if back button
-    if message.text and is_back_button(message.text):
-        del context.user_data['waiting_for']
-        await update.message.reply_text(
-            "🏠 **Asosiy menyuga qaytildi**",
-            reply_markup=get_main_menu(),
-            parse_mode=ParseMode.MARKDOWN
-        )
-        return
-
-    # Check if photo received
-    if not message.photo and not message.document:
-        await update.message.reply_text(
-            "⚠️ Iltimos, rasm yuboring (JPG yoki PNG formatda).",
-            reply_markup=get_back_button()
-        )
-        return
-
+async def perform_ocr_and_send(context, image_path, chat_id, user_id):
+    """
+    Reusable function: Takes image path, performs OCR, creates Word doc, and sends it.
+    """
     # Initial Progress
-    progress_msg = await send_progress(context, update.effective_chat.id, "Rasm qabul qilindi...")
-    
-    # Send typing action
-    await context.bot.send_chat_action(chat_id=update.effective_chat.id, action=ChatAction.UPLOAD_DOCUMENT)
-
-    temp_image_path = None
+    progress_msg = await send_progress(context, chat_id, "Jarayon boshlandi...")
     doc_path = None
     
     try:
-        await update_progress(context, progress_msg, 10, "Fayl yuklanmoqda...")
-        
-        # Get file object
-        if message.document:
-             file_obj = await message.document.get_file()
-             file_name = message.document.file_name or "image.jpg"
-        else:
-             file_obj = await message.photo[-1].get_file()
-             file_name = f"image_{message.id}.jpg"
-
-        # Download file
-        temp_image_path = f"temp_ocr_{update.effective_user.id}_{int(time.time())}.jpg"
-        await file_obj.download_to_drive(temp_image_path)
-        
-        await update_progress(context, progress_msg, 40, "AI matnni o'qimoqda...")
+        await update_progress(context, progress_msg, 20, "AI matnni o'qimoqda...")
         
         # Extract Text (HTML format)
-        extracted_text = await extract_text_from_image(temp_image_path)
+        extracted_text = await extract_text_from_image(image_path)
         
         if not extracted_text:
             await progress_msg.edit_text("❌ **Xatolik:** Matn ajratilmadi.")
@@ -233,15 +135,15 @@ async def handle_ocr_image(update: Update, context: ContextTypes.DEFAULT_TYPE):
         
         await update_progress(context, progress_msg, 90, "Fayl yuborilmoqda...")
         
-        doc_path = f"Ocr_Natija_{update.effective_user.id}.docx"
+        doc_path = f"Ocr_Natija_{user_id}_{int(time.time())}.docx"
         doc.save(doc_path)
         
         # Send Document
         with open(doc_path, 'rb') as f:
-            await update.message.reply_document(
+            await context.bot.send_document(
+                chat_id=chat_id,
                 document=InputFile(f, filename=doc_path),
                 caption="✅ **Marhamat!**\n\nSizning hujjatingiz tayyor.",
-                reply_markup=get_back_button(),
                 parse_mode=ParseMode.MARKDOWN
             )
             
@@ -254,9 +156,82 @@ async def handle_ocr_image(update: Update, context: ContextTypes.DEFAULT_TYPE):
     finally:
         # Cleanup
         try:
-            if temp_image_path and os.path.exists(temp_image_path):
-                os.remove(temp_image_path)
             if doc_path and os.path.exists(doc_path):
                 os.remove(doc_path)
-        except Exception:
-            pass
+        except Exception: pass
+
+
+async def ocr_to_word_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Start OCR process explanation"""
+    # Simply set state
+    context.user_data['waiting_for'] = 'ocr_image'
+    
+    msg = (
+        "📸 **Rasm → Word AI**\n\n"
+        "Rasmni yuboring, men uni Word hujjatga aylantirib beraman."
+    )
+    await update.message.reply_text(
+        msg,
+        reply_markup=get_back_button(),
+        parse_mode=ParseMode.MARKDOWN
+    )
+
+
+async def handle_ocr_image(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Handle image upload (Direct menu usage)"""
+    message = update.message
+    
+    # Check if back button
+    if message.text and is_back_button(message.text):
+        del context.user_data['waiting_for']
+        await update.message.reply_text(
+            "🏠 **Asosiy menyuga qaytildi**",
+            reply_markup=get_main_menu(),
+            parse_mode=ParseMode.MARKDOWN
+        )
+        return
+
+    if not message.photo and not message.document:
+        await update.message.reply_text(
+            "⚠️ Iltimos, rasm yuboring (JPG yoki PNG formatda).",
+            reply_markup=get_back_button()
+        )
+        return
+
+    # Send typing action
+    await context.bot.send_chat_action(chat_id=update.effective_chat.id, action=ChatAction.UPLOAD_DOCUMENT)
+    
+    # Inform user about download
+    temp_msg = await update.message.reply_text("⏳ Rasm yuklanmoqda...")
+
+    temp_image_path = None
+    
+    try:
+        # Get file object
+        if message.document:
+             file_obj = await message.document.get_file()
+             file_name = message.document.file_name or "image.jpg"
+        else:
+             file_obj = await message.photo[-1].get_file()
+             file_name = f"image_{message.id}.jpg"
+
+        # Download file
+        temp_image_path = f"temp_ocr_{update.effective_user.id}_{int(time.time())}.jpg"
+        await file_obj.download_to_drive(temp_image_path)
+        
+        # Delete temp msg because perform_ocr_and_send creates its own progress bar
+        await temp_msg.delete()
+        
+        # Process
+        await perform_ocr_and_send(context, temp_image_path, update.effective_chat.id, update.effective_user.id)
+        
+    except Exception as e:
+        logger.error(f"Download Error: {e}", exc_info=True)
+        await temp_msg.edit_text(f"❌ Yuklashda xato: {e}")
+        
+    finally:
+        # Cleanup temp image
+        try:
+            if temp_image_path and os.path.exists(temp_image_path):
+                os.remove(temp_image_path)
+        except Exception: pass

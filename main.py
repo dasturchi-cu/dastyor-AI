@@ -41,6 +41,9 @@ from bot.handlers.image_to_pdf import image_to_pdf_handler, collect_pdf_images a
 from bot.handlers.spell_check import spell_check_handler, process_spell_check
 from bot.handlers.start import start_command, menu_command
 from bot.keyboards.reply_keyboards import get_main_menu, get_back_button
+from bot.handlers.smart_logic import (
+    handle_smart_photo, handle_smart_document, handle_smart_audio, smart_callback_handler
+)
 
 # Services
 from bot.services.usage_tracker import can_use as check_usage_limit, increment_usage
@@ -117,7 +120,8 @@ async def handle_router_doc(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await process_spell_check(update, context)
         increment_file_count(uid, "Spell Check")
     else:
-        await update.message.reply_text("❓ Bu faylni nima qilish kerak? Avval menyudan bo'limni tanlang.")
+        # Smart Logic
+        await handle_smart_document(update, context)
 
 async def handle_router_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not await unified_router_check(update, context): return
@@ -132,7 +136,8 @@ async def handle_router_photo(update: Update, context: ContextTypes.DEFAULT_TYPE
         await process_image_to_pdf(update, context)
         increment_file_count(uid, "Image to PDF")
     else:
-        await update.message.reply_text("❓ Rasmni nima qilay? Menyudan 'Rasm→Word' yoki 'Rasm→PDF' ni tanlang.")
+        # Smart Logic
+        await handle_smart_photo(update, context)
 
 async def handle_router_audio(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not await unified_router_check(update, context): return
@@ -144,8 +149,9 @@ async def handle_router_audio(update: Update, context: ContextTypes.DEFAULT_TYPE
         await process_obyektivka_audio(update, context)
         increment_file_count(uid, "Obyektivka Audio")
     else:
-        from bot.services.ai_service import transcribe_audio
-        msg = await update.message.reply_text("🎤 Audio qabul qilindi. Transkripsiya qilinmoqda...")
+        # Smart Logic
+        await handle_smart_audio(update, context)
+        # ...
         try:
             if not is_premium(uid) and not check_usage_limit(uid):
                 await msg.edit_text("❌ Kunlik limit tugadi. Premium oling: /admin")
@@ -235,6 +241,9 @@ def main():
         premium_callback_handler,
         pattern="^prem_"
     ))
+    
+    # Smart Router Callbacks
+    application.add_handler(CallbackQueryHandler(smart_callback_handler, pattern="^smart_"))
     
     # Generic callback handler (for subscription checks, etc)
     application.add_handler(CallbackQueryHandler(button_callback_handler))
