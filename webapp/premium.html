@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="uz">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Premium | LASHBOT AI</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap"
+        rel="stylesheet" />
+    <link rel="stylesheet" href="style.css" />
+    <style>
+        .prem-page {
+            min-height: 100vh;
+            position: relative;
+            z-index: 1;
+            padding: 100px 24px 60px;
+        }
+
+        .prem-hero {
+            text-align: center;
+            margin-bottom: 64px;
+        }
+
+        .prem-hero h1 {
+            font-size: clamp(32px, 5vw, 56px);
+            font-weight: 900;
+            color: white;
+            margin: 16px 0;
+        }
+
+        .prem-hero p {
+            color: #94a3b8;
+            font-size: 17px;
+            max-width: 500px;
+            margin: 0 auto;
+        }
+
+        .plans-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 24px;
+            max-width: 960px;
+            margin: 0 auto 64px;
+        }
+
+        .plan-card {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 24px;
+            padding: 36px;
+            transition: all 0.3s;
+        }
+
+        .plan-card:hover {
+            transform: translateY(-6px);
+        }
+
+        .plan-card.popular {
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.12), rgba(29, 78, 216, 0.08));
+            border-color: rgba(59, 130, 246, 0.3);
+            position: relative;
+        }
+
+        .pop-badge {
+            position: absolute;
+            top: -14px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 6px 20px;
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+            border-radius: 50px;
+            font-size: 12px;
+            font-weight: 700;
+            color: white;
+            white-space: nowrap;
+        }
+
+        .plan-name {
+            font-size: 14px;
+            font-weight: 700;
+            color: #94a3b8;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 16px;
+        }
+
+        .plan-price {
+            display: flex;
+            align-items: baseline;
+            gap: 6px;
+            margin-bottom: 24px;
+        }
+
+        .plan-curr {
+            font-size: 14px;
+            color: #64748b;
+        }
+
+        .plan-amt {
+            font-size: 42px;
+            font-weight: 900;
+            color: white;
+        }
+
+        .plan-per {
+            font-size: 14px;
+            color: #64748b;
+        }
+
+        .plan-feats {
+            margin-bottom: 28px;
+        }
+
+        .plan-feat {
+            padding: 10px 0;
+            color: #94a3b8;
+            font-size: 14px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .plan-feat b {
+            color: white;
+        }
+
+        .plan-btn {
+            display: block;
+            padding: 14px;
+            border-radius: 14px;
+            font-weight: 700;
+            font-size: 15px;
+            text-align: center;
+            text-decoration: none;
+            transition: all 0.3s;
+            cursor: pointer;
+            border: none;
+            width: 100%;
+        }
+
+        .plan-btn.blue {
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+            color: white;
+            box-shadow: 0 8px 30px rgba(59, 130, 246, 0.4);
+        }
+
+        .plan-btn.blue:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 40px rgba(59, 130, 246, 0.6);
+        }
+
+        .plan-btn.ghost {
+            background: rgba(255, 255, 255, 0.06);
+            color: white;
+        }
+
+        .plan-btn.ghost:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .pay-section {
+            max-width: 640px;
+            margin: 0 auto;
+            text-align: center;
+        }
+
+        .pay-section h3 {
+            font-size: 22px;
+            font-weight: 700;
+            color: white;
+            margin-bottom: 8px;
+        }
+
+        .pay-section p {
+            color: #94a3b8;
+            margin-bottom: 24px;
+        }
+
+        .pay-methods {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            justify-content: center;
+        }
+
+        .pay-method {
+            padding: 14px 28px;
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 14px;
+            color: white;
+            font-weight: 600;
+            font-size: 15px;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+
+        .pay-method:hover {
+            border-color: rgba(59, 130, 246, 0.4);
+            background: rgba(59, 130, 246, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: #60a5fa;
+            text-decoration: none;
+            font-size: 14px;
+        }
+
+        .gold-glow {
+            color: #f59e0b;
+        }
+    </style>
+</head>
+
+<body>
+    <canvas id="particles"></canvas>
+    <nav class="navbar scrolled" id="navbar">
+        <div class="nav-inner">
+            <a href="index.html" class="nav-logo">
+                <div class="logo-icon">
+                    <svg width="22" height="22" viewBox="0 0 28 28" fill="none">
+                        <circle cx="14" cy="14" r="14" fill="url(#l1)" />
+                        <path d="M8 14h12M14 8v12" stroke="white" stroke-width="2.5" stroke-linecap="round" />
+                        <defs>
+                            <linearGradient id="l1" x1="0" y1="0" x2="28" y2="28">
+                                <stop stop-color="#3b82f6" />
+                                <stop offset="1" stop-color="#1d4ed8" />
+                            </linearGradient>
+                        </defs>
+                    </svg>
+                </div>
+                <span>LASHBOT <b>AI</b></span>
+            </a>
+            <a href="index.html" class="back-link">← Bosh sahifa</a>
+        </div>
+    </nav>
+    <div class="prem-page">
+        <div class="prem-hero">
+            <span class="sec-badge"
+                style="background:rgba(245,158,11,0.1);border-color:rgba(245,158,11,0.25);color:#f59e0b;">⭐
+                Premium</span>
+            <h1>Pro <span class="gradient-text">Imkoniyatlar</span></h1>
+            <p>Cheksiz xizmatlar uchun eng qulay tarifni tanlang</p>
+        </div>
+
+        <div class="plans-grid">
+            <!-- Free -->
+            <div class="plan-card">
+                <div class="plan-name">Bepul</div>
+                <div class="plan-price">
+                    <span class="plan-curr">UZS</span>
+                    <span class="plan-amt">0</span>
+                    <span class="plan-per">/oy</span>
+                </div>
+                <div class="plan-feats">
+                    <div class="plan-feat">✓ <b>5</b> ta hujjat/oy</div>
+                    <div class="plan-feat">✓ CV tayyorlash</div>
+                    <div class="plan-feat">✓ Obyektivka</div>
+                    <div class="plan-feat" style="color:#475569">✗ Pro xizmatlar</div>
+                    <div class="plan-feat" style="color:#475569">✗ Ustuvor navbat</div>
+                </div>
+                <a href="https://t.me/lashbot" target="_blank" class="plan-btn ghost">Bepul boshlash</a>
+            </div>
+
+            <!-- Premium -->
+            <div class="plan-card popular">
+                <div class="pop-badge">🔥 Eng mashhur</div>
+                <div class="plan-name gold-glow">Premium Oylik</div>
+                <div class="plan-price">
+                    <span class="plan-curr">UZS</span>
+                    <span class="plan-amt">29 000</span>
+                    <span class="plan-per">/oy</span>
+                </div>
+                <div class="plan-feats">
+                    <div class="plan-feat">✓ <b>Cheksiz</b> hujjatlar</div>
+                    <div class="plan-feat">✓ Barcha Pro xizmatlar</div>
+                    <div class="plan-feat">✓ Ustuvor navbat</div>
+                    <div class="plan-feat">✓ 20+ CV shablon</div>
+                    <div class="plan-feat">✓ 24/7 qo'llab-quvvatlash</div>
+                </div>
+                <a href="https://t.me/lashbot" target="_blank" class="plan-btn blue">Hozir olish →</a>
+            </div>
+
+            <!-- Annual -->
+            <div class="plan-card">
+                <div class="plan-name">Yillik</div>
+                <div class="plan-price">
+                    <span class="plan-curr">UZS</span>
+                    <span class="plan-amt">199 000</span>
+                    <span class="plan-per">/yil</span>
+                </div>
+                <div class="plan-feats">
+                    <div class="plan-feat">✓ Barcha Premium imkoniyatlar</div>
+                    <div class="plan-feat">✓ 40% tejam</div>
+                    <div class="plan-feat">✓ Maxsus Pro funksiyalar</div>
+                    <div class="plan-feat">✓ VIP qo'llab-quvvatlash</div>
+                    <div class="plan-feat">✓ Yangi xizmatlar birinchi</div>
+                </div>
+                <a href="https://t.me/lashbot" target="_blank" class="plan-btn blue">Yillik olish →</a>
+            </div>
+        </div>
+
+        <!-- PAYMENT METHODS -->
+        <div class="pay-section">
+            <h3>To'lov usullari</h3>
+            <p>Qulay to'lov tizimi orqali premiumni faollashtiring</p>
+            <div class="pay-methods">
+                <div class="pay-method">💳 Click</div>
+                <div class="pay-method">🏦 Payme</div>
+                <div class="pay-method">🟣 Uzcard</div>
+                <div class="pay-method">🟡 Humo</div>
+            </div>
+        </div>
+    </div>
+    <script src="app.js"></script>
+</body>
+
+</html>

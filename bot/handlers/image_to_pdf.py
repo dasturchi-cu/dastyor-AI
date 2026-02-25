@@ -107,7 +107,8 @@ async def collect_pdf_images(update: Update, context: ContextTypes.DEFAULT_TYPE)
             )
             pdf_path = os.path.join(temp_dir, pdf_filename)
 
-            images_to_pdf(downloaded_paths, pdf_path)
+            import asyncio
+            await asyncio.to_thread(images_to_pdf, downloaded_paths, pdf_path)
 
             # Foydalanuvchiga yuborish
             with open(pdf_path, "rb") as f:

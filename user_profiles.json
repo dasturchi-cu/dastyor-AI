@@ -4,13 +4,13 @@
     "first_name": "Muhammadsodiq",
     "username": "Flutterch1",
     "joined_at": "2026-02-14 22:32:59",
-    "last_active": "2026-02-17 22:23:21",
+    "last_active": "2026-02-25 20:19:52",
     "premium_history": [],
     "interaction_count": 6,
     "blocked_bot": false,
-    "last_service": "Image to PDF",
-    "activtiy_count": 167,
-    "files_processed": 2
+    "last_service": "Transliterate Text",
+    "activtiy_count": 275,
+    "files_processed": 6
   },
   "6901860817": {
     "id": 6901860817,
@@ -27,14 +27,15 @@
     "first_name": ".",
     "username": null,
     "joined_at": "2026-02-16 20:52:32",
-    "last_active": "2026-02-16 20:57:23",
-    "activtiy_count": 14,
+    "last_active": "2026-02-21 20:03:21",
+    "activtiy_count": 33,
     "files_processed": 0,
     "sessions": 4,
     "is_banned": false,
     "ban_reason": null,
     "ban_date": null,
-    "premium_history": []
+    "premium_history": [],
+    "blocked_bot": false
   },
   "5826157790": {
     "id": 5826157790,
@@ -49,5 +50,21 @@
     "ban_reason": null,
     "ban_date": null,
     "premium_history": []
+  },
+  "6264440682": {
+    "id": 6264440682,
+    "first_name": "Husanboy",
+    "username": "Mr_Xusanboy",
+    "joined_at": "2026-02-25 20:12:07",
+    "last_active": "2026-02-25 20:15:35",
+    "activtiy_count": 20,
+    "files_processed": 1,
+    "sessions": 1,
+    "is_banned": false,
+    "ban_reason": null,
+    "ban_date": null,
+    "blocked_bot": false,
+    "premium_history": [],
+    "last_service": "OCR Image"
   }
 }

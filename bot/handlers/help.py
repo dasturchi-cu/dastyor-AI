@@ -25,6 +25,10 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         "✍️ **Imlo tekshirish ✏️**\n"
         "Matndagi imlo va grammatik xatolarni topib, to'g'rilab beradi.\n\n"
+        
+        "✨ **Aqlli Yordamchi (Super App)**\n"
+        "👉 Siz menyulardan hech narsa tanlamasdan, **to'g'ridan-to'g'ri** rasm, word, pdf yoki audio xabar yuborsangiz, botning o'zi sizga nima qilish kerakligini taklif qiladi (Aqlli menyu).\n"
+        "👉 Shuningdek, botga oddiy so'zlar bilan yozsangiz ham tushunadi (masalan: _'Menga obyektivka kerak'_ yoki _'Rasmni docx qilib ber'_).\n\n"
 
         "💎 **Premium xizmatlar**\n"
         "Cheklovsiz foydalanish, reklamasiz va yuqori tezlik uchun Premium xarid qilishingiz mumkin.\n\n"

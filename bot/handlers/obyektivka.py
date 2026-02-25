@@ -52,7 +52,8 @@ async def process_obyektivka_from_audio_path(context, audio_path, chat_id, user_
         await update_progress(context, progress_msg, 80, "Hujjat tayyorlanmoqda (DOCX)...")
         
         # 3. Generate DOCX
-        temp_docx = generate_obyektivka_docx(extracted_data)
+        import asyncio
+        temp_docx = await asyncio.to_thread(generate_obyektivka_docx, extracted_data)
         
         if not temp_docx or not os.path.exists(temp_docx):
             await progress_msg.edit_text("❌ Hujjat yaratishda xatolik.")

@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="uz">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Tarjima | LASHBOT AI</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="style.css" />
+    <style>
+        .page-wrap {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 100px 24px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .page-card {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 28px;
+            padding: 52px;
+            max-width: 600px;
+            width: 100%;
+            text-align: center;
+        }
+
+        .big-icon {
+            font-size: 72px;
+            margin-bottom: 24px;
+            display: block;
+        }
+
+        .page-card h1 {
+            font-size: 32px;
+            font-weight: 800;
+            color: white;
+            margin-bottom: 16px;
+        }
+
+        .page-card p {
+            color: #94a3b8;
+            font-size: 16px;
+            line-height: 1.7;
+            margin-bottom: 32px;
+        }
+
+        .lang-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 28px;
+        }
+
+        .lang-btn {
+            padding: 14px;
+            background: rgba(59, 130, 246, 0.08);
+            border: 1px solid rgba(59, 130, 246, 0.2);
+            border-radius: 14px;
+            color: #60a5fa;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 14px;
+        }
+
+        .lang-btn:hover,
+        .lang-btn.active {
+            background: rgba(59, 130, 246, 0.2);
+            border-color: #3b82f6;
+            color: white;
+        }
+
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: #60a5fa;
+            text-decoration: none;
+            font-size: 14px;
+        }
+
+        .back-link:hover {
+            gap: 12px;
+        }
+
+        .tg-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            padding: 14px 32px;
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+            color: white;
+            text-decoration: none;
+            border-radius: 14px;
+            font-weight: 700;
+            font-size: 15px;
+            transition: all 0.3s;
+            box-shadow: 0 8px 30px rgba(59, 130, 246, 0.4);
+        }
+
+        .tg-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 16px 40px rgba(59, 130, 246, 0.6);
+        }
+    </style>
+</head>
+
+<body>
+    <canvas id="particles"></canvas>
+    <nav class="navbar scrolled" id="navbar">
+        <div class="nav-inner">
+            <a href="index.html" class="nav-logo">
+                <div class="logo-icon">
+                    <svg width="22" height="22" viewBox="0 0 28 28" fill="none">
+                        <circle cx="14" cy="14" r="14" fill="url(#lg1)" />
+                        <path d="M8 14h12M14 8v12" stroke="white" stroke-width="2.5" stroke-linecap="round" />
+                        <defs>
+                            <linearGradient id="lg1" x1="0" y1="0" x2="28" y2="28">
+                                <stop stop-color="#3b82f6" />
+                                <stop offset="1" stop-color="#1d4ed8" />
+                            </linearGradient>
+                        </defs>
+                    </svg>
+                </div>
+                <span>LASHBOT <b>AI</b></span>
+            </a>
+            <a href="index.html" class="back-link">← Bosh sahifa</a>
+        </div>
+    </nav>
+    <div class="page-wrap">
+        <div class="page-card">
+            <span class="big-icon">🌐</span>
+            <h1>Fayl Tarjima</h1>
+            <p>DOC, PPT yoki XLSX faylni tanlang va tarjima yo'nalishini belgilang</p>
+            <div class="lang-grid">
+                <button class="lang-btn active">🇺🇿 O'zbek → 🇬🇧 Ingliz</button>
+                <button class="lang-btn">🇬🇧 Ingliz → 🇺🇿 O'zbek</button>
+                <button class="lang-btn">🇷🇺 Rus → 🇺🇿 O'zbek</button>
+                <button class="lang-btn">🇺🇿 O'zbek → 🇷🇺 Rus</button>
+                <button class="lang-btn" style="grid-column:span 2">🇷🇺 Rus → 🇬🇧 Ingliz</button>
+            </div>
+            <a href="https://t.me/lashbot" class="tg-btn" target="_blank">
+                <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24">
+                    <path
+                        d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.248l-2.04 9.613c-.154.673-.556.836-1.124.52l-3.1-2.285-1.497 1.44c-.165.166-.304.304-.623.304l.222-3.155 5.74-5.185c.25-.222-.054-.345-.386-.123L6.32 14.4l-3.024-.944c-.657-.205-.67-.657.137-.973l11.829-4.563c.547-.198 1.025.133.3.328z" />
+                </svg>
+                Telegram botda faylni yuborish
+            </a>
+        </div>
+    </div>
+    <script src="app.js"></script>
+    <script>
+        document.querySelectorAll('.lang-btn').forEach(b => {
+            b.addEventListener('click', () => {
+                document.querySelectorAll('.lang-btn').forEach(x => x.classList.remove('active'));
+                b.classList.add('active');
+            });
+        });
+    </script>
+</body>
+
+</html>

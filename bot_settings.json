@@ -1,6 +1,12 @@
 {
   "channels": {},
-  "premium_users": {},
+  "premium_users": {
+    "<": {
+      "name": "<21.03.> <muhammas>",
+      "username": "Unknown",
+      "end_date": "2026-03-23"
+    }
+  },
   "daily_limit": 10,
   "maintenance_mode": false
 }

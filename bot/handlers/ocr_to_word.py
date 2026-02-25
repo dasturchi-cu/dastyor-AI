@@ -121,22 +121,22 @@ async def perform_ocr_and_send(context, image_path, chat_id, user_id):
             return
             
         await update_progress(context, progress_msg, 70, "Word hujjat shakllantirilmoqda...")
+        # Create Word Document asynchronously so we don't block the loop
+        doc_path = f"Ocr_Natija_{user_id}_{int(time.time())}.docx"
         
-        # Create Word Document
-        doc = Document()
-        doc.add_heading('OCR Natijasi', 0)
-        
-        # Parse HTML to Docx
-        try:
-            add_html_to_docx(doc, extracted_text)
-        except Exception as parse_err:
-            logger.error(f"HTML Parse error: {parse_err}")
-            doc.add_paragraph(extracted_text)
+        def create_and_save_doc(html_text, path):
+            doc = Document()
+            doc.add_heading('OCR Natijasi', 0)
+            try:
+                add_html_to_docx(doc, html_text)
+            except Exception as parse_err:
+                logger.error(f"HTML Parse error: {parse_err}")
+                doc.add_paragraph(html_text)
+            doc.save(path)
+
+        await asyncio.to_thread(create_and_save_doc, extracted_text, doc_path)
         
         await update_progress(context, progress_msg, 90, "Fayl yuborilmoqda...")
-        
-        doc_path = f"Ocr_Natija_{user_id}_{int(time.time())}.docx"
-        doc.save(doc_path)
         
         # Send Document
         with open(doc_path, 'rb') as f:

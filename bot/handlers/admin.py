@@ -133,6 +133,9 @@ async def send_full_stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if chunk:
         await update.message.reply_text(chunk, parse_mode="Markdown")
 
+def get_admin_cancel_keyboard():
+    return ReplyKeyboardMarkup([[KeyboardButton("❌ Bekor qilish")]], resize_keyboard=True)
+
 async def handle_admin_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not await is_admin(update.effective_user.id): return
     text = update.message.text
@@ -141,12 +144,13 @@ async def handle_admin_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await send_full_stats(update, context)
         
     elif text == "📨 Xabar yuborish":
+        context.user_data['admin_state'] = 'broadcast'
         await update.message.reply_text(
-            "📨 **Xabar yuborish uchun:**\n\n"
-            "1. Botga matn, rasm yoki video yuboring.\n"
-            "2. O'sha xabarga **Reply** qilib `/send` deb yozing.\n"
-            "3. Yoki to'g'ridan-to'g'ri yozing: `/send Assalomu alaykum!`",
-            parse_mode="Markdown"
+            "📨 **Ommaviy Xabar yuborish**\n\n"
+            "Yubormoqchi bo'lgan xabaringizni (matn, rasm, video) botga yuboring.\n"
+            "Barcha foydalanuvchilarga xabar yetkaziladi.",
+            parse_mode="Markdown",
+            reply_markup=get_admin_cancel_keyboard()
         )
         
     elif text == "📢 Kanallar":
@@ -484,8 +488,90 @@ async def remove_channel_command(update: Update, context: ContextTypes.DEFAULT_T
         return
 
     username = context.args[0]
-
     if remove_channel(username):
         await update.message.reply_text(f"✅ O'chirildi: {username}")
     else:
         await update.message.reply_text("❌ Kanal topilmadi.")
+
+async def process_admin_state_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not await is_admin(update.effective_user.id): return
+    
+    state = context.user_data.get('admin_state')
+    if not state: return False # Returns False so main.py can pass it to other handlers if not handled
+    
+    text = update.message.text if update.message else ""
+    
+    if text == "❌ Bekor qilish":
+        context.user_data.pop('admin_state', None)
+        await update.message.reply_text("🚫 Bekor qilindi.", reply_markup=get_admin_keyboard())
+        return True
+        
+    if state == 'broadcast':
+        msg = update.message
+        profiles = crm.get_all_profiles()
+        total = len(profiles)
+        success = 0
+        blocked = 0
+        
+        status_msg = await update.message.reply_text("🚀 Ommaviy xabar yuborilmoqda...")
+        
+        for uid_str in profiles.keys():
+            try:
+                uid = int(uid_str)
+                await msg.copy(chat_id=uid)
+                success += 1
+            except TelegramError:
+                blocked += 1
+            await asyncio.sleep(0.05)
+            
+        try:
+            await status_msg.delete()
+        except Exception:
+            pass
+            
+        await update.message.reply_text(
+            f"✅ Tugatildi:\n\nYetib bordi: {success} ta\nYetib bormadi (Bloklangan): {blocked} ta",
+            reply_markup=get_admin_keyboard()
+        )
+        context.user_data.pop('admin_state', None)
+        return True
+        
+    elif state == 'add_premium':
+        if not text:
+            await update.message.reply_text("❓ Iltimos, ma'lumotlarni matn ko'rinishida yuboring.")
+            return True
+        
+        parts = text.split(maxsplit=2)
+        if len(parts) < 1:
+            return True
+            
+        try:
+            uid = parts[0]
+            days = 30
+            name = "User"
+            if len(parts) > 1:
+                try: days = int(parts[1])
+                except Exception: name = " ".join(parts[1:])
+            if len(parts) > 2: name = parts[2]
+            
+            end_date = add_premium(uid, days, name)
+            crm.log_premium_transaction(uid, days, str(update.effective_user.id))
+            await update.message.reply_text(f"✅ **Premium Berildi!** 💎\nExpire: {end_date}", parse_mode="Markdown", reply_markup=get_admin_keyboard())
+            context.user_data.pop('admin_state', None)
+        except Exception as e:
+            await update.message.reply_text(f"❌ Xato: {e}")
+        return True
+    
+    elif state == 'add_channel':
+        if not text or not text.startswith('@'):
+            await update.message.reply_text("❓ Iltimos, kanal username'ini @ belgi bilan boshlang (masalan: @dasturchi).")
+            return True
+        try:
+            add_channel(text, text)
+            await update.message.reply_text(f"✅ Kanal qo'shildi: {text}", reply_markup=get_admin_keyboard())
+            context.user_data.pop('admin_state', None)
+        except Exception as e:
+            await update.message.reply_text(f"❌ Xato: {e}")
+        return True
+
+    return False

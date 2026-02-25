@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="uz">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Imlo Tekshirish | LASHBOT AI</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="style.css" />
+    <style>
+        .page-wrap {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 100px 24px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .page-card {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 28px;
+            padding: 52px;
+            max-width: 580px;
+            width: 100%;
+            text-align: center;
+        }
+
+        .big-icon {
+            font-size: 72px;
+            display: block;
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            font-size: 30px;
+            font-weight: 800;
+            color: white;
+            margin-bottom: 12px;
+        }
+
+        .subtitle {
+            color: #94a3b8;
+            font-size: 15px;
+            margin-bottom: 32px;
+        }
+
+        .upload-zone {
+            border: 2px dashed rgba(59, 130, 246, 0.3);
+            border-radius: 18px;
+            padding: 48px 20px;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-bottom: 24px;
+        }
+
+        .upload-zone:hover {
+            border-color: #3b82f6;
+            background: rgba(59, 130, 246, 0.05);
+        }
+
+        .format-tags {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-bottom: 28px;
+        }
+
+        .ftag {
+            padding: 6px 16px;
+            background: rgba(255, 255, 255, 0.06);
+            border-radius: 50px;
+            font-size: 12px;
+            color: #94a3b8;
+            font-weight: 600;
+        }
+
+        .tg-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            padding: 14px 32px;
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+            color: white;
+            text-decoration: none;
+            border-radius: 14px;
+            font-weight: 700;
+            font-size: 15px;
+            transition: all 0.3s;
+            box-shadow: 0 8px 30px rgba(59, 130, 246, 0.4);
+        }
+
+        .tg-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 16px 40px rgba(59, 130, 246, 0.6);
+        }
+
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: #60a5fa;
+            text-decoration: none;
+            font-size: 14px;
+        }
+    </style>
+</head>
+
+<body>
+    <canvas id="particles"></canvas>
+    <nav class="navbar scrolled" id="navbar">
+        <div class="nav-inner">
+            <a href="index.html" class="nav-logo">
+                <div class="logo-icon">
+                    <svg width="22" height="22" viewBox="0 0 28 28" fill="none">
+                        <circle cx="14" cy="14" r="14" fill="url(#l1)" />
+                        <path d="M8 14h12M14 8v12" stroke="white" stroke-width="2.5" stroke-linecap="round" />
+                        <defs>
+                            <linearGradient id="l1" x1="0" y1="0" x2="28" y2="28">
+                                <stop stop-color="#3b82f6" />
+                                <stop offset="1" stop-color="#1d4ed8" />
+                            </linearGradient>
+                        </defs>
+                    </svg>
+                </div>
+                <span>LASHBOT <b>AI</b></span>
+            </a>
+            <a href="index.html" class="back-link">← Bosh sahifa</a>
+        </div>
+    </nav>
+    <div class="page-wrap">
+        <div class="page-card">
+            <span class="big-icon">✏️</span>
+            <h1>Imlo Tekshirish</h1>
+            <p class="subtitle">AI yordamida hujjatingizdagi imlo xatolarini aniqlang va tuzating</p>
+            <div class="format-tags">
+                <span class="ftag">DOC</span>
+                <span class="ftag">DOCX</span>
+                <span class="ftag">PPT</span>
+                <span class="ftag">PPTX</span>
+            </div>
+            <div class="upload-zone" onclick="document.getElementById('spellFile').click()">
+                <span style="font-size:40px">📎</span>
+                <p style="color:#60a5fa;font-weight:600;margin:12px 0 4px">Faylni tanlash</p>
+                <p style="color:#64748b;font-size:13px">DOC, DOCX, PPT, PPTX — 20 MB gacha</p>
+            </div>
+            <input type="file" id="spellFile" accept=".doc,.docx,.ppt,.pptx" style="display:none" />
+            <a href="https://t.me/lashbot" class="tg-btn" target="_blank">
+                <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24">
+                    <path
+                        d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.248l-2.04 9.613c-.154.673-.556.836-1.124.52l-3.1-2.285-1.497 1.44c-.165.166-.304.304-.623.304l.222-3.155 5.74-5.185c.25-.222-.054-.345-.386-.123L6.32 14.4l-3.024-.944c-.657-.205-.67-.657.137-.973l11.829-4.563c.547-.198 1.025.133.3.328z" />
+                </svg>
+                Telegram botda tekshirish
+            </a>
+        </div>
+    </div>
+    <script src="app.js"></script>
+</body>
+
+</html>

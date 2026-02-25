@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="uz">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Rasm → PDF | LASHBOT AI</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="style.css" />
+    <style>
+        .page-wrap {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 100px 24px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .page-card {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 28px;
+            padding: 52px;
+            max-width: 640px;
+            width: 100%;
+            text-align: center;
+        }
+
+        .big-icon {
+            font-size: 72px;
+            display: block;
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            font-size: 30px;
+            font-weight: 800;
+            color: white;
+            margin-bottom: 12px;
+        }
+
+        .subtitle {
+            color: #94a3b8;
+            font-size: 15px;
+            margin-bottom: 32px;
+        }
+
+        .upload-zone {
+            border: 2px dashed rgba(59, 130, 246, 0.3);
+            border-radius: 18px;
+            padding: 40px 20px;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-bottom: 20px;
+        }
+
+        .upload-zone:hover {
+            border-color: #3b82f6;
+            background: rgba(59, 130, 246, 0.05);
+        }
+
+        .imgs-preview {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+            margin-bottom: 20px;
+            min-height: 0;
+        }
+
+        .img-thumb {
+            width: 80px;
+            height: 80px;
+            border-radius: 10px;
+            object-fit: cover;
+            border: 2px solid rgba(59, 130, 246, 0.3);
+        }
+
+        .convert-btn {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+            color: white;
+            border: none;
+            border-radius: 14px;
+            font-weight: 700;
+            font-size: 15px;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-bottom: 12px;
+        }
+
+        .convert-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 30px rgba(59, 130, 246, 0.5);
+        }
+
+        .count-badge {
+            display: inline-block;
+            padding: 6px 16px;
+            background: rgba(59, 130, 246, 0.15);
+            border-radius: 50px;
+            font-size: 13px;
+            color: #60a5fa;
+            margin-bottom: 8px;
+        }
+
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: #60a5fa;
+            text-decoration: none;
+            font-size: 14px;
+        }
+    </style>
+</head>
+
+<body>
+    <canvas id="particles"></canvas>
+    <nav class="navbar scrolled" id="navbar">
+        <div class="nav-inner">
+            <a href="index.html" class="nav-logo">
+                <div class="logo-icon">
+                    <svg width="22" height="22" viewBox="0 0 28 28" fill="none">
+                        <circle cx="14" cy="14" r="14" fill="url(#l1)" />
+                        <path d="M8 14h12M14 8v12" stroke="white" stroke-width="2.5" stroke-linecap="round" />
+                        <defs>
+                            <linearGradient id="l1" x1="0" y1="0" x2="28" y2="28">
+                                <stop stop-color="#3b82f6" />
+                                <stop offset="1" stop-color="#1d4ed8" />
+                            </linearGradient>
+                        </defs>
+                    </svg>
+                </div>
+                <span>LASHBOT <b>AI</b></span>
+            </a>
+            <a href="index.html" class="back-link">← Bosh sahifa</a>
+        </div>
+    </nav>
+    <div class="page-wrap">
+        <div class="page-card">
+            <span class="big-icon">🖼️</span>
+            <h1>Rasm → PDF</h1>
+            <p class="subtitle">20 tagacha rasmni yuklang va bitta PDF faylga aylantiring</p>
+            <div class="upload-zone" onclick="document.getElementById('pdfImages').click()">
+                <span style="font-size:40px">📁</span>
+                <p style="color:#60a5fa;font-weight:600;margin:12px 0 4px">Rasmlarni tanlash</p>
+                <p style="color:#64748b;font-size:13px">20 tagacha • JPG, PNG, WEBP</p>
+            </div>
+            <input type="file" id="pdfImages" accept="image/*" multiple style="display:none"
+                onchange="previewImages(this)" />
+            <div id="countBadge" style="display:none" class="count-badge">0 ta rasm tanlandi</div>
+            <div class="imgs-preview" id="imgsPreview"></div>
+            <button class="convert-btn" id="pdfBtn" style="display:none"
+                onclick="alert('PDF tayyorlanmoqda... Telegram botda foydalaning!')">📄 PDF yaratish</button>
+        </div>
+    </div>
+    <script src="app.js"></script>
+    <script>
+        function previewImages(input) {
+            const files = Array.from(input.files).slice(0, 20);
+            const badge = document.getElementById('countBadge');
+            const preview = document.getElementById('imgsPreview');
+            const btn = document.getElementById('pdfBtn');
+            badge.textContent = files.length + ' ta rasm tanlandi';
+            badge.style.display = 'inline-block';
+            preview.innerHTML = '';
+            files.forEach(f => {
+                const reader = new FileReader();
+                reader.onload = e => {
+                    const img = document.createElement('img');
+                    img.src = e.target.result;
+                    img.className = 'img-thumb';
+                    preview.appendChild(img);
+                };
+                reader.readAsDataURL(f);
+            });
+            btn.style.display = 'block';
+        }
+    </script>
+</body>
+
+</html>

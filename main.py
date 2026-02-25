@@ -35,8 +35,8 @@ from bot.handlers.common import balance_handler, contact_handler, help_button_ha
 
 from bot.handlers.ocr_to_word import ocr_to_word_handler as ocr_handler, handle_ocr_image as process_ocr_image
 from bot.handlers.obyektivka import obyektivka_handler, handle_obyektivka_audio as process_obyektivka_audio
-from bot.handlers.transliterate import transliterate_handler, process_transliteration as process_transliterate
-from bot.handlers.translate import translate_handler, process_translation as process_translate_doc
+from bot.handlers.transliterate import transliterate_handler, process_transliteration as process_transliterate, krill_to_lotin_handler, lotin_to_krill_handler
+from bot.handlers.translate import translate_handler, process_translation as process_translate_doc, set_translation_direction
 from bot.handlers.image_to_pdf import image_to_pdf_handler, collect_pdf_images as process_image_to_pdf
 from bot.handlers.spell_check import spell_check_handler, process_spell_check
 from bot.handlers.start import start_command, menu_command
@@ -88,9 +88,11 @@ async def unified_router_check(update: Update, context: ContextTypes.DEFAULT_TYP
         return False
     return True
 
+from bot.handlers.admin import process_admin_state_input
 
 async def handle_router_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not await unified_router_check(update, context): return
+    if await process_admin_state_input(update, context): return
     
     state = context.user_data.get('waiting_for')
     text = update.message.text.lower()
@@ -105,27 +107,34 @@ async def handle_router_text(update: Update, context: ContextTypes.DEFAULT_TYPE)
          return
 
     # 2. NLP / Keyword Routing
-    if 'obyektivka' in text or 'resume' in text or 'cv' in text or "ma'lumotnoma" in text:
+    # 2. NLP / Keyword Routing
+    import re
+    # Obyektivka (obyektivga, obyektovka, obyektvka, abyektiv)
+    if re.search(r'(obyektiv|obyektov|abyektiv|obekt|resume|rezume|sivi|ma\'lumotnoma)', text):
         await update.message.reply_text("🤖 Tushundim! **Obyektivka** xizmatini ochyapman...")
         await obyektivka_handler(update, context)
         return
 
-    elif 'ocr' in text or 'word' in text or ('rasm' in text and 'matn' in text):
+    # OCR / Word (docx, doc, dox, vord, ocr, textga)
+    elif re.search(r'(ocr|word|vord|docx|doc|dox|matn|textga|oqib ber)', text) or (('rasm' in text or 'skan' in text) and ('o\'qi' in text or 'qil' in text)):
         await update.message.reply_text("🤖 Tushundim! **Rasm -> Word** xizmatini ochyapman...")
         await ocr_handler(update, context)
         return
 
-    elif 'pdf' in text and 'rasm' in text:
+    # Image 2 PDF (rasm... pdf)
+    elif 'pdf' in text and ('rasm' in text or 'qo\'sh' in text or 'birlash' in text):
         await update.message.reply_text("🤖 Tushundim! **Rasm -> PDF** xizmatini ochyapman...")
         await image_to_pdf_handler(update, context)
         return
 
-    elif 'tarjima' in text or 'translate' in text:
+    # Translate (tarjima, pervod, perevod, translate)
+    elif re.search(r'(tarjima|perevod|pervod|translate|tarjma|o\'gir)', text):
         await update.message.reply_text("🤖 Tushundim! **Tarjima** xizmatini ochyapman...")
         await translate_handler(update, context)
         return
     
-    elif 'imlo' in text or 'tekshir' in text:
+    # Spell Check (imlo, xato, grammatika)
+    elif re.search(r'(imlo|xato|tekshir|grammatika)', text):
         await update.message.reply_text("🤖 Tushundim! **Imlo tekshirish** xizmatini ochyapman...")
         await spell_check_handler(update, context)
         return
@@ -135,6 +144,7 @@ async def handle_router_text(update: Update, context: ContextTypes.DEFAULT_TYPE)
 
 async def handle_router_doc(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not await unified_router_check(update, context): return
+    if await process_admin_state_input(update, context): return
     
     state = context.user_data.get('waiting_for')
     uid = update.effective_user.id
@@ -154,6 +164,7 @@ async def handle_router_doc(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def handle_router_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not await unified_router_check(update, context): return
+    if await process_admin_state_input(update, context): return
     
     state = context.user_data.get('waiting_for')
     uid = update.effective_user.id
@@ -170,6 +181,7 @@ async def handle_router_photo(update: Update, context: ContextTypes.DEFAULT_TYPE
 
 async def handle_router_audio(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not await unified_router_check(update, context): return
+    if await process_admin_state_input(update, context): return
     
     state = context.user_data.get('waiting_for')
     uid = update.effective_user.id
@@ -292,6 +304,24 @@ def main():
     application.add_handler(MessageHandler(filters.Regex("^Imlo tekshirish ✏️$"), spell_check_handler))
     application.add_handler(MessageHandler(filters.Regex("^Premium xizmatlar 💎$"), premium_info_handler))
     
+    # Sub-menu Features: Transliting (Kirill-Lotin) 
+    application.add_handler(MessageHandler(filters.Regex("^Kirill → Lotin$"), krill_to_lotin_handler))
+    application.add_handler(MessageHandler(filters.Regex("^Lotin → Kirill$"), lotin_to_krill_handler))
+
+    # Sub-menu Features: Translating (Til Yo'nalishlari)
+    async def go_translate(update: Update, context: ContextTypes.DEFAULT_TYPE):
+        text = update.message.text
+        direction = "uz_en"
+        if text == "O'zbek → Ingliz": direction = "uz_en"
+        elif text == "Ingliz → O'zbek": direction = "en_uz"
+        elif text == "Rus → O'zbek": direction = "ru_uz"
+        elif text == "O'zbek → Rus": direction = "uz_ru"
+        elif text == "Rus → Ingliz": direction = "ru_en"
+        await set_translation_direction(update, context, direction)
+
+    application.add_handler(MessageHandler(filters.Regex("^(O'zbek → Ingliz|Ingliz → O'zbek|Rus → O'zbek|O'zbek → Rus|Rus → Ingliz)$"), go_translate))
+
+    
     # Common Buttons
     application.add_handler(MessageHandler(filters.Regex("^Balans 💰$"), balance_handler))
     application.add_handler(MessageHandler(filters.Regex("^Aloqa ✉️$"), contact_handler))
@@ -302,6 +332,13 @@ def main():
     application.add_handler(MessageHandler(filters.Document.ALL, handle_router_doc))
     application.add_handler(MessageHandler(filters.PHOTO, handle_router_photo))
     application.add_handler(MessageHandler(filters.VOICE | filters.AUDIO, handle_router_audio))
+
+    # Catch-all for videos/animations for admin broadcasts
+    async def handle_router_other(update: Update, context: ContextTypes.DEFAULT_TYPE):
+        if not await unified_router_check(update, context): return
+        if await process_admin_state_input(update, context): return
+        
+    application.add_handler(MessageHandler(filters.ALL & ~filters.COMMAND, handle_router_other))
 
     # Errors
     application.add_error_handler(error_handler)

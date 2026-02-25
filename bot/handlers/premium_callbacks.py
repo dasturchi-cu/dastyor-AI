@@ -161,10 +161,18 @@ async def premium_callback_handler(update: Update, context: ContextTypes.DEFAULT
     
     # Add new premium (show instructions)
     elif data == "prem_add_new":
-        await query.edit_message_text(
-            "➕ **Yangi Premium Qo'shish**\n\n"
-            "Buyruq: `/add_premium <ID> <Kun> <Ism>`\n\n"
-            "Misol:\n"
-            "`/add_premium 123456789 30 Ali Valiyev`",
-            parse_mode="Markdown"
+        from bot.handlers.admin import get_admin_cancel_keyboard
+        context.user_data['admin_state'] = 'add_premium'
+        
+        await context.bot.send_message(
+            chat_id=query.from_user.id,
+            text=(
+                "➕ **Yangi Premium Qo'shish**\n\n"
+                "Iltimos, foydalanuvchining ma'lumotlarini bo'sh joy qoldirib yozing.\n"
+                "Tartib: `ID Raqam` `Kun (misol: 30)` `To'liq ism (ixtiyoriy)`\n\n"
+                "Misol: `123456789 30 Ali Valiyev`"
+            ),
+            parse_mode="Markdown",
+            reply_markup=get_admin_cancel_keyboard()
         )
+        await query.message.delete()
