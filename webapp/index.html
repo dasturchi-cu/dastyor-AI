@@ -4,14 +4,12 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <title>LASHBOT AI — Xizmatlar</title>
-    <meta name="description" content="LASHBOT AI — Hujjat tayyorlash xizmatlari" />
+    <title>LASHBOT AI</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap"
         rel="stylesheet" />
     <style>
-        /* ============ ROOT ============ */
         *,
         *::before,
         *::after {
@@ -21,672 +19,575 @@
         }
 
         :root {
-            --blue: #2563eb;
-            --blue-d: #1d4ed8;
+            --bg: #05101f;
+            --deep: #08182e;
+            --blue: #1a56db;
+            --blue-m: #2563eb;
             --blue-l: #3b82f6;
-            --sky: #0ea5e9;
-            --dark: #0a1628;
-            --card: rgba(255, 255, 255, 0.06);
-            --border: rgba(255, 255, 255, 0.10);
-            --text: #f1f5f9;
-            --muted: #94a3b8;
-            --gold: #f59e0b;
-            --green: #10b981;
-            --purple: #8b5cf6;
-            --teal: #14b8a6;
+            --blue-xl: #60a5fa;
+            --glow: rgba(37, 99, 235, 0.35);
+            --glass: rgba(255, 255, 255, 0.045);
+            --border: rgba(255, 255, 255, 0.08);
+            --text: #e2e8f0;
+            --muted: #64748b;
+            --white: #ffffff;
         }
 
         html,
         body {
-            height: 100%;
-            font-family: 'Inter', system-ui, sans-serif;
-            background: var(--dark);
+            min-height: 100%;
+            background: var(--bg);
             color: var(--text);
+            font-family: 'Inter', system-ui, sans-serif;
             overflow-x: hidden;
         }
 
-        /* ============ ANIMATED BG ============ */
-        .bg-gradient {
+        /* ── Animated bg ── */
+        .bg-canvas {
             position: fixed;
             inset: 0;
             z-index: 0;
-            background:
-                radial-gradient(ellipse 80% 60% at 20% -10%, rgba(37, 99, 235, 0.25) 0%, transparent 60%),
-                radial-gradient(ellipse 60% 50% at 80% 110%, rgba(14, 165, 233, 0.15) 0%, transparent 60%),
-                linear-gradient(180deg, #060d1f 0%, #0a1628 50%, #0d1f3c 100%);
             pointer-events: none;
+            background:
+                radial-gradient(ellipse 120% 80% at 50% -20%, rgba(37, 99, 235, 0.22) 0%, transparent 55%),
+                radial-gradient(ellipse 80% 60% at 0% 80%, rgba(14, 165, 233, 0.10) 0%, transparent 50%),
+                radial-gradient(ellipse 60% 50% at 100% 60%, rgba(99, 102, 241, 0.08) 0%, transparent 50%),
+                linear-gradient(180deg, #050f1e 0%, #08182e 100%);
         }
 
+        /* grid lines */
         .bg-grid {
             position: fixed;
             inset: 0;
             z-index: 0;
             pointer-events: none;
             background-image:
-                linear-gradient(rgba(37, 99, 235, 0.04) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(37, 99, 235, 0.04) 1px, transparent 1px);
-            background-size: 40px 40px;
+                linear-gradient(rgba(37, 99, 235, 0.035) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(37, 99, 235, 0.035) 1px, transparent 1px);
+            background-size: 44px 44px;
         }
 
-        /* ============ HEADER ============ */
-        .header {
+        /* ── Page ── */
+        .page {
             position: relative;
             z-index: 1;
-            padding: 24px 20px 0;
-            text-align: center;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            padding: 0 0 32px;
         }
 
-        .logo-wrap {
-            display: inline-flex;
+        /* ── Header ── */
+        .header {
+            padding: 28px 22px 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .logo-row {
+            display: flex;
             align-items: center;
             gap: 10px;
-            margin-bottom: 6px;
+            margin-bottom: 2px;
         }
 
-        .logo-icon {
-            width: 44px;
-            height: 44px;
+        .logo-gem {
+            width: 46px;
+            height: 46px;
             border-radius: 14px;
-            background: linear-gradient(135deg, var(--blue-l), var(--blue-d));
+            background: linear-gradient(135deg, #1d4ed8, #2563eb, #3b82f6);
+            box-shadow: 0 0 32px rgba(37, 99, 235, 0.6), 0 0 0 1px rgba(59, 130, 246, 0.3);
             display: flex;
             align-items: center;
             justify-content: center;
-            box-shadow: 0 0 24px rgba(59, 130, 246, 0.5);
+            flex-shrink: 0;
         }
 
-        .logo-text {
-            font-size: 22px;
+        .logo-gem svg {
+            display: block;
+        }
+
+        .logo-name {
+            font-size: 24px;
             font-weight: 900;
-            color: white;
-            letter-spacing: -0.5px;
+            color: var(--white);
+            letter-spacing: -0.8px;
         }
 
-        .logo-text span {
-            color: var(--blue-l);
+        .logo-name span {
+            background: linear-gradient(90deg, #60a5fa, #93c5fd);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
         }
 
         .header-sub {
-            font-size: 13px;
+            font-size: 12.5px;
             color: var(--muted);
-            margin-bottom: 4px;
+            text-align: center;
+            letter-spacing: 0.2px;
         }
 
-        .user-greeting {
+        .user-pill {
+            margin-top: 10px;
             display: inline-flex;
             align-items: center;
-            gap: 6px;
-            background: rgba(37, 99, 235, 0.12);
-            border: 1px solid rgba(37, 99, 235, 0.2);
+            gap: 7px;
+            background: rgba(37, 99, 235, 0.10);
+            border: 1px solid rgba(37, 99, 235, 0.22);
             border-radius: 50px;
-            padding: 5px 14px;
+            padding: 6px 16px;
             font-size: 12px;
-            color: var(--blue-l);
-            margin-top: 10px;
-            font-weight: 500;
+            color: var(--blue-xl);
+            font-weight: 600;
         }
 
-        .pulse-dot {
-            width: 6px;
-            height: 6px;
+        .live-dot {
+            width: 7px;
+            height: 7px;
             border-radius: 50%;
             background: #22c55e;
-            animation: pulse 2s infinite;
+            box-shadow: 0 0 8px #22c55e;
+            animation: blink 2s infinite;
         }
 
-        @keyframes pulse {
+        @keyframes blink {
 
             0%,
             100% {
                 opacity: 1;
-                transform: scale(1);
             }
 
             50% {
-                opacity: .4;
-                transform: scale(0.8);
+                opacity: 0.3;
             }
         }
 
-        /* ============ MAIN GRID ============ */
-        .main {
-            position: relative;
-            z-index: 1;
-            padding: 20px 16px 100px;
-        }
-
-        .section-label {
-            font-size: 11px;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 1.5px;
-            color: var(--muted);
-            margin-bottom: 12px;
-            padding-left: 4px;
-        }
-
-        /* ============ SERVICE CARDS — 2x2 grid ============ */
-        .services-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 12px;
-            margin-bottom: 16px;
-        }
-
-        .svc-card {
-            position: relative;
-            background: var(--card);
-            border: 1px solid var(--border);
-            border-radius: 20px;
-            padding: 20px 16px 16px;
-            text-decoration: none;
-            color: var(--text);
+        /* ── Main content ── */
+        .content {
+            flex: 1;
+            padding: 28px 18px 0;
             display: flex;
             flex-direction: column;
-            gap: 0;
-            overflow: hidden;
-            transition: all 0.25s cubic-bezier(.4, 0, .2, 1);
-            -webkit-tap-highlight-color: transparent;
-            cursor: pointer;
-            min-height: 148px;
+            gap: 12px;
         }
 
-        .svc-card::before {
+        /* ── 4 main buttons ── */
+        .main-btn {
+            position: relative;
+            display: flex;
+            align-items: center;
+            gap: 18px;
+            padding: 22px 22px;
+            border-radius: 20px;
+            text-decoration: none;
+            color: var(--white);
+            border: 1px solid var(--border);
+            background: var(--glass);
+            backdrop-filter: blur(12px);
+            overflow: hidden;
+            transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+            -webkit-tap-highlight-color: transparent;
+            cursor: pointer;
+        }
+
+        /* glow layer on press */
+        .main-btn::before {
             content: '';
             position: absolute;
             inset: 0;
             border-radius: 20px;
             opacity: 0;
-            transition: opacity 0.3s;
+            transition: opacity 0.25s;
         }
 
-        .svc-card:active {
-            transform: scale(0.96);
+        .main-btn:active {
+            transform: scale(0.962);
         }
 
-        /* Color themes */
-        .card-blue::before {
-            background: linear-gradient(135deg, rgba(37, 99, 235, 0.2), rgba(29, 78, 216, 0.1));
-        }
-
-        .card-sky::before {
-            background: linear-gradient(135deg, rgba(14, 165, 233, 0.2), rgba(6, 182, 212, 0.1));
-        }
-
-        .card-purple::before {
-            background: linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(124, 58, 237, 0.1));
-        }
-
-        .card-teal::before {
-            background: linear-gradient(135deg, rgba(20, 184, 166, 0.2), rgba(13, 148, 136, 0.1));
-        }
-
-        .card-blue:active::before,
-        .card-sky:active::before,
-        .card-purple:active::before,
-        .card-teal:active::before {
+        .main-btn:active::before {
             opacity: 1;
         }
 
-        /* Icon */
-        .svc-icon-wrap {
-            width: 48px;
-            height: 48px;
-            border-radius: 14px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 22px;
-            margin-bottom: 12px;
-            flex-shrink: 0;
+        /* Blue */
+        .mb-blue {
+            border-color: rgba(37, 99, 235, 0.30);
+            background: linear-gradient(135deg, rgba(29, 78, 216, 0.18) 0%, rgba(37, 99, 235, 0.08) 100%);
+            box-shadow: 0 4px 32px rgba(37, 99, 235, 0.14), inset 0 1px 0 rgba(255, 255, 255, 0.06);
         }
 
-        .icon-blue {
+        .mb-blue::before {
             background: rgba(37, 99, 235, 0.18);
-            box-shadow: 0 4px 14px rgba(37, 99, 235, 0.25);
         }
 
-        .icon-sky {
-            background: rgba(14, 165, 233, 0.18);
-            box-shadow: 0 4px 14px rgba(14, 165, 233, 0.25);
+        .mb-blue:active {
+            border-color: rgba(59, 130, 246, 0.5);
+            box-shadow: 0 0 28px rgba(37, 99, 235, 0.3);
         }
 
-        .icon-purple {
+        /* Cyan */
+        .mb-cyan {
+            border-color: rgba(6, 182, 212, 0.25);
+            background: linear-gradient(135deg, rgba(8, 145, 178, 0.15) 0%, rgba(6, 182, 212, 0.06) 100%);
+            box-shadow: 0 4px 32px rgba(6, 182, 212, 0.10), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+        }
+
+        .mb-cyan::before {
+            background: rgba(6, 182, 212, 0.14);
+        }
+
+        .mb-cyan:active {
+            border-color: rgba(6, 182, 212, 0.5);
+            box-shadow: 0 0 28px rgba(6, 182, 212, 0.25);
+        }
+
+        /* Violet */
+        .mb-violet {
+            border-color: rgba(139, 92, 246, 0.25);
+            background: linear-gradient(135deg, rgba(109, 40, 217, 0.15) 0%, rgba(139, 92, 246, 0.06) 100%);
+            box-shadow: 0 4px 32px rgba(139, 92, 246, 0.10), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+        }
+
+        .mb-violet::before {
+            background: rgba(139, 92, 246, 0.14);
+        }
+
+        .mb-violet:active {
+            border-color: rgba(139, 92, 246, 0.5);
+            box-shadow: 0 0 28px rgba(139, 92, 246, 0.25);
+        }
+
+        /* Gold - Premium */
+        .mb-gold {
+            border-color: rgba(245, 158, 11, 0.30);
+            background: linear-gradient(135deg, rgba(180, 83, 9, 0.20) 0%, rgba(245, 158, 11, 0.08) 100%);
+            box-shadow: 0 4px 32px rgba(245, 158, 11, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+        }
+
+        .mb-gold::before {
+            background: rgba(245, 158, 11, 0.15);
+        }
+
+        .mb-gold:active {
+            border-color: rgba(245, 158, 11, 0.55);
+            box-shadow: 0 0 28px rgba(245, 158, 11, 0.28);
+        }
+
+        /* Icon box */
+        .btn-icon {
+            width: 56px;
+            height: 56px;
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 26px;
+            flex-shrink: 0;
+        }
+
+        .ic-blue {
+            background: rgba(37, 99, 235, 0.20);
+            box-shadow: 0 0 20px rgba(37, 99, 235, 0.25);
+        }
+
+        .ic-cyan {
+            background: rgba(6, 182, 212, 0.18);
+            box-shadow: 0 0 20px rgba(6, 182, 212, 0.22);
+        }
+
+        .ic-violet {
             background: rgba(139, 92, 246, 0.18);
-            box-shadow: 0 4px 14px rgba(139, 92, 246, 0.25);
+            box-shadow: 0 0 20px rgba(139, 92, 246, 0.22);
         }
 
-        .icon-teal {
-            background: rgba(20, 184, 166, 0.18);
-            box-shadow: 0 4px 14px rgba(20, 184, 166, 0.25);
+        .ic-gold {
+            background: rgba(245, 158, 11, 0.18);
+            box-shadow: 0 0 20px rgba(245, 158, 11, 0.22);
         }
 
-        .svc-title {
-            font-size: 14px;
-            font-weight: 700;
-            color: white;
+        /* Text */
+        .btn-body {
+            flex: 1;
+        }
+
+        .btn-title {
+            font-size: 16px;
+            font-weight: 800;
+            color: var(--white);
             margin-bottom: 4px;
-            line-height: 1.3;
+            letter-spacing: -0.3px;
         }
 
-        .svc-desc {
-            font-size: 11.5px;
+        .btn-desc {
+            font-size: 12.5px;
             color: var(--muted);
-            line-height: 1.4;
-            flex: 1;
-        }
-
-        .svc-arrow {
-            position: absolute;
-            bottom: 14px;
-            right: 14px;
-            width: 24px;
-            height: 24px;
-            border-radius: 7px;
-            background: rgba(255, 255, 255, 0.07);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 12px;
-            color: var(--muted);
-            transition: all 0.2s;
-        }
-
-        .svc-card:active .svc-arrow {
-            background: rgba(255, 255, 255, 0.15);
-            color: white;
-        }
-
-        /* Hot badge */
-        .hot-badge {
-            position: absolute;
-            top: 12px;
-            right: 12px;
-            background: linear-gradient(135deg, #ef4444, #dc2626);
-            color: white;
-            font-size: 9px;
-            font-weight: 800;
-            padding: 2px 8px;
-            border-radius: 50px;
-            letter-spacing: 0.5px;
-        }
-
-        /* ============ QUICK ACTIONS ============ */
-        .quick-grid {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 10px;
-            margin-bottom: 24px;
-        }
-
-        .quick-btn {
-            background: var(--card);
-            border: 1px solid var(--border);
-            border-radius: 14px;
-            padding: 14px 8px;
-            text-align: center;
-            text-decoration: none;
-            color: var(--text);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 6px;
-            transition: all 0.2s;
-            -webkit-tap-highlight-color: transparent;
-        }
-
-        .quick-btn:active {
-            transform: scale(0.94);
-            background: rgba(255, 255, 255, 0.1);
-        }
-
-        .quick-icon {
-            font-size: 20px;
-        }
-
-        .quick-label {
-            font-size: 10px;
-            font-weight: 600;
-            color: var(--muted);
-            line-height: 1.2;
-        }
-
-        /* ============ PREMIUM BANNER ============ */
-        .premium-banner {
-            background: linear-gradient(135deg, rgba(245, 158, 11, 0.12), rgba(234, 179, 8, 0.06));
-            border: 1px solid rgba(245, 158, 11, 0.25);
-            border-radius: 18px;
-            padding: 18px 20px;
-            display: flex;
-            align-items: center;
-            gap: 14px;
-            text-decoration: none;
-            color: var(--text);
-            transition: all 0.2s;
-            margin-bottom: 24px;
-            -webkit-tap-highlight-color: transparent;
-        }
-
-        .premium-banner:active {
-            transform: scale(0.98);
-        }
-
-        .prem-icon {
-            width: 46px;
-            height: 46px;
-            border-radius: 13px;
-            background: rgba(245, 158, 11, 0.15);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 22px;
-            flex-shrink: 0;
-        }
-
-        .prem-text h4 {
-            font-size: 14px;
-            font-weight: 700;
-            color: white;
-            margin-bottom: 3px;
-        }
-
-        .prem-text p {
-            font-size: 12px;
-            color: var(--muted);
-        }
-
-        .prem-arrow {
-            margin-left: auto;
-            width: 30px;
-            height: 30px;
-            border-radius: 9px;
-            background: rgba(245, 158, 11, 0.15);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 14px;
-            color: var(--gold);
-            flex-shrink: 0;
-        }
-
-        /* ============ BOTTOM NAV ============ */
-        .bottom-nav {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            z-index: 100;
-            background: rgba(6, 13, 31, 0.95);
-            backdrop-filter: blur(20px);
-            border-top: 1px solid var(--border);
-            display: flex;
-            justify-content: space-around;
-            align-items: center;
-            padding: 10px 20px 18px;
-        }
-
-        .nav-item {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 4px;
-            text-decoration: none;
-            color: var(--muted);
-            font-size: 10px;
+            line-height: 1.45;
             font-weight: 500;
-            transition: color 0.2s;
-            -webkit-tap-highlight-color: transparent;
         }
 
-        .nav-item .nav-ico {
-            font-size: 22px;
+        /* Badge */
+        .btn-badge {
+            position: absolute;
+            top: 14px;
+            right: 14px;
+            padding: 3px 10px;
+            border-radius: 50px;
+            font-size: 9.5px;
+            font-weight: 800;
+            letter-spacing: 0.4px;
+            text-transform: uppercase;
         }
 
-        .nav-item.active {
-            color: var(--blue-l);
+        .badge-hot {
+            background: rgba(239, 68, 68, 0.20);
+            color: #f87171;
+            border: 1px solid rgba(239, 68, 68, 0.3);
         }
 
-        .nav-item:active {
-            color: white;
+        .badge-new {
+            background: rgba(34, 197, 94, 0.15);
+            color: #4ade80;
+            border: 1px solid rgba(34, 197, 94, 0.25);
         }
 
-        /* ============ STATS ROW ============ */
-        .stats-row {
+        .badge-pro {
+            background: rgba(245, 158, 11, 0.18);
+            color: #fcd34d;
+            border: 1px solid rgba(245, 158, 11, 0.3);
+        }
+
+        /* Arrow */
+        .btn-arrow {
+            width: 32px;
+            height: 32px;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.07);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            color: var(--muted);
+            flex-shrink: 0;
+            transition: all 0.2s;
+        }
+
+        .main-btn:active .btn-arrow {
+            background: rgba(255, 255, 255, 0.12);
+            color: var(--white);
+        }
+
+        /* ── Divider ── */
+        .divider {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 4px 0;
+        }
+
+        .divider-line {
+            flex: 1;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--border), transparent);
+        }
+
+        .divider-text {
+            font-size: 10.5px;
+            font-weight: 700;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 1.2px;
+        }
+
+        /* ── Stats strip ── */
+        .stats-strip {
             display: flex;
             gap: 10px;
-            margin-bottom: 20px;
+            margin: 0 2px;
         }
 
-        .stat-chip {
+        .stat-box {
             flex: 1;
-            background: var(--card);
+            background: var(--glass);
             border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 12px 10px;
+            border-radius: 14px;
+            padding: 14px 10px;
             text-align: center;
         }
 
-        .stat-chip .num {
-            font-size: 18px;
-            font-weight: 800;
-            color: white;
+        .stat-num {
+            font-size: 19px;
+            font-weight: 900;
+            color: var(--white);
             display: block;
+            letter-spacing: -0.5px;
         }
 
-        .stat-chip .lbl {
+        .stat-lbl {
             font-size: 10px;
             color: var(--muted);
             display: block;
-            margin-top: 2px;
+            margin-top: 3px;
+            font-weight: 500;
         }
 
-        /* ============ TOAST ============ */
-        .toast {
-            position: fixed;
-            bottom: 90px;
-            left: 50%;
-            transform: translateX(-50%) translateY(20px);
-            background: rgba(30, 58, 138, 0.95);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(59, 130, 246, 0.3);
-            color: white;
-            padding: 12px 24px;
+        /* ── Footer note ── */
+        .footer-note {
+            margin: 20px 18px 0;
+            background: rgba(37, 99, 235, 0.06);
+            border: 1px solid rgba(37, 99, 235, 0.14);
             border-radius: 14px;
-            font-size: 13px;
-            font-weight: 600;
-            opacity: 0;
-            transition: all 0.3s;
-            z-index: 999;
-            white-space: nowrap;
+            padding: 14px 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
         }
 
-        .toast.show {
-            opacity: 1;
-            transform: translateX(-50%) translateY(0);
+        .footer-note .fn-ico {
+            font-size: 22px;
+            flex-shrink: 0;
+        }
+
+        .footer-note .fn-text {
+            font-size: 12px;
+            color: var(--muted);
+            line-height: 1.5;
+        }
+
+        .footer-note .fn-text b {
+            color: var(--blue-xl);
+            font-weight: 700;
         }
     </style>
 </head>
 
 <body>
 
-    <div class="bg-gradient"></div>
+    <div class="bg-canvas"></div>
     <div class="bg-grid"></div>
 
-    <!-- HEADER -->
-    <header class="header">
-        <div class="logo-wrap">
-            <div class="logo-icon">
-                <svg width="24" height="24" viewBox="0 0 28 28" fill="none">
-                    <path d="M14 4L4 14L14 24L24 14L14 4Z" fill="white" opacity="0.9" />
-                    <circle cx="14" cy="14" r="4" fill="white" />
-                </svg>
-            </div>
-            <div class="logo-text">LASHBOT <span>AI</span></div>
-        </div>
-        <p class="header-sub">Aqlli hujjat tayyorlash platformasi</p>
-        <div class="user-greeting" id="userGreeting">
-            <span class="pulse-dot"></span>
-            <span id="greetText">Xush kelibsiz!</span>
-        </div>
-    </header>
+    <div class="page">
 
-    <!-- MAIN -->
-    <main class="main">
-
-        <!-- STATS -->
-        <div class="stats-row">
-            <div class="stat-chip">
-                <span class="num">10K+</span>
-                <span class="lbl">Foydalanuvchi</span>
+        <!-- HEADER -->
+        <div class="header">
+            <div class="logo-row">
+                <div class="logo-gem">
+                    <svg width="26" height="26" viewBox="0 0 26 26" fill="none">
+                        <path d="M13 3L3 13L13 23L23 13L13 3Z" fill="white" opacity="0.15" />
+                        <path d="M13 3L3 13L13 23L23 13L13 3Z" stroke="white" stroke-width="1.5" opacity="0.6" />
+                        <circle cx="13" cy="13" r="5" fill="white" opacity="0.9" />
+                    </svg>
+                </div>
+                <div class="logo-name">LASH<span>BOT</span> AI</div>
             </div>
-            <div class="stat-chip">
-                <span class="num">50K+</span>
-                <span class="lbl">Hujjat tayyor</span>
-            </div>
-            <div class="stat-chip">
-                <span class="num">99%</span>
-                <span class="lbl">Aniqlik</span>
+            <div class="header-sub">Aqlli hujjat tayyorlash platformasi</div>
+            <div class="user-pill">
+                <span class="live-dot"></span>
+                <span id="greetName">Onlayn · Tayyor</span>
             </div>
         </div>
 
-        <!-- MAIN 4 SERVICES -->
-        <p class="section-label">Asosiy xizmatlar</p>
-        <div class="services-grid">
+        <!-- MAIN CONTENT -->
+        <div class="content">
 
-            <!-- 1. Obyektivka -->
-            <a href="obyektivka.html" class="svc-card card-blue" id="btnObyektivka">
-                <div class="hot-badge">HOT</div>
-                <div class="svc-icon-wrap icon-blue">📋</div>
-                <div class="svc-title">Obyektivka Tayyorlash</div>
-                <div class="svc-desc">AI bilan rasmiy ma'lumotnoma</div>
-                <div class="svc-arrow">→</div>
-            </a>
-
-            <!-- 2. CV -->
-            <a href="cv.html" class="svc-card card-sky" id="btnCV">
-                <div class="svc-icon-wrap icon-sky">📄</div>
-                <div class="svc-title">CV Tayyorlash</div>
-                <div class="svc-desc">Professional resume PDF/Word</div>
-                <div class="svc-arrow">→</div>
-            </a>
-
-            <!-- 3. Rasm → Word -->
-            <a href="ocr.html" class="svc-card card-purple" id="btnOCR">
-                <div class="svc-icon-wrap icon-purple">🖼️</div>
-                <div class="svc-title">Rasm → Word</div>
-                <div class="svc-desc">OCR: rasmni Wordga aylantir</div>
-                <div class="svc-arrow">→</div>
-            </a>
-
-            <!-- 4. Boshqa xizmatlar -->
-            <a href="more.html" class="svc-card card-teal" id="btnMore">
-                <div class="svc-icon-wrap icon-teal">⚡</div>
-                <div class="svc-title">Boshqa Xizmatlar</div>
-                <div class="svc-desc">Tarjima, Krill, PDF va boshqalar</div>
-                <div class="svc-arrow">→</div>
-            </a>
-
-        </div>
-
-        <!-- QUICK ACTIONS -->
-        <p class="section-label">Tezkor harakatlar</p>
-        <div class="quick-grid">
-            <a href="translate.html" class="quick-btn">
-                <span class="quick-icon">🌐</span>
-                <span class="quick-label">Tarjima</span>
-            </a>
-            <a href="translit.html" class="quick-btn">
-                <span class="quick-icon">🔤</span>
-                <span class="quick-label">Krill-Lotin</span>
-            </a>
-            <a href="img2pdf.html" class="quick-btn">
-                <span class="quick-icon">📎</span>
-                <span class="quick-label">Rasm→PDF</span>
-            </a>
-            <a href="spellcheck.html" class="quick-btn">
-                <span class="quick-icon">✏️</span>
-                <span class="quick-label">Imlo</span>
-            </a>
-        </div>
-
-        <!-- PREMIUM BANNER -->
-        <a href="premium.html" class="premium-banner">
-            <div class="prem-icon">⭐</div>
-            <div class="prem-text">
-                <h4>Premium ga o'ting</h4>
-                <p>Cheksiz xizmatlar · Oyiga 29 000 so'm</p>
+            <!-- Stats -->
+            <div class="stats-strip">
+                <div class="stat-box">
+                    <span class="stat-num">10K+</span>
+                    <span class="stat-lbl">Foydalanuvchi</span>
+                </div>
+                <div class="stat-box">
+                    <span class="stat-num">50K+</span>
+                    <span class="stat-lbl">Hujjat tayyor</span>
+                </div>
+                <div class="stat-box">
+                    <span class="stat-num">99%</span>
+                    <span class="stat-lbl">Aniqlik</span>
+                </div>
             </div>
-            <div class="prem-arrow">→</div>
-        </a>
 
-    </main>
+            <!-- Section label -->
+            <div class="divider">
+                <div class="divider-line"></div>
+                <div class="divider-text">Xizmatlar</div>
+                <div class="divider-line"></div>
+            </div>
 
-    <!-- BOTTOM NAV -->
-    <nav class="bottom-nav">
-        <a href="index.html" class="nav-item active">
-            <span class="nav-ico">🏠</span>
-            <span>Bosh</span>
-        </a>
-        <a href="premium.html" class="nav-item">
-            <span class="nav-ico">⭐</span>
-            <span>Premium</span>
-        </a>
-        <a href="more.html" class="nav-item">
-            <span class="nav-ico">⚙️</span>
-            <span>Xizmatlar</span>
-        </a>
-        <a href="#contact" class="nav-item" id="contactBtn">
-            <span class="nav-ico">💬</span>
-            <span>Aloqa</span>
-        </a>
-    </nav>
+            <!-- BUTTON 1: Obyektivka -->
+            <a href="obyektivka.html" class="main-btn mb-blue" id="btn1">
+                <span class="btn-badge badge-hot">HOT</span>
+                <div class="btn-icon ic-blue">📋</div>
+                <div class="btn-body">
+                    <div class="btn-title">Obyektivka Tayyorlash</div>
+                    <div class="btn-desc">Rasmiy ma'lumotnoma · PDF & Word yuklab olish</div>
+                </div>
+                <div class="btn-arrow">›</div>
+            </a>
 
-    <!-- TOAST -->
-    <div class="toast" id="toast"></div>
+            <!-- BUTTON 2: CV -->
+            <a href="cv.html" class="main-btn mb-cyan" id="btn2">
+                <span class="btn-badge badge-new">NEW</span>
+                <div class="btn-icon ic-cyan">📄</div>
+                <div class="btn-body">
+                    <div class="btn-title">CV Tayyorlash</div>
+                    <div class="btn-desc">Professional resume · PDF & Word formatda</div>
+                </div>
+                <div class="btn-arrow">›</div>
+            </a>
+
+            <!-- BUTTON 3: Other services -->
+            <a href="more.html" class="main-btn mb-violet" id="btn3">
+                <div class="btn-icon ic-violet">⚡</div>
+                <div class="btn-body">
+                    <div class="btn-title">Boshqa Xizmatlar</div>
+                    <div class="btn-desc">Tarjima · OCR · Krill-Lotin · Rasm→PDF · Imlo</div>
+                </div>
+                <div class="btn-arrow">›</div>
+            </a>
+
+            <!-- BUTTON 4: Premium -->
+            <a href="premium.html" class="main-btn mb-gold" id="btn4">
+                <span class="btn-badge badge-pro">PRO</span>
+                <div class="btn-icon ic-gold">⭐</div>
+                <div class="btn-body">
+                    <div class="btn-title">Premium Tarif</div>
+                    <div class="btn-desc">Cheksiz xizmatlar · Oyiga 29 000 so'm</div>
+                </div>
+                <div class="btn-arrow">›</div>
+            </a>
+
+        </div>
+
+        <!-- Footer note -->
+        <div class="footer-note">
+            <span class="fn-ico">💬</span>
+            <div class="fn-text">
+                Savol yoki muammo bo'lsa: <b>@lashbot_support</b> ga yozing.
+                Bot ham ishlaydigan: <b>@lashbot</b>
+            </div>
+        </div>
+
+    </div><!-- /page -->
 
     <script>
-        // ── Telegram Web App setup ──
         const tg = window.Telegram?.WebApp;
         if (tg) {
             tg.ready();
             tg.expand();
-            // Theme
-            if (tg.colorScheme === 'light') {
-                document.documentElement.style.setProperty('--dark', '#f1f5f9');
-            }
-            // Greet user
+            tg.BackButton.hide();
             const user = tg.initDataUnsafe?.user;
-            if (user) {
-                const name = user.first_name || 'Foydalanuvchi';
-                document.getElementById('greetText').textContent = `Salom, ${name}! 👋`;
+            if (user?.first_name) {
+                document.getElementById('greetName').textContent = 'Salom, ' + user.first_name + '! 👋';
             }
         }
 
-        // ── Contact button ──
-        document.getElementById('contactBtn').addEventListener('click', (e) => {
-            e.preventDefault();
-            if (tg) tg.openTelegramLink('https://t.me/lashbot_support');
-            else window.open('https://t.me/lashbot_support', '_blank');
-        });
-
-        // ── Tap feedback toast ──
-        function showToast(msg) {
-            const t = document.getElementById('toast');
-            t.textContent = msg;
-            t.classList.add('show');
-            setTimeout(() => t.classList.remove('show'), 2000);
-        }
-
-        // ── Ripple effect on cards ──
-        document.querySelectorAll('.svc-card, .quick-btn').forEach(card => {
-            card.addEventListener('click', () => {
-                if (tg) tg.HapticFeedback?.impactOccurred('light');
+        // Haptic on tap
+        document.querySelectorAll('.main-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                tg?.HapticFeedback?.impactOccurred('medium');
             });
         });
-
-        // ── Back button ──
-        if (tg) {
-            tg.BackButton.hide();
-        }
     </script>
 </body>
 
