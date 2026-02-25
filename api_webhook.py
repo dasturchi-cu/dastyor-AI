@@ -20,6 +20,12 @@ async def lifespan(app: FastAPI):
     # Initialize application
     await application.initialize()
     await application.start()
+    
+    # Set Webhook automatically on startup
+    webhook_url = "https://dastyor-ai.onrender.com/webhook"
+    logger.info(f"Setting webhook to: {webhook_url}")
+    await application.bot.set_webhook(url=webhook_url, drop_pending_updates=True)
+    
     logger.info("🚀 Webhook Application Started")
     yield
     # Shutdown
