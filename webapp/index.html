@@ -572,22 +572,77 @@
 
     <script>
         const tg = window.Telegram?.WebApp;
-        if (tg) {
-            tg.ready();
-            tg.expand();
-            tg.BackButton.hide();
-            const user = tg.initDataUnsafe?.user;
-            if (user?.first_name) {
-                document.getElementById('greetName').textContent = 'Salom, ' + user.first_name + '! 👋';
+        let telegramId = '';
+
+        function checkAuth() {
+            if (tg) {
+                tg.ready();
+                tg.expand();
+                tg.BackButton.hide();
+
+                if (tg.initDataUnsafe?.user) {
+                    telegramId = tg.initDataUnsafe.user.id.toString();
+                    const user = tg.initDataUnsafe.user;
+                    if (user?.first_name) {
+                        const greet = document.getElementById('greetName');
+                        if (greet) greet.textContent = 'Salom, ' + user.first_name + '! 👋';
+                    }
+                    return true;
+                }
             }
+
+            // Fallback for ID from URL
+            const urlParams = new URLSearchParams(window.location.search);
+            const urlId = urlParams.get('telegram_id');
+            if (urlId) {
+                telegramId = urlId;
+                return true;
+            }
+
+            return false;
         }
 
-        // Haptic on tap
-        document.querySelectorAll('.main-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                tg?.HapticFeedback?.impactOccurred('medium');
+        function showError() {
+            document.body.innerHTML = `
+                <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; padding: 20px; text-align: center; background: linear-gradient(135deg, #0a1628 0%, #060d1f 100%); color: white; font-family: sans-serif;">
+                    <div style="background: rgba(255,255,255,0.05); padding: 40px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.1); max-width: 400px;">
+                        <div style="font-size: 50px; margin-bottom: 20px;">⚠️</div>
+                        <h2 style="margin-bottom: 20px;">Xatolik</h2>
+                        <p style="font-size: 16px; line-height: 1.6; margin-bottom: 30px; opacity: 0.8;">
+                            Telegram ID topilmadi. <br><br>
+                            Iltimos, bot orqali qaytadan kirib ko'ring.
+                        </p>
+                        <a href="https://t.me/DastyorAiBot" style="display: inline-block; padding: 12px 24px; background: #2563eb; color: white; border-radius: 12px; text-decoration: none; font-weight: bold;">Botga qaytish</a>
+                    </div>
+                </div>
+            `;
+        }
+
+        function setupNav() {
+            document.querySelectorAll('.main-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    tg?.HapticFeedback?.impactOccurred('medium');
+
+                    const href = btn.getAttribute('href');
+                    if (href && href.endsWith('.html') && telegramId) {
+                        e.preventDefault();
+                        const separator = href.includes('?') ? '&' : '?';
+                        window.location.href = `${href}${separator}telegram_id=${telegramId}`;
+                    }
+                });
             });
-        });
+        }
+
+        // Execution
+        if (!checkAuth()) {
+            // Wait for slow SDK
+            setTimeout(() => {
+                if (!checkAuth()) showError();
+                else setupNav();
+            }, 500);
+        } else {
+            setupNav();
+        }
     </script>
 </body>
 

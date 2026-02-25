@@ -1,471 +1,911 @@
 <!doctype html>
 <html lang="uz">
+
 <head>
-<meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
-<title>CV Tayyorlash | DASTYOR AI</title>
-<script src="https://telegram.org/js/telegram-web-app.js"></script>
-<style>
-.lash-topbar{position:fixed;top:0;left:0;right:0;z-index:9999;height:54px;background:rgba(6,13,31,0.97);backdrop-filter:blur(20px);border-bottom:1px solid rgba(255,255,255,0.08);display:flex;align-items:center;padding:0 16px;gap:12px;font-family:'Inter',sans-serif;}
-.lash-back{width:34px;height:34px;border-radius:10px;background:rgba(59,130,246,0.12);border:1px solid rgba(59,130,246,0.2);display:flex;align-items:center;justify-content:center;cursor:pointer;text-decoration:none;font-size:16px;color:white;transition:all 0.2s;-webkit-tap-highlight-color:transparent;}
-.lash-back:active{background:rgba(59,130,246,0.25);}
-.lash-topbar-title{font-size:15px;font-weight:700;color:white;}
-.lash-topbar-logo{margin-left:auto;font-size:12px;font-weight:700;color:#60a5fa;letter-spacing:-0.3px;}
-body{padding-top:54px!important;}
-</style>
-<style>
-:root{
-  --bg:#eef4ff;--card:#fff;--accent:#2563eb;--text:#1e293b;--border:#e2e8f0;
-}
-body{margin:0;font-family:"Segoe UI",Inter,sans-serif;background:var(--bg);color:var(--text);}
-* {box-sizing: border-box;}
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+  <title>CV Tayyorlash | DASTYOR AI</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <style>
+    .lash-topbar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 9999;
+      height: 54px;
+      background: rgba(6, 13, 31, 0.97);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      display: flex;
+      align-items: center;
+      padding: 0 16px;
+      gap: 12px;
+      font-family: 'Inter', sans-serif;
+    }
 
-/* Asosiy Layout */
-.wrap{
-    display:grid;
-    grid-template-columns: 1fr;
-    gap:20px;
-    max-width:900px;
-    margin:20px auto;
-    padding:0 20px;
-}
-.panel{background:var(--card);border-radius:16px;padding:24px;box-shadow:0 10px 30px rgba(0,0,0,0.04);height:fit-content;}
+    .lash-back {
+      width: 34px;
+      height: 34px;
+      border-radius: 10px;
+      background: rgba(59, 130, 246, 0.12);
+      border: 1px solid rgba(59, 130, 246, 0.2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      text-decoration: none;
+      font-size: 16px;
+      color: white;
+      transition: all 0.2s;
+      -webkit-tap-highlight-color: transparent;
+    }
 
-/* Form elementlari */
-.brand{display:flex;align-items:center;gap:12px;margin-bottom:20px;}
-.logo{
-  width:55px; height:55px; 
-  border-radius:14px; 
-  overflow:hidden; 
-  box-shadow: 0 4px 10px rgba(37, 99, 235, 0.2);
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
-  cursor: pointer;
-}
-.logo img {width: 100%; height: 100%; object-fit: cover;}
-.logo:hover {transform: scale(1.1); box-shadow: 0 8px 20px rgba(37, 99, 235, 0.4);}
+    .lash-back:active {
+      background: rgba(59, 130, 246, 0.25);
+    }
 
-.pills{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px;}
-.pill{width:36px;height:36px;border-radius:10px;background:#f1f5f9;color:#64748b;display:flex;align-items:center;justify-content:center;font-weight:600;cursor:pointer;transition:0.2s;}
-.pill.active{background:var(--accent);color:#fff;box-shadow:0 4px 12px rgba(37,99,235,0.3);}
-.pill.filled{background:#dbeafe;color:var(--accent);}
+    .lash-topbar-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: white;
+    }
 
-.mascot-container {
-  display: flex; justify-content: flex-end; margin-top: -10px; margin-bottom: 10px; padding-right: 10px; height: 0; position: relative; z-index: 5;
-}
-.mascot-img {
-  width: 60px; height: 60px; border-radius: 50%; object-fit: cover; border: 3px solid #fff; box-shadow: 0 5px 15px rgba(0,0,0,0.15); animation: floating 3s ease-in-out infinite; background: #fff;
-}
-@keyframes floating { 0% { transform: translateY(0px); } 50% { transform: translateY(-12px); } 100% { transform: translateY(0px); } }
+    .lash-topbar-logo {
+      margin-left: auto;
+      font-size: 12px;
+      font-weight: 700;
+      color: #60a5fa;
+      letter-spacing: -0.3px;
+    }
 
-.card{background:#fff; margin-top: 30px;}
-.qtitle{font-size:18px;font-weight:700;margin-bottom:15px;color:var(--text);}
-input,textarea,select{width:100%;padding:14px;border:2px solid var(--border);border-radius:12px;font-size:15px;transition:0.2s;background:#f8fafc;}
-input:focus,textarea:focus,select:focus{border-color:var(--accent);background:#fff;outline:none;}
-textarea{min-height:100px;resize:vertical;}
+    body {
+      padding-top: 54px !important;
+    }
+  </style>
+  <style>
+    :root {
+      --bg: #eef4ff;
+      --card: #fff;
+      --accent: #2563eb;
+      --text: #1e293b;
+      --border: #e2e8f0;
+    }
 
-/* Toggle Switch */
-.switch-container { display: flex; align-items: center; gap: 10px; margin-top: 10px; }
-.switch { position: relative; display: inline-block; width: 60px; height: 34px; }
-.switch input { opacity: 0; width: 0; height: 0; }
-.slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 34px; }
-.slider:before { position: absolute; content: ""; height: 26px; width: 26px; left: 4px; bottom: 4px; background-color: white; transition: .4s; border-radius: 50%; }
-input:checked + .slider { background-color: #2196F3; }
-input:checked + .slider:before { transform: translateX(26px); }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", Inter, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
 
-.btn-group{display:flex;justify-content:space-between;margin-top:20px;}
-.btn{padding:12px 24px;border-radius:10px;border:none;cursor:pointer;font-weight:600;font-size:14px;transition:0.2s;}
-.btn.primary{background:var(--accent);color:#fff;}
-.btn.primary:hover{background:#1d4ed8;}
-.btn.ghost{background:#f1f5f9;color:#475569;}
-.btn.ghost:hover{background:#e2e8f0;}
-.btn.word{background:#2b579a;color:#fff;}
+    * {
+      box-sizing: border-box;
+    }
 
-/* ZOOM CONTROLS - YANGI QO'SHILDI */
-.zoom-controls {
-  display: flex; align-items: center; gap: 15px; background: #334155; 
-  padding: 10px 20px; border-radius: 12px 12px 0 0; color: white; font-size: 13px;
-}
-.zoom-slider { flex-grow: 1; cursor: pointer; accent-color: var(--accent); }
-.zoom-percent { min-width: 45px; font-weight: bold; font-family: monospace; }
+    /* Asosiy Layout */
+    .wrap {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 20px;
+      max-width: 900px;
+      margin: 20px auto;
+      padding: 0 20px;
+    }
 
-/* O'ng Panel - Preview */
-.preview-container {
-  overflow: hidden; 
-  background: #525659; 
-  padding: 40px 0; 
-  border-radius: 0 0 12px 12px; 
-  display: flex; 
-  justify-content: center;
-  align-items: flex-start;
-  position: relative;
-}
-.preview{
-  width:210mm; min-height:297mm; background:white; padding:20mm 15mm;
-  box-shadow:0 0 20px rgba(0,0,0,.3); position:relative;
-  font-family: "Times New Roman", Times, serif; line-height: 1.15;
-  transform-origin: top center;
-  flex-shrink: 0;
-}
-.docTitle{text-align:center;font-weight:900;font-size:14pt; margin-bottom: 20px;}
-.docName{text-align:center;font-weight:900;font-size:14pt;margin-bottom:10px; text-transform: uppercase;}
-.currentJobHeader{text-align:center; font-size:12pt; margin-bottom: 15px; font-weight: bold;}
+    .panel {
+      background: var(--card);
+      border-radius: 16px;
+      padding: 24px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.04);
+      height: fit-content;
+    }
 
-.columns{display:flex;justify-content:space-between; font-size: 11pt;}
-.leftCol{width:48%;}
-.rightCol{width:48%; padding-right: 35mm;}
-.row-item {margin-bottom: 8px;}
-.row-item b {font-weight: bold;}
+    /* Form elementlari */
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
 
-.photoBox{
-    position:absolute; right:20mm; top:20mm; width:3cm; height:4cm; 
-    border:1px solid #ccc; overflow:hidden; display:flex; align-items:center; 
-    justify-content:center; background: #f9f9f9; z-index: 10;
-}
-.photoBox img{width:100%;height:100%;object-fit:cover;}
+    .logo {
+      width: 55px;
+      height: 55px;
+      border-radius: 14px;
+      overflow: hidden;
+      box-shadow: 0 4px 10px rgba(37, 99, 235, 0.2);
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+      cursor: pointer;
+    }
 
-.sectionTitle{text-align:center;font-weight:900;font-size: 12pt; margin-top:25px; margin-bottom: 10px; text-transform: uppercase;}
-.relTable{width:100%;border-collapse:collapse;margin-top:10px; font-size: 10pt;}
-.relTable th,.relTable td{border:1px solid #000;padding:4px;text-align:center; vertical-align: middle;}
-.relTable th{background:#eee; font-weight: bold;}
-.relTable td.left-align {text-align: left;}
+    .logo img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
 
-.work-row {display: grid; grid-template-columns: 80px 80px 1fr 40px; gap: 10px; margin-bottom: 10px; align-items: center;}
-.work-list {max-height: 200px; overflow-y: auto; margin-bottom: 15px; border: 1px solid #eee; padding: 10px; border-radius: 8px;}
-.work-item-display {background: #f8fafc; padding: 8px; margin-bottom: 5px; border-radius: 6px; font-size: 13px; display: flex; justify-content: space-between;}
+    .logo:hover {
+      transform: scale(1.1);
+      box-shadow: 0 8px 20px rgba(37, 99, 235, 0.4);
+    }
 
-@media(max-width:1100px){
-  .wrap{display: block;}
-  .panel {margin-bottom: 20px;}
-}
-</style>
+    .pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+
+    .pill {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      background: #f1f5f9;
+      color: #64748b;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+
+    .pill.active {
+      background: var(--accent);
+      color: #fff;
+      box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+    }
+
+    .pill.filled {
+      background: #dbeafe;
+      color: var(--accent);
+    }
+
+    .mascot-container {
+      display: flex;
+      justify-content: flex-end;
+      margin-top: -10px;
+      margin-bottom: 10px;
+      padding-right: 10px;
+      height: 0;
+      position: relative;
+      z-index: 5;
+    }
+
+    .mascot-img {
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 3px solid #fff;
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.15);
+      animation: floating 3s ease-in-out infinite;
+      background: #fff;
+    }
+
+    @keyframes floating {
+      0% {
+        transform: translateY(0px);
+      }
+
+      50% {
+        transform: translateY(-12px);
+      }
+
+      100% {
+        transform: translateY(0px);
+      }
+    }
+
+    .card {
+      background: #fff;
+      margin-top: 30px;
+    }
+
+    .qtitle {
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 15px;
+      color: var(--text);
+    }
+
+    input,
+    textarea,
+    select {
+      width: 100%;
+      padding: 14px;
+      border: 2px solid var(--border);
+      border-radius: 12px;
+      font-size: 15px;
+      transition: 0.2s;
+      background: #f8fafc;
+    }
+
+    input:focus,
+    textarea:focus,
+    select:focus {
+      border-color: var(--accent);
+      background: #fff;
+      outline: none;
+    }
+
+    textarea {
+      min-height: 100px;
+      resize: vertical;
+    }
+
+    /* Toggle Switch */
+    .switch-container {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 60px;
+      height: 34px;
+    }
+
+    .switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: #ccc;
+      transition: .4s;
+      border-radius: 34px;
+    }
+
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 26px;
+      width: 26px;
+      left: 4px;
+      bottom: 4px;
+      background-color: white;
+      transition: .4s;
+      border-radius: 50%;
+    }
+
+    input:checked+.slider {
+      background-color: #2196F3;
+    }
+
+    input:checked+.slider:before {
+      transform: translateX(26px);
+    }
+
+    .btn-group {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 20px;
+    }
+
+    .btn {
+      padding: 12px 24px;
+      border-radius: 10px;
+      border: none;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 14px;
+      transition: 0.2s;
+    }
+
+    .btn.primary {
+      background: var(--accent);
+      color: #fff;
+    }
+
+    .btn.primary:hover {
+      background: #1d4ed8;
+    }
+
+    .btn.ghost {
+      background: #f1f5f9;
+      color: #475569;
+    }
+
+    .btn.ghost:hover {
+      background: #e2e8f0;
+    }
+
+    .btn.word {
+      background: #2b579a;
+      color: #fff;
+    }
+
+    /* ZOOM CONTROLS - YANGI QO'SHILDI */
+    .zoom-controls {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      background: #334155;
+      padding: 10px 20px;
+      border-radius: 12px 12px 0 0;
+      color: white;
+      font-size: 13px;
+    }
+
+    .zoom-slider {
+      flex-grow: 1;
+      cursor: pointer;
+      accent-color: var(--accent);
+    }
+
+    .zoom-percent {
+      min-width: 45px;
+      font-weight: bold;
+      font-family: monospace;
+    }
+
+    /* O'ng Panel - Preview */
+    .preview-container {
+      overflow: hidden;
+      background: #525659;
+      padding: 40px 0;
+      border-radius: 0 0 12px 12px;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      position: relative;
+    }
+
+    .preview {
+      width: 210mm;
+      min-height: 297mm;
+      background: white;
+      padding: 20mm 15mm;
+      box-shadow: 0 0 20px rgba(0, 0, 0, .3);
+      position: relative;
+      font-family: "Times New Roman", Times, serif;
+      line-height: 1.15;
+      transform-origin: top center;
+      flex-shrink: 0;
+    }
+
+    .docTitle {
+      text-align: center;
+      font-weight: 900;
+      font-size: 14pt;
+      margin-bottom: 20px;
+    }
+
+    .docName {
+      text-align: center;
+      font-weight: 900;
+      font-size: 14pt;
+      margin-bottom: 10px;
+      text-transform: uppercase;
+    }
+
+    .currentJobHeader {
+      text-align: center;
+      font-size: 12pt;
+      margin-bottom: 15px;
+      font-weight: bold;
+    }
+
+    .columns {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11pt;
+    }
+
+    .leftCol {
+      width: 48%;
+    }
+
+    .rightCol {
+      width: 48%;
+      padding-right: 35mm;
+    }
+
+    .row-item {
+      margin-bottom: 8px;
+    }
+
+    .row-item b {
+      font-weight: bold;
+    }
+
+    .photoBox {
+      position: absolute;
+      right: 20mm;
+      top: 20mm;
+      width: 3cm;
+      height: 4cm;
+      border: 1px solid #ccc;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #f9f9f9;
+      z-index: 10;
+    }
+
+    .photoBox img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .sectionTitle {
+      text-align: center;
+      font-weight: 900;
+      font-size: 12pt;
+      margin-top: 25px;
+      margin-bottom: 10px;
+      text-transform: uppercase;
+    }
+
+    .relTable {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+      font-size: 10pt;
+    }
+
+    .relTable th,
+    .relTable td {
+      border: 1px solid #000;
+      padding: 4px;
+      text-align: center;
+      vertical-align: middle;
+    }
+
+    .relTable th {
+      background: #eee;
+      font-weight: bold;
+    }
+
+    .relTable td.left-align {
+      text-align: left;
+    }
+
+    .work-row {
+      display: grid;
+      grid-template-columns: 80px 80px 1fr 40px;
+      gap: 10px;
+      margin-bottom: 10px;
+      align-items: center;
+    }
+
+    .work-list {
+      max-height: 200px;
+      overflow-y: auto;
+      margin-bottom: 15px;
+      border: 1px solid #eee;
+      padding: 10px;
+      border-radius: 8px;
+    }
+
+    .work-item-display {
+      background: #f8fafc;
+      padding: 8px;
+      margin-bottom: 5px;
+      border-radius: 6px;
+      font-size: 13px;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    @media(max-width:1100px) {
+      .wrap {
+        display: block;
+      }
+
+      .panel {
+        margin-bottom: 20px;
+      }
+    }
+  </style>
 </head>
+
 <body>
-<div class="lash-topbar">
-  <a href="index.html" class="lash-back" id="backBtn">←</a>
-  <span class="lash-topbar-title">📄 CV Tayyorlash</span>
-  <span class="lash-topbar-logo">DASTYOR AI</span>
-</div>
-<script>
-  const _tg = window.Telegram?.WebApp;
-  if (_tg) { _tg.ready(); _tg.expand(); _tg.BackButton.show(); _tg.BackButton.onClick(() => window.location.href='index.html'); }
-  document.getElementById('backBtn').addEventListener('click', e => { e.preventDefault(); if(_tg){} window.location.href='index.html'; });
-<\/script>
-
-<datalist id="nation-list"><option value="O‘zbek"><option value="Rus"><option value="Qoraqalpoq"><option value="Tojik"><option value="Qozoq"></datalist>
-<datalist id="edu-list"><option value="Oliy"><option value="O‘rta maxsus"><option value="O‘rta"></datalist>
-<datalist id="years-list"></datalist> <datalist id="job-presets"><option value="Vafot etgan"><option value="Nafaqada"><option value="Uy bekasi"><option value="Talaba"><option value="Maktab o'quvchisi"></datalist>
-
-<div class="wrap">
-  <div class="panel">
-    <div class="brand">
-      <div class="logo"><img src="https://i.postimg.cc/hPYjpZyJ/IMG-20260208-144233-549.jpg"></div>
-      <div><b>Ma'lumotnoma tayyorlash xizmati</b><br><small style="color:#64748b">Sun'iy intelekt oson to'ldirishga xizmat qiladi!</small></div>
-    </div>
-    <div class="pills" id="pills"></div>
-    <div class="mascot-container"><img src="https://i.postimg.cc/JhZSDxVs/IMG-20260211-182244-983.jpg" class="mascot-img"></div>
-    <div class="card" id="questionCard"></div>
+  <div class="lash-topbar">
+    <a href="index.html" class="lash-back" id="backBtn">←</a>
+    <span class="lash-topbar-title">📄 CV Tayyorlash</span>
+    <span class="lash-topbar-logo">DASTYOR AI</span>
   </div>
+  <script>
+    const tg = window.Telegram?.WebApp;
+    let telegramId = '';
 
-  <div class="panel">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;">
-      <b>Hujjat namunasi</b>
-      <div style="display:flex;gap:10px;">
-        <button class="btn word" id="saveWord">Word</button>
-        <button class="btn primary" id="savePdf">PDF</button>
+    if (tg) {
+      tg.ready();
+      tg.expand();
+      tg.BackButton.show();
+      tg.BackButton.onClick(() => window.location.href = 'index.html');
+
+      if (tg.initDataUnsafe?.user) {
+        telegramId = tg.initDataUnsafe.user.id.toString();
+      }
+    }
+
+    // Fallback for ID from URL
+    if (!telegramId) {
+      const urlParams = new URLSearchParams(window.location.search);
+      telegramId = urlParams.get('telegram_id');
+    }
+
+    // Safety check
+    if (!telegramId) {
+      document.body.innerHTML = `
+          <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; padding: 20px; text-align: center; background: #eef4ff; font-family: sans-serif; position: fixed; inset: 0; z-index: 10000;">
+              <div style="background: white; padding: 40px; border-radius: 20px; box-shadow: 0 10px 40px rgba(0,0,0,0.1); max-width: 400px;">
+                  <h2 style="color: #2563eb; margin-bottom: 20px;">⚠️ Xatolik</h2>
+                  <p style="color: #333; font-size: 16px; line-height: 1.6; margin-bottom: 30px;">
+                      Telegram ID topilmadi.<br><br>
+                      Iltimos, bot orqali qaytadan kiring.
+                  </p>
+                  <a href="https://t.me/DastyorAiBot" style="display: inline-block; padding: 12px 24px; background: #2563eb; color: white; border-radius: 12px; text-decoration: none; font-weight: bold;">Botga qaytish</a>
+              </div>
+          </div>
+      `;
+      throw new Error('Telegram ID missing');
+    }
+
+    document.getElementById('backBtn').addEventListener('click', e => {
+      e.preventDefault();
+      window.location.href = 'index.html' + (telegramId ? '?telegram_id=' + telegramId : '');
+    });
+  </script>
+
+  <datalist id="nation-list">
+    <option value="O‘zbek">
+    <option value="Rus">
+    <option value="Qoraqalpoq">
+    <option value="Tojik">
+    <option value="Qozoq">
+  </datalist>
+  <datalist id="edu-list">
+    <option value="Oliy">
+    <option value="O‘rta maxsus">
+    <option value="O‘rta">
+  </datalist>
+  <datalist id="years-list"></datalist> <datalist id="job-presets">
+    <option value="Vafot etgan">
+    <option value="Nafaqada">
+    <option value="Uy bekasi">
+    <option value="Talaba">
+    <option value="Maktab o'quvchisi">
+  </datalist>
+
+  <div class="wrap">
+    <div class="panel">
+      <div class="brand">
+        <div class="logo"><img src="https://i.postimg.cc/hPYjpZyJ/IMG-20260208-144233-549.jpg"></div>
+        <div><b>Ma'lumotnoma tayyorlash xizmati</b><br><small style="color:#64748b">Sun'iy intelekt oson to'ldirishga
+            xizmat qiladi!</small></div>
       </div>
+      <div class="pills" id="pills"></div>
+      <div class="mascot-container"><img src="https://i.postimg.cc/JhZSDxVs/IMG-20260211-182244-983.jpg"
+          class="mascot-img"></div>
+      <div class="card" id="questionCard"></div>
     </div>
 
-    <div class="zoom-controls">
-      <span>Masshtab:</span>
-      <input type="range" class="zoom-slider" id="zoomRange" min="0.2" max="1.5" step="0.01" value="0.4">
-      <span class="zoom-percent" id="zoomVal">40%</span>
-      <button class="btn ghost" style="padding:4px 8px; font-size:11px; background:#475569; color:white;" onclick="setZoom(1)">100%</button>
-    </div>
-    
-    <div class="preview-container">
-      <div class="preview" id="preview">
-        <div class="photoBox" id="photo"><small style="color:#aaa;text-align:center">3x4<br>FOTO</small></div>
-        <div class="docTitle">MA'LUMOTNOMA</div>
-        <div class="docName" id="p_name">FAMILIYA ISM SHARIF</div>
-        <div id="p_header_job" class="currentJobHeader"></div>
-        <div class="columns">
-          <div class="leftCol">
-            <div class="row-item"><b>Tug‘ilgan yili:</b> <span id="p_birth"></span></div>
-            <div class="row-item"><b>Millati:</b> <span id="p_nat"></span></div>
-            <div class="row-item"><b>Ma'lumoti:</b> <span id="p_edu"></span></div>
-            <div class="row-item"><b>Mutaxassisligi:</b> <span id="p_spec"></span></div>
-            <div class="row-item"><b>Ilmiy darajasi:</b> <span id="p_deg"></span></div>
-            <div class="row-item"><b>Tillar:</b> <span id="p_lang"></span></div>
-          </div>
-          <div class="rightCol">
-            <div class="row-item"><b>Tug‘ilgan joyi:</b> <span id="p_place"></span></div>
-            <div class="row-item"><b>Partiyaviyligi:</b> <span id="p_party"></span></div>
-            <div class="row-item"><b>Ilmiy unvoni:</b> <span id="p_title"></span></div>
-            <div class="row-item"><b>Harbiy unvoni:</b> <span id="p_mil"></span></div>
-            <div class="row-item"><b>Davlat mukofotlari:</b> <span id="p_award"></span></div>
-             <div class="row-item"><b>Xalq deputatlari:</b> <span id="p_deputy"></span></div>
-          </div>
+    <div class="panel">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;">
+        <b>Hujjat namunasi</b>
+        <div style="display:flex;gap:10px;">
+          <button class="btn word" id="saveWord">Word</button>
+          <button class="btn primary" id="savePdf">PDF</button>
         </div>
-        <div style="margin-top:15px; margin-bottom:15px;"><b>Tamomlagan:</b> <span id="p_grad"></span></div>
-        <div class="sectionTitle">MEHNAT FAOLIYATI</div>
-        <div id="p_career" style="white-space:pre-wrap; font-size: 11pt; text-align: justify;"></div>
-        <div class="sectionTitle" id="relTitle">YAQIN QARINDOSHLARI HAQIDA MA'LUMOT</div>
-        <table class="relTable" id="relativesTable">
-          <thead><tr><th width="10%">Qarindoshligi</th><th width="25%">F.I.SH</th><th width="15%">Tug‘ilgan yili/joyi</th><th width="30%">Ish joyi</th><th width="20%">Turar joyi</th></tr></thead>
-          <tbody></tbody>
-        </table>
+      </div>
+
+      <div class="zoom-controls">
+        <span>Masshtab:</span>
+        <input type="range" class="zoom-slider" id="zoomRange" min="0.2" max="1.5" step="0.01" value="0.4">
+        <span class="zoom-percent" id="zoomVal">40%</span>
+        <button class="btn ghost" style="padding:4px 8px; font-size:11px; background:#475569; color:white;"
+          onclick="setZoom(1)">100%</button>
+      </div>
+
+      <div class="preview-container">
+        <div class="preview" id="preview">
+          <div class="photoBox" id="photo"><small style="color:#aaa;text-align:center">3x4<br>FOTO</small></div>
+          <div class="docTitle">MA'LUMOTNOMA</div>
+          <div class="docName" id="p_name">FAMILIYA ISM SHARIF</div>
+          <div id="p_header_job" class="currentJobHeader"></div>
+          <div class="columns">
+            <div class="leftCol">
+              <div class="row-item"><b>Tug‘ilgan yili:</b> <span id="p_birth"></span></div>
+              <div class="row-item"><b>Millati:</b> <span id="p_nat"></span></div>
+              <div class="row-item"><b>Ma'lumoti:</b> <span id="p_edu"></span></div>
+              <div class="row-item"><b>Mutaxassisligi:</b> <span id="p_spec"></span></div>
+              <div class="row-item"><b>Ilmiy darajasi:</b> <span id="p_deg"></span></div>
+              <div class="row-item"><b>Tillar:</b> <span id="p_lang"></span></div>
+            </div>
+            <div class="rightCol">
+              <div class="row-item"><b>Tug‘ilgan joyi:</b> <span id="p_place"></span></div>
+              <div class="row-item"><b>Partiyaviyligi:</b> <span id="p_party"></span></div>
+              <div class="row-item"><b>Ilmiy unvoni:</b> <span id="p_title"></span></div>
+              <div class="row-item"><b>Harbiy unvoni:</b> <span id="p_mil"></span></div>
+              <div class="row-item"><b>Davlat mukofotlari:</b> <span id="p_award"></span></div>
+              <div class="row-item"><b>Xalq deputatlari:</b> <span id="p_deputy"></span></div>
+            </div>
+          </div>
+          <div style="margin-top:15px; margin-bottom:15px;"><b>Tamomlagan:</b> <span id="p_grad"></span></div>
+          <div class="sectionTitle">MEHNAT FAOLIYATI</div>
+          <div id="p_career" style="white-space:pre-wrap; font-size: 11pt; text-align: justify;"></div>
+          <div class="sectionTitle" id="relTitle">YAQIN QARINDOSHLARI HAQIDA MA'LUMOT</div>
+          <table class="relTable" id="relativesTable">
+            <thead>
+              <tr>
+                <th width="10%">Qarindoshligi</th>
+                <th width="25%">F.I.SH</th>
+                <th width="15%">Tug‘ilgan yili/joyi</th>
+                <th width="30%">Ish joyi</th>
+                <th width="20%">Turar joyi</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
       </div>
     </div>
   </div>
-</div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
-<script>
-// --- Ma'lumotlar va Funksiyalar ---
-const fields = [
-  {name: "F.I.SH (To'liq)", id: "name", placeholder: "Aliyev Vali G'aniyevich", transform: "capitalize"},
-  {name: "Tug‘ilgan sanasi", id: "birth", type: "date-text", placeholder: "KK.OO.YYYY"},
-  {name: "Tug‘ilgan joyi", id: "place", type: "region-input", placeholder: "Toshkent shahri"},
-  {name: "Millati", id: "nat", list: "nation-list", def: "O‘zbek"},
-  {name: "Partiyaviyligi", id: "party", def: "Yo‘q"},
-  {name: "Ma'lumoti", id: "edu", list: "edu-list", def: "Oliy"},
-  {name: "Tamomlagan", id: "grad", type: "textarea", placeholder: "2020 yil, Toshkent davlat..."},
-  {name: "Mutaxassisligi", id: "spec", placeholder: "Muhandis"},
-  {name: "Ilmiy darajasi", id: "deg", def: "Yo‘q"},
-  {name: "Ilmiy unvoni", id: "title", def: "Yo‘q"},
-  {name: "Qaysi tillarni biladi", id: "lang", def: "Rus, Ingliz tillari"},
-  {name: "Harbiy unvoni", id: "mil", def: "Yo‘q"},
-  {name: "Davlat mukofotlari", id: "award", def: "Yo‘q"},
-  {name: "Deputatlik", id: "deputy", def: "Yo‘q"},
-  {name: "Mehnat faoliyati", id: "career", type: "career-builder"},
-  {name: "3x4 Rasm", id: "photo", type: "file"},
-  {name: "Qarindoshlar", id: "relatives", type: "relatives"},
-  {name: "Lavozimni sarlavhada ko'rsatish", id: "show_job", type: "toggle", def: false}
-];
+  <script>
+    // --- Ma'lumotlar va Funksiyalar ---
+    const fields = [
+      { name: "F.I.SH (To'liq)", id: "name", placeholder: "Aliyev Vali G'aniyevich", transform: "capitalize" },
+      { name: "Tug‘ilgan sanasi", id: "birth", type: "date-text", placeholder: "KK.OO.YYYY" },
+      { name: "Tug‘ilgan joyi", id: "place", type: "region-input", placeholder: "Toshkent shahri" },
+      { name: "Millati", id: "nat", list: "nation-list", def: "O‘zbek" },
+      { name: "Partiyaviyligi", id: "party", def: "Yo‘q" },
+      { name: "Ma'lumoti", id: "edu", list: "edu-list", def: "Oliy" },
+      { name: "Tamomlagan", id: "grad", type: "textarea", placeholder: "2020 yil, Toshkent davlat..." },
+      { name: "Mutaxassisligi", id: "spec", placeholder: "Muhandis" },
+      { name: "Ilmiy darajasi", id: "deg", def: "Yo‘q" },
+      { name: "Ilmiy unvoni", id: "title", def: "Yo‘q" },
+      { name: "Qaysi tillarni biladi", id: "lang", def: "Rus, Ingliz tillari" },
+      { name: "Harbiy unvoni", id: "mil", def: "Yo‘q" },
+      { name: "Davlat mukofotlari", id: "award", def: "Yo‘q" },
+      { name: "Deputatlik", id: "deputy", def: "Yo‘q" },
+      { name: "Mehnat faoliyati", id: "career", type: "career-builder" },
+      { name: "3x4 Rasm", id: "photo", type: "file" },
+      { name: "Qarindoshlar", id: "relatives", type: "relatives" },
+      { name: "Lavozimni sarlavhada ko'rsatish", id: "show_job", type: "toggle", def: false }
+    ];
 
-let data = { careerList: [], relatives: [], show_job: false };
-const uzbRegions = { "and": "Andijon viloyati", "bux": "Buxoro viloyati", "far": "Farg‘ona viloyati", "jiz": "Jizzax viloyati", "xor": "Xorazm viloyati", "nam": "Namangan viloyati", "nav": "Navoiy viloyati", "qas": "Qashqadaryo viloyati", "sam": "Samarqand viloyati", "sir": "Sirdaryo viloyati", "sur": "Surxondaryo viloyati", "tos": "Toshkent shahri", "qor": "Qoraqalpog‘iston Respublikasi" };
-const wordMap = { 'inst': 'instituti', 'mak': 'maktabi', 'uni': 'universiteti', 'tum': 'tumani', 'vil': 'viloyati,', 'shah': 'shahri', 'fak': 'fakulteti' };
-const relList = ["Otasi", "Onasi", "Akasi", "Opasi", "Ukasi", "Singlisi", "Turmush o‘rtog‘i", "O‘g‘li", "Qizi", "Qaynotasi", "Qaynonasi"];
-let currentStep = 0;
+    let data = { careerList: [], relatives: [], show_job: false };
+    const uzbRegions = { "and": "Andijon viloyati", "bux": "Buxoro viloyati", "far": "Farg‘ona viloyati", "jiz": "Jizzax viloyati", "xor": "Xorazm viloyati", "nam": "Namangan viloyati", "nav": "Navoiy viloyati", "qas": "Qashqadaryo viloyati", "sam": "Samarqand viloyati", "sir": "Sirdaryo viloyati", "sur": "Surxondaryo viloyati", "tos": "Toshkent shahri", "qor": "Qoraqalpog‘iston Respublikasi" };
+    const wordMap = { 'inst': 'instituti', 'mak': 'maktabi', 'uni': 'universiteti', 'tum': 'tumani', 'vil': 'viloyati,', 'shah': 'shahri', 'fak': 'fakulteti' };
+    const relList = ["Otasi", "Onasi", "Akasi", "Opasi", "Ukasi", "Singlisi", "Turmush o‘rtog‘i", "O‘g‘li", "Qizi", "Qaynotasi", "Qaynonasi"];
+    let currentStep = 0;
 
-// --- ZOOM LOGIKASI ---
-const zoomRange = document.getElementById('zoomRange');
-const zoomVal = document.getElementById('zoomVal');
-const preview = document.getElementById('preview');
-const previewContainer = document.querySelector('.preview-container');
+    // --- ZOOM LOGIKASI ---
+    const zoomRange = document.getElementById('zoomRange');
+    const zoomVal = document.getElementById('zoomVal');
+    const preview = document.getElementById('preview');
+    const previewContainer = document.querySelector('.preview-container');
 
-function updateZoom(scale) {
-    preview.style.transform = `scale(${scale})`;
-    zoomRange.value = scale;
-    zoomVal.textContent = Math.round(scale * 100) + '%';
-    previewContainer.style.height = (1123 * scale + 80) + "px";
-}
+    function updateZoom(scale) {
+      preview.style.transform = `scale(${scale})`;
+      zoomRange.value = scale;
+      zoomVal.textContent = Math.round(scale * 100) + '%';
+      previewContainer.style.height = (1123 * scale + 80) + "px";
+    }
 
-zoomRange.oninput = (e) => updateZoom(e.target.value);
-function setZoom(val) { updateZoom(val); }
+    zoomRange.oninput = (e) => updateZoom(e.target.value);
+    function setZoom(val) { updateZoom(val); }
 
-function autoFitZoom() {
-    const containerWidth = previewContainer.offsetWidth;
-    const initialScale = (containerWidth / 840) * 0.9;
-    updateZoom(Math.min(initialScale, 1));
-}
+    function autoFitZoom() {
+      const containerWidth = previewContainer.offsetWidth;
+      const initialScale = (containerWidth / 840) * 0.9;
+      updateZoom(Math.min(initialScale, 1));
+    }
 
-// --- ASOSIY FUNKSIYALAR ---
-function init() {
-    const pills = document.getElementById('pills');
-    const yList = document.getElementById('years-list');
-    for(let i=1960; i<=2030; i++) yList.innerHTML += `<option value="${i}">`;
-    yList.innerHTML += `<option value="h.v">`;
+    // --- ASOSIY FUNKSIYALAR ---
+    function init() {
+      const pills = document.getElementById('pills');
+      const yList = document.getElementById('years-list');
+      for (let i = 1960; i <= 2030; i++) yList.innerHTML += `<option value="${i}">`;
+      yList.innerHTML += `<option value="h.v">`;
 
-    fields.forEach((f, i) => {
+      fields.forEach((f, i) => {
         const p = document.createElement('div');
         p.className = 'pill';
         p.textContent = i + 1;
         p.onclick = () => showQ(i);
         pills.appendChild(p);
-    });
-    showQ(0);
-    setTimeout(autoFitZoom, 500);
-}
+      });
+      showQ(0);
+      setTimeout(autoFitZoom, 500);
+    }
 
-function showQ(index) {
-    currentStep = index;
-    const f = fields[index];
-    const card = document.getElementById('questionCard');
-    const pills = document.getElementById('pills').children;
-    Array.from(pills).forEach((p, j) => {
+    function showQ(index) {
+      currentStep = index;
+      const f = fields[index];
+      const card = document.getElementById('questionCard');
+      const pills = document.getElementById('pills').children;
+      Array.from(pills).forEach((p, j) => {
         p.classList.toggle('active', j === index);
-        if(j < index) p.classList.add('filled');
-    });
+        if (j < index) p.classList.add('filled');
+      });
 
-    card.innerHTML = `<div class='qtitle'>${index+1}. ${f.name}</div>`;
-    let inputEl;
-    if (f.type === 'textarea') {
+      card.innerHTML = `<div class='qtitle'>${index + 1}. ${f.name}</div>`;
+      let inputEl;
+      if (f.type === 'textarea') {
         inputEl = document.createElement('textarea');
         inputEl.value = data[f.id] || '';
         inputEl.oninput = (e) => { handleWordExpansion(e.target); updateData(f.id, e.target.value); };
-    } 
-    else if (f.type === 'file') {
+      }
+      else if (f.type === 'file') {
         inputEl = document.createElement('div');
         inputEl.innerHTML = `<input type="file" accept="image/*" onchange="readImg(this)">`;
-    }
-    else if (f.type === 'career-builder') { renderCareerBuilder(card); return; }
-    else if (f.type === 'relatives') { renderRelatives(card); return; }
-    else if (f.type === 'toggle') {
+      }
+      else if (f.type === 'career-builder') { renderCareerBuilder(card); return; }
+      else if (f.type === 'relatives') { renderRelatives(card); return; }
+      else if (f.type === 'toggle') {
         inputEl = document.createElement('div');
         inputEl.className = 'switch-container';
         inputEl.innerHTML = `<label class="switch"><input type="checkbox" id="toggle_${f.id}" ${data[f.id] ? 'checked' : ''}><span class="slider"></span></label><span>Sarlavhada hozirgi ish joyini ko'rsatish</span>`;
         setTimeout(() => { document.getElementById(`toggle_${f.id}`).onchange = (e) => updateData(f.id, e.target.checked); }, 100);
-    }
-    else {
+      }
+      else {
         inputEl = document.createElement('input');
         inputEl.value = data[f.id] || f.def || '';
-        if(f.list) inputEl.setAttribute('list', f.list);
+        if (f.list) inputEl.setAttribute('list', f.list);
         inputEl.oninput = (e) => {
-            let val = e.target.value;
-            if(f.type === 'date-text') val = formatDateInput(val);
-            if(f.type === 'region-input') applyRegionAuto(e.target);
-            if(f.transform === 'capitalize') val = val.toUpperCase();
-            e.target.value = val;
-            updateData(f.id, val);
+          let val = e.target.value;
+          if (f.type === 'date-text') val = formatDateInput(val);
+          if (f.type === 'region-input') applyRegionAuto(e.target);
+          if (f.transform === 'capitalize') val = val.toUpperCase();
+          e.target.value = val;
+          updateData(f.id, val);
         };
-        inputEl.addEventListener('keydown', (e) => { if(e.key === ' ') handleWordExpansion(e.target); });
+        inputEl.addEventListener('keydown', (e) => { if (e.key === ' ') handleWordExpansion(e.target); });
+      }
+      if (inputEl) card.appendChild(inputEl);
+      const nav = document.createElement('div');
+      nav.className = 'btn-group';
+      nav.innerHTML = `<button class='btn ghost' ${index === 0 ? 'disabled' : ''} onclick='showQ(${index - 1})'>← Orqaga</button><button class='btn primary' onclick='${index < fields.length - 1 ? `showQ(${index + 1})` : `finish()`}'>${index < fields.length - 1 ? 'Keyingi →' : 'Yakunlash'}</button>`;
+      card.appendChild(nav);
     }
-    if(inputEl) card.appendChild(inputEl);
-    const nav = document.createElement('div');
-    nav.className = 'btn-group';
-    nav.innerHTML = `<button class='btn ghost' ${index===0?'disabled':''} onclick='showQ(${index-1})'>← Orqaga</button><button class='btn primary' onclick='${index<fields.length-1?`showQ(${index+1})`:`finish()`}'>${index<fields.length-1 ? 'Keyingi →' : 'Yakunlash'}</button>`;
-    card.appendChild(nav);
-}
 
-function updateData(key, value) { data[key] = value; updatePreview(); }
+    function updateData(key, value) { data[key] = value; updatePreview(); }
 
-function updatePreview() {
-    fields.forEach(f => {
-        if(f.type !== 'toggle') {
-             const el = document.getElementById('p_' + f.id);
-             if(el && data[f.id]) el.textContent = data[f.id];
+    function updatePreview() {
+      fields.forEach(f => {
+        if (f.type !== 'toggle') {
+          const el = document.getElementById('p_' + f.id);
+          if (el && data[f.id]) el.textContent = data[f.id];
         }
-    });
+      });
 
-    const relTitle = document.getElementById('relTitle');
-    relTitle.innerText = (data.name && data.name.trim() !== "") ? data.name.toUpperCase() + "NING YAQIN QARINDOSHLARI HAQIDA MA'LUMOT" : "YAQIN QARINDOSHLARI HAQIDA MA'LUMOT";
+      const relTitle = document.getElementById('relTitle');
+      relTitle.innerText = (data.name && data.name.trim() !== "") ? data.name.toUpperCase() + "NING YAQIN QARINDOSHLARI HAQIDA MA'LUMOT" : "YAQIN QARINDOSHLARI HAQIDA MA'LUMOT";
 
-    const headerJob = document.getElementById('p_header_job');
-    headerJob.innerHTML = "";
-    if (data.show_job && data.careerList.length > 0) {
+      const headerJob = document.getElementById('p_header_job');
+      headerJob.innerHTML = "";
+      if (data.show_job && data.careerList.length > 0) {
         const currentJob = data.careerList.find(c => c.y2 === 'h.v') || data.careerList[data.careerList.length - 1];
         if (currentJob) headerJob.innerHTML = `${currentJob.y1}-yildan:<br>${currentJob.pos}`;
-    }
+      }
 
-    const careerDiv = document.getElementById('p_career');
-    if(data.careerList.length > 0) careerDiv.innerHTML = data.careerList.map(item => `<b>${item.y1}-${item.y2} yy.</b> - ${item.pos}`).join('<br>');
-    
-    const tbody = document.querySelector("#relativesTable tbody");
-    tbody.innerHTML = '';
-    data.relatives.forEach(r => {
+      const careerDiv = document.getElementById('p_career');
+      if (data.careerList.length > 0) careerDiv.innerHTML = data.careerList.map(item => `<b>${item.y1}-${item.y2} yy.</b> - ${item.pos}`).join('<br>');
+
+      const tbody = document.querySelector("#relativesTable tbody");
+      tbody.innerHTML = '';
+      data.relatives.forEach(r => {
         const tr = document.createElement('tr');
         tr.innerHTML = `<td><b>${r.rel}</b></td><td class="left-align">${r.full}</td><td>${r.birth}</td><td class="left-align">${r.job}</td><td class="left-align">${r.addr || ''}</td>`;
         tbody.appendChild(tr);
-    });
-}
-
-function formatDateInput(val) {
-    val = val.replace(/\D/g, '');
-    if (val.length >= 5) return val.slice(0, 2) + '.' + val.slice(2, 4) + '.' + val.slice(4, 8);
-    if (val.length >= 3) return val.slice(0, 2) + '.' + val.slice(2);
-    return val;
-}
-
-function applyRegionAuto(input) {
-    const val = input.value;
-    if(val.length === 3 && !val.includes(',')) {
-        const key = val.toLowerCase();
-        if(uzbRegions[key]) input.value = uzbRegions[key] + ", ";
+      });
     }
-}
 
-function handleWordExpansion(input) {
-    let val = input.value;
-    const parts = val.split(' ');
-    const last = parts[parts.length-1].toLowerCase();
-    if(wordMap[last]) { parts[parts.length-1] = wordMap[last]; input.value = parts.join(' ') + ' '; }
-}
+    function formatDateInput(val) {
+      val = val.replace(/\D/g, '');
+      if (val.length >= 5) return val.slice(0, 2) + '.' + val.slice(2, 4) + '.' + val.slice(4, 8);
+      if (val.length >= 3) return val.slice(0, 2) + '.' + val.slice(2);
+      return val;
+    }
 
-function readImg(input) {
-    if (input.files && input.files[0]) {
+    function applyRegionAuto(input) {
+      const val = input.value;
+      if (val.length === 3 && !val.includes(',')) {
+        const key = val.toLowerCase();
+        if (uzbRegions[key]) input.value = uzbRegions[key] + ", ";
+      }
+    }
+
+    function handleWordExpansion(input) {
+      let val = input.value;
+      const parts = val.split(' ');
+      const last = parts[parts.length - 1].toLowerCase();
+      if (wordMap[last]) { parts[parts.length - 1] = wordMap[last]; input.value = parts.join(' ') + ' '; }
+    }
+
+    function readImg(input) {
+      if (input.files && input.files[0]) {
         const reader = new FileReader();
         reader.onload = (e) => { document.getElementById('photo').innerHTML = `<img src="${e.target.result}">`; };
         reader.readAsDataURL(input.files[0]);
+      }
     }
-}
 
-function renderCareerBuilder(container) {
-    const wrapper = document.createElement('div');
-    wrapper.innerHTML = `<div class="work-list" id="workListDisplay"></div><div class="work-row">
+    function renderCareerBuilder(container) {
+      const wrapper = document.createElement('div');
+      wrapper.innerHTML = `<div class="work-list" id="workListDisplay"></div><div class="work-row">
         <input id="w_y1" placeholder="2010" type="number"><input id="w_y2" placeholder="2014" list="years-list">
         <textarea id="w_pos" rows="1" placeholder="Lavozim va tashkilot" oninput="handleWordExpansion(this)"></textarea>
         <button class="btn primary" onclick="addCareer()">+</button></div>`;
-    const nav = document.createElement('div');
-    nav.className = 'btn-group';
-    nav.innerHTML = `<button class='btn ghost' onclick='showQ(${currentStep-1})'>← Orqaga</button><button class='btn primary' onclick='showQ(${currentStep+1})'>Keyingi →</button>`;
-    container.appendChild(wrapper);
-    container.appendChild(nav);
-    renderWorkList();
-}
+      const nav = document.createElement('div');
+      nav.className = 'btn-group';
+      nav.innerHTML = `<button class='btn ghost' onclick='showQ(${currentStep - 1})'>← Orqaga</button><button class='btn primary' onclick='showQ(${currentStep + 1})'>Keyingi →</button>`;
+      container.appendChild(wrapper);
+      container.appendChild(nav);
+      renderWorkList();
+    }
 
-function addCareer() {
-    const y1 = document.getElementById('w_y1').value;
-    const y2 = document.getElementById('w_y2').value;
-    const pos = document.getElementById('w_pos').value;
-    if(y1 && pos) {
-        data.careerList.push({y1, y2: y2||'h.v', pos});
+    function addCareer() {
+      const y1 = document.getElementById('w_y1').value;
+      const y2 = document.getElementById('w_y2').value;
+      const pos = document.getElementById('w_pos').value;
+      if (y1 && pos) {
+        data.careerList.push({ y1, y2: y2 || 'h.v', pos });
         renderWorkList(); updatePreview();
         document.getElementById('w_pos').value = '';
         document.getElementById('w_y1').value = y2 || '';
+      }
     }
-}
 
-function renderWorkList() {
-    const list = document.getElementById('workListDisplay');
-    if(!list) return;
-    list.innerHTML = data.careerList.map((item, i) => `<div class="work-item-display"><span><b>${item.y1}-${item.y2}:</b> ${item.pos}</span><span style="color:red;cursor:pointer" onclick="removeCareer(${i})">✕</span></div>`).join('');
-}
+    function renderWorkList() {
+      const list = document.getElementById('workListDisplay');
+      if (!list) return;
+      list.innerHTML = data.careerList.map((item, i) => `<div class="work-item-display"><span><b>${item.y1}-${item.y2}:</b> ${item.pos}</span><span style="color:red;cursor:pointer" onclick="removeCareer(${i})">✕</span></div>`).join('');
+    }
 
-function removeCareer(i) { data.careerList.splice(i, 1); renderWorkList(); updatePreview(); }
+    function removeCareer(i) { data.careerList.splice(i, 1); renderWorkList(); updatePreview(); }
 
-function renderRelatives(container) {
-    const box = document.createElement('div');
-    const checks = document.createElement('div');
-    checks.style.cssText = 'display:flex;flex-wrap:wrap;gap:8px;margin-bottom:15px;';
-    relList.forEach(rel => {
+    function renderRelatives(container) {
+      const box = document.createElement('div');
+      const checks = document.createElement('div');
+      checks.style.cssText = 'display:flex;flex-wrap:wrap;gap:8px;margin-bottom:15px;';
+      relList.forEach(rel => {
         const lbl = document.createElement('label');
         lbl.style.cssText = 'padding:6px 12px;background:#f1f5f9;border-radius:8px;font-size:12px;cursor:pointer;';
         const chk = document.createElement('input'); chk.type = 'checkbox'; chk.style.width = 'auto';
-        if(data.relatives.find(r => r.rel === rel)) { chk.checked = true; lbl.style.background = '#dbeafe'; }
+        if (data.relatives.find(r => r.rel === rel)) { chk.checked = true; lbl.style.background = '#dbeafe'; }
         chk.onchange = (e) => {
-            if(e.target.checked) { if(!data.relatives.find(r => r.rel === rel)) data.relatives.push({rel, full:'', birth:'', job:'', addr:''}); lbl.style.background = '#dbeafe'; }
-            else { data.relatives = data.relatives.filter(r => r.rel !== rel); lbl.style.background = '#f1f5f9'; }
-            renderRelInputs(); updatePreview();
+          if (e.target.checked) { if (!data.relatives.find(r => r.rel === rel)) data.relatives.push({ rel, full: '', birth: '', job: '', addr: '' }); lbl.style.background = '#dbeafe'; }
+          else { data.relatives = data.relatives.filter(r => r.rel !== rel); lbl.style.background = '#f1f5f9'; }
+          renderRelInputs(); updatePreview();
         };
         lbl.append(chk, rel); checks.appendChild(lbl);
-    });
-    box.appendChild(checks);
-    const inBox = document.createElement('div'); inBox.id = 'relInputsBox'; box.appendChild(inBox);
-    const nav = document.createElement('div');
-    nav.className = 'btn-group';
-    nav.innerHTML = `<button class='btn ghost' onclick='showQ(${currentStep-1})'>← Orqaga</button><button class='btn primary' onclick='showQ(${currentStep+1})'>Keyingi →</button>`;
-    container.appendChild(box); container.appendChild(nav);
-    renderRelInputs();
-}
+      });
+      box.appendChild(checks);
+      const inBox = document.createElement('div'); inBox.id = 'relInputsBox'; box.appendChild(inBox);
+      const nav = document.createElement('div');
+      nav.className = 'btn-group';
+      nav.innerHTML = `<button class='btn ghost' onclick='showQ(${currentStep - 1})'>← Orqaga</button><button class='btn primary' onclick='showQ(${currentStep + 1})'>Keyingi →</button>`;
+      container.appendChild(box); container.appendChild(nav);
+      renderRelInputs();
+    }
 
-function renderRelInputs() {
-    const box = document.getElementById('relInputsBox');
-    if(!box) return;
-    box.innerHTML = data.relatives.map((item, idx) => `
+    function renderRelInputs() {
+      const box = document.getElementById('relInputsBox');
+      if (!box) return;
+      box.innerHTML = data.relatives.map((item, idx) => `
         <div style="border:1px solid #eee;padding:10px;border-radius:12px;margin-bottom:10px;background:#fff">
             <div style="font-weight:bold;margin-bottom:5px;color:#2563eb">${item.rel}</div>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
@@ -475,38 +915,39 @@ function renderRelInputs() {
             <input placeholder="Ish joyi va lavozimi" list="job-presets" value="${item.job}" style="margin-bottom:8px" oninput="handleWordExpansion(this)" onchange="updRel(${idx}, 'job', this.value)">
             <input placeholder="Turar joyi" value="${item.addr || ''}" oninput="applyRegionAuto(this)" onchange="updRel(${idx}, 'addr', this.value)">
         </div>`).join('');
-}
+    }
 
-function updRel(idx, key, val) { data.relatives[idx][key] = val; updatePreview(); }
+    function updRel(idx, key, val) { data.relatives[idx][key] = val; updatePreview(); }
 
-function finish() { alert("Ma'lumotnoma tayyor! Word yoki PDF qilib yuklab olishingiz mumkin."); }
+    function finish() { alert("Ma'lumotnoma tayyor! Word yoki PDF qilib yuklab olishingiz mumkin."); }
 
-// PDF/Word Yuklash
-document.getElementById('savePdf').onclick = async () => {
-    const btn = document.getElementById('savePdf'); btn.textContent = '...';
-    const element = document.getElementById('preview');
-    const canvas = await html2canvas(element, { scale: 2, useCORS: true });
-    const imgData = canvas.toDataURL('image/png');
-    const { jsPDF } = window.jspdf;
-    const pdf = new jsPDF('p', 'mm', 'a4');
-    pdf.addImage(imgData, 'PNG', 0, 0, 210, canvas.height * 210 / canvas.width);
-    pdf.save(`Malumotnoma_${(data.name || 'user').replace(/\s/g, '_')}.pdf`);
-    btn.textContent = 'PDF';
-};
+    // PDF/Word Yuklash
+    document.getElementById('savePdf').onclick = async () => {
+      const btn = document.getElementById('savePdf'); btn.textContent = '...';
+      const element = document.getElementById('preview');
+      const canvas = await html2canvas(element, { scale: 2, useCORS: true });
+      const imgData = canvas.toDataURL('image/png');
+      const { jsPDF } = window.jspdf;
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      pdf.addImage(imgData, 'PNG', 0, 0, 210, canvas.height * 210 / canvas.width);
+      pdf.save(`Malumotnoma_${(data.name || 'user').replace(/\s/g, '_')}.pdf`);
+      btn.textContent = 'PDF';
+    };
 
-document.getElementById('saveWord').onclick = () => {
-    const preHtml = "<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'><head><meta charset='utf-8'></head><body>";
-    const postHtml = "</body></html>";
-    let html = document.getElementById('preview').innerHTML;
-    const url = 'data:application/vnd.ms-word;charset=utf-8,' + encodeURIComponent(preHtml + html + postHtml);
-    const downloadLink = document.createElement("a");
-    downloadLink.href = url;
-    downloadLink.download = `Malumotnoma_${(data.name || 'user').replace(/\s/g, '_')}.doc`;
-    downloadLink.click();
-};
+    document.getElementById('saveWord').onclick = () => {
+      const preHtml = "<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'><head><meta charset='utf-8'></head><body>";
+      const postHtml = "</body></html>";
+      let html = document.getElementById('preview').innerHTML;
+      const url = 'data:application/vnd.ms-word;charset=utf-8,' + encodeURIComponent(preHtml + html + postHtml);
+      const downloadLink = document.createElement("a");
+      downloadLink.href = url;
+      downloadLink.download = `Malumotnoma_${(data.name || 'user').replace(/\s/g, '_')}.doc`;
+      downloadLink.click();
+    };
 
-init();
-window.onresize = autoFitZoom;
-</script>
+    init();
+    window.onresize = autoFitZoom;
+  </script>
 </body>
+
 </html>

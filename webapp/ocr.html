@@ -348,7 +348,41 @@
 
     <script>
         const tg = window.Telegram?.WebApp;
-        if (tg) { tg.ready(); tg.expand(); tg.BackButton.show(); tg.BackButton.onClick(() => window.location.href = 'index.html'); }
+        let telegramId = '';
+
+        if (tg) {
+            tg.ready();
+            tg.expand();
+            tg.BackButton.show();
+            tg.BackButton.onClick(() => window.location.href = 'index.html');
+
+            if (tg.initDataUnsafe?.user) {
+                telegramId = tg.initDataUnsafe.user.id.toString();
+            }
+        }
+
+        // Fallback for ID from URL
+        if (!telegramId) {
+            const urlParams = new URLSearchParams(window.location.search);
+            telegramId = urlParams.get('telegram_id');
+        }
+
+        // Safety check
+        if (!telegramId) {
+            document.body.innerHTML = `
+                <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; padding: 20px; text-align: center; background: #060d1f; font-family: sans-serif; position: fixed; inset: 0; z-index: 10000; color: white;">
+                    <div style="background: rgba(255,255,255,0.05); padding: 40px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.1); max-width: 400px;">
+                        <h2 style="color: #3b82f6; margin-bottom: 20px;">⚠️ Xatolik</h2>
+                        <p style="opacity: 0.8; font-size: 16px; line-height: 1.6; margin-bottom: 30px;">
+                            Telegram ID topilmadi.<br><br>
+                            Iltimos, bot orqali qaytadan kiring.
+                        </p>
+                        <a href="https://t.me/DastyorAiBot" style="display: inline-block; padding: 12px 24px; background: #2563eb; color: white; border-radius: 12px; text-decoration: none; font-weight: bold;">Botga qaytish</a>
+                    </div>
+                </div>
+            `;
+            throw new Error('Telegram ID missing');
+        }
 
         function handleFile(input) {
             const file = input.files[0];
