@@ -1,14 +1,44 @@
-# Quick script to clear any webhooks before starting polling
-import requests
+import asyncio
 import os
+import sys
 from dotenv import load_dotenv
+from telegram import Bot, MenuButtonWebApp, WebAppInfo
 
-load_dotenv()
-BOT_TOKEN = os.getenv("BOT_TOKEN")
+# Fix for Windows console encoding issues
+if sys.platform == 'win32':
+    sys.stdout.reconfigure(encoding='utf-8')
 
-if BOT_TOKEN:
-    url = f"https://api.telegram.org/bot{BOT_TOKEN}/deleteWebhook?drop_pending_updates=True"
-    response = requests.get(url)
-    print(f"Webhook cleared: {response.json()}")
-else:
-    print("No BOT_TOKEN found")
+async def setup_bot():
+    load_dotenv()
+    token = os.getenv("BOT_TOKEN")
+    if not token:
+        print("BOT_TOKEN topilmadi!")
+        return
+
+    bot = Bot(token=token)
+    
+    # 1. Webhookni o'chirish
+    print("Webhook o'chirilmoqda...")
+    try:
+        await bot.delete_webhook(drop_pending_updates=True)
+        me = await bot.get_me()
+        print(f"Webhook o'chirildi: @{me.username}")
+    except Exception as e:
+        print(f"Webhook o'chirishda xato: {e}")
+
+    # 2. Menu tugmasini o'rnatish (Input yonidagi tugma)
+    print("Menu tugmasi o'rnatilmoqda...")
+    web_app_url = "https://dastyor-ai.onrender.com/webapp/index.html"
+    try:
+        await bot.set_chat_menu_button(
+            menu_button=MenuButtonWebApp(
+                text="🚀 Appni ochish",
+                web_app=WebAppInfo(url=web_app_url)
+            )
+        )
+        print("Menu tugmasi Web App-ga o'rnatildi!")
+    except Exception as e:
+        print(f"Menu tugmasini o'rnatishda xato: {e}")
+
+if __name__ == "__main__":
+    asyncio.run(setup_bot())

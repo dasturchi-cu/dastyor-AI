@@ -1,11 +1,17 @@
 from telegram import ReplyKeyboardMarkup, KeyboardButton
 
+from telegram import ReplyKeyboardMarkup, KeyboardButton, WebAppInfo
+
 def get_main_menu():
     """
-    Returns the main grid menu matching the design from the screenshot.
-    Layout: 2x4 grid + 1 full-width button
+    Returns the main menu with Web App integration.
     """
+    web_app_url = "https://dastyor-ai.onrender.com/webapp/index.html"
+    
     keyboard = [
+        [
+            KeyboardButton("🚀 Appni ochish", web_app=WebAppInfo(url=web_app_url))
+        ],
         [
             KeyboardButton("Obyektivka Ai ✨"),
             KeyboardButton("Rasm→Word AI ✨")
@@ -13,10 +19,6 @@ def get_main_menu():
         [
             KeyboardButton("Krill-lotin ✏️"),
             KeyboardButton("Tarjima fayl 📦")
-        ],
-        [
-            KeyboardButton("Rasm→PDF"),
-            KeyboardButton("Imlo tekshirish ✏️")
         ],
         [
             KeyboardButton("Premium xizmatlar 💎")
