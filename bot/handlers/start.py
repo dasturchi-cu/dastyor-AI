@@ -14,7 +14,7 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         
         welcome_text = (
             f"Assalomu alaykum, {user_first_name}! 👋\n\n"
-            "🚀 **LASHBOT AI — Hujjat Servisiga xush kelibsiz!**\n\n"
+            "🚀 **DASTYOR AI — Hujjat Servisiga xush kelibsiz!**\n\n"
             "Endi barcha xizmatlarimizdan qulay **Web App (Mini App)** interfeysi orqali foydalanishingiz mumkin.\n\n"
             "✨ Obyektivka tayyorlash\n"
             "📄 CV yaratish (Professional)\n"

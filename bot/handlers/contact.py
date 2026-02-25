@@ -7,8 +7,8 @@ async def contact_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     contact_text = (
         "✉️ **Aloqa uchun**\n\n"
         "📞 **Support:**\n"
-        "• Telegram: @lashbot_support\n"
-        "• Admin: @lashbot_admin\n\n"
+        "• Telegram: @DastyorAiBot\n"
+        "• Admin: @DastyorAiBot\n\n"
         "⏰ **Ish vaqti:**\n"
         "Dushanba-Shanba: 09:00-18:00\n\n"
         "💬 **Murojaat yuborish:**\n"

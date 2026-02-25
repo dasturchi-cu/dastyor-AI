@@ -1,5 +1,5 @@
 /* =============================================
-   app.js — LASHBOT AI Web App JavaScript
+   app.js — DASTYOR AI Web App JavaScript
    ============================================= */
 
 // ---- PARTICLES ----
