@@ -3,6 +3,7 @@ import logging
 from fastapi import FastAPI, Request, Response
 from telegram import Update
 from contextlib import asynccontextmanager
+from fastapi.staticfiles import StaticFiles
 from main import setup_application
 
 # Setup Logging
@@ -33,11 +34,17 @@ async def lifespan(app: FastAPI):
     await application.shutdown()
     logger.info("🛑 Webhook Application Stopped")
 
+from fastapi.responses import RedirectResponse
+
 app = FastAPI(lifespan=lifespan)
+
+# Serve Web App Files
+app.mount("/webapp", StaticFiles(directory="webapp"), name="webapp")
 
 @app.get("/")
 async def root():
-    return {"status": "ok", "message": "DASTYOR AI Bot is running"}
+    # Redirect base URL to the Web App for better UX
+    return RedirectResponse(url="/webapp/index.html")
 
 @app.get("/health")
 async def health():
