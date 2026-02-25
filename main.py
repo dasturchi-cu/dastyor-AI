@@ -240,15 +240,14 @@ async def button_callback_handler(update: Update, context: ContextTypes.DEFAULT_
 async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> None:
     logger.error(msg="Exception while handling an update:", exc_info=context.error)
 
-def main():
+def setup_application():
     if not BOT_TOKEN:
         logger.error("BOT_TOKEN is missing!")
-        return
+        return None
 
     application = ApplicationBuilder().token(BOT_TOKEN).connection_pool_size(8).build()
     
     # 1. CRM Middleware (Tracks + Checks Ban)
-    # The 'track_user' in admin.py handles setting the 'is_banned' flag in context
     application.add_handler(TypeHandler(Update, track_user), group=-1)
 
     # 2. Commands
@@ -265,10 +264,10 @@ def main():
     application.add_handler(CommandHandler("send", broadcast_command))
     application.add_handler(CommandHandler("user_info", user_info_command))
     application.add_handler(CommandHandler("users", user_info_command)) 
-    application.add_handler(CommandHandler("top", top_users_command)) # NEW
-    application.add_handler(CommandHandler("search", search_command)) # NEW
-    application.add_handler(CommandHandler("ban", ban_user_command)) # NEW
-    application.add_handler(CommandHandler("unban", unban_user_command)) # NEW
+    application.add_handler(CommandHandler("top", top_users_command))
+    application.add_handler(CommandHandler("search", search_command))
+    application.add_handler(CommandHandler("ban", ban_user_command))
+    application.add_handler(CommandHandler("unban", unban_user_command))
     
     application.add_handler(CommandHandler("add_channel", add_channel_command))
     application.add_handler(CommandHandler("remove_channel", remove_channel_command))
@@ -277,16 +276,11 @@ def main():
     application.add_handler(CommandHandler("set_limit", set_limit_command))
 
     # 3. Callback Queries
-    # Premium management callbacks (must be before generic callback handler)
     application.add_handler(CallbackQueryHandler(
         premium_callback_handler,
         pattern="^prem_"
     ))
-    
-    # Smart Router Callbacks
     application.add_handler(CallbackQueryHandler(smart_callback_handler, pattern="^smart_"))
-    
-    # Generic callback handler (for subscription checks, etc)
     application.add_handler(CallbackQueryHandler(button_callback_handler))
 
     # 4. Text Menu Navigation
@@ -295,7 +289,6 @@ def main():
     admin_buttons = "^(📊 Statistika|📨 Xabar yuborish|📢 Kanallar|💎 Premium Boshqaruv|⚙️ Sozlamalar|👥 Foydalanuvchilar|🚪 Panelni yopish)$"
     application.add_handler(MessageHandler(filters.Regex(admin_buttons), handle_admin_text))
 
-    # Features (Regex must match EXACT button text from reply_keyboards.py)
     application.add_handler(MessageHandler(filters.Regex("^Rasm→Word AI ✨$"), ocr_handler))
     application.add_handler(MessageHandler(filters.Regex("^Obyektivka Ai ✨$"), obyektivka_handler))
     application.add_handler(MessageHandler(filters.Regex("^Krill-lotin ✏️$"), transliterate_handler))
@@ -304,11 +297,9 @@ def main():
     application.add_handler(MessageHandler(filters.Regex("^Imlo tekshirish ✏️$"), spell_check_handler))
     application.add_handler(MessageHandler(filters.Regex("^Premium xizmatlar 💎$"), premium_info_handler))
     
-    # Sub-menu Features: Transliting (Kirill-Lotin) 
     application.add_handler(MessageHandler(filters.Regex("^Kirill → Lotin$"), krill_to_lotin_handler))
     application.add_handler(MessageHandler(filters.Regex("^Lotin → Kirill$"), lotin_to_krill_handler))
 
-    # Sub-menu Features: Translating (Til Yo'nalishlari)
     async def go_translate(update: Update, context: ContextTypes.DEFAULT_TYPE):
         text = update.message.text
         direction = "uz_en"
@@ -320,31 +311,29 @@ def main():
         await set_translation_direction(update, context, direction)
 
     application.add_handler(MessageHandler(filters.Regex("^(O'zbek → Ingliz|Ingliz → O'zbek|Rus → O'zbek|O'zbek → Rus|Rus → Ingliz)$"), go_translate))
-
     
-    # Common Buttons
     application.add_handler(MessageHandler(filters.Regex("^Balans 💰$"), balance_handler))
     application.add_handler(MessageHandler(filters.Regex("^Aloqa ✉️$"), contact_handler))
     application.add_handler(MessageHandler(filters.Regex("^Yordam 🆘$"), help_button_handler))
 
-    # 5. Generic File/Text Routing (State-based)
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_router_text))
     application.add_handler(MessageHandler(filters.Document.ALL, handle_router_doc))
     application.add_handler(MessageHandler(filters.PHOTO, handle_router_photo))
     application.add_handler(MessageHandler(filters.VOICE | filters.AUDIO, handle_router_audio))
 
-    # Catch-all for videos/animations for admin broadcasts
     async def handle_router_other(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if not await unified_router_check(update, context): return
         if await process_admin_state_input(update, context): return
-        
     application.add_handler(MessageHandler(filters.ALL & ~filters.COMMAND, handle_router_other))
 
-    # Errors
     application.add_error_handler(error_handler)
+    return application
 
-    logger.info("✅ Bot is running properly!")
-    application.run_polling(allowed_updates=Update.ALL_TYPES, drop_pending_updates=True)
+def main():
+    application = setup_application()
+    if application:
+        logger.info("✅ Bot is starting in POLLING mode...")
+        application.run_polling(allowed_updates=Update.ALL_TYPES, drop_pending_updates=True)
 
 if __name__ == '__main__':
     main()
