@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="uz">
+<html lang="uz" data-theme="dark">
 
 <head>
     <meta charset="UTF-8" />
@@ -18,18 +18,29 @@
             padding: 0;
         }
 
-        :root {
-            --bg: #05101f;
-            --deep: #08182e;
-            --blue: #1a56db;
-            --blue-m: #2563eb;
-            --blue-l: #3b82f6;
-            --blue-xl: #60a5fa;
-            --glow: rgba(37, 99, 235, 0.35);
-            --glass: rgba(255, 255, 255, 0.045);
+        :root[data-theme="dark"] {
+            --bg: #050f1e;
+            --card: rgba(255, 255, 255, 0.04);
+            --hover: rgba(255, 255, 255, 0.07);
             --border: rgba(255, 255, 255, 0.08);
-            --text: #e2e8f0;
+            --text: #f0f4f8;
+            --muted: #94a3b8;
+            --accent: #2563eb;
+            --accent-glow: rgba(37, 99, 235, 0.3);
+            --nav: rgba(10, 22, 40, 0.85);
+            --white: #ffffff;
+        }
+
+        :root[data-theme="light"] {
+            --bg: #f8fafc;
+            --card: #ffffff;
+            --hover: #f1f5f9;
+            --border: #e2e8f0;
+            --text: #0f172a;
             --muted: #64748b;
+            --accent: #2563eb;
+            --accent-glow: rgba(37, 99, 235, 0.15);
+            --nav: rgba(255, 255, 255, 0.85);
             --white: #ffffff;
         }
 
@@ -40,609 +51,720 @@
             color: var(--text);
             font-family: 'Inter', system-ui, sans-serif;
             overflow-x: hidden;
+            transition: background 0.3s ease, color 0.3s ease;
         }
 
-        /* ── Animated bg ── */
-        .bg-canvas {
+        /* ── BG EFFECTS ── */
+        .bg-fx {
             position: fixed;
             inset: 0;
             z-index: 0;
             pointer-events: none;
+            overflow: hidden;
+        }
+
+        .bg-fx [data-theme="dark"] & {
             background:
-                radial-gradient(ellipse 120% 80% at 50% -20%, rgba(37, 99, 235, 0.22) 0%, transparent 55%),
-                radial-gradient(ellipse 80% 60% at 0% 80%, rgba(14, 165, 233, 0.10) 0%, transparent 50%),
-                radial-gradient(ellipse 60% 50% at 100% 60%, rgba(99, 102, 241, 0.08) 0%, transparent 50%),
+                radial-gradient(circle at 50% -20%, rgba(37, 99, 235, 0.15), transparent 70%),
                 linear-gradient(180deg, #050f1e 0%, #08182e 100%);
         }
 
-        /* grid lines */
         .bg-grid {
-            position: fixed;
+            position: absolute;
             inset: 0;
-            z-index: 0;
-            pointer-events: none;
-            background-image:
-                linear-gradient(rgba(37, 99, 235, 0.035) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(37, 99, 235, 0.035) 1px, transparent 1px);
-            background-size: 44px 44px;
+            background-image: linear-gradient(var(--border) 1px, transparent 1px),
+                linear-gradient(90deg, var(--border) 1px, transparent 1px);
+            background-size: 50px 50px;
+            opacity: 0.2;
         }
 
-        /* ── Page ── */
+        /* ── PAGE ── */
         .page {
             position: relative;
             z-index: 1;
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            padding: 0 0 32px;
+            padding-bottom: 90px;
+            max-width: 500px;
+            margin: 0 auto;
         }
 
-        /* ── Header ── */
-        .header {
-            padding: 28px 22px 0;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 6px;
-        }
-
-        .logo-row {
+        /* ── TOP HEADER (Reference style) ── */
+        .top-nav {
+            padding: 24px 20px 0;
             display: flex;
             align-items: center;
-            gap: 10px;
-            margin-bottom: 2px;
+            justify-content: space-between;
         }
 
-        .logo-gem {
-            width: 46px;
-            height: 46px;
-            border-radius: 14px;
-            background: linear-gradient(135deg, #1d4ed8, #2563eb, #3b82f6);
-            box-shadow: 0 0 32px rgba(37, 99, 235, 0.6), 0 0 0 1px rgba(59, 130, 246, 0.3);
+        .user-block {
             display: flex;
             align-items: center;
-            justify-content: center;
-            flex-shrink: 0;
+            gap: 14px;
         }
 
-        .logo-gem svg {
-            display: block;
-        }
-
-        .logo-name {
-            font-size: 24px;
-            font-weight: 900;
-            color: var(--white);
-            letter-spacing: -0.8px;
-        }
-
-        .logo-name span {
-            background: linear-gradient(90deg, #60a5fa, #93c5fd);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-
-        .header-sub {
-            font-size: 12.5px;
-            color: var(--muted);
-            text-align: center;
-            letter-spacing: 0.2px;
-        }
-
-        .user-pill {
-            margin-top: 10px;
-            display: inline-flex;
-            align-items: center;
-            gap: 7px;
-            background: rgba(37, 99, 235, 0.10);
-            border: 1px solid rgba(37, 99, 235, 0.22);
-            border-radius: 50px;
-            padding: 6px 16px;
-            font-size: 12px;
-            color: var(--blue-xl);
-            font-weight: 600;
-        }
-
-        .live-dot {
-            width: 7px;
-            height: 7px;
+        .avatar {
+            width: 52px;
+            height: 52px;
             border-radius: 50%;
-            background: #22c55e;
-            box-shadow: 0 0 8px #22c55e;
-            animation: blink 2s infinite;
-        }
-
-        @keyframes blink {
-
-            0%,
-            100% {
-                opacity: 1;
-            }
-
-            50% {
-                opacity: 0.3;
-            }
-        }
-
-        /* ── Main content ── */
-        .content {
-            flex: 1;
-            padding: 28px 18px 0;
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-        }
-
-        /* ── 4 main buttons ── */
-        .main-btn {
-            position: relative;
-            display: flex;
-            align-items: center;
-            gap: 18px;
-            padding: 22px 22px;
-            border-radius: 20px;
-            text-decoration: none;
-            color: var(--white);
-            border: 1px solid var(--border);
-            background: var(--glass);
-            backdrop-filter: blur(12px);
+            background: var(--accent);
+            border: 2px solid var(--white);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
             overflow: hidden;
-            transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
-            -webkit-tap-highlight-color: transparent;
-            cursor: pointer;
-        }
-
-        /* glow layer on press */
-        .main-btn::before {
-            content: '';
-            position: absolute;
-            inset: 0;
-            border-radius: 20px;
-            opacity: 0;
-            transition: opacity 0.25s;
-        }
-
-        .main-btn:active {
-            transform: scale(0.962);
-        }
-
-        .main-btn:active::before {
-            opacity: 1;
-        }
-
-        /* Blue */
-        .mb-blue {
-            border-color: rgba(37, 99, 235, 0.30);
-            background: linear-gradient(135deg, rgba(29, 78, 216, 0.18) 0%, rgba(37, 99, 235, 0.08) 100%);
-            box-shadow: 0 4px 32px rgba(37, 99, 235, 0.14), inset 0 1px 0 rgba(255, 255, 255, 0.06);
-        }
-
-        .mb-blue::before {
-            background: rgba(37, 99, 235, 0.18);
-        }
-
-        .mb-blue:active {
-            border-color: rgba(59, 130, 246, 0.5);
-            box-shadow: 0 0 28px rgba(37, 99, 235, 0.3);
-        }
-
-        /* Cyan */
-        .mb-cyan {
-            border-color: rgba(6, 182, 212, 0.25);
-            background: linear-gradient(135deg, rgba(8, 145, 178, 0.15) 0%, rgba(6, 182, 212, 0.06) 100%);
-            box-shadow: 0 4px 32px rgba(6, 182, 212, 0.10), inset 0 1px 0 rgba(255, 255, 255, 0.06);
-        }
-
-        .mb-cyan::before {
-            background: rgba(6, 182, 212, 0.14);
-        }
-
-        .mb-cyan:active {
-            border-color: rgba(6, 182, 212, 0.5);
-            box-shadow: 0 0 28px rgba(6, 182, 212, 0.25);
-        }
-
-        /* Violet */
-        .mb-violet {
-            border-color: rgba(139, 92, 246, 0.25);
-            background: linear-gradient(135deg, rgba(109, 40, 217, 0.15) 0%, rgba(139, 92, 246, 0.06) 100%);
-            box-shadow: 0 4px 32px rgba(139, 92, 246, 0.10), inset 0 1px 0 rgba(255, 255, 255, 0.06);
-        }
-
-        .mb-violet::before {
-            background: rgba(139, 92, 246, 0.14);
-        }
-
-        .mb-violet:active {
-            border-color: rgba(139, 92, 246, 0.5);
-            box-shadow: 0 0 28px rgba(139, 92, 246, 0.25);
-        }
-
-        /* Gold - Premium */
-        .mb-gold {
-            border-color: rgba(245, 158, 11, 0.30);
-            background: linear-gradient(135deg, rgba(180, 83, 9, 0.20) 0%, rgba(245, 158, 11, 0.08) 100%);
-            box-shadow: 0 4px 32px rgba(245, 158, 11, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.06);
-        }
-
-        .mb-gold::before {
-            background: rgba(245, 158, 11, 0.15);
-        }
-
-        .mb-gold:active {
-            border-color: rgba(245, 158, 11, 0.55);
-            box-shadow: 0 0 28px rgba(245, 158, 11, 0.28);
-        }
-
-        /* Icon box */
-        .btn-icon {
-            width: 56px;
-            height: 56px;
-            border-radius: 16px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 26px;
-            flex-shrink: 0;
         }
 
-        .ic-blue {
-            background: rgba(37, 99, 235, 0.20);
-            box-shadow: 0 0 20px rgba(37, 99, 235, 0.25);
+        .avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
         }
 
-        .ic-cyan {
-            background: rgba(6, 182, 212, 0.18);
-            box-shadow: 0 0 20px rgba(6, 182, 212, 0.22);
-        }
-
-        .ic-violet {
-            background: rgba(139, 92, 246, 0.18);
-            box-shadow: 0 0 20px rgba(139, 92, 246, 0.22);
-        }
-
-        .ic-gold {
-            background: rgba(245, 158, 11, 0.18);
-            box-shadow: 0 0 20px rgba(245, 158, 11, 0.22);
-        }
-
-        /* Text */
-        .btn-body {
-            flex: 1;
-        }
-
-        .btn-title {
-            font-size: 16px;
+        .avatar .initials {
+            font-size: 20px;
             font-weight: 800;
-            color: var(--white);
-            margin-bottom: 4px;
+            color: white;
+        }
+
+        .welcome-msg {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .welcome-msg .small {
+            font-size: 13px;
+            color: var(--muted);
+            font-weight: 500;
+        }
+
+        .welcome-msg .name {
+            font-size: 18px;
+            font-weight: 800;
             letter-spacing: -0.3px;
         }
 
-        .btn-desc {
-            font-size: 12.5px;
-            color: var(--muted);
-            line-height: 1.45;
-            font-weight: 500;
+        .badge-pro-icon {
+            font-size: 24px;
+            color: #f59e0b;
         }
 
-        /* Badge */
-        .btn-badge {
-            position: absolute;
-            top: 14px;
-            right: 14px;
-            padding: 3px 10px;
-            border-radius: 50px;
-            font-size: 9.5px;
-            font-weight: 800;
-            letter-spacing: 0.4px;
-            text-transform: uppercase;
-        }
-
-        .badge-hot {
-            background: rgba(239, 68, 68, 0.20);
-            color: #f87171;
-            border: 1px solid rgba(239, 68, 68, 0.3);
-        }
-
-        .badge-new {
-            background: rgba(34, 197, 94, 0.15);
-            color: #4ade80;
-            border: 1px solid rgba(34, 197, 94, 0.25);
-        }
-
-        .badge-pro {
-            background: rgba(245, 158, 11, 0.18);
-            color: #fcd34d;
-            border: 1px solid rgba(245, 158, 11, 0.3);
-        }
-
-        /* Arrow */
-        .btn-arrow {
-            width: 32px;
-            height: 32px;
-            border-radius: 10px;
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.07);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 16px;
-            color: var(--muted);
-            flex-shrink: 0;
-            transition: all 0.2s;
-        }
-
-        .main-btn:active .btn-arrow {
-            background: rgba(255, 255, 255, 0.12);
-            color: var(--white);
-        }
-
-        /* ── Divider ── */
-        .divider {
-            display: flex;
-            align-items: center;
+        /* ── STATS CARDS ── */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
             gap: 12px;
-            padding: 4px 0;
+            padding: 24px 20px 0;
         }
 
-        .divider-line {
-            flex: 1;
-            height: 1px;
-            background: linear-gradient(90deg, transparent, var(--border), transparent);
-        }
-
-        .divider-text {
-            font-size: 10.5px;
-            font-weight: 700;
-            color: var(--muted);
-            text-transform: uppercase;
-            letter-spacing: 1.2px;
-        }
-
-        /* ── Stats strip ── */
-        .stats-strip {
-            display: flex;
-            gap: 10px;
-            margin: 0 2px;
-        }
-
-        .stat-box {
-            flex: 1;
-            background: var(--glass);
+        .stat-card {
+            background: var(--card);
             border: 1px solid var(--border);
-            border-radius: 14px;
-            padding: 14px 10px;
-            text-align: center;
+            border-radius: 20px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
         }
 
-        .stat-num {
-            font-size: 19px;
+        .stat-card .label {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: #f97316;
+            letter-spacing: 0.5px;
+        }
+
+        .stat-card .val {
+            font-size: 24px;
             font-weight: 900;
-            color: var(--white);
-            display: block;
             letter-spacing: -0.5px;
         }
 
-        .stat-lbl {
-            font-size: 10px;
+        /* ── SECTION LABEL ── */
+        .section-header {
+            padding: 32px 20px 12px;
+            font-size: 14px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 1px;
             color: var(--muted);
-            display: block;
-            margin-top: 3px;
-            font-weight: 500;
         }
 
-        /* ── Footer note ── */
-        .footer-note {
-            margin: 20px 18px 0;
-            background: rgba(37, 99, 235, 0.06);
-            border: 1px solid rgba(37, 99, 235, 0.14);
-            border-radius: 14px;
-            padding: 14px 16px;
+        /* ── SERVICE CARDS (PREMIUM STYLE) ── */
+        .services-list {
+            padding: 0 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .svc-btn {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 24px;
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            text-decoration: none;
+            color: var(--text);
+            transition: transform 0.2s, background 0.2s;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .svc-btn:active {
+            transform: scale(0.97);
+            background: var(--hover);
+        }
+
+        .svc-icon-box {
+            width: 64px;
+            height: 64px;
+            border-radius: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            flex-shrink: 0;
+            transition: all 0.3s;
+        }
+
+        /* Color Variants from Reference */
+        .color-blue {
+            background: #eff6ff;
+            color: #2563eb;
+        }
+
+        .color-purple {
+            background: #faf5ff;
+            color: #8b5cf6;
+        }
+
+        .color-green {
+            background: #ecfdf5;
+            color: #10b981;
+        }
+
+        .color-gold {
+            background: #fffbeb;
+            color: #f59e0b;
+        }
+
+        [data-theme="dark"] .color-blue {
+            background: rgba(37, 99, 235, 0.1);
+            color: #60a5fa;
+        }
+
+        [data-theme="dark"] .color-purple {
+            background: rgba(139, 92, 246, 0.1);
+            color: #a78bfa;
+        }
+
+        [data-theme="dark"] .color-green {
+            background: rgba(16, 185, 129, 0.1);
+            color: #34d399;
+        }
+
+        [data-theme="dark"] .color-gold {
+            background: rgba(245, 158, 11, 0.1);
+            color: #fbbf24;
+        }
+
+        .svc-info {
+            flex: 1;
+        }
+
+        .svc-title {
+            font-size: 17px;
+            font-weight: 800;
+            margin-bottom: 2px;
+        }
+
+        .svc-desc {
+            font-size: 13px;
+            color: var(--muted);
+            font-weight: 500;
+            line-height: 1.4;
+        }
+
+        .svc-arrow {
+            color: var(--muted);
+            font-size: 18px;
+            font-family: inherit;
+        }
+
+        /* ── BOTTOM NAV ── */
+        .bottom-nav {
+            position: fixed;
+            bottom: 16px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: calc(100% - 40px);
+            max-width: 460px;
+            background: var(--nav);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--border);
+            border-radius: 28px;
+            height: 72px;
+            display: flex;
+            align-items: center;
+            justify-content: space-around;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+        }
+
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            color: var(--muted);
+            text-decoration: none;
+            padding: 8px 16px;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+
+        .nav-item.active {
+            color: var(--accent);
+        }
+
+        .nav-icon {
+            font-size: 22px;
+        }
+
+        .nav-label {
+            font-size: 11px;
+            font-weight: 700;
+        }
+
+        /* ── SETTINGS MODAL ── */
+        .view {
+            display: none;
+        }
+
+        .view.active {
+            display: block;
+        }
+
+        .settings-content {
+            padding: 20px;
+        }
+
+        .setting-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 24px;
+            padding: 8px;
+            margin-bottom: 20px;
+        }
+
+        .setting-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 12px;
+            border-bottom: 1px solid var(--border);
+            cursor: pointer;
+        }
+
+        .setting-row:last-child {
+            border-bottom: none;
+        }
+
+        .set-left {
             display: flex;
             align-items: center;
             gap: 12px;
         }
 
-        .footer-note .fn-ico {
-            font-size: 22px;
-            flex-shrink: 0;
+        .set-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
         }
 
-        .footer-note .fn-text {
+        .set-info {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .set-title {
+            font-size: 15px;
+            font-weight: 700;
+        }
+
+        .set-val {
             font-size: 12px;
             color: var(--muted);
-            line-height: 1.5;
+            font-weight: 600;
+            text-transform: uppercase;
         }
 
-        .footer-note .fn-text b {
-            color: var(--blue-xl);
-            font-weight: 700;
+        /* ── LOGO (Footer/Header) ── */
+        .brand-footer {
+            text-align: center;
+            padding: 40px 0 20px;
+        }
+
+        .brand-logo-text {
+            font-weight: 900;
+            font-size: 16px;
+            letter-spacing: -0.5px;
+        }
+
+        .brand-logo-text span {
+            color: var(--accent);
+        }
+
+        /* ── ANIMATIONS ── */
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .animate-up {
+            animation: slideUp 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
         }
     </style>
 </head>
 
 <body>
 
-    <div class="bg-canvas"></div>
-    <div class="bg-grid"></div>
+    <div class="bg-fx">
+        <div class="bg-grid"></div>
+    </div>
 
-    <div class="page">
-
-        <!-- HEADER -->
-        <div class="header">
-            <div class="logo-row">
-                <div class="logo-gem">
-                    <svg width="26" height="26" viewBox="0 0 26 26" fill="none">
-                        <path d="M13 3L3 13L13 23L23 13L13 3Z" fill="white" opacity="0.15" />
-                        <path d="M13 3L3 13L13 23L23 13L13 3Z" stroke="white" stroke-width="1.5" opacity="0.6" />
-                        <circle cx="13" cy="13" r="5" fill="white" opacity="0.9" />
-                    </svg>
+    <!-- HOME VIEW -->
+    <div id="homeView" class="view active">
+        <div class="page">
+            <!-- TOP HEADER -->
+            <div class="top-nav">
+                <div class="user-block">
+                    <div class="avatar" id="picBox">
+                        <div class="initials" id="userInitial">?</div>
+                    </div>
+                    <div class="welcome-msg">
+                        <span class="small" id="txt_welcome">Xush kelibsiz,</span>
+                        <span class="name" id="userName">Foydalanuvchi</span>
+                    </div>
                 </div>
-                <div class="logo-name">DASTYOR<span>AI</span></div>
+                <div class="badge-pro-icon">🏆</div>
             </div>
-            <div class="header-sub">Aqlli hujjat tayyorlash platformasi</div>
-            <div class="user-pill">
-                <span class="live-dot"></span>
-                <span id="greetName">Onlayn · Tayyor</span>
-            </div>
-        </div>
 
-        <!-- MAIN CONTENT -->
-        <div class="content">
-
-            <!-- Stats -->
-            <div class="stats-strip">
-                <div class="stat-box">
-                    <span class="stat-num">10K+</span>
-                    <span class="stat-lbl">Foydalanuvchi</span>
+            <!-- STATS -->
+            <div class="stats-grid">
+                <div class="stat-card animate-up" style="animation-delay: 0.1s;">
+                    <div class="label">🔥 STREAK</div>
+                    <div class="val">2 Days</div>
                 </div>
-                <div class="stat-box">
-                    <span class="stat-num">50K+</span>
-                    <span class="stat-lbl">Hujjat tayyor</span>
-                </div>
-                <div class="stat-box">
-                    <span class="stat-num">99%</span>
-                    <span class="stat-lbl">Aniqlik</span>
+                <div class="stat-card animate-up" style="animation-delay: 0.2s;">
+                    <div class="label" style="color: #3b82f6;">🌐 GLOBAL RANK</div>
+                    <div class="val">#12</div>
                 </div>
             </div>
 
-            <!-- Section label -->
-            <div class="divider">
-                <div class="divider-line"></div>
-                <div class="divider-text">Xizmatlar</div>
-                <div class="divider-line"></div>
+            <div class="section-header" id="txt_path">Hujjat Yo'li</div>
+
+            <div class="services-list">
+                <a href="obyektivka.html" class="svc-btn animate-up" style="animation-delay: 0.3s;">
+                    <div class="svc-icon-box color-blue">📋</div>
+                    <div class="svc-info">
+                        <div class="svc-title" id="txt_oby">Obyektivka AI</div>
+                        <div class="svc-desc" id="txt_oby_d">Rasmiy malumotnoma tayyorlash jarayoni</div>
+                    </div>
+                    <div class="svc-arrow">›</div>
+                </a>
+
+                <a href="cv.html" class="svc-btn animate-up" style="animation-delay: 0.4s;">
+                    <div class="svc-icon-box color-purple">📄</div>
+                    <div class="svc-info">
+                        <div class="svc-title" id="txt_cv">CV Builder</div>
+                        <div class="svc-desc" id="txt_cv_d">Professional rezyume yaratish interfeysi</div>
+                    </div>
+                    <div class="svc-arrow">›</div>
+                </a>
+
+                <a href="more.html" class="svc-btn animate-up" style="animation-delay: 0.5s;">
+                    <div class="svc-icon-box color-green">⚡</div>
+                    <div class="svc-info">
+                        <div class="svc-title" id="txt_ai">AI Test Lab</div>
+                        <div class="svc-desc" id="txt_ai_d">Tarjima, OCR va boshqa aqlli servislar</div>
+                    </div>
+                    <div class="svc-arrow">›</div>
+                </a>
+
+                <a href="premium.html" class="svc-btn animate-up" style="animation-delay: 0.6s;">
+                    <div class="svc-icon-box color-gold">⭐</div>
+                    <div class="svc-info">
+                        <div class="svc-title" id="txt_prem">Premium Tarif</div>
+                        <div class="svc-desc" id="txt_prem_d">Cheksiz imkoniyatlar va ustuvorlik</div>
+                    </div>
+                    <div class="svc-arrow">›</div>
+                </a>
             </div>
 
-            <!-- BUTTON 1: Obyektivka -->
-            <a href="obyektivka.html" class="main-btn mb-blue" id="btn1">
-                <span class="btn-badge badge-hot">HOT</span>
-                <div class="btn-icon ic-blue">📋</div>
-                <div class="btn-body">
-                    <div class="btn-title">Obyektivka Tayyorlash</div>
-                    <div class="btn-desc">Rasmiy ma'lumotnoma · PDF & Word yuklab olish</div>
-                </div>
-                <div class="btn-arrow">›</div>
-            </a>
-
-            <!-- BUTTON 2: CV -->
-            <a href="cv.html" class="main-btn mb-cyan" id="btn2">
-                <span class="btn-badge badge-new">NEW</span>
-                <div class="btn-icon ic-cyan">📄</div>
-                <div class="btn-body">
-                    <div class="btn-title">CV Tayyorlash</div>
-                    <div class="btn-desc">Professional resume · PDF & Word formatda</div>
-                </div>
-                <div class="btn-arrow">›</div>
-            </a>
-
-            <!-- BUTTON 3: Other services -->
-            <a href="more.html" class="main-btn mb-violet" id="btn3">
-                <div class="btn-icon ic-violet">⚡</div>
-                <div class="btn-body">
-                    <div class="btn-title">Boshqa Xizmatlar</div>
-                    <div class="btn-desc">Tarjima · OCR · Krill-Lotin · Rasm→PDF · Imlo</div>
-                </div>
-                <div class="btn-arrow">›</div>
-            </a>
-
-            <!-- BUTTON 4: Premium -->
-            <a href="premium.html" class="main-btn mb-gold" id="btn4">
-                <span class="btn-badge badge-pro">PRO</span>
-                <div class="btn-icon ic-gold">⭐</div>
-                <div class="btn-body">
-                    <div class="btn-title">Premium Tarif</div>
-                    <div class="btn-desc">Cheksiz xizmatlar · Oyiga 29 000 so'm</div>
-                </div>
-                <div class="btn-arrow">›</div>
-            </a>
-
-        </div>
-
-        <!-- Footer note -->
-        <div class="footer-note">
-            <span class="fn-ico">💬</span>
-            <div class="fn-text">
-                Savol yoki muammo bo'lsa: <b>@DastyorAiBot</b> ga yozing.
-                Bot ham ishlaydigan: <b>@DastyorAiBot</b>
+            <div class="brand-footer">
+                <div class="brand-logo-text">DASTYOR <span>AI</span></div>
             </div>
         </div>
+    </div>
 
-    </div><!-- /page -->
+    <!-- SETTINGS VIEW -->
+    <div id="settingsView" class="view">
+        <div class="page">
+            <div style="padding: 40px 20px 20px;">
+                <h1 style="font-size: 32px; font-weight: 900;" id="txt_settings">Sozlamalar</h1>
+                <p style="color: var(--muted); font-size: 15px;" id="txt_personalize">Tajribani o'zingizga moslang</p>
+            </div>
+
+            <div class="settings-content">
+                <div class="setting-card">
+                    <div class="setting-row" onclick="toggleTheme()">
+                        <div class="set-left">
+                            <div class="set-icon" style="background: rgba(245, 158, 11, 0.1); color: #f59e0b;">🌙</div>
+                            <div class="set-info">
+                                <span class="set-title" id="txt_theme">Rejim</span>
+                                <span class="set-val" id="val_theme">Tungi</span>
+                            </div>
+                        </div>
+                        <div class="svc-arrow">›</div>
+                    </div>
+
+                    <div class="setting-row" onclick="cycleLanguage()">
+                        <div class="set-left">
+                            <div class="set-icon" style="background: rgba(16, 185, 129, 0.1); color: #10b981;">🌐</div>
+                            <div class="set-info">
+                                <span class="set-title" id="txt_lang">Til</span>
+                                <span class="set-val" id="val_lang">O'zbekcha</span>
+                            </div>
+                        </div>
+                        <div class="svc-arrow">›</div>
+                    </div>
+                </div>
+
+                <div class="setting-card">
+                    <a href="https://t.me/DastyorAiBot" target="_blank" class="setting-row"
+                        style="text-decoration: none; color: inherit;">
+                        <div class="set-left">
+                            <div class="set-icon" style="background: rgba(59, 130, 246, 0.1); color: #3b82f6;">❓</div>
+                            <div class="set-info">
+                                <span class="set-title" id="txt_help">Yordam Markazi</span>
+                                <span class="set-val">SUPPORT & FAQ</span>
+                            </div>
+                        </div>
+                        <div style="color: #3b82f6; font-weight: 800; font-size: 11px;">SUPPORT</div>
+                    </a>
+                </div>
+
+                <div style="text-align: center; margin-top: 40px;">
+                    <div
+                        style="font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 1px;">
+                        Version 1.2.0</div>
+                    <div style="font-size: 12px; margin-top: 10px; color: var(--muted); opacity: 0.6;">© 2026 Dastyora
+                        Master AI. All rights reserved.</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- BOTTOM NAV -->
+    <div class="bottom-nav">
+        <div class="nav-item active" onclick="switchView('home')" id="navHome">
+            <div class="nav-icon">🏠</div>
+            <div class="nav-label" id="lbl_home">Asosiy</div>
+        </div>
+        <div class="nav-item">
+            <div class="nav-icon">📖</div>
+            <div class="nav-label" id="lbl_tests">Turlar</div>
+        </div>
+        <div class="nav-item">
+            <div class="nav-icon">🏆</div>
+            <div class="nav-label" id="lbl_top">Reyting</div>
+        </div>
+        <div class="nav-item" onclick="switchView('settings')" id="navSettings">
+            <div class="nav-icon">⚙️</div>
+            <div class="nav-label" id="lbl_settings">Sozlamalar</div>
+        </div>
+    </div>
 
     <script>
         const tg = window.Telegram?.WebApp;
         let telegramId = '';
+        let currentLang = localStorage.getItem('lang') || 'uz';
+        let currentTheme = localStorage.getItem('theme') || 'dark';
+
+        // Translation Map
+        const i18n = {
+            uz: {
+                welcome: "Xush kelibsiz,",
+                path: "Hujjat Yo'li",
+                oby: "Obyektivka AI",
+                oby_d: "Rasmiy malumotnoma tayyorlash jarayoni",
+                cv: "CV Builder",
+                cv_d: "Professional rezyume yaratish interfeysi",
+                ai: "AI Test Lab",
+                ai_d: "Tarjima, OCR va boshqa aqlli servislar",
+                prem: "Premium Tarif",
+                prem_d: "Cheksiz imkoniyatlar va ustuvorlik",
+                settings: "Sozlamalar",
+                personalize: "Tajribani o'zingizga moslang",
+                theme: "Mavzu Rejimi",
+                lang: "Dastur Tili",
+                help: "Yordam Markazi",
+                dark: "Tungi",
+                light: "Kunduzgi",
+                lbl_home: "Asosiy",
+                lbl_tests: "Turlar",
+                lbl_top: "Reyting",
+                lbl_settings: "Sozlama"
+            },
+            en: {
+                welcome: "Welcome back,",
+                path: "Learning Path",
+                oby: "Obyektivka AI",
+                oby_d: "Official template generation process",
+                cv: "CV Builder",
+                cv_d: "Professional resume creation interface",
+                ai: "AI Test Lab",
+                ai_d: "Translation, OCR and smart services",
+                prem: "Premium Plan",
+                prem_d: "Unlimited access and priority support",
+                settings: "Settings",
+                personalize: "Personalize your experience",
+                theme: "Theme Mode",
+                lang: "App Language",
+                help: "Help Center",
+                dark: "Dark",
+                light: "Light",
+                lbl_home: "Home",
+                lbl_tests: "Tests",
+                lbl_top: "Global",
+                lbl_settings: "Settings"
+            }
+        };
 
         function checkAuth() {
             if (tg) {
                 tg.ready();
                 tg.expand();
                 tg.BackButton.hide();
+                if (tg.setHeaderColor) tg.setHeaderColor(currentTheme === 'dark' ? '#050f1e' : '#f8fafc');
 
                 if (tg.initDataUnsafe?.user) {
                     telegramId = tg.initDataUnsafe.user.id.toString();
                     const user = tg.initDataUnsafe.user;
                     if (user?.first_name) {
-                        const greet = document.getElementById('greetName');
-                        if (greet) greet.textContent = 'Salom, ' + user.first_name + '! 👋';
+                        document.getElementById('userName').textContent = user.first_name;
+                        document.getElementById('userInitial').textContent = user.first_name.charAt(0);
+                    }
+                    if (user.photo_url) {
+                        document.getElementById('picBox').innerHTML = `<img src="${user.photo_url}" alt="user">`;
                     }
                     return true;
                 }
             }
-
-            // Fallback for ID from URL
             const urlParams = new URLSearchParams(window.location.search);
             const urlId = urlParams.get('telegram_id');
-            if (urlId) {
-                telegramId = urlId;
-                return true;
-            }
-
+            if (urlId) { telegramId = urlId; return true; }
             return false;
         }
 
-        function showError() {
-            document.body.innerHTML = `
-                <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; padding: 20px; text-align: center; background: linear-gradient(135deg, #0a1628 0%, #060d1f 100%); color: white; font-family: sans-serif;">
-                    <div style="background: rgba(255,255,255,0.05); padding: 40px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.1); max-width: 400px;">
-                        <div style="font-size: 50px; margin-bottom: 20px;">⚠️</div>
-                        <h2 style="margin-bottom: 20px;">Xatolik</h2>
-                        <p style="font-size: 16px; line-height: 1.6; margin-bottom: 30px; opacity: 0.8;">
-                            Telegram ID topilmadi. <br><br>
-                            Iltimos, bot orqali qaytadan kirib ko'ring.
-                        </p>
-                        <a href="https://t.me/DastyorAiBot" style="display: inline-block; padding: 12px 24px; background: #2563eb; color: white; border-radius: 12px; text-decoration: none; font-weight: bold;">Botga qaytish</a>
-                    </div>
-                </div>
-            `;
+        function switchView(view) {
+            document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+
+            if (view === 'home') {
+                document.getElementById('homeView').classList.add('active');
+                document.getElementById('navHome').classList.add('active');
+            } else if (view === 'settings') {
+                document.getElementById('settingsView').classList.add('active');
+                document.getElementById('navSettings').classList.add('active');
+            }
+            tg?.HapticFeedback?.impactOccurred('light');
         }
 
-        function setupNav() {
-            document.querySelectorAll('.main-btn').forEach(btn => {
-                btn.addEventListener('click', (e) => {
-                    tg?.HapticFeedback?.impactOccurred('medium');
-
-                    const href = btn.getAttribute('href');
-                    if (href && href.endsWith('.html') && telegramId) {
-                        e.preventDefault();
-                        const separator = href.includes('?') ? '&' : '?';
-                        window.location.href = `${href}${separator}telegram_id=${telegramId}`;
-                    }
-                });
-            });
+        function toggleTheme() {
+            currentTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', currentTheme);
+            localStorage.setItem('theme', currentTheme);
+            updateUILables();
+            tg?.HapticFeedback?.impactOccurred('medium');
         }
 
-        // Execution
+        function cycleLanguage() {
+            currentLang = currentLang === 'uz' ? 'en' : 'uz';
+            localStorage.setItem('lang', currentLang);
+            updateUILables();
+            tg?.HapticFeedback?.impactOccurred('medium');
+        }
+
+        function updateUILables() {
+            const strings = i18n[currentLang];
+            document.getElementById('txt_welcome').textContent = strings.welcome;
+            document.getElementById('txt_path').textContent = strings.path;
+            document.getElementById('txt_oby').textContent = strings.oby;
+            document.getElementById('txt_oby_d').textContent = strings.oby_d;
+            document.getElementById('txt_cv').textContent = strings.cv;
+            document.getElementById('txt_cv_d').textContent = strings.cv_d;
+            document.getElementById('txt_ai').textContent = strings.ai;
+            document.getElementById('txt_ai_d').textContent = strings.ai_d;
+            document.getElementById('txt_prem').textContent = strings.prem;
+            document.getElementById('txt_prem_d').textContent = strings.prem_d;
+
+            document.getElementById('txt_settings').textContent = strings.settings;
+            document.getElementById('txt_personalize').textContent = strings.personalize;
+            document.getElementById('txt_theme').textContent = strings.theme;
+            document.getElementById('txt_lang').textContent = strings.lang;
+            document.getElementById('txt_help').textContent = strings.help;
+
+            document.getElementById('val_theme').textContent = currentTheme === 'dark' ? strings.dark : strings.light;
+            document.getElementById('val_lang').textContent = currentLang === 'uz' ? "O'zbekcha" : "English";
+
+            document.getElementById('lbl_home').textContent = strings.lbl_home;
+            document.getElementById('lbl_tests').textContent = strings.lbl_tests;
+            document.getElementById('lbl_top').textContent = strings.lbl_top;
+            document.getElementById('lbl_settings').textContent = strings.lbl_settings;
+        }
+
+        // Initialize state
+        document.documentElement.setAttribute('data-theme', currentTheme);
+        updateUILables();
+
         if (!checkAuth()) {
-            // Wait for slow SDK
             setTimeout(() => {
-                if (!checkAuth()) showError();
-                else setupNav();
+                if (!checkAuth()) {
+                    // Fail silently or show error screen as before
+                }
             }, 500);
-        } else {
-            setupNav();
         }
+
+        // Setup Link IDs persistence
+        document.querySelectorAll('a').forEach(a => {
+            a.addEventListener('click', (e) => {
+                const href = a.getAttribute('href');
+                if (href && href.endsWith('.html') && telegramId) {
+                    e.preventDefault();
+                    const separator = href.includes('?') ? '&' : '?';
+                    window.location.href = `${href}${separator}telegram_id=${telegramId}`;
+                }
+            });
+        });
     </script>
 </body>
 

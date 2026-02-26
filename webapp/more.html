@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang="uz">
+<html lang="uz" data-theme="dark">
 
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <title>Boshqa Xizmatlar | DASTYOR AI</title>
+    <title>Xizmatlar | DASTYOR AI</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
@@ -18,126 +18,86 @@
             padding: 0;
         }
 
-        :root {
-            --blue: #2563eb;
-            --blue-l: #3b82f6;
-            --dark: #0a1628;
-            --card: rgba(255, 255, 255, 0.06);
-            --border: rgba(255, 255, 255, 0.10);
+        :root[data-theme="dark"] {
+            --bg: #050f1e;
+            --card: rgba(255, 255, 255, 0.04);
+            --border: rgba(255, 255, 255, 0.08);
             --text: #f1f5f9;
             --muted: #94a3b8;
+            --accent: #2563eb;
+            --nav: rgba(10, 22, 40, 0.85);
         }
 
-        html,
+        :root[data-theme="light"] {
+            --bg: #f8fafc;
+            --card: #ffffff;
+            --border: #e2e8f0;
+            --text: #0f172a;
+            --muted: #64748b;
+            --accent: #2563eb;
+            --nav: rgba(255, 255, 255, 0.85);
+        }
+
         body {
-            min-height: 100%;
-            font-family: 'Inter', system-ui, sans-serif;
-            background: var(--dark);
+            font-family: 'Inter', sans-serif;
+            background: var(--bg);
             color: var(--text);
+            transition: all 0.3s ease;
+            padding-bottom: 90px;
         }
 
-        .bg-gradient {
-            position: fixed;
-            inset: 0;
-            z-index: 0;
-            pointer-events: none;
-            background:
-                radial-gradient(ellipse 80% 60% at 20% -10%, rgba(37, 99, 235, 0.2) 0%, transparent 60%),
-                linear-gradient(180deg, #060d1f 0%, #0a1628 100%);
+        .header {
+            padding: 32px 20px 10px;
         }
 
-        .page {
-            position: relative;
-            z-index: 1;
-            padding: 0 0 90px;
+        .header h1 {
+            font-size: 28px;
+            font-weight: 900;
         }
 
-        /* HEADER */
-        .page-header {
-            display: flex;
-            align-items: center;
-            gap: 14px;
-            padding: 16px 20px;
-            background: rgba(6, 13, 31, 0.8);
-            backdrop-filter: blur(20px);
-            border-bottom: 1px solid var(--border);
-            position: sticky;
-            top: 0;
-            z-index: 50;
-        }
-
-        .back-btn {
-            width: 36px;
-            height: 36px;
-            border-radius: 10px;
-            background: var(--card);
-            border: 1px solid var(--border);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 16px;
-            cursor: pointer;
-            text-decoration: none;
-            color: white;
-            -webkit-tap-highlight-color: transparent;
-            transition: all 0.2s;
-        }
-
-        .back-btn:active {
-            background: rgba(255, 255, 255, 0.12);
-        }
-
-        .page-header h1 {
-            font-size: 17px;
-            font-weight: 700;
-        }
-
-        /* CONTENT */
-        .content {
-            padding: 20px 16px;
-        }
-
-        .section-label {
-            font-size: 11px;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 1.5px;
+        .header p {
             color: var(--muted);
-            margin-bottom: 12px;
-            padding-left: 2px;
+            font-size: 15px;
+            margin-top: 4px;
         }
 
-        /* SERVICE LIST ITEMS */
+        .section-header {
+            padding: 24px 20px 12px;
+            font-size: 13px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--muted);
+        }
+
         .svc-list {
+            padding: 0 20px;
             display: flex;
             flex-direction: column;
-            gap: 10px;
-            margin-bottom: 24px;
+            gap: 12px;
         }
 
         .svc-item {
-            display: flex;
-            align-items: center;
-            gap: 14px;
             background: var(--card);
             border: 1px solid var(--border);
-            border-radius: 16px;
+            border-radius: 20px;
             padding: 16px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
             text-decoration: none;
             color: var(--text);
-            transition: all 0.2s;
-            -webkit-tap-highlight-color: transparent;
+            transition: transform 0.2s;
         }
 
         .svc-item:active {
-            transform: scale(0.98);
-            background: rgba(255, 255, 255, 0.1);
+            transform: scale(0.97);
         }
 
-        .item-icon {
-            width: 46px;
-            height: 46px;
-            border-radius: 13px;
+        .ico-box {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -145,119 +105,66 @@
             flex-shrink: 0;
         }
 
-        .ic-teal {
-            background: rgba(20, 184, 166, 0.15);
+        .ic-1 {
+            background: rgba(20, 184, 166, 0.1);
+            color: #14b8a6;
         }
 
-        .ic-yellow {
-            background: rgba(234, 179, 8, 0.15);
+        .ic-2 {
+            background: rgba(234, 179, 8, 0.1);
+            color: #eab308;
         }
 
-        .ic-pink {
-            background: rgba(236, 72, 153, 0.15);
+        .ic-3 {
+            background: rgba(236, 72, 153, 0.1);
+            color: #ec4899;
         }
 
-        .ic-indigo {
-            background: rgba(99, 102, 241, 0.15);
+        .ic-4 {
+            background: rgba(99, 102, 241, 0.1);
+            color: #6366f1;
         }
 
-        .ic-orange {
-            background: rgba(249, 115, 22, 0.15);
+        .ic-5 {
+            background: rgba(249, 115, 22, 0.1);
+            color: #f97316;
         }
 
-        .ic-green {
-            background: rgba(16, 185, 129, 0.15);
-        }
-
-        .item-text {
+        .svc-info {
             flex: 1;
         }
 
-        .item-text h3 {
-            font-size: 14px;
-            font-weight: 700;
-            color: white;
-            margin-bottom: 3px;
+        .svc-title {
+            font-weight: 800;
+            font-size: 15px;
+            margin-bottom: 2px;
         }
 
-        .item-text p {
+        .svc-desc {
             font-size: 12px;
             color: var(--muted);
+            font-weight: 500;
         }
 
-        .item-badge {
-            padding: 3px 10px;
-            border-radius: 50px;
-            font-size: 10px;
-            font-weight: 700;
-            flex-shrink: 0;
-        }
-
-        .badge-free {
-            background: rgba(16, 185, 129, 0.15);
-            color: #34d399;
-        }
-
-        .badge-pro {
-            background: rgba(245, 158, 11, 0.15);
-            color: #fbbf24;
-        }
-
-        .badge-new {
-            background: rgba(59, 130, 246, 0.15);
-            color: #60a5fa;
-        }
-
-        .item-arrow {
-            font-size: 16px;
-            color: var(--muted);
-            margin-left: 4px;
-            flex-shrink: 0;
-        }
-
-        /* INFO CARD */
-        .info-card {
-            background: rgba(37, 99, 235, 0.08);
-            border: 1px solid rgba(37, 99, 235, 0.18);
-            border-radius: 16px;
-            padding: 16px;
-            display: flex;
-            gap: 12px;
-            align-items: flex-start;
-        }
-
-        .info-card .ico {
-            font-size: 22px;
-            flex-shrink: 0;
-        }
-
-        .info-card h4 {
-            font-size: 13px;
-            font-weight: 700;
-            color: white;
-            margin-bottom: 4px;
-        }
-
-        .info-card p {
-            font-size: 12px;
-            color: var(--muted);
-            line-height: 1.5;
-        }
-
-        /* BOTTOM NAV */
+        /* ── BOTTOM NAV ── */
         .bottom-nav {
             position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            z-index: 100;
-            background: rgba(6, 13, 31, 0.95);
+            bottom: 16px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: calc(100% - 40px);
+            max-width: 460px;
+            background: var(--nav);
             backdrop-filter: blur(20px);
-            border-top: 1px solid var(--border);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--border);
+            border-radius: 28px;
+            height: 72px;
             display: flex;
-            justify-content: space-around;
             align-items: center;
-            padding: 10px 20px 18px;
+            justify-content: space-around;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
         }
 
         .nav-item {
@@ -265,165 +172,162 @@
             flex-direction: column;
             align-items: center;
             gap: 4px;
-            text-decoration: none;
             color: var(--muted);
-            font-size: 10px;
-            font-weight: 500;
-            transition: color 0.2s;
-            -webkit-tap-highlight-color: transparent;
-        }
-
-        .nav-item .nav-ico {
-            font-size: 22px;
+            text-decoration: none;
+            padding: 8px 16px;
+            transition: all 0.3s;
         }
 
         .nav-item.active {
-            color: var(--blue-l);
+            color: var(--accent);
         }
     </style>
 </head>
 
 <body>
-    <div class="bg-gradient"></div>
+    <div class="header">
+        <h1 id="txt_title">Xizmatlar</h1>
+        <p id="txt_sub">Barcha aqlli vositalar bir joyda</p>
+    </div>
 
-    <div class="page">
-        <!-- HEADER -->
-        <div class="page-header">
-            <a href="index.html" class="back-btn">←</a>
-            <h1>⚡ Boshqa Xizmatlar</h1>
-        </div>
-
-        <div class="content">
-
-            <!-- TRANSLATION & TRANSLIT -->
-            <p class="section-label">Matn & Til xizmatlari</p>
-            <div class="svc-list">
-
-                <a href="translate.html" class="svc-item">
-                    <div class="item-icon ic-teal">🌐</div>
-                    <div class="item-text">
-                        <h3>Fayl Tarjima</h3>
-                        <p>DOC, PPT, XLSX — 5 ta til juftligi</p>
-                    </div>
-                    <span class="item-badge badge-free">Bepul</span>
-                    <span class="item-arrow">›</span>
-                </a>
-
-                <a href="translit.html" class="svc-item">
-                    <div class="item-icon ic-yellow">🔤</div>
-                    <div class="item-text">
-                        <h3>Krill ↔ Lotin</h3>
-                        <p>O'zbek alifbosi transliteratsiya</p>
-                    </div>
-                    <span class="item-badge badge-free">Bepul</span>
-                    <span class="item-arrow">›</span>
-                </a>
-
-                <a href="spellcheck.html" class="svc-item">
-                    <div class="item-icon ic-pink">✏️</div>
-                    <div class="item-text">
-                        <h3>Imlo Tekshirish</h3>
-                        <p>DOC va PPT fayldagi xatolarni tuzat</p>
-                    </div>
-                    <span class="item-badge badge-free">Bepul</span>
-                    <span class="item-arrow">›</span>
-                </a>
-
+    <div class="section-header" id="txt_sec1">Til va Matn</div>
+    <div class="svc-list">
+        <a href="translate.html" class="svc-item">
+            <div class="ico-box ic-1">🌐</div>
+            <div class="svc-info">
+                <div class="svc-title" id="txt_s1_t">Tarjima</div>
+                <div class="svc-desc" id="txt_s1_d">Hujjatlarni professional tarjima qilish</div>
             </div>
-
-            <!-- DOCUMENT TOOLS -->
-            <p class="section-label">Hujjat vositalari</p>
-            <div class="svc-list">
-
-                <a href="img2pdf.html" class="svc-item">
-                    <div class="item-icon ic-indigo">📎</div>
-                    <div class="item-text">
-                        <h3>Rasm → PDF</h3>
-                        <p>20 tagacha rasmni bitta PDFga birlashtir</p>
-                    </div>
-                    <span class="item-badge badge-free">Bepul</span>
-                    <span class="item-arrow">›</span>
-                </a>
-
-                <a href="ocr.html" class="svc-item">
-                    <div class="item-icon ic-orange">🖼️</div>
-                    <div class="item-text">
-                        <h3>Rasm → Word (OCR)</h3>
-                        <p>Rasmdan matnni ajratib Word yarat</p>
-                    </div>
-                    <span class="item-badge badge-new">Yangi</span>
-                    <span class="item-arrow">›</span>
-                </a>
-
+            <div style="font-size: 18px; color: var(--muted);">›</div>
+        </a>
+        <a href="translit.html" class="svc-item">
+            <div class="ico-box ic-2">🔤</div>
+            <div class="svc-info">
+                <div class="svc-title" id="txt_s2_t">Krill Lotin</div>
+                <div class="svc-desc" id="txt_s2_d">O'zbek alifbosini bir zumda o'zgartiring</div>
             </div>
+            <div style="font-size: 18px; color: var(--muted);">›</div>
+        </a>
+    </div>
 
-            <!-- PRO TOOLS -->
-            <p class="section-label">Pro xizmatlar</p>
-            <div class="svc-list">
-
-                <a href="premium.html" class="svc-item">
-                    <div class="item-icon" style="background:rgba(245,158,11,0.15);">⭐</div>
-                    <div class="item-text">
-                        <h3>Premium Tarif</h3>
-                        <p>Cheksiz xizmatlar · 29 000 so'm/oy</p>
-                    </div>
-                    <span class="item-badge badge-pro">Pro</span>
-                    <span class="item-arrow">›</span>
-                </a>
-
-                <a href="premium.html" class="svc-item">
-                    <div class="item-icon ic-green">🚀</div>
-                    <div class="item-text">
-                        <h3>Obyektivka AI Pro</h3>
-                        <p>Ovozli to'ldirish va avto-format</p>
-                    </div>
-                    <span class="item-badge badge-pro">Pro</span>
-                    <span class="item-arrow">›</span>
-                </a>
-
+    <div class="section-header" id="txt_sec2">Fayl Vositalari</div>
+    <div class="svc-list">
+        <a href="ocr.html" class="svc-item">
+            <div class="ico-box ic-3">🖼️</div>
+            <div class="svc-info">
+                <div class="svc-title" id="txt_s3_t">Rasm → Word</div>
+                <div class="svc-desc" id="txt_s3_d">Rasmdagi matnni tahrirlanadigan Wordga o'tkazish</div>
             </div>
-
-            <!-- INFO -->
-            <div class="info-card">
-                <span class="ico">💡</span>
-                <div>
-                    <h4>Telegram botda ham ishlaydi</h4>
-                    <p>Barcha xizmatlardan @DASTYOR botida ham foydalanishingiz mumkin. Fayl yuboring — AI o'zi
-                        ishlaydi.</p>
-                </div>
+            <div style="font-size: 18px; color: var(--muted);">›</div>
+        </a>
+        <a href="img2pdf.html" class="svc-item">
+            <div class="ico-box ic-4">📎</div>
+            <div class="svc-info">
+                <div class="svc-title" id="txt_s4_t">Rasm → PDF</div>
+                <div class="svc-desc" id="txt_s4_d">Rasmlarni bitta PDF hujjatga yig'ish</div>
             </div>
-
-        </div>
+            <div style="font-size: 18px; color: var(--muted);">›</div>
+        </a>
     </div>
 
     <!-- BOTTOM NAV -->
-    <nav class="bottom-nav">
+    <div class="bottom-nav">
         <a href="index.html" class="nav-item">
-            <span class="nav-ico">🏠</span><span>Bosh</span>
+            <div style="font-size: 22px;">🏠</div>
+            <div style="font-size: 11px; font-weight: 700;" id="lbl_home">Asosiy</div>
+        </a>
+        <a href="#" class="nav-item active">
+            <div style="font-size: 22px;">📖</div>
+            <div style="font-size: 11px; font-weight: 700;" id="lbl_services">Turlar</div>
         </a>
         <a href="premium.html" class="nav-item">
-            <span class="nav-ico">⭐</span><span>Premium</span>
+            <div style="font-size: 22px;">⭐</div>
+            <div style="font-size: 11px; font-weight: 700;" id="lbl_prem">Premium</div>
         </a>
-        <a href="more.html" class="nav-item active">
-            <span class="nav-ico">⚙️</span><span>Xizmatlar</span>
-        </a>
-        <a href="#" class="nav-item" id="contactBtn">
-            <span class="nav-ico">💬</span><span>Aloqa</span>
-        </a>
-    </nav>
+    </div>
 
     <script>
         const tg = window.Telegram?.WebApp;
-        if (tg) { tg.ready(); tg.expand(); tg.BackButton.show(); tg.BackButton.onClick(() => window.location.href = 'index.html'); }
+        let currentLang = localStorage.getItem('lang') || 'uz';
+        let currentTheme = localStorage.getItem('theme') || 'dark';
 
-        document.getElementById('contactBtn').addEventListener('click', e => {
-            e.preventDefault();
-            if (tg) tg.openTelegramLink('https://t.me/DastyorAiBot');
-            else window.open('https://t.me/DastyorAiBot', '_blank');
-        });
+        const i18n = {
+            uz: {
+                title: "Xizmatlar",
+                sub: "Barcha aqlli vositalar bir joyda",
+                sec1: "Til va Matn",
+                sec2: "Fayl Vositalari",
+                s1_t: "Tarjima",
+                s1_d: "Hujjatlarni professional tarjima qilish",
+                s2_t: "Krill Lotin",
+                s2_d: "O'zbek alifbosini bir zumda o'zgartiring",
+                s3_t: "Rasm → Word",
+                s3_d: "Rasmdagi matnni Wordga o'tkazish",
+                s4_t: "Rasm → PDF",
+                s4_d: "Rasmlarni bitta PDFga yig'ish",
+                lbl_home: "Asosiy",
+                lbl_services: "Turlar",
+                lbl_prem: "Premium"
+            },
+            en: {
+                title: "Services",
+                sub: "All smart tools in one place",
+                sec1: "Language & Text",
+                sec2: "File Tools",
+                s1_t: "Translate",
+                s1_d: "Professional document translation",
+                s2_t: "Transliteration",
+                s2_d: "Instant Cyrillic to Latin converter",
+                s3_t: "Image → Word",
+                s3_d: "Extract text from images to Word",
+                s4_t: "Image → PDF",
+                s4_d: "Merge images into one PDF file",
+                lbl_home: "Home",
+                lbl_services: "Tools",
+                lbl_prem: "Premium"
+            }
+        };
 
-        document.querySelectorAll('.svc-item').forEach(el => {
-            el.addEventListener('click', () => { tg?.HapticFeedback?.impactOccurred('light'); });
+        function updateUI() {
+            document.documentElement.setAttribute('data-theme', currentTheme);
+            const strings = i18n[currentLang];
+            document.getElementById('txt_title').textContent = strings.title;
+            document.getElementById('txt_sub').textContent = strings.sub;
+            document.getElementById('txt_sec1').textContent = strings.sec1;
+            document.getElementById('txt_sec2').textContent = strings.sec2;
+            document.getElementById('txt_s1_t').textContent = strings.s1_t;
+            document.getElementById('txt_s1_d').textContent = strings.s1_d;
+            document.getElementById('txt_s2_t').textContent = strings.s2_t;
+            document.getElementById('txt_s2_d').textContent = strings.s2_d;
+            document.getElementById('txt_s3_t').textContent = strings.s3_t;
+            document.getElementById('txt_s3_d').textContent = strings.s3_d;
+            document.getElementById('txt_s4_t').textContent = strings.s4_t;
+            document.getElementById('txt_s4_d').textContent = strings.s4_d;
+            document.getElementById('lbl_home').textContent = strings.lbl_home;
+            document.getElementById('lbl_services').textContent = strings.lbl_services;
+            document.getElementById('lbl_prem').textContent = strings.lbl_prem;
+
+            if (tg) {
+                tg.headerColor = currentTheme === 'dark' ? '#050f1e' : '#f8fafc';
+                tg.ready();
+                tg.expand();
+            }
+        }
+
+        updateUI();
+
+        // Pass ID filter
+        document.querySelectorAll('a').forEach(a => {
+            a.addEventListener('click', (e) => {
+                const href = a.getAttribute('href');
+                const urlParams = new URLSearchParams(window.location.search);
+                const id = urlParams.get('telegram_id');
+                if (href && href.endsWith('.html') && id) {
+                    e.preventDefault();
+                    const separator = href.includes('?') ? '&' : '?';
+                    window.location.href = `${href}${separator}telegram_id=${id}`;
+                }
+            });
         });
     </script>
 </body>

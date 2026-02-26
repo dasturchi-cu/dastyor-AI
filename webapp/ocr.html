@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="uz">
+<html lang="uz" data-theme="dark">
 
 <head>
     <meta charset="UTF-8" />
@@ -18,37 +18,49 @@
             padding: 0;
         }
 
-        :root {
-            --blue: #2563eb;
-            --blue-l: #3b82f6;
-            --purple: #8b5cf6;
-            --dark: #0a1628;
-            --card: rgba(255, 255, 255, 0.06);
-            --border: rgba(255, 255, 255, 0.10);
+        :root[data-theme="dark"] {
+            --bg: #050f1e;
+            --card: rgba(255, 255, 255, 0.05);
+            --border: rgba(255, 255, 255, 0.08);
             --text: #f1f5f9;
             --muted: #94a3b8;
+            --accent: #8b5cf6;
+            --header: rgba(6, 13, 31, 0.85);
+        }
+
+        :root[data-theme="light"] {
+            --bg: #f8fafc;
+            --card: #ffffff;
+            --border: #e2e8f0;
+            --text: #0f172a;
+            --muted: #64748b;
+            --accent: #7c3aed;
+            --header: rgba(255, 255, 255, 0.9);
         }
 
         html,
         body {
             min-height: 100%;
             font-family: 'Inter', system-ui, sans-serif;
-            background: var(--dark);
+            background: var(--bg);
             color: var(--text);
+            transition: all 0.3s ease;
         }
 
-        .bg {
+        .bg-fx {
             position: fixed;
             inset: 0;
             z-index: 0;
             pointer-events: none;
-            background: radial-gradient(ellipse 80% 60% at 50% -10%, rgba(139, 92, 246, 0.2) 0%, transparent 60%), #060d1f;
+            background: radial-gradient(ellipse 80% 60% at 50% -10%, rgba(139, 92, 246, 0.1), transparent 60%);
         }
 
         .page {
             position: relative;
             z-index: 1;
             padding-bottom: 40px;
+            max-width: 500px;
+            margin: 0 auto;
         }
 
         .page-header {
@@ -56,8 +68,9 @@
             align-items: center;
             gap: 14px;
             padding: 16px 20px;
-            background: rgba(6, 13, 31, 0.8);
+            background: var(--header);
             backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
             border-bottom: 1px solid var(--border);
             position: sticky;
             top: 0;
@@ -76,12 +89,8 @@
             font-size: 16px;
             cursor: pointer;
             text-decoration: none;
-            color: white;
+            color: var(--text);
             -webkit-tap-highlight-color: transparent;
-        }
-
-        .back-btn:active {
-            background: rgba(255, 255, 255, 0.12);
         }
 
         .page-header h1 {
@@ -103,7 +112,6 @@
         .hero-title {
             font-size: 24px;
             font-weight: 800;
-            color: white;
             text-align: center;
             margin-bottom: 8px;
         }
@@ -118,36 +126,24 @@
 
         /* UPLOAD ZONE */
         .upload-zone {
-            border: 2px dashed rgba(139, 92, 246, 0.4);
-            border-radius: 20px;
+            border: 2px dashed var(--accent);
+            border-radius: 24px;
             padding: 40px 20px;
             text-align: center;
             cursor: pointer;
             transition: all 0.3s;
             background: rgba(139, 92, 246, 0.05);
             margin-bottom: 20px;
-            -webkit-tap-highlight-color: transparent;
         }
 
-        .upload-zone:active {
-            border-color: #8b5cf6;
-            background: rgba(139, 92, 246, 0.12);
-        }
-
-        .upload-zone .up-ico {
-            font-size: 44px;
-            display: block;
-            margin-bottom: 12px;
-        }
-
-        .upload-zone .up-title {
+        .up-title {
             font-size: 15px;
             font-weight: 700;
-            color: #a78bfa;
+            color: var(--accent);
             margin-bottom: 6px;
         }
 
-        .upload-zone .up-sub {
+        .up-sub {
             font-size: 12px;
             color: var(--muted);
         }
@@ -157,9 +153,10 @@
             display: none;
             background: var(--card);
             border: 1px solid var(--border);
-            border-radius: 16px;
+            border-radius: 20px;
             overflow: hidden;
             margin-bottom: 16px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
         }
 
         .preview-wrap.show {
@@ -170,7 +167,7 @@
             width: 100%;
             max-height: 260px;
             object-fit: contain;
-            background: #111;
+            background: #000;
         }
 
         .preview-info {
@@ -180,208 +177,225 @@
             justify-content: space-between;
         }
 
-        .preview-info span {
-            font-size: 13px;
-            color: var(--muted);
-        }
-
         .remove-btn {
-            background: rgba(239, 68, 68, 0.15);
+            background: rgba(239, 68, 68, 0.1);
             border: none;
             border-radius: 8px;
-            color: #f87171;
+            color: #ef4444;
             font-size: 12px;
-            font-weight: 600;
+            font-weight: 700;
             padding: 6px 12px;
             cursor: pointer;
         }
 
-        /* FEATURES LIST */
+        /* FEATURES */
         .features {
             display: flex;
             flex-direction: column;
-            gap: 10px;
+            gap: 12px;
             margin-bottom: 24px;
         }
 
-        .feature-item {
+        .f-item {
             display: flex;
             align-items: center;
             gap: 12px;
             background: var(--card);
             border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 12px 14px;
+            border-radius: 16px;
+            padding: 14px;
         }
 
-        .feature-item .f-ico {
-            font-size: 20px;
+        .f-ico {
+            font-size: 22px;
         }
 
-        .feature-item .f-text {
-            font-size: 13px;
-            color: var(--muted);
-        }
-
-        .feature-item .f-text b {
-            color: white;
-            font-size: 13px;
+        .f-title {
+            font-weight: 800;
+            font-size: 14px;
             display: block;
         }
 
-        /* ACTION BUTTONS */
-        .action-row {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
+        .f-sub {
+            font-size: 12px;
+            color: var(--muted);
+            font-weight: 500;
         }
 
+        /* BUTTONS */
         .btn-primary {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
+            width: 100%;
             padding: 16px;
-            border-radius: 14px;
-            background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+            border-radius: 16px;
+            background: var(--accent);
             color: white;
             font-size: 15px;
             font-weight: 700;
             border: none;
+            box-shadow: 0 8px 20px rgba(139, 92, 246, 0.2);
             cursor: pointer;
-            transition: all 0.2s;
-            box-shadow: 0 8px 24px rgba(139, 92, 246, 0.35);
-            text-decoration: none;
-            text-align: center;
-            -webkit-tap-highlight-color: transparent;
+            margin-bottom: 12px;
         }
 
         .btn-primary:active {
-            transform: scale(0.97);
-            box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
+            transform: scale(0.98);
         }
 
-        .btn-tg {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
+        .btn-ghost {
+            width: 100%;
             padding: 14px;
-            border-radius: 14px;
+            border-radius: 16px;
             background: var(--card);
             border: 1px solid var(--border);
             color: var(--muted);
             font-size: 14px;
-            font-weight: 600;
-            cursor: pointer;
+            font-weight: 700;
             text-decoration: none;
-            text-align: center;
-            -webkit-tap-highlight-color: transparent;
-            transition: all 0.2s;
-        }
-
-        .btn-tg:active {
-            background: rgba(255, 255, 255, 0.1);
-            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
     </style>
 </head>
 
 <body>
-    <div class="bg"></div>
+    <div class="bg-fx"></div>
     <div class="page">
-
         <div class="page-header">
             <a href="index.html" class="back-btn">←</a>
-            <h1>🖼️ Rasm → Word</h1>
+            <h1 id="txt_title">🖼️ Rasm → Word</h1>
         </div>
 
         <div class="content">
             <span class="hero-icon">🖼️</span>
-            <div class="hero-title">Rasm → Word</div>
-            <p class="hero-desc">Rasmdagi matnni AI va OCR texnologiyasi yordamida Word hujjatga aylantiring.</p>
+            <div class="hero-title" id="txt_hero">Rasm → Word</div>
+            <p class="hero-desc" id="txt_desc">Rasmdagi matnni AI va OCR texnologiyasi yordamida Word hujjatga
+                aylantiring.</p>
 
-            <!-- UPLOAD -->
             <div class="upload-zone" id="uploadZone" onclick="document.getElementById('imgInput').click()">
-                <span class="up-ico">📁</span>
-                <div class="up-title">Rasm yuklash uchun bosing</div>
-                <div class="up-sub">JPG, PNG, WEBP — 10 MB gacha</div>
+                <span style="font-size: 40px; display: block; margin-bottom: 8px;">📁</span>
+                <div class="up-title" id="txt_up_t">Rasm yuklash uchun bosing</div>
+                <div class="up-sub" id="txt_up_s">JPG, PNG, WEBP — 10 MB gacha</div>
             </div>
             <input type="file" id="imgInput" accept="image/*" style="display:none" onchange="handleFile(this)" />
 
-            <!-- PREVIEW -->
             <div class="preview-wrap" id="previewWrap">
                 <img class="preview-img" id="previewImg" src="" alt="preview" />
                 <div class="preview-info">
-                    <span id="fileName">rasm.jpg</span>
-                    <button class="remove-btn" onclick="removeFile()">✕ O'chirish</button>
+                    <span id="fileName" style="font-size: 13px; font-weight: 600;">rasm.jpg</span>
+                    <button class="remove-btn" id="txt_remove" onclick="removeFile()">✕ O'chirish</button>
                 </div>
             </div>
 
-            <!-- FEATURES -->
             <div class="features">
-                <div class="feature-item">
+                <div class="f-item">
                     <span class="f-ico">🎯</span>
-                    <div class="f-text"><b>Yuqori aniqlik</b>O'zbek, Rus va Ingliz tillari</div>
+                    <div class="f-info">
+                        <span class="f-title" id="txt_f1_t">Yuqori aniqlik</span>
+                        <span class="f-sub" id="txt_f1_s">O'zbek, Rus va Ingliz tillari</span>
+                    </div>
                 </div>
-                <div class="feature-item">
+                <div class="f-item">
                     <span class="f-ico">📊</span>
-                    <div class="f-text"><b>Format saqlanadi</b>Jadval, ustun va satrlar</div>
+                    <div class="f-info">
+                        <span class="f-title" id="txt_f2_t">Format saqlanadi</span>
+                        <span class="f-sub" id="txt_f2_s">Jadval, ustun va satrlar</span>
+                    </div>
                 </div>
-                <div class="feature-item">
+                <div class="f-item">
                     <span class="f-ico">⚡</span>
-                    <div class="f-text"><b>Tez natija</b>10-20 soniyada DOCX tayyor</div>
+                    <div class="f-info">
+                        <span class="f-title" id="txt_f3_t">Tez natija</span>
+                        <span class="f-sub" id="txt_f3_s">10-20 soniyada DOCX tayyor</span>
+                    </div>
                 </div>
             </div>
 
-            <!-- BUTTONS -->
-            <div class="action-row">
-                <button class="btn-primary" id="convertBtn" onclick="convertImage()" disabled style="opacity:0.5">
-                    ⚡ Word faylga aylantirish
-                </button>
-                <a href="https://t.me/DastyorAiBot" class="btn-tg" target="_blank">
-                    📱 Telegram botda ochish
-                </a>
-            </div>
+            <button class="btn-primary" id="txt_convert" onclick="convertImage()" disabled style="opacity:0.5">
+                ⚡ Word faylga aylantirish
+            </button>
+            <a href="https://t.me/DastyorAiBot" class="btn-ghost" id="txt_bot">
+                📱 Telegram botda ochish
+            </a>
         </div>
     </div>
 
     <script>
         const tg = window.Telegram?.WebApp;
         let telegramId = '';
+        let currentLang = localStorage.getItem('lang') || 'uz';
+        let currentTheme = localStorage.getItem('theme') || 'dark';
 
-        if (tg) {
-            tg.ready();
-            tg.expand();
-            tg.BackButton.show();
-            tg.BackButton.onClick(() => window.location.href = 'index.html');
-
-            if (tg.initDataUnsafe?.user) {
-                telegramId = tg.initDataUnsafe.user.id.toString();
+        const i18n = {
+            uz: {
+                title: "🖼️ Rasm → Word",
+                hero: "Rasm → Word",
+                desc: "Rasmdagi matnni AI va OCR texnologiyasi yordamida Word hujjatga aylantiring.",
+                up_t: "Rasm yuklash uchun bosing",
+                up_s: "JPG, PNG, WEBP — 10 MB gacha",
+                remove: "✕ O'chirish",
+                f1_t: "Yuqori aniqlik",
+                f1_s: "O'zbek, Rus va Ingliz tillari",
+                f2_t: "Format saqlanadi",
+                f2_s: "Jadval, ustun va satrlar",
+                f3_t: "Tez natija",
+                f3_s: "10-20 soniyada DOCX tayyor",
+                convert: "⚡ Word faylga aylantirish",
+                bot: "📱 Telegram botda ochish",
+                alert: "Ushbu xizmatdan foydalanish uchun Telegram botga rasmingizni yuboring: @DastyorAiBot"
+            },
+            en: {
+                title: "🖼️ Image → Word",
+                hero: "Image to Word",
+                desc: "Convert image text content into Word documents using AI and OCR technology.",
+                up_t: "Click to upload image",
+                up_s: "JPG, PNG, WEBP — Up to 10 MB",
+                remove: "✕ Remove",
+                f1_t: "High Accuracy",
+                f1_s: "Uzbek, Russian and English",
+                f2_t: "Preserve Formatting",
+                f2_s: "Tables, columns and rows",
+                f3_t: "Fast Result",
+                f3_s: "DOCX ready in 10-20 seconds",
+                convert: "⚡ Convert to Word",
+                bot: "📱 Open in Telegram Bot",
+                alert: "To use this service, please send your image to the Telegram bot: @DastyorAiBot"
             }
+        };
+
+        function updateUI() {
+            document.documentElement.setAttribute('data-theme', currentTheme);
+            const strings = i18n[currentLang];
+            document.getElementById('txt_title').textContent = strings.title;
+            document.getElementById('txt_hero').textContent = strings.hero;
+            document.getElementById('txt_desc').textContent = strings.desc;
+            document.getElementById('txt_up_t').textContent = strings.up_t;
+            document.getElementById('txt_up_s').textContent = strings.up_s;
+            document.getElementById('txt_remove').textContent = strings.remove;
+            document.getElementById('txt_f1_t').textContent = strings.f1_t;
+            document.getElementById('txt_f1_s').textContent = strings.f1_s;
+            document.getElementById('txt_f2_t').textContent = strings.f2_t;
+            document.getElementById('txt_f2_s').textContent = strings.f2_s;
+            document.getElementById('txt_f3_t').textContent = strings.f3_t;
+            document.getElementById('txt_f3_s').textContent = strings.f3_s;
+            document.getElementById('txt_convert').textContent = strings.convert;
+            document.getElementById('txt_bot').textContent = strings.bot;
         }
 
-        // Fallback for ID from URL
-        if (!telegramId) {
+        function checkAuth() {
+            if (tg) {
+                tg.ready();
+                tg.expand();
+                tg.headerColor = currentTheme === 'dark' ? '#050f1e' : '#f8fafc';
+                if (tg.initDataUnsafe?.user) {
+                    telegramId = tg.initDataUnsafe.user.id.toString();
+                    return true;
+                }
+            }
             const urlParams = new URLSearchParams(window.location.search);
-            telegramId = urlParams.get('telegram_id');
-        }
-
-        // Safety check
-        if (!telegramId) {
-            document.body.innerHTML = `
-                <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; padding: 20px; text-align: center; background: #060d1f; font-family: sans-serif; position: fixed; inset: 0; z-index: 10000; color: white;">
-                    <div style="background: rgba(255,255,255,0.05); padding: 40px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.1); max-width: 400px;">
-                        <h2 style="color: #3b82f6; margin-bottom: 20px;">⚠️ Xatolik</h2>
-                        <p style="opacity: 0.8; font-size: 16px; line-height: 1.6; margin-bottom: 30px;">
-                            Telegram ID topilmadi.<br><br>
-                            Iltimos, bot orqali qaytadan kiring.
-                        </p>
-                        <a href="https://t.me/DastyorAiBot" style="display: inline-block; padding: 12px 24px; background: #2563eb; color: white; border-radius: 12px; text-decoration: none; font-weight: bold;">Botga qaytish</a>
-                    </div>
-                </div>
-            `;
-            throw new Error('Telegram ID missing');
+            const urlId = urlParams.get('telegram_id');
+            if (urlId) { telegramId = urlId; return true; }
+            return false;
         }
 
         function handleFile(input) {
@@ -393,7 +407,7 @@
                 document.getElementById('fileName').textContent = file.name;
                 document.getElementById('previewWrap').classList.add('show');
                 document.getElementById('uploadZone').style.display = 'none';
-                const btn = document.getElementById('convertBtn');
+                const btn = document.getElementById('txt_convert');
                 btn.disabled = false;
                 btn.style.opacity = '1';
             };
@@ -403,20 +417,23 @@
 
         function removeFile() {
             document.getElementById('previewWrap').classList.remove('show');
-            document.getElementById('uploadZone').style.display = '';
+            document.getElementById('uploadZone').style.display = 'block';
             document.getElementById('imgInput').value = '';
-            const btn = document.getElementById('convertBtn');
+            const btn = document.getElementById('txt_convert');
             btn.disabled = true;
             btn.style.opacity = '0.5';
         }
 
         function convertImage() {
             if (tg) {
-                tg.showAlert('Ushbu xizmatdan foydalanish uchun Telegram botga rasmingizni yuboring: @DastyorAiBot');
+                tg.showAlert(i18n[currentLang].alert);
             } else {
-                alert('Ushbu xizmat Telegram bot orqali ishlaydi. @DastyorAiBot botiga rasmingizni yuboring.');
+                alert(i18n[currentLang].alert);
             }
         }
+
+        updateUI();
+        checkAuth();
     </script>
 </body>
 

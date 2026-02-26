@@ -1,324 +1,378 @@
 <!DOCTYPE html>
-<html lang="uz">
+<html lang="uz" data-theme="dark">
 
 <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>Premium | DASTYOR AI</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap"
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap"
         rel="stylesheet" />
-    <link rel="stylesheet" href="style.css" />
     <style>
-        .prem-page {
-            min-height: 100vh;
-            position: relative;
-            z-index: 1;
-            padding: 100px 24px 60px;
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
         }
 
-        .prem-hero {
+        :root[data-theme="dark"] {
+            --bg: #050f1e;
+            --card: rgba(255, 255, 255, 0.04);
+            --border: rgba(255, 255, 255, 0.08);
+            --text: #f1f5f9;
+            --muted: #94a3b8;
+            --accent: #2563eb;
+            --gold: #f59e0b;
+            --nav: rgba(10, 22, 40, 0.85);
+        }
+
+        :root[data-theme="light"] {
+            --bg: #f8fafc;
+            --card: #ffffff;
+            --border: #e2e8f0;
+            --text: #0f172a;
+            --muted: #64748b;
+            --accent: #2563eb;
+            --gold: #d97706;
+            --nav: rgba(255, 255, 255, 0.85);
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            transition: all 0.3s ease;
+            padding-bottom: 90px;
+        }
+
+        .header {
+            padding: 40px 20px 20px;
             text-align: center;
-            margin-bottom: 64px;
         }
 
-        .prem-hero h1 {
-            font-size: clamp(32px, 5vw, 56px);
+        .header h1 {
+            font-size: 32px;
             font-weight: 900;
-            color: white;
-            margin: 16px 0;
         }
 
-        .prem-hero p {
-            color: #94a3b8;
-            font-size: 17px;
-            max-width: 500px;
-            margin: 0 auto;
+        .header p {
+            color: var(--muted);
+            font-size: 16px;
+            margin-top: 8px;
         }
 
-        .plans-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 24px;
-            max-width: 960px;
-            margin: 0 auto 64px;
+        .plans {
+            padding: 0 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
         }
 
         .plan-card {
-            background: rgba(255, 255, 255, 0.04);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            border-radius: 24px;
-            padding: 36px;
-            transition: all 0.3s;
-        }
-
-        .plan-card:hover {
-            transform: translateY(-6px);
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 28px;
+            padding: 24px;
+            position: relative;
+            overflow: hidden;
         }
 
         .plan-card.popular {
-            background: linear-gradient(135deg, rgba(59, 130, 246, 0.12), rgba(29, 78, 216, 0.08));
-            border-color: rgba(59, 130, 246, 0.3);
-            position: relative;
+            border-color: var(--gold);
+            background: linear-gradient(135deg, rgba(245, 158, 11, 0.05), rgba(245, 158, 11, 0.02));
         }
 
-        .pop-badge {
+        .pop-tag {
             position: absolute;
-            top: -14px;
-            left: 50%;
-            transform: translateX(-50%);
-            padding: 6px 20px;
-            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
-            border-radius: 50px;
-            font-size: 12px;
-            font-weight: 700;
+            top: 12px;
+            right: 12px;
+            background: var(--gold);
             color: white;
-            white-space: nowrap;
+            padding: 4px 12px;
+            border-radius: 50px;
+            font-size: 10px;
+            font-weight: 800;
+            text-transform: uppercase;
         }
 
         .plan-name {
             font-size: 14px;
-            font-weight: 700;
-            color: #94a3b8;
+            font-weight: 800;
+            color: var(--muted);
             text-transform: uppercase;
-            letter-spacing: 1px;
-            margin-bottom: 16px;
+            margin-bottom: 4px;
         }
 
         .plan-price {
-            display: flex;
-            align-items: baseline;
-            gap: 6px;
+            font-size: 32px;
+            font-weight: 900;
+            margin-bottom: 20px;
+        }
+
+        .plan-price span {
+            font-size: 14px;
+            color: var(--muted);
+            font-weight: 600;
+        }
+
+        .feats {
+            list-style: none;
             margin-bottom: 24px;
         }
 
-        .plan-curr {
-            font-size: 14px;
-            color: #64748b;
-        }
-
-        .plan-amt {
-            font-size: 42px;
-            font-weight: 900;
-            color: white;
-        }
-
-        .plan-per {
-            font-size: 14px;
-            color: #64748b;
-        }
-
-        .plan-feats {
-            margin-bottom: 28px;
-        }
-
-        .plan-feat {
-            padding: 10px 0;
-            color: #94a3b8;
-            font-size: 14px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+        .feat {
             display: flex;
             align-items: center;
             gap: 10px;
+            font-size: 14px;
+            margin-bottom: 10px;
+            color: var(--text);
+            font-weight: 500;
         }
 
-        .plan-feat b {
-            color: white;
+        .feat.inactive {
+            opacity: 0.4;
+            text-decoration: line-through;
         }
 
-        .plan-btn {
+        .btn-buy {
             display: block;
-            padding: 14px;
-            border-radius: 14px;
-            font-weight: 700;
-            font-size: 15px;
+            width: 100%;
+            padding: 16px;
+            border-radius: 16px;
+            background: var(--accent);
+            color: white;
             text-align: center;
             text-decoration: none;
-            transition: all 0.3s;
-            cursor: pointer;
-            border: none;
-            width: 100%;
+            font-weight: 800;
+            font-size: 15px;
+            transition: transform 0.2s;
         }
 
-        .plan-btn.blue {
-            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
-            color: white;
-            box-shadow: 0 8px 30px rgba(59, 130, 246, 0.4);
+        .btn-buy:active {
+            transform: scale(0.97);
         }
 
-        .plan-btn.blue:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 12px 40px rgba(59, 130, 246, 0.6);
-        }
-
-        .plan-btn.ghost {
-            background: rgba(255, 255, 255, 0.06);
-            color: white;
-        }
-
-        .plan-btn.ghost:hover {
-            background: rgba(255, 255, 255, 0.1);
-        }
-
-        .pay-section {
-            max-width: 640px;
-            margin: 0 auto;
-            text-align: center;
-        }
-
-        .pay-section h3 {
-            font-size: 22px;
-            font-weight: 700;
-            color: white;
-            margin-bottom: 8px;
-        }
-
-        .pay-section p {
-            color: #94a3b8;
-            margin-bottom: 24px;
+        .btn-buy.gold {
+            background: var(--gold);
         }
 
         .pay-methods {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 12px;
-            justify-content: center;
+            padding: 40px 20px 20px;
+            text-align: center;
         }
 
-        .pay-method {
-            padding: 14px 28px;
-            background: rgba(255, 255, 255, 0.06);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 14px;
-            color: white;
-            font-weight: 600;
-            font-size: 15px;
-            transition: all 0.3s;
-            cursor: pointer;
+        .pay-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 16px;
         }
 
-        .pay-method:hover {
-            border-color: rgba(59, 130, 246, 0.4);
-            background: rgba(59, 130, 246, 0.1);
-            transform: translateY(-2px);
-        }
-
-        .back-link {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            color: #60a5fa;
-            text-decoration: none;
+        .pay-btn {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 14px;
             font-size: 14px;
+            font-weight: 700;
         }
 
-        .gold-glow {
-            color: #f59e0b;
+        /* ── BOTTOM NAV ── */
+        .bottom-nav {
+            position: fixed;
+            bottom: 16px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: calc(100% - 40px);
+            max-width: 460px;
+            background: var(--nav);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--border);
+            border-radius: 28px;
+            height: 72px;
+            display: flex;
+            align-items: center;
+            justify-content: space-around;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+        }
+
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            color: var(--muted);
+            text-decoration: none;
+            padding: 8px 16px;
+        }
+
+        .nav-item.active {
+            color: var(--gold);
         }
     </style>
 </head>
 
 <body>
-    <canvas id="particles"></canvas>
-    <nav class="navbar scrolled" id="navbar">
-        <div class="nav-inner">
-            <a href="index.html" class="nav-logo">
-                <div class="logo-icon">
-                    <svg width="22" height="22" viewBox="0 0 28 28" fill="none">
-                        <circle cx="14" cy="14" r="14" fill="url(#l1)" />
-                        <path d="M8 14h12M14 8v12" stroke="white" stroke-width="2.5" stroke-linecap="round" />
-                        <defs>
-                            <linearGradient id="l1" x1="0" y1="0" x2="28" y2="28">
-                                <stop stop-color="#3b82f6" />
-                                <stop offset="1" stop-color="#1d4ed8" />
-                            </linearGradient>
-                        </defs>
-                    </svg>
-                </div>
-                <span>DASTYOR <b>AI</b></span>
-            </a>
-            <a href="index.html" class="back-link">← Bosh sahifa</a>
-        </div>
-    </nav>
-    <div class="prem-page">
-        <div class="prem-hero">
-            <span class="sec-badge"
-                style="background:rgba(245,158,11,0.1);border-color:rgba(245,158,11,0.25);color:#f59e0b;">⭐
-                Premium</span>
-            <h1>Pro <span class="gradient-text">Imkoniyatlar</span></h1>
-            <p>Cheksiz xizmatlar uchun eng qulay tarifni tanlang</p>
+    <div class="header">
+        <h1 id="txt_title">Premium Tarif</h1>
+        <p id="txt_sub">Imkoniyatlaringizni kengaytiring</p>
+    </div>
+
+    <div class="plans">
+        <!-- FREE -->
+        <div class="plan-card">
+            <div class="plan-name" id="txt_p1_n">Bepul</div>
+            <div class="plan-price">0 <span>/ mo</span></div>
+            <div class="feats">
+                <div class="feat">✓ <b>5</b> <span id="txt_f_docs">hujjat/oy</span></div>
+                <div class="feat">✓ CV & Obyektivka</div>
+                <div class="feat inactive">✗ <span id="txt_f_pro">Pro xizmatlar</span></div>
+                <div class="feat inactive">✗ <span id="txt_f_fast">Tezkor aloqa</span></div>
+            </div>
+            <a href="index.html" class="btn-buy" style="background: var(--card); color: var(--text);"
+                id="txt_btn_free">Boshlash</a>
         </div>
 
-        <div class="plans-grid">
-            <!-- Free -->
-            <div class="plan-card">
-                <div class="plan-name">Bepul</div>
-                <div class="plan-price">
-                    <span class="plan-curr">UZS</span>
-                    <span class="plan-amt">0</span>
-                    <span class="plan-per">/oy</span>
-                </div>
-                <div class="plan-feats">
-                    <div class="plan-feat">✓ <b>5</b> ta hujjat/oy</div>
-                    <div class="plan-feat">✓ CV tayyorlash</div>
-                    <div class="plan-feat">✓ Obyektivka</div>
-                    <div class="plan-feat" style="color:#475569">✗ Pro xizmatlar</div>
-                    <div class="plan-feat" style="color:#475569">✗ Ustuvor navbat</div>
-                </div>
-                <a href="https://t.me/DastyorAiBot" target="_blank" class="plan-btn ghost">Bepul boshlash</a>
+        <!-- MONTHLY -->
+        <div class="plan-card popular">
+            <div class="pop-tag" id="txt_pop">TOP</div>
+            <div class="plan-name" style="color: var(--gold);" id="txt_p2_n">Premium Oylik</div>
+            <div class="plan-price">29 000 <span>/ mo</span></div>
+            <div class="feats">
+                <div class="feat">✓ <b id="txt_inf">Cheksiz</b> <span id="txt_f_docs2">hujjatlar</span></div>
+                <div class="feat">✓ <span id="txt_f_pro2">Barcha Pro xizmatlar</span></div>
+                <div class="feat">✓ <span id="txt_f_fast2">Ustuvor navbat</span></div>
+                <div class="feat">✓ 24/7 <span id="txt_f_sup">yordam</span></div>
             </div>
-
-            <!-- Premium -->
-            <div class="plan-card popular">
-                <div class="pop-badge">🔥 Eng mashhur</div>
-                <div class="plan-name gold-glow">Premium Oylik</div>
-                <div class="plan-price">
-                    <span class="plan-curr">UZS</span>
-                    <span class="plan-amt">29 000</span>
-                    <span class="plan-per">/oy</span>
-                </div>
-                <div class="plan-feats">
-                    <div class="plan-feat">✓ <b>Cheksiz</b> hujjatlar</div>
-                    <div class="plan-feat">✓ Barcha Pro xizmatlar</div>
-                    <div class="plan-feat">✓ Ustuvor navbat</div>
-                    <div class="plan-feat">✓ 20+ CV shablon</div>
-                    <div class="plan-feat">✓ 24/7 qo'llab-quvvatlash</div>
-                </div>
-                <a href="https://t.me/DastyorAiBot" target="_blank" class="plan-btn blue">Hozir olish →</a>
-            </div>
-
-            <!-- Annual -->
-            <div class="plan-card">
-                <div class="plan-name">Yillik</div>
-                <div class="plan-price">
-                    <span class="plan-curr">UZS</span>
-                    <span class="plan-amt">199 000</span>
-                    <span class="plan-per">/yil</span>
-                </div>
-                <div class="plan-feats">
-                    <div class="plan-feat">✓ Barcha Premium imkoniyatlar</div>
-                    <div class="plan-feat">✓ 40% tejam</div>
-                    <div class="plan-feat">✓ Maxsus Pro funksiyalar</div>
-                    <div class="plan-feat">✓ VIP qo'llab-quvvatlash</div>
-                    <div class="plan-feat">✓ Yangi xizmatlar birinchi</div>
-                </div>
-                <a href="https://t.me/DastyorAiBot" target="_blank" class="plan-btn blue">Yillik olish →</a>
-            </div>
-        </div>
-
-        <!-- PAYMENT METHODS -->
-        <div class="pay-section">
-            <h3>To'lov usullari</h3>
-            <p>Qulay to'lov tizimi orqali premiumni faollashtiring</p>
-            <div class="pay-methods">
-                <div class="pay-method">💳 Click</div>
-                <div class="pay-method">🏦 Payme</div>
-                <div class="pay-method">🟣 Uzcard</div>
-                <div class="pay-method">🟡 Humo</div>
-            </div>
+            <a href="https://t.me/DastyorAiBot" class="btn-buy gold" id="txt_btn_get">Hozir olish</a>
         </div>
     </div>
-    <script src="app.js"></script>
+
+    <div class="pay-methods">
+        <h3 id="txt_pay">To'lov usullari</h3>
+        <div class="pay-grid">
+            <div class="pay-btn">💳 Click</div>
+            <div class="pay-btn">🏦 Payme</div>
+            <div class="pay-btn">🟣 Uzcard</div>
+            <div class="pay-btn">🟡 Humo</div>
+        </div>
+    </div>
+
+    <!-- BOTTOM NAV -->
+    <div class="bottom-nav">
+        <a href="index.html" class="nav-item">
+            <div style="font-size: 22px;">🏠</div>
+            <div style="font-size: 11px; font-weight: 700;" id="lbl_home">Asosiy</div>
+        </a>
+        <a href="more.html" class="nav-item">
+            <div style="font-size: 22px;">📖</div>
+            <div style="font-size: 11px; font-weight: 700;" id="lbl_more">Turlar</div>
+        </a>
+        <a href="#" class="nav-item active">
+            <div style="font-size: 22px;">⭐</div>
+            <div style="font-size: 11px; font-weight: 700;" id="lbl_prem">Premium</div>
+        </a>
+    </div>
+
+    <script>
+        const tg = window.Telegram?.WebApp;
+        let currentLang = localStorage.getItem('lang') || 'uz';
+        let currentTheme = localStorage.getItem('theme') || 'dark';
+
+        const i18n = {
+            uz: {
+                title: "Premium Tarif",
+                sub: "Imkoniyatlaringizni kengaytiring",
+                p1_n: "Bepul",
+                p2_n: "Premium Oylik",
+                f_docs: "hujjat/oy",
+                f_docs2: "hujjatlar",
+                f_pro: "Pro xizmatlar",
+                f_pro2: "Barcha Pro xizmatlar",
+                f_fast: "Tezkor aloqa",
+                f_fast2: "Ustuvor navbat",
+                f_sup: "Yordam",
+                inf: "Cheksiz",
+                btn_free: "Boshlash",
+                btn_get: "Hozir olish",
+                pop: "TOP",
+                pay: "To'lov usullari",
+                lbl_home: "Asosiy",
+                lbl_more: "Turlar",
+                lbl_prem: "Premium"
+            },
+            en: {
+                title: "Premium Plan",
+                sub: "Expand your possibilities",
+                p1_n: "Free",
+                p2_n: "Premium Monthly",
+                f_docs: "docs/month",
+                f_docs2: "documents",
+                f_pro: "Pro services",
+                f_pro2: "All Pro services",
+                f_fast: "Fast support",
+                f_fast2: "Priority queue",
+                f_sup: "Support",
+                inf: "Unlimited",
+                btn_free: "Start Free",
+                btn_get: "Get Now",
+                pop: "TOP",
+                pay: "Payment Methods",
+                lbl_home: "Home",
+                lbl_more: "Tools",
+                lbl_prem: "Premium"
+            }
+        };
+
+        function updateUI() {
+            document.documentElement.setAttribute('data-theme', currentTheme);
+            const strings = i18n[currentLang];
+            document.getElementById('txt_title').textContent = strings.title;
+            document.getElementById('txt_sub').textContent = strings.sub;
+            document.getElementById('txt_p1_n').textContent = strings.p1_n;
+            document.getElementById('txt_p2_n').textContent = strings.p2_n;
+            document.getElementById('txt_f_docs').textContent = strings.f_docs;
+            document.getElementById('txt_f_docs2').textContent = strings.f_docs2;
+            document.getElementById('txt_f_pro').textContent = strings.f_pro;
+            document.getElementById('txt_f_pro2').textContent = strings.f_pro2;
+            document.getElementById('txt_f_fast').textContent = strings.f_fast;
+            document.getElementById('txt_f_fast2').textContent = strings.f_fast2;
+            document.getElementById('txt_f_sup').textContent = strings.f_sup;
+            document.getElementById('txt_inf').textContent = strings.inf;
+            document.getElementById('txt_btn_free').textContent = strings.btn_free;
+            document.getElementById('txt_btn_get').textContent = strings.btn_get;
+            document.getElementById('txt_pop').textContent = strings.pop;
+            document.getElementById('txt_pay').textContent = strings.pay;
+            document.getElementById('lbl_home').textContent = strings.lbl_home;
+            document.getElementById('lbl_more').textContent = strings.lbl_more;
+            document.getElementById('lbl_prem').textContent = strings.lbl_prem;
+
+            if (tg) {
+                tg.headerColor = currentTheme === 'dark' ? '#050f1e' : '#f8fafc';
+            }
+        }
+
+        updateUI();
+
+        // Pass ID
+        document.querySelectorAll('a').forEach(a => {
+            a.addEventListener('click', (e) => {
+                const href = a.getAttribute('href');
+                const urlParams = new URLSearchParams(window.location.search);
+                const id = urlParams.get('telegram_id');
+                if (href && href.endsWith('.html') && id) {
+                    e.preventDefault();
+                    const separator = href.includes('?') ? '&' : '?';
+                    window.location.href = `${href}${separator}telegram_id=${id}`;
+                }
+            });
+        });
+    </script>
 </body>
 
 </html>
