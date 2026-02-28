@@ -190,31 +190,8 @@ async def handle_router_audio(update: Update, context: ContextTypes.DEFAULT_TYPE
         await process_obyektivka_audio(update, context)
         increment_file_count(uid, "Obyektivka Audio")
     else:
-        # Smart Logic
+        # Smart logic handles unknown audio
         await handle_smart_audio(update, context)
-        # ...
-        try:
-            if not is_premium(uid) and not check_usage_limit(uid):
-                await msg.edit_text("❌ Kunlik limit tugadi. Premium oling: /admin")
-                return
-            
-            if not is_premium(uid):
-                increment_usage(uid)
-
-            file = await update.message.voice.get_file() if update.message.voice else await update.message.audio.get_file()
-            import time
-            path = f"audio_{update.effective_user.id}_{int(time.time())}.ogg"
-            await file.download_to_drive(path)
-            
-            text = await transcribe_audio(path)
-            increment_file_count(uid, "Transcribe Audio")
-            
-            await msg.delete()
-            await update.message.reply_text(f"📝 **Transkripsiya:**\n\n{text}", parse_mode="Markdown")
-            try: os.remove(path)
-            except: pass
-        except Exception as e:
-            await msg.edit_text(f"❌ Xatolik: {e}")
 
 async def button_callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not await unified_router_check(update, context): return
@@ -289,32 +266,35 @@ def setup_application():
     admin_buttons = "^(📊 Statistika|📨 Xabar yuborish|📢 Kanallar|💎 Premium Boshqaruv|⚙️ Sozlamalar|👥 Foydalanuvchilar|🚪 Panelni yopish)$"
     application.add_handler(MessageHandler(filters.Regex(admin_buttons), handle_admin_text))
 
-    application.add_handler(MessageHandler(filters.Regex("^Rasm→Word AI ✨$"), ocr_handler))
-    application.add_handler(MessageHandler(filters.Regex("^Obyektivka Ai ✨$"), obyektivka_handler))
-    application.add_handler(MessageHandler(filters.Regex("^Krill-lotin ✏️$"), transliterate_handler))
-    application.add_handler(MessageHandler(filters.Regex("^Tarjima fayl 📦$"), translate_handler))
-    application.add_handler(MessageHandler(filters.Regex("^Rasm→PDF$"), image_to_pdf_handler))
-    application.add_handler(MessageHandler(filters.Regex("^Imlo tekshirish ✏️$"), spell_check_handler))
-    application.add_handler(MessageHandler(filters.Regex("^Premium xizmatlar 💎$"), premium_info_handler))
+    application.add_handler(MessageHandler(filters.Regex("^📄 Rasm→Word AI$"), ocr_handler))
+    application.add_handler(MessageHandler(filters.Regex("^📋 Obyektivka AI$"), obyektivka_handler))
+    application.add_handler(MessageHandler(filters.Regex("^🔤 Krill-Lotin$"), transliterate_handler))
+    application.add_handler(MessageHandler(filters.Regex("^🌐 Tarjima fayl$"), translate_handler))
+    application.add_handler(MessageHandler(filters.Regex("^🖼 Rasm→PDF$"), image_to_pdf_handler))
+    application.add_handler(MessageHandler(filters.Regex("^✏️ Imlo tekshirish$"), spell_check_handler))
+    application.add_handler(MessageHandler(filters.Regex("^💎 Premium xizmatlar$"), premium_info_handler))
     
-    application.add_handler(MessageHandler(filters.Regex("^Kirill → Lotin$"), krill_to_lotin_handler))
-    application.add_handler(MessageHandler(filters.Regex("^Lotin → Kirill$"), lotin_to_krill_handler))
+    application.add_handler(MessageHandler(filters.Regex("^🔡 Kirill → Lotin$"), krill_to_lotin_handler))
+    application.add_handler(MessageHandler(filters.Regex("^🔠 Lotin → Kirill$"), lotin_to_krill_handler))
 
     async def go_translate(update: Update, context: ContextTypes.DEFAULT_TYPE):
         text = update.message.text
         direction = "uz_en"
-        if text == "O'zbek → Ingliz": direction = "uz_en"
-        elif text == "Ingliz → O'zbek": direction = "en_uz"
-        elif text == "Rus → O'zbek": direction = "ru_uz"
-        elif text == "O'zbek → Rus": direction = "uz_ru"
-        elif text == "Rus → Ingliz": direction = "ru_en"
+        if "O'zbek → Ingliz" in text: direction = "uz_en"
+        elif "Ingliz → O'zbek" in text: direction = "en_uz"
+        elif "Rus → O'zbek" in text: direction = "ru_uz"
+        elif "O'zbek → Rus" in text: direction = "uz_ru"
+        elif "Rus → Ingliz" in text: direction = "ru_en"
         await set_translation_direction(update, context, direction)
 
-    application.add_handler(MessageHandler(filters.Regex("^(O'zbek → Ingliz|Ingliz → O'zbek|Rus → O'zbek|O'zbek → Rus|Rus → Ingliz)$"), go_translate))
+    application.add_handler(MessageHandler(
+        filters.Regex("(O'zbek → Ingliz|Ingliz → O'zbek|Rus → O'zbek|O'zbek → Rus|Rus → Ingliz)"),
+        go_translate
+    ))
     
-    application.add_handler(MessageHandler(filters.Regex("^Balans 💰$"), balance_handler))
+    application.add_handler(MessageHandler(filters.Regex("^💰 Balans$"), balance_handler))
     application.add_handler(MessageHandler(filters.Regex("^Aloqa ✉️$"), contact_handler))
-    application.add_handler(MessageHandler(filters.Regex("^Yordam 🆘$"), help_button_handler))
+    application.add_handler(MessageHandler(filters.Regex("^🆘 Yordam$"), help_button_handler))
 
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_router_text))
     application.add_handler(MessageHandler(filters.Document.ALL, handle_router_doc))

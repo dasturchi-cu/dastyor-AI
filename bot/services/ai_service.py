@@ -19,11 +19,27 @@ if GOOGLE_API_KEY:
     except Exception as e:
         logger.error(f"Failed to init Gemini: {e}")
 
+# Models to try in order (gemini-2.0-flash is fastest & cheapest)
+GEMINI_MODELS = [
+    'gemini-2.0-flash',
+    'gemini-1.5-flash',
+    'gemini-1.5-pro',
+]
+
 async def get_model():
-    """Get async Gemini model instance"""
+    """Get async Gemini model instance — tries models in order"""
     if not GOOGLE_API_KEY:
         return None
-    return genai.GenerativeModel('gemini-3-flash-preview')
+    # Try preferred model first, fall back if unavailable
+    for model_name in GEMINI_MODELS:
+        try:
+            model = genai.GenerativeModel(model_name)
+            logger.info(f"Using Gemini model: {model_name}")
+            return model
+        except Exception as e:
+            logger.warning(f"Model {model_name} unavailable: {e}")
+    logger.error("All Gemini models unavailable!")
+    return None
 
 
 async def transcribe_audio(audio_file_path: str) -> str:
