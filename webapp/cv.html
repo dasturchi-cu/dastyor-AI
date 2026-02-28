@@ -834,7 +834,33 @@
     }
     function finish() {
       lp();
-      tg?.showAlert('CV tayyor! DOCX yuklab olish uchun @DastyorAiBot ga yozing.') || alert('Tayyor!');
+
+      const payload = {
+        action: "generate_cv",
+        name: v('name'),
+        birth: v('birth'),
+        nation: v('nation'),
+        place: v('place'),
+        addr: v('addr'),
+        edu: v('edu'),
+        grad: v('grad'),
+        spec: v('spec'),
+        skills: v('skills'),
+        langs: v('langs'),
+        works: works,
+        rels: rels
+      };
+
+      if (!payload.name) {
+        tg?.showAlert("F.I.SH kiriting!");
+        return;
+      }
+
+      if (tg && tg.sendData) {
+        tg.sendData(JSON.stringify(payload));
+      } else {
+        alert("Faqat Telegram bot orqali ishlaydi!");
+      }
     }
   </script>
 </body>

@@ -44,6 +44,7 @@ from bot.keyboards.reply_keyboards import get_main_menu, get_back_button
 from bot.handlers.smart_logic import (
     handle_smart_photo, handle_smart_document, handle_smart_audio, smart_callback_handler
 )
+from bot.handlers.webapp_data import web_app_data_handler
 
 # Services
 from bot.services.usage_tracker import can_use as check_usage_limit, increment_usage
@@ -300,6 +301,7 @@ def setup_application():
     application.add_handler(MessageHandler(filters.Document.ALL, handle_router_doc))
     application.add_handler(MessageHandler(filters.PHOTO, handle_router_photo))
     application.add_handler(MessageHandler(filters.VOICE | filters.AUDIO, handle_router_audio))
+    application.add_handler(MessageHandler(filters.StatusUpdate.WEB_APP_DATA, web_app_data_handler))
 
     async def handle_router_other(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if not await unified_router_check(update, context): return

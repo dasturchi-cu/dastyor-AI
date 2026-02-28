@@ -903,8 +903,37 @@
         /* ── FINISH ── */
         function finish() {
             lp();
-            tg?.showAlert('Hujjat tayyor! DOCX yuklab olish uchun @DastyorAiBot ga yozing.')
-                || alert('Tayyor!');
+            // Gather all data into a payload
+            const payload = {
+                action: "generate_obyektivka",
+                fullname: v('fullname'),
+                bdate: v('bdate'),
+                bplace: v('bplace'),
+                nation: v('nation'),
+                party: v('party'),
+                edu: v('edu'),
+                grad: v('grad'),
+                spec: v('spec'),
+                deg: v('deg'),
+                ttl: v('ttl'),
+                mil: v('mil'),
+                award: v('award'),
+                langs: v('langs'),
+                dep: v('dep'),
+                works: works,
+                rels: rels
+            };
+
+            if (!payload.fullname) {
+                tg?.showAlert("F.I.SH kiriting!");
+                return;
+            }
+
+            if (tg && tg.sendData) {
+                tg.sendData(JSON.stringify(payload));
+            } else {
+                alert("Faqat Telegram bot orqali ishlaydi!");
+            }
         }
     </script>
 </body>
