@@ -1,10 +1,10 @@
 <!doctype html>
-<html lang="uz" data-theme="light">
+<html lang="uz" data-theme="dark">
 
 <head>
-  <meta charset="utf-8" />
+  <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
-  <title>CV | DASTYOR AI</title>
+  <title>CV Builder | DASTYOR AI</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet" />
   <style>
@@ -17,40 +17,38 @@
     }
 
     :root[data-theme="dark"] {
-      --bg: #0f172a;
-      --card: #1e293b;
-      --border: #334155;
-      --text: #f1f5f9;
+      --bg: #0a1628;
+      --card: #131f35;
+      --border: #1e3050;
+      --text: #e2e8f0;
       --muted: #64748b;
       --accent: #3b82f6;
-      --input: #0f172a
+      --inp: #0a1628;
+      --green: #10b981
     }
 
     :root[data-theme="light"] {
-      --bg: #f8fafc;
+      --bg: #f1f5f9;
       --card: #fff;
       --border: #e2e8f0;
       --text: #0f172a;
       --muted: #64748b;
       --accent: #2563eb;
-      --input: #f8fafc
+      --inp: #f8fafc;
+      --green: #059669
     }
 
     body {
       font-family: 'Inter', sans-serif;
       background: var(--bg);
       color: var(--text);
-      padding-top: 52px;
-      padding-bottom: 20px;
-      font-size: 14px
+      font-size: 14px;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column
     }
 
-    /* HEADER */
     .hdr {
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
       height: 52px;
       background: var(--card);
       border-bottom: 1px solid var(--border);
@@ -58,7 +56,7 @@
       align-items: center;
       padding: 0 12px;
       gap: 10px;
-      z-index: 100
+      flex-shrink: 0
     }
 
     .back {
@@ -73,57 +71,75 @@
       cursor: pointer;
       font-size: 16px;
       color: var(--text);
-      text-decoration: none;
       flex-shrink: 0
     }
 
-    .hdr-title {
-      font-weight: 800;
+    .hdr b {
       font-size: 15px;
       flex: 1
     }
 
-    .hdr-logo {
-      font-size: 11px;
+    .hdr-badge {
+      font-size: 10px;
       font-weight: 700;
-      color: var(--accent)
+      color: var(--accent);
+      background: rgba(59, 130, 246, .1);
+      padding: 3px 8px;
+      border-radius: 20px
     }
 
-    /* STEPS */
-    .steps {
+    .tabs {
       display: flex;
-      gap: 4px;
-      padding: 12px
-    }
-
-    .sp {
-      flex: 1;
-      height: 3px;
-      border-radius: 2px;
-      background: var(--border);
-      transition: .3s
-    }
-
-    .sp.on {
-      background: var(--accent)
-    }
-
-    /* CARD */
-    .card {
+      padding: 10px 12px;
+      gap: 6px;
       background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      padding: 16px;
-      margin: 0 12px 12px
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+      overflow-x: auto
     }
 
-    .q {
-      font-size: 15px;
-      font-weight: 800;
-      margin-bottom: 12px
+    .tab {
+      white-space: nowrap;
+      padding: 5px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      background: var(--bg);
+      color: var(--muted);
+      border: 1.5px solid var(--border);
+      transition: .2s;
+      flex-shrink: 0
     }
 
-    /* INPUTS */
+    .tab.on {
+      background: var(--accent);
+      color: #fff;
+      border-color: var(--accent)
+    }
+
+    .body {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      overflow: hidden
+    }
+
+    .form-pane {
+      flex: 1;
+      overflow-y: auto;
+      padding: 12px;
+      min-height: 0
+    }
+
+    .step-panel {
+      display: none
+    }
+
+    .step-panel.on {
+      display: block
+    }
+
     label {
       display: block;
       font-size: 11px;
@@ -131,40 +147,52 @@
       color: var(--muted);
       margin-bottom: 4px;
       text-transform: uppercase;
-      letter-spacing: .3px
+      letter-spacing: .4px
     }
 
     input,
     select,
     textarea {
       width: 100%;
-      padding: 12px;
+      padding: 11px 13px;
       border: 1.5px solid var(--border);
-      border-radius: 12px;
-      background: var(--input);
+      border-radius: 11px;
+      background: var(--inp);
       color: var(--text);
       font-family: inherit;
       font-size: 14px;
       margin-bottom: 10px;
-      transition: .2s
+      transition: .2s;
+      -webkit-appearance: none
     }
 
     input:focus,
+    select:focus,
     textarea:focus {
       border-color: var(--accent);
-      outline: none
+      outline: none;
+      background: var(--card)
     }
 
     textarea {
-      min-height: 80px;
+      min-height: 68px;
       resize: vertical
     }
 
-    /* BTNS */
-    .row {
+    .two {
+      display: flex;
+      gap: 8px
+    }
+
+    .two>div {
+      flex: 1
+    }
+
+    .nav-row {
       display: flex;
       gap: 8px;
-      margin-top: 4px
+      margin-top: 4px;
+      padding-bottom: 4px
     }
 
     .btn {
@@ -189,118 +217,115 @@
 
     .btn-g {
       background: var(--border);
-      color: var(--muted)
-    }
-
-    /* PILL TABS */
-    .pills {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
-      margin-bottom: 12px
-    }
-
-    .pill {
-      padding: 5px 12px;
-      border-radius: 50px;
-      border: 1.5px solid var(--border);
-      font-size: 12px;
-      font-weight: 700;
-      cursor: pointer;
-      background: var(--bg);
       color: var(--muted);
-      transition: .2s
+      flex: 0 0 90px
     }
 
-    .pill.on {
-      background: var(--accent);
-      color: #fff;
-      border-color: var(--accent)
+    .chip-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-bottom: 10px
     }
 
-    /* RELATIVES */
-    .rel-item {
+    .chip {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 10px 12px;
       background: var(--bg);
       border: 1px solid var(--border);
       border-radius: 10px;
-      margin-bottom: 6px;
+      padding: 8px 12px;
       font-size: 13px
     }
 
-    .del-btn {
+    .chip-del {
       background: none;
       border: none;
       color: #ef4444;
-      font-size: 16px;
       cursor: pointer;
-      padding: 0 4px
+      font-size: 16px;
+      flex-shrink: 0;
+      padding: 0 2px
     }
 
-    /* CAREER ITEM */
-    .work-item {
-      background: var(--bg);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 10px;
-      margin-bottom: 6px
-    }
-
-    .work-dates {
+    .divider {
       display: flex;
-      gap: 8px
-    }
-
-    .work-dates input {
-      margin-bottom: 0
-    }
-
-    /* PREVIEW STRIP */
-    .prev-strip {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      margin: 0 12px 12px;
-      padding: 12px;
-      font-size: 12px;
-      line-height: 1.6
-    }
-
-    .prev-strip b {
-      font-size: 13px;
-      display: block;
-      margin-bottom: 6px;
-      color: var(--accent)
-    }
-
-    /* DOWNLOAD */
-    .dl-row {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
+      align-items: center;
       gap: 8px;
-      padding: 0 12px
+      padding: 0 12px;
+      flex-shrink: 0
     }
 
-    .dl-btn {
-      padding: 13px;
-      border-radius: 12px;
-      border: none;
+    .divider span {
+      font-size: 11px;
       font-weight: 700;
-      font-size: 13px;
-      cursor: pointer
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .5px;
+      white-space: nowrap
     }
 
-    .dl-pdf {
-      background: #ef4444;
-      color: #fff
+    .divider hr {
+      flex: 1;
+      border: none;
+      border-top: 1px solid var(--border)
     }
 
-    .dl-doc {
-      background: #2b579a;
-      color: #fff
+    .prev-pane {
+      background: var(--card);
+      border-top: 1px solid var(--border);
+      flex-shrink: 0;
+      max-height: 38vh;
+      overflow-y: auto
+    }
+
+    .prev-body {
+      padding: 10px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 2px
+    }
+
+    .prev-row {
+      display: flex;
+      gap: 8px;
+      padding: 4px 0;
+      border-bottom: 1px solid var(--border);
+      align-items: flex-start;
+      font-size: 13px
+    }
+
+    .prev-row:last-child {
+      border-bottom: none
+    }
+
+    .prev-lbl {
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 700;
+      width: 80px;
+      flex-shrink: 0;
+      padding-top: 1px
+    }
+
+    .prev-val {
+      color: var(--text);
+      flex: 1;
+      word-break: break-word
+    }
+
+    .prev-val.empty {
+      color: var(--border)
+    }
+
+    .prev-section {
+      font-size: 11px;
+      font-weight: 800;
+      color: var(--accent);
+      text-transform: uppercase;
+      letter-spacing: .5px;
+      padding: 6px 0 2px
     }
   </style>
 </head>
@@ -308,193 +333,227 @@
 <body>
 
   <div class="hdr">
-    <a class="back" id="backBtn">←</a>
-    <span class="hdr-title">📄 CV Tayyorlash</span>
-    <span class="hdr-logo">DASTYOR AI</span>
+    <div class="back" id="backBtn">←</div>
+    <b>📄 CV Builder</b>
+    <span class="hdr-badge">DASTYOR AI</span>
   </div>
 
-  <!-- Step indicator -->
-  <div class="steps">
-    <div class="sp on" id="sp1"></div>
-    <div class="sp" id="sp2"></div>
-    <div class="sp" id="sp3"></div>
-    <div class="sp" id="sp4"></div>
+  <div class="tabs">
+    <div class="tab on" onclick="go(0)">👤 Shaxsiy</div>
+    <div class="tab" onclick="go(1)">📚 Ta'lim</div>
+    <div class="tab" onclick="go(2)">💼 Tajriba</div>
+    <div class="tab" onclick="go(3)">👨‍👩‍👧 Oila</div>
   </div>
 
-  <!-- STEP 1: Shaxsiy -->
-  <div id="s1">
-    <div class="card">
-      <div class="q">1. Shaxsiy ma'lumotlar</div>
-      <label>F.I.SH (To'liq)</label>
-      <input id="name" type="text" placeholder="Aliyev Vali G'aniyevich">
-      <label>Tug'ilgan yili</label>
-      <input id="birth" type="text" placeholder="1990">
-      <label>Tug'ilgan joyi</label>
-      <input id="place" type="text" placeholder="Toshkent shahri">
-      <label>Millati</label>
-      <input id="nation" type="text" placeholder="O'zbek">
-      <label>Partiyaviyligi</label>
-      <input id="party" type="text" placeholder="Yo'q">
-      <div class="row"><button class="btn btn-p" onclick="go(2)">Davom etish →</button></div>
-    </div>
-  </div>
+  <div class="body">
+    <div class="form-pane">
 
-  <!-- STEP 2: Ta'lim -->
-  <div id="s2" style="display:none">
-    <div class="card">
-      <div class="q">2. Ta'lim va mutaxassislik</div>
-      <label>Ma'lumoti</label>
-      <select id="edu">
-        <option>Oliy</option>
-        <option>O'rta maxsus</option>
-        <option>O'rta</option>
-      </select>
-      <label>Tamomlagan o'quv yurti</label>
-      <textarea id="grad" placeholder="2018 y., Toshkent Davlat Texnika Universiteti, Muhandislik"></textarea>
-      <label>Mutaxassisligi</label>
-      <input id="spec" type="text" placeholder="Muhandis">
-      <label>Ilmiy darajasi</label>
-      <input id="deg" type="text" placeholder="Yo'q">
-      <label>Ilmiy unvoni</label>
-      <input id="title" type="text" placeholder="Yo'q">
-      <label>Davlat mukofotlari</label>
-      <input id="award" type="text" placeholder="Yo'q">
-      <label>Harbiy unvoni</label>
-      <input id="mil" type="text" placeholder="Yo'q">
-      <label>Chet tillari</label>
-      <input id="lang" type="text" placeholder="Rus, Ingliz tillari">
-      <div class="row">
-        <button class="btn btn-g" onclick="go(1)">← Orqaga</button>
-        <button class="btn btn-p" onclick="go(3)">Davom etish →</button>
+      <!-- S0: Shaxsiy -->
+      <div class="step-panel on" id="p0">
+        <label>F.I.SH (To'liq)</label>
+        <input id="name" placeholder="Aliyev Vali G'aniyevich" oninput="lp()">
+
+        <div class="two">
+          <div><label>Tug'ilgan yili</label><input id="birth" placeholder="1990" oninput="lp()"></div>
+          <div><label>Millati</label><input id="nation" placeholder="O'zbek" oninput="lp()"></div>
+        </div>
+
+        <label>Tug'ilgan joyi</label>
+        <input id="place" placeholder="Toshkent shahri" oninput="lp()">
+
+        <label>Partiyaviyligi</label>
+        <input id="party" value="Yo'q" oninput="lp()">
+
+        <label>Qayd etilgan manzil</label>
+        <input id="addr" placeholder="Toshkent sh., Chilonzor t." oninput="lp()">
+
+        <div class="nav-row">
+          <button class="btn btn-p" onclick="go(1)">Ta'lim →</button>
+        </div>
       </div>
-    </div>
-  </div>
 
-  <!-- STEP 3: Mehnat faoliyati -->
-  <div id="s3" style="display:none">
-    <div class="card">
-      <div class="q">3. Mehnat faoliyati</div>
-      <p style="font-size:12px;color:var(--muted);margin-bottom:10px;">Hozirgi ishni oxiriga kiriting</p>
-      <div id="workList"></div>
-      <button class="btn btn-g" onclick="addWork()" style="margin-bottom:12px;">+ Ish joyi qo'shish</button>
-      <div class="row">
-        <button class="btn btn-g" onclick="go(2)">← Orqaga</button>
-        <button class="btn btn-p" onclick="go(4)">Davom etish →</button>
-      </div>
-    </div>
-  </div>
+      <!-- S1: Ta'lim -->
+      <div class="step-panel" id="p1">
+        <label>Ma'lumoti</label>
+        <select id="edu" onchange="lp()">
+          <option>Oliy</option>
+          <option>O'rta maxsus</option>
+          <option>O'rta</option>
+        </select>
 
-  <!-- STEP 4: Qarindoshlar -->
-  <div id="s4" style="display:none">
-    <div class="card">
-      <div class="q">4. Yaqin qarindoshlar</div>
-      <div id="relList"></div>
-      <div
-        style="background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:12px;margin-bottom:10px;">
-        <input id="rType" type="text" placeholder="Otasi / Onasi / Ukasi...">
-        <input id="rName" type="text" placeholder="F.I.SH">
-        <input id="rBirth" type="text" placeholder="1960 y., Toshkent">
-        <input id="rJob" type="text" placeholder="Ish joyi va lavozimi">
-        <input id="rAddr" type="text" placeholder="Yashash manzili" style="margin-bottom:0">
-        <button class="btn btn-p" onclick="addRel()" style="margin-top:8px;">+ Qo'shish</button>
-      </div>
-      <div class="row">
-        <button class="btn btn-g" onclick="go(3)">← Orqaga</button>
-        <button class="btn btn-p" onclick="preview()">Ko'rish ✓</button>
-      </div>
-    </div>
-  </div>
+        <label>Tamomlagan o'quv yurti</label>
+        <textarea id="grad" placeholder="2018 y., Toshkent Davlat Texnika Universiteti, Muhandislik"
+          oninput="lp()"></textarea>
 
-  <!-- PREVIEW & DOWNLOAD -->
-  <div id="s5" style="display:none">
-    <div class="prev-strip">
-      <b>📄 Ma'lumotnoma tayyor!</b>
-      <div id="prevContent"></div>
+        <label>Mutaxassisligi (diplom bo'yicha)</label>
+        <input id="spec" placeholder="Muhandis" oninput="lp()">
+
+        <div class="two">
+          <div><label>Ilmiy darajasi</label><input id="deg" value="Yo'q" oninput="lp()"></div>
+          <div><label>Ilmiy unvoni</label><input id="ttl" value="Yo'q" oninput="lp()"></div>
+        </div>
+
+        <label>Chet tillar</label>
+        <input id="langs" value="Yo'q" oninput="lp()">
+
+        <label>Kompyuter ko'nikmalari</label>
+        <input id="skills" placeholder="MS Word, Excel, 1C..." oninput="lp()">
+
+        <div class="nav-row">
+          <button class="btn btn-g" onclick="go(0)">←</button>
+          <button class="btn btn-p" onclick="go(2)">Tajriba →</button>
+        </div>
+      </div>
+
+      <!-- S2: Mehnat tajribasi -->
+      <div class="step-panel" id="p2">
+        <p style="font-size:12px;color:var(--muted);margin-bottom:10px">Hozirgi ish joyini oxiriga kiriting</p>
+        <div class="chip-list" id="workList"></div>
+
+        <div
+          style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px;margin-bottom:10px">
+          <div class="two">
+            <div><label>Boshidan</label><input id="wF" placeholder="2018"></div>
+            <div><label>Gacha</label><input id="wT" placeholder="h.v / 2023"></div>
+          </div>
+          <label>Korxona va lavozim</label>
+          <input id="wD" placeholder="«Korxona nomi», Lavozim" style="margin-bottom:8px">
+          <button class="btn btn-p" onclick="addWork()" style="padding:10px">+ Qo'shish</button>
+        </div>
+
+        <div class="nav-row">
+          <button class="btn btn-g" onclick="go(1)">←</button>
+          <button class="btn btn-p" onclick="go(3)">Oila →</button>
+        </div>
+      </div>
+
+      <!-- S3: Oila -->
+      <div class="step-panel" id="p3">
+        <p style="font-size:12px;color:var(--muted);margin-bottom:10px">Ota, ona, aka, uka, opa, singil, turmush
+          o'rtog'i va farzandlar</p>
+        <div class="chip-list" id="relList"></div>
+
+        <div
+          style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px;margin-bottom:10px">
+          <label>Munosabat</label>
+          <input id="rT" placeholder="Otasi / Onasi / O'g'li...">
+          <label>F.I.SH</label>
+          <input id="rN" placeholder="Ismi sharifi">
+          <div class="two">
+            <div><label>Tug'ilgan yili</label><input id="rB" placeholder="1960"></div>
+            <div><label>Yashash joyi</label><input id="rA" placeholder="Toshkent sh."></div>
+          </div>
+          <label>Ish joyi</label>
+          <input id="rJ" placeholder="Ish joyi va lavozim" style="margin-bottom:8px">
+          <button class="btn btn-p" onclick="addRel()" style="padding:10px">+ Qo'shish</button>
+        </div>
+
+        <div class="nav-row">
+          <button class="btn btn-g" onclick="go(2)">←</button>
+          <button class="btn btn-p" onclick="finish()" style="background:#10b981">✅ Tayyor!</button>
+        </div>
+      </div>
+
+    </div><!-- /form-pane -->
+
+    <div class="divider">
+      <hr><span>Live Ko'rinish</span>
+      <hr>
     </div>
-    <div class="dl-row">
-      <button class="dl-btn dl-pdf" onclick="alert('PDF — bot orqali yuklang')">PDF</button>
-      <button class="dl-btn dl-doc" onclick="alert('Word — bot orqali yuklang')">Word</button>
-    </div>
-    <div style="padding:12px">
-      <button class="btn btn-g" onclick="go(4)" style="width:100%;margin-top:8px;">← Orqaga</button>
+    <div class="prev-pane">
+      <div class="prev-body" id="prevBody"></div>
     </div>
   </div>
 
   <script>
     const tg = window.Telegram?.WebApp;
-    let telegramId = '';
     const theme = localStorage.getItem('theme') || 'dark';
     document.documentElement.setAttribute('data-theme', theme);
+    if (tg) { tg.ready(); tg.expand(); if (tg.setHeaderColor) tg.setHeaderColor(theme === 'dark' ? '#0a1628' : '#f1f5f9'); }
+    const urlP = new URLSearchParams(location.search);
+    const tid = urlP.get('telegram_id') || tg?.initDataUnsafe?.user?.id?.toString() || '';
+    document.getElementById('backBtn').onclick = () => { location.href = 'index.html' + (tid ? '?telegram_id=' + tid : ''); };
 
-    if (tg) { tg.ready(); tg.expand(); if (tg.setHeaderColor) tg.setHeaderColor(theme === 'dark' ? '#0f172a' : '#f8fafc'); }
-    const urlP = new URLSearchParams(window.location.search);
-    telegramId = urlP.get('telegram_id') || tg?.initDataUnsafe?.user?.id?.toString() || '';
-
-    document.getElementById('backBtn').onclick = () => {
-      window.location.href = 'index.html' + (telegramId ? '?telegram_id=' + telegramId : '');
-    };
-
-    const steps = [null, 's1', 's2', 's3', 's4', 's5'];
-    const sp = [null, 'sp1', 'sp2', 'sp3', 'sp4'];
-    let cur = 1;
-    const works = []; const rels = [];
+    const tabs = document.querySelectorAll('.tab');
+    const panels = document.querySelectorAll('.step-panel');
+    let cur = 0;
+    const works = [], rels = [];
 
     function go(n) {
-      document.getElementById(steps[cur]).style.display = 'none';
       cur = n;
-      document.getElementById(steps[cur]).style.display = '';
-      sp.slice(1).forEach((id, i) => {
-        document.getElementById(id).classList.toggle('on', i < n);
-      });
+      tabs.forEach((t, i) => t.classList.toggle('on', i === n));
+      panels.forEach((p, i) => p.classList.toggle('on', i === n));
       tg?.HapticFeedback?.impactOccurred('light');
-      window.scrollTo(0, 0);
+      document.querySelector('.form-pane').scrollTop = 0;
+      lp();
     }
+    function v(id) { return (document.getElementById(id)?.value || '').trim(); }
 
     function addWork() {
-      const idx = works.length;
-      works.push({ f: '', t: '', d: '' });
-      const div = document.createElement('div');
-      div.className = 'work-item'; div.id = 'w' + idx;
-      div.innerHTML = `
-      <div class="work-dates">
-        <input type="text" placeholder="2018" oninput="works[${idx}].f=this.value">
-        <input type="text" placeholder="2024 (h.v)" oninput="works[${idx}].t=this.value">
-      </div>
-      <input type="text" placeholder="Korxona, lavozimi" style="margin-top:6px;" oninput="works[${idx}].d=this.value">
-      <button onclick="this.parentElement.remove()" style="float:right;background:none;border:none;color:#ef4444;font-size:18px;cursor:pointer;">✕</button>
-    `;
-      document.getElementById('workList').appendChild(div);
+      const o = { f: v('wF'), t: v('wT'), d: v('wD') };
+      if (!o.d) { alert('Korxona va lavozimni kiriting'); return; }
+      works.push(o); renderWorks(); lp();
+      ['wF', 'wT', 'wD'].forEach(id => { document.getElementById(id).value = ''; });
     }
-
-    function addRel() {
-      const obj = { type: v('rType'), name: v('rName'), birth: v('rBirth'), job: v('rJob'), addr: v('rAddr') };
-      if (!obj.type || !obj.name) return alert("Turi va ismini kiriting");
-      rels.push(obj);
-      renderRels();
-      ['rType', 'rName', 'rBirth', 'rJob', 'rAddr'].forEach(id => document.getElementById(id).value = '');
-    }
-
-    function renderRels() {
-      document.getElementById('relList').innerHTML = rels.map((r, i) =>
-        `<div class="rel-item"><span>${r.type}: <b>${r.name}</b></span><button class="del-btn" onclick="rels.splice(${i},1);renderRels()">✕</button></div>`
+    function renderWorks() {
+      document.getElementById('workList').innerHTML = works.map((w, i) =>
+        `<div class="chip"><div><b>${w.f}–${w.t}</b><br><span style="font-size:12px;color:var(--muted)">${w.d}</span></div>
+       <button class="chip-del" onclick="works.splice(${i},1);renderWorks();lp()">✕</button></div>`
       ).join('');
     }
 
-    function v(id) { return document.getElementById(id).value.trim(); }
-
-    function preview() {
-      const relHtml = rels.map(r => `<div style="margin-bottom:4px;"><b>${r.type}:</b> ${r.name} — ${r.birth} — ${r.job} — ${r.addr}</div>`).join('');
-      const workHtml = works.filter(w => w.d).map(w => `<div>${w.f}–${w.t}: ${w.d}</div>`).join('');
-      document.getElementById('prevContent').innerHTML = `
-      <div style="margin-top:8px"><b>👤</b> ${v('name')}</div>
-      <div><b>📅</b> ${v('birth')} y., ${v('place')}</div>
-      <div><b>📚</b> ${v('edu')} — ${v('spec')}</div>
-      <div><b>🏫</b> ${v('grad')}</div>
-      <div style="margin-top:6px"><b>💼 Mehnat faoliyati:</b>${workHtml}</div>
-      <div style="margin-top:6px"><b>👨‍👩‍👧 Qarindoshlar:</b><br>${relHtml}</div>
-    `;
-      go(5);
+    function addRel() {
+      const o = { type: v('rT'), name: v('rN'), birth: v('rB'), addr: v('rA'), job: v('rJ') };
+      if (!o.type || !o.name) { alert('Munosabat va ismni kiriting'); return; }
+      rels.push(o); renderRels(); lp();
+      ['rT', 'rN', 'rB', 'rA', 'rJ'].forEach(id => { document.getElementById(id).value = ''; });
     }
+    function renderRels() {
+      document.getElementById('relList').innerHTML = rels.map((r, i) =>
+        `<div class="chip"><div><b>${r.type}:</b> ${r.name}<br><span style="font-size:12px;color:var(--muted)">${r.birth} · ${r.addr}</span></div>
+       <button class="chip-del" onclick="rels.splice(${i},1);renderRels();lp()">✕</button></div>`
+      ).join('');
+    }
+
+    function row(lbl, val) {
+      const e = !val || val === 'Yo\'q';
+      return `<div class="prev-row"><span class="prev-lbl">${lbl}</span><span class="prev-val${e ? ' empty' : ''}">${val || '—'}</span></div>`;
+    }
+
+    function lp() {
+      let h = '';
+      h += '<div class="prev-section">👤 SHAXSIY</div>';
+      h += row('F.I.SH', v('name'));
+      h += row('Tug\'ilgan', v('birth') + (v('place') ? ' · ' + v('place') : ''));
+      h += row('Millati', v('nation'));
+      h += row('Manzil', v('addr'));
+      h += row('Partiyaviy', v('party'));
+
+      h += '<div class="prev-section">📚 TA\'LIM</div>';
+      h += row('Ma\'lumoti', v('edu'));
+      h += row('Tamomlagan', v('grad'));
+      h += row('Mutaxassis', v('spec'));
+      h += row('Il. daraja', v('deg'));
+      h += row('Tillar', v('langs'));
+      h += row('Ko\'nikmalar', v('skills'));
+
+      if (works.length) {
+        h += '<div class="prev-section">💼 ISH TAJRIBASI</div>';
+        works.forEach(w => { h += row(w.f + '–' + w.t, w.d); });
+      }
+      if (rels.length) {
+        h += '<div class="prev-section">👨‍👩‍👧 OILA A\'ZOLARI</div>';
+        rels.forEach(r => { h += row(r.type, r.name + (r.birth ? ' · ' + r.birth : '') + (r.job ? ' · ' + r.job : '')); });
+      }
+
+      document.getElementById('prevBody').innerHTML = h;
+    }
+
+    function finish() {
+      tg?.showAlert('CV tayyor! @DastyorAiBot bot orqali hoʻjjat yuklab oling.') || alert('CV tayyor!');
+    }
+
+    lp();
   </script>
 </body>
 

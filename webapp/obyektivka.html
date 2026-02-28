@@ -17,39 +17,39 @@
         }
 
         :root[data-theme="dark"] {
-            --bg: #0f172a;
-            --card: #1e293b;
-            --border: #334155;
-            --text: #f1f5f9;
+            --bg: #0a1628;
+            --card: #131f35;
+            --border: #1e3050;
+            --text: #e2e8f0;
             --muted: #64748b;
             --accent: #3b82f6;
-            --input: #0f172a
+            --inp: #0a1628;
+            --green: #10b981
         }
 
         :root[data-theme="light"] {
-            --bg: #f8fafc;
+            --bg: #f1f5f9;
             --card: #fff;
             --border: #e2e8f0;
             --text: #0f172a;
             --muted: #64748b;
             --accent: #2563eb;
-            --input: #f8fafc
+            --inp: #f8fafc;
+            --green: #059669
         }
 
         body {
             font-family: 'Inter', sans-serif;
             background: var(--bg);
             color: var(--text);
-            padding-top: 52px;
-            padding-bottom: 20px;
-            font-size: 14px
+            font-size: 14px;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column
         }
 
+        /* ─── HEADER ─── */
         .hdr {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
             height: 52px;
             background: var(--card);
             border-bottom: 1px solid var(--border);
@@ -57,7 +57,7 @@
             align-items: center;
             padding: 0 12px;
             gap: 10px;
-            z-index: 100
+            flex-shrink: 0
         }
 
         .back {
@@ -72,58 +72,82 @@
             cursor: pointer;
             font-size: 16px;
             color: var(--text);
-            text-decoration: none;
             flex-shrink: 0
         }
 
-        .hdr-title {
-            font-weight: 800;
+        .hdr b {
             font-size: 15px;
             flex: 1
         }
 
-        .hdr-logo {
-            font-size: 11px;
+        .hdr-badge {
+            font-size: 10px;
             font-weight: 700;
-            color: var(--accent)
+            color: var(--accent);
+            background: rgba(59, 130, 246, .1);
+            padding: 3px 8px;
+            border-radius: 20px
         }
 
-        .steps {
+        /* ─── TABS ─── */
+        .tabs {
             display: flex;
-            gap: 4px;
-            padding: 12px
-        }
-
-        .sp {
-            flex: 1;
-            height: 3px;
-            border-radius: 2px;
-            background: var(--border);
-            transition: .3s
-        }
-
-        .sp.on {
-            background: var(--accent)
-        }
-
-        .card {
+            padding: 10px 12px;
+            gap: 6px;
             background: var(--card);
-            border: 1px solid var(--border);
-            border-radius: 16px;
-            padding: 16px;
-            margin: 0 12px 12px
+            border-bottom: 1px solid var(--border);
+            flex-shrink: 0;
+            overflow-x: auto
         }
 
-        .q {
-            font-size: 15px;
-            font-weight: 800;
-            margin-bottom: 4px
-        }
-
-        .q-hint {
+        .tab {
+            white-space: nowrap;
+            padding: 5px 12px;
+            border-radius: 20px;
             font-size: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            background: var(--bg);
             color: var(--muted);
-            margin-bottom: 12px
+            border: 1.5px solid var(--border);
+            transition: .2s;
+            flex-shrink: 0
+        }
+
+        .tab.on {
+            background: var(--accent);
+            color: #fff;
+            border-color: var(--accent)
+        }
+
+        .tab.done {
+            background: rgba(16, 185, 129, .1);
+            color: var(--green);
+            border-color: rgba(16, 185, 129, .3)
+        }
+
+        /* ─── TWO-PANE LAYOUT ─── */
+        .body {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            overflow: hidden
+        }
+
+        /* FORM pane */
+        .form-pane {
+            flex: 1;
+            overflow-y: auto;
+            padding: 12px;
+            min-height: 0
+        }
+
+        .step-panel {
+            display: none
+        }
+
+        .step-panel.on {
+            display: block
         }
 
         label {
@@ -133,38 +157,57 @@
             color: var(--muted);
             margin-bottom: 4px;
             text-transform: uppercase;
-            letter-spacing: .3px
+            letter-spacing: .4px
         }
 
         input,
         select,
         textarea {
             width: 100%;
-            padding: 12px;
+            padding: 11px 13px;
             border: 1.5px solid var(--border);
-            border-radius: 12px;
-            background: var(--input);
+            border-radius: 11px;
+            background: var(--inp);
             color: var(--text);
             font-family: inherit;
             font-size: 14px;
             margin-bottom: 10px;
-            transition: .2s
+            transition: .2s;
+            -webkit-appearance: none
         }
 
-        input:focus {
+        input:focus,
+        select:focus,
+        textarea:focus {
             border-color: var(--accent);
-            outline: none
+            outline: none;
+            background: var(--card)
         }
 
         textarea {
-            min-height: 72px;
+            min-height: 68px;
             resize: vertical
         }
 
-        .row {
+        .two {
+            display: flex;
+            gap: 8px
+        }
+
+        .two>div {
+            flex: 1
+        }
+
+        .two input {
+            margin-bottom: 0
+        }
+
+        /* BTNS */
+        .nav-row {
             display: flex;
             gap: 8px;
-            margin-top: 4px
+            margin-top: 4px;
+            padding-bottom: 4px
         }
 
         .btn {
@@ -189,231 +232,277 @@
 
         .btn-g {
             background: var(--border);
-            color: var(--muted)
+            color: var(--muted);
+            flex: 0 0 90px
         }
 
-        /* RELATIVES */
-        .rel-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 8px 12px;
-            background: var(--bg);
-            border: 1px solid var(--border);
-            border-radius: 10px;
-            margin-bottom: 6px;
+        /* ADD BTN */
+        .add-btn {
+            width: 100%;
+            padding: 11px;
+            border-radius: 11px;
+            border: 1.5px dashed var(--accent);
+            background: transparent;
+            color: var(--accent);
+            font-weight: 700;
+            cursor: pointer;
+            margin-bottom: 10px;
             font-size: 13px
         }
 
-        .del {
-            background: none;
-            border: none;
-            color: #ef4444;
-            font-size: 16px;
-            cursor: pointer
+        /* CHIPS LIST */
+        .chip-list {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            margin-bottom: 10px
         }
 
-        /* WORK */
-        .work-item {
+        .chip {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
             background: var(--bg);
             border: 1px solid var(--border);
             border-radius: 10px;
-            padding: 10px;
-            margin-bottom: 8px;
-            position: relative
+            padding: 8px 12px;
+            font-size: 13px
         }
 
-        .wd {
-            display: flex;
-            gap: 6px
-        }
-
-        .wd input {
-            margin-bottom: 6px
-        }
-
-        .rm {
-            position: absolute;
-            top: 8px;
-            right: 8px;
+        .chip-del {
             background: none;
             border: none;
             color: #ef4444;
             cursor: pointer;
-            font-size: 16px
+            font-size: 16px;
+            flex-shrink: 0;
+            padding: 0 2px
         }
 
-        /* SUMMARY */
-        .sum-row {
+        /* ─── LIVE PREVIEW (divider) ─── */
+        .divider {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 0 12px;
+            margin-bottom: 0;
+            flex-shrink: 0
+        }
+
+        .divider span {
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: .5px;
+            white-space: nowrap
+        }
+
+        .divider hr {
+            flex: 1;
+            border: none;
+            border-top: 1px solid var(--border)
+        }
+
+        /* PREVIEW PANE */
+        .prev-pane {
+            background: var(--card);
+            border-top: 1px solid var(--border);
+            flex-shrink: 0;
+            max-height: 38vh;
+            overflow-y: auto
+        }
+
+        .prev-body {
+            padding: 10px 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 3px
+        }
+
+        .prev-row {
             display: flex;
             gap: 8px;
-            align-items: flex-start;
-            padding: 8px 0;
+            padding: 5px 0;
             border-bottom: 1px solid var(--border);
+            align-items: flex-start;
             font-size: 13px
         }
 
-        .sum-ico {
-            font-size: 16px;
-            flex-shrink: 0;
-            width: 20px
+        .prev-row:last-child {
+            border-bottom: none
         }
 
-        .sum-val {
-            color: var(--text)
-        }
-
-        .sum-lbl {
+        .prev-lbl {
             color: var(--muted);
             font-size: 11px;
-            font-weight: 700
+            font-weight: 700;
+            width: 90px;
+            flex-shrink: 0;
+            padding-top: 1px
         }
 
-        /* INNER ADD FORM */
-        .add-form {
-            background: var(--bg);
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 12px;
-            margin-bottom: 10px
+        .prev-val {
+            color: var(--text);
+            flex: 1;
+            word-break: break-word
+        }
+
+        .prev-val.empty {
+            color: var(--border);
+            font-style: italic
+        }
+
+        .prev-section {
+            font-size: 11px;
+            font-weight: 800;
+            color: var(--accent);
+            text-transform: uppercase;
+            letter-spacing: .5px;
+            padding: 6px 0 2px;
+            margin-top: 2px
         }
     </style>
 </head>
 
 <body>
 
+    <!-- HEADER -->
     <div class="hdr">
         <div class="back" id="backBtn">←</div>
-        <span class="hdr-title">📋 Obyektivka</span>
-        <span class="hdr-logo">DASTYOR AI</span>
+        <b>📋 Obyektivka</b>
+        <span class="hdr-badge">DASTYOR AI</span>
     </div>
 
-    <div class="steps">
-        <div class="sp on" id="sp1"></div>
-        <div class="sp" id="sp2"></div>
-        <div class="sp" id="sp3"></div>
-        <div class="sp" id="sp4"></div>
-        <div class="sp" id="sp5"></div>
+    <!-- STEP TABS -->
+    <div class="tabs">
+        <div class="tab on" onclick="go(0)">👤 Shaxsiy</div>
+        <div class="tab" onclick="go(1)">📚 Ta'lim</div>
+        <div class="tab" onclick="go(2)">💼 Mehnat</div>
+        <div class="tab" onclick="go(3)">👨‍👩‍👧 Oila</div>
     </div>
 
-    <!-- S1: Shaxsiy asosiy -->
-    <div id="s1">
-        <div class="card">
-            <div class="q">1. Shaxsiy ma'lumotlar</div>
-            <div class="q-hint">Asosiy identifikatsiya ma'lumotlar</div>
+    <div class="body">
+        <!-- FORM PANE -->
+        <div class="form-pane">
 
-            <label>F.I.SH (To'liq)</label>
-            <input id="fullname" type="text" placeholder="Aliyev Vali G'aniyevich">
+            <!-- STEP 0: Shaxsiy -->
+            <div class="step-panel on" id="p0">
+                <label>F.I.SH (To'liq)</label>
+                <input id="fullname" placeholder="Aliyev Vali G'aniyevich" oninput="lp()">
 
-            <div style="display:flex;gap:8px;">
-                <div style="flex:1"><label>Tug'ilgan sanasi</label><input id="bdate" type="text"
-                        placeholder="15.05.1990"></div>
-                <div style="flex:1"><label>Millati</label><input id="nation" type="text" placeholder="O'zbek"></div>
+                <div class="two">
+                    <div><label>Tug'ilgan sanasi</label><input id="bdate" placeholder="15.05.1990" oninput="lp()"></div>
+                    <div><label>Millati</label><input id="nation" placeholder="O'zbek" oninput="lp()"></div>
+                </div>
+
+                <label>Tug'ilgan joyi</label>
+                <input id="bplace" placeholder="Toshkent sh., Yunusobod t." oninput="lp()">
+
+                <label>Partiyaviyligi</label>
+                <input id="party" value="Yo'q" oninput="lp()">
+
+                <div class="nav-row">
+                    <button class="btn btn-p" onclick="go(1)">Ta'lim →</button>
+                </div>
             </div>
 
-            <label>Tug'ilgan joyi (viloyat, tuman)</label>
-            <input id="bplace" type="text" placeholder="Toshkent shahri, Yunusobod tumani">
+            <!-- STEP 1: Ta'lim -->
+            <div class="step-panel" id="p1">
+                <label>Ma'lumoti</label>
+                <select id="edu" onchange="lp()">
+                    <option>Oliy</option>
+                    <option>O'rta maxsus</option>
+                    <option>O'rta</option>
+                </select>
 
-            <label>Partiyaviyligi</label>
-            <input id="party" type="text" placeholder="Yo'q">
+                <label>Tamomlagan (nomi, yili, mutaxassislik)</label>
+                <textarea id="grad" placeholder="2018 y., ToshDTU, Muhandis-konstruktor" oninput="lp()"></textarea>
 
-            <div class="row"><button class="btn btn-p" onclick="go(2)">Davom etish →</button></div>
+                <label>Mutaxassisligi (diplom bo'yicha)</label>
+                <input id="spec" placeholder="Muhandis" oninput="lp()">
+
+                <div class="two">
+                    <div><label>Ilmiy darajasi</label><input id="deg" value="Yo'q" oninput="lp()"></div>
+                    <div><label>Ilmiy unvoni</label><input id="ttl" value="Yo'q" oninput="lp()"></div>
+                </div>
+
+                <div class="two">
+                    <div><label>Harbiy unvoni</label><input id="mil" value="Yo'q" oninput="lp()"></div>
+                    <div><label>Mukofotlar</label><input id="award" value="Yo'q" oninput="lp()"></div>
+                </div>
+
+                <label>Chet tillari</label>
+                <input id="langs" value="Yo'q" oninput="lp()">
+
+                <label>Deputatlik</label>
+                <input id="deputy" value="Yo'q" oninput="lp()">
+
+                <div class="nav-row">
+                    <button class="btn btn-g" onclick="go(0)">←</button>
+                    <button class="btn btn-p" onclick="go(2)">Mehnat →</button>
+                </div>
+            </div>
+
+            <!-- STEP 2: Mehnat faoliyati -->
+            <div class="step-panel" id="p2">
+                <p style="font-size:12px;color:var(--muted);margin-bottom:10px;">Hozirgi ish joyini eng oxirga kiriting
+                </p>
+                <div class="chip-list" id="workList"></div>
+
+                <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px;margin-bottom:10px"
+                    id="wForm">
+                    <div class="two">
+                        <div><label>Dan (yil)</label><input id="wF" placeholder="2018"></div>
+                        <div><label>Gacha</label><input id="wT" placeholder="2022 / h.v"></div>
+                    </div>
+                    <label>Korxona va lavozim</label>
+                    <input id="wD" placeholder="«Toshkent Suv» korxonasi, Muhandis" style="margin-bottom:8px">
+                    <button class="btn btn-p" onclick="addWork()" style="padding:10px">+ Qo'shish</button>
+                </div>
+
+                <div class="nav-row">
+                    <button class="btn btn-g" onclick="go(1)">←</button>
+                    <button class="btn btn-p" onclick="go(3)">Oila →</button>
+                </div>
+            </div>
+
+            <!-- STEP 3: Oila -->
+            <div class="step-panel" id="p3">
+                <p style="font-size:12px;color:var(--muted);margin-bottom:10px;">Ota, ona, aka, uka, opa, singil,
+                    turmush o'rtog'i</p>
+                <div class="chip-list" id="relList"></div>
+
+                <div
+                    style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px;margin-bottom:10px">
+                    <label>Munosabat</label>
+                    <input id="rT" placeholder="Otasi / Onasi / Turmush o'rtog'i...">
+                    <label>F.I.SH</label>
+                    <input id="rN" placeholder="Aliyeva Mohira">
+                    <div class="two">
+                        <div><label>Tug'ilgan yili</label><input id="rB" placeholder="1960 y."></div>
+                        <div><label>Yashash joyi</label><input id="rA" placeholder="Toshkent sh."></div>
+                    </div>
+                    <label>Ish joyi va lavozimi</label>
+                    <input id="rJ" placeholder="«XYZ» korxonasi, Hisobchi" style="margin-bottom:8px">
+                    <button class="btn btn-p" onclick="addRel()" style="padding:10px">+ Qo'shish</button>
+                </div>
+
+                <div class="nav-row">
+                    <button class="btn btn-g" onclick="go(2)">←</button>
+                    <button class="btn btn-p" onclick="finish()">✅ Tayyor!</button>
+                </div>
+            </div>
+
+        </div><!-- /form-pane -->
+
+        <!-- LIVE PREVIEW -->
+        <div class="divider">
+            <hr><span>Live Ko'rinish</span>
+            <hr>
         </div>
-    </div>
-
-    <!-- S2: Ta'lim -->
-    <div id="s2" style="display:none">
-        <div class="card">
-            <div class="q">2. Ta'lim va malaka</div>
-            <div class="q-hint">Diplom va kasbiy malumotlar</div>
-
-            <label>Ma'lumoti</label>
-            <select id="edu" style="margin-bottom:10px">
-                <option>Oliy</option>
-                <option>O'rta maxsus</option>
-                <option>O'rta</option>
-            </select>
-
-            <label>Tamomlagan (nomi, yili, mutaxassislik)</label>
-            <textarea id="grad" placeholder="2018 y., ToshDTU, Muhandis-konstruktor"></textarea>
-
-            <label>Mutaxassisligi (diplom bo'yicha)</label>
-            <input id="spec" type="text" placeholder="Muhandis-konstruktor">
-
-            <div style="display:flex;gap:8px;">
-                <div style="flex:1"><label>Ilmiy darajasi</label><input id="deg" placeholder="Yo'q"></div>
-                <div style="flex:1"><label>Ilmiy unvoni</label><input id="ttl" placeholder="Yo'q"></div>
-            </div>
-
-            <label>Chet tillar</label>
-            <input id="langs" placeholder="Rus, Ingliz tillari">
-
-            <div style="display:flex;gap:8px;">
-                <div style="flex:1"><label>Davlat mukofotlari</label><input id="award" placeholder="Yo'q"></div>
-                <div style="flex:1"><label>Harbiy unvoni</label><input id="mil" placeholder="Yo'q"></div>
-            </div>
-
-            <label>Deputatlik</label>
-            <input id="deputy" placeholder="Yo'q">
-
-            <div class="row">
-                <button class="btn btn-g" onclick="go(1)">← Orqaga</button>
-                <button class="btn btn-p" onclick="go(3)">Davom etish →</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- S3: Mehnat faoliyati -->
-    <div id="s3" style="display:none">
-        <div class="card">
-            <div class="q">3. Mehnat faoliyati</div>
-            <div class="q-hint">Oxirida hozirgi ish joyini kiriting</div>
-            <div id="workList"></div>
-            <button onclick="addWork()"
-                style="width:100%;padding:11px;border-radius:11px;border:1.5px dashed var(--accent);background:transparent;color:var(--accent);font-weight:700;cursor:pointer;margin-bottom:12px;">+
-                Ish joyi qo'shish</button>
-            <div class="row">
-                <button class="btn btn-g" onclick="go(2)">← Orqaga</button>
-                <button class="btn btn-p" onclick="go(4)">Davom etish →</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- S4: Oila a'zolari -->
-    <div id="s4" style="display:none">
-        <div class="card">
-            <div class="q">4. Oila a'zolari</div>
-            <div class="q-hint">Ota, ona, aka, uka, opa, singil, turmush o'rtog'i</div>
-            <div id="relList"></div>
-            <div class="add-form">
-                <input id="rT" type="text" placeholder="Otasi / Onasi / Turmush o'rtog'i...">
-                <input id="rN" type="text" placeholder="F.I.SH">
-                <input id="rB" type="text" placeholder="1960 y., Andijon viloyati">
-                <input id="rJ" type="text" placeholder="Ish joyi va lavozimi">
-                <input id="rA" type="text" style="margin-bottom:8px" placeholder="Yashash manzili">
-                <button class="btn btn-p" onclick="addRel()">+ Qo'shish</button>
-            </div>
-            <div class="row">
-                <button class="btn btn-g" onclick="go(3)">← Orqaga</button>
-                <button class="btn btn-p" onclick="go(5)">Ko'rish ✓</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- S5: Yakuniy ko'rish -->
-    <div id="s5" style="display:none">
-        <div class="card">
-            <div class="q" style="color:var(--accent)">✅ Ma'lumotnoma tayyor!</div>
-            <div class="q-hint">Tekshiring va yuklab oling</div>
-            <div id="sumBox" style="margin-top:8px"></div>
-        </div>
-        <div style="padding:0 12px;display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-            <button onclick="sendToBot()"
-                style="padding:14px;border-radius:13px;border:none;font-weight:800;background:#10b981;color:#fff;cursor:pointer;font-size:13px;">📤
-                Botga yuborish</button>
-            <button onclick="go(4)"
-                style="padding:14px;border-radius:13px;border:none;font-weight:700;background:var(--border);color:var(--muted);cursor:pointer;">←
-                Orqaga</button>
+        <div class="prev-pane">
+            <div class="prev-body" id="prevBody"></div>
         </div>
     </div>
 
@@ -421,90 +510,109 @@
         const tg = window.Telegram?.WebApp;
         const theme = localStorage.getItem('theme') || 'dark';
         document.documentElement.setAttribute('data-theme', theme);
+        if (tg) { tg.ready(); tg.expand(); if (tg.setHeaderColor) tg.setHeaderColor(theme === 'dark' ? '#0a1628' : '#f1f5f9'); }
+        const urlP = new URLSearchParams(location.search);
+        const tid = urlP.get('telegram_id') || tg?.initDataUnsafe?.user?.id?.toString() || '';
+        document.getElementById('backBtn').onclick = () => { location.href = 'index.html' + (tid ? '?telegram_id=' + tid : ''); };
 
-        if (tg) {
-            tg.ready(); tg.expand();
-            if (tg.setHeaderColor) tg.setHeaderColor(theme === 'dark' ? '#0f172a' : '#f8fafc');
-        }
-
-        const urlP = new URLSearchParams(window.location.search);
-        const telegramId = urlP.get('telegram_id') || tg?.initDataUnsafe?.user?.id?.toString() || '';
-
-        document.getElementById('backBtn').onclick = () => {
-            window.location.href = 'index.html' + (telegramId ? '?telegram_id=' + telegramId : '');
-        };
-
-        const stepIds = [null, 's1', 's2', 's3', 's4', 's5'];
-        const spIds = [null, 'sp1', 'sp2', 'sp3', 'sp4', 'sp5'];
-        let cur = 1;
+        const tabs = document.querySelectorAll('.tab');
+        const panels = document.querySelectorAll('.step-panel');
+        let cur = 0;
         const works = [], rels = [];
 
         function go(n) {
-            document.getElementById(stepIds[cur]).style.display = 'none';
             cur = n;
-            document.getElementById(stepIds[cur]).style.display = '';
-            spIds.slice(1).forEach((id, i) => document.getElementById(id).classList.toggle('on', i < n));
-            if (n === 5) buildSummary();
+            tabs.forEach((t, i) => { t.classList.toggle('on', i === n); });
+            panels.forEach((p, i) => { p.classList.toggle('on', i === n); });
             tg?.HapticFeedback?.impactOccurred('light');
-            window.scrollTo(0, 0);
+            document.querySelector('.form-pane').scrollTop = 0;
+            lp();
         }
 
         function v(id) { return (document.getElementById(id)?.value || '').trim(); }
 
+        // ── ADD WORK ──
         function addWork() {
-            const i = works.length;
-            works.push({ f: '', t: '', d: '' });
-            const el = document.createElement('div');
-            el.className = 'work-item'; el.id = 'wi' + i;
-            el.innerHTML = `
-      <button class="rm" onclick="works.splice(${i},1);this.parentElement.remove()">✕</button>
-      <div class="wd">
-        <input type="text" placeholder="2018" style="flex:1" oninput="works[${i}].f=this.value">
-        <input type="text" placeholder="2024 / h.v" style="flex:1" oninput="works[${i}].t=this.value">
-      </div>
-      <input type="text" placeholder="Korxona nomi, lavozim" oninput="works[${i}].d=this.value" style="margin-bottom:0">
-    `;
-            document.getElementById('workList').appendChild(el);
+            const obj = { f: v('wF'), t: v('wT'), d: v('wD') };
+            if (!obj.d) { alert('Korxona va lavozimni kiriting'); return; }
+            works.push(obj);
+            renderWorks(); lp();
+            ['wF', 'wT', 'wD'].forEach(id => { document.getElementById(id).value = ''; });
         }
-
-        function addRel() {
-            const r = { type: v('rT'), name: v('rN'), birth: v('rB'), job: v('rJ'), addr: v('rA') };
-            if (!r.type || !r.name) { tg?.showAlert('Turi va ismini kiriting') || alert('Turi va ismini kiriting'); return; }
-            rels.push(r);
-            renderRels();
-            ['rT', 'rN', 'rB', 'rJ', 'rA'].forEach(id => { document.getElementById(id).value = ''; });
-        }
-
-        function renderRels() {
-            document.getElementById('relList').innerHTML = rels.map((r, i) =>
-                `<div class="rel-item">
-        <div><b>${r.type}:</b> ${r.name}<br><span style="font-size:11px;color:var(--muted)">${r.birth} · ${r.job}</span></div>
-        <button class="del" onclick="rels.splice(${i},1);renderRels()">✕</button>
+        function renderWorks() {
+            document.getElementById('workList').innerHTML = works.map((w, i) =>
+                `<div class="chip">
+        <div><b>${w.f}–${w.t}</b><br><span style="font-size:12px;color:var(--muted)">${w.d}</span></div>
+        <button class="chip-del" onclick="works.splice(${i},1);renderWorks();lp()">✕</button>
       </div>`
             ).join('');
         }
 
-        function buildSummary() {
-            const workHtml = works.filter(w => w.d).map(w =>
-                `<div class="sum-row"><span class="sum-ico">💼</span><div><div class="sum-lbl">${w.f} – ${w.t}</div><div class="sum-val">${w.d}</div></div></div>`
+        // ── ADD REL ──
+        function addRel() {
+            const obj = { type: v('rT'), name: v('rN'), birth: v('rB'), addr: v('rA'), job: v('rJ') };
+            if (!obj.type || !obj.name) { alert("Munosabat va ismni kiriting"); return; }
+            rels.push(obj);
+            renderRels(); lp();
+            ['rT', 'rN', 'rB', 'rA', 'rJ'].forEach(id => { document.getElementById(id).value = ''; });
+        }
+        function renderRels() {
+            document.getElementById('relList').innerHTML = rels.map((r, i) =>
+                `<div class="chip">
+        <div><b>${r.type}:</b> ${r.name}<br><span style="font-size:12px;color:var(--muted)">${r.birth} · ${r.addr}</span></div>
+        <button class="chip-del" onclick="rels.splice(${i},1);renderRels();lp()">✕</button>
+      </div>`
             ).join('');
-
-            const relHtml = rels.map(r =>
-                `<div class="sum-row"><span class="sum-ico">👤</span><div><div class="sum-lbl">${r.type}</div><div class="sum-val">${r.name} · ${r.birth}<br><span style="font-size:12px;color:var(--muted)">${r.job} · ${r.addr}</span></div></div></div>`
-            ).join('');
-
-            document.getElementById('sumBox').innerHTML = `
-      <div class="sum-row"><span class="sum-ico">🪪</span><div><div class="sum-lbl">F.I.SH</div><div class="sum-val">${v('fullname')}</div></div></div>
-      <div class="sum-row"><span class="sum-ico">📅</span><div><div class="sum-lbl">Tug'ilgan</div><div class="sum-val">${v('bdate')} · ${v('bplace')}</div></div></div>
-      <div class="sum-row"><span class="sum-ico">📚</span><div><div class="sum-lbl">Ta'lim</div><div class="sum-val">${v('edu')} · ${v('spec')}<br><span style="font-size:12px;color:var(--muted)">${v('grad')}</span></div></div></div>
-      ${workHtml}
-      ${relHtml}
-    `;
         }
 
-        function sendToBot() {
-            tg?.showAlert('Bot orqali DOCX/PDF ni yuklab olish uchun @DastyorAiBot ga yozing');
+        // ── LIVE PREVIEW ──
+        function row(lbl, val) {
+            const empty = !val || val === 'Yo\'q';
+            return `<div class="prev-row">
+      <span class="prev-lbl">${lbl}</span>
+      <span class="prev-val ${empty ? 'empty' : ''}">${val || '—'}</span>
+    </div>`;
         }
+
+        function lp() {
+            let html = '';
+            html += '<div class="prev-section">👤 SHAXSIY</div>';
+            html += row('F.I.SH', v('fullname'));
+            html += row('Tug\'ilgan', v('bdate') + (v('bplace') ? ' · ' + v('bplace') : ''));
+            html += row('Millati', v('nation'));
+            html += row('Partiyaviy', v('party'));
+
+            html += '<div class="prev-section">📚 TA\'LIM</div>';
+            html += row('Ma\'lumoti', v('edu'));
+            html += row('Tamomlagan', v('grad'));
+            html += row('Mutaxassis', v('spec'));
+            html += row('Il. daraja', v('deg'));
+            html += row('Il. unvon', v('ttl'));
+            html += row('Harbiy', v('mil'));
+            html += row('Mukofot', v('award'));
+            html += row('Tillar', v('langs'));
+            html += row('Deputat', v('deputy'));
+
+            if (works.length) {
+                html += '<div class="prev-section">💼 MEHNAT FAOLIYATI</div>';
+                works.forEach(w => { html += row(w.f + '–' + w.t, w.d); });
+            }
+
+            if (rels.length) {
+                html += '<div class="prev-section">👨‍👩‍👧 OILA A\'ZOLARI</div>';
+                rels.forEach(r => { html += row(r.type, r.name + ' · ' + r.birth + (r.job ? ' · ' + r.job : '')); });
+            }
+
+            document.getElementById('prevBody').innerHTML = html;
+        }
+
+        function finish() {
+            tg?.showAlert('Hujjat to\'ldirildi! Bot orqali DOCX yuklab oling: @DastyorAiBot')
+                || alert('Hujjat to\'ldirildi! @DastyorAiBot');
+        }
+
+        // Init
+        lp();
     </script>
 </body>
 
