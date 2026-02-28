@@ -108,6 +108,49 @@
             transform: translateY(-3px);
             box-shadow: 0 16px 40px rgba(59, 130, 246, 0.6);
         }
+
+        .input-area {
+            margin-top: 20px;
+            width: 100%;
+        }
+
+        .input-area textarea {
+            width: 100%;
+            padding: 16px;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 14px;
+            color: white;
+            font-size: 15px;
+            font-family: inherit;
+            resize: vertical;
+            min-height: 120px;
+            margin-bottom: 16px;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+
+        .input-area textarea:focus {
+            border-color: #3b82f6;
+        }
+
+        .convert-btn {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+            color: white;
+            border: none;
+            border-radius: 14px;
+            font-weight: 700;
+            font-size: 15px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .convert-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 30px rgba(59, 130, 246, 0.5);
+        }
     </style>
 </head>
 
@@ -145,6 +188,16 @@
                 <button class="lang-btn" data-dir="uz_ru">🇺🇿 O'zbek → 🇷🇺 Rus</button>
                 <button class="lang-btn" style="grid-column:span 2" data-dir="ru_en">🇷🇺 Rus → 🇬🇧 Ingliz</button>
             </div>
+
+            <div class="input-area">
+                <textarea id="srcText" placeholder="Matnni shu yerda tarjima qiling..."></textarea>
+                <button class="convert-btn" onclick="translateText()" id="trBtn">⚡ Tarjima qilish</button>
+                <textarea id="outText" placeholder="Natija bu yerda chiqadi..." style="margin-top:16px"
+                    readonly></textarea>
+            </div>
+
+            <p style="margin-top: 30px; margin-bottom: 12px; font-size: 14px; color: #94a3b8;">Yoki butun faylni tarjima
+                qilib beraman:</p>
             <button class="tg-btn" onclick="startTranslate()" style="border:none; cursor:pointer;">
                 <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24">
                     <path
@@ -176,6 +229,37 @@
             } else {
                 alert("Faqat Telegram bot ichida ishlaydi!");
             }
+        }
+
+        async function translateText() {
+            const src = document.getElementById('srcText').value.trim();
+            if (!src) return;
+
+            const btn = document.getElementById('trBtn');
+            const out = document.getElementById('outText');
+
+            btn.innerHTML = '⏳ Tarjima qilinmoqda...';
+            btn.disabled = true;
+
+            try {
+                const res = await fetch(window.location.origin + '/api/translate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text: src, direction: selectedDir })
+                });
+                const data = await res.json();
+
+                if (data.translated_text) {
+                    out.value = data.translated_text;
+                } else {
+                    out.value = "Tarjimada xatolik yuz berdi.";
+                }
+            } catch (err) {
+                out.value = "Tarjimada xatolik yuz berdi." + err;
+            }
+
+            btn.innerHTML = '⚡ Tarjima qilish';
+            btn.disabled = false;
         }
     </script>
 </body>
