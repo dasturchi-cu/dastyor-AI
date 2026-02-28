@@ -710,9 +710,12 @@
                     <div style="height:10px"></div>
                     <button class="add-btn" onclick="addRel()">+ Qo'shish</button>
                 </div>
-                <div class="form-nav">
-                    <button class="nav-btn nav-back" onclick="goStep(2)">←</button>
-                    <button class="nav-btn nav-done" onclick="finish()">✅ Yakunlash</button>
+                <div class="nav-actions">
+                    <button class="nav-btn" onclick="goStep(2)">Orqaga</button>
+                    <button class="nav-btn nav-done" style="background:#2563eb;color:#fff" onclick="finish('word')">Word
+                        Yuklash</button>
+                    <button class="nav-btn nav-done" style="background:#dc2626;color:#fff" onclick="finish('pdf')">PDF
+                        Yuklash</button>
                 </div>
             </div>
 
@@ -901,11 +904,12 @@
         }
 
         /* ── FINISH ── */
-        function finish() {
+        function finish(format = 'word') {
             lp();
             // Gather all data into a payload
             const payload = {
                 action: "generate_obyektivka",
+                format: format,
                 fullname: v('fullname'),
                 bdate: v('bdate'),
                 bplace: v('bplace'),

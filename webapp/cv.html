@@ -698,7 +698,11 @@
         </div>
         <div class="form-nav">
           <button class="nav-btn nav-back" onclick="goStep(2)">←</button>
-          <button class="nav-btn nav-done" onclick="finish()">✅ Yakunlash</button>
+          <div class="nav-actions">
+            <button class="nav-btn" onclick="goStep(2)">Orqaga</button>
+            <button class="nav-btn" style="background:#2563eb;color:#fff" onclick="finish('word')">Word Yuklash</button>
+            <button class="nav-btn" style="background:#dc2626;color:#fff" onclick="finish('pdf')">PDF Yuklash</button>
+          </div>
         </div>
       </div>
 
@@ -832,11 +836,12 @@
     function renderRels() {
       document.getElementById('relList').innerHTML = rels.map((r, i) => `<div class="item-card"><div class="item-card-info"><div class="item-card-title">${r.type}: ${r.name}</div><div class="item-card-sub">${r.birth} · ${r.addr}</div></div><button class="item-del" onclick="rels.splice(${i},1);renderRels();lp()">✕</button></div>`).join('');
     }
-    function finish() {
+    function finish(format = 'word') {
       lp();
 
       const payload = {
         action: "generate_cv",
+        format: format,
         name: v('name'),
         birth: v('birth'),
         nation: v('nation'),

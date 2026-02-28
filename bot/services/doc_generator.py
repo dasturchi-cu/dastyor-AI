@@ -67,3 +67,75 @@ def generate_obyektivka_docx(data: dict, output_dir: str = "temp") -> str:
             
     document.save(filepath)
     return filepath
+
+
+def generate_cv_docx(data: dict, output_dir: str = "temp") -> str:
+    """Generate a modern CV DOCX file"""
+    os.makedirs(output_dir, exist_ok=True)
+    filename = f"cv_{data.get('name', 'unknown').replace(' ', '_')}.docx"
+    filepath = os.path.join(output_dir, filename)
+    
+    document = Document()
+    
+    title = document.add_heading("CV / REZYUME", 0)
+    title.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    
+    # Header Info
+    p = document.add_paragraph()
+    r = p.add_run(f"{data.get('name', 'N/A')}\n")
+    r.bold = True
+    r.font.size = Pt(16)
+    p.add_run(f"{data.get('spec', 'Mutaxassis')}\n")
+    
+    p.add_run(f"Tug'ilgan sana / joy: {data.get('birth', '')} {data.get('place', '')}\n")
+    p.add_run(f"Millati: {data.get('nation', '')}\n")
+    p.add_run(f"Manzil: {data.get('addr', '')}")
+    p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    
+    document.add_heading("🎯 TA'LIM VA KO'NIKMALAR", level=2)
+    document.add_paragraph(f"Ma'lumoti: {data.get('edu', '')}")
+    document.add_paragraph(f"Tamomlagan joylar: {data.get('grad', '')}")
+    document.add_paragraph(f"Tillar: {data.get('langs', '')}")
+    document.add_paragraph(f"Maxsus ko'nikmalar: {data.get('skills', '')}")
+    
+    document.add_heading("💼 ISH TAJRIBASI", level=2)
+    works = data.get('works', [])
+    if isinstance(works, list) and works:
+        for w in works:
+            p = document.add_paragraph()
+            p.add_run(f"{w.get('f', '')} – {w.get('t', '')}\n").bold = True
+            p.add_run(f"{w.get('d', '')}")
+    else:
+        document.add_paragraph("Kiritilmagan.")
+        
+    document.add_heading("👨‍👩‍👧‍👦 OILA A'ZOLARI", level=2)
+    rels = data.get('rels', [])
+    if isinstance(rels, list) and rels:
+        for r in rels:
+            document.add_paragraph(f"{r.get('type', '')}: {r.get('name', '')} ({r.get('birth', '')}), Manzil: {r.get('addr', '')}, Ish joyi: {r.get('job', '')}")
+            
+    document.save(filepath)
+    return filepath
+
+
+def convert_to_pdf_safe(docx_path: str, output_dir: str = "temp") -> str:
+    """Safe DOCX to PDF conversion (cross-platform fallback)"""
+    pdf_path = docx_path.replace(".docx", ".pdf")
+    
+    # 1. Try Windows native docx2pdf
+    try:
+        from docx2pdf import convert
+        convert(docx_path, pdf_path)
+        if os.path.exists(pdf_path): return pdf_path
+    except Exception as e:
+        print(f"docx2pdf faile: {e}")
+        
+    # 2. Try Linux LibreOffice fallback
+    try:
+        import subprocess
+        subprocess.run(['libreoffice', '--headless', '--convert-to', 'pdf', docx_path, '--outdir', output_dir], check=True)
+        if os.path.exists(pdf_path): return pdf_path
+    except Exception as e:
+        print(f"LibreOffice fail: {e}")
+        
+    return None
