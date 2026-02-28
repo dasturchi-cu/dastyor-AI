@@ -3,458 +3,498 @@
 
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-  <title>CV Tayyorlash | DASTYOR AI</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
+  <title>CV | DASTYOR AI</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap"
-    rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet" />
   <style>
     *,
     *::before,
     *::after {
       box-sizing: border-box;
       margin: 0;
-      padding: 0;
+      padding: 0
     }
 
     :root[data-theme="dark"] {
-      --bg: #050f1e;
-      --card: rgba(255, 255, 255, 0.04);
-      --border: rgba(255, 255, 255, 0.08);
+      --bg: #0f172a;
+      --card: #1e293b;
+      --border: #334155;
       --text: #f1f5f9;
-      --muted: #94a3b8;
-      --accent: #2563eb;
-      --input-bg: rgba(255, 255, 255, 0.02);
-      --header-bg: rgba(6, 13, 31, 0.95);
+      --muted: #64748b;
+      --accent: #3b82f6;
+      --input: #0f172a
     }
 
     :root[data-theme="light"] {
       --bg: #f8fafc;
-      --card: #ffffff;
+      --card: #fff;
       --border: #e2e8f0;
       --text: #0f172a;
       --muted: #64748b;
       --accent: #2563eb;
-      --input-bg: #f1f5f9;
-      --header-bg: rgba(255, 255, 255, 0.95);
+      --input: #f8fafc
     }
 
     body {
       font-family: 'Inter', sans-serif;
       background: var(--bg);
       color: var(--text);
-      transition: all 0.3s ease;
-      padding-top: 60px;
+      padding-top: 52px;
+      padding-bottom: 20px;
+      font-size: 14px
     }
 
-    /* ── HEADER ── */
-    .topbar {
+    /* HEADER */
+    .hdr {
       position: fixed;
       top: 0;
       left: 0;
       right: 0;
-      z-index: 1000;
-      height: 60px;
-      background: var(--header-bg);
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
+      height: 52px;
+      background: var(--card);
       border-bottom: 1px solid var(--border);
       display: flex;
       align-items: center;
-      padding: 0 16px;
-      gap: 12px;
+      padding: 0 12px;
+      gap: 10px;
+      z-index: 100
     }
 
-    .back-btn {
-      width: 36px;
-      height: 36px;
-      border-radius: 10px;
-      background: var(--card);
+    .back {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      background: var(--bg);
       border: 1px solid var(--border);
       display: flex;
       align-items: center;
       justify-content: center;
+      cursor: pointer;
+      font-size: 16px;
       color: var(--text);
       text-decoration: none;
+      flex-shrink: 0
     }
 
-    .topbar-title {
+    .hdr-title {
       font-weight: 800;
-      font-size: 16px;
+      font-size: 15px;
+      flex: 1
     }
 
-    /* ── LAYOUT ── */
-    .wrap {
-      max-width: 900px;
-      margin: 0 auto;
-      padding: 20px;
-      display: grid;
-      grid-template-columns: 1fr;
-      gap: 20px;
+    .hdr-logo {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--accent)
     }
 
-    .panel {
+    /* STEPS */
+    .steps {
+      display: flex;
+      gap: 4px;
+      padding: 12px
+    }
+
+    .sp {
+      flex: 1;
+      height: 3px;
+      border-radius: 2px;
+      background: var(--border);
+      transition: .3s
+    }
+
+    .sp.on {
+      background: var(--accent)
+    }
+
+    /* CARD */
+    .card {
       background: var(--card);
       border: 1px solid var(--border);
-      border-radius: 24px;
-      padding: 24px;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.02);
-      height: fit-content;
+      border-radius: 16px;
+      padding: 16px;
+      margin: 0 12px 12px
     }
 
-    /* ── FORM ── */
-    .pills {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      margin-bottom: 20px;
-    }
-
-    .pill {
-      width: 34px;
-      height: 34px;
-      border-radius: 10px;
-      background: var(--input-bg);
-      color: var(--muted);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: 700;
-      font-size: 13px;
-      cursor: pointer;
-    }
-
-    .pill.active {
-      background: var(--accent);
-      color: white;
-    }
-
-    .pill.filled {
-      background: rgba(37, 99, 235, 0.1);
-      color: var(--accent);
-    }
-
-    .qtitle {
-      font-size: 18px;
+    .q {
+      font-size: 15px;
       font-weight: 800;
-      margin-bottom: 16px;
+      margin-bottom: 12px
+    }
+
+    /* INPUTS */
+    label {
+      display: block;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--muted);
+      margin-bottom: 4px;
+      text-transform: uppercase;
+      letter-spacing: .3px
     }
 
     input,
-    textarea,
-    select {
+    select,
+    textarea {
       width: 100%;
-      padding: 16px;
-      border-radius: 16px;
-      border: 2px solid var(--border);
-      background: var(--input-bg);
+      padding: 12px;
+      border: 1.5px solid var(--border);
+      border-radius: 12px;
+      background: var(--input);
       color: var(--text);
       font-family: inherit;
-      font-size: 15px;
-      transition: all 0.2s;
+      font-size: 14px;
+      margin-bottom: 10px;
+      transition: .2s
     }
 
-    input:focus {
+    input:focus,
+    textarea:focus {
       border-color: var(--accent);
-      background: var(--card);
+      outline: none
     }
 
-    .btn-group {
+    textarea {
+      min-height: 80px;
+      resize: vertical
+    }
+
+    /* BTNS */
+    .row {
       display: flex;
-      justify-content: space-between;
-      margin-top: 24px;
-      gap: 12px;
+      gap: 8px;
+      margin-top: 4px
     }
 
     .btn {
-      padding: 14px 24px;
-      border-radius: 14px;
+      flex: 1;
+      padding: 13px;
+      border-radius: 12px;
       border: none;
       font-weight: 700;
       font-size: 14px;
       cursor: pointer;
-      transition: 0.2s;
+      transition: .15s
     }
 
-    .btn-primary {
+    .btn:active {
+      transform: scale(.97)
+    }
+
+    .btn-p {
       background: var(--accent);
-      color: white;
-      flex: 1;
+      color: #fff
     }
 
-    .btn-ghost {
-      background: var(--input-bg);
+    .btn-g {
+      background: var(--border);
+      color: var(--muted)
+    }
+
+    /* PILL TABS */
+    .pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 12px
+    }
+
+    .pill {
+      padding: 5px 12px;
+      border-radius: 50px;
+      border: 1.5px solid var(--border);
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      background: var(--bg);
       color: var(--muted);
+      transition: .2s
     }
 
-    /* ── PREVIEW ── */
-    .preview-actions {
+    .pill.on {
+      background: var(--accent);
+      color: #fff;
+      border-color: var(--accent)
+    }
+
+    /* RELATIVES */
+    .rel-item {
       display: flex;
-      gap: 10px;
-      margin-bottom: 16px;
-      align-items: center;
       justify-content: space-between;
+      align-items: center;
+      padding: 10px 12px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      margin-bottom: 6px;
+      font-size: 13px
     }
 
-    .preview-container {
-      background: #525659;
-      border-radius: 16px;
-      padding: 40px 10px;
+    .del-btn {
+      background: none;
+      border: none;
+      color: #ef4444;
+      font-size: 16px;
+      cursor: pointer;
+      padding: 0 4px
+    }
+
+    /* CAREER ITEM */
+    .work-item {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px;
+      margin-bottom: 6px
+    }
+
+    .work-dates {
       display: flex;
-      justify-content: center;
-      overflow: hidden;
-      position: relative;
+      gap: 8px
     }
 
-    .preview {
-      width: 210mm;
-      min-height: 297mm;
-      background: white;
-      color: black;
-      padding: 20mm 15mm;
-      box-shadow: 0 0 30px rgba(0, 0, 0, 0.3);
-      transform-origin: top center;
-      flex-shrink: 0;
-      font-family: "Times New Roman", serif;
+    .work-dates input {
+      margin-bottom: 0
     }
 
-    .docTitle {
-      text-align: center;
-      font-weight: 900;
-      font-size: 14pt;
-      margin-bottom: 10px;
+    /* PREVIEW STRIP */
+    .prev-strip {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      margin: 0 12px 12px;
+      padding: 12px;
+      font-size: 12px;
+      line-height: 1.6
     }
 
-    .docName {
-      text-align: center;
-      font-weight: 900;
-      font-size: 14pt;
-      margin-bottom: 10px;
-      text-transform: uppercase;
+    .prev-strip b {
+      font-size: 13px;
+      display: block;
+      margin-bottom: 6px;
+      color: var(--accent)
     }
 
-    .sectionTitle {
-      text-align: center;
-      font-weight: 900;
-      font-size: 12pt;
-      margin: 20px 0 10px;
-      text-transform: uppercase;
-      border-bottom: 1px solid #000;
-      padding-bottom: 4px;
+    /* DOWNLOAD */
+    .dl-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      padding: 0 12px
     }
 
-    @media(max-width: 600px) {
-      .wrap {
-        padding: 10px;
-      }
+    .dl-btn {
+      padding: 13px;
+      border-radius: 12px;
+      border: none;
+      font-weight: 700;
+      font-size: 13px;
+      cursor: pointer
+    }
 
-      .panel {
-        padding: 16px;
-        border-radius: 20px;
-      }
+    .dl-pdf {
+      background: #ef4444;
+      color: #fff
+    }
+
+    .dl-doc {
+      background: #2b579a;
+      color: #fff
     }
   </style>
 </head>
 
 <body>
-  <div class="topbar">
-    <a href="index.html" class="back-btn" id="backBtn">←</a>
-    <span class="topbar-title" id="txt_top_title">📋 CV Tayyorlash</span>
+
+  <div class="hdr">
+    <a class="back" id="backBtn">←</a>
+    <span class="hdr-title">📄 CV Tayyorlash</span>
+    <span class="hdr-logo">DASTYOR AI</span>
   </div>
 
-  <div class="wrap">
-    <!-- INPUT PANEL -->
-    <div class="panel">
-      <div class="pills" id="pills"></div>
-      <div id="questionCard"></div>
-    </div>
+  <!-- Step indicator -->
+  <div class="steps">
+    <div class="sp on" id="sp1"></div>
+    <div class="sp" id="sp2"></div>
+    <div class="sp" id="sp3"></div>
+    <div class="sp" id="sp4"></div>
+  </div>
 
-    <!-- PREVIEW PANEL -->
-    <div class="panel">
-      <div class="preview-actions">
-        <b id="txt_preview_l">Hujjat namunasi</b>
-        <div style="display: flex; gap: 8px;">
-          <button class="btn" style="background: #2b579a; color: white; padding: 8px 16px;" id="saveWord">Word</button>
-          <button class="btn btn-primary" style="padding: 8px 16px;" id="savePdf">PDF</button>
-        </div>
-      </div>
-
-      <div class="preview-container">
-        <div class="preview" id="preview">
-          <div class="docTitle" id="txt_doc_type">MA'LUMOTNOMA</div>
-          <div class="docName" id="p_name">FAMILIYA ISM SHARIF</div>
-          <p style="text-align: center; font-weight: bold;" id="p_header_job"></p>
-
-          <div style="display: flex; justify-content: space-between; margin-top: 20px;">
-            <div style="width: 60%;">
-              <div style="margin-bottom: 4px;"><b>Tug‘ilgan yili:</b> <span id="p_birth"></span></div>
-              <div style="margin-bottom: 4px;"><b>Millati:</b> <span id="p_nat"></span></div>
-              <div style="margin-bottom: 4px;"><b>Ma'lumoti:</b> <span id="p_edu"></span></div>
-            </div>
-            <div
-              style="width: 35%; border: 1px solid #ccc; height: 4cm; text-align: center; line-height: 4cm; font-size: 10pt; color: #aaa;">
-              FOTO 3x4</div>
-          </div>
-
-          <div class="sectionTitle" id="txt_career_l">MEHNAT FAOLIYATI</div>
-          <div id="p_career" style="font-size: 11pt; line-height: 1.4; text-align: justify;"></div>
-        </div>
-      </div>
+  <!-- STEP 1: Shaxsiy -->
+  <div id="s1">
+    <div class="card">
+      <div class="q">1. Shaxsiy ma'lumotlar</div>
+      <label>F.I.SH (To'liq)</label>
+      <input id="name" type="text" placeholder="Aliyev Vali G'aniyevich">
+      <label>Tug'ilgan yili</label>
+      <input id="birth" type="text" placeholder="1990">
+      <label>Tug'ilgan joyi</label>
+      <input id="place" type="text" placeholder="Toshkent shahri">
+      <label>Millati</label>
+      <input id="nation" type="text" placeholder="O'zbek">
+      <label>Partiyaviyligi</label>
+      <input id="party" type="text" placeholder="Yo'q">
+      <div class="row"><button class="btn btn-p" onclick="go(2)">Davom etish →</button></div>
     </div>
   </div>
 
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <!-- STEP 2: Ta'lim -->
+  <div id="s2" style="display:none">
+    <div class="card">
+      <div class="q">2. Ta'lim va mutaxassislik</div>
+      <label>Ma'lumoti</label>
+      <select id="edu">
+        <option>Oliy</option>
+        <option>O'rta maxsus</option>
+        <option>O'rta</option>
+      </select>
+      <label>Tamomlagan o'quv yurti</label>
+      <textarea id="grad" placeholder="2018 y., Toshkent Davlat Texnika Universiteti, Muhandislik"></textarea>
+      <label>Mutaxassisligi</label>
+      <input id="spec" type="text" placeholder="Muhandis">
+      <label>Ilmiy darajasi</label>
+      <input id="deg" type="text" placeholder="Yo'q">
+      <label>Ilmiy unvoni</label>
+      <input id="title" type="text" placeholder="Yo'q">
+      <label>Davlat mukofotlari</label>
+      <input id="award" type="text" placeholder="Yo'q">
+      <label>Harbiy unvoni</label>
+      <input id="mil" type="text" placeholder="Yo'q">
+      <label>Chet tillari</label>
+      <input id="lang" type="text" placeholder="Rus, Ingliz tillari">
+      <div class="row">
+        <button class="btn btn-g" onclick="go(1)">← Orqaga</button>
+        <button class="btn btn-p" onclick="go(3)">Davom etish →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 3: Mehnat faoliyati -->
+  <div id="s3" style="display:none">
+    <div class="card">
+      <div class="q">3. Mehnat faoliyati</div>
+      <p style="font-size:12px;color:var(--muted);margin-bottom:10px;">Hozirgi ishni oxiriga kiriting</p>
+      <div id="workList"></div>
+      <button class="btn btn-g" onclick="addWork()" style="margin-bottom:12px;">+ Ish joyi qo'shish</button>
+      <div class="row">
+        <button class="btn btn-g" onclick="go(2)">← Orqaga</button>
+        <button class="btn btn-p" onclick="go(4)">Davom etish →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 4: Qarindoshlar -->
+  <div id="s4" style="display:none">
+    <div class="card">
+      <div class="q">4. Yaqin qarindoshlar</div>
+      <div id="relList"></div>
+      <div
+        style="background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:12px;margin-bottom:10px;">
+        <input id="rType" type="text" placeholder="Otasi / Onasi / Ukasi...">
+        <input id="rName" type="text" placeholder="F.I.SH">
+        <input id="rBirth" type="text" placeholder="1960 y., Toshkent">
+        <input id="rJob" type="text" placeholder="Ish joyi va lavozimi">
+        <input id="rAddr" type="text" placeholder="Yashash manzili" style="margin-bottom:0">
+        <button class="btn btn-p" onclick="addRel()" style="margin-top:8px;">+ Qo'shish</button>
+      </div>
+      <div class="row">
+        <button class="btn btn-g" onclick="go(3)">← Orqaga</button>
+        <button class="btn btn-p" onclick="preview()">Ko'rish ✓</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- PREVIEW & DOWNLOAD -->
+  <div id="s5" style="display:none">
+    <div class="prev-strip">
+      <b>📄 Ma'lumotnoma tayyor!</b>
+      <div id="prevContent"></div>
+    </div>
+    <div class="dl-row">
+      <button class="dl-btn dl-pdf" onclick="alert('PDF — bot orqali yuklang')">PDF</button>
+      <button class="dl-btn dl-doc" onclick="alert('Word — bot orqali yuklang')">Word</button>
+    </div>
+    <div style="padding:12px">
+      <button class="btn btn-g" onclick="go(4)" style="width:100%;margin-top:8px;">← Orqaga</button>
+    </div>
+  </div>
 
   <script>
     const tg = window.Telegram?.WebApp;
     let telegramId = '';
-    let currentLang = localStorage.getItem('lang') || 'uz';
-    let currentTheme = localStorage.getItem('theme') || 'dark';
+    const theme = localStorage.getItem('theme') || 'dark';
+    document.documentElement.setAttribute('data-theme', theme);
 
-    const i18n = {
-      uz: {
-        top_title: "📋 CV Tayyorlash",
-        preview: "Hujjat namunasi",
-        doc_type: "MA'LUMOTNOMA",
-        career: "MEHNAT FAOLIYATI",
-        next: "Keyingi →",
-        back: "← Orqaga",
-        finish: "Yakunlash",
-        fields: {
-          name: "F.I.SH (To'liq)",
-          birth: "Tug'ilgan sanasi",
-          nat: "Millati",
-          edu: "Ma'lumoti",
-          career: "Mehnat faoliyati (Hozirgi va oldingi)"
-        }
-      },
-      en: {
-        top_title: "📋 CV Builder",
-        preview: "Document Preview",
-        doc_type: "RESUME / CV",
-        career: "WORK EXPERIENCE",
-        next: "Next →",
-        back: "← Back",
-        finish: "Finish",
-        fields: {
-          name: "Full Name",
-          birth: "Date of Birth",
-          nat: "Nationality",
-          edu: "Education",
-          career: "Work Experience (Current & Past)"
-        }
-      }
+    if (tg) { tg.ready(); tg.expand(); if (tg.setHeaderColor) tg.setHeaderColor(theme === 'dark' ? '#0f172a' : '#f8fafc'); }
+    const urlP = new URLSearchParams(window.location.search);
+    telegramId = urlP.get('telegram_id') || tg?.initDataUnsafe?.user?.id?.toString() || '';
+
+    document.getElementById('backBtn').onclick = () => {
+      window.location.href = 'index.html' + (telegramId ? '?telegram_id=' + telegramId : '');
     };
 
-    const steps = [
-      { id: 'name', key: 'fields.name', placeholder: 'Aliyev Vali G\'aniyevich' },
-      { id: 'birth', key: 'fields.birth', placeholder: 'DD.MM.YYYY' },
-      { id: 'nat', key: 'fields.nat', placeholder: 'O\'zbek' },
-      { id: 'edu', key: 'fields.edu', placeholder: 'Oliy' },
-      { id: 'career', key: 'fields.career', type: 'textarea' }
-    ];
+    const steps = [null, 's1', 's2', 's3', 's4', 's5'];
+    const sp = [null, 'sp1', 'sp2', 'sp3', 'sp4'];
+    let cur = 1;
+    const works = []; const rels = [];
 
-    let data = {};
-    let currentStep = 0;
-
-    function init() {
-      document.documentElement.setAttribute('data-theme', currentTheme);
-      renderPills();
-      showStep(0);
-      setupNav();
-    }
-
-    function renderPills() {
-      const box = document.getElementById('pills');
-      box.innerHTML = '';
-      steps.forEach((s, i) => {
-        const p = document.createElement('div');
-        p.className = `pill ${i === currentStep ? 'active' : ''} ${data[s.id] ? 'filled' : ''}`;
-        p.textContent = i + 1;
-        p.onclick = () => showStep(i);
-        box.appendChild(p);
+    function go(n) {
+      document.getElementById(steps[cur]).style.display = 'none';
+      cur = n;
+      document.getElementById(steps[cur]).style.display = '';
+      sp.slice(1).forEach((id, i) => {
+        document.getElementById(id).classList.toggle('on', i < n);
       });
+      tg?.HapticFeedback?.impactOccurred('light');
+      window.scrollTo(0, 0);
     }
 
-    function showStep(idx) {
-      currentStep = idx;
-      const s = steps[idx];
-      const strings = i18n[currentLang];
-      const card = document.getElementById('questionCard');
-
-      const label = s.key.split('.').reduce((obj, k) => obj[k], strings);
-
-      card.innerHTML = `<div class="qtitle">${idx + 1}. ${label}</div>`;
-
-      let input;
-      if (s.type === 'textarea') {
-        input = document.createElement('textarea');
-      } else {
-        input = document.createElement('input');
-      }
-
-      input.value = data[s.id] || '';
-      input.placeholder = s.placeholder || '';
-      input.oninput = (e) => {
-        data[s.id] = e.target.value;
-        updatePreview();
-        renderPills();
-      };
-
-      card.appendChild(input);
-
-      const footer = document.createElement('div');
-      footer.className = 'btn-group';
-
-      const btnBack = document.createElement('button');
-      btnBack.className = 'btn btn-ghost';
-      btnBack.textContent = strings.back;
-      btnBack.disabled = idx === 0;
-      btnBack.onclick = () => showStep(idx - 1);
-
-      const btnNext = document.createElement('button');
-      btnNext.className = 'btn btn-primary';
-      btnNext.textContent = idx === steps.length - 1 ? strings.finish : strings.next;
-      btnNext.onclick = () => idx === steps.length - 1 ? finish() : showStep(idx + 1);
-
-      footer.appendChild(btnBack);
-      footer.appendChild(btnNext);
-      card.appendChild(footer);
-      renderPills();
+    function addWork() {
+      const idx = works.length;
+      works.push({ f: '', t: '', d: '' });
+      const div = document.createElement('div');
+      div.className = 'work-item'; div.id = 'w' + idx;
+      div.innerHTML = `
+      <div class="work-dates">
+        <input type="text" placeholder="2018" oninput="works[${idx}].f=this.value">
+        <input type="text" placeholder="2024 (h.v)" oninput="works[${idx}].t=this.value">
+      </div>
+      <input type="text" placeholder="Korxona, lavozimi" style="margin-top:6px;" oninput="works[${idx}].d=this.value">
+      <button onclick="this.parentElement.remove()" style="float:right;background:none;border:none;color:#ef4444;font-size:18px;cursor:pointer;">✕</button>
+    `;
+      document.getElementById('workList').appendChild(div);
     }
 
-    function updatePreview() {
-      const strings = i18n[currentLang];
-      document.getElementById('txt_doc_type').textContent = strings.doc_type;
-      document.getElementById('txt_career_l').textContent = strings.career;
-      document.getElementById('txt_top_title').textContent = strings.top_title;
-      document.getElementById('txt_preview_l').textContent = strings.preview;
-
-      document.getElementById('p_name').textContent = (data.name || 'FULL NAME').toUpperCase();
-      document.getElementById('p_birth').textContent = data.birth || '';
-      document.getElementById('p_nat').textContent = data.nat || '';
-      document.getElementById('p_edu').textContent = data.edu || '';
-      document.getElementById('p_career').textContent = data.career || '';
+    function addRel() {
+      const obj = { type: v('rType'), name: v('rName'), birth: v('rBirth'), job: v('rJob'), addr: v('rAddr') };
+      if (!obj.type || !obj.name) return alert("Turi va ismini kiriting");
+      rels.push(obj);
+      renderRels();
+      ['rType', 'rName', 'rBirth', 'rJob', 'rAddr'].forEach(id => document.getElementById(id).value = '');
     }
 
-    function setupNav() {
-      const urlParams = new URLSearchParams(window.location.search);
-      telegramId = urlParams.get('telegram_id') || (tg?.initDataUnsafe?.user?.id.toString());
-
-      document.getElementById('backBtn').onclick = (e) => {
-        e.preventDefault();
-        window.location.href = `index.html?telegram_id=${telegramId}`;
-      };
+    function renderRels() {
+      document.getElementById('relList').innerHTML = rels.map((r, i) =>
+        `<div class="rel-item"><span>${r.type}: <b>${r.name}</b></span><button class="del-btn" onclick="rels.splice(${i},1);renderRels()">✕</button></div>`
+      ).join('');
     }
 
-    function finish() {
-      tg?.showAlert(currentLang === 'uz' ? "Tayyor! PDF yoki Word tugmasini bosing." : "Ready! Click PDF or Word button.");
-    }
+    function v(id) { return document.getElementById(id).value.trim(); }
 
-    init();
-    updatePreview();
+    function preview() {
+      const relHtml = rels.map(r => `<div style="margin-bottom:4px;"><b>${r.type}:</b> ${r.name} — ${r.birth} — ${r.job} — ${r.addr}</div>`).join('');
+      const workHtml = works.filter(w => w.d).map(w => `<div>${w.f}–${w.t}: ${w.d}</div>`).join('');
+      document.getElementById('prevContent').innerHTML = `
+      <div style="margin-top:8px"><b>👤</b> ${v('name')}</div>
+      <div><b>📅</b> ${v('birth')} y., ${v('place')}</div>
+      <div><b>📚</b> ${v('edu')} — ${v('spec')}</div>
+      <div><b>🏫</b> ${v('grad')}</div>
+      <div style="margin-top:6px"><b>💼 Mehnat faoliyati:</b>${workHtml}</div>
+      <div style="margin-top:6px"><b>👨‍👩‍👧 Qarindoshlar:</b><br>${relHtml}</div>
+    `;
+      go(5);
+    }
   </script>
 </body>
 

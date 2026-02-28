@@ -8,6 +8,9 @@ from bot.utils.progress import send_progress, update_progress
 from bot.services.ai_service import transcribe_audio, extract_obyektivka_data
 from bot.services.doc_generator import generate_obyektivka_docx
 
+# Project root directory (where config.py lives)
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 logger = logging.getLogger(__name__)
 
 async def process_obyektivka_from_audio_path(context, audio_path, chat_id, user_id):
@@ -121,23 +124,30 @@ async def obyektivka_handler(update: Update, context: ContextTypes.DEFAULT_TYPE)
         parse_mode="MarkdownV2"
     )
 
-    # Send example audio file (speech (1).mp3 at project root)
-    example_audio_path = os.path.join(
-        os.path.dirname(os.path.dirname(os.path.dirname(__file__))),
-        "speech (1).mp3"
-    )
-    if os.path.exists(example_audio_path):
-        try:
-            with open(example_audio_path, 'rb') as audio_file:
-                await update.message.reply_audio(
-                    audio=InputFile(audio_file, filename="namuna_audio.mp3"),
-                    caption="🎙 *Namuna audio* — shunday qilib o'qib yuboring",
-                    parse_mode="Markdown"
-                )
-        except Exception as e:
-            logger.warning(f"Could not send example audio: {e}")
-    else:
-        logger.warning(f"Example audio not found at: {example_audio_path}")
+    # Send example audio file
+    # File is located in bot/handlers/ folder (same dir as this file)
+    HANDLERS_DIR = os.path.dirname(os.path.abspath(__file__))
+    audio_candidates = [
+        os.path.join(HANDLERS_DIR, "speech (1).mp3"),   # bot/handlers/speech (1).mp3
+        os.path.join(HANDLERS_DIR, "namuna.mp3"),        # bot/handlers/namuna.mp3
+        os.path.join(BASE_DIR, "namuna.mp3"),            # project root fallback
+    ]
+    sent = False
+    for path in audio_candidates:
+        if os.path.exists(path):
+            try:
+                with open(path, 'rb') as af:
+                    await update.message.reply_audio(
+                        audio=InputFile(af, filename="namuna_audio.mp3"),
+                        caption="🎙 *Namuna audio* — shunday qilib o'qib yuboring",
+                        parse_mode="Markdown"
+                    )
+                sent = True
+            except Exception as e:
+                logger.warning(f"Could not send example audio ({path}): {e}")
+            break
+    if not sent:
+        logger.warning(f"Example audio not found. Checked: {audio_candidates}")
 
     # Set user state
     context.user_data['waiting_for'] = 'obyektivka_audio'

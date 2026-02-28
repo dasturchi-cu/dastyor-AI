@@ -3,504 +3,508 @@
 
 <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
     <title>Obyektivka | DASTYOR AI</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
-        rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet" />
     <style>
         *,
         *::before,
         *::after {
             box-sizing: border-box;
             margin: 0;
-            padding: 0;
+            padding: 0
         }
 
         :root[data-theme="dark"] {
-            --bg: #050f1e;
-            --card: rgba(255, 255, 255, 0.04);
-            --border: rgba(255, 255, 255, 0.08);
+            --bg: #0f172a;
+            --card: #1e293b;
+            --border: #334155;
             --text: #f1f5f9;
-            --muted: #94a3b8;
-            --accent: #2563eb;
-            --input-bg: rgba(255, 255, 255, 0.02);
-            --header-bg: rgba(6, 13, 31, 0.95);
+            --muted: #64748b;
+            --accent: #3b82f6;
+            --input: #0f172a
         }
 
         :root[data-theme="light"] {
             --bg: #f8fafc;
-            --card: #ffffff;
+            --card: #fff;
             --border: #e2e8f0;
             --text: #0f172a;
             --muted: #64748b;
             --accent: #2563eb;
-            --input-bg: #f1f5f9;
-            --header-bg: rgba(255, 255, 255, 0.95);
+            --input: #f8fafc
         }
 
         body {
             font-family: 'Inter', sans-serif;
             background: var(--bg);
             color: var(--text);
-            transition: all 0.3s ease;
-            padding-top: 60px;
-            padding-bottom: 40px;
+            padding-top: 52px;
+            padding-bottom: 20px;
+            font-size: 14px
         }
 
-        .topbar {
+        .hdr {
             position: fixed;
             top: 0;
             left: 0;
             right: 0;
-            height: 60px;
-            background: var(--header-bg);
-            z-index: 1000;
+            height: 52px;
+            background: var(--card);
+            border-bottom: 1px solid var(--border);
             display: flex;
             align-items: center;
-            padding: 0 16px;
-            gap: 12px;
-            border-bottom: 1px solid var(--border);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
+            padding: 0 12px;
+            gap: 10px;
+            z-index: 100
         }
 
-        .back-btn {
-            width: 36px;
-            height: 36px;
-            border-radius: 10px;
-            background: var(--card);
+        .back {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            background: var(--bg);
             border: 1px solid var(--border);
             display: flex;
             align-items: center;
             justify-content: center;
+            cursor: pointer;
+            font-size: 16px;
             color: var(--text);
             text-decoration: none;
+            flex-shrink: 0
         }
 
-        .wrap {
-            max-width: 900px;
-            margin: 0 auto;
-            padding: 20px;
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 20px;
+        .hdr-title {
+            font-weight: 800;
+            font-size: 15px;
+            flex: 1
         }
 
-        .panel {
-            background: var(--card);
-            border: 1px solid var(--border);
-            border-radius: 24px;
-            padding: 24px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.02);
-            margin-bottom: 20px;
+        .hdr-logo {
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--accent)
         }
 
         .steps {
             display: flex;
-            gap: 8px;
-            margin-bottom: 24px;
+            gap: 4px;
+            padding: 12px
         }
 
-        .step {
+        .sp {
             flex: 1;
-            height: 4px;
+            height: 3px;
             border-radius: 2px;
             background: var(--border);
-            transition: 0.3s;
+            transition: .3s
         }
 
-        .step.active {
-            background: var(--accent);
-            box-shadow: 0 0 10px var(--accent);
+        .sp.on {
+            background: var(--accent)
         }
 
-        .q-title {
-            font-size: 20px;
+        .card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 16px;
+            margin: 0 12px 12px
+        }
+
+        .q {
+            font-size: 15px;
             font-weight: 800;
-            margin-bottom: 16px;
+            margin-bottom: 4px
+        }
+
+        .q-hint {
+            font-size: 12px;
+            color: var(--muted);
+            margin-bottom: 12px
         }
 
         label {
             display: block;
-            font-size: 13px;
+            font-size: 11px;
             font-weight: 700;
-            margin-bottom: 8px;
             color: var(--muted);
+            margin-bottom: 4px;
+            text-transform: uppercase;
+            letter-spacing: .3px
         }
 
         input,
         select,
         textarea {
             width: 100%;
-            padding: 16px;
-            border-radius: 16px;
-            border: 2px solid var(--border);
-            background: var(--input-bg);
+            padding: 12px;
+            border: 1.5px solid var(--border);
+            border-radius: 12px;
+            background: var(--input);
             color: var(--text);
             font-family: inherit;
-            font-size: 15px;
-            margin-bottom: 16px;
+            font-size: 14px;
+            margin-bottom: 10px;
+            transition: .2s
         }
 
         input:focus {
             border-color: var(--accent);
-            outline: none;
-            background: var(--card);
+            outline: none
         }
 
-        .btn-row {
+        textarea {
+            min-height: 72px;
+            resize: vertical
+        }
+
+        .row {
             display: flex;
-            gap: 12px;
-            margin-top: 20px;
+            gap: 8px;
+            margin-top: 4px
         }
 
         .btn {
-            padding: 16px 24px;
-            border-radius: 16px;
+            flex: 1;
+            padding: 13px;
+            border-radius: 12px;
             border: none;
-            font-weight: 800;
+            font-weight: 700;
             font-size: 14px;
             cursor: pointer;
-            flex: 1;
-            transition: 0.2s;
+            transition: .15s
+        }
+
+        .btn:active {
+            transform: scale(.97)
         }
 
         .btn-p {
             background: var(--accent);
-            color: white;
+            color: #fff
         }
 
         .btn-g {
-            background: var(--input-bg);
-            color: var(--muted);
+            background: var(--border);
+            color: var(--muted)
         }
 
-        /* PREVIEW */
-        .preview-box {
-            background: #525659;
-            border-radius: 20px;
-            padding: 40px 10px;
-            overflow: hidden;
-            position: relative;
-            display: flex;
-            justify-content: center;
-        }
-
-        .preview {
-            width: 210mm;
-            min-height: 297mm;
-            background: white;
-            color: black;
-            padding: 20mm 15mm;
-            transform-origin: top center;
-            font-family: "Times New Roman", serif;
-            font-size: 12pt;
-        }
-
+        /* RELATIVES */
         .rel-item {
-            background: var(--input-bg);
-            border-radius: 12px;
-            padding: 12px;
-            margin-bottom: 10px;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            padding: 8px 12px;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            margin-bottom: 6px;
+            font-size: 13px
         }
 
-        @media(max-width: 600px) {
-            .wrap {
-                padding: 10px;
-            }
+        .del {
+            background: none;
+            border: none;
+            color: #ef4444;
+            font-size: 16px;
+            cursor: pointer
+        }
 
-            .panel {
-                padding: 16px;
-            }
+        /* WORK */
+        .work-item {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 10px;
+            margin-bottom: 8px;
+            position: relative
+        }
+
+        .wd {
+            display: flex;
+            gap: 6px
+        }
+
+        .wd input {
+            margin-bottom: 6px
+        }
+
+        .rm {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: none;
+            border: none;
+            color: #ef4444;
+            cursor: pointer;
+            font-size: 16px
+        }
+
+        /* SUMMARY */
+        .sum-row {
+            display: flex;
+            gap: 8px;
+            align-items: flex-start;
+            padding: 8px 0;
+            border-bottom: 1px solid var(--border);
+            font-size: 13px
+        }
+
+        .sum-ico {
+            font-size: 16px;
+            flex-shrink: 0;
+            width: 20px
+        }
+
+        .sum-val {
+            color: var(--text)
+        }
+
+        .sum-lbl {
+            color: var(--muted);
+            font-size: 11px;
+            font-weight: 700
+        }
+
+        /* INNER ADD FORM */
+        .add-form {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 12px;
+            margin-bottom: 10px
         }
     </style>
 </head>
 
 <body>
-    <div class="topbar">
-        <a href="index.html" class="back-btn" id="backBtn">←</a>
-        <span style="font-weight: 800;" id="txt_top">📋 Obyektivka Tayyorlash</span>
+
+    <div class="hdr">
+        <div class="back" id="backBtn">←</div>
+        <span class="hdr-title">📋 Obyektivka</span>
+        <span class="hdr-logo">DASTYOR AI</span>
     </div>
 
-    <div class="wrap">
-        <div class="panel">
-            <div class="steps">
-                <div class="step active" id="s1"></div>
-                <div class="step" id="s2"></div>
-                <div class="step" id="s3"></div>
+    <div class="steps">
+        <div class="sp on" id="sp1"></div>
+        <div class="sp" id="sp2"></div>
+        <div class="sp" id="sp3"></div>
+        <div class="sp" id="sp4"></div>
+        <div class="sp" id="sp5"></div>
+    </div>
+
+    <!-- S1: Shaxsiy asosiy -->
+    <div id="s1">
+        <div class="card">
+            <div class="q">1. Shaxsiy ma'lumotlar</div>
+            <div class="q-hint">Asosiy identifikatsiya ma'lumotlar</div>
+
+            <label>F.I.SH (To'liq)</label>
+            <input id="fullname" type="text" placeholder="Aliyev Vali G'aniyevich">
+
+            <div style="display:flex;gap:8px;">
+                <div style="flex:1"><label>Tug'ilgan sanasi</label><input id="bdate" type="text"
+                        placeholder="15.05.1990"></div>
+                <div style="flex:1"><label>Millati</label><input id="nation" type="text" placeholder="O'zbek"></div>
             </div>
 
-            <!-- STEP 1: Shaxsiy -->
-            <div id="step1_ui">
-                <div class="q-title" id="txt_s1_q">Shaxsiy ma'lumotlar</div>
-                <label id="lbl_name">F.I.SH (Famililiya, Ism, Sharif)</label>
-                <input type="text" id="fullname" placeholder="Aliyev Vali G'aniyevich">
+            <label>Tug'ilgan joyi (viloyat, tuman)</label>
+            <input id="bplace" type="text" placeholder="Toshkent shahri, Yunusobod tumani">
 
-                <label id="lbl_birth">Tug'ilgan yili va joyi</label>
-                <div style="display: flex; gap: 10px;">
-                    <input type="text" id="birth" placeholder="1995" style="width: 80px;">
-                    <input type="text" id="place" placeholder="Toshkent viloyati, Parkent tumani">
-                </div>
+            <label>Partiyaviyligi</label>
+            <input id="party" type="text" placeholder="Yo'q">
 
-                <label id="lbl_nation">Millati</label>
-                <input type="text" id="nation" placeholder="O'zbek">
+            <div class="row"><button class="btn btn-p" onclick="go(2)">Davom etish →</button></div>
+        </div>
+    </div>
 
-                <div class="btn-row">
-                    <button class="btn btn-p" onclick="nextStep(2)" id="txt_next">Davom etish →</button>
-                </div>
+    <!-- S2: Ta'lim -->
+    <div id="s2" style="display:none">
+        <div class="card">
+            <div class="q">2. Ta'lim va malaka</div>
+            <div class="q-hint">Diplom va kasbiy malumotlar</div>
+
+            <label>Ma'lumoti</label>
+            <select id="edu" style="margin-bottom:10px">
+                <option>Oliy</option>
+                <option>O'rta maxsus</option>
+                <option>O'rta</option>
+            </select>
+
+            <label>Tamomlagan (nomi, yili, mutaxassislik)</label>
+            <textarea id="grad" placeholder="2018 y., ToshDTU, Muhandis-konstruktor"></textarea>
+
+            <label>Mutaxassisligi (diplom bo'yicha)</label>
+            <input id="spec" type="text" placeholder="Muhandis-konstruktor">
+
+            <div style="display:flex;gap:8px;">
+                <div style="flex:1"><label>Ilmiy darajasi</label><input id="deg" placeholder="Yo'q"></div>
+                <div style="flex:1"><label>Ilmiy unvoni</label><input id="ttl" placeholder="Yo'q"></div>
             </div>
 
-            <!-- STEP 2: Ma'lumoti -->
-            <div id="step2_ui" style="display: none;">
-                <div class="q-title" id="txt_s2_q">Ma'lumoti va Ish joyi</div>
-                <label id="lbl_edu">Ma'lumoti</label>
-                <select id="edu">
-                    <option value="Oliy">Oliy</option>
-                    <option value="O'rta maxsus">O'rta maxsus</option>
-                    <option value="O'rta">O'rta</option>
-                </select>
+            <label>Chet tillar</label>
+            <input id="langs" placeholder="Rus, Ingliz tillari">
 
-                <label id="lbl_grad">Tamomlagan (Qayerda, qachon)</label>
-                <textarea id="graduated" rows="3"
-                    placeholder="2018-yil, Toshkent Davlat Axborot Texnologiyalari Universiteti"></textarea>
-
-                <label id="lbl_job">Hozirgi ish joyi va lavozimi</label>
-                <input type="text" id="current_job" placeholder="... korxona muhandisi">
-
-                <div class="btn-row">
-                    <button class="btn btn-g" onclick="nextStep(1)">&larr; Orqaga</button>
-                    <button class="btn btn-p" onclick="nextStep(3)" id="txt_next2">Davom etish →</button>
-                </div>
+            <div style="display:flex;gap:8px;">
+                <div style="flex:1"><label>Davlat mukofotlari</label><input id="award" placeholder="Yo'q"></div>
+                <div style="flex:1"><label>Harbiy unvoni</label><input id="mil" placeholder="Yo'q"></div>
             </div>
 
-            <!-- STEP 3: Qarindoshlar -->
-            <div id="step3_ui" style="display: none;">
-                <div class="q-title" id="txt_s3_q">Yaqin qarindoshlar</div>
-                <div id="rel_list"></div>
+            <label>Deputatlik</label>
+            <input id="deputy" placeholder="Yo'q">
 
-                <div id="rel_form"
-                    style="background: var(--input-bg); padding: 12px; border-radius: 12px; margin-bottom: 12px;">
-                    <input type="text" id="rel_type" placeholder="Otasi, Onasi...">
-                    <input type="text" id="rel_name" placeholder="Ism sharifi">
-                    <button class="btn btn-p" style="padding: 10px;" onclick="addRel()" id="txt_add">Qo'shish</button>
-                </div>
-
-                <div class="btn-row">
-                    <button class="btn btn-g" onclick="nextStep(2)">&larr; Orqaga</button>
-                    <button class="btn btn-p" onclick="finish()" id="txt_finish">Yakunlash</button>
-                </div>
+            <div class="row">
+                <button class="btn btn-g" onclick="go(1)">← Orqaga</button>
+                <button class="btn btn-p" onclick="go(3)">Davom etish →</button>
             </div>
         </div>
+    </div>
 
-        <!-- PREVIEW PANEL -->
-        <div class="panel">
-            <div style="display: flex; justify-content: space-between; margin-bottom: 16px; align-items: center;">
-                <b id="txt_prev">Hujjat namunasi</b>
-                <button class="btn btn-p" style="max-width: 120px; padding: 10px;" onclick="savePDF()">PDF</button>
+    <!-- S3: Mehnat faoliyati -->
+    <div id="s3" style="display:none">
+        <div class="card">
+            <div class="q">3. Mehnat faoliyati</div>
+            <div class="q-hint">Oxirida hozirgi ish joyini kiriting</div>
+            <div id="workList"></div>
+            <button onclick="addWork()"
+                style="width:100%;padding:11px;border-radius:11px;border:1.5px dashed var(--accent);background:transparent;color:var(--accent);font-weight:700;cursor:pointer;margin-bottom:12px;">+
+                Ish joyi qo'shish</button>
+            <div class="row">
+                <button class="btn btn-g" onclick="go(2)">← Orqaga</button>
+                <button class="btn btn-p" onclick="go(4)">Davom etish →</button>
             </div>
-            <div class="preview-box">
-                <div class="preview" id="preview">
-                    <center>
-                        <h2 id="txt_type">MA'LUMOTNOMA</h2>
-                    </center>
-                    <center>
-                        <h3 id="p_name" style="margin-top: 10px; text-transform: uppercase;">FAMILIYA ISM SHARIF</h3>
-                    </center>
-                    <p style="text-align: center; margin-bottom: 20px;" id="p_job"></p>
+        </div>
+    </div>
 
-                    <table style="width: 100%; border-collapse: collapse; margin-top: 20px;">
-                        <tr>
-                            <td width="50%"><b>Tug'ilgan yili:</b> <span id="p_birth"></span></td>
-                            <td width="50%"><b>Millati:</b> <span id="p_nation"></span></td>
-                        </tr>
-                        <tr>
-                            <td><b>Tug'ilgan joyi:</b> <span id="p_place"></span></td>
-                            <td><b>Ma'lumoti:</b> <span id="p_edu"></span></td>
-                        </tr>
-                    </table>
-
-                    <p style="margin-top: 15px;"><b>Tamomlagan:</b> <span id="p_grad"></span></p>
-
-                    <h4 style="text-align:center; margin-top: 30px; border-top: 1px solid #000; padding-top: 10px;"
-                        id="txt_rel_l">YAQIN QARINDOSHLARI HAQIDA MA'LUMOT</h4>
-                    <table
-                        style="width: 100%; border: 1px solid #000; border-collapse: collapse; margin-top: 10px; font-size: 10pt;"
-                        id="p_rel_table">
-                        <thead>
-                            <tr style="background: #eee;">
-                                <th style="border: 1px solid #000; padding: 4px;" id="th_type">Qarindoshligi</th>
-                                <th style="border: 1px solid #000; padding: 4px;" id="th_name">Ismi</th>
-                                <th style="border: 1px solid #000; padding: 4px;" id="th_job">Ish joyi</th>
-                            </tr>
-                        </thead>
-                        <tbody id="p_rel_body"></tbody>
-                    </table>
-                </div>
+    <!-- S4: Oila a'zolari -->
+    <div id="s4" style="display:none">
+        <div class="card">
+            <div class="q">4. Oila a'zolari</div>
+            <div class="q-hint">Ota, ona, aka, uka, opa, singil, turmush o'rtog'i</div>
+            <div id="relList"></div>
+            <div class="add-form">
+                <input id="rT" type="text" placeholder="Otasi / Onasi / Turmush o'rtog'i...">
+                <input id="rN" type="text" placeholder="F.I.SH">
+                <input id="rB" type="text" placeholder="1960 y., Andijon viloyati">
+                <input id="rJ" type="text" placeholder="Ish joyi va lavozimi">
+                <input id="rA" type="text" style="margin-bottom:8px" placeholder="Yashash manzili">
+                <button class="btn btn-p" onclick="addRel()">+ Qo'shish</button>
             </div>
+            <div class="row">
+                <button class="btn btn-g" onclick="go(3)">← Orqaga</button>
+                <button class="btn btn-p" onclick="go(5)">Ko'rish ✓</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- S5: Yakuniy ko'rish -->
+    <div id="s5" style="display:none">
+        <div class="card">
+            <div class="q" style="color:var(--accent)">✅ Ma'lumotnoma tayyor!</div>
+            <div class="q-hint">Tekshiring va yuklab oling</div>
+            <div id="sumBox" style="margin-top:8px"></div>
+        </div>
+        <div style="padding:0 12px;display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+            <button onclick="sendToBot()"
+                style="padding:14px;border-radius:13px;border:none;font-weight:800;background:#10b981;color:#fff;cursor:pointer;font-size:13px;">📤
+                Botga yuborish</button>
+            <button onclick="go(4)"
+                style="padding:14px;border-radius:13px;border:none;font-weight:700;background:var(--border);color:var(--muted);cursor:pointer;">←
+                Orqaga</button>
         </div>
     </div>
 
     <script>
         const tg = window.Telegram?.WebApp;
-        let telegramId = '';
-        let currentLang = localStorage.getItem('lang') || 'uz';
-        let currentTheme = localStorage.getItem('theme') || 'dark';
+        const theme = localStorage.getItem('theme') || 'dark';
+        document.documentElement.setAttribute('data-theme', theme);
 
-        const i18n = {
-            uz: {
-                top: "📋 Obyektivka Tayyorlash",
-                s1_q: "Shaxsiy ma'lumotlar",
-                s2_q: "Ma'lumoti va Ish joyi",
-                s3_q: "Yaqin qarindoshlar",
-                lbl_name: "F.I.SH (To'liq)",
-                lbl_birth: "Tug'ilgan yili va joyi",
-                lbl_nation: "Millati",
-                lbl_edu: "Ma'lumoti",
-                lbl_grad: "Tamomlagan (Qayerda, qachon)",
-                lbl_job: "Hozirgi ish joyi",
-                next: "Davom etish →",
-                add: "Qo'shish",
-                finish: "Yakunlash",
-                prev: "Hujjat namunasi",
-                type: "MA'LUMOTNOMA",
-                rel_l: "YAQIN QARINDOSHLARI HAQIDA MA'LUMOT",
-                th_type: "Qarindoshligi",
-                th_name: "Ismi",
-                th_job: "Ish joyi"
-            },
-            en: {
-                top: "📋 Obyektivka AI",
-                s1_q: "Personal Information",
-                s2_q: "Education & Career",
-                s3_q: "Relative Information",
-                lbl_name: "Full Name",
-                lbl_birth: "Date and Place of Birth",
-                lbl_nation: "Nationality",
-                lbl_edu: "Education Level",
-                lbl_grad: "Graduated (Where, When)",
-                lbl_job: "Current Job Position",
-                next: "Continue →",
-                add: "Add",
-                finish: "Finish",
-                prev: "Document Preview",
-                type: "O'ZBEKISTON RESPUBLIKASI MA'LUMOTNOMASI",
-                rel_l: "LIST OF CLOSE RELATIVES",
-                th_type: "Relation",
-                th_name: "Name",
-                th_job: "Current Job"
-            }
+        if (tg) {
+            tg.ready(); tg.expand();
+            if (tg.setHeaderColor) tg.setHeaderColor(theme === 'dark' ? '#0f172a' : '#f8fafc');
+        }
+
+        const urlP = new URLSearchParams(window.location.search);
+        const telegramId = urlP.get('telegram_id') || tg?.initDataUnsafe?.user?.id?.toString() || '';
+
+        document.getElementById('backBtn').onclick = () => {
+            window.location.href = 'index.html' + (telegramId ? '?telegram_id=' + telegramId : '');
         };
 
-        let relatives = [];
+        const stepIds = [null, 's1', 's2', 's3', 's4', 's5'];
+        const spIds = [null, 'sp1', 'sp2', 'sp3', 'sp4', 'sp5'];
+        let cur = 1;
+        const works = [], rels = [];
 
-        function init() {
-            document.documentElement.setAttribute('data-theme', currentTheme);
-            updateUI();
-            setupAuth();
-
-            // Auto fit preview
-            const scale = (document.querySelector('.preview-box').offsetWidth / 840) * 0.95;
-            document.getElementById('preview').style.transform = `scale(${Math.min(scale, 1)})`;
-        }
-
-        function updateUI() {
-            const strings = i18n[currentLang];
-            document.getElementById('txt_top').textContent = strings.top;
-            document.getElementById('txt_s1_q').textContent = strings.s1_q;
-            document.getElementById('txt_s2_q').textContent = strings.s2_q;
-            document.getElementById('txt_s3_q').textContent = strings.s3_q;
-            document.getElementById('lbl_name').textContent = strings.lbl_name;
-            document.getElementById('lbl_birth').textContent = strings.lbl_birth;
-            document.getElementById('lbl_nation').textContent = strings.lbl_nation;
-            document.getElementById('lbl_edu').textContent = strings.lbl_edu;
-            document.getElementById('lbl_grad').textContent = strings.lbl_grad;
-            document.getElementById('lbl_job').textContent = strings.lbl_job;
-            document.getElementById('txt_next').textContent = strings.next;
-            document.getElementById('txt_next2').textContent = strings.next;
-            document.getElementById('txt_add').textContent = strings.add;
-            document.getElementById('txt_finish').textContent = strings.finish;
-            document.getElementById('txt_prev').textContent = strings.prev;
-            document.getElementById('txt_type').textContent = strings.type;
-            document.getElementById('txt_rel_l').textContent = strings.rel_l;
-            document.getElementById('th_type').textContent = strings.th_type;
-            document.getElementById('th_name').textContent = strings.th_name;
-            document.getElementById('th_job').textContent = strings.th_job;
-
-            if (tg) tg.headerColor = currentTheme === 'dark' ? '#050f1e' : '#f8fafc';
-        }
-
-        function setupAuth() {
-            const urlParams = new URLSearchParams(window.location.search);
-            telegramId = urlParams.get('telegram_id') || (tg?.initDataUnsafe?.user?.id.toString());
-            document.getElementById('backBtn').onclick = (e) => {
-                e.preventDefault();
-                window.location.href = `index.html?telegram_id=${telegramId}`;
-            };
-        }
-
-        function nextStep(step) {
-            document.querySelectorAll('[id$="_ui"]').forEach(el => el.style.display = 'none');
-            document.getElementById(`step${step}_ui`).style.display = 'block';
-            document.querySelectorAll('.step').forEach((el, i) => el.classList.toggle('active', i < step));
-            updateLivePreview();
+        function go(n) {
+            document.getElementById(stepIds[cur]).style.display = 'none';
+            cur = n;
+            document.getElementById(stepIds[cur]).style.display = '';
+            spIds.slice(1).forEach((id, i) => document.getElementById(id).classList.toggle('on', i < n));
+            if (n === 5) buildSummary();
             tg?.HapticFeedback?.impactOccurred('light');
+            window.scrollTo(0, 0);
         }
 
-        function updateLivePreview() {
-            document.getElementById('p_name').textContent = (document.getElementById('fullname').value || 'FAMILIYA ISM SHARIF').toUpperCase();
-            document.getElementById('p_birth').textContent = document.getElementById('birth').value;
-            document.getElementById('p_place').textContent = document.getElementById('place').value;
-            document.getElementById('p_nation').textContent = document.getElementById('nation').value;
-            document.getElementById('p_edu').textContent = document.getElementById('edu').value;
-            document.getElementById('p_grad').textContent = document.getElementById('graduated').value;
-            document.getElementById('p_job').textContent = document.getElementById('current_job').value;
+        function v(id) { return (document.getElementById(id)?.value || '').trim(); }
 
-            const tbody = document.getElementById('p_rel_body');
-            tbody.innerHTML = '';
-            relatives.forEach(r => {
-                tbody.innerHTML += `<tr><td style="border:1px solid #000;padding:4px;">${r.type}</td><td style="border:1px solid #000;padding:4px;">${r.name}</td><td style="border:1px solid #000;padding:4px;">${r.job || '-'}</td></tr>`;
-            });
+        function addWork() {
+            const i = works.length;
+            works.push({ f: '', t: '', d: '' });
+            const el = document.createElement('div');
+            el.className = 'work-item'; el.id = 'wi' + i;
+            el.innerHTML = `
+      <button class="rm" onclick="works.splice(${i},1);this.parentElement.remove()">✕</button>
+      <div class="wd">
+        <input type="text" placeholder="2018" style="flex:1" oninput="works[${i}].f=this.value">
+        <input type="text" placeholder="2024 / h.v" style="flex:1" oninput="works[${i}].t=this.value">
+      </div>
+      <input type="text" placeholder="Korxona nomi, lavozim" oninput="works[${i}].d=this.value" style="margin-bottom:0">
+    `;
+            document.getElementById('workList').appendChild(el);
         }
 
         function addRel() {
-            const type = document.getElementById('rel_type').value;
-            const name = document.getElementById('rel_name').value;
-            if (!type || !name) return;
-            relatives.push({ type, name });
-            document.getElementById('rel_name').value = '';
-            renderRelList();
-            updateLivePreview();
+            const r = { type: v('rT'), name: v('rN'), birth: v('rB'), job: v('rJ'), addr: v('rA') };
+            if (!r.type || !r.name) { tg?.showAlert('Turi va ismini kiriting') || alert('Turi va ismini kiriting'); return; }
+            rels.push(r);
+            renderRels();
+            ['rT', 'rN', 'rB', 'rJ', 'rA'].forEach(id => { document.getElementById(id).value = ''; });
         }
 
-        function renderRelList() {
-            const list = document.getElementById('rel_list');
-            list.innerHTML = '';
-            relatives.forEach((r, i) => {
-                list.innerHTML += `<div class="rel-item"><span>${r.type}: ${r.name}</span><button onclick="relatives.splice(${i},1);renderRelList();updateLivePreview();">✕</button></div>`;
-            });
+        function renderRels() {
+            document.getElementById('relList').innerHTML = rels.map((r, i) =>
+                `<div class="rel-item">
+        <div><b>${r.type}:</b> ${r.name}<br><span style="font-size:11px;color:var(--muted)">${r.birth} · ${r.job}</span></div>
+        <button class="del" onclick="rels.splice(${i},1);renderRels()">✕</button>
+      </div>`
+            ).join('');
         }
 
-        function finish() {
-            tg?.showAlert(currentLang === 'uz' ? "Hujjat tayyor! PDF tugmasini bosing." : "Document ready! Click PDF button.");
+        function buildSummary() {
+            const workHtml = works.filter(w => w.d).map(w =>
+                `<div class="sum-row"><span class="sum-ico">💼</span><div><div class="sum-lbl">${w.f} – ${w.t}</div><div class="sum-val">${w.d}</div></div></div>`
+            ).join('');
+
+            const relHtml = rels.map(r =>
+                `<div class="sum-row"><span class="sum-ico">👤</span><div><div class="sum-lbl">${r.type}</div><div class="sum-val">${r.name} · ${r.birth}<br><span style="font-size:12px;color:var(--muted)">${r.job} · ${r.addr}</span></div></div></div>`
+            ).join('');
+
+            document.getElementById('sumBox').innerHTML = `
+      <div class="sum-row"><span class="sum-ico">🪪</span><div><div class="sum-lbl">F.I.SH</div><div class="sum-val">${v('fullname')}</div></div></div>
+      <div class="sum-row"><span class="sum-ico">📅</span><div><div class="sum-lbl">Tug'ilgan</div><div class="sum-val">${v('bdate')} · ${v('bplace')}</div></div></div>
+      <div class="sum-row"><span class="sum-ico">📚</span><div><div class="sum-lbl">Ta'lim</div><div class="sum-val">${v('edu')} · ${v('spec')}<br><span style="font-size:12px;color:var(--muted)">${v('grad')}</span></div></div></div>
+      ${workHtml}
+      ${relHtml}
+    `;
         }
 
-        function savePDF() {
-            const strings = i18n[currentLang];
-            const opt = { margin: 0, filename: 'Obyektivka.pdf', image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2 }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } };
-            const element = document.getElementById('preview');
-            // logic to use html2pdf or similar
-            tg?.showConfirm(strings.finish);
+        function sendToBot() {
+            tg?.showAlert('Bot orqali DOCX/PDF ni yuklab olish uchun @DastyorAiBot ga yozing');
         }
-
-        init();
-        document.querySelectorAll('input, select, textarea').forEach(el => el.oninput = updateLivePreview);
     </script>
 </body>
 
