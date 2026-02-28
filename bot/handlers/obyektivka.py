@@ -89,19 +89,56 @@ async def obyektivka_handler(update: Update, context: ContextTypes.DEFAULT_TYPE)
     Handle Obyektivka AI module entry point.
     """
     instruction_text = (
-        "📄 **Obyektivka AI**\n\n"
-        "1️⃣ Audio xabar yuboring (ma'lumotlaringizni o'qib bering)\n"
-        "2️⃣ AI avtomatik ma'lumotlarni ajratadi\n"
-        "3️⃣ Tayyor DOCX fayl olasiz\n\n"
-        "🎙 **Namuna:** 'Mening ismim Aliyev Ali, 1990-yil 15-mayda Toshkentda tug'ilganman...'"
+        "📌 **Obyektivka tayyorlash uchun quyidagi ma'lumotlarni audiodagi kabi o'qib jo'nating:**\n\n"
+        "1\\. F\\.I\\.Sh\\. \\(Familiyasi, ismi, sharifi\\)\n"
+        "2\\. Tug'ilgan yili, oyi, sanasi\n"
+        "3\\. Tug'ilgan joyi \\(viloyat, tuman/shahar\\)\n"
+        "4\\. Millati\n"
+        "5\\. Ma'lumoti\n"
+        "6\\. Tamomlagan o'quv yurti \\(nomi va yili\\)\n"
+        "7\\. Mutaxassisligi \\(diplom bo'yicha\\)\n"
+        "8\\. Partiyaviyligi\n"
+        "9\\. Ilmiy darajasi\n"
+        "10\\. Ilmiy unvoni\n"
+        "11\\. Qaysi chet tillarini biladi\n"
+        "12\\. Davlat mukofotlari bilan taqdirlanganligi\n"
+        "13\\. Deputatlar kengashi a'zoligi \\(ha/yo'q, qaysi kengash\\)\n"
+        "14\\. Mehnat faoliyati \\(qayerda, qaysi lavozimda, boshlagan va tugatgan sanalari bilan\\)\n"
+        "15\\. Rasm elektron variantda\n\n"
+        "👨‍👩‍👧‍👦 **Oila a'zolari haqida ma'lumot:**\n"
+        "_\\(Ota, ona, aka, uka, opa, singil, turmush o'rtog'i\\)_\n\n"
+        "Har biri uchun quyidagilar ko'rsatiladi:\n"
+        "1\\. F\\.I\\.Sh\\.\n"
+        "2\\. Tug'ilgan yili va joyi\n"
+        "3\\. Ish joyi va lavozimi\n"
+        "4\\. Yashash manzili\n\n"
+        "🎙 *Quyidagi audio namunaga o'xshab o'qib yuboring:*"
     )
-    
+
     await update.message.reply_text(
         instruction_text,
         reply_markup=get_back_button(),
-        parse_mode="Markdown"
+        parse_mode="MarkdownV2"
     )
-    
+
+    # Send example audio file (speech (1).mp3 at project root)
+    example_audio_path = os.path.join(
+        os.path.dirname(os.path.dirname(os.path.dirname(__file__))),
+        "speech (1).mp3"
+    )
+    if os.path.exists(example_audio_path):
+        try:
+            with open(example_audio_path, 'rb') as audio_file:
+                await update.message.reply_audio(
+                    audio=InputFile(audio_file, filename="namuna_audio.mp3"),
+                    caption="🎙 *Namuna audio* — shunday qilib o'qib yuboring",
+                    parse_mode="Markdown"
+                )
+        except Exception as e:
+            logger.warning(f"Could not send example audio: {e}")
+    else:
+        logger.warning(f"Example audio not found at: {example_audio_path}")
+
     # Set user state
     context.user_data['waiting_for'] = 'obyektivka_audio'
 
