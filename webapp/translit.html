@@ -179,11 +179,19 @@
                 <button class="convert-btn" onclick="convert()">⚡ Aylantirish</button>
                 <textarea id="outText" placeholder="Natija bu yerda chiqadi..." style="margin-top:16px"
                     readonly></textarea>
+                <div style="margin-top: 16px; text-align: center;">
+                    <button onclick="startDocTranslit()"
+                        style="background:none; border:none; color:#60a5fa; cursor:pointer; font-weight:600; text-decoration:underline;">
+                        Yoki Hujjatni bot orqali aylantirish (DOCX, PPTX)
+                    </button>
+                </div>
             </div>
         </div>
     </div>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="app.js"></script>
     <script>
+        const tg = window.Telegram?.WebApp;
         let dir = 'k2l';
         document.getElementById('k2l').addEventListener('click', () => { dir = 'k2l'; document.querySelectorAll('.dir-btn').forEach(b => b.classList.remove('active')); document.getElementById('k2l').classList.add('active'); });
         document.getElementById('l2k').addEventListener('click', () => { dir = 'l2k'; document.querySelectorAll('.dir-btn').forEach(b => b.classList.remove('active')); document.getElementById('l2k').classList.add('active'); });
@@ -200,6 +208,17 @@
                 document.getElementById('outText').value = src.split('').map(c => k2lMap[c] || c).join('');
             } else {
                 document.getElementById('outText').value = src; // placeholder
+            }
+        }
+
+        function startDocTranslit() {
+            if (tg && tg.sendData) {
+                tg.sendData(JSON.stringify({
+                    action: "start_transliterate",
+                    direction: dir
+                }));
+            } else {
+                alert("Faqat Telegram bot ichida ishlaydi!");
             }
         }
     </script>

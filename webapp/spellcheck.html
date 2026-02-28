@@ -143,22 +143,34 @@
                 <span class="ftag">PPT</span>
                 <span class="ftag">PPTX</span>
             </div>
-            <div class="upload-zone" onclick="document.getElementById('spellFile').click()">
-                <span style="font-size:40px">📎</span>
-                <p style="color:#60a5fa;font-weight:600;margin:12px 0 4px">Faylni tanlash</p>
-                <p style="color:#64748b;font-size:13px">DOC, DOCX, PPT, PPTX — 20 MB gacha</p>
+            <div class="upload-zone" onclick="startSpellcheck()">
+                <span style="font-size:40px">📱</span>
+                <p style="color:#60a5fa;font-weight:600;margin:12px 0 4px">Telegram orqali jo'natish</p>
+                <p style="color:#64748b;font-size:13px">Hujjatni to'g'ridan-to'g'ri botga yuborish</p>
             </div>
-            <input type="file" id="spellFile" accept=".doc,.docx,.ppt,.pptx" style="display:none" />
-            <a href="https://t.me/DastyorAiBot" class="tg-btn" target="_blank">
+
+            <button class="tg-btn" style="border:none; cursor:pointer;" onclick="startSpellcheck()">
                 <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24">
                     <path
                         d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.248l-2.04 9.613c-.154.673-.556.836-1.124.52l-3.1-2.285-1.497 1.44c-.165.166-.304.304-.623.304l.222-3.155 5.74-5.185c.25-.222-.054-.345-.386-.123L6.32 14.4l-3.024-.944c-.657-.205-.67-.657.137-.973l11.829-4.563c.547-.198 1.025.133.3.328z" />
                 </svg>
-                Telegram botda tekshirish
-            </a>
+                Telegram botda texkshirish
+            </button>
         </div>
     </div>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="app.js"></script>
+    <script>
+        const tg = window.Telegram?.WebApp;
+
+        function startSpellcheck() {
+            if (tg && tg.sendData) {
+                tg.sendData(JSON.stringify({ action: "start_spellcheck" }));
+            } else {
+                alert("Faqat Telegram bot orqali ishlaydi!");
+            }
+        }
+    </script>
 </body>
 
 </html>

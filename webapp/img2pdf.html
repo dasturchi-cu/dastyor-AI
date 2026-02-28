@@ -146,41 +146,26 @@
         <div class="page-card">
             <span class="big-icon">🖼️</span>
             <h1>Rasm → PDF</h1>
-            <p class="subtitle">20 tagacha rasmni yuklang va bitta PDF faylga aylantiring</p>
-            <div class="upload-zone" onclick="document.getElementById('pdfImages').click()">
-                <span style="font-size:40px">📁</span>
-                <p style="color:#60a5fa;font-weight:600;margin:12px 0 4px">Rasmlarni tanlash</p>
-                <p style="color:#64748b;font-size:13px">20 tagacha • JPG, PNG, WEBP</p>
+            <p class="subtitle">Botga 20 tagacha rasmni birga yuboring va bitta PDF faylga aylantiring. (Albomi orqali)
+            </p>
+            <div class="upload-zone" onclick="startImgToPdf()">
+                <span style="font-size:40px">📱</span>
+                <p style="color:#60a5fa;font-weight:600;margin:12px 0 4px">Telegram botda boshlash</p>
+                <p style="color:#64748b;font-size:13px">Hozir boshlab, rasmlarni yuboring</p>
             </div>
-            <input type="file" id="pdfImages" accept="image/*" multiple style="display:none"
-                onchange="previewImages(this)" />
-            <div id="countBadge" style="display:none" class="count-badge">0 ta rasm tanlandi</div>
-            <div class="imgs-preview" id="imgsPreview"></div>
-            <button class="convert-btn" id="pdfBtn" style="display:none"
-                onclick="alert('PDF tayyorlanmoqda... Telegram botda foydalaning!')">📄 PDF yaratish</button>
         </div>
     </div>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="app.js"></script>
     <script>
-        function previewImages(input) {
-            const files = Array.from(input.files).slice(0, 20);
-            const badge = document.getElementById('countBadge');
-            const preview = document.getElementById('imgsPreview');
-            const btn = document.getElementById('pdfBtn');
-            badge.textContent = files.length + ' ta rasm tanlandi';
-            badge.style.display = 'inline-block';
-            preview.innerHTML = '';
-            files.forEach(f => {
-                const reader = new FileReader();
-                reader.onload = e => {
-                    const img = document.createElement('img');
-                    img.src = e.target.result;
-                    img.className = 'img-thumb';
-                    preview.appendChild(img);
-                };
-                reader.readAsDataURL(f);
-            });
-            btn.style.display = 'block';
+        const tg = window.Telegram?.WebApp;
+
+        function startImgToPdf() {
+            if (tg && tg.sendData) {
+                tg.sendData(JSON.stringify({ action: "start_img2pdf" }));
+            } else {
+                alert("Faqat Telegram bot orqali ishlaydi!");
+            }
         }
     </script>
 </body>
