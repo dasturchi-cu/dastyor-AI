@@ -144,15 +144,18 @@
     </nav>
     <div class="page-wrap">
         <div class="page-card">
-            <span class="big-icon">🖼️</span>
-            <h1>Rasm → PDF</h1>
-            <p class="subtitle">Botga 20 tagacha rasmni birga yuboring va bitta PDF faylga aylantiring. (Albomi orqali)
-            </p>
-            <div class="upload-zone" onclick="startImgToPdf()">
-                <span style="font-size:40px">📱</span>
-                <p style="color:#60a5fa;font-weight:600;margin:12px 0 4px">Telegram botda boshlash</p>
-                <p style="color:#64748b;font-size:13px">Hozir boshlab, rasmlarni yuboring</p>
+            <div class="upload-zone" onclick="document.getElementById('pdfImages').click()">
+                <span style="font-size:40px">📁</span>
+                <p style="color:#60a5fa;font-weight:600;margin:12px 0 4px">Rasmlarni tanlash</p>
+                <p style="color:#64748b;font-size:13px">20 tagacha • JPG, PNG, WEBP</p>
             </div>
+
+            <input type="file" id="pdfImages" accept="image/*" multiple style="display:none"
+                onchange="previewImages(this)" />
+            <div id="countBadge" style="display:none" class="count-badge">0 ta rasm tanlandi</div>
+            <div class="imgs-preview" id="imgsPreview"></div>
+            <button class="convert-btn" id="pdfBtn" style="display:none" onclick="startImgToPdf()">📄 PDF
+                yaratish</button>
         </div>
     </div>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
@@ -160,11 +163,71 @@
     <script>
         const tg = window.Telegram?.WebApp;
 
-        function startImgToPdf() {
-            if (tg && tg.sendData) {
-                tg.sendData(JSON.stringify({ action: "start_img2pdf" }));
+        let selectedFiles = [];
+
+        function previewImages(input) {
+            selectedFiles = Array.from(input.files).slice(0, 20);
+            const badge = document.getElementById('countBadge');
+            const preview = document.getElementById('imgsPreview');
+            const btn = document.getElementById('pdfBtn');
+            badge.textContent = selectedFiles.length + ' ta rasm tanlandi';
+            badge.style.display = 'inline-block';
+            preview.innerHTML = '';
+            selectedFiles.forEach(f => {
+                const reader = new FileReader();
+                reader.onload = e => {
+                    const img = document.createElement('img');
+                    img.src = e.target.result;
+                    img.className = 'img-thumb';
+                    preview.appendChild(img);
+                };
+                reader.readAsDataURL(f);
+            });
+            btn.style.display = 'block';
+        }
+
+        async function startImgToPdf() {
+            let telegramId = '';
+            if (tg && tg.initDataUnsafe?.user) {
+                telegramId = tg.initDataUnsafe.user.id.toString();
             } else {
-                alert("Faqat Telegram bot orqali ishlaydi!");
+                const urlParams = new URLSearchParams(window.location.search);
+                telegramId = urlParams.get('telegram_id');
+            }
+            if (!telegramId) {
+                alert("Faqat Telegram bot ichida ishlaydi (yoki URL da telegram_id yo'q).");
+                return;
+            }
+            if (selectedFiles.length === 0) return;
+
+            const btn = document.getElementById('pdfBtn');
+            btn.innerHTML = '⏳ Birlashtirilmoqda...';
+            btn.disabled = true;
+
+            const formData = new FormData();
+            formData.append('telegram_id', telegramId);
+            selectedFiles.forEach(f => formData.append('files', f));
+
+            try {
+                const res = await fetch('/api/upload_pdf', { method: 'POST', body: formData });
+                const data = await res.json();
+
+                if (data.status === 'ok') {
+                    if (tg) {
+                        tg.showAlert("✅ PDF botga yuborildi!");
+                        setTimeout(() => tg.close(), 1500);
+                    } else {
+                        alert("✅ PDF botga yuborildi!");
+                    }
+                } else {
+                    alert("Xatolik: " + (data.error || "Noma'lum"));
+                    btn.innerHTML = '📄 PDF yaratish';
+                    btn.disabled = false;
+                }
+            } catch (e) {
+                alert("Serverga ulanishda xato: " + e.message);
+                btn.innerHTML = '📄 PDF yaratish';
+                btn.disabled = false;
             }
         }
     </script>

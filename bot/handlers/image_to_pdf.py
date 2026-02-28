@@ -37,7 +37,7 @@ async def collect_pdf_images(update: Update, context: ContextTypes.DEFAULT_TYPE)
         context.user_data.pop("pdf_images", None)
         await message.reply_text(
             "🏠 **Asosiy menyuga qaytildi**",
-            reply_markup=get_main_menu(),
+            reply_markup=get_main_menu(update.effective_user.id if update.effective_user else None),
             parse_mode=ParseMode.MARKDOWN
         )
         return

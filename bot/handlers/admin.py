@@ -218,7 +218,7 @@ async def handle_admin_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     elif text == "🚪 Panelni yopish":
         from bot.keyboards.reply_keyboards import get_main_menu
-        await update.message.reply_text("🏠 Bosh menyuga qaytildi.", reply_markup=get_main_menu())
+        await update.message.reply_text("🏠 Bosh menyuga qaytildi.", reply_markup=get_main_menu(update.effective_user.id if update.effective_user else None))
 
 # === PAGINATION HELPER (With Escaping) ===
 

@@ -155,7 +155,7 @@ async def smart_callback_handler(update: Update, context: ContextTypes.DEFAULT_T
                 chat_id=chat_id,
                 text=f"📝 **Transkripsiya:**\n\n{text}",
                 parse_mode="Markdown",
-                reply_markup=get_main_menu()
+                reply_markup=get_main_menu(update.effective_user.id if update.effective_user else None)
             )
             return
 

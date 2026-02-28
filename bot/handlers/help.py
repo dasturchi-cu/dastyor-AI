@@ -36,4 +36,4 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "Savollar bo'lsa, 'Aloqa uchun' tugmasini bosing."
     )
     
-    await update.message.reply_text(help_text, parse_mode="Markdown", reply_markup=get_main_menu())
+    await update.message.reply_text(help_text, parse_mode="Markdown", reply_markup=get_main_menu(update.effective_user.id if update.effective_user else None))

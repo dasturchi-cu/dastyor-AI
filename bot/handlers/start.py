@@ -22,12 +22,13 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "Pastdagi 🚀 **Appni ochish** tugmasini bosing:"
         )
         
-        # Web App URL from Render
-        web_app_url = "https://dastyor-ai.onrender.com/webapp/index.html"
+        # Web App URL
+        base_url = "https://dastyor-ai.onrender.com/webapp"
+        user_id = update.effective_user.id
         
         inline_keyboard = InlineKeyboardMarkup([
-            [InlineKeyboardButton("🚀 Appni ochish", web_app=WebAppInfo(url=web_app_url))],
-            [InlineKeyboardButton("💎 Premium", web_app=WebAppInfo(url=f"{web_app_url.replace('index.html', 'premium.html')}"))]
+            [InlineKeyboardButton("🚀 Appni ochish", web_app=WebAppInfo(url=f"{base_url}/index.html?telegram_id={user_id}"))],
+            [InlineKeyboardButton("💎 Premium", web_app=WebAppInfo(url=f"{base_url}/premium.html?telegram_id={user_id}"))]
         ])
         
         await update.message.reply_text(
@@ -38,4 +39,4 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def menu_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handle /menu"""
-    await update.message.reply_text("🏠 **Bosh menyu**", reply_markup=get_main_menu(), parse_mode="Markdown")
+    await update.message.reply_text("🏠 **Bosh menyu**", reply_markup=get_main_menu(update.effective_user.id if update.effective_user else None), parse_mode="Markdown")

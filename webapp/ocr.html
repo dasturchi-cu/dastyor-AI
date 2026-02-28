@@ -272,6 +272,22 @@
             <p class="hero-desc" id="txt_desc">Rasmdagi matnni AI va OCR texnologiyasi yordamida Word hujjatga
                 aylantiring.</p>
 
+            <div class="upload-zone" id="uploadZone" onclick="document.getElementById('imgInput').click()">
+                <span style="font-size: 40px; display: block; margin-bottom: 8px;">📁</span>
+                <div class="up-title" id="txt_up_t">Rasm yuklash uchun bosing</div>
+                <div class="up-sub" id="txt_up_s">JPG, PNG, WEBP — 10 MB gacha</div>
+            </div>
+            <input type="file" id="imgInput" accept="image/*" multiple style="display:none"
+                onchange="handleFile(this)" />
+
+            <div class="preview-wrap" id="previewWrap">
+                <img class="preview-img" id="previewImg" src="" alt="preview" />
+                <div class="preview-info">
+                    <span id="fileName" style="font-size: 13px; font-weight: 600;">rasmlar tanlandi</span>
+                    <button class="remove-btn" id="txt_remove" onclick="removeFile()">✕ O'chirish</button>
+                </div>
+            </div>
+
             <div class="features">
                 <div class="f-item">
                     <span class="f-ico">🎯</span>
@@ -296,8 +312,8 @@
                 </div>
             </div>
 
-            <button class="btn-primary" id="txt_convert" onclick="startOCR()">
-                ⚡ Rasmni Telegram orqali yuborish
+            <button class="btn-primary" id="txt_convert" onclick="startOCR()" disabled style="opacity:0.5">
+                ⚡ Word faylga aylantirish
             </button>
         </div>
     </div>
@@ -364,11 +380,91 @@
             document.getElementById('txt_bot').textContent = strings.bot;
         }
 
-        function startOCR() {
-            if (tg && tg.sendData) {
-                tg.sendData(JSON.stringify({ action: "start_ocr" }));
-            } else {
-                alert(i18n[currentLang].alert);
+        function checkAuth() {
+            if (tg) {
+                tg.ready();
+                tg.expand();
+                tg.headerColor = currentTheme === 'dark' ? '#050f1e' : '#f8fafc';
+                if (tg.initDataUnsafe?.user) {
+                    telegramId = tg.initDataUnsafe.user.id.toString();
+                    return true;
+                }
+            }
+            const urlParams = new URLSearchParams(window.location.search);
+            const urlId = urlParams.get('telegram_id');
+            if (urlId) { telegramId = urlId; return true; }
+            return false;
+        }
+
+        let selectedFiles = [];
+
+        function handleFile(input) {
+            selectedFiles = Array.from(input.files);
+            if (selectedFiles.length === 0) return;
+
+            // Just preview the first one
+            const reader = new FileReader();
+            reader.onload = e => {
+                document.getElementById('previewImg').src = e.target.result;
+                document.getElementById('fileName').textContent = selectedFiles.length > 1 ? `${selectedFiles.length} ta rasm` : selectedFiles[0].name;
+                document.getElementById('previewWrap').classList.add('show');
+                document.getElementById('uploadZone').style.display = 'none';
+                const btn = document.getElementById('txt_convert');
+                btn.disabled = false;
+                btn.style.opacity = '1';
+            };
+            reader.readAsDataURL(selectedFiles[0]);
+            tg?.HapticFeedback?.impactOccurred('medium');
+        }
+
+        function removeFile() {
+            selectedFiles = [];
+            document.getElementById('previewWrap').classList.remove('show');
+            document.getElementById('uploadZone').style.display = 'block';
+            document.getElementById('imgInput').value = '';
+            const btn = document.getElementById('txt_convert');
+            btn.disabled = true;
+            btn.style.opacity = '0.5';
+        }
+
+        async function startOCR() {
+            if (!telegramId) {
+                alert("Faqat Telegram bot ichida ishlaydi (yoki URL da telegram_id yo'q).");
+                return;
+            }
+            if (selectedFiles.length === 0) return;
+
+            const btn = document.getElementById('txt_convert');
+            btn.innerHTML = '⏳ Rasm yuklanmoqda... (Kuting)';
+            btn.disabled = true;
+            btn.style.opacity = '0.7';
+
+            const formData = new FormData();
+            formData.append('telegram_id', telegramId);
+            selectedFiles.forEach(f => formData.append('files', f));
+
+            try {
+                const res = await fetch('/api/upload_ocr', { method: 'POST', body: formData });
+                const data = await res.json();
+
+                if (data.status === 'ok') {
+                    if (tg) {
+                        tg.showAlert("✅ Rasm botga yuborildi! Word fayl o'sha yerda keladi.");
+                        setTimeout(() => tg.close(), 1500);
+                    } else {
+                        alert("✅ Rasm botga yuborildi! Word fayl o'sha yerda keladi.");
+                    }
+                } else {
+                    alert("Xatolik: " + (data.error || "Noma'lum"));
+                    btn.innerHTML = '⚡ Word faylga aylantirish';
+                    btn.disabled = false;
+                    btn.style.opacity = '1';
+                }
+            } catch (e) {
+                alert("Serverga ulanishda xato: " + e.message);
+                btn.innerHTML = '⚡ Word faylga aylantirish';
+                btn.disabled = false;
+                btn.style.opacity = '1';
             }
         }
 

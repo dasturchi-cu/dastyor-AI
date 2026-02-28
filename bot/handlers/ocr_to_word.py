@@ -186,7 +186,7 @@ async def handle_ocr_image(update: Update, context: ContextTypes.DEFAULT_TYPE):
         del context.user_data['waiting_for']
         await update.message.reply_text(
             "🏠 **Asosiy menyuga qaytildi**",
-            reply_markup=get_main_menu(),
+            reply_markup=get_main_menu(update.effective_user.id if update.effective_user else None),
             parse_mode=ParseMode.MARKDOWN
         )
         return

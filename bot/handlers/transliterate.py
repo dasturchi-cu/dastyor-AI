@@ -64,7 +64,7 @@ async def process_transliteration(update: Update, context: ContextTypes.DEFAULT_
             context.user_data.pop('transliterate_direction', None)
             await update.message.reply_text(
                 "🏠 Asosiy menyu",
-                reply_markup=get_main_menu()
+                reply_markup=get_main_menu(update.effective_user.id if update.effective_user else None)
             )
             return
         

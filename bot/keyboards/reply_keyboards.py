@@ -1,12 +1,13 @@
 from telegram import ReplyKeyboardMarkup, KeyboardButton, WebAppInfo
 
 
-def get_main_menu():
+def get_main_menu(user_id=None):
     """
     Returns the main menu grid matching plan.md exactly.
     9 service buttons + webapp launcher.
     """
-    web_app_url = "https://dastyor-ai.onrender.com/webapp/index.html"
+    base_url = "https://dastyor-ai.onrender.com/webapp/index.html"
+    web_app_url = f"{base_url}?telegram_id={user_id}" if user_id else base_url
 
     keyboard = [
         [
