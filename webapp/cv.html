@@ -1,4 +1,4 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="uz" data-theme="dark">
 
 <head>
@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
   <title>CV Builder | DASTYOR AI</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet" />
   <style>
     *,
     *::before,
@@ -17,151 +17,189 @@
     }
 
     :root[data-theme="dark"] {
-      --bg: #0a1628;
-      --card: #131f35;
-      --border: #1e3050;
-      --text: #e2e8f0;
+      --bg: #050f1e;
+      --body-bg: linear-gradient(180deg, #060d1f, #0a1628);
+      --card: rgba(255, 255, 255, .05);
+      --border: rgba(255, 255, 255, .08);
+      --text: #f0f4f8;
       --muted: #64748b;
-      --accent: #3b82f6;
-      --inp: #0a1628;
-      --green: #10b981
+      --accent: #2563eb;
+      --inp: rgba(255, 255, 255, .03);
+      --hdr: rgba(6, 13, 31, .95);
+      --tab-bg: rgba(255, 255, 255, .04);
+      --preview-bg: #2d3748
     }
 
     :root[data-theme="light"] {
       --bg: #f1f5f9;
+      --body-bg: linear-gradient(180deg, #f8fafc, #f1f5f9);
       --card: #fff;
       --border: #e2e8f0;
       --text: #0f172a;
       --muted: #64748b;
       --accent: #2563eb;
       --inp: #f8fafc;
-      --green: #059669
+      --hdr: rgba(255, 255, 255, .97);
+      --tab-bg: #f1f5f9;
+      --preview-bg: #4a5568
+    }
+
+    html,
+    body {
+      height: 100%;
+      overflow: hidden
     }
 
     body {
       font-family: 'Inter', sans-serif;
       background: var(--bg);
+      background-image: var(--body-bg);
       color: var(--text);
       font-size: 14px;
-      min-height: 100vh;
       display: flex;
       flex-direction: column
     }
 
     .hdr {
       height: 52px;
-      background: var(--card);
+      background: var(--hdr);
       border-bottom: 1px solid var(--border);
       display: flex;
       align-items: center;
-      padding: 0 12px;
+      padding: 0 14px;
       gap: 10px;
-      flex-shrink: 0
+      flex-shrink: 0;
+      backdrop-filter: blur(20px)
     }
 
     .back {
-      width: 32px;
-      height: 32px;
-      border-radius: 8px;
-      background: var(--bg);
+      width: 34px;
+      height: 34px;
+      border-radius: 10px;
+      background: var(--card);
       border: 1px solid var(--border);
       display: flex;
       align-items: center;
       justify-content: center;
       cursor: pointer;
-      font-size: 16px;
+      font-size: 15px;
       color: var(--text);
       flex-shrink: 0
     }
 
-    .hdr b {
-      font-size: 15px;
+    .hdr-info {
       flex: 1
     }
 
-    .hdr-badge {
-      font-size: 10px;
-      font-weight: 700;
-      color: var(--accent);
-      background: rgba(59, 130, 246, .1);
-      padding: 3px 8px;
-      border-radius: 20px
+    .hdr-info b {
+      font-size: 15px;
+      font-weight: 800;
+      display: block
+    }
+
+    .hdr-info span {
+      font-size: 11px;
+      color: var(--muted);
+      font-weight: 600
+    }
+
+    .hdr-logo {
+      font-size: 11px;
+      font-weight: 900;
+      color: var(--accent)
     }
 
     .tabs {
       display: flex;
-      padding: 10px 12px;
       gap: 6px;
-      background: var(--card);
+      padding: 10px 14px;
+      background: var(--hdr);
       border-bottom: 1px solid var(--border);
       flex-shrink: 0;
-      overflow-x: auto
+      overflow-x: auto;
+      -ms-overflow-style: none;
+      scrollbar-width: none
+    }
+
+    .tabs::-webkit-scrollbar {
+      display: none
     }
 
     .tab {
-      white-space: nowrap;
-      padding: 5px 12px;
+      padding: 5px 13px;
       border-radius: 20px;
       font-size: 12px;
       font-weight: 700;
       cursor: pointer;
-      background: var(--bg);
+      background: var(--tab-bg);
       color: var(--muted);
       border: 1.5px solid var(--border);
       transition: .2s;
+      white-space: nowrap;
       flex-shrink: 0
     }
 
     .tab.on {
       background: var(--accent);
       color: #fff;
-      border-color: var(--accent)
+      border-color: var(--accent);
+      box-shadow: 0 4px 12px rgba(37, 99, 235, .3)
     }
 
-    .body {
+    .split {
       display: flex;
       flex-direction: column;
       flex: 1;
       overflow: hidden
     }
 
-    .form-pane {
-      flex: 1;
+    .form-wrap {
+      flex: 0 0 auto;
+      max-height: 42vh;
       overflow-y: auto;
-      padding: 12px;
-      min-height: 0
+      padding: 12px 14px;
+      border-bottom: 2px solid var(--border)
     }
 
-    .step-panel {
+    .form-wrap::-webkit-scrollbar {
+      width: 3px
+    }
+
+    .form-wrap::-webkit-scrollbar-thumb {
+      background: var(--border);
+      border-radius: 3px
+    }
+
+    .step {
       display: none
     }
 
-    .step-panel.on {
+    .step.on {
       display: block
     }
 
     label {
       display: block;
-      font-size: 11px;
-      font-weight: 700;
+      font-size: 10px;
+      font-weight: 800;
       color: var(--muted);
-      margin-bottom: 4px;
+      margin-bottom: 3px;
       text-transform: uppercase;
-      letter-spacing: .4px
+      letter-spacing: .5px
     }
 
     input,
     select,
     textarea {
       width: 100%;
-      padding: 11px 13px;
+      padding: 10px 13px;
       border: 1.5px solid var(--border);
-      border-radius: 11px;
+      border-radius: 12px;
       background: var(--inp);
       color: var(--text);
       font-family: inherit;
-      font-size: 14px;
-      margin-bottom: 10px;
+      font-size: 13px;
+      margin-bottom: 9px;
       transition: .2s;
       -webkit-appearance: none
     }
@@ -175,7 +213,7 @@
     }
 
     textarea {
-      min-height: 68px;
+      min-height: 60px;
       resize: vertical
     }
 
@@ -188,20 +226,19 @@
       flex: 1
     }
 
-    .nav-row {
+    .nav {
       display: flex;
       gap: 8px;
-      margin-top: 4px;
-      padding-bottom: 4px
+      margin-top: 2px
     }
 
     .btn {
       flex: 1;
-      padding: 13px;
+      padding: 11px;
       border-radius: 12px;
       border: none;
       font-weight: 700;
-      font-size: 14px;
+      font-size: 13px;
       cursor: pointer;
       transition: .15s
     }
@@ -218,25 +255,49 @@
     .btn-g {
       background: var(--border);
       color: var(--muted);
-      flex: 0 0 90px
+      flex: 0 0 84px
     }
 
-    .chip-list {
+    .add-box {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 12px;
+      margin-bottom: 10px
+    }
+
+    .add-box input {
+      margin-bottom: 7px
+    }
+
+    .add-box button {
+      width: 100%;
+      padding: 9px;
+      border-radius: 10px;
+      border: none;
+      background: var(--accent);
+      color: #fff;
+      font-weight: 700;
+      cursor: pointer;
+      font-size: 13px
+    }
+
+    .chips {
       display: flex;
       flex-direction: column;
-      gap: 6px;
-      margin-bottom: 10px
+      gap: 5px;
+      margin-bottom: 8px
     }
 
     .chip {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      background: var(--bg);
-      border: 1px solid var(--border);
+      background: rgba(37, 99, 235, .07);
+      border: 1px solid rgba(37, 99, 235, .15);
       border-radius: 10px;
-      padding: 8px 12px;
-      font-size: 13px
+      padding: 8px 10px;
+      font-size: 12px
     }
 
     .chip-del {
@@ -244,88 +305,197 @@
       border: none;
       color: #ef4444;
       cursor: pointer;
-      font-size: 16px;
-      flex-shrink: 0;
-      padding: 0 2px
-    }
-
-    .divider {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 0 12px;
+      font-size: 15px;
       flex-shrink: 0
     }
 
-    .divider span {
-      font-size: 11px;
-      font-weight: 700;
-      color: var(--muted);
-      text-transform: uppercase;
-      letter-spacing: .5px;
-      white-space: nowrap
-    }
-
-    .divider hr {
+    /* PREVIEW */
+    .prev-wrap {
       flex: 1;
-      border: none;
-      border-top: 1px solid var(--border)
-    }
-
-    .prev-pane {
-      background: var(--card);
-      border-top: 1px solid var(--border);
-      flex-shrink: 0;
-      max-height: 38vh;
-      overflow-y: auto
-    }
-
-    .prev-body {
-      padding: 10px 12px;
+      background: var(--preview-bg);
       display: flex;
       flex-direction: column;
-      gap: 2px
+      overflow: hidden;
+      min-height: 0
     }
 
-    .prev-row {
+    .prev-bar {
       display: flex;
-      gap: 8px;
-      padding: 4px 0;
-      border-bottom: 1px solid var(--border);
-      align-items: flex-start;
-      font-size: 13px
+      align-items: center;
+      justify-content: space-between;
+      padding: 7px 14px;
+      background: rgba(0, 0, 0, .25);
+      flex-shrink: 0
     }
 
-    .prev-row:last-child {
-      border-bottom: none
-    }
-
-    .prev-lbl {
-      color: var(--muted);
+    .prev-bar-left {
       font-size: 11px;
       font-weight: 700;
-      width: 80px;
-      flex-shrink: 0;
-      padding-top: 1px
-    }
-
-    .prev-val {
-      color: var(--text);
-      flex: 1;
-      word-break: break-word
-    }
-
-    .prev-val.empty {
-      color: var(--border)
-    }
-
-    .prev-section {
-      font-size: 11px;
-      font-weight: 800;
-      color: var(--accent);
+      color: rgba(255, 255, 255, .6);
       text-transform: uppercase;
-      letter-spacing: .5px;
-      padding: 6px 0 2px
+      letter-spacing: .5px
+    }
+
+    .prev-actions {
+      display: flex;
+      gap: 6px
+    }
+
+    .prev-actions button {
+      padding: 5px 12px;
+      border-radius: 8px;
+      border: none;
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer
+    }
+
+    .btn-word {
+      background: rgba(43, 87, 154, .8);
+      color: #fff
+    }
+
+    .btn-pdf {
+      background: rgba(220, 53, 69, .8);
+      color: #fff
+    }
+
+    .prev-scroll {
+      flex: 1;
+      overflow: auto;
+      display: flex;
+      justify-content: center;
+      padding: 16px 8px;
+      min-height: 0
+    }
+
+    /* CV DOCUMENT STYLE */
+    .doc {
+      background: white;
+      color: #000;
+      font-family: 'Times New Roman', serif;
+      font-size: 10.5pt;
+      line-height: 1.5;
+      transform-origin: top center;
+      flex-shrink: 0;
+      width: 210mm;
+      padding: 15mm 18mm;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, .5);
+      border-radius: 2px
+    }
+
+    .cv-header {
+      display: flex;
+      gap: 16px;
+      margin-bottom: 16px;
+      align-items: flex-start
+    }
+
+    .cv-photo {
+      width: 3cm;
+      height: 4cm;
+      border: 1px solid #aaa;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #aaa;
+      font-size: 9pt;
+      text-align: center;
+      flex-shrink: 0;
+      background: #f9f9f9;
+      font-family: 'Times New Roman', serif
+    }
+
+    .cv-info {
+      flex: 1
+    }
+
+    .cv-name {
+      font-size: 16pt;
+      font-weight: 900;
+      text-transform: uppercase;
+      margin-bottom: 3px
+    }
+
+    .cv-sub {
+      font-size: 11pt;
+      font-weight: 700;
+      color: #333;
+      margin-bottom: 10px
+    }
+
+    .cv-row {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 4px;
+      font-size: 10pt;
+      align-items: baseline
+    }
+
+    .cv-lbl {
+      font-weight: 700;
+      white-space: nowrap;
+      min-width: 90px
+    }
+
+    .cv-val {
+      color: #333
+    }
+
+    .cv-section {
+      border-left: 3px solid #000;
+      padding-left: 8px;
+      margin: 14px 0 8px;
+      font-size: 11pt;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: .5px
+    }
+
+    .cv-skill {
+      display: inline-block;
+      border: 1px solid #000;
+      border-radius: 3px;
+      padding: 1px 7px;
+      margin: 2px;
+      font-size: 9pt
+    }
+
+    .cv-exp-item {
+      margin-bottom: 10px;
+      padding-left: 12px;
+      border-left: 2px solid #ccc
+    }
+
+    .cv-exp-date {
+      font-size: 9pt;
+      font-weight: 700;
+      color: #555
+    }
+
+    .cv-exp-place {
+      font-weight: 700
+    }
+
+    .rel-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 6px;
+      font-size: 9pt
+    }
+
+    .rel-table th,
+    .rel-table td {
+      border: 1px solid #000;
+      padding: 3px 5px;
+      text-align: center;
+      vertical-align: middle
+    }
+
+    .rel-table th {
+      background: #eee;
+      font-weight: 700;
+      font-size: 8.5pt
     }
   </style>
 </head>
@@ -334,8 +504,11 @@
 
   <div class="hdr">
     <div class="back" id="backBtn">←</div>
-    <b>📄 CV Builder</b>
-    <span class="hdr-badge">DASTYOR AI</span>
+    <div class="hdr-info">
+      <b>📄 CV Builder</b>
+      <span>To'ldiring — pastda ko'ring</span>
+    </div>
+    <span class="hdr-logo">DASTYOR AI</span>
   </div>
 
   <div class="tabs">
@@ -345,123 +518,138 @@
     <div class="tab" onclick="go(3)">👨‍👩‍👧 Oila</div>
   </div>
 
-  <div class="body">
-    <div class="form-pane">
+  <div class="split">
+    <div class="form-wrap">
 
-      <!-- S0: Shaxsiy -->
-      <div class="step-panel on" id="p0">
+      <!-- S0 -->
+      <div class="step on" id="s0">
         <label>F.I.SH (To'liq)</label>
         <input id="name" placeholder="Aliyev Vali G'aniyevich" oninput="lp()">
-
         <div class="two">
           <div><label>Tug'ilgan yili</label><input id="birth" placeholder="1990" oninput="lp()"></div>
           <div><label>Millati</label><input id="nation" placeholder="O'zbek" oninput="lp()"></div>
         </div>
-
         <label>Tug'ilgan joyi</label>
         <input id="place" placeholder="Toshkent shahri" oninput="lp()">
-
-        <label>Partiyaviyligi</label>
-        <input id="party" value="Yo'q" oninput="lp()">
-
-        <label>Qayd etilgan manzil</label>
+        <label>Joriy manzil</label>
         <input id="addr" placeholder="Toshkent sh., Chilonzor t." oninput="lp()">
-
-        <div class="nav-row">
-          <button class="btn btn-p" onclick="go(1)">Ta'lim →</button>
-        </div>
+        <div class="nav"><button class="btn btn-p" onclick="go(1)">Ta'lim →</button></div>
       </div>
 
-      <!-- S1: Ta'lim -->
-      <div class="step-panel" id="p1">
+      <!-- S1 -->
+      <div class="step" id="s1">
         <label>Ma'lumoti</label>
         <select id="edu" onchange="lp()">
           <option>Oliy</option>
           <option>O'rta maxsus</option>
           <option>O'rta</option>
         </select>
-
         <label>Tamomlagan o'quv yurti</label>
-        <textarea id="grad" placeholder="2018 y., Toshkent Davlat Texnika Universiteti, Muhandislik"
-          oninput="lp()"></textarea>
-
-        <label>Mutaxassisligi (diplom bo'yicha)</label>
-        <input id="spec" placeholder="Muhandis" oninput="lp()">
-
-        <div class="two">
-          <div><label>Ilmiy darajasi</label><input id="deg" value="Yo'q" oninput="lp()"></div>
-          <div><label>Ilmiy unvoni</label><input id="ttl" value="Yo'q" oninput="lp()"></div>
-        </div>
-
-        <label>Chet tillar</label>
-        <input id="langs" value="Yo'q" oninput="lp()">
-
+        <textarea id="grad" placeholder="2018 y., ToshDTU, Muhandis" oninput="lp()"></textarea>
+        <label>Mutaxassisligi</label>
+        <input id="spec" placeholder="Muhandis-konstruktor" oninput="lp()">
         <label>Kompyuter ko'nikmalari</label>
-        <input id="skills" placeholder="MS Word, Excel, 1C..." oninput="lp()">
-
-        <div class="nav-row">
-          <button class="btn btn-g" onclick="go(0)">←</button>
-          <button class="btn btn-p" onclick="go(2)">Tajriba →</button>
-        </div>
+        <input id="skills" placeholder="MS Office, 1C, AutoCAD" oninput="lp()">
+        <label>Chet tillari</label>
+        <input id="langs" value="Yo'q" oninput="lp()">
+        <div class="nav"><button class="btn btn-g" onclick="go(0)">←</button><button class="btn btn-p"
+            onclick="go(2)">Tajriba →</button></div>
       </div>
 
-      <!-- S2: Mehnat tajribasi -->
-      <div class="step-panel" id="p2">
-        <p style="font-size:12px;color:var(--muted);margin-bottom:10px">Hozirgi ish joyini oxiriga kiriting</p>
-        <div class="chip-list" id="workList"></div>
-
-        <div
-          style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px;margin-bottom:10px">
+      <!-- S2 -->
+      <div class="step" id="s2">
+        <div class="chips" id="workChips"></div>
+        <div class="add-box">
           <div class="two">
-            <div><label>Boshidan</label><input id="wF" placeholder="2018"></div>
+            <div><label>Dan (yil)</label><input id="wF" placeholder="2018"></div>
             <div><label>Gacha</label><input id="wT" placeholder="h.v / 2023"></div>
           </div>
           <label>Korxona va lavozim</label>
-          <input id="wD" placeholder="«Korxona nomi», Lavozim" style="margin-bottom:8px">
-          <button class="btn btn-p" onclick="addWork()" style="padding:10px">+ Qo'shish</button>
+          <input id="wD" placeholder="«Korxona», Muhandis" style="margin-bottom:8px">
+          <button onclick="addWork()">+ Qo'shish</button>
         </div>
-
-        <div class="nav-row">
-          <button class="btn btn-g" onclick="go(1)">←</button>
-          <button class="btn btn-p" onclick="go(3)">Oila →</button>
-        </div>
+        <div class="nav"><button class="btn btn-g" onclick="go(1)">←</button><button class="btn btn-p"
+            onclick="go(3)">Oila →</button></div>
       </div>
 
-      <!-- S3: Oila -->
-      <div class="step-panel" id="p3">
-        <p style="font-size:12px;color:var(--muted);margin-bottom:10px">Ota, ona, aka, uka, opa, singil, turmush
-          o'rtog'i va farzandlar</p>
-        <div class="chip-list" id="relList"></div>
-
-        <div
-          style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px;margin-bottom:10px">
-          <label>Munosabat</label>
-          <input id="rT" placeholder="Otasi / Onasi / O'g'li...">
-          <label>F.I.SH</label>
-          <input id="rN" placeholder="Ismi sharifi">
+      <!-- S3 -->
+      <div class="step" id="s3">
+        <p style="font-size:11px;color:var(--muted);margin-bottom:8px">Ota, ona, aka, uka, opa, singil, turmush
+          o'rtog'i, farzandlar</p>
+        <div class="chips" id="relChips"></div>
+        <div class="add-box">
+          <label>Munosabat</label><input id="rT" placeholder="Otasi / Onasi...">
+          <label>F.I.SH</label><input id="rN" placeholder="To'liq ismi">
           <div class="two">
-            <div><label>Tug'ilgan yili</label><input id="rB" placeholder="1960"></div>
+            <div><label>Tug'ilgan yili/joyi</label><input id="rB" placeholder="1960, Toshkent"></div>
             <div><label>Yashash joyi</label><input id="rA" placeholder="Toshkent sh."></div>
           </div>
           <label>Ish joyi</label>
-          <input id="rJ" placeholder="Ish joyi va lavozim" style="margin-bottom:8px">
-          <button class="btn btn-p" onclick="addRel()" style="padding:10px">+ Qo'shish</button>
+          <input id="rJ" placeholder="«Korxona», Lavozim" style="margin-bottom:8px">
+          <button onclick="addRel()">+ Qo'shish</button>
         </div>
-
-        <div class="nav-row">
-          <button class="btn btn-g" onclick="go(2)">←</button>
-          <button class="btn btn-p" onclick="finish()" style="background:#10b981">✅ Tayyor!</button>
-        </div>
+        <div class="nav"><button class="btn btn-g" onclick="go(2)">←</button><button class="btn btn-p"
+            style="background:#10b981" onclick="finish()">✅ Tayyor</button></div>
       </div>
 
-    </div><!-- /form-pane -->
-
-    <div class="divider">
-      <hr><span>Live Ko'rinish</span>
-      <hr>
     </div>
-    <div class="prev-pane">
-      <div class="prev-body" id="prevBody"></div>
+
+    <!-- LIVE CV PREVIEW -->
+    <div class="prev-wrap">
+      <div class="prev-bar">
+        <span class="prev-bar-left">📄 CV — Live Ko'rinish</span>
+        <div class="prev-actions">
+          <button class="btn-word">Word</button>
+          <button class="btn-pdf">PDF</button>
+        </div>
+      </div>
+      <div class="prev-scroll" id="prevScroll">
+        <div class="doc" id="doc">
+          <div class="cv-header">
+            <div class="cv-photo">3×4<br>FOTO</div>
+            <div class="cv-info">
+              <div class="cv-name" id="p_name">FAMILIYA ISM</div>
+              <div class="cv-sub" id="p_spec_h">Mutaxassis</div>
+              <div class="cv-row"><span class="cv-lbl">📅 Tug'ilgan:</span><span class="cv-val" id="p_birth"></span>
+              </div>
+              <div class="cv-row"><span class="cv-lbl">📍 Manzil:</span><span class="cv-val" id="p_addr"></span></div>
+              <div class="cv-row"><span class="cv-lbl">🌐 Tillar:</span><span class="cv-val" id="p_langs"></span></div>
+            </div>
+          </div>
+
+          <div class="cv-section">📚 Ta'lim</div>
+          <div class="cv-row"><span class="cv-lbl">Ma'lumoti:</span><span class="cv-val" id="p_edu"></span></div>
+          <div id="p_grad_wrap">
+            <div class="cv-row"><span class="cv-lbl">Tamomlagan:</span><span class="cv-val" id="p_grad"></span></div>
+          </div>
+
+          <div class="cv-section" id="skills_sec" style="display:none">🛠 Ko'nikmalar</div>
+          <div id="p_skills"></div>
+
+          <div class="cv-section" id="work_sec">💼 Ish Tajribasi</div>
+          <div id="p_works">
+            <div style="color:#ccc;font-style:italic;font-size:10pt">—</div>
+          </div>
+
+          <div class="cv-section" id="rel_sec">👨‍👩‍👧 Oila A'zolari</div>
+          <table class="rel-table">
+            <thead>
+              <tr>
+                <th>Munosabat</th>
+                <th>F.I.SH</th>
+                <th>Tug'ilgan yili/joyi</th>
+                <th>Ish joyi</th>
+                <th>Manzili</th>
+              </tr>
+            </thead>
+            <tbody id="p_rels">
+              <tr>
+                <td colspan="5" style="color:#ccc;font-style:italic">—</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -469,25 +657,54 @@
     const tg = window.Telegram?.WebApp;
     const theme = localStorage.getItem('theme') || 'dark';
     document.documentElement.setAttribute('data-theme', theme);
-    if (tg) { tg.ready(); tg.expand(); if (tg.setHeaderColor) tg.setHeaderColor(theme === 'dark' ? '#0a1628' : '#f1f5f9'); }
-    const urlP = new URLSearchParams(location.search);
-    const tid = urlP.get('telegram_id') || tg?.initDataUnsafe?.user?.id?.toString() || '';
+    if (tg) { tg.ready(); tg.expand(); if (tg.setHeaderColor) tg.setHeaderColor(theme === 'dark' ? '#050f1e' : '#f1f5f9'); }
+    const tid = new URLSearchParams(location.search).get('telegram_id') || tg?.initDataUnsafe?.user?.id?.toString() || '';
     document.getElementById('backBtn').onclick = () => { location.href = 'index.html' + (tid ? '?telegram_id=' + tid : ''); };
 
-    const tabs = document.querySelectorAll('.tab');
-    const panels = document.querySelectorAll('.step-panel');
-    let cur = 0;
+    const tabs = document.querySelectorAll('.tab'), steps = document.querySelectorAll('.step');
     const works = [], rels = [];
-
-    function go(n) {
-      cur = n;
-      tabs.forEach((t, i) => t.classList.toggle('on', i === n));
-      panels.forEach((p, i) => p.classList.toggle('on', i === n));
-      tg?.HapticFeedback?.impactOccurred('light');
-      document.querySelector('.form-pane').scrollTop = 0;
-      lp();
-    }
+    function go(n) { tabs.forEach((t, i) => t.classList.toggle('on', i === n)); steps.forEach((s, i) => s.classList.toggle('on', i === n)); tg?.HapticFeedback?.impactOccurred('light'); document.querySelector('.form-wrap').scrollTop = 0; }
     function v(id) { return (document.getElementById(id)?.value || '').trim(); }
+    function set(id, val) { const e = document.getElementById(id); if (e) e.textContent = val || ''; }
+
+    function scaleDoc() {
+      const scroll = document.getElementById('prevScroll'), doc = document.getElementById('doc');
+      const avail = scroll.clientWidth - 16;
+      const sc = Math.min(1, avail / (doc.scrollWidth || 794));
+      doc.style.transform = `scale(${sc})`;
+      doc.style.marginBottom = `-${doc.scrollHeight * (1 - sc)}px`;
+    }
+    window.addEventListener('resize', scaleDoc);
+    setTimeout(scaleDoc, 100);
+
+    function lp() {
+      set('p_name', (v('name') || 'FAMILIYA ISM').toUpperCase());
+      set('p_spec_h', v('spec') || 'Mutaxassis');
+      set('p_birth', v('birth') + (v('place') ? ' · ' + v('place') : ''));
+      set('p_addr', v('addr'));
+      set('p_langs', v('langs'));
+      set('p_edu', v('edu'));
+      set('p_grad', v('grad'));
+
+      // Skills
+      const sk = v('skills');
+      const ss = document.getElementById('skills_sec');
+      const sp = document.getElementById('p_skills');
+      if (sk) { ss.style.display = ''; sp.innerHTML = sk.split(',').map(s => `<span class="cv-skill">${s.trim()}</span>`).join(''); }
+      else { ss.style.display = 'none'; sp.innerHTML = ''; }
+
+      // Works
+      const wb = document.getElementById('p_works');
+      wb.innerHTML = works.length
+        ? works.map(w => `<div class="cv-exp-item"><div class="cv-exp-date">${w.f} – ${w.t}</div><div class="cv-exp-place">${w.d}</div></div>`).join('')
+        : '<div style="color:#ccc;font-style:italic;font-size:10pt">—</div>';
+
+      // Rels
+      const rb = document.getElementById('p_rels');
+      rb.innerHTML = rels.length
+        ? rels.map(r => `<tr><td>${r.type}</td><td>${r.name}</td><td>${r.birth}</td><td>${r.job}</td><td>${r.addr}</td></tr>`).join('')
+        : '<tr><td colspan="5" style="color:#ccc;font-style:italic">—</td></tr>';
+    }
 
     function addWork() {
       const o = { f: v('wF'), t: v('wT'), d: v('wD') };
@@ -496,12 +713,10 @@
       ['wF', 'wT', 'wD'].forEach(id => { document.getElementById(id).value = ''; });
     }
     function renderWorks() {
-      document.getElementById('workList').innerHTML = works.map((w, i) =>
-        `<div class="chip"><div><b>${w.f}–${w.t}</b><br><span style="font-size:12px;color:var(--muted)">${w.d}</span></div>
-       <button class="chip-del" onclick="works.splice(${i},1);renderWorks();lp()">✕</button></div>`
+      document.getElementById('workChips').innerHTML = works.map((w, i) =>
+        `<div class="chip"><span><b>${w.f}–${w.t}:</b> ${w.d}</span><button class="chip-del" onclick="works.splice(${i},1);renderWorks();lp()">✕</button></div>`
       ).join('');
     }
-
     function addRel() {
       const o = { type: v('rT'), name: v('rN'), birth: v('rB'), addr: v('rA'), job: v('rJ') };
       if (!o.type || !o.name) { alert('Munosabat va ismni kiriting'); return; }
@@ -509,50 +724,13 @@
       ['rT', 'rN', 'rB', 'rA', 'rJ'].forEach(id => { document.getElementById(id).value = ''; });
     }
     function renderRels() {
-      document.getElementById('relList').innerHTML = rels.map((r, i) =>
-        `<div class="chip"><div><b>${r.type}:</b> ${r.name}<br><span style="font-size:12px;color:var(--muted)">${r.birth} · ${r.addr}</span></div>
-       <button class="chip-del" onclick="rels.splice(${i},1);renderRels();lp()">✕</button></div>`
+      document.getElementById('relChips').innerHTML = rels.map((r, i) =>
+        `<div class="chip"><span><b>${r.type}:</b> ${r.name}</span><button class="chip-del" onclick="rels.splice(${i},1);renderRels();lp()">✕</button></div>`
       ).join('');
     }
-
-    function row(lbl, val) {
-      const e = !val || val === 'Yo\'q';
-      return `<div class="prev-row"><span class="prev-lbl">${lbl}</span><span class="prev-val${e ? ' empty' : ''}">${val || '—'}</span></div>`;
-    }
-
-    function lp() {
-      let h = '';
-      h += '<div class="prev-section">👤 SHAXSIY</div>';
-      h += row('F.I.SH', v('name'));
-      h += row('Tug\'ilgan', v('birth') + (v('place') ? ' · ' + v('place') : ''));
-      h += row('Millati', v('nation'));
-      h += row('Manzil', v('addr'));
-      h += row('Partiyaviy', v('party'));
-
-      h += '<div class="prev-section">📚 TA\'LIM</div>';
-      h += row('Ma\'lumoti', v('edu'));
-      h += row('Tamomlagan', v('grad'));
-      h += row('Mutaxassis', v('spec'));
-      h += row('Il. daraja', v('deg'));
-      h += row('Tillar', v('langs'));
-      h += row('Ko\'nikmalar', v('skills'));
-
-      if (works.length) {
-        h += '<div class="prev-section">💼 ISH TAJRIBASI</div>';
-        works.forEach(w => { h += row(w.f + '–' + w.t, w.d); });
-      }
-      if (rels.length) {
-        h += '<div class="prev-section">👨‍👩‍👧 OILA A\'ZOLARI</div>';
-        rels.forEach(r => { h += row(r.type, r.name + (r.birth ? ' · ' + r.birth : '') + (r.job ? ' · ' + r.job : '')); });
-      }
-
-      document.getElementById('prevBody').innerHTML = h;
-    }
-
     function finish() {
-      tg?.showAlert('CV tayyor! @DastyorAiBot bot orqali hoʻjjat yuklab oling.') || alert('CV tayyor!');
+      tg?.showAlert('Tayyor! @DastyorAiBot orqali DOCX yuklab oling.') || alert('Tayyor!');
     }
-
     lp();
   </script>
 </body>
