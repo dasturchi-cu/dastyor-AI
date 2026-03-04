@@ -833,8 +833,7 @@
         async function startOCR() {
             if (fileQueue.length === 0) return;
 
-            // Kompyuterda ochilgan bo'lsa mahalliy server (127.0.0.1:8000) ga ulanadi
-            let apiBase = location.protocol === 'file:' ? 'http://127.0.0.1:8000' : location.origin;
+            let apiBase = location.protocol === 'file:' ? 'https://dastyor-ai.onrender.com' : location.origin;
 
             const convBtn = document.getElementById('convBtn');
             convBtn.innerHTML = '<div class="spin"></div> Jarayon...';
