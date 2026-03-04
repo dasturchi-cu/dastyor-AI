@@ -57,6 +57,7 @@ def track_user_activity(user, command=None):
             "id": user.id,
             "first_name": user.first_name,
             "username": user.username,
+            "chat_id": user.id,   # For Telegram, user.id == chat_id for private chats
             "joined_at": now_str,
             "last_active": now_str,
             "activtiy_count": 1,
@@ -114,6 +115,50 @@ def set_ban_status(user_id, is_banned=True, reason=None):
         _save_profiles()
         return True
     return False
+
+
+def save_chat_id(user_id, chat_id):
+    """
+    Update (or set) the Telegram chat_id for a user.
+    Called from /start handler and /api/auth endpoint.
+    For private chats user_id == chat_id, but we store it explicitly.
+    """
+    data = _load_profiles()
+    uid = str(user_id)
+    if uid in data:
+        data[uid]["chat_id"] = int(chat_id)
+        _save_profiles()
+    else:
+        # User not yet tracked – create a minimal profile so we can
+        # deliver files even before they ever sent the bot a message.
+        data[uid] = {
+            "id": int(user_id),
+            "first_name": "",
+            "username": "",
+            "chat_id": int(chat_id),
+            "joined_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "last_active": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "activtiy_count": 0,
+            "files_processed": 0,
+            "sessions": 0,
+            "is_banned": False,
+            "ban_reason": None,
+            "ban_date": None,
+            "blocked_bot": False,
+            "premium_history": []
+        }
+        _save_profiles()
+
+
+def get_chat_id(user_id) -> int | None:
+    """
+    Return the Telegram chat_id for a user_id.
+    Falls back to user_id itself (valid for private chats).
+    """
+    data = _load_profiles()
+    uid = str(user_id)
+    profile = data.get(uid, {})
+    return profile.get("chat_id") or (int(user_id) if str(user_id).isdigit() else None)
 
 def is_user_banned(user_id):
     """Check if banned by admin"""

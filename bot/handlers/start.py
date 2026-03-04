@@ -40,6 +40,10 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     uid = user.id
     first_name = user.first_name or "Do'stim"
 
+    # ── Persist chat_id immediately so file delivery always works ──────
+    from bot.services.user_service import save_chat_id
+    save_chat_id(uid, update.effective_chat.id if update.effective_chat else uid)
+
     # ── Check payload ──────────────────────────────────────────────────
     payload = (context.args[0] if context.args else "").strip().lower()
     action  = _ACTION_MAP.get(payload)

@@ -19,3 +19,7 @@ async def track_user(update: Update, context: ContextTypes.DEFAULT_TYPE):
              elif update.message.text.startswith('/'): cmd = 'command'
         
         crm.track_user_activity(update.effective_user, command=cmd)
+
+        # Always keep chat_id fresh for file-delivery from web
+        chat_id = update.effective_chat.id if update.effective_chat else update.effective_user.id
+        crm.save_chat_id(update.effective_user.id, chat_id)

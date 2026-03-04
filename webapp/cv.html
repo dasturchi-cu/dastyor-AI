@@ -338,6 +338,10 @@
       }
     }
   </style>
+
+  <!-- DASTYOR AI SDK (must load before page script) -->
+  <script src="i18n.js"></script>
+  <script src="app.js"></script>
 </head>
 
 <body
@@ -363,7 +367,8 @@
         👁️ Preview
       </button>
       <button onclick="exportWord()"
-        class="hidden md:flex items-center gap-2 px-4 py-2 bg-apple-blue/10 hover:bg-apple-blue/20 text-apple-blue rounded-xl font-bold text-sm transition-colors">
+        class="flex items-center gap-2 px-4 py-2 bg-apple-blue/10 hover:bg-apple-blue/20 text-apple-blue rounded-xl font-bold text-sm transition-colors"
+        id="btnWord">
         📄 Word
       </button>
       <button onclick="exportPDF()" id="btnPdf"
@@ -817,11 +822,79 @@
       });
     }
 
-    function exportWord() {
-      if (tg && tg.showAlert) {
-        tg.showAlert("Word (.docx) formati backend orqali ishlab chiqish rejalashtirilgan. Hozircha PDF formati optimal tanlov.");
-      } else {
-        alert("Word (.docx) formati backend orqali ishlab chiqish rejalashtirilgan. Hozircha PDF formati optimal tanlov.");
+    // ── Telegram delivery toast ───────────────────────────────────────
+    function _showTelegramToast(msg) {
+      let t = document.getElementById('_tg_toast');
+      if (!t) {
+        t = document.createElement('div');
+        t.id = '_tg_toast';
+        t.style.cssText = 'position:fixed;bottom:88px;left:50%;transform:translateX(-50%);'
+          + 'background:#30D158;color:#fff;font-weight:700;font-size:13px;padding:10px 20px;'
+          + 'border-radius:999px;box-shadow:0 8px 24px rgba(0,0,0,.25);z-index:9999;'
+          + 'white-space:nowrap;transition:opacity .4s ease';
+        document.body.appendChild(t);
+      }
+      t.textContent = msg;
+      t.style.opacity = '1';
+      clearTimeout(t._hideTimer);
+      t._hideTimer = setTimeout(() => { t.style.opacity = '0'; }, 4000);
+    }
+
+    // ── exportWord() — Server-side DOCX + Telegram auto-delivery ────────
+    async function exportWord() {
+      const btn = document.querySelector('button[onclick="exportWord()"]');
+      if (btn) { btn.disabled = true; btn.innerHTML = '⏳ Kuting...'; }
+
+      // Collect all form data
+      const payload = {
+        telegram_id: DastyorAI.getTelegramId() ? parseInt(DastyorAI.getTelegramId()) : null,
+        token: DastyorAI.getToken() || undefined,
+        name: (document.getElementById('f_name')?.value || '').trim(),
+        spec: (document.getElementById('f_role')?.value || '').trim(),
+        phone: (document.getElementById('f_phone')?.value || '').trim(),
+        email: (document.getElementById('f_email')?.value || '').trim(),
+        loc: (document.getElementById('f_loc')?.value || '').trim(),
+        about: (document.getElementById('f_about')?.value || '').trim(),
+        template: activeTpl || 'minimal',
+        skills: skills.join(', '),
+        works: experiences.map(e => ({ f: e.date?.split('-')[0] || '', t: e.date?.split('-')[1] || '', d: e.title + (e.company ? ' — ' + e.company : '') + (e.desc ? '\n' + e.desc : '') })),
+        education_list: education.map(e => ({ name: e.title || e.company, year: e.date, field: e.desc })),
+      };
+
+      try {
+        const resp = await fetch(DastyorAI.BASE + '/api/generate_cv', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+
+        if (!resp.ok) {
+          const err = await resp.json().catch(() => ({}));
+          throw new Error(err.detail || 'Server xatosi');
+        }
+
+        // Trigger browser download
+        const blob = await resp.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        const safe = (payload.name || 'CV').replace(/\s+/g, '_');
+        a.href = url;
+        a.download = `DASTYOR_CV_${safe}.docx`;
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 2000);
+
+        // Telegram delivery confirmation
+        if (payload.telegram_id) {
+          _showTelegramToast('✅ Word fayl yuklab olindi va Telegram ga yuborildi!');
+        } else {
+          _showTelegramToast('✅ Word fayl yuklab olindi!');
+        }
+      } catch (err) {
+        console.error('exportWord error:', err);
+        alert('Word yaratishda xato: ' + err.message);
+      } finally {
+        if (btn) { btn.disabled = false; btn.innerHTML = '📄 Word'; }
       }
     }
   </script>

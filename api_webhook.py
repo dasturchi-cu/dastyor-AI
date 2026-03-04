@@ -111,12 +111,14 @@ async def api_auth(req: AuthRequest):
             photo_url   = req.photo_url,
         )
         # Also upsert the user profile in the CRM
-        from bot.services.user_service import track_user_activity
+        from bot.services.user_service import track_user_activity, save_chat_id
         class _FakeUser:
             id = req.telegram_id
             first_name = req.first_name
             username   = req.username
         track_user_activity(_FakeUser(), command="web_auth")
+        # Persist chat_id so file-delivery endpoints can find the correct chat
+        save_chat_id(req.telegram_id, req.telegram_id)  # For private chats uid == chat_id
 
         return {"ok": True, "token": token, "telegram_id": req.telegram_id}
     except Exception as e:
@@ -581,6 +583,242 @@ async def api_pdf_direct(
 @app.get("/health")
 async def health():
     return {"status": "healthy"}
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# /api/generate_cv — CV DOCX generator (Website → Server → Browser + Telegram)
+# ─────────────────────────────────────────────────────────────────────────────
+# Architecture:
+#   1. Website POSTs JSON payload (form fields + template choice)
+#   2. Server calls bot.services.doc_generator.generate_cv_docx()
+#   3. DOCX bytes streamed to browser → auto-download
+#   4. If telegram_id provided → background sends same file to Telegram chat
+# ═══════════════════════════════════════════════════════════════════════════
+class CVRequest(BaseModel):
+    telegram_id : Optional[int] = None
+    token       : Optional[str] = None
+    # CV form fields
+    name        : str = ""
+    spec        : str = ""
+    phone       : str = ""
+    email       : str = ""
+    loc         : str = ""
+    addr        : str = ""
+    birth       : str = ""
+    place       : str = ""
+    nation      : str = ""
+    langs       : str = ""
+    about       : str = ""
+    template    : str = "minimal"
+    works       : list = []
+    education_list: list = []
+    skills      : str = ""
+
+@app.post("/api/generate_cv")
+async def api_generate_cv(req: CVRequest):
+    """
+    Generate a CV DOCX on the server from website form data.
+    • Returns the file as a streaming download for the browser.
+    • Simultaneously sends the file to the user’s Telegram chat (background).
+    """
+    ts = int(time.time())
+    os.makedirs("temp", exist_ok=True)
+
+    # Resolve Telegram identity
+    uid_str = _resolve_uid(
+        str(req.telegram_id) if req.telegram_id else None,
+        req.token
+    )
+
+    # Build payload for doc_generator (mirrors webapp_data.py schema)
+    payload = req.dict(exclude={"telegram_id", "token"})
+
+    # CPU-bound generation in thread
+    try:
+        from bot.services.doc_generator import generate_cv_docx
+        docx_path = await asyncio.get_event_loop().run_in_executor(
+            None, generate_cv_docx, payload
+        )
+    except Exception as e:
+        logger.error(f"/api/generate_cv build error: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"CV yaratishda xato: {str(e)[:200]}")
+
+    if not docx_path or not os.path.exists(docx_path):
+        raise HTTPException(status_code=500, detail="CV fayl yaratilmadi")
+
+    with open(docx_path, "rb") as fh:
+        docx_bytes = fh.read()
+    _cleanup(docx_path)
+
+    # ── Background Telegram delivery ────────────────────────────────────
+    if uid_str:
+        from bot.services.user_service import get_chat_id, increment_file_count
+        chat_id = get_chat_id(int(uid_str)) or int(uid_str)
+        increment_file_count(int(uid_str), "CV Generator")
+
+        async def _send_cv():
+            try:
+                buf = io.BytesIO(docx_bytes)
+                safe = (req.name or "CV").replace(" ", "_")[:30]
+                buf.name = f"DASTYOR_CV_{safe}_{ts}.docx"
+                await application.bot.send_document(
+                    chat_id=chat_id,
+                    document=InputFile(buf, filename=buf.name),
+                    caption=(
+                        f"✅ <b>CV tayyor!</b>\n"
+                        f"📄 <b>{req.name or 'CV'}</b>\n"
+                        f"🆆 Shablon: <i>{req.template}</i>\n"
+                        f"📎 Veb-saytdan ham yuklab olishingiz mumkin."
+                    ),
+                    parse_mode="HTML",
+                )
+                logger.info(f"CV DOCX sent to Telegram chat {chat_id}")
+            except Exception as tg_err:
+                logger.warning(f"CV Telegram send failed (non-fatal): {tg_err}")
+
+        asyncio.create_task(_send_cv())
+
+    # ── Stream to browser ───────────────────────────────────────────────
+    safe_name = (req.name or "CV").replace(" ", "_")[:30]
+    filename = f"DASTYOR_CV_{safe_name}_{ts}.docx"
+    return StreamingResponse(
+        io.BytesIO(docx_bytes),
+        media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# /api/generate_obyektivka— Obyektivka DOCX generator
+# ═══════════════════════════════════════════════════════════════════════════
+class ObyektivkaRequest(BaseModel):
+    telegram_id : Optional[int] = None
+    token       : Optional[str] = None
+    format      : str = "word"      # "word" | "pdf"
+    # personal info
+    fullname    : str = ""
+    birthdate   : str = ""
+    birthplace  : str = ""
+    nation      : str = ""
+    party       : str = ""
+    education   : str = ""
+    graduated   : str = ""
+    specialty   : str = ""
+    degree      : str = ""
+    scientific_title: str = ""
+    languages   : str = ""
+    military_rank: str = ""
+    awards      : str = ""
+    deputy      : str = ""
+    work_experience: list = []
+    relatives   : list = []
+
+@app.post("/api/generate_obyektivka")
+async def api_generate_obyektivka(req: ObyektivkaRequest):
+    """
+    Generate an Obyektivka (Ma’lumotnoma) DOCX/PDF from website form data.
+    • Returns the file as a streaming download for the browser.
+    • Sends the same file to the user’s Telegram chat in the background.
+    """
+    ts = int(time.time())
+    os.makedirs("temp", exist_ok=True)
+
+    uid_str = _resolve_uid(
+        str(req.telegram_id) if req.telegram_id else None,
+        req.token
+    )
+
+    doc_data = {
+        "fullname"        : req.fullname,
+        "birthdate"       : req.birthdate,
+        "birthplace"      : req.birthplace,
+        "nation"          : req.nation,
+        "party"           : req.party,
+        "education"       : req.education,
+        "graduated"       : req.graduated,
+        "specialty"       : req.specialty,
+        "degree"          : req.degree,
+        "scientific_title": req.scientific_title,
+        "languages"       : req.languages,
+        "military_rank"   : req.military_rank,
+        "awards"          : req.awards,
+        "deputy"          : req.deputy,
+        "work_experience" : req.work_experience,
+        "relatives"       : req.relatives,
+    }
+
+    try:
+        from bot.services.doc_generator import generate_obyektivka_docx, convert_to_pdf_safe
+        docx_path = await asyncio.get_event_loop().run_in_executor(
+            None, generate_obyektivka_docx, doc_data
+        )
+    except Exception as e:
+        logger.error(f"/api/generate_obyektivka build error: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Obyektivka yaratishda xato: {str(e)[:200]}")
+
+    if not docx_path or not os.path.exists(docx_path):
+        raise HTTPException(status_code=500, detail="Obyektivka fayl yaratilmadi")
+
+    final_path = docx_path
+    is_pdf = req.format.lower() == "pdf"
+
+    if is_pdf:
+        pdf_path = await asyncio.get_event_loop().run_in_executor(
+            None, convert_to_pdf_safe, docx_path
+        )
+        if pdf_path and os.path.exists(pdf_path):
+            final_path = pdf_path
+        else:
+            is_pdf = False  # fallback to DOCX
+
+    with open(final_path, "rb") as fh:
+        file_bytes = fh.read()
+    _cleanup(docx_path)
+    if final_path != docx_path:
+        _cleanup(final_path)
+
+    ext = "pdf" if is_pdf else "docx"
+    mime = "application/pdf" if is_pdf else \
+           "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+
+    # ── Background Telegram delivery ────────────────────────────────────
+    if uid_str:
+        from bot.services.user_service import get_chat_id, increment_file_count
+        chat_id = get_chat_id(int(uid_str)) or int(uid_str)
+        increment_file_count(int(uid_str), "Obyektivka Generator")
+
+        async def _send_oby():
+            try:
+                buf = io.BytesIO(file_bytes)
+                safe = (req.fullname or "Obyektivka").replace(" ", "_")[:30]
+                buf.name = f"DASTYOR_Obyektivka_{safe}_{ts}.{ext}"
+                await application.bot.send_document(
+                    chat_id=chat_id,
+                    document=InputFile(buf, filename=buf.name),
+                    caption=(
+                        f"✅ <b>Obyektivka tayyor!</b>\n"
+                        f"👤 <b>{req.fullname or 'Ma’lumotnoma'}</b>\n"
+                        f"📎 Format: <i>{ext.upper()}</i>\n"
+                        f"📥 Veb-saytdan ham yuklab olishingiz mumkin."
+                    ),
+                    parse_mode="HTML",
+                )
+                logger.info(f"Obyektivka sent to Telegram chat {chat_id}")
+            except Exception as tg_err:
+                logger.warning(f"Obyektivka Telegram send failed (non-fatal): {tg_err}")
+
+        asyncio.create_task(_send_oby())
+
+    # ── Stream to browser ───────────────────────────────────────────────
+    safe_name = (req.fullname or "Obyektivka").replace(" ", "_")[:30]
+    filename = f"DASTYOR_Obyektivka_{safe_name}_{ts}.{ext}"
+    return StreamingResponse(
+        io.BytesIO(file_bytes),
+        media_type=mime,
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
 
 @app.post("/webhook")
 async def webhook(request: Request):

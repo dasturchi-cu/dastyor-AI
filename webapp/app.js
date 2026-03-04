@@ -434,7 +434,50 @@ const DastyorAI = (() => {
         });
     }
 
+    /**
+     * generateDoc(endpoint, payload) — POST to a document generation endpoint,
+     * trigger a browser download, and return the Blob.
+     * Automatically injects telegram_id and token into the payload.
+     *
+     * endpoint: '/api/generate_cv' | '/api/generate_obyektivka'
+     * payload: plain object with form fields
+     * filename: suggested download filename (e.g. 'MyCV.docx')
+     */
+    async function generateDoc(endpoint, payload, filename) {
+        const tid = getTelegramId();
+        const enriched = {
+            ...payload,
+            telegram_id: tid ? parseInt(tid) : null,
+            token: _token || undefined,
+        };
+
+        const resp = await fetch(_BASE + endpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(enriched),
+        });
+
+        if (!resp.ok) {
+            const err = await resp.json().catch(() => ({}));
+            throw new Error(err.detail || `Server xatosi (${resp.status})`);
+        }
+
+        const blob = await resp.blob();
+
+        // Auto-trigger browser download
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename || 'document.docx';
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 2000);
+
+        return blob;
+    }
+
     // ── Public surface ───────────────────────────────────────────────────
+
     return {
         // Identity / Auth
         init,
@@ -449,7 +492,9 @@ const DastyorAI = (() => {
         // Services
         translate,
         translit,
+        generateDoc,
         haptic,
+
         // Theme
         applyTheme,
         toggleTheme,
