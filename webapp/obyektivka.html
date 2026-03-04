@@ -3,1218 +3,825 @@
 
 <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
-    <title>Obyektivka | DASTYOR AI</title>
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap"
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>Obyektivka Builder | DASTYOR AI</title>
+    <!-- Fonts -->
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@400;600;800&display=swap"
         rel="stylesheet" />
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
     <style>
-        /* ====== RESET & BASE ====== */
-        *,
-        *::before,
-        *::after {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0
+        :root {
+            --bg: #060d1c;
+            --surface: #0d1b2e;
+            --surface2: #14243b;
+            --border: rgba(255, 255, 255, 0.08);
+            --border-hover: rgba(255, 255, 255, 0.15);
+            --text: #ffffff;
+            --muted: #94a3b8;
+            --accent: #10b981;
+            /* Green for Obyektivka */
+            --accent-glow: rgba(16, 185, 129, 0.3);
+
+            --cv-bg: #fff;
+            --cv-text: #000;
         }
 
-        html {
-            height: 100%;
-            -webkit-tap-highlight-color: transparent
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
         }
 
         body {
             font-family: 'Inter', sans-serif;
-            height: 100dvh;
+            background-color: var(--bg);
+            color: var(--text);
             height: 100vh;
             display: flex;
             flex-direction: column;
             overflow: hidden;
-            font-size: 15px;
         }
 
-        /* ====== THEMES ====== */
-        :root[data-theme="dark"] {
-            --bg: #060d1c;
-            --surface: #0d1b2e;
-            --surface2: #112240;
-            --border: rgba(255, 255, 255, .07);
-            --text: #e8edf4;
-            --sub: #8899aa;
-            --accent: #2563eb;
-            --accent-glow: rgba(37, 99, 235, .25);
-            --green: #10b981;
-            --red: #ef4444;
-            --inp-bg: rgba(255, 255, 255, .04);
-            --inp-focus: rgba(37, 99, 235, .08);
-        }
-
-        :root[data-theme="light"] {
-            --bg: #f0f4f8;
-            --surface: #ffffff;
-            --surface2: #f8fafc;
-            --border: #e2e8f0;
-            --text: #0f172a;
-            --sub: #64748b;
-            --accent: #2563eb;
-            --accent-glow: rgba(37, 99, 235, .12);
-            --green: #059669;
-            --red: #dc2626;
-            --inp-bg: #f8fafc;
-            --inp-focus: #eff6ff;
-        }
-
-        /* ====== HEADER ====== */
+        /* HEADER */
         .hdr {
-            flex-shrink: 0;
-            height: 56px;
+            height: 60px;
+            background: rgba(13, 27, 46, 0.8);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--border);
             display: flex;
             align-items: center;
-            padding: 0 16px;
-            gap: 12px;
-            background: var(--surface);
-            border-bottom: 1px solid var(--border);
+            padding: 0 20px;
+            justify-content: space-between;
+            flex-shrink: 0;
+            z-index: 10;
+        }
+
+        .hdr-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
         }
 
         .back-btn {
-            width: 38px;
-            height: 38px;
-            border-radius: 12px;
-            background: var(--inp-bg);
+            background: var(--surface2);
             border: 1px solid var(--border);
             color: var(--text);
-            font-size: 18px;
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
             display: flex;
             align-items: center;
             justify-content: center;
             cursor: pointer;
-            flex-shrink: 0;
-            transition: background .2s;
+            text-decoration: none;
+            transition: 0.2s;
         }
 
-        .back-btn:active {
-            background: var(--accent-glow)
-        }
-
-        .hdr-center {
-            flex: 1;
-            min-width: 0
+        .back-btn:hover {
+            background: var(--border-hover);
         }
 
         .hdr-title {
-            font-size: 15px;
-            font-weight: 800;
-            color: var(--text);
-            line-height: 1.2
-        }
-
-        .hdr-sub {
-            font-size: 11px;
-            color: var(--sub);
-            font-weight: 500
-        }
-
-        /* View Toggle */
-        .view-toggle {
-            display: flex;
-            background: var(--inp-bg);
-            border: 1px solid var(--border);
-            border-radius: 10px;
-            overflow: hidden;
-            flex-shrink: 0;
-        }
-
-        .vt-btn {
-            padding: 7px 12px;
-            font-size: 12px;
+            font-size: 16px;
             font-weight: 700;
-            border: none;
-            background: transparent;
-            color: var(--sub);
+            font-family: 'Outfit', sans-serif;
+        }
+
+        .export-group {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: 600;
             cursor: pointer;
-            transition: .2s;
-        }
-
-        .vt-btn.on {
-            background: var(--accent);
-            color: #fff
-        }
-
-        /* ── SPLIT PANE (≥700px) ── */
-        @media (min-width: 700px) {
-            .view-toggle {
-                display: none
-            }
-
-            .main {
-                display: flex;
-                gap: 0;
-                overflow: hidden
-            }
-
-            .form-view,
-            .preview-view {
-                display: block !important;
-                flex: 1;
-                overflow-y: auto;
-                overflow-x: hidden;
-                padding: 20px 18px
-            }
-
-            .form-view {
-                border-right: 1px solid var(--border)
-            }
-
-            .pv-split-label {
-                display: flex !important
-            }
-
-            #previewPill {
-                display: none !important
-            }
-
-            #previewDrawer {
-                display: none !important
-            }
-        }
-
-        /* ── LIVE FLASH ── */
-        @keyframes pv-flash {
-            0% {
-                box-shadow: 0 0 0 0 var(--accent-glow)
-            }
-
-            50% {
-                box-shadow: 0 0 0 6px var(--accent-glow)
-            }
-
-            100% {
-                box-shadow: 0 0 0 0 var(--accent-glow)
-            }
-        }
-
-        .pv-card.flashing {
-            animation: pv-flash .35s ease-out
-        }
-
-        /* ── SPLIT PANE LIVE LABEL ── */
-        .pv-split-label {
-            display: none;
+            border: none;
+            display: flex;
             align-items: center;
             gap: 6px;
-            font-size: 11px;
-            font-weight: 800;
-            color: var(--accent);
-            text-transform: uppercase;
-            letter-spacing: .7px;
-            margin-bottom: 14px;
-            padding-bottom: 10px;
-            border-bottom: 1px solid var(--border)
+            transition: all 0.2s;
         }
 
-        .pv-live-dot {
-            width: 7px;
-            height: 7px;
-            border-radius: 50%;
-            background: var(--green);
-            animation: dot-pulse 2s infinite
-        }
-
-        @keyframes dot-pulse {
-
-            0%,
-            100% {
-                opacity: 1;
-                transform: scale(1)
-            }
-
-            50% {
-                opacity: .4;
-                transform: scale(.7)
-            }
-        }
-
-        /* ── MOBILE PREVIEW PILL ── */
-        #previewPill {
-            position: fixed;
-            bottom: 20px;
-            right: 16px;
-            z-index: 200;
-            display: flex;
-            align-items: center;
-            gap: 7px;
-            padding: 10px 16px;
-            background: var(--accent);
+        .btn-pdf {
+            background: linear-gradient(135deg, #10b981, #059669);
             color: #fff;
-            border: none;
-            border-radius: 50px;
-            font-family: 'Inter', sans-serif;
-            font-size: 13px;
-            font-weight: 700;
-            box-shadow: 0 4px 20px rgba(37, 99, 235, .4);
-            cursor: pointer;
-            transition: transform .15s, box-shadow .15s
         }
 
-        #previewPill:active {
-            transform: scale(.95)
+        .btn-doc {
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            color: #fff;
         }
 
-        .pill-dot {
-            width: 7px;
-            height: 7px;
-            border-radius: 50%;
-            background: #fff;
-            animation: dot-pulse 2s infinite
+        .btn:hover {
+            transform: translateY(-1px);
+            filter: brightness(1.1);
         }
 
-        /* ── BOTTOM SHEET ── */
-        #drawerBackdrop {
-            position: fixed;
-            inset: 0;
-            background: rgba(0, 0, 0, .55);
-            z-index: 300;
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity .3s
+        .btn:active {
+            transform: scale(0.97);
         }
 
-        #drawerBackdrop.open {
-            opacity: 1;
-            pointer-events: auto
+        /* LAYOUT */
+        .workspace {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
         }
 
-        #previewDrawer {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            z-index: 400;
-            background: var(--surface);
-            border-radius: 22px 22px 0 0;
-            max-height: 82dvh;
-            max-height: 82vh;
+        /* EDITOR PANEL */
+        .editor-pane {
+            width: 45%;
+            min-width: 350px;
+            max-width: 500px;
+            background: var(--bg);
+            border-right: 1px solid var(--border);
             display: flex;
             flex-direction: column;
-            transform: translateY(100%);
-            transition: transform .35s cubic-bezier(.32, 1, .6, 1);
-            box-shadow: 0 -6px 40px rgba(0, 0, 0, .35)
-        }
-
-        #previewDrawer.open {
-            transform: translateY(0)
-        }
-
-        .drawer-handle {
-            width: 40px;
-            height: 4px;
-            border-radius: 4px;
-            background: var(--border);
-            margin: 12px auto 4px
-        }
-
-        .drawer-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 8px 18px 12px;
-            border-bottom: 1px solid var(--border)
-        }
-
-        .drawer-title {
-            font-size: 14px;
-            font-weight: 800;
-            color: var(--text)
-        }
-
-        .drawer-close {
-            width: 30px;
-            height: 30px;
-            border-radius: 8px;
-            border: none;
-            background: var(--inp-bg);
-            color: var(--sub);
-            font-size: 17px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center
-        }
-
-        .drawer-body {
             overflow-y: auto;
-            padding: 16px 16px 30px;
-            -webkit-overflow-scrolling: touch
         }
 
-        .drawer-body::-webkit-scrollbar {
-            width: 0
+        .editor-pane::-webkit-scrollbar {
+            width: 4px;
         }
 
-        /* Preview value transitions */
-        .pv-val,
-        .pv-name,
-        .pv-job-title {
-            transition: color .15s
+        .editor-pane::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
         }
 
-        /* ====== STEPS BAR ====== */
-        .steps-bar {
-            flex-shrink: 0;
-            display: flex;
-            align-items: center;
-            padding: 10px 16px;
-            gap: 6px;
-            background: var(--surface);
+        .editor-section {
+            padding: 24px;
             border-bottom: 1px solid var(--border);
         }
 
-        .sbar-pill {
-            flex: 1;
-            height: 3px;
-            border-radius: 3px;
-            background: var(--border);
-            transition: background .3s;
-        }
-
-        .sbar-pill.done {
-            background: var(--green)
-        }
-
-        .sbar-pill.active {
-            background: var(--accent)
-        }
-
-        .step-label {
-            font-size: 11px;
+        .section-title {
+            font-family: 'Outfit', sans-serif;
+            font-size: 15px;
             font-weight: 700;
-            color: var(--sub);
-            margin-left: 6px;
-            white-space: nowrap;
-            flex-shrink: 0;
-        }
-
-        /* ====== MAIN SCROLLABLE AREA ====== */
-        .main {
-            flex: 1;
-            overflow-y: auto;
-            overflow-x: hidden;
-            -webkit-overflow-scrolling: touch
-        }
-
-        .main::-webkit-scrollbar {
-            width: 0
-        }
-
-        /* ====== FORM VIEW ====== */
-        .form-view,
-        .preview-view {
-            display: none;
-            padding: 20px 16px
-        }
-
-        .form-view.on,
-        .preview-view.on {
-            display: block
-        }
-
-        /* Section heading inside form */
-        .form-section-title {
-            font-size: 19px;
-            font-weight: 900;
-            color: var(--text);
-            margin-bottom: 6px;
-            line-height: 1.2;
-        }
-
-        .form-section-sub {
-            font-size: 13px;
-            color: var(--sub);
-            font-weight: 500;
-            margin-bottom: 20px;
-            line-height: 1.4;
-        }
-
-        /* Field group */
-        .field {
-            margin-bottom: 16px
-        }
-
-        .field-label {
-            display: block;
-            font-size: 11px;
-            font-weight: 800;
-            color: var(--sub);
+            color: var(--accent);
             text-transform: uppercase;
-            letter-spacing: .6px;
+            letter-spacing: 1px;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 12px;
+            color: var(--muted);
+            font-weight: 600;
             margin-bottom: 6px;
         }
 
-        .field input,
-        .field select,
-        .field textarea {
+        .form-control {
             width: 100%;
-            padding: 14px 16px;
-            border: 1.5px solid var(--border);
-            border-radius: 14px;
-            background: var(--inp-bg);
-            color: var(--text);
-            font-family: 'Inter', sans-serif;
-            font-size: 15px;
-            font-weight: 500;
-            transition: border-color .2s, background .2s;
-            -webkit-appearance: none;
-            appearance: none;
-            outline: none;
-        }
-
-        .field input:focus,
-        .field select:focus,
-        .field textarea:focus {
-            border-color: var(--accent);
-            background: var(--inp-focus);
-        }
-
-        .field textarea {
-            min-height: 76px;
-            resize: vertical;
-            line-height: 1.5
-        }
-
-        .field-row {
-            display: flex;
-            gap: 10px
-        }
-
-        .field-row .field {
-            flex: 1;
-            margin-bottom: 0
-        }
-
-        /* Nav buttons */
-        .form-nav {
-            display: flex;
-            gap: 10px;
-            margin-top: 8px;
-            padding-bottom: 20px;
-        }
-
-        .nav-btn {
-            height: 52px;
-            border-radius: 16px;
-            border: none;
-            font-family: 'Inter', sans-serif;
-            font-weight: 700;
-            font-size: 15px;
-            cursor: pointer;
-            transition: .15s;
-        }
-
-        .nav-btn:active {
-            transform: scale(.97)
-        }
-
-        .nav-next {
-            flex: 1;
-            background: var(--accent);
-            color: #fff;
-            box-shadow: 0 4px 16px var(--accent-glow)
-        }
-
-        .nav-back {
-            width: 56px;
-            background: var(--inp-bg);
+            background: var(--surface);
             border: 1px solid var(--border);
-            color: var(--sub);
-            font-size: 18px
+            color: var(--text);
+            padding: 12px;
+            border-radius: 10px;
+            font-family: inherit;
+            font-size: 14px;
+            transition: border-color 0.2s;
         }
 
-        .nav-done {
-            flex: 1;
-            background: var(--green);
-            color: #fff;
-            box-shadow: 0 4px 16px rgba(16, 185, 129, .25)
+        .form-control:focus {
+            outline: none;
+            border-color: var(--accent);
+            background: rgba(16, 185, 129, 0.03);
         }
 
-        /* Add-item sub-form */
-        .sub-form {
+        textarea.form-control {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .photo-upload {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+
+        .photo-preview-circle {
+            width: 50px;
+            height: 65px;
+            border-radius: 6px;
+            background: var(--surface2);
+            border: 2px dashed var(--muted);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            font-size: 20px;
+        }
+
+        .photo-preview-circle img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .photo-btn {
             background: var(--surface2);
             border: 1px solid var(--border);
-            border-radius: 16px;
-            padding: 14px;
-            margin-top: 4px;
+            color: var(--text);
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 12px;
+            cursor: pointer;
         }
 
-        .sub-form .field {
-            margin-bottom: 12px
+        .repeater-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-bottom: 12px;
         }
 
-        .sub-form .field:last-of-type {
-            margin-bottom: 12px
+        .repeater-item {
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 12px;
+            position: relative;
+        }
+
+        .rm-btn {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--red);
+            border: none;
+            border-radius: 6px;
+            width: 24px;
+            height: 24px;
+            cursor: pointer;
+            font-weight: bold;
         }
 
         .add-btn {
             width: 100%;
-            height: 44px;
-            border-radius: 12px;
-            border: none;
-            background: var(--accent);
-            color: #fff;
-            font-weight: 700;
-            font-size: 14px;
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--accent);
+            border: 1px dashed var(--accent);
+            padding: 10px;
+            border-radius: 10px;
+            font-weight: 600;
             cursor: pointer;
-            font-family: 'Inter', sans-serif;
         }
 
-        /* Item chips */
-        .item-list {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-            margin-bottom: 12px
-        }
-
-        .item-card {
-            background: var(--surface2);
-            border: 1px solid var(--border);
-            border-radius: 14px;
-            padding: 12px 14px;
+        /* PREVIEW PANEL */
+        .preview-pane {
+            flex: 1;
+            background: #0f172a;
             display: flex;
             align-items: flex-start;
-            gap: 10px;
-        }
-
-        .item-card-info {
-            flex: 1;
-            min-width: 0
-        }
-
-        .item-card-title {
-            font-size: 14px;
-            font-weight: 700;
-            color: var(--text);
-            margin-bottom: 2px
-        }
-
-        .item-card-sub {
-            font-size: 12px;
-            color: var(--sub);
-            font-weight: 500
-        }
-
-        .item-del {
-            width: 30px;
-            height: 30px;
-            border-radius: 8px;
-            border: none;
-            background: rgba(239, 68, 68, .1);
-            color: var(--red);
-            font-size: 16px;
-            cursor: pointer;
-            flex-shrink: 0;
-            display: flex;
-            align-items: center;
             justify-content: center;
+            padding: 30px;
+            overflow-y: auto;
+            position: relative;
         }
 
-        /* ====== PREVIEW VIEW ====== */
-        .pv-card {
-            background: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: 20px;
-            padding: 20px;
-            margin-bottom: 14px;
+        .preview-pane::-webkit-scrollbar {
+            width: 6px;
         }
 
-        .pv-section {
-            font-size: 10px;
-            font-weight: 900;
-            color: var(--accent);
+        .preview-pane::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+        }
+
+        /* A4 Paper Canvas */
+        .cv-canvas {
+            width: 210mm;
+            min-height: 297mm;
+            background: var(--cv-bg);
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+            transform-origin: top center;
+            position: relative;
+            overflow: hidden;
+            color: var(--cv-text);
+            margin-bottom: 30px;
+        }
+
+        /* ─── OBYEKTIVKA CSS TEMPLATE ─── */
+        .tpl-oby {
+            padding: 20mm 15mm 20mm 20mm;
+            /* standard standard margins */
+            font-family: 'Times New Roman', Times, serif;
+            color: #000;
+            line-height: 1.25;
+            font-size: 11pt;
+            background: #fff;
+        }
+
+        .tpl-oby strong {
+            font-weight: bold;
+        }
+
+        .tpl-oby .title {
+            text-align: center;
+            font-size: 16pt;
+            font-weight: bold;
+            margin-bottom: 25px;
+            letter-spacing: 1px;
+        }
+
+        .tpl-oby .header-table {
+            width: 100%;
+            margin-bottom: 15px;
+            border-collapse: collapse;
+        }
+
+        .tpl-oby .header-table td {
+            vertical-align: top;
+        }
+
+        .tpl-oby .col-main {
+            text-align: center;
+            vertical-align: middle;
+            padding-right: 15mm;
+        }
+
+        .tpl-oby .name {
+            font-size: 16pt;
+            font-weight: bold;
             text-transform: uppercase;
-            letter-spacing: .8px;
-            margin-bottom: 14px;
-            padding-bottom: 8px;
-            border-bottom: 1px solid var(--border);
+            line-height: 1.3;
         }
 
-        .pv-row {
-            display: flex;
-            gap: 10px;
-            padding: 6px 0;
-            border-bottom: 1px solid var(--border);
-            align-items: flex-start;
+        .tpl-oby .col-img {
+            width: 35mm;
+            text-align: right;
         }
 
-        .pv-row:last-child {
-            border-bottom: none
+        .tpl-oby .avatar {
+            width: 30mm;
+            height: 40mm;
+            object-fit: cover;
+            border: 1px solid #aaa;
+            display: inline-block;
         }
 
-        .pv-lbl {
-            font-size: 11px;
-            font-weight: 700;
-            color: var(--sub);
-            width: 100px;
-            flex-shrink: 0;
-            padding-top: 1px;
-            line-height: 1.4;
+        .tpl-oby .info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px 25px;
+            margin-bottom: 25px;
+            font-size: 11.5pt;
         }
 
-        .pv-val {
-            font-size: 14px;
-            font-weight: 600;
-            color: var(--text);
-            flex: 1;
-            line-height: 1.4
+        .tpl-oby .info-item strong {
+            display: block;
+            margin-bottom: 3px;
+            font-weight: bold;
+            font-size: 10.5pt;
         }
 
-        .pv-val.empty {
-            color: var(--border);
-            font-weight: 400;
-            font-style: italic
+        .tpl-oby .section-title {
+            text-align: center;
+            font-weight: bold;
+            font-size: 12.5pt;
+            margin-top: 25px;
+            margin-bottom: 15px;
+            text-transform: uppercase;
         }
 
-        .pv-name {
-            font-size: 22px;
-            font-weight: 900;
-            color: var(--text);
-            margin-bottom: 4px
-        }
-
-        .pv-job-title {
-            font-size: 14px;
-            font-weight: 600;
-            color: var(--accent);
-            margin-bottom: 16px
-        }
-
-        .pv-work {
-            padding: 10px 0;
-            border-bottom: 1px solid var(--border)
-        }
-
-        .pv-work:last-child {
-            border-bottom: none
-        }
-
-        .pv-work-date {
-            font-size: 11px;
-            font-weight: 700;
-            color: var(--accent);
-            margin-bottom: 3px
-        }
-
-        .pv-work-place {
-            font-size: 14px;
-            font-weight: 700;
-            color: var(--text)
-        }
-
-        /* Rel table */
-        .pv-rel-table {
+        .tpl-oby .exp-table {
             width: 100%;
             border-collapse: collapse;
-            font-size: 13px
+            margin-bottom: 20px;
+            font-size: 11pt;
         }
 
-        .pv-rel-table th {
-            text-align: left;
-            font-size: 10px;
-            font-weight: 800;
-            color: var(--sub);
-            text-transform: uppercase;
+        .tpl-oby .exp-table td {
             padding: 6px 0;
-            border-bottom: 1px solid var(--border);
-        }
-
-        .pv-rel-table td {
-            padding: 8px 0 8px;
-            border-bottom: 1px solid var(--border);
             vertical-align: top;
-            color: var(--text);
-            font-weight: 500;
-            font-size: 13px;
         }
 
-        .pv-rel-table td:first-child {
-            color: var(--accent);
-            font-weight: 700;
-            width: 80px
+        .tpl-oby .exp-table td:first-child {
+            width: 28%;
+            padding-right: 10px;
         }
 
-        .pv-rel-table tr:last-child td {
-            border-bottom: none
+        .tpl-oby .rel-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 10pt;
+            text-align: center;
         }
 
-        /* Bottom padding */
-        .bottom-pad {
-            height: 30px
+        .tpl-oby .rel-table th,
+        .tpl-oby .rel-table td {
+            border: 1px solid #000;
+            padding: 6px 4px;
+            vertical-align: middle;
+        }
+
+        .tpl-oby .rel-table th {
+            font-weight: bold;
+            font-size: 9.5pt;
+        }
+
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+
+            #cv-box,
+            #cv-box * {
+                visibility: visible;
+            }
+
+            #cv-box {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 210mm;
+                min-height: 297mm;
+                transform: none !important;
+                box-shadow: none !important;
+                margin: 0;
+            }
         }
     </style>
 </head>
 
 <body>
 
-    <!-- HEADER -->
     <div class="hdr">
-        <div class="back-btn" id="backBtn">←</div>
-        <div class="hdr-center">
-            <div class="hdr-title">📋 Obyektivka</div>
-            <div class="hdr-sub" id="hdr-step-lbl">1-qadam • Shaxsiy ma'lumotlar</div>
+        <div class="hdr-left">
+            <a href="index.html" class="back-btn">←</a>
+            <div class="hdr-title">Obyektivka Builder</div>
         </div>
-        <div class="view-toggle">
-            <button class="vt-btn on" id="vt-form" onclick="switchView('form')">✏️ Shakl</button>
-            <button class="vt-btn" id="vt-prev" onclick="switchView('preview')">👁 Ko'rish</button>
+        <div class="export-group">
+            <button class="btn btn-doc" onclick="exportWord()">📄 Word (.docx)</button>
+            <button class="btn btn-pdf" onclick="exportPDF()">📥 PDF Yuklash</button>
         </div>
     </div>
 
-    <!-- STEPS BAR -->
-    <div class="steps-bar">
-        <div class="sbar-pill active" id="sp0"></div>
-        <div class="sbar-pill" id="sp1"></div>
-        <div class="sbar-pill" id="sp2"></div>
-        <div class="sbar-pill" id="sp3"></div>
-        <div class="step-label" id="sp-txt">1 / 4</div>
-    </div>
+    <div class="workspace">
+        <div class="editor-pane" id="editorPane">
 
-    <!-- MAIN -->
-    <div class="main" id="mainScroll">
+            <div class="editor-section">
+                <div class="section-title">👤 Shaxsiy Ma'lumotlar</div>
 
-        <!-- ===== FORM VIEW ===== -->
-        <div class="form-view on" id="formView">
-
-            <!-- STEP 0: Shaxsiy -->
-            <div class="step-panel on" id="fp0">
-                <div class="form-section-title">Shaxsiy ma'lumotlar</div>
-                <div class="form-section-sub">Asosiy identifikatsiya ma'lumotlarini kiriting</div>
-                <div class="field">
-                    <label class="field-label">F.I.SH — To'liq</label>
-                    <input type="text" id="fullname" placeholder="Aliyev Vali G'aniyevich" oninput="lp()">
-                </div>
-                <div class="field-row">
-                    <div class="field">
-                        <label class="field-label">Tug'ilgan sanasi</label>
-                        <input type="text" id="bdate" placeholder="15.05.1990" oninput="lp()">
-                    </div>
-                    <div class="field">
-                        <label class="field-label">Millati</label>
-                        <input type="text" id="nation" placeholder="O'zbek" oninput="lp()">
+                <div class="photo-upload">
+                    <div class="photo-preview-circle" id="photoPrev">📸</div>
+                    <div>
+                        <input type="file" id="imgInput" accept="image/*" style="display:none"
+                            onchange="handleImage(this)">
+                        <button class="photo-btn" onclick="document.getElementById('imgInput').click()">Rasm yuklash
+                            (3x4)</button>
                     </div>
                 </div>
-                <div class="field">
-                    <label class="field-label">Tug'ilgan joyi</label>
-                    <input type="text" id="bplace" placeholder="Toshkent sh., Yunusobod t." oninput="lp()">
+
+                <div class="form-group">
+                    <label>F.I.SH (To'liq ism)</label>
+                    <input type="text" id="f_name" class="form-control"
+                        placeholder="Masalan: ALISHEROV YUSUF MURATOVICH" oninput="updateCV()">
                 </div>
-                <div class="field">
-                    <label class="field-label">Partiyaviyligi</label>
-                    <input type="text" id="party" value="Yo'q" oninput="lp()">
+
+                <div style="display:flex; gap:12px;">
+                    <div class="form-group" style="flex:1">
+                        <label>Tug'ilgan yili</label>
+                        <input type="text" id="f_birth" class="form-control" placeholder="01.01.1990"
+                            oninput="updateCV()">
+                    </div>
+                    <div class="form-group" style="flex:1">
+                        <label>Tug'ilgan joyi</label>
+                        <input type="text" id="f_place" class="form-control" placeholder="Toshkent viloyati"
+                            oninput="updateCV()">
+                    </div>
                 </div>
-                <div class="form-nav">
-                    <button class="nav-btn nav-next" onclick="goStep(1)">Ta'lim ma'lumotlari →</button>
+
+                <div style="display:flex; gap:12px;">
+                    <div class="form-group" style="flex:1">
+                        <label>Millati</label>
+                        <input type="text" id="f_nation" class="form-control" placeholder="o'zbek" oninput="updateCV()">
+                    </div>
+                    <div class="form-group" style="flex:1">
+                        <label>Partiyaviyligi</label>
+                        <input type="text" id="f_party" class="form-control" placeholder="yo'q" oninput="updateCV()">
+                    </div>
+                </div>
+
+                <div style="display:flex; gap:12px;">
+                    <div class="form-group" style="flex:1">
+                        <label>Ma'lumoti</label>
+                        <input type="text" id="f_edu" class="form-control" placeholder="oliy" oninput="updateCV()">
+                    </div>
+                    <div class="form-group" style="flex:1">
+                        <label>Tamomlagan yili va oliygoh</label>
+                        <input type="text" id="f_grad" class="form-control"
+                            placeholder="2015 yil, Toshkent davlat yuridik universiteti" oninput="updateCV()">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Mutaxassisligi</label>
+                    <input type="text" id="f_spec" class="form-control" placeholder="huquqshunos" oninput="updateCV()">
+                </div>
+
+                <div style="display:flex; gap:12px;">
+                    <div class="form-group" style="flex:1">
+                        <label>Ilmiy darajasi</label>
+                        <input type="text" id="f_degree" class="form-control" placeholder="yo'q" oninput="updateCV()">
+                    </div>
+                    <div class="form-group" style="flex:1">
+                        <label>Ilmiy unvoni</label>
+                        <input type="text" id="f_title" class="form-control" placeholder="yo'q" oninput="updateCV()">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Qaysi chet tillarini biladi</label>
+                    <input type="text" id="f_langs" class="form-control" placeholder="rus va ingliz tillari"
+                        oninput="updateCV()">
+                </div>
+
+                <div class="form-group">
+                    <label>Davlat mukofotlari</label>
+                    <input type="text" id="f_awards" class="form-control" placeholder="yo'q" oninput="updateCV()">
+                </div>
+
+                <div class="form-group">
+                    <label>Xalq deputatlari kengashi deputatimi</label>
+                    <input type="text" id="f_deputy" class="form-control" placeholder="yo'q" oninput="updateCV()">
                 </div>
             </div>
 
-            <!-- STEP 1: Ta'lim -->
-            <div class="step-panel" id="fp1">
-                <div class="form-section-title">Ta'lim va malaka</div>
-                <div class="form-section-sub">Diplom va kasbiy malumotlar</div>
-                <div class="field">
-                    <label class="field-label">Ma'lumoti</label>
-                    <select id="edu" onchange="lp()">
-                        <option>Oliy</option>
-                        <option>O'rta maxsus</option>
-                        <option>O'rta</option>
-                    </select>
-                </div>
-                <div class="field">
-                    <label class="field-label">Tamomlagan o'quv yurti (nomi, yili, mutaxassislik)</label>
-                    <textarea id="grad"
-                        placeholder="2018 yil, Toshkent Davlat Texnika Universiteti, Muhandis-konstruktor"
-                        oninput="lp()"></textarea>
-                </div>
-                <div class="field">
-                    <label class="field-label">Mutaxassisligi (diplom bo'yicha)</label>
-                    <input type="text" id="spec" placeholder="Muhandis-konstruktor" oninput="lp()">
-                </div>
-                <div class="field-row">
-                    <div class="field">
-                        <label class="field-label">Ilmiy darajasi</label>
-                        <input type="text" id="deg" value="Yo'q" oninput="lp()">
-                    </div>
-                    <div class="field">
-                        <label class="field-label">Ilmiy unvoni</label>
-                        <input type="text" id="ttl" value="Yo'q" oninput="lp()">
-                    </div>
-                </div>
-                <div class="field-row">
-                    <div class="field">
-                        <label class="field-label">Harbiy unvon</label>
-                        <input type="text" id="mil" value="Yo'q" oninput="lp()">
-                    </div>
-                    <div class="field">
-                        <label class="field-label">Davlat mukofotlari</label>
-                        <input type="text" id="award" value="Yo'q" oninput="lp()">
-                    </div>
-                </div>
-                <div class="field">
-                    <label class="field-label">Chet tillari</label>
-                    <input type="text" id="langs" value="Yo'q" oninput="lp()">
-                </div>
-                <div class="field">
-                    <label class="field-label">Xalq deputati a'zoligi</label>
-                    <input type="text" id="dep" value="Yo'q" oninput="lp()">
-                </div>
-                <div class="form-nav">
-                    <button class="nav-btn nav-back" onclick="goStep(0)">←</button>
-                    <button class="nav-btn nav-next" onclick="goStep(2)">Mehnat faoliyati →</button>
-                </div>
+            <div class="editor-section">
+                <div class="section-title">💼 Mehnat Faoliyati</div>
+                <div class="repeater-list" id="expList"></div>
+                <button class="add-btn" onclick="addExp()">+ Ish joyi qo'shish</button>
             </div>
 
-            <!-- STEP 2: Mehnat -->
-            <div class="step-panel" id="fp2">
-                <div class="form-section-title">Mehnat faoliyati</div>
-                <div class="form-section-sub">Hozirgi ish joyini eng oxirga kiriting</div>
-                <div class="item-list" id="workList"></div>
-                <div class="sub-form">
-                    <div class="field-row">
-                        <div class="field">
-                            <label class="field-label">Dan (yil)</label>
-                            <input type="text" id="wF" placeholder="2018">
-                        </div>
-                        <div class="field">
-                            <label class="field-label">Gacha</label>
-                            <input type="text" id="wT" placeholder="h.v / 2024">
-                        </div>
-                    </div>
-                    <div class="field">
-                        <label class="field-label">Korxona nomi va lavozim</label>
-                        <input type="text" id="wD" placeholder="«Toshkent Elektr» korxonasi, Muhandis">
-                    </div>
-                    <button class="add-btn" onclick="addWork()">+ Ish joyi qo'shish</button>
-                </div>
-                <div class="form-nav">
-                    <button class="nav-btn nav-back" onclick="goStep(1)">←</button>
-                    <button class="nav-btn nav-next" onclick="goStep(3)">Oila a'zolari →</button>
-                </div>
+            <div class="editor-section">
+                <div class="section-title">👨‍👩‍👧 Yaqin qarindoshlari</div>
+                <div class="repeater-list" id="relList"></div>
+                <button class="add-btn" onclick="addRel()">+ Qarindosh qo'shish</button>
             </div>
 
-            <!-- STEP 3: Oila -->
-            <div class="step-panel" id="fp3">
-                <div class="form-section-title">Oila a'zolari</div>
-                <div class="form-section-sub">Ota, ona, aka, uka, opa, singil, turmush o'rtog'i</div>
-                <div class="item-list" id="relList"></div>
-                <div class="sub-form">
-                    <div class="field">
-                        <label class="field-label">Munosabati</label>
-                        <input type="text" id="rT" placeholder="Otasi  /  Onasi  /  Turmush o'rtog'i...">
-                    </div>
-                    <div class="field">
-                        <label class="field-label">F.I.SH</label>
-                        <input type="text" id="rN" placeholder="Aliyeva Mohira Hamidova">
-                    </div>
-                    <div class="field-row">
-                        <div class="field">
-                            <label class="field-label">Tug'ilgan yili va joyi</label>
-                            <input type="text" id="rB" placeholder="1965 y., Toshkent">
-                        </div>
-                        <div class="field">
-                            <label class="field-label">Yashash manzili</label>
-                            <input type="text" id="rA" placeholder="Toshkent sh.">
-                        </div>
-                    </div>
-                    <div class="field">
-                        <label class="field-label">Ish joyi va lavozimi</label>
-                        <input type="text" id="rJ" placeholder="«XYZ» korxonasi, Buxgalter" style="margin-bottom:0">
-                    </div>
-                    <div style="height:10px"></div>
-                    <button class="add-btn" onclick="addRel()">+ Qo'shish</button>
-                </div>
-                <div class="nav-actions">
-                    <button class="nav-btn" onclick="goStep(2)">Orqaga</button>
-                    <button class="nav-btn nav-done" style="background:#2563eb;color:#fff" onclick="finish('word')">Word
-                        Yuklash</button>
-                    <button class="nav-btn nav-done" style="background:#dc2626;color:#fff" onclick="finish('pdf')">PDF
-                        Yuklash</button>
-                </div>
-            </div>
-
-        </div><!-- /form-view -->
-
-        <!-- ===== PREVIEW VIEW ===== -->
-        <div class="preview-view" id="prevView">
-
-            <!-- Split-pane live label -->
-            <div class="pv-split-label">
-                <div class="pv-live-dot"></div>
-                Jonli ko'rinish
-            </div>
-
-            <!-- Personal + Education card -->
-            <div class="pv-card" id="pv_main_card">
-                <div class="pv-section">👤 Shaxsiy Ma'lumotlar</div>
-                <div class="pv-name" id="pv_name">—</div>
-                <div class="pv-job-title" id="pv_spec">—</div>
-                <div class="pv-row"><span class="pv-lbl">Tug'ilgan</span><span class="pv-val" id="pv_birth">—</span>
-                </div>
-                <div class="pv-row"><span class="pv-lbl">Millati</span><span class="pv-val" id="pv_nation">—</span>
-                </div>
-                <div class="pv-row"><span class="pv-lbl">Joyi</span><span class="pv-val" id="pv_place">—</span></div>
-                <div class="pv-row"><span class="pv-lbl">Partiyaviy</span><span class="pv-val" id="pv_party">—</span>
-                </div>
-            </div>
-
-            <div class="pv-card">
-                <div class="pv-section">📚 Ta'lim va Malaka</div>
-                <div class="pv-row"><span class="pv-lbl">Ma'lumoti</span><span class="pv-val" id="pv_edu">—</span></div>
-                <div class="pv-row"><span class="pv-lbl">Tamomlagan</span><span class="pv-val" id="pv_grad">—</span>
-                </div>
-                <div class="pv-row"><span class="pv-lbl">Il. daraja</span><span class="pv-val" id="pv_deg">—</span>
-                </div>
-                <div class="pv-row"><span class="pv-lbl">Il. unvon</span><span class="pv-val" id="pv_ttl">—</span></div>
-                <div class="pv-row"><span class="pv-lbl">Harbiy</span><span class="pv-val" id="pv_mil">—</span></div>
-                <div class="pv-row"><span class="pv-lbl">Mukofot</span><span class="pv-val" id="pv_award">—</span></div>
-                <div class="pv-row"><span class="pv-lbl">Tillar</span><span class="pv-val" id="pv_langs">—</span></div>
-                <div class="pv-row"><span class="pv-lbl">Deputat</span><span class="pv-val" id="pv_dep">—</span></div>
-            </div>
-
-            <div class="pv-card" id="pv_work_card" style="display:none">
-                <div class="pv-section">💼 Mehnat Faoliyati</div>
-                <div id="pv_works"></div>
-            </div>
-
-            <div class="pv-card" id="pv_rel_card" style="display:none">
-                <div class="pv-section">👨‍👩‍👧 Oila A'zolari</div>
-                <table class="pv-rel-table">
-                    <thead>
-                        <tr>
-                            <th style="width:80px">Munosabat</th>
-                            <th>F.I.SH va ma'lumotlar</th>
-                        </tr>
-                    </thead>
-                    <tbody id="pv_rels"></tbody>
-                </table>
-            </div>
-
-            <div class="bottom-pad"></div>
-        </div><!-- /preview-view -->
-
-    </div><!-- /main -->
-
-    <!-- ── MOBILE BOTTOM-SHEET PREVIEW ── -->
-    <div id="drawerBackdrop" onclick="closeDrawer()"></div>
-    <div id="previewDrawer" role="dialog" aria-modal="true">
-        <div class="drawer-handle"></div>
-        <div class="drawer-header">
-            <div class="drawer-title">👁 Jonli Ko'rinish</div>
-            <button class="drawer-close" onclick="closeDrawer()">✕</button>
         </div>
-        <div class="drawer-body" id="drawerBody"></div>
-    </div>
 
-    <!-- Floating pill trigger -->
-    <button id="previewPill" onclick="openDrawer()">
-        <span class="pill-dot"></span> Ko'rish
-    </button>
+        <!-- RIGHT: LIVE PREVIEW -->
+        <div class="preview-pane">
+            <div class="cv-canvas tpl-oby" id="cv-box">
+                <!-- Inner HTML injected live -->
+            </div>
+        </div>
+    </div>
 
     <script>
-        /* ── INIT ── */
-        const tg = window.Telegram?.WebApp;
-        const theme = localStorage.getItem('theme') || 'dark';
-        document.documentElement.setAttribute('data-theme', theme);
-        if (tg) { tg.ready(); tg.expand(); if (tg.setHeaderColor) tg.setHeaderColor(theme === 'dark' ? '#060d1c' : '#f0f4f8'); }
-        const tid = new URLSearchParams(location.search).get('telegram_id') || tg?.initDataUnsafe?.user?.id?.toString() || '';
-        document.getElementById('backBtn').onclick = () => { location.href = 'index.html' + (tid ? '?telegram_id=' + tid : ''); };
+        // STATE
+        let avatarUrl = '';
+        let experiences = [{ id: 1, years: '2015-2020 yy.', desc: "Toshkent shahri Yunusobod tumani hokimi o'rinbosari" }];
+        let relatives = [{ id: 1, role: 'Otasi', name: 'Alisherov Muratjon', birth: '1965 yil, Toshkent viloyati', work: "Nafaqada", addr: "Toshkent shahri, Yunusobod tumani, 3-kvartal, 12-uy" }];
 
-        const works = [], rels = [];
-        let curStep = 0;
-        const stepLabels = ['Shaxsiy ma\'lumotlar', 'Ta\'lim va malaka', 'Mehnat faoliyati', 'Oila a\'zolari'];
-        const bars = [0, 1, 2, 3].map(i => document.getElementById('sp' + i));
-        const panels = [0, 1, 2, 3].map(i => document.getElementById('fp' + i));
-
-        /* ── VIEW TOGGLE (mobile only) ── */
-        let curView = 'form';
-        function switchView(v) {
-            curView = v;
-            document.getElementById('formView').classList.toggle('on', v === 'form');
-            document.getElementById('prevView').classList.toggle('on', v === 'preview');
-            document.getElementById('vt-form').classList.toggle('on', v === 'form');
-            document.getElementById('vt-prev').classList.toggle('on', v === 'preview');
-            if (v === 'preview') lp();
-            document.getElementById('mainScroll').scrollTop = 0;
+        // IMAGE HANDLER
+        function handleImage(input) {
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                    avatarUrl = e.target.result;
+                    document.getElementById('photoPrev').innerHTML = `<img src="${avatarUrl}">`;
+                    updateCV();
+                }
+                reader.readAsDataURL(input.files[0]);
+            }
         }
 
-        /* ── BOTTOM-SHEET DRAWER ── */
-        function openDrawer() {
-            syncDrawer();
-            document.getElementById('previewDrawer').classList.add('open');
-            document.getElementById('drawerBackdrop').classList.add('open');
-        }
-        function closeDrawer() {
-            document.getElementById('previewDrawer').classList.remove('open');
-            document.getElementById('drawerBackdrop').classList.remove('open');
-        }
-        function syncDrawer() {
-            document.getElementById('drawerBody').innerHTML =
-                document.getElementById('prevView').innerHTML;
+        // REPEATER: EXPERIENCE
+        function addExp() { experiences.push({ id: Date.now(), years: '', desc: '' }); renderExp(); updateCV(); }
+        function removeExp(id) { experiences = experiences.filter(x => x.id !== id); renderExp(); updateCV(); }
+        function renderExp() {
+            document.getElementById('expList').innerHTML = experiences.map((ex, i) => `
+                <div class="repeater-item">
+                    <button class="rm-btn" onclick="removeExp(${ex.id})">×</button>
+                    <input type="text" class="form-control" style="margin-bottom:8px" placeholder="Yillar (Masalan: 2018 - 2023 yy.)" value="${ex.years}" oninput="experiences[${i}].years=this.value; updateCV()">
+                    <textarea class="form-control" placeholder="Ish joyi va lavozimi" oninput="experiences[${i}].desc=this.value; updateCV()">${ex.desc}</textarea>
+                </div>
+            `).join('');
         }
 
-        /* ── STEPS ── */
-        function goStep(n) {
-            panels[curStep].classList.remove('on');
-            curStep = n;
-            panels[curStep].classList.add('on');
-            bars.forEach((b, i) => {
-                b.classList.remove('active', 'done');
-                if (i < n) b.classList.add('done');
-                else if (i === n) b.classList.add('active');
-            });
-            document.getElementById('hdr-step-lbl').textContent = (n + 1) + '-qadam • ' + stepLabels[n];
-            document.getElementById('sp-txt').textContent = (n + 1) + ' / 4';
-            document.getElementById('mainScroll').scrollTop = 0;
-            tg?.HapticFeedback?.impactOccurred('light');
+        // REPEATER: RELATIVES
+        function addRel() { relatives.push({ id: Date.now(), role: '', name: '', birth: '', work: '', addr: '' }); renderRel(); updateCV(); }
+        function removeRel(id) { relatives = relatives.filter(x => x.id !== id); renderRel(); updateCV(); }
+        function renderRel() {
+            document.getElementById('relList').innerHTML = relatives.map((r, i) => `
+                <div class="repeater-item">
+                    <button class="rm-btn" onclick="removeRel(${r.id})">×</button>
+                    <div style="display:flex;gap:8px;margin-bottom:8px">
+                        <input type="text" class="form-control" placeholder="Qarindoshligi (Masalan: Otasi)" value="${r.role}" oninput="relatives[${i}].role=this.value; updateCV()">
+                        <input type="text" class="form-control" placeholder="F.I.SH" value="${r.name}" oninput="relatives[${i}].name=this.value; updateCV()">
+                    </div>
+                    <input type="text" class="form-control" style="margin-bottom:8px" placeholder="Tug'ilgan yili va joyi" value="${r.birth}" oninput="relatives[${i}].birth=this.value; updateCV()">
+                    <input type="text" class="form-control" style="margin-bottom:8px" placeholder="Ish joyi va lavozimi" value="${r.work}" oninput="relatives[${i}].work=this.value; updateCV()">
+                    <input type="text" class="form-control" placeholder="Yashash manzili" value="${r.addr}" oninput="relatives[${i}].addr=this.value; updateCV()">
+                </div>
+            `).join('');
         }
 
-        /* ── HELPERS ── */
-        function v(id) { return (document.getElementById(id)?.value || '').trim(); }
-        function txt(id, val) {
-            const e = document.getElementById(id);
-            if (!e) return;
-            const empty = !val || val === 'Yo\'q';
-            e.textContent = val || '—';
-            e.className = 'pv-val' + (empty ? ' empty' : '');
-        }
+        // INIT
+        renderExp();
+        renderRel();
 
-        /* ── FLASH ANIMATION ── */
-        function flashCard(el) {
-            if (!el) return;
-            el.classList.remove('flashing');
-            void el.offsetWidth;
-            el.classList.add('flashing');
-            el.addEventListener('animationend', () => el.classList.remove('flashing'), { once: true });
-        }
+        function v(id) { return document.getElementById(id).value.trim(); }
 
-        /* ── LIVE PREVIEW ── */
-        function lp() {
-            document.getElementById('pv_name').textContent = v('fullname') || '—';
-            document.getElementById('pv_spec').textContent = v('spec') || '—';
-            txt('pv_birth', v('bdate') + (v('bplace') ? ' · ' + v('bplace') : ''));
-            txt('pv_nation', v('nation'));
-            txt('pv_place', v('bplace'));
-            txt('pv_party', v('party'));
-            txt('pv_edu', v('edu'));
-            txt('pv_grad', v('grad'));
-            txt('pv_deg', v('deg'));
-            txt('pv_ttl', v('ttl'));
-            txt('pv_mil', v('mil'));
-            txt('pv_award', v('award'));
-            txt('pv_langs', v('langs'));
-            txt('pv_dep', v('dep'));
-
-            const wc = document.getElementById('pv_work_card');
-            const wb = document.getElementById('pv_works');
-            if (works.length) {
-                wc.style.display = '';
-                wb.innerHTML = works.map(w => `
-                    <div class="pv-work">
-                        <div class="pv-work-date">${w.f} – ${w.t}</div>
-                        <div class="pv-work-place">${w.d}</div>
-                    </div>`).join('');
-            } else wc.style.display = 'none';
-
-            const rc = document.getElementById('pv_rel_card');
-            const rb = document.getElementById('pv_rels');
-            if (rels.length) {
-                rc.style.display = '';
-                rb.innerHTML = rels.map(r => `<tr>
-                    <td>${r.type}</td>
-                    <td><b>${r.name}</b><br><span style="font-size:12px;color:var(--sub)">${r.birth} · ${r.addr}<br>${r.job}</span></td>
-                </tr>`).join('');
-            } else rc.style.display = 'none';
-
-            flashCard(document.getElementById('pv_main_card'));
-        }
-
-        /* ── DEBOUNCE ── */
-        let _lpTimer;
-        function lpDebounced() { clearTimeout(_lpTimer); _lpTimer = setTimeout(lp, 50); }
-
-        /* ── DELEGATED REAL-TIME EVENT BINDING ── */
-        document.getElementById('formView').addEventListener('input', lpDebounced);
-        document.getElementById('formView').addEventListener('change', lpDebounced);
-
-        /* Initial render */
-        lp();
-
-        /* ── ADD WORK ── */
-        function addWork() {
-            const o = { f: v('wF'), t: v('wT'), d: v('wD') };
-            if (!o.d) { alert('Korxona va lavozimni kiriting'); return; }
-            works.push(o); renderWorks(); lp();
-            ['wF', 'wT', 'wD'].forEach(id => { document.getElementById(id).value = ''; });
-        }
-        function renderWorks() {
-            document.getElementById('workList').innerHTML = works.map((w, i) => `
-    <div class="item-card">
-      <div class="item-card-info">
-        <div class="item-card-title">${w.d}</div>
-        <div class="item-card-sub">${w.f} – ${w.t}</div>
-      </div>
-      <button class="item-del" onclick="works.splice(${i},1);renderWorks();lp()">✕</button>
-    </div>`).join('');
-        }
-
-        /* ── ADD REL ── */
-        function addRel() {
-            const o = { type: v('rT'), name: v('rN'), birth: v('rB'), addr: v('rA'), job: v('rJ') };
-            if (!o.type || !o.name) { alert('Munosabat va ismni kiriting'); return; }
-            rels.push(o); renderRels(); lp();
-            ['rT', 'rN', 'rB', 'rA', 'rJ'].forEach(id => { document.getElementById(id).value = ''; });
-        }
-        function renderRels() {
-            document.getElementById('relList').innerHTML = rels.map((r, i) => `
-    <div class="item-card">
-      <div class="item-card-info">
-        <div class="item-card-title">${r.type}: ${r.name}</div>
-        <div class="item-card-sub">${r.birth} · ${r.addr}</div>
-      </div>
-      <button class="item-del" onclick="rels.splice(${i},1);renderRels();lp()">✕</button>
-    </div>`).join('');
-        }
-
-        /* ── FINISH ── */
-        function finish(format = 'word') {
-            lp();
-            // Gather all data into a payload
-            const payload = {
-                action: "generate_obyektivka",
-                format: format,
-                fullname: v('fullname'),
-                bdate: v('bdate'),
-                bplace: v('bplace'),
-                nation: v('nation'),
-                party: v('party'),
-                edu: v('edu'),
-                grad: v('grad'),
-                spec: v('spec'),
-                deg: v('deg'),
-                ttl: v('ttl'),
-                mil: v('mil'),
-                award: v('award'),
-                langs: v('langs'),
-                dep: v('dep'),
-                works: works,
-                rels: rels
+        function updateCV() {
+            const data = {
+                name: v('f_name') || 'ALISHEROV YUSUF MURATOVICH',
+                birth: v('f_birth') || '01.01.1990',
+                place: v('f_place') || 'Toshkent viloyati',
+                nation: v('f_nation') || 'o\'zbek',
+                party: v('f_party') || 'yo\'q',
+                edu: v('f_edu') || 'oliy',
+                grad: v('f_grad') || '2015 yil, Toshkent davlat yuridik universiteti (kunduzgi)',
+                spec: v('f_spec') || 'huquqshunos',
+                degree: v('f_degree') || 'yo\'q',
+                title: v('f_title') || 'yo\'q',
+                langs: v('f_langs') || 'rus va ingliz tillari',
+                awards: v('f_awards') || 'yo\'q',
+                deputy: v('f_deputy') || 'yo\'q',
+                exp: experiences.filter(e => e.years || e.desc),
+                rel: relatives.filter(e => e.role || e.name)
             };
 
-            if (!payload.fullname) {
-                tg?.showAlert("F.I.SH kiriting!");
-                return;
-            }
+            const box = document.getElementById('cv-box');
 
-            if (tg && tg.sendData) {
-                tg.sendData(JSON.stringify(payload));
-            } else {
-                alert("Faqat Telegram bot orqali ishlaydi!");
-            }
+            const expHtml = data.exp.length > 0 ?
+                `<table class="exp-table">` + data.exp.map(e => `
+                    <tr>
+                        <td>${e.years}</td>
+                        <td>- ${e.desc}</td>
+                    </tr>
+                `).join('') + `</table>` : '<div style="text-align:center; font-style:italic">Ma\'lumot kiritilmagan</div>';
+
+            const relHtml = data.rel.length > 0 ?
+                `<table class="rel-table">
+                    <tr>
+                        <th style="width:12%">Qarindosh-<br>ligi</th>
+                        <th style="width:23%">Familiyasi, ismi va otasining ismi</th>
+                        <th style="width:20%">Tug'ilgan yili va joyi</th>
+                        <th style="width:25%">Ish joyi va lavozimi</th>
+                        <th style="width:20%">Yashash manzili</th>
+                    </tr>` +
+                data.rel.map(r => `
+                    <tr>
+                        <td>${r.role}</td>
+                        <td>${r.name}</td>
+                        <td>${r.birth}</td>
+                        <td>${r.work}</td>
+                        <td>${r.addr}</td>
+                    </tr>
+                `).join('') + `</table>` : '<div style="text-align:center; font-style:italic">Ma\'lumot kiritilmagan</div>';
+
+            let imgHtml = avatarUrl ? `<img src="${avatarUrl}" class="avatar">` : `<div style="width:30mm;height:40mm;border:1px solid #000;display:flex;align-items:center;justify-content:center;color:#aaa;font-size:10pt;">4x6</div>`;
+
+            box.innerHTML = `
+                <div class="title">M A ' L U M O T N O M A</div>
+                
+                <table class="header-table">
+                    <tr>
+                        <td class="col-main">
+                            <div class="name">${data.name.replace(/ /g, '<br>')}</div>
+                        </td>
+                        <td class="col-img">
+                            ${imgHtml}
+                        </td>
+                    </tr>
+                </table>
+
+                <div class="info-grid">
+                    <div class="info-item">
+                        <strong>Tug'ilgan yili:</strong>
+                        ${data.birth}
+                    </div>
+                    <div class="info-item">
+                        <strong>Tug'ilgan joyi:</strong>
+                        ${data.place}
+                    </div>
+                    
+                    <div class="info-item">
+                        <strong>Millati:</strong>
+                        ${data.nation}
+                    </div>
+                    <div class="info-item">
+                        <strong>Partiyaviyligi:</strong>
+                        ${data.party}
+                    </div>
+                    
+                    <div class="info-item">
+                        <strong>Ma'lumoti:</strong>
+                        ${data.edu}
+                    </div>
+                    <div class="info-item">
+                        <strong>Tamomlagan:</strong>
+                        ${data.grad}
+                    </div>
+                    
+                    <div class="info-item">
+                        <strong>Ma'lumoti bo'yicha mutaxassisligi:</strong>
+                        ${data.spec}
+                    </div>
+                    <div class="info-item">
+                        <strong>Ilmiy darajasi:</strong>
+                        ${data.degree}
+                    </div>
+                    
+                    <div class="info-item">
+                        <strong>Ilmiy unvoni:</strong>
+                        ${data.title}
+                    </div>
+                    <div class="info-item">
+                        <strong>Qaysi chet tillarini biladi:</strong>
+                        ${data.langs}
+                    </div>
+                    
+                    <div class="info-item">
+                        <strong>Davlat mukofotlari bilan taqdirlanganmi (qanaqa):</strong>
+                        ${data.awards}
+                    </div>
+                    <div class="info-item">
+                        <strong>Xalq deputatlari respublika, viloyat, shahar va tuman Kengashi deputatimi, saylanadigan organlarning a'zosimi (ko'rsatilishi lozim):</strong>
+                        ${data.deputy}
+                    </div>
+                </div>
+
+                <div class="section-title">MEHNAT FAOLIYATI</div>
+                ${expHtml}
+
+                <div class="section-title">${data.name.split(' ')[0]}NING YAQIN QARINDOSHLARI HAQIDA<br>M A ' L U M O T</div>
+                ${relHtml}
+            `;
+
+            autoScale();
+        }
+
+        function autoScale() {
+            const pane = document.querySelector('.preview-pane');
+            const box = document.getElementById('cv-box');
+
+            const padding = 60;
+            const paneW = pane.clientWidth - padding;
+            const paneH = pane.clientHeight - padding;
+
+            // Standard A4 is approx 793 x 1122 px
+            const natW = 793;
+            const natH = 1122;
+
+            const scaleW = paneW / natW;
+            const scaleH = paneH / natH;
+            const scale = Math.min(scaleW, scaleH, 1);
+
+            box.style.transform = `scale(${scale})`;
+        }
+        window.addEventListener('resize', autoScale);
+        setTimeout(() => updateCV(), 100);
+
+        function exportPDF() {
+            const el = document.getElementById('cv-box');
+            el.style.transform = 'none';
+
+            const opt = {
+                margin: 0,
+                filename: 'Obyektivka_' + new Date().getTime() + '.pdf',
+                image: { type: 'jpeg', quality: 1.0 },
+                html2canvas: { scale: 2, useCORS: true },
+                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+            };
+
+            const btn = document.querySelector('.btn-pdf');
+            btn.innerHTML = "⏳ Kuting...";
+            btn.disabled = true;
+
+            html2pdf().set(opt).from(el).save().then(() => {
+                autoScale();
+                btn.innerHTML = "📥 PDF Yuklash";
+                btn.disabled = false;
+
+                const tg = window.Telegram?.WebApp;
+                if (tg && tg.showAlert) tg.showAlert("Obyektivka PDF formati saqlandi!");
+            });
+        }
+
+        function exportWord() {
+            alert("Word (.docx) formati tez kunda backend bilan birlashtiriladi. Hozirgi dizayn strukturasini saqlab qolish uchun PDF variantidan foydalanib turing.");
         }
     </script>
 </body>
