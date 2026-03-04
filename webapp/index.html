@@ -676,12 +676,32 @@
                     if (user.photo_url) {
                         document.getElementById('picBox').innerHTML = `<img src="${user.photo_url}" alt="user">`;
                     }
+                    sessionStorage.setItem('telegram_id', telegramId);
                     return true;
                 }
+                // Try parsing tg.initData raw string
+                if (tg.initData) {
+                    try {
+                        const p = new URLSearchParams(tg.initData);
+                        const u = JSON.parse(decodeURIComponent(p.get('user') || '{}'));
+                        if (u.id) {
+                            telegramId = u.id.toString();
+                            sessionStorage.setItem('telegram_id', telegramId);
+                            if (u.first_name) {
+                                document.getElementById('userName').textContent = u.first_name;
+                                document.getElementById('userInitial').textContent = u.first_name.charAt(0);
+                            }
+                            return true;
+                        }
+                    } catch (e) { }
+                }
             }
-            const urlParams = new URLSearchParams(window.location.search);
-            const urlId = urlParams.get('telegram_id');
-            if (urlId) { telegramId = urlId; return true; }
+            // URL param fallback
+            const urlId = new URLSearchParams(window.location.search).get('telegram_id');
+            if (urlId) { telegramId = urlId; sessionStorage.setItem('telegram_id', telegramId); return true; }
+            // sessionStorage fallback (persists across page navigations)
+            const stored = sessionStorage.getItem('telegram_id');
+            if (stored) { telegramId = stored; return true; }
             return false;
         }
 
@@ -758,10 +778,12 @@
         document.querySelectorAll('a').forEach(a => {
             a.addEventListener('click', (e) => {
                 const href = a.getAttribute('href');
-                if (href && href.endsWith('.html') && telegramId) {
+                if (!href || !href.endsWith('.html')) return;
+                const id = telegramId || sessionStorage.getItem('telegram_id');
+                if (id) {
                     e.preventDefault();
                     const separator = href.includes('?') ? '&' : '?';
-                    window.location.href = `${href}${separator}telegram_id=${telegramId}`;
+                    window.location.href = `${href}${separator}telegram_id=${id}`;
                 }
             });
         });

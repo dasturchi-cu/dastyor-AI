@@ -322,13 +322,16 @@
 
         updateUI();
 
-        // Pass ID filter
+        // Pass ID to child pages via URL param
         document.querySelectorAll('a').forEach(a => {
             a.addEventListener('click', (e) => {
                 const href = a.getAttribute('href');
-                const urlParams = new URLSearchParams(window.location.search);
-                const id = urlParams.get('telegram_id');
-                if (href && href.endsWith('.html') && id) {
+                if (!href || !href.endsWith('.html')) return;
+                // Get ID from URL param, then sessionStorage
+                let id = new URLSearchParams(window.location.search).get('telegram_id');
+                if (!id) id = sessionStorage.getItem('telegram_id');
+                if (!id && tg?.initDataUnsafe?.user?.id) id = tg.initDataUnsafe.user.id.toString();
+                if (id) {
                     e.preventDefault();
                     const separator = href.includes('?') ? '&' : '?';
                     window.location.href = `${href}${separator}telegram_id=${id}`;

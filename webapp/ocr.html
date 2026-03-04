@@ -396,6 +396,9 @@
                     if (user.id) return user.id.toString();
                 } catch (e) { }
             }
+            // 4. sessionStorage (saved by index.html on first load)
+            const stored = sessionStorage.getItem('telegram_id');
+            if (stored) return stored;
             return '';
         }
 
@@ -406,6 +409,7 @@
                 tg.headerColor = currentTheme === 'dark' ? '#050f1e' : '#f8fafc';
             }
             telegramId = getTelegramId();
+            if (telegramId) sessionStorage.setItem('telegram_id', telegramId);
             return !!telegramId;
         }
 
