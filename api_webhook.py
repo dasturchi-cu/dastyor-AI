@@ -98,44 +98,78 @@ async def api_upload_ocr(telegram_id: str = Form(...), files: List[UploadFile] =
 async def api_upload_pdf(telegram_id: str = Form(...), files: List[UploadFile] = File(...)):
     try:
         chat_id = int(telegram_id)
+        import time, asyncio
         os.makedirs("temp", exist_ok=True)
+        
+        # Save uploaded files with unique names
         img_paths = []
-        for file in files:
-            path = f"temp/{file.filename}"
+        ts = int(time.time())
+        for i, file in enumerate(files):
+            ext = os.path.splitext(file.filename)[1] or ".jpg"
+            path = f"temp/pdf_{chat_id}_{ts}_{i}{ext}"
+            content = await file.read()
             with open(path, "wb") as f:
-                f.write(await file.read())
+                f.write(content)
             img_paths.append(path)
-            
-        msg = await application.bot.send_message(chat_id=chat_id, text="⏳ Rasmlar qabul qilindi. PDF tayyorlanmoqda...")
+        
+        if not img_paths:
+            return {"error": "Fayl yuklanmadi"}
+        
+        logger.info(f"PDF task: {len(img_paths)} images for user {chat_id}")
+        msg = await application.bot.send_message(
+            chat_id=chat_id,
+            text=f"⏳ {len(img_paths)} ta rasm qabul qilindi. PDF tayyorlanmoqda..."
+        )
         
         async def run_pdf_task():
+            pdf_path = f"temp/merged_{chat_id}_{ts}.pdf"
             try:
-                import img2pdf
-                from PyPDF2 import PdfMerger
-                pdf_path = f"temp/merged_{chat_id}.pdf"
-                with open(pdf_path, "wb") as f:
-                    f.write(img2pdf.convert(img_paths))
+                from bot.services.pdf_service import images_to_pdf
+                # Run CPU-bound PDF creation in executor thread
+                await asyncio.get_event_loop().run_in_executor(
+                    None, images_to_pdf, img_paths, pdf_path
+                )
+                
+                if not os.path.exists(pdf_path):
+                    raise FileNotFoundError("PDF fayl yaratilmadi")
                 
                 with open(pdf_path, 'rb') as f:
                     await application.bot.send_document(
                         chat_id=chat_id,
-                        document=InputFile(f, filename="DastyorAI_Images.pdf"),
-                        caption="✅ **PDF tayyor!**",
+                        document=InputFile(f, filename=f"DastyorAI_{ts}.pdf"),
+                        caption=f"✅ **PDF tayyor!**\n📄 {len(img_paths)} ta rasm birlashtirildi.",
                         parse_mode="Markdown"
                     )
                 await application.bot.delete_message(chat_id=chat_id, message_id=msg.message_id)
-                # Cleanup
-                for p in img_paths: os.remove(p)
-                os.remove(pdf_path)
+                logger.info(f"PDF sent to {chat_id} successfully")
+                
             except Exception as ex:
-                logger.error(f"PDF background error: {ex}")
+                logger.error(f"PDF task error: {ex}", exc_info=True)
+                try:
+                    await application.bot.edit_message_text(
+                        chat_id=chat_id,
+                        message_id=msg.message_id,
+                        text=f"❌ PDF yaratishda xatolik: {str(ex)[:200]}"
+                    )
+                except Exception:
+                    pass
+            finally:
+                # Cleanup
+                for p in img_paths:
+                    try:
+                        if os.path.exists(p): os.remove(p)
+                    except: pass
+                try:
+                    if os.path.exists(pdf_path): os.remove(pdf_path)
+                except: pass
         
-        import asyncio
         asyncio.create_task(run_pdf_task())
         return {"status": "ok"}
+        
     except Exception as e:
-        logger.error(f"Upload PDF API error: {e}")
+        logger.error(f"Upload PDF API error: {e}", exc_info=True)
         return {"error": str(e)}
+
 
 @app.get("/health")
 async def health():
