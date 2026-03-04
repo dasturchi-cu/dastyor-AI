@@ -210,6 +210,10 @@
     <script src="app.js"></script>
     <script>
         const tg = window.Telegram?.WebApp;
+        if (tg) {
+            tg.ready();
+            tg.expand();
+        }
         let selectedDir = 'uz_en';
 
         document.querySelectorAll('.lang-btn').forEach(b => {

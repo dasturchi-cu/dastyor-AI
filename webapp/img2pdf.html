@@ -169,15 +169,31 @@
     <script src="app.js"></script>
     <script>
         const tg = window.Telegram?.WebApp;
-        // Resolve telegramId once at load
-        let telegramId = '';
-        if (tg && tg.initDataUnsafe?.user) {
-            telegramId = tg.initDataUnsafe.user.id.toString();
-        } else {
-            const urlParams = new URLSearchParams(window.location.search);
-            telegramId = urlParams.get('telegram_id') || '';
-        }
+        // Call ready() FIRST so initDataUnsafe gets populated
         if (tg) { tg.ready(); tg.expand(); }
+        let telegramId = '';
+
+        function getTelegramId() {
+            // 1. Telegram WebApp SDK (most reliable)
+            if (tg && tg.initDataUnsafe?.user?.id) {
+                return tg.initDataUnsafe.user.id.toString();
+            }
+            // 2. URL query param (passed from index/more.html)
+            const urlId = new URLSearchParams(window.location.search).get('telegram_id');
+            if (urlId) return urlId;
+            // 3. Parse from tg.initData raw string
+            if (tg && tg.initData) {
+                try {
+                    const params = new URLSearchParams(tg.initData);
+                    const user = JSON.parse(decodeURIComponent(params.get('user') || '{}'));
+                    if (user.id) return user.id.toString();
+                } catch (e) { }
+            }
+            return '';
+        }
+
+        // Pre-load once (will be refreshed at submit too)
+        telegramId = getTelegramId();
 
         let selectedFiles = [];
 
@@ -251,8 +267,10 @@
         }
 
         async function startImgToPdf() {
+            // Always re-check at submit time (SDK may have loaded after page init)
+            if (!telegramId) telegramId = getTelegramId();
             if (!telegramId) {
-                alert("Faqat Telegram bot ichida ishlaydi (yoki URL da telegram_id yo'q).");
+                alert("Telegram ID topilmadi. Iltimos, botdan oching: @DastyorAiBot");
                 return;
             }
             if (selectedFiles.length === 0) return;

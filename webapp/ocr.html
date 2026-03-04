@@ -380,20 +380,33 @@
             document.getElementById('txt_bot').textContent = strings.bot;
         }
 
+        function getTelegramId() {
+            // 1. Telegram WebApp SDK
+            if (tg && tg.initDataUnsafe?.user?.id) {
+                return tg.initDataUnsafe.user.id.toString();
+            }
+            // 2. URL query param
+            const urlId = new URLSearchParams(window.location.search).get('telegram_id');
+            if (urlId) return urlId;
+            // 3. Parse from tg.initData raw string
+            if (tg && tg.initData) {
+                try {
+                    const params = new URLSearchParams(tg.initData);
+                    const user = JSON.parse(decodeURIComponent(params.get('user') || '{}'));
+                    if (user.id) return user.id.toString();
+                } catch (e) { }
+            }
+            return '';
+        }
+
         function checkAuth() {
             if (tg) {
                 tg.ready();
                 tg.expand();
                 tg.headerColor = currentTheme === 'dark' ? '#050f1e' : '#f8fafc';
-                if (tg.initDataUnsafe?.user) {
-                    telegramId = tg.initDataUnsafe.user.id.toString();
-                    return true;
-                }
             }
-            const urlParams = new URLSearchParams(window.location.search);
-            const urlId = urlParams.get('telegram_id');
-            if (urlId) { telegramId = urlId; return true; }
-            return false;
+            telegramId = getTelegramId();
+            return !!telegramId;
         }
 
         let selectedFiles = [];
@@ -428,16 +441,14 @@
         }
 
         async function startOCR() {
-            // Attempt auth once more at submit time (in case checkAuth was not called)
-            if (!telegramId) {
-                const urlId = new URLSearchParams(window.location.search).get('telegram_id');
-                if (urlId) telegramId = urlId;
-            }
+            // Refresh telegramId in case SDK loaded late
+            if (!telegramId) telegramId = getTelegramId();
+
             if (!telegramId) {
                 if (tg && tg.showAlert) {
                     tg.showAlert("Iltimos, botni oching: @DastyorAiBot");
                 } else {
-                    alert("Faqat Telegram bot orqali ishlaydi. @DastyorAiBot ga o'ting.");
+                    alert("Telegram ID topilmadi. Iltimos bot orqali kiring.");
                 }
                 return;
             }
