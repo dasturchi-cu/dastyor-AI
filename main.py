@@ -53,7 +53,7 @@ from bot.services.user_service import increment_file_count, is_user_banned
 
 async def back_to_main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data.clear()
-    await update.message.reply_text("🏠 Bosh menyu", reply_markup=get_main_menu())
+    await update.message.reply_text("🏠 Asosiy menyu", reply_markup=get_main_menu(update.effective_user.id if update.effective_user else None))
 
 async def premium_info_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
@@ -148,17 +148,22 @@ async def handle_router_doc(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if await process_admin_state_input(update, context): return
     
     state = context.user_data.get('waiting_for')
+    direction = context.user_data.get('transliterate_direction') or context.user_data.get('translate_direction')
     uid = update.effective_user.id
     
-    if state == 'doc_transliterate' or context.user_data.get('transliterate_direction'):
+    if (state == 'doc_transliterate' or direction) and 'translit' in str(direction).lower():
         await process_transliterate(update, context)
         increment_file_count(uid, "Transliterate Doc")
-    elif context.user_data.get('translate_direction'):
+    elif 'translate' in str(direction).lower():
         await process_translate_doc(update, context)
         increment_file_count(uid, "Translate Doc")
-    elif state == 'spell_check_doc':
+    elif state == 'spell_check_doc' or state == 'spellcheck_file':
         await process_spell_check(update, context)
         increment_file_count(uid, "Spell Check")
+    elif state == 'ocr_image' or state == 'ocr_image_doc':
+        # Some users send images as documents
+        await process_ocr_image(update, context)
+        increment_file_count(uid, "OCR Doc-Image")
     else:
         # Smart Logic
         await handle_smart_document(update, context)
@@ -177,7 +182,7 @@ async def handle_router_photo(update: Update, context: ContextTypes.DEFAULT_TYPE
         await process_image_to_pdf(update, context)
         increment_file_count(uid, "Image to PDF")
     else:
-        # Smart Logic
+        # Smart Logic (Photo)
         await handle_smart_photo(update, context)
 
 async def handle_router_audio(update: Update, context: ContextTypes.DEFAULT_TYPE):

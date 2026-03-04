@@ -144,10 +144,15 @@ async def perform_ocr_and_send(context, image_path, chat_id, user_id):
                 chat_id=chat_id,
                 document=InputFile(f, filename=doc_path),
                 caption="✅ **Marhamat!**\n\nSizning hujjatingiz tayyor.",
-                parse_mode=ParseMode.MARKDOWN
+                parse_mode=ParseMode.MARKDOWN,
+                reply_markup=get_main_menu(user_id)
             )
             
         await progress_msg.delete()
+        
+        # CLEAR STATE AFTER SUCCESS
+        if 'waiting_for' in context.user_data and context.user_data['waiting_for'] == 'ocr_image':
+            del context.user_data['waiting_for']
         
     except Exception as e:
         logger.error(f"OCR Error: {e}", exc_info=True)
