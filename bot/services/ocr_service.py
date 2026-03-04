@@ -53,8 +53,8 @@ async def extract_text_from_image(image_path: str) -> str:
             logger.error("Gemini file processing failed state.")
             return ""
 
-        # Use Gemini 3 Flash
-        model = genai.GenerativeModel('gemini-3-flash-preview')
+        # Use Gemini 1.5 Flash
+        model = genai.GenerativeModel('gemini-1.5-flash')
 
         prompt = """
         You are a professional Document Digitizer.
