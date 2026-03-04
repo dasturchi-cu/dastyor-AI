@@ -268,10 +268,12 @@ async def api_upload_ocr(telegram_id: str = Form(...), files: List[UploadFile] =
 
 
 
-@app.post("/api/upload_pdf")
-async def api_upload_pdf(telegram_id: str = Form(...), files: List[UploadFile] = File(...)):
+@app.post("/api/pdf_direct")
+async def api_pdf_direct(
+    files: List[UploadFile] = File(...),
+    telegram_id: Optional[str] = Form(None)
+):
     try:
-        chat_id = int(telegram_id)
         import time, asyncio
         os.makedirs("temp", exist_ok=True)
         
@@ -280,69 +282,71 @@ async def api_upload_pdf(telegram_id: str = Form(...), files: List[UploadFile] =
         ts = int(time.time())
         for i, file in enumerate(files):
             ext = os.path.splitext(file.filename)[1] or ".jpg"
-            path = f"temp/pdf_{chat_id}_{ts}_{i}{ext}"
+            path = f"temp/pdf_req_{ts}_{i}{ext}"
             content = await file.read()
             with open(path, "wb") as f:
                 f.write(content)
             img_paths.append(path)
         
         if not img_paths:
-            return {"error": "Fayl yuklanmadi"}
+            raise HTTPException(status_code=400, detail="Fayl yuklanmadi")
         
-        logger.info(f"PDF task: {len(img_paths)} images for user {chat_id}")
-        msg = await application.bot.send_message(
-            chat_id=chat_id,
-            text=f"⏳ {len(img_paths)} ta rasm qabul qilindi. PDF tayyorlanmoqda..."
-        )
+        pdf_path = f"temp/merged_{ts}.pdf"
         
-        async def run_pdf_task():
-            pdf_path = f"temp/merged_{chat_id}_{ts}.pdf"
-            try:
-                from bot.services.pdf_service import images_to_pdf
-                # Run CPU-bound PDF creation in executor thread
-                await asyncio.get_event_loop().run_in_executor(
-                    None, images_to_pdf, img_paths, pdf_path
-                )
-                
-                if not os.path.exists(pdf_path):
-                    raise FileNotFoundError("PDF fayl yaratilmadi")
-                
-                with open(pdf_path, 'rb') as f:
+        # CPU-bound PDF creation
+        try:
+            from bot.services.pdf_service import images_to_pdf
+            await asyncio.get_event_loop().run_in_executor(
+                None, images_to_pdf, img_paths, pdf_path
+            )
+        except Exception as build_err:
+            logger.error(f"PDF creation error: {build_err}", exc_info=True)
+            _cleanup(*img_paths)
+            raise HTTPException(status_code=500, detail=f"PDF yaratishda xato: {build_err}")
+            
+        if not os.path.exists(pdf_path):
+            _cleanup(*img_paths)
+            raise HTTPException(status_code=500, detail="PDF fayl yaratilmadi")
+            
+        # Read the generated PDF into memory so we can safely delete the file
+        with open(pdf_path, 'rb') as f:
+            pdf_bytes = f.read()
+            
+        # Cleanup ALL temp files now that we have bytes
+        _cleanup(pdf_path, *img_paths)
+        
+        # Optional: Send to Telegram in background
+        if telegram_id and telegram_id.strip().isdigit():
+            chat_id = int(telegram_id)
+            async def send_pdf_to_telegram():
+                try:
+                    buf = io.BytesIO(pdf_bytes)
+                    buf.name = f"DastyorAI_{ts}.pdf"
                     await application.bot.send_document(
                         chat_id=chat_id,
-                        document=InputFile(f, filename=f"DastyorAI_{ts}.pdf"),
+                        document=InputFile(buf, filename=buf.name),
                         caption=f"✅ **PDF tayyor!**\n📄 {len(img_paths)} ta rasm birlashtirildi.",
                         parse_mode="Markdown"
                     )
-                await application.bot.delete_message(chat_id=chat_id, message_id=msg.message_id)
-                logger.info(f"PDF sent to {chat_id} successfully")
-                
-            except Exception as ex:
-                logger.error(f"PDF task error: {ex}", exc_info=True)
-                try:
-                    await application.bot.edit_message_text(
-                        chat_id=chat_id,
-                        message_id=msg.message_id,
-                        text=f"❌ PDF yaratishda xatolik: {str(ex)[:200]}"
-                    )
-                except Exception:
-                    pass
-            finally:
-                # Cleanup
-                for p in img_paths:
-                    try:
-                        if os.path.exists(p): os.remove(p)
-                    except: pass
-                try:
-                    if os.path.exists(pdf_path): os.remove(pdf_path)
-                except: pass
+                    logger.info(f"PDF sent to {chat_id} successfully")
+                except Exception as tg_err:
+                    logger.warning(f"Telegram send failed (non-fatal): {tg_err}")
+                    
+            asyncio.create_task(send_pdf_to_telegram())
+            
+        # Stream back to browser
+        filename = f"DASTYOR_AI_Rasmlar_{ts}.pdf"
+        return StreamingResponse(
+            io.BytesIO(pdf_bytes),
+            media_type="application/pdf",
+            headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+        )
         
-        asyncio.create_task(run_pdf_task())
-        return {"status": "ok"}
-        
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Upload PDF API error: {e}", exc_info=True)
-        return {"error": str(e)}
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.get("/health")

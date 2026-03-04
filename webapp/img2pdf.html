@@ -169,114 +169,79 @@
     <script src="app.js"></script>
     <script>
         const tg = window.Telegram?.WebApp;
-        // Call ready() FIRST so initDataUnsafe gets populated
         if (tg) { tg.ready(); tg.expand(); }
         let telegramId = '';
 
         function getTelegramId() {
-            // 1. Telegram WebApp SDK
-            if (tg && tg.initDataUnsafe?.user?.id) {
-                return tg.initDataUnsafe.user.id.toString();
-            }
-            // 2. URL query param
+            if (tg && tg.initDataUnsafe?.user?.id) return tg.initDataUnsafe.user.id.toString();
             const urlId = new URLSearchParams(window.location.search).get('telegram_id');
             if (urlId) return urlId;
-            // 3. Parse from tg.initData raw string
-            if (tg && tg.initData) {
-                try {
-                    const params = new URLSearchParams(tg.initData);
-                    const user = JSON.parse(decodeURIComponent(params.get('user') || '{}'));
-                    if (user.id) return user.id.toString();
-                } catch (e) { }
-            }
-            // 4. sessionStorage (saved by index.html on first load)
             const stored = sessionStorage.getItem('telegram_id');
             if (stored) return stored;
             return '';
         }
 
-        // Pre-load once (will be refreshed at submit too)
         telegramId = getTelegramId();
         if (telegramId) sessionStorage.setItem('telegram_id', telegramId);
 
         let selectedFiles = [];
 
         function previewImages(input) {
-            // APPEND new files instead of replacing
             const newFiles = Array.from(input.files);
-            const combined = [...selectedFiles, ...newFiles].slice(0, 20);
-            selectedFiles = combined;
-            input.value = ''; // Reset input so same file can be re-selected
 
-            const badge = document.getElementById('countBadge');
-            const preview = document.getElementById('imgsPreview');
-            const btn = document.getElementById('pdfBtn');
-            const addBtn = document.getElementById('addMoreBtn');
+            // Check for duplicates before adding
+            for (let f of newFiles) {
+                if (!selectedFiles.some(existing => existing.name === f.name && existing.size === f.size)) {
+                    selectedFiles.push(f);
+                }
+            }
+            // limit to 20
+            selectedFiles = selectedFiles.slice(0, 20);
 
-            badge.textContent = selectedFiles.length + ' ta rasm tanlandi';
-            badge.style.display = 'inline-block';
-
-            // Re-render all thumbs
-            preview.innerHTML = '';
-            selectedFiles.forEach((f, idx) => {
-                const reader = new FileReader();
-                reader.onload = e => {
-                    const wrap = document.createElement('div');
-                    wrap.style.cssText = 'position:relative;display:inline-block';
-                    const img = document.createElement('img');
-                    img.src = e.target.result;
-                    img.className = 'img-thumb';
-                    const del = document.createElement('button');
-                    del.textContent = '×';
-                    del.style.cssText = 'position:absolute;top:-6px;right:-6px;background:#ef4444;color:#fff;border:none;border-radius:50%;width:20px;height:20px;cursor:pointer;font-size:12px;font-weight:700;line-height:1';
-                    del.onclick = () => { selectedFiles.splice(idx, 1); refreshThumbsOnly(); };
-                    wrap.appendChild(img);
-                    wrap.appendChild(del);
-                    preview.appendChild(wrap);
-                };
-                reader.readAsDataURL(f);
-            });
-
-            btn.style.display = 'block';
-            if (addBtn) addBtn.style.display = selectedFiles.length < 20 ? 'block' : 'none';
+            // Must reset value inside the timeout OR right away, but to be clean, just reset
+            input.value = '';
+            refreshThumbsOnly();
         }
 
         function refreshThumbsOnly() {
             const preview = document.getElementById('imgsPreview');
             const badge = document.getElementById('countBadge');
+            const btn = document.getElementById('pdfBtn');
+            const addBtn = document.getElementById('addMoreBtn');
+
             preview.innerHTML = '';
             selectedFiles.forEach((f, idx) => {
-                const reader = new FileReader();
-                reader.onload = e => {
-                    const wrap = document.createElement('div');
-                    wrap.style.cssText = 'position:relative;display:inline-block';
-                    const img = document.createElement('img');
-                    img.src = e.target.result;
-                    img.className = 'img-thumb';
-                    const del = document.createElement('button');
-                    del.textContent = '×';
-                    del.style.cssText = 'position:absolute;top:-6px;right:-6px;background:#ef4444;color:#fff;border:none;border-radius:50%;width:20px;height:20px;cursor:pointer;font-size:12px;font-weight:700;line-height:1';
-                    del.onclick = () => { selectedFiles.splice(idx, 1); refreshThumbsOnly(); };
-                    wrap.appendChild(img);
-                    wrap.appendChild(del);
-                    preview.appendChild(wrap);
+                const wrap = document.createElement('div');
+                wrap.style.cssText = 'position:relative;display:inline-block';
+                const img = document.createElement('img');
+                img.src = URL.createObjectURL(f);
+                img.className = 'img-thumb';
+                const del = document.createElement('button');
+                del.textContent = '×';
+                del.style.cssText = 'position:absolute;top:-6px;right:-6px;background:#ef4444;color:#fff;border:none;border-radius:50%;width:20px;height:20px;cursor:pointer;font-size:12px;font-weight:700;line-height:1';
+                del.onclick = () => {
+                    selectedFiles.splice(idx, 1);
+                    refreshThumbsOnly();
                 };
-                reader.readAsDataURL(f);
+                wrap.appendChild(img);
+                wrap.appendChild(del);
+                preview.appendChild(wrap);
             });
+
             badge.textContent = selectedFiles.length + ' ta rasm tanlandi';
             if (selectedFiles.length === 0) {
-                document.getElementById('pdfBtn').style.display = 'none';
+                btn.style.display = 'none';
                 badge.style.display = 'none';
+                if (addBtn) addBtn.style.display = 'none';
+            } else {
+                btn.style.display = 'block';
+                badge.style.display = 'inline-block';
+                if (addBtn) addBtn.style.display = selectedFiles.length < 20 ? 'block' : 'none';
             }
         }
 
         async function startImgToPdf() {
-            // Always re-check at submit time (SDK may have loaded after page init)
             if (!telegramId) telegramId = getTelegramId();
-            if (!telegramId) {
-                alert("Telegram ID topilmadi. Iltimos, botdan oching: @DastyorAiBot");
-                return;
-            }
             if (selectedFiles.length === 0) return;
 
             const btn = document.getElementById('pdfBtn');
@@ -284,30 +249,50 @@
             btn.disabled = true;
 
             const formData = new FormData();
-            formData.append('telegram_id', telegramId);
+            if (telegramId) formData.append('telegram_id', telegramId);
             selectedFiles.forEach(f => formData.append('files', f));
 
-            try {
-                const res = await fetch('/api/upload_pdf', { method: 'POST', body: formData });
-                const data = await res.json();
+            let apiBase = location.protocol === 'file:' ? 'http://127.0.0.1:8000' : location.origin;
 
-                if (data.status === 'ok') {
-                    if (tg) {
-                        tg.showAlert("✅ PDF botga yuborildi!");
-                        setTimeout(() => tg.close(), 1500);
-                    } else {
-                        alert("✅ PDF botga yuborildi!");
-                    }
-                } else {
-                    alert("Xatolik: " + (data.error || "Noma'lum"));
+            try {
+                const res = await fetch(apiBase + '/api/pdf_direct', { method: 'POST', body: formData });
+
+                if (!res.ok) {
+                    let errText = "Server xatosi";
+                    try { const errData = await res.json(); errText = errData.detail || errData.error || errText; } catch (e) { }
+                    alert("Xatolik: " + errText);
                     btn.innerHTML = '📄 PDF yaratish';
                     btn.disabled = false;
+                    return;
                 }
+
+                // Download the generated PDF directly in the browser
+                const blob = await res.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.style.display = 'none';
+                a.href = url;
+                a.download = `DASTYOR_AI_Rasmlar_${new Date().getTime()}.pdf`;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+
+                if (telegramId && tg) {
+                    tg.showAlert("✅ PDF qurilmangizga yuklandi va botga yuborildi!");
+                } else {
+                    alert("✅ PDF yuklab olindi!");
+                }
+
+                // Clear the files
+                selectedFiles = [];
+                refreshThumbsOnly();
+
             } catch (e) {
                 alert("Serverga ulanishda xato: " + e.message);
-                btn.innerHTML = '📄 PDF yaratish';
-                btn.disabled = false;
             }
+
+            btn.innerHTML = '📄 PDF yaratish';
+            btn.disabled = false;
         }
     </script>
 </body>

@@ -22,18 +22,25 @@ def images_to_pdf(image_paths: List[str], output_path: str) -> str:
     if not image_paths:
         raise ValueError("image_paths bo‘sh bo‘lishi mumkin emas")
 
-    # Open all images and convert to RGB
+    # Open all images and force convert to RGB
     pil_images = []
     for path in image_paths:
-        img = Image.open(path)
-        if img.mode in ("RGBA", "P"):
+        try:
+            img = Image.open(path)
+            # Force RGB to avoid any corrupted/transparent PDF issues
             img = img.convert("RGB")
-        pil_images.append(img)
+            pil_images.append(img)
+        except Exception as e:
+            # If an image fails to open, skip it rather than breaking the whole PDF
+            pass
+
+    if not pil_images:
+        raise ValueError("Yaroqli rasmlar topilmadi.")
 
     first, *rest = pil_images
     os.makedirs(os.path.dirname(output_path) or ".", exist_ok=True)
 
-    first.save(output_path, save_all=True, append_images=rest)
+    first.save(output_path, "PDF", resolution=100.0, save_all=True, append_images=rest)
     return output_path
 
 
