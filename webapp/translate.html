@@ -1,270 +1,851 @@
 <!DOCTYPE html>
-<html lang="uz">
+<html lang="uz" data-theme="dark">
 
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Tarjima | DASTYOR AI</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="style.css" />
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap"
+        rel="stylesheet" />
     <style>
-        .page-wrap {
-            min-height: 100vh;
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0
+        }
+
+        :root[data-theme="dark"] {
+            --bg: #060d1c;
+            --surface: #0d1b2e;
+            --surface2: #112240;
+            --border: rgba(255, 255, 255, .07);
+            --text: #e8edf4;
+            --sub: #8899aa;
+            --accent: #2563eb;
+            --accent-glow: rgba(37, 99, 235, .25);
+            --green: #10b981;
+            --red: #ef4444;
+            --inp-bg: rgba(255, 255, 255, .04);
+            --inp-focus: rgba(37, 99, 235, .08);
+        }
+
+        :root[data-theme="light"] {
+            --bg: #f0f4f8;
+            --surface: #ffffff;
+            --surface2: #f8fafc;
+            --border: #e2e8f0;
+            --text: #0f172a;
+            --sub: #64748b;
+            --accent: #2563eb;
+            --accent-glow: rgba(37, 99, 235, .12);
+            --green: #059669;
+            --red: #dc2626;
+            --inp-bg: #f8fafc;
+            --inp-focus: #eff6ff;
+        }
+
+        html {
+            height: 100%;
+            -webkit-tap-highlight-color: transparent
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100dvh;
             display: flex;
             flex-direction: column;
+            font-size: 15px;
+        }
+
+        /* ── HEADER ── */
+        .hdr {
+            flex-shrink: 0;
+            height: 56px;
+            display: flex;
+            align-items: center;
+            padding: 0 16px;
+            gap: 12px;
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .back-btn {
+            width: 38px;
+            height: 38px;
+            border-radius: 12px;
+            background: var(--inp-bg);
+            border: 1px solid var(--border);
+            color: var(--text);
+            font-size: 18px;
+            display: flex;
             align-items: center;
             justify-content: center;
-            padding: 100px 24px;
-            position: relative;
-            z-index: 1;
-        }
-
-        .page-card {
-            background: rgba(255, 255, 255, 0.04);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            border-radius: 28px;
-            padding: 52px;
-            max-width: 600px;
-            width: 100%;
-            text-align: center;
-        }
-
-        .big-icon {
-            font-size: 72px;
-            margin-bottom: 24px;
-            display: block;
-        }
-
-        .page-card h1 {
-            font-size: 32px;
-            font-weight: 800;
-            color: white;
-            margin-bottom: 16px;
-        }
-
-        .page-card p {
-            color: #94a3b8;
-            font-size: 16px;
-            line-height: 1.7;
-            margin-bottom: 32px;
-        }
-
-        .lang-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 12px;
-            margin-bottom: 28px;
-        }
-
-        .lang-btn {
-            padding: 14px;
-            background: rgba(59, 130, 246, 0.08);
-            border: 1px solid rgba(59, 130, 246, 0.2);
-            border-radius: 14px;
-            color: #60a5fa;
-            font-weight: 600;
             cursor: pointer;
-            transition: all 0.3s;
-            font-size: 14px;
+            flex-shrink: 0;
+            transition: background .2s;
         }
 
-        .lang-btn:hover,
-        .lang-btn.active {
-            background: rgba(59, 130, 246, 0.2);
-            border-color: #3b82f6;
-            color: white;
+        .back-btn:active {
+            background: var(--accent-glow)
         }
 
-        .back-link {
-            display: inline-flex;
+        .hdr-center {
+            flex: 1;
+            min-width: 0
+        }
+
+        .hdr-title {
+            font-size: 15px;
+            font-weight: 800;
+            color: var(--text);
+            line-height: 1.2
+        }
+
+        .hdr-sub {
+            font-size: 11px;
+            color: var(--sub);
+            font-weight: 500
+        }
+
+        /* ── ENGINE BADGE ── */
+        .engine-badge {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 700;
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            color: var(--sub);
+            transition: all .3s;
+            flex-shrink: 0;
+        }
+
+        .engine-badge.gemini {
+            color: var(--green);
+            border-color: rgba(16, 185, 129, .3);
+            background: rgba(16, 185, 129, .06)
+        }
+
+        .engine-badge.gtrans {
+            color: #f59e0b;
+            border-color: rgba(245, 158, 11, .3);
+            background: rgba(245, 158, 11, .06)
+        }
+
+        .engine-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: currentColor
+        }
+
+        /* ── MAIN ── */
+        .main {
+            flex: 1;
+            overflow-y: auto;
+            overflow-x: hidden;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        .main::-webkit-scrollbar {
+            width: 0
+        }
+
+        /* ── LANG SELECTOR ── */
+        .lang-bar {
+            display: flex;
             align-items: center;
             gap: 8px;
-            color: #60a5fa;
-            text-decoration: none;
-            font-size: 14px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 10px 12px;
         }
 
-        .back-link:hover {
-            gap: 12px;
-        }
-
-        .tg-btn {
-            display: inline-flex;
-            align-items: center;
-            gap: 10px;
-            padding: 14px 32px;
-            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
-            color: white;
-            text-decoration: none;
-            border-radius: 14px;
+        .lang-select {
+            flex: 1;
+            background: var(--inp-bg);
+            border: 1.5px solid var(--border);
+            border-radius: 12px;
+            color: var(--text);
+            font-family: 'Inter', sans-serif;
+            font-size: 13px;
             font-weight: 700;
-            font-size: 15px;
-            transition: all 0.3s;
-            box-shadow: 0 8px 30px rgba(59, 130, 246, 0.4);
-        }
-
-        .tg-btn:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 16px 40px rgba(59, 130, 246, 0.6);
-        }
-
-        .input-area {
-            margin-top: 20px;
-            width: 100%;
-        }
-
-        .input-area textarea {
-            width: 100%;
-            padding: 16px;
-            background: rgba(255, 255, 255, 0.04);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 14px;
-            color: white;
-            font-size: 15px;
-            font-family: inherit;
-            resize: vertical;
-            min-height: 120px;
-            margin-bottom: 16px;
+            padding: 10px 12px;
             outline: none;
-            transition: border-color 0.3s;
-        }
-
-        .input-area textarea:focus {
-            border-color: #3b82f6;
-        }
-
-        .convert-btn {
-            width: 100%;
-            padding: 14px;
-            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
-            color: white;
-            border: none;
-            border-radius: 14px;
-            font-weight: 700;
-            font-size: 15px;
             cursor: pointer;
-            transition: all 0.3s;
+            -webkit-appearance: none;
+            appearance: none;
+            transition: border-color .2s, background .2s;
         }
 
-        .convert-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 12px 30px rgba(59, 130, 246, 0.5);
+        .lang-select:focus {
+            border-color: var(--accent);
+            background: var(--inp-focus)
+        }
+
+        .swap-btn {
+            width: 38px;
+            height: 38px;
+            border-radius: 12px;
+            background: var(--accent);
+            border: none;
+            color: #fff;
+            font-size: 16px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            transition: transform .15s, background .2s;
+        }
+
+        .swap-btn:active {
+            transform: rotate(180deg) scale(.9)
+        }
+
+        /* ── TEXT PANELS ── */
+        .panels {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        @media (min-width: 640px) {
+            .panels {
+                flex-direction: row
+            }
+        }
+
+        .panel {
+            flex: 1;
+            background: var(--surface);
+            border: 1.5px solid var(--border);
+            border-radius: 18px;
+            padding: 0;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            transition: border-color .2s;
+        }
+
+        .panel:focus-within {
+            border-color: var(--accent)
+        }
+
+        .panel-hdr {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 14px 6px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .panel-lang-label {
+            font-size: 11px;
+            font-weight: 800;
+            color: var(--accent);
+            text-transform: uppercase;
+            letter-spacing: .6px;
+        }
+
+        .panel-actions {
+            display: flex;
+            gap: 6px;
+            align-items: center
+        }
+
+        .char-count {
+            font-size: 11px;
+            color: var(--sub);
+            font-weight: 600;
+        }
+
+        .char-count.warn {
+            color: #f59e0b
+        }
+
+        .char-count.over {
+            color: var(--red)
+        }
+
+        .icon-btn {
+            width: 28px;
+            height: 28px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: var(--inp-bg);
+            color: var(--sub);
+            font-size: 14px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all .2s;
+        }
+
+        .icon-btn:active {
+            background: var(--accent-glow);
+            color: var(--accent)
+        }
+
+        .icon-btn:hover {
+            background: var(--surface2)
+        }
+
+        .panel-textarea {
+            width: 100%;
+            min-height: 140px;
+            max-height: 260px;
+            padding: 14px;
+            background: transparent;
+            border: none;
+            color: var(--text);
+            font-family: 'Inter', sans-serif;
+            font-size: 15px;
+            font-weight: 500;
+            line-height: 1.6;
+            resize: none;
+            outline: none;
+            flex: 1;
+        }
+
+        .panel-textarea::placeholder {
+            color: var(--sub)
+        }
+
+        .panel-textarea[readonly] {
+            cursor: default
+        }
+
+        /* output shimmer while loading */
+        .panel.loading .panel-textarea {
+            background: linear-gradient(90deg, var(--inp-bg) 25%, var(--surface2) 50%, var(--inp-bg) 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.4s infinite;
+        }
+
+        @keyframes shimmer {
+            0% {
+                background-position: 200% 0
+            }
+
+            100% {
+                background-position: -200% 0
+            }
+        }
+
+        /* ── TRANSLATE BUTTON ── */
+        .tr-btn {
+            width: 100%;
+            height: 52px;
+            border-radius: 16px;
+            border: none;
+            background: var(--accent);
+            color: #fff;
+            font-family: 'Inter', sans-serif;
+            font-weight: 700;
+            font-size: 16px;
+            cursor: pointer;
+            transition: transform .15s, box-shadow .15s, background .2s;
+            box-shadow: 0 4px 20px var(--accent-glow);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .tr-btn:active {
+            transform: scale(.97)
+        }
+
+        .tr-btn:disabled {
+            background: var(--surface2);
+            color: var(--sub);
+            box-shadow: none;
+            cursor: not-allowed;
+        }
+
+        .spinner {
+            width: 18px;
+            height: 18px;
+            border: 2.5px solid rgba(255, 255, 255, .3);
+            border-top-color: #fff;
+            border-radius: 50%;
+            animation: spin .7s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg)
+            }
+        }
+
+        /* ── ERROR/STATUS BANNER ── */
+        .status-banner {
+            border-radius: 14px;
+            padding: 12px 16px;
+            font-size: 13px;
+            font-weight: 600;
+            display: none;
+            gap: 8px;
+            align-items: flex-start;
+            line-height: 1.5;
+        }
+
+        .status-banner.show {
+            display: flex
+        }
+
+        .status-banner.error {
+            background: rgba(239, 68, 68, .08);
+            border: 1px solid rgba(239, 68, 68, .2);
+            color: var(--red);
+        }
+
+        .status-banner.success {
+            background: rgba(16, 185, 129, .08);
+            border: 1px solid rgba(16, 185, 129, .2);
+            color: var(--green);
+        }
+
+        .status-banner.info {
+            background: rgba(37, 99, 235, .08);
+            border: 1px solid rgba(37, 99, 235, .2);
+            color: var(--accent);
+        }
+
+        /* ── FREQ PAIRS ── */
+        .freq-wrap {
+            margin-top: 4px
+        }
+
+        .freq-title {
+            font-size: 11px;
+            font-weight: 800;
+            color: var(--sub);
+            text-transform: uppercase;
+            letter-spacing: .6px;
+            margin-bottom: 8px;
+        }
+
+        .freq-chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .freq-chip {
+            padding: 6px 12px;
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--sub);
+            cursor: pointer;
+            transition: all .2s;
+        }
+
+        .freq-chip:hover {
+            background: var(--accent-glow);
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        /* ── BOTTOM PADDING ── */
+        .bottom-pad {
+            height: 20px
         }
     </style>
 </head>
 
 <body>
-    <canvas id="particles"></canvas>
-    <nav class="navbar scrolled" id="navbar">
-        <div class="nav-inner">
-            <a href="index.html" class="nav-logo">
-                <div class="logo-icon">
-                    <svg width="22" height="22" viewBox="0 0 28 28" fill="none">
-                        <circle cx="14" cy="14" r="14" fill="url(#lg1)" />
-                        <path d="M8 14h12M14 8v12" stroke="white" stroke-width="2.5" stroke-linecap="round" />
-                        <defs>
-                            <linearGradient id="lg1" x1="0" y1="0" x2="28" y2="28">
-                                <stop stop-color="#3b82f6" />
-                                <stop offset="1" stop-color="#1d4ed8" />
-                            </linearGradient>
-                        </defs>
-                    </svg>
-                </div>
-                <span>DASTYOR <b>AI</b></span>
-            </a>
-            <a href="index.html" class="back-link">← Bosh sahifa</a>
+
+    <!-- HEADER -->
+    <div class="hdr">
+        <div class="back-btn" id="backBtn">←</div>
+        <div class="hdr-center">
+            <div class="hdr-title">🌐 Tarjima</div>
+            <div class="hdr-sub">Matnni tezkor tarjima qiling</div>
         </div>
-    </nav>
-    <div class="page-wrap">
-        <div class="page-card">
-            <span class="big-icon">🌐</span>
-            <h1>Fayl Tarjima</h1>
-            <p>DOC, PPT yoki XLSX faylni tanlang va tarjima yo'nalishini belgilang</p>
-            <div class="lang-grid" id="langGrid">
-                <button class="lang-btn active" data-dir="uz_en">🇺🇿 O'zbek → 🇬🇧 Ingliz</button>
-                <button class="lang-btn" data-dir="en_uz">🇬🇧 Ingliz → 🇺🇿 O'zbek</button>
-                <button class="lang-btn" data-dir="ru_uz">🇷🇺 Rus → 🇺🇿 O'zbek</button>
-                <button class="lang-btn" data-dir="uz_ru">🇺🇿 O'zbek → 🇷🇺 Rus</button>
-                <button class="lang-btn" style="grid-column:span 2" data-dir="ru_en">🇷🇺 Rus → 🇬🇧 Ingliz</button>
-            </div>
-
-            <div class="input-area">
-                <textarea id="srcText" placeholder="Matnni shu yerda tarjima qiling..."></textarea>
-                <button class="convert-btn" onclick="translateText()" id="trBtn">⚡ Tarjima qilish</button>
-                <textarea id="outText" placeholder="Natija bu yerda chiqadi..." style="margin-top:16px"
-                    readonly></textarea>
-            </div>
-
-            <p style="margin-top: 30px; margin-bottom: 12px; font-size: 14px; color: #94a3b8;">Yoki butun faylni tarjima
-                qilib beraman:</p>
-            <button class="tg-btn" onclick="startTranslate()" style="border:none; cursor:pointer;">
-                <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24">
-                    <path
-                        d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.248l-2.04 9.613c-.154.673-.556.836-1.124.52l-3.1-2.285-1.497 1.44c-.165.166-.304.304-.623.304l.222-3.155 5.74-5.185c.25-.222-.054-.345-.386-.123L6.32 14.4l-3.024-.944c-.657-.205-.67-.657.137-.973l11.829-4.563c.547-.198 1.025.133.3.328z" />
-                </svg>
-                Hujjatni yuborish
-            </button>
+        <div class="engine-badge" id="engineBadge">
+            <div class="engine-dot"></div>
+            <span id="engineLabel">tayyor</span>
         </div>
     </div>
-    <script src="app.js"></script>
+
+    <!-- MAIN SCROLL AREA -->
+    <div class="main">
+
+        <!-- LANGUAGE SELECTOR -->
+        <div class="lang-bar">
+            <select class="lang-select" id="srcLang">
+                <option value="uz">🇺🇿 O'zbek</option>
+                <option value="en">🇬🇧 Ingliz</option>
+                <option value="ru">🇷🇺 Rus</option>
+            </select>
+            <button class="swap-btn" id="swapBtn" title="Tillarni almashtirish" onclick="swapLangs()">⇆</button>
+            <select class="lang-select" id="tgtLang">
+                <option value="en">🇬🇧 Ingliz</option>
+                <option value="uz">🇺🇿 O'zbek</option>
+                <option value="ru">🇷🇺 Rus</option>
+            </select>
+        </div>
+
+        <!-- TEXT PANELS -->
+        <div class="panels">
+            <!-- INPUT -->
+            <div class="panel" id="srcPanel">
+                <div class="panel-hdr">
+                    <span class="panel-lang-label" id="srcLangLabel">O'zbek</span>
+                    <div class="panel-actions">
+                        <span class="char-count" id="charCount">0 / 5000</span>
+                        <button class="icon-btn" title="Tozalash" onclick="clearSrc()">✕</button>
+                    </div>
+                </div>
+                <textarea class="panel-textarea" id="srcText" placeholder="Tarjima qilish uchun matn kiriting…"
+                    maxlength="5000" oninput="onInput()"></textarea>
+            </div>
+
+            <!-- OUTPUT -->
+            <div class="panel" id="outPanel">
+                <div class="panel-hdr">
+                    <span class="panel-lang-label" id="tgtLangLabel">Ingliz</span>
+                    <div class="panel-actions">
+                        <button class="icon-btn" id="copyBtn" title="Nusxa olish" onclick="copyResult()">📋</button>
+                    </div>
+                </div>
+                <textarea class="panel-textarea" id="outText" placeholder="Tarjima natijasi bu yerda chiqadi…"
+                    readonly></textarea>
+            </div>
+        </div>
+
+        <!-- TRANSLATE BUTTON -->
+        <button class="tr-btn" id="trBtn" onclick="translateText()">
+            ⚡ Tarjima qilish
+        </button>
+
+        <!-- STATUS BANNER -->
+        <div class="status-banner" id="statusBanner">
+            <span id="statusIcon">⚠️</span>
+            <span id="statusMsg"></span>
+        </div>
+
+        <!-- QUICK PHRASE CHIPS -->
+        <div class="freq-wrap">
+            <div class="freq-title">Tezkor iboralar</div>
+            <div class="freq-chips">
+                <span class="freq-chip" onclick="setPhrase(this)">Salom, qandaysiz?</span>
+                <span class="freq-chip" onclick="setPhrase(this)">Rahmat!</span>
+                <span class="freq-chip" onclick="setPhrase(this)">Iltimos, yordam bering</span>
+                <span class="freq-chip" onclick="setPhrase(this)">Meni kechiring</span>
+                <span class="freq-chip" onclick="setPhrase(this)">Hujjatni tarjima qiling</span>
+                <span class="freq-chip" onclick="setPhrase(this)">Bu qancha turadi?</span>
+            </div>
+        </div>
+
+        <div class="bottom-pad"></div>
+    </div>
+
     <script>
+        /* ── INIT ── */
         const tg = window.Telegram?.WebApp;
+        const theme = localStorage.getItem('theme') || 'dark';
+        document.documentElement.setAttribute('data-theme', theme);
         if (tg) {
             tg.ready();
             tg.expand();
+            if (tg.setHeaderColor) tg.setHeaderColor(theme === 'dark' ? '#060d1c' : '#f0f4f8');
         }
-        let selectedDir = 'uz_en';
+        const tid = new URLSearchParams(location.search).get('telegram_id')
+            || tg?.initDataUnsafe?.user?.id?.toString() || '';
+        document.getElementById('backBtn').onclick = () => {
+            location.href = 'index.html' + (tid ? '?telegram_id=' + tid : '');
+        };
 
-        document.querySelectorAll('.lang-btn').forEach(b => {
-            b.addEventListener('click', () => {
-                document.querySelectorAll('.lang-btn').forEach(x => x.classList.remove('active'));
-                b.classList.add('active');
-                selectedDir = b.getAttribute('data-dir');
-            });
+        /* ── LANGUAGE CONFIG ── */
+        const LANG_NAMES = { uz: "O'zbek", en: "Ingliz", ru: "Rus" };
+        /* Gemini direction key: src_tgt */
+        const GEMINI_DIRS = new Set(['uz_en', 'en_uz', 'ru_uz', 'uz_ru', 'ru_en', 'en_ru']);
+        /* Google Translate language codes */
+        const GT_CODES = { uz: 'uz', en: 'en', ru: 'ru' };
+
+        let srcLang = 'uz', tgtLang = 'en';
+
+        function updateLangLabels() {
+            document.getElementById('srcLangLabel').textContent = LANG_NAMES[srcLang];
+            document.getElementById('tgtLangLabel').textContent = LANG_NAMES[tgtLang];
+            document.getElementById('srcLang').value = srcLang;
+            document.getElementById('tgtLang').value = tgtLang;
+        }
+
+        document.getElementById('srcLang').addEventListener('change', function () {
+            srcLang = this.value;
+            if (srcLang === tgtLang) {
+                tgtLang = srcLang === 'uz' ? 'en' : 'uz';
+            }
+            updateLangLabels();
+            if (document.getElementById('srcText').value.trim()) translateText();
+        });
+        document.getElementById('tgtLang').addEventListener('change', function () {
+            tgtLang = this.value;
+            if (srcLang === tgtLang) {
+                srcLang = tgtLang === 'uz' ? 'ru' : 'uz';
+            }
+            updateLangLabels();
+            if (document.getElementById('srcText').value.trim()) translateText();
         });
 
-        function startTranslate() {
-            if (tg && tg.sendData) {
-                tg.sendData(JSON.stringify({
-                    action: "start_translate",
-                    direction: selectedDir
-                }));
-            } else {
-                alert("Faqat Telegram bot ichida ishlaydi!");
+        function swapLangs() {
+            const tmp = srcLang;
+            srcLang = tgtLang;
+            tgtLang = tmp;
+            /* also swap textarea contents */
+            const srcT = document.getElementById('srcText');
+            const outT = document.getElementById('outText');
+            const prev = outT.value;
+            if (prev) { srcT.value = prev; outT.value = ''; }
+            updateLangLabels();
+            onInput();
+            tg?.HapticFeedback?.impactOccurred('light');
+        }
+        updateLangLabels();
+
+        /* ── CHAR COUNTER ── */
+        function onInput() {
+            const len = document.getElementById('srcText').value.length;
+            const cc = document.getElementById('charCount');
+            cc.textContent = len + ' / 5000';
+            cc.className = 'char-count' + (len > 4500 ? (len >= 5000 ? ' over' : ' warn') : '');
+        }
+
+        /* ── QUICK PHRASE ── */
+        function setPhrase(el) {
+            document.getElementById('srcText').value = el.textContent;
+            onInput();
+            tg?.HapticFeedback?.selectionChanged();
+        }
+        function clearSrc() {
+            document.getElementById('srcText').value = '';
+            document.getElementById('outText').value = '';
+            onInput();
+            hideStatus();
+        }
+
+        /* ── STATUS BANNER ── */
+        function showStatus(type, icon, msg) {
+            const b = document.getElementById('statusBanner');
+            b.className = 'status-banner show ' + type;
+            document.getElementById('statusIcon').textContent = icon;
+            document.getElementById('statusMsg').textContent = msg;
+        }
+        function hideStatus() {
+            document.getElementById('statusBanner').className = 'status-banner';
+        }
+
+        /* ── ENGINE BADGE ── */
+        function setEngine(name, cls) {
+            const b = document.getElementById('engineBadge');
+            document.getElementById('engineLabel').textContent = name;
+            b.className = 'engine-badge ' + cls;
+        }
+
+        /* ── COPY RESULT ── */
+        function copyResult() {
+            const t = document.getElementById('outText').value;
+            if (!t) return;
+            navigator.clipboard?.writeText(t).then(() => {
+                document.getElementById('copyBtn').textContent = '✅';
+                setTimeout(() => { document.getElementById('copyBtn').textContent = '📋'; }, 1500);
+            }).catch(() => {
+                /* fallback */
+                const el = document.getElementById('outText');
+                el.select();
+                document.execCommand('copy');
+            });
+            tg?.HapticFeedback?.notificationOccurred('success');
+        }
+
+        /* ─────────────────────────────────────────────────────────
+           ENGINE 1 — Own server /api/translate (Gemini backend)
+           Works only when served from the FastAPI server.
+        ───────────────────────────────────────────────────────── */
+        async function tryGeminiAPI(text, src, tgt) {
+            /* Determine the base URL — if file://, skip this engine */
+            if (location.protocol === 'file:') return null;
+
+            const dirKey = src + '_' + tgt;
+            if (!GEMINI_DIRS.has(dirKey)) return null;   /* unsupported pair */
+
+            const apiBase = location.origin;             /* https://dastyor-ai.onrender.com */
+            const ctrl = new AbortController();
+            const timeout = setTimeout(() => ctrl.abort(), 12000); /* 12s timeout */
+
+            try {
+                const res = await fetch(apiBase + '/api/translate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text, direction: dirKey }),
+                    signal: ctrl.signal,
+                });
+                clearTimeout(timeout);
+
+                if (!res.ok) {
+                    const err = await res.json().catch(() => ({}));
+                    throw new Error(err.detail || `HTTP ${res.status}`);
+                }
+                const data = await res.json();
+                if (data.translated_text) return { text: data.translated_text, engine: 'Gemini AI' };
+                return null;
+            } catch (e) {
+                clearTimeout(timeout);
+                if (e.name === 'AbortError') throw new Error('Server javob bermadi (timeout)');
+                throw e;
             }
         }
 
-        async function translateText() {
-            const src = document.getElementById('srcText').value.trim();
-            if (!src) return;
+        /* ─────────────────────────────────────────────────────────
+           ENGINE 2 — Google Translate public API (no key needed)
+           Works anywhere: file://, telegram webview, any browser.
+           This is the official Google Translate Ajax endpoint used
+           by the web interface itself. No auth required for <5000 chars.
+        ───────────────────────────────────────────────────────── */
+        async function tryGoogleTranslate(text, src, tgt) {
+            const sl = GT_CODES[src] || src;
+            const tl = GT_CODES[tgt] || tgt;
+            const url = `https://translate.googleapis.com/translate_a/single` +
+                `?client=gtx&sl=${encodeURIComponent(sl)}&tl=${encodeURIComponent(tl)}` +
+                `&dt=t&q=${encodeURIComponent(text)}`;
 
-            const btn = document.getElementById('trBtn');
-            const out = document.getElementById('outText');
-
-            btn.innerHTML = '⏳ Tarjima qilinmoqda...';
-            btn.disabled = true;
+            const ctrl = new AbortController();
+            const timeout = setTimeout(() => ctrl.abort(), 15000);
 
             try {
-                const res = await fetch(window.location.origin + '/api/translate', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ text: src, direction: selectedDir })
-                });
+                const res = await fetch(url, { signal: ctrl.signal });
+                clearTimeout(timeout);
+                if (!res.ok) throw new Error(`Google Translate HTTP ${res.status}`);
                 const data = await res.json();
+                /* Response structure: [ [ ["translated","original",null,null,1], ... ], null, "uz" ] */
+                if (!Array.isArray(data) || !Array.isArray(data[0])) throw new Error('Noto\'g\'ri javob formati');
+                const translated = data[0]
+                    .filter(chunk => Array.isArray(chunk) && chunk[0])
+                    .map(chunk => chunk[0])
+                    .join('');
+                if (!translated) throw new Error('Tarjima bo\'sh qaytdi');
+                return { text: translated, engine: 'Google Translate' };
+            } catch (e) {
+                clearTimeout(timeout);
+                if (e.name === 'AbortError') throw new Error('Google Translate javob bermadi');
+                throw e;
+            }
+        }
 
-                if (data.translated_text) {
-                    out.value = data.translated_text;
-                } else {
-                    out.value = "Tarjimada xatolik yuz berdi.";
-                }
-            } catch (err) {
-                out.value = "Tarjimada xatolik yuz berdi." + err;
+        /* ─────────────────────────────────────────────────────────
+           MAIN TRANSLATE ORCHESTRATOR
+           Strategy: try Gemini (server) first → fallback to Google
+        ───────────────────────────────────────────────────────── */
+        async function translateText() {
+            const srcText = document.getElementById('srcText').value.trim();
+            if (!srcText) {
+                showStatus('error', '⚠️', 'Matn kiriting!');
+                return;
+            }
+            if (srcText.length > 5000) {
+                showStatus('error', '⚠️', 'Matn 5000 belgidan oshmasligi kerak.');
+                return;
+            }
+            if (srcLang === tgtLang) {
+                showStatus('error', '⚠️', 'Manba va maqsad tillari bir xil bo\'lishi mumkin emas.');
+                return;
             }
 
+            const btn = document.getElementById('trBtn');
+            const outPanel = document.getElementById('outPanel');
+            const outText = document.getElementById('outText');
+
+            btn.innerHTML = '<div class="spinner"></div> Tarjima qilinmoqda…';
+            btn.disabled = true;
+            outText.value = '';
+            outPanel.classList.add('loading');
+            hideStatus();
+            setEngine('…', '');
+
+            let lastError = null;
+
+            /* ─── Try Engine 1: Gemini via own server ─── */
+            try {
+                const result = await tryGeminiAPI(srcText, srcLang, tgtLang);
+                if (result) {
+                    outText.value = result.text;
+                    outPanel.classList.remove('loading');
+                    setEngine(result.engine, 'gemini');
+                    showStatus('success', '✅', result.engine + ' orqali muvaffaqiyatli tarjima qilindi.');
+                    tg?.HapticFeedback?.notificationOccurred('success');
+                    btn.innerHTML = '⚡ Tarjima qilish';
+                    btn.disabled = false;
+                    return;
+                }
+            } catch (e) {
+                lastError = e.message;
+                /* log but don't show yet — try fallback */
+                console.warn('Gemini API failed:', e.message);
+            }
+
+            /* ─── Try Engine 2: Google Translate (fallback) ─── */
+            try {
+                const result = await tryGoogleTranslate(srcText, srcLang, tgtLang);
+                if (result) {
+                    outText.value = result.text;
+                    outPanel.classList.remove('loading');
+                    setEngine(result.engine, 'gtrans');
+                    const note = lastError
+                        ? `${result.engine} orqali tarjima qilindi (server ishlamadi: ${lastError})`
+                        : `${result.engine} orqali muvaffaqiyatli tarjima qilindi.`;
+                    showStatus('info', '🌐', note);
+                    tg?.HapticFeedback?.notificationOccurred('success');
+                    btn.innerHTML = '⚡ Tarjima qilish';
+                    btn.disabled = false;
+                    return;
+                }
+            } catch (e) {
+                lastError = (lastError ? lastError + '; ' : '') + e.message;
+                console.error('Google Translate failed:', e.message);
+            }
+
+            /* ─── Both engines failed ─── */
+            outPanel.classList.remove('loading');
+            setEngine('xato', '');
+            showStatus('error', '❌',
+                'Tarjima amalga oshmadi. Internetni tekshiring va qayta urinib ko\'ring. ' +
+                (lastError ? '(' + lastError + ')' : '')
+            );
+            tg?.HapticFeedback?.notificationOccurred('error');
             btn.innerHTML = '⚡ Tarjima qilish';
             btn.disabled = false;
         }
+
+        /* ── ENTER KEY shortcut (Ctrl/Cmd + Enter) ── */
+        document.getElementById('srcText').addEventListener('keydown', function (e) {
+            if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+                e.preventDefault();
+                translateText();
+            }
+        });
     </script>
 </body>
 

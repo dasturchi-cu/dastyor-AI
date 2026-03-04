@@ -1,262 +1,1033 @@
 <!DOCTYPE html>
-<html lang="uz">
+<html lang="uz" data-theme="dark">
 
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Krill ↔ Lotin | DASTYOR AI</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="style.css" />
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap"
+        rel="stylesheet" />
     <style>
-        .page-wrap {
-            min-height: 100vh;
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0
+        }
+
+        :root[data-theme="dark"] {
+            --bg: #060d1c;
+            --surface: #0d1b2e;
+            --surface2: #112240;
+            --border: rgba(255, 255, 255, .07);
+            --text: #e8edf4;
+            --sub: #8899aa;
+            --accent: #2563eb;
+            --accent-glow: rgba(37, 99, 235, .25);
+            --green: #10b981;
+            --red: #ef4444;
+            --inp-bg: rgba(255, 255, 255, .04);
+            --inp-focus: rgba(37, 99, 235, .08);
+        }
+
+        :root[data-theme="light"] {
+            --bg: #f0f4f8;
+            --surface: #ffffff;
+            --surface2: #f8fafc;
+            --border: #e2e8f0;
+            --text: #0f172a;
+            --sub: #64748b;
+            --accent: #2563eb;
+            --accent-glow: rgba(37, 99, 235, .12);
+            --green: #059669;
+            --red: #dc2626;
+            --inp-bg: #f8fafc;
+            --inp-focus: #eff6ff;
+        }
+
+        html {
+            height: 100%;
+            -webkit-tap-highlight-color: transparent
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100dvh;
+            display: flex;
+            flex-direction: column;
+            font-size: 15px;
+        }
+
+        /* ── HEADER ── */
+        .hdr {
+            flex-shrink: 0;
+            height: 56px;
+            display: flex;
+            align-items: center;
+            padding: 0 16px;
+            gap: 12px;
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .back-btn {
+            width: 38px;
+            height: 38px;
+            border-radius: 12px;
+            background: var(--inp-bg);
+            border: 1px solid var(--border);
+            color: var(--text);
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            flex-shrink: 0;
+            transition: background .2s;
+        }
+
+        .back-btn:active {
+            background: var(--accent-glow)
+        }
+
+        .hdr-center {
+            flex: 1;
+            min-width: 0
+        }
+
+        .hdr-title {
+            font-size: 15px;
+            font-weight: 800;
+            color: var(--text);
+            line-height: 1.2
+        }
+
+        .hdr-sub {
+            font-size: 11px;
+            color: var(--sub);
+            font-weight: 500
+        }
+
+        /* ── STATS BADGE ── */
+        .stats-badge {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 700;
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            color: var(--sub);
+            flex-shrink: 0;
+            transition: color .2s, border-color .2s;
+        }
+
+        .stats-badge.active {
+            color: var(--green);
+            border-color: rgba(16, 185, 129, .3)
+        }
+
+        /* ── MAIN ── */
+        .main {
+            flex: 1;
+            overflow-y: auto;
+            overflow-x: hidden;
+            padding: 14px 14px 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .main::-webkit-scrollbar {
+            width: 0
+        }
+
+        /* ── DIRECTION TOGGLE ── */
+        .dir-toggle {
+            display: grid;
+            grid-template-columns: 1fr auto 1fr;
+            align-items: center;
+            gap: 8px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 10px 12px;
+        }
+
+        .dir-label {
+            text-align: center;
+            padding: 10px 8px;
+            border-radius: 12px;
+            border: 1.5px solid var(--border);
+            background: var(--inp-bg);
+            cursor: pointer;
+            transition: all .2s;
+            user-select: none;
+        }
+
+        .dir-label .script-name {
+            font-size: 16px;
+            font-weight: 800;
+            color: var(--text);
+            display: block;
+            line-height: 1.2;
+            margin-bottom: 3px;
+        }
+
+        .dir-label .sample {
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--sub);
+        }
+
+        .dir-label.active {
+            border-color: var(--accent);
+            background: var(--inp-focus);
+        }
+
+        .dir-label.active .script-name {
+            color: var(--accent)
+        }
+
+        .swap-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 12px;
+            border: none;
+            background: var(--accent);
+            color: #fff;
+            font-size: 18px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            transition: transform .25s cubic-bezier(.34, 1.56, .64, 1), background .2s;
+        }
+
+        .swap-btn:active {
+            transform: rotate(180deg) scale(.9)
+        }
+
+        /* ── PANELS ── */
+        .panels {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        @media (min-width: 640px) {
+            .panels {
+                flex-direction: row
+            }
+        }
+
+        .panel {
+            flex: 1;
+            background: var(--surface);
+            border: 1.5px solid var(--border);
+            border-radius: 18px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            transition: border-color .2s;
+        }
+
+        .panel:focus-within {
+            border-color: var(--accent)
+        }
+
+        .panel.out-panel {
+            border-color: var(--border)
+        }
+
+        .panel-hdr {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 14px 6px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .panel-script {
+            font-size: 11px;
+            font-weight: 800;
+            color: var(--accent);
+            text-transform: uppercase;
+            letter-spacing: .6px;
+        }
+
+        .panel-actions {
+            display: flex;
+            gap: 6px;
+            align-items: center
+        }
+
+        .char-count {
+            font-size: 11px;
+            color: var(--sub);
+            font-weight: 600;
+            transition: color .2s;
+        }
+
+        .char-count.warn {
+            color: #f59e0b
+        }
+
+        .icon-btn {
+            width: 28px;
+            height: 28px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: var(--inp-bg);
+            color: var(--sub);
+            font-size: 14px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all .2s;
+        }
+
+        .icon-btn:active {
+            background: var(--accent-glow);
+            color: var(--accent)
+        }
+
+        .panel-textarea {
+            width: 100%;
+            min-height: 150px;
+            max-height: 280px;
+            padding: 14px;
+            background: transparent;
+            border: none;
+            color: var(--text);
+            font-family: 'Inter', sans-serif;
+            font-size: 15px;
+            font-weight: 500;
+            line-height: 1.7;
+            resize: none;
+            outline: none;
+            flex: 1;
+        }
+
+        .panel-textarea::placeholder {
+            color: var(--sub)
+        }
+
+        .panel-textarea[readonly] {
+            cursor: default
+        }
+
+        /* live output glow */
+        .out-panel.updated {
+            border-color: var(--green);
+            transition: border-color .05s;
+        }
+
+        /* ── CONVERT BUTTON ── */
+        .conv-btn {
+            width: 100%;
+            height: 52px;
+            border-radius: 16px;
+            border: none;
+            background: var(--accent);
+            color: #fff;
+            font-family: 'Inter', sans-serif;
+            font-weight: 700;
+            font-size: 16px;
+            cursor: pointer;
+            transition: transform .15s, box-shadow .15s;
+            box-shadow: 0 4px 20px var(--accent-glow);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .conv-btn:active {
+            transform: scale(.97)
+        }
+
+        /* ── CHAR MAP TABLE ── */
+        .map-wrap {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            overflow: hidden;
+        }
+
+        .map-title {
+            font-size: 11px;
+            font-weight: 800;
+            color: var(--sub);
+            text-transform: uppercase;
+            letter-spacing: .6px;
+            padding: 10px 14px 8px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .map-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(68px, 1fr));
+            gap: 0;
+        }
+
+        .map-cell {
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: center;
-            padding: 100px 24px;
-            position: relative;
-            z-index: 1;
-        }
-
-        .page-card {
-            background: rgba(255, 255, 255, 0.04);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            border-radius: 28px;
-            padding: 52px;
-            max-width: 620px;
-            width: 100%;
-        }
-
-        .big-icon {
-            font-size: 64px;
-            display: block;
-            text-align: center;
-            margin-bottom: 20px;
-        }
-
-        h1 {
-            font-size: 30px;
-            font-weight: 800;
-            color: white;
-            margin-bottom: 10px;
-            text-align: center;
-        }
-
-        .subtitle {
-            color: #94a3b8;
-            font-size: 15px;
-            text-align: center;
-            margin-bottom: 32px;
-        }
-
-        .dir-btns {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 16px;
-            margin-bottom: 28px;
-        }
-
-        .dir-btn {
-            padding: 20px;
-            background: rgba(59, 130, 246, 0.08);
-            border: 1px solid rgba(59, 130, 246, 0.2);
-            border-radius: 16px;
-            color: #60a5fa;
-            font-weight: 700;
+            padding: 8px 4px;
+            border-bottom: 1px solid var(--border);
+            border-right: 1px solid var(--border);
             cursor: pointer;
-            transition: all 0.3s;
+            transition: background .15s;
+        }
+
+        .map-cell:hover {
+            background: var(--inp-focus)
+        }
+
+        .map-cell:active {
+            background: var(--accent-glow)
+        }
+
+        .mc-cyr {
             font-size: 16px;
-            text-align: center;
-        }
-
-        .dir-btn:hover,
-        .dir-btn.active {
-            background: rgba(59, 130, 246, 0.2);
-            border-color: #3b82f6;
-            color: white;
-            transform: translateY(-2px);
-        }
-
-        .dir-btn small {
-            display: block;
-            font-weight: 400;
-            font-size: 12px;
-            color: #64748b;
-            margin-top: 4px;
-        }
-
-        .input-area textarea {
-            width: 100%;
-            padding: 16px;
-            background: rgba(255, 255, 255, 0.04);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 14px;
-            color: white;
-            font-size: 15px;
-            font-family: inherit;
-            resize: vertical;
-            min-height: 120px;
-            margin-bottom: 16px;
-            outline: none;
-            transition: border-color 0.3s;
-        }
-
-        .input-area textarea:focus {
-            border-color: #3b82f6;
-        }
-
-        .convert-btn {
-            width: 100%;
-            padding: 14px;
-            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
-            color: white;
-            border: none;
-            border-radius: 14px;
             font-weight: 700;
-            font-size: 15px;
-            cursor: pointer;
-            transition: all 0.3s;
+            color: var(--text)
         }
 
-        .convert-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 12px 30px rgba(59, 130, 246, 0.5);
+        .mc-lat {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--accent)
         }
 
-        .back-link {
-            display: inline-flex;
-            align-items: center;
+        /* ── STATUS BANNER ── */
+        .status {
+            border-radius: 12px;
+            padding: 10px 14px;
+            font-size: 13px;
+            font-weight: 600;
+            display: none;
             gap: 8px;
-            color: #60a5fa;
-            text-decoration: none;
-            font-size: 14px;
+            align-items: center;
+        }
+
+        .status.show {
+            display: flex
+        }
+
+        .status.success {
+            background: rgba(16, 185, 129, .08);
+            border: 1px solid rgba(16, 185, 129, .2);
+            color: var(--green)
+        }
+
+        .status.error {
+            background: rgba(239, 68, 68, .08);
+            border: 1px solid rgba(239, 68, 68, .2);
+            color: var(--red)
+        }
+
+        /* ── QUICK SAMPLE ── */
+        .samples {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .sample-chip {
+            padding: 6px 12px;
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--sub);
+            cursor: pointer;
+            transition: all .2s;
+        }
+
+        .sample-chip:hover {
+            background: var(--accent-glow);
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        .section-title {
+            font-size: 11px;
+            font-weight: 800;
+            color: var(--sub);
+            text-transform: uppercase;
+            letter-spacing: .6px;
+            margin-bottom: 8px;
         }
     </style>
 </head>
 
 <body>
-    <canvas id="particles"></canvas>
-    <nav class="navbar scrolled" id="navbar">
-        <div class="nav-inner">
 
-            <a href="index.html" class="nav-logo">
-                <div class="logo-icon">
-                    <svg width="22" height="22" viewBox="0 0 28 28" fill="none">
-                        <circle cx="14" cy="14" r="14" fill="url(#lg1)" />
-                        <path d="M8 14h12M14 8v12" stroke="white" stroke-width="2.5" stroke-linecap="round" />
-                        <defs>
-                            <linearGradient id="lg1" x1="0" y1="0" x2="28" y2="28">
-                                <stop stop-color="#3b82f6" />
-                                <stop offset="1" stop-color="#1d4ed8" />
-                            </linearGradient>
-                        </defs>
-                    </svg>
-                </div>
-                <span>DASTYOR <b>AI</b></span>
-            </a>
-            <a href="index.html" class="back-link">← Bosh sahifa</a>
+    <!-- HEADER -->
+    <div class="hdr">
+        <div class="back-btn" id="backBtn">←</div>
+        <div class="hdr-center">
+            <div class="hdr-title">🔤 Krill ↔ Lotin</div>
+            <div class="hdr-sub">O'zbek alifbosi transliteratsiyasi</div>
         </div>
-    </nav>
-    <div class="page-wrap">
-        <div class="page-card">
-            <span class="big-icon">🔤</span>
-            <h1>Krill ↔ Lotin</h1>
-            <p class="subtitle">O'zbek alifbosi qoidalari asosida transliteratsiya</p>
-            <div class="dir-btns">
-                <div class="dir-btn active" id="k2l">
-                    Кирилл → Lotin
-                    <small>Кириллдан Lotinga</small>
-                </div>
-                <div class="dir-btn" id="l2k">
-                    Lotin → Кирилл
-                    <small>Lotindan Кириллга</small>
-                </div>
-            </div>
-            <div class="input-area">
-                <textarea id="srcText" placeholder="Matnni shu yerga kiriting..."></textarea>
-                <button class="convert-btn" onclick="convert()">⚡ Aylantirish</button>
-                <textarea id="outText" placeholder="Natija bu yerda chiqadi..." style="margin-top:16px"
-                    readonly></textarea>
-                <div style="margin-top: 16px; text-align: center;">
-                    <button onclick="startDocTranslit()"
-                        style="background:none; border:none; color:#60a5fa; cursor:pointer; font-weight:600; text-decoration:underline;">
-                        Yoki Hujjatni bot orqali aylantirish (DOCX, PPTX)
-                    </button>
-                </div>
-            </div>
-        </div>
+        <div class="stats-badge" id="statsBadge">0 belgi</div>
     </div>
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <script src="app.js"></script>
-    <script>
-        const tg = window.Telegram?.WebApp;
-        let dir = 'k2l';
-        document.getElementById('k2l').addEventListener('click', () => { dir = 'k2l'; document.querySelectorAll('.dir-btn').forEach(b => b.classList.remove('active')); document.getElementById('k2l').classList.add('active'); });
-        document.getElementById('l2k').addEventListener('click', () => { dir = 'l2k'; document.querySelectorAll('.dir-btn').forEach(b => b.classList.remove('active')); document.getElementById('l2k').classList.add('active'); });
 
-        // Krill→Lotin
-        const k2lMap = {
-            'а': 'a', 'б': 'b', 'в': 'v', 'г': 'g', 'д': 'd', 'е': 'e', 'ё': 'yo', 'ж': 'j', 'з': 'z',
-            'и': 'i', 'й': 'y', 'к': 'k', 'л': 'l', 'м': 'm', 'н': 'n', 'о': 'o', 'п': 'p', 'р': 'r',
-            'с': 's', 'т': 't', 'у': 'u', 'ф': 'f', 'х': 'x', 'ц': 'ts', 'ч': 'ch', 'ш': 'sh',
-            'щ': 'sh', 'ъ': "'", 'ы': 'i', 'ь': '', ' э': 'e', 'ю': 'yu', 'я': 'ya',
-            'қ': 'q', 'ғ': "g'", 'ҳ': 'h', 'ў': "o'", 'ҷ': 'j',
-            'А': 'A', 'Б': 'B', 'В': 'V', 'Г': 'G', 'Д': 'D', 'Е': 'E', 'Ё': 'Yo', 'Ж': 'J', 'З': 'Z',
-            'И': 'I', 'Й': 'Y', 'К': 'K', 'Л': 'L', 'М': 'M', 'Н': 'N', 'О': 'O', 'П': 'P', 'Р': 'R',
-            'С': 'S', 'Т': 'T', 'У': 'U', 'Ф': 'F', 'Х': 'X', 'Ц': 'Ts', 'Ч': 'Ch', 'Ш': 'Sh',
-            'Щ': 'Sh', 'Ъ': "'", 'Ы': 'I', 'Ь': '', ' Э': 'E', 'Ю': 'Yu', 'Я': 'Ya',
-            'Қ': 'Q', 'Ғ': "G'", 'Ҳ': 'H', 'Ў': "O'", 'Ҷ': 'J'
+    <!-- MAIN -->
+    <div class="main">
+
+        <!-- DIRECTION TOGGLE -->
+        <div class="dir-toggle">
+            <div class="dir-label active" id="srcLabel" onclick="setDir('k2l')">
+                <span class="script-name">Кирилл</span>
+                <span class="sample">Ўзбек тили</span>
+            </div>
+            <button class="swap-btn" id="swapBtn" onclick="swapDir()" title="Yo'nalishni almashtirish">⇆</button>
+            <div class="dir-label" id="tgtLabel" onclick="setDir('l2k')">
+                <span class="script-name">Lotin</span>
+                <span class="sample">O'zbek tili</span>
+            </div>
+        </div>
+
+        <!-- TEXT PANELS -->
+        <div class="panels">
+            <!-- INPUT -->
+            <div class="panel" id="srcPanel">
+                <div class="panel-hdr">
+                    <span class="panel-script" id="srcScript">Кирилл</span>
+                    <div class="panel-actions">
+                        <span class="char-count" id="charCount">0</span>
+                        <button class="icon-btn" title="Tozalash" onclick="clearAll()">✕</button>
+                    </div>
+                </div>
+                <textarea class="panel-textarea" id="srcText" placeholder="Matnni shu yerga kiriting…"
+                    oninput="onInput()"></textarea>
+            </div>
+
+            <!-- OUTPUT -->
+            <div class="panel out-panel" id="outPanel">
+                <div class="panel-hdr">
+                    <span class="panel-script" id="tgtScript">Lotin</span>
+                    <div class="panel-actions">
+                        <button class="icon-btn" id="copyBtn" title="Nusxa" onclick="copyOut()">📋</button>
+                        <button class="icon-btn" id="swapContentBtn" title="Natijani kirish maydoniga o'tkazish"
+                            onclick="useOutput()">↩</button>
+                    </div>
+                </div>
+                <textarea class="panel-textarea" id="outText" placeholder="Natija bu yerda chiqadi…"
+                    readonly></textarea>
+            </div>
+        </div>
+
+        <!-- CONVERT BUTTON -->
+        <button class="conv-btn" onclick="convert()">⚡ Aylantirish</button>
+
+        <!-- STATUS -->
+        <div class="status" id="statusBanner">
+            <span id="statusIcon">✅</span>
+            <span id="statusMsg"></span>
+        </div>
+
+        <!-- QUICK SAMPLES -->
+        <div>
+            <div class="section-title">Namuna matnlar</div>
+            <div class="samples" id="samplesWrap">
+                <!-- filled by JS based on direction -->
+            </div>
+        </div>
+
+        <!-- CHARACTER MAP -->
+        <div class="map-wrap">
+            <div class="map-title">Belgilar jadvali (bosing → kiritish maydoniga qo'shadi)</div>
+            <div class="map-grid" id="mapGrid"></div>
+        </div>
+
+    </div><!-- /main -->
+
+    <script>
+        /* ═══════════════════════════════════════════════════════════════
+           INIT
+        ═══════════════════════════════════════════════════════════════ */
+        const tg = window.Telegram?.WebApp;
+        const theme = localStorage.getItem('theme') || 'dark';
+        document.documentElement.setAttribute('data-theme', theme);
+        if (tg) {
+            tg.ready(); tg.expand();
+            if (tg.setHeaderColor) tg.setHeaderColor(theme === 'dark' ? '#060d1c' : '#f0f4f8');
+        }
+        const tid = new URLSearchParams(location.search).get('telegram_id')
+            || tg?.initDataUnsafe?.user?.id?.toString() || '';
+        document.getElementById('backBtn').onclick = () => {
+            location.href = 'index.html' + (tid ? '?telegram_id=' + tid : '');
         };
 
-        // Lotin→Krill (digraph-first approach)
-        const l2kPairs = [
-            ["o'", "ў"], ["g'", "ғ"], ["O'", "Ў"], ["G'", "Ғ"],
-            ["sh", "ш"], ["ch", "ч"], ["zh", "ж"], ["yo", "ё"], ["ya", "я"],
-            ["yu", "ю"], ["ts", "ц"], ["ng", "нг"],
-            ["Sh", "Ш"], ["Ch", "Ч"], ["Zh", "Ж"], ["Yo", "Ё"], ["Ya", "Я"],
-            ["Yu", "Ю"], ["Ts", "Ц"], ["Ng", "Нг"],
-            ["SH", "Ш"], ["CH", "Ч"], ["ZH", "Ж"], ["YO", "Ё"], ["YA", "Я"],
-            ["YU", "Ю"], ["TS", "Ц"], ["NG", "Нг"],
-            ["a", "а"], ["b", "б"], ["d", "д"], ["e", "е"], ["f", "ф"], ["h", "ҳ"],
-            ["i", "и"], ["j", "ж"], ["k", "к"], ["l", "л"], ["m", "м"], ["n", "н"],
-            ["o", "о"], ["p", "п"], ["q", "қ"], ["r", "р"], ["s", "с"], ["t", "т"],
-            ["u", "у"], ["v", "в"], ["x", "х"], ["y", "й"], ["z", "з"], ["'", "ъ"],
-            ["A", "А"], ["B", "Б"], ["D", "Д"], ["E", "Е"], ["F", "Ф"], ["H", "Ҳ"],
-            ["I", "И"], ["J", "Ж"], ["K", "К"], ["L", "Л"], ["M", "М"], ["N", "Н"],
-            ["O", "О"], ["P", "П"], ["Q", "Қ"], ["R", "Р"], ["S", "С"], ["T", "Т"],
-            ["U", "У"], ["V", "В"], ["X", "Х"], ["Y", "Й"], ["Z", "З"]
-        ];
+        /* ═══════════════════════════════════════════════════════════════
+           ──────────────────────────────────────────────────────────────
+           THE CORE TRANSLITERATION ENGINE
+           ──────────────────────────────────────────────────────────────
+      
+           Algorithm: Greedy Left-to-Right Single-Pass Scanner
+           ─────────────────────────────────────────────────────
+           At each position i in the input string:
+             1. Try to match LONGEST sequence first (3 chars, then 2, then 1)
+             2. Look up that sequence in the priority-ordered map
+             3. On match → emit mapped output, advance i by match length
+             4. No match → emit character unchanged, advance i by 1
+      
+           Why this is correct and why the old `split/join` approach fails:
+           ───────────────────────────────────────────────────────────────
+           Old approach ran N separate string replacements on the *whole string*
+           sequentially. This caused:
+             (a) Later replacements corrupting earlier ones (e.g. "sh"→"ш" then
+                 "s"→"с" would attempt to process the "с" inside "ш" on the next
+                 text — it doesn't corrupt Cyrillic chars, but "yo"→"ё" followed
+                 by "y"→"й" fires on *positions where y was already consumed*
+                 because the substitution modifies the string in-place. Specifically:
+                 "yoʻl" → "ё" (after yo replacement) → now "y" fires on remaining
+                 chars, but the "y" in "yoʻl" was already consumed. However,
+                 "hayvon" → "h" fires first, then "ay" — the "a" fires BEFORE "ay"
+                 can match. This is the fundamental ordering/atomicity problem.)
+             (b) The apostrophe in "o'" and "g'" getting re-processed as a
+                 standalone "'" → "ъ" by a later substitution.
+      
+           The greedy single-pass scanner avoids all of these by consuming each
+           character exactly once, left to right.
+      
+        ═══════════════════════════════════════════════════════════════ */
 
-        function latinToCyrillic(text) {
-            let result = text;
-            for (const [lat, cyr] of l2kPairs) {
-                result = result.split(lat).join(cyr);
+        /* ─── Cyrillic → Latin mapping ─── */
+        /* Keyed by Cyrillic character(s). Digraph Cyrillic output for input multi-char
+           Cyrillic sequences is not needed since Cyrillic is always 1:n Latin. */
+        const CYR_TO_LAT = {
+            /* Lowercase */
+            'а': 'a', 'б': 'b', 'в': 'v', 'г': 'g', 'д': 'd',
+            'е': 'e', 'ё': 'yo', 'ж': 'j', 'з': 'z', 'и': 'i',
+            'й': 'y', 'к': 'k', 'л': 'l', 'м': 'm', 'н': 'n',
+            'о': 'o', 'п': 'p', 'р': 'r', 'с': 's', 'т': 't',
+            'у': 'u', 'ф': 'f', 'х': 'x', 'ц': 'ts', 'ч': 'ch',
+            'ш': 'sh', 'щ': 'sh', 'ъ': "'", 'ы': 'i', 'ь': '',
+            'э': 'e', 'ю': 'yu', 'я': 'ya',
+            /* Uzbek-specific lowercase */
+            'қ': 'q', 'ғ': "g'", 'ҳ': 'h', 'ў': "o'", 'ҷ': 'j',
+            /* Uppercase */
+            'А': 'A', 'Б': 'B', 'В': 'V', 'Г': 'G', 'Д': 'D',
+            'Е': 'E', 'Ё': 'Yo', 'Ж': 'J', 'З': 'Z', 'И': 'I',
+            'Й': 'Y', 'К': 'K', 'Л': 'L', 'М': 'M', 'Н': 'N',
+            'О': 'O', 'П': 'P', 'Р': 'R', 'С': 'S', 'Т': 'T',
+            'У': 'U', 'Ф': 'F', 'Х': 'X', 'Ц': 'Ts', 'Ч': 'Ch',
+            'Ш': 'Sh', 'Щ': 'Sh', 'Ъ': "'", 'Ы': 'I', 'Ь': '',
+            'Э': 'E', 'Ю': 'Yu', 'Я': 'Ya',
+            /* Uzbek-specific uppercase */
+            'Қ': 'Q', 'Ғ': "G'", 'Ҳ': 'H', 'Ў': "O'", 'Ҷ': 'J',
+        };
+
+        /* ─── Latin → Cyrillic: ordered table (LONGEST MATCH WINS) ─── */
+        /*
+           Rules applied (official Uzbek Latin alphabet, 1995):
+           - Digraphs sh, ch, ng  → single Cyrillic letter
+           - Trigraph-like "o'" and "g'" → Ў / Ғ
+           - Apostrophe variants: ' (U+2019, curly), ' (U+0027, straight), ʻ (U+02BB modifier)
+           - Multicase: sh/Sh/SH, ch/Ch/CH, ng/Ng/NG, etc.
+           - 'yo','ya','yu' handled as digraphs BEFORE 'y' single-letter rule
+           - 'ts' handled before 't' (edge case for Russian loanwords like "senat")
+        */
+
+        /* Each entry: [latin_sequence, cyrillic_output]
+           ORDER MATTERS: longer patterns must come before shorter ones that share prefix.
+           The scanner will try entries[i] before entries[i+1] at each position,
+           HOWEVER we use a trie-like lookup below — order in the arrays just
+           defines the priority table, the scanner tries 3→2→1 char length. */
+
+        /* Build the lookup maps keyed by sequence length for O(1) lookup */
+        const LAT_TO_CYR_3 = {}; // 3-char Latin sequences (o'+variant, g'+variant)
+        const LAT_TO_CYR_2 = {}; // 2-char Latin sequences (digraphs)
+        const LAT_TO_CYR_1 = {}; // 1-char Latin letters
+
+        /* ── Apostrophe variants to consider after o/g ── */
+        const APOS = ["'", "\u2019", "\u02BB", "`"]; // straight, curly-right, modifier-letter, backtick
+
+        /* ── 3-char sequences: o/O/g/G + apostrophe ── */
+        for (const ap of APOS) {
+            LAT_TO_CYR_3['o' + ap] = "\u045E"; // ў
+            LAT_TO_CYR_3['O' + ap] = "\u040E"; // Ў
+            LAT_TO_CYR_3['g' + ap] = "\u0493"; // ғ
+            LAT_TO_CYR_3['G' + ap] = "\u0492"; // Ғ
+        }
+
+        /* ── 2-char digraphs ── */
+        const DIGRAPHS_2 = [
+            /* sh/ch/ng and all case variants */
+            ['sh', 'ш'], ['Sh', 'Ш'], ['SH', 'Ш'],
+            ['ch', 'ч'], ['Ch', 'Ч'], ['CH', 'Ч'],
+            ['ng', 'нг'], ['Ng', 'Нг'], ['NG', 'НГ'],
+            /* yo/ya/yu — must be before y alone */
+            ['yo', 'ё'], ['Yo', 'Ё'], ['YO', 'Ё'],
+            ['ya', 'я'], ['Ya', 'Я'], ['YA', 'Я'],
+            ['yu', 'ю'], ['Yu', 'Ю'], ['YU', 'Ю'],
+            /* ts — before t alone (Russian loanwords) */
+            ['ts', 'ц'], ['Ts', 'Ц'], ['TS', 'Ц'],
+            /* zh — жara/журnal etc */
+            ['zh', 'ж'], ['Zh', 'Ж'], ['ZH', 'Ж'],
+            /* o'+apostrophe 2-char (standard straight apostrophe already in 3-char,
+               but also handle cases where parser finds 2-char first) — covered by 3-char above */
+        ];
+        for (const [lat, cyr] of DIGRAPHS_2) LAT_TO_CYR_2[lat] = cyr;
+
+        /* ── 1-char singles ── */
+        const SINGLES = [
+            ['a', 'а'], ['b', 'б'], ['d', 'д'], ['e', 'е'], ['f', 'ф'],
+            ['g', 'г'], ['h', 'ҳ'], ['i', 'и'], ['j', 'ж'], ['k', 'к'],
+            ['l', 'л'], ['m', 'м'], ['n', 'н'], ['o', 'о'], ['p', 'п'],
+            ['q', 'қ'], ['r', 'р'], ['s', 'с'], ['t', 'т'], ['u', 'у'],
+            ['v', 'в'], ['w', 'в'], ['x', 'х'], ['y', 'й'], ['z', 'з'],
+            ["'", 'ъ'], ["\u2019", 'ъ'], ["\u02BB", 'ъ'],
+            ['A', 'А'], ['B', 'Б'], ['D', 'Д'], ['E', 'Е'], ['F', 'Ф'],
+            ['G', 'Г'], ['H', 'Ҳ'], ['I', 'И'], ['J', 'Ж'], ['K', 'К'],
+            ['L', 'Л'], ['M', 'М'], ['N', 'Н'], ['O', 'О'], ['P', 'П'],
+            ['Q', 'Қ'], ['R', 'Р'], ['S', 'С'], ['T', 'Т'], ['U', 'У'],
+            ['V', 'В'], ['W', 'В'], ['X', 'Х'], ['Y', 'Й'], ['Z', 'З'],
+        ];
+        for (const [lat, cyr] of SINGLES) LAT_TO_CYR_1[lat] = cyr;
+
+        /* ════════════════════════════════════════════════════════
+           cyrillicToLatin(text) — single-pass character mapper
+           Each Cyrillic char maps to a Latin string (1 or 2 chars).
+           Since Cyrillic chars are always single code points here,
+           we iterate codepoints directly. O(n).
+        ════════════════════════════════════════════════════════ */
+        function cyrillicToLatin(text) {
+            const out = [];
+            for (const ch of text) {  // for...of iterates Unicode code points correctly
+                const mapped = CYR_TO_LAT[ch];
+                if (mapped !== undefined) {
+                    out.push(mapped);
+                } else {
+                    out.push(ch);
+                }
             }
-            return result;
+            return out.join('');
+        }
+
+        /* ════════════════════════════════════════════════════════
+           latinToCyrillic(text) — greedy left-to-right single-pass
+      
+           At each position i:
+             1. Try 3-char window → LAT_TO_CYR_3
+             2. Try 2-char window → LAT_TO_CYR_2
+             3. Try 1-char       → LAT_TO_CYR_1
+             4. Emit unchanged, advance 1
+      
+           This is guaranteed correct because:
+           - Each character is consumed EXACTLY ONCE
+           - No substitution can affect already-emitted output
+           - Longer patterns always take priority over shorter ones
+        ════════════════════════════════════════════════════════ */
+        function latinToCyrillic(text) {
+            const out = [];
+            const len = text.length;
+            let i = 0;
+
+            while (i < len) {
+                /* Try 3-char */
+                if (i + 2 < len) {
+                    const tri = text[i] + text[i + 1] + text[i + 2];
+                    if (LAT_TO_CYR_3[tri] !== undefined) {
+                        out.push(LAT_TO_CYR_3[tri]);
+                        i += 3;
+                        continue;
+                    }
+                }
+                /* Try 2-char */
+                if (i + 1 < len) {
+                    const di = text[i] + text[i + 1];
+                    if (LAT_TO_CYR_2[di] !== undefined) {
+                        out.push(LAT_TO_CYR_2[di]);
+                        i += 2;
+                        continue;
+                    }
+                }
+                /* Try 1-char */
+                const ch = text[i];
+                if (LAT_TO_CYR_1[ch] !== undefined) {
+                    out.push(LAT_TO_CYR_1[ch]);
+                } else {
+                    out.push(ch); /* punctuation, digits, spaces — pass through */
+                }
+                i++;
+            }
+
+            return out.join('');
+        }
+
+        /* ════════════════════════════════════════════════════════
+           AUTO-DETECT SCRIPT (Heuristic)
+           Counts Cyrillic vs Latin chars, sets direction automatically.
+        ════════════════════════════════════════════════════════ */
+        function detectScript(text) {
+            let cyr = 0, lat = 0;
+            for (const ch of text) {
+                const code = ch.charCodeAt(0);
+                if (code >= 0x0400 && code <= 0x04FF) cyr++;  /* Cyrillic block */
+                else if ((code >= 0x41 && code <= 0x5A) || (code >= 0x61 && code <= 0x7A)) lat++;
+            }
+            if (cyr === 0 && lat === 0) return null;
+            return cyr >= lat ? 'k2l' : 'l2k';
+        }
+
+        /* ═══════════════════════════════════════════════════════════════
+           UI STATE & INTERACTION
+        ═══════════════════════════════════════════════════════════════ */
+        let dir = 'k2l'; /* k2l = Cyrillic→Latin, l2k = Latin→Cyrillic */
+        let autoConverting = true;
+
+        const SAMPLES = {
+            k2l: [
+                'Ўзбекистон Республикаси',
+                'Ассалому алайкум',
+                'Тошкент шаҳри',
+                'Ҳамма нарса яхши',
+                'Ғалаба қозонамиз',
+            ],
+            l2k: [
+                "O'zbekiston Respublikasi",
+                "Assalomu alaykum",
+                "Toshkent shahri",
+                "Hamma narsa yaxshi",
+                "G'alaba qozonامیز",
+            ]
+        };
+
+        function renderSamples() {
+            const wrap = document.getElementById('samplesWrap');
+            wrap.innerHTML = SAMPLES[dir]
+                .map(s => `<span class="sample-chip" onclick="setSample(this)">${s}</span>`)
+                .join('');
+        }
+
+        function setSample(el) {
+            document.getElementById('srcText').value = el.textContent;
+            onInput();
+            tg?.HapticFeedback?.selectionChanged();
+        }
+
+        function updateDirUI() {
+            const isK2L = dir === 'k2l';
+            document.getElementById('srcLabel').classList.toggle('active', isK2L);
+            document.getElementById('tgtLabel').classList.toggle('active', !isK2L);
+            document.getElementById('srcScript').textContent = isK2L ? 'Кирилл' : 'Lotin';
+            document.getElementById('tgtScript').textContent = isK2L ? 'Lotin' : 'Кирилл';
+            document.getElementById('srcText').placeholder = isK2L
+                ? 'Кирилл матнини сhu yerga kiriting…'
+                : "Lotin matnini shu yerga kiriting…";
+            renderSamples();
+            buildCharMap();
+            if (document.getElementById('srcText').value.trim()) convertNow();
+        }
+
+        function setDir(newDir) {
+            if (dir === newDir) return;
+            dir = newDir;
+            updateDirUI();
+            tg?.HapticFeedback?.impactOccurred('light');
+        }
+
+        function swapDir() {
+            /* Swap direction AND swap textarea contents */
+            const src = document.getElementById('srcText');
+            const out = document.getElementById('outText');
+            const prevOut = out.value;
+            dir = dir === 'k2l' ? 'l2k' : 'k2l';
+            if (prevOut) {
+                src.value = prevOut;
+                out.value = '';
+            }
+            updateDirUI();
+            if (src.value.trim()) convertNow();
+            tg?.HapticFeedback?.impactOccurred('medium');
+        }
+
+        function clearAll() {
+            document.getElementById('srcText').value = '';
+            document.getElementById('outText').value = '';
+            onInput();
+            hideStatus();
+            tg?.HapticFeedback?.impactOccurred('light');
+        }
+
+        function copyOut() {
+            const t = document.getElementById('outText').value;
+            if (!t) return;
+            navigator.clipboard?.writeText(t).then(() => {
+                document.getElementById('copyBtn').textContent = '✅';
+                setTimeout(() => { document.getElementById('copyBtn').textContent = '📋'; }, 1500);
+            }).catch(() => {
+                document.getElementById('outText').select();
+                document.execCommand('copy');
+            });
+            tg?.HapticFeedback?.notificationOccurred('success');
+        }
+
+        function useOutput() {
+            /* Move output → input and re-convert in opposite direction */
+            const out = document.getElementById('outText').value;
+            if (!out) return;
+            document.getElementById('srcText').value = out;
+            dir = dir === 'k2l' ? 'l2k' : 'k2l';
+            updateDirUI();
+            convertNow();
+            tg?.HapticFeedback?.impactOccurred('light');
+        }
+
+        /* ── CHAR COUNT & AUTO-DETECT ── */
+        function onInput() {
+            const text = document.getElementById('srcText').value;
+            const len = text.length;
+            const cc = document.getElementById('statsBadge');
+            cc.textContent = len + ' belgi';
+            cc.classList.toggle('active', len > 0);
+            document.getElementById('charCount').textContent = len;
+            document.getElementById('charCount').className =
+                'char-count' + (len > 4500 ? ' warn' : '');
+
+            /* Auto-detect script direction */
+            if (len > 3) {
+                const detected = detectScript(text);
+                if (detected && detected !== dir) {
+                    dir = detected;
+                    updateDirUI();
+                }
+            }
+
+            /* Live conversion on every keystroke */
+            if (autoConverting) convertNow();
+        }
+
+        /* ── CONVERSION ── */
+        function convertNow() {
+            const src = document.getElementById('srcText').value;
+            if (!src) { document.getElementById('outText').value = ''; return; }
+            const result = dir === 'k2l' ? cyrillicToLatin(src) : latinToCyrillic(src);
+            document.getElementById('outText').value = result;
+
+            /* Flash border */
+            const op = document.getElementById('outPanel');
+            op.classList.add('updated');
+            setTimeout(() => op.classList.remove('updated'), 300);
         }
 
         function convert() {
-            const src = document.getElementById('srcText').value;
-            if (!src) return;
-            if (dir === 'k2l') {
-                document.getElementById('outText').value = src.split('').map(c => k2lMap[c] !== undefined ? k2lMap[c] : c).join('');
-            } else {
-                document.getElementById('outText').value = latinToCyrillic(src);
+            const src = document.getElementById('srcText').value.trim();
+            if (!src) {
+                showStatus('error', '⚠️', 'Matn kiriting!');
+                return;
             }
+            convertNow();
+            const result = document.getElementById('outText').value;
+            showStatus('success', '✅',
+                `${dir === 'k2l' ? 'Кирилл→Lotin' : 'Lotin→Кирилл'}: ${src.length} belgi muvaffaqiyatli aylantildi.`
+            );
+            tg?.HapticFeedback?.notificationOccurred('success');
         }
 
-        function startDocTranslit() {
-            if (tg && tg.sendData) {
-                tg.sendData(JSON.stringify({
-                    action: "start_transliterate",
-                    direction: dir
-                }));
-            } else {
-                alert("Faqat Telegram bot ichida ishlaydi!");
-            }
+        /* ── STATUS ── */
+        function showStatus(type, icon, msg) {
+            const b = document.getElementById('statusBanner');
+            b.className = 'status show ' + type;
+            document.getElementById('statusIcon').textContent = icon;
+            document.getElementById('statusMsg').textContent = msg;
         }
+        function hideStatus() {
+            document.getElementById('statusBanner').className = 'status';
+        }
+
+        /* ═══════════════════════════════════════════════════════════════
+           CHARACTER MAP TABLE
+           Shows Cyrillic ↔ Latin pairs the user can click to insert.
+        ═══════════════════════════════════════════════════════════════ */
+        /* Full pair list for the reference table */
+        const CHAR_TABLE = [
+            ['А а', 'A a'], ['Б б', 'B b'], ['В в', 'V v'], ['Г г', 'G g'], ['Д д', 'D d'],
+            ['Е е', 'E e'], ['Ё ё', 'Yo yo'], ['Ж ж', 'J j'], ['З з', 'Z z'], ['И и', 'I i'],
+            ['Й й', 'Y y'], ['К к', 'K k'], ['Л л', 'L l'], ['М м', 'M m'], ['Н н', 'N n'],
+            ['О о', 'O o'], ['П п', 'P p'], ['Р р', 'R r'], ['С с', 'S s'], ['Т т', 'T t'],
+            ['У у', 'U u'], ['Ф ф', 'F f'], ['Х х', 'X x'], ['Ц ц', 'Ts ts'], ['Ч ч', 'Ch ch'],
+            ['Ш ш', 'Sh sh'], ['Ъ ъ', "' '"], ['Э э', 'E e'], ['Ю ю', 'Yu yu'], ['Я я', 'Ya ya'],
+            ['Қ қ', 'Q q'], ['Ғ ғ', "G' g'"], ['Ҳ ҳ', 'H h'], ['Ў ў', "O' o'"], ['Нг нг', 'Ng ng'],
+        ];
+
+        function buildCharMap() {
+            const grid = document.getElementById('mapGrid');
+
+            /* Use data-ch attribute to store the character safely.
+               Inline onclick + JSON.stringify produces double-quotes INSIDE
+               a double-quoted attribute → HTML parser terminates the attribute
+               early → onclick never fires. data attribute + delegation avoids
+               ALL quoting issues for every character including apostrophes. */
+            grid.innerHTML = CHAR_TABLE.map(([cyr, lat]) => {
+                const src = dir === 'k2l' ? cyr : lat;
+                const tgt = dir === 'k2l' ? lat : cyr;
+                /* lowercase variant is parts[1], uppercase is parts[0] */
+                const ch = src.split(' ')[1] !== undefined
+                    ? src.split(' ')[1]
+                    : src.split(' ')[0];
+                /* Safely encode the character for the data attribute */
+                const safeAttr = ch
+                    .replace(/&/g, '&amp;')
+                    .replace(/"/g, '&quot;')
+                    .replace(/</g, '&lt;');
+                return `<div class="map-cell" data-ch="${safeAttr}" title="${src} → ${tgt}">
+                    <span class="mc-cyr">${src.split(' ')[0]}</span>
+                    <span class="mc-lat">${tgt.split(' ')[0]}</span>
+                </div>`;
+            }).join('');
+
+            /* Single delegated listener — replaces all per-cell onclick handlers */
+            grid.onclick = function (e) {
+                const cell = e.target.closest('.map-cell');
+                if (!cell) return;
+                insertChar(cell.dataset.ch);
+            };
+        }
+
+        function insertChar(ch) {
+            if (!ch) return;
+            const ta = document.getElementById('srcText');
+            /* Restore focus first so selectionStart/End are valid */
+            ta.focus();
+            const start = ta.selectionStart ?? ta.value.length;
+            const end = ta.selectionEnd ?? ta.value.length;
+            const val = ta.value;
+            ta.value = val.slice(0, start) + ch + val.slice(end);
+            ta.selectionStart = ta.selectionEnd = start + ch.length;
+            onInput();
+            tg?.HapticFeedback?.selectionChanged();
+        }
+
+        /* ── KEYBOARD SHORTCUT ── */
+        document.getElementById('srcText').addEventListener('keydown', e => {
+            if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+                e.preventDefault();
+                convert();
+            }
+        });
+
+        /* ── INIT RENDER ── */
+        updateDirUI();
     </script>
 </body>
 

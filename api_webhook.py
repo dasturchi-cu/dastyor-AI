@@ -1,6 +1,7 @@
 import os
 import logging
-from fastapi import FastAPI, Request, Response
+from fastapi import FastAPI, Request, Response, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from telegram import Update
 from contextlib import asynccontextmanager
 from fastapi.staticfiles import StaticFiles
@@ -38,6 +39,15 @@ from fastapi.responses import RedirectResponse
 
 app = FastAPI(lifespan=lifespan)
 
+# ── CORS: allow webapp pages to call /api/* from any origin ──
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 # Serve Web App Files
 app.mount("/webapp", StaticFiles(directory="webapp"), name="webapp")
 
@@ -52,13 +62,26 @@ class TranslateRequest(BaseModel):
 
 @app.post("/api/translate")
 async def api_translate(req: TranslateRequest):
+    if not req.text or not req.text.strip():
+        raise HTTPException(status_code=400, detail="Matn bo'sh bo'lishi mumkin emas")
+    if len(req.text) > 5000:
+        raise HTTPException(status_code=400, detail="Matn 5000 belgidan oshmasligi kerak")
+
+    valid_dirs = {"uz_en", "en_uz", "ru_uz", "uz_ru", "ru_en"}
+    if req.direction not in valid_dirs:
+        raise HTTPException(status_code=400, detail=f"Noto'g'ri yo'nalish: {req.direction}")
+
     try:
         from bot.services.ai_service import translate_text
-        res = await translate_text(req.text, req.direction)
-        return {"translated_text": res}
+        result = await translate_text(req.text, req.direction)
+        if not result or result.startswith("Tarjimada xato") or result.startswith("AI model"):
+            raise HTTPException(status_code=502, detail=result or "Tarjima bo'sh qaytdi")
+        return {"ok": True, "translated_text": result, "direction": req.direction}
+    except HTTPException:
+        raise
     except Exception as e:
-        logger.error(f"Translate API error: {e}")
-        return {"error": str(e)}
+        logger.error(f"Translate API error: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Tarjima serveri xatosi: {str(e)[:200]}")
 
 from fastapi import File, UploadFile, Form
 from typing import List

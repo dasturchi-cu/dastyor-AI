@@ -140,6 +140,224 @@
             color: #fff
         }
 
+        /* ── SPLIT PANE (≥700px) ── */
+        @media (min-width: 700px) {
+            .view-toggle {
+                display: none
+            }
+
+            .main {
+                display: flex;
+                gap: 0;
+                overflow: hidden
+            }
+
+            .form-view,
+            .preview-view {
+                display: block !important;
+                flex: 1;
+                overflow-y: auto;
+                overflow-x: hidden;
+                padding: 20px 18px
+            }
+
+            .form-view {
+                border-right: 1px solid var(--border)
+            }
+
+            .pv-split-label {
+                display: flex !important
+            }
+
+            #previewPill {
+                display: none !important
+            }
+
+            #previewDrawer {
+                display: none !important
+            }
+        }
+
+        /* ── LIVE FLASH ── */
+        @keyframes pv-flash {
+            0% {
+                box-shadow: 0 0 0 0 var(--accent-glow)
+            }
+
+            50% {
+                box-shadow: 0 0 0 6px var(--accent-glow)
+            }
+
+            100% {
+                box-shadow: 0 0 0 0 var(--accent-glow)
+            }
+        }
+
+        .pv-card.flashing {
+            animation: pv-flash .35s ease-out
+        }
+
+        /* ── SPLIT PANE LIVE LABEL ── */
+        .pv-split-label {
+            display: none;
+            align-items: center;
+            gap: 6px;
+            font-size: 11px;
+            font-weight: 800;
+            color: var(--accent);
+            text-transform: uppercase;
+            letter-spacing: .7px;
+            margin-bottom: 14px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--border)
+        }
+
+        .pv-live-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: var(--green);
+            animation: dot-pulse 2s infinite
+        }
+
+        @keyframes dot-pulse {
+
+            0%,
+            100% {
+                opacity: 1;
+                transform: scale(1)
+            }
+
+            50% {
+                opacity: .4;
+                transform: scale(.7)
+            }
+        }
+
+        /* ── MOBILE PREVIEW PILL ── */
+        #previewPill {
+            position: fixed;
+            bottom: 20px;
+            right: 16px;
+            z-index: 200;
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            padding: 10px 16px;
+            background: var(--accent);
+            color: #fff;
+            border: none;
+            border-radius: 50px;
+            font-family: 'Inter', sans-serif;
+            font-size: 13px;
+            font-weight: 700;
+            box-shadow: 0 4px 20px rgba(37, 99, 235, .4);
+            cursor: pointer;
+            transition: transform .15s, box-shadow .15s
+        }
+
+        #previewPill:active {
+            transform: scale(.95)
+        }
+
+        .pill-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: #fff;
+            animation: dot-pulse 2s infinite
+        }
+
+        /* ── BOTTOM SHEET ── */
+        #drawerBackdrop {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, .55);
+            z-index: 300;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity .3s
+        }
+
+        #drawerBackdrop.open {
+            opacity: 1;
+            pointer-events: auto
+        }
+
+        #previewDrawer {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            z-index: 400;
+            background: var(--surface);
+            border-radius: 22px 22px 0 0;
+            max-height: 82dvh;
+            max-height: 82vh;
+            display: flex;
+            flex-direction: column;
+            transform: translateY(100%);
+            transition: transform .35s cubic-bezier(.32, 1, .6, 1);
+            box-shadow: 0 -6px 40px rgba(0, 0, 0, .35)
+        }
+
+        #previewDrawer.open {
+            transform: translateY(0)
+        }
+
+        .drawer-handle {
+            width: 40px;
+            height: 4px;
+            border-radius: 4px;
+            background: var(--border);
+            margin: 12px auto 4px
+        }
+
+        .drawer-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 18px 12px;
+            border-bottom: 1px solid var(--border)
+        }
+
+        .drawer-title {
+            font-size: 14px;
+            font-weight: 800;
+            color: var(--text)
+        }
+
+        .drawer-close {
+            width: 30px;
+            height: 30px;
+            border-radius: 8px;
+            border: none;
+            background: var(--inp-bg);
+            color: var(--sub);
+            font-size: 17px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center
+        }
+
+        .drawer-body {
+            overflow-y: auto;
+            padding: 16px 16px 30px;
+            -webkit-overflow-scrolling: touch
+        }
+
+        .drawer-body::-webkit-scrollbar {
+            width: 0
+        }
+
+        /* Preview value transitions */
+        .pv-val,
+        .pv-name,
+        .pv-job-title {
+            transition: color .15s
+        }
+
         /* ====== STEPS BAR ====== */
         .steps-bar {
             flex-shrink: 0;
@@ -544,8 +762,8 @@
             <div class="hdr-sub" id="hdr-step-lbl">1-qadam • Shaxsiy ma'lumotlar</div>
         </div>
         <div class="view-toggle">
-            <button class="vt-btn on" id="vt-form" onclick="switchView('form')">✏️</button>
-            <button class="vt-btn" id="vt-prev" onclick="switchView('preview')">👁</button>
+            <button class="vt-btn on" id="vt-form" onclick="switchView('form')">✏️ Shakl</button>
+            <button class="vt-btn" id="vt-prev" onclick="switchView('preview')">👁 Ko'rish</button>
         </div>
     </div>
 
@@ -724,8 +942,14 @@
         <!-- ===== PREVIEW VIEW ===== -->
         <div class="preview-view" id="prevView">
 
+            <!-- Split-pane live label -->
+            <div class="pv-split-label">
+                <div class="pv-live-dot"></div>
+                Jonli ko'rinish
+            </div>
+
             <!-- Personal + Education card -->
-            <div class="pv-card">
+            <div class="pv-card" id="pv_main_card">
                 <div class="pv-section">👤 Shaxsiy Ma'lumotlar</div>
                 <div class="pv-name" id="pv_name">—</div>
                 <div class="pv-job-title" id="pv_spec">—</div>
@@ -775,6 +999,22 @@
 
     </div><!-- /main -->
 
+    <!-- ── MOBILE BOTTOM-SHEET PREVIEW ── -->
+    <div id="drawerBackdrop" onclick="closeDrawer()"></div>
+    <div id="previewDrawer" role="dialog" aria-modal="true">
+        <div class="drawer-handle"></div>
+        <div class="drawer-header">
+            <div class="drawer-title">👁 Jonli Ko'rinish</div>
+            <button class="drawer-close" onclick="closeDrawer()">✕</button>
+        </div>
+        <div class="drawer-body" id="drawerBody"></div>
+    </div>
+
+    <!-- Floating pill trigger -->
+    <button id="previewPill" onclick="openDrawer()">
+        <span class="pill-dot"></span> Ko'rish
+    </button>
+
     <script>
         /* ── INIT ── */
         const tg = window.Telegram?.WebApp;
@@ -790,7 +1030,7 @@
         const bars = [0, 1, 2, 3].map(i => document.getElementById('sp' + i));
         const panels = [0, 1, 2, 3].map(i => document.getElementById('fp' + i));
 
-        /* ── VIEW TOGGLE ── */
+        /* ── VIEW TOGGLE (mobile only) ── */
         let curView = 'form';
         function switchView(v) {
             curView = v;
@@ -798,8 +1038,23 @@
             document.getElementById('prevView').classList.toggle('on', v === 'preview');
             document.getElementById('vt-form').classList.toggle('on', v === 'form');
             document.getElementById('vt-prev').classList.toggle('on', v === 'preview');
-            if (v === 'preview') { lp(); }
+            if (v === 'preview') lp();
             document.getElementById('mainScroll').scrollTop = 0;
+        }
+
+        /* ── BOTTOM-SHEET DRAWER ── */
+        function openDrawer() {
+            syncDrawer();
+            document.getElementById('previewDrawer').classList.add('open');
+            document.getElementById('drawerBackdrop').classList.add('open');
+        }
+        function closeDrawer() {
+            document.getElementById('previewDrawer').classList.remove('open');
+            document.getElementById('drawerBackdrop').classList.remove('open');
+        }
+        function syncDrawer() {
+            document.getElementById('drawerBody').innerHTML =
+                document.getElementById('prevView').innerHTML;
         }
 
         /* ── STEPS ── */
@@ -828,6 +1083,15 @@
             e.className = 'pv-val' + (empty ? ' empty' : '');
         }
 
+        /* ── FLASH ANIMATION ── */
+        function flashCard(el) {
+            if (!el) return;
+            el.classList.remove('flashing');
+            void el.offsetWidth;
+            el.classList.add('flashing');
+            el.addEventListener('animationend', () => el.classList.remove('flashing'), { once: true });
+        }
+
         /* ── LIVE PREVIEW ── */
         function lp() {
             document.getElementById('pv_name').textContent = v('fullname') || '—';
@@ -850,10 +1114,10 @@
             if (works.length) {
                 wc.style.display = '';
                 wb.innerHTML = works.map(w => `
-      <div class="pv-work">
-        <div class="pv-work-date">${w.f} – ${w.t}</div>
-        <div class="pv-work-place">${w.d}</div>
-      </div>`).join('');
+                    <div class="pv-work">
+                        <div class="pv-work-date">${w.f} – ${w.t}</div>
+                        <div class="pv-work-place">${w.d}</div>
+                    </div>`).join('');
             } else wc.style.display = 'none';
 
             const rc = document.getElementById('pv_rel_card');
@@ -861,11 +1125,24 @@
             if (rels.length) {
                 rc.style.display = '';
                 rb.innerHTML = rels.map(r => `<tr>
-      <td>${r.type}</td>
-      <td><b>${r.name}</b><br><span style="font-size:12px;color:var(--sub)">${r.birth} · ${r.addr}<br>${r.job}</span></td>
-    </tr>`).join('');
+                    <td>${r.type}</td>
+                    <td><b>${r.name}</b><br><span style="font-size:12px;color:var(--sub)">${r.birth} · ${r.addr}<br>${r.job}</span></td>
+                </tr>`).join('');
             } else rc.style.display = 'none';
+
+            flashCard(document.getElementById('pv_main_card'));
         }
+
+        /* ── DEBOUNCE ── */
+        let _lpTimer;
+        function lpDebounced() { clearTimeout(_lpTimer); _lpTimer = setTimeout(lp, 50); }
+
+        /* ── DELEGATED REAL-TIME EVENT BINDING ── */
+        document.getElementById('formView').addEventListener('input', lpDebounced);
+        document.getElementById('formView').addEventListener('change', lpDebounced);
+
+        /* Initial render */
+        lp();
 
         /* ── ADD WORK ── */
         function addWork() {
