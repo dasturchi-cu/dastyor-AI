@@ -1,0 +1,577 @@
+/**
+ * DASTYOR AI — Global Theme System  (webapp/theme.css)
+ * ─────────────────────────────────────────────────────
+ * TOKEN-BASED design system.
+ * Include this file on EVERY page (before Tailwind / other CSS).
+ *
+ * Usage:
+ *  - Light mode = default (no class on <html>)
+ *  - Dark mode  = class="dark" on <html>
+ *
+ * Every UI colour must reference a --da-* token, NEVER a raw hex.
+ * This guarantees theme-switching works everywhere automatically.
+ */
+
+/* ══════════════════════════════════════════════════════════════
+   LIGHT THEME  (default)
+   ══════════════════════════════════════════════════════════════ */
+:root {
+    /* ── Page backgrounds ──────────────────────────────────── */
+    --da-bg-page:        #f5f5f7;   /* outermost page bg        */
+    --da-bg-surface:     #ffffff;   /* cards, panels            */
+    --da-bg-elevated:    #f0f0f3;   /* hover states, inputs     */
+    --da-bg-overlay:     rgba(255,255,255,0.80); /* frosted glass */
+    --da-bg-code:        #f3f4f6;   /* code blocks              */
+
+    /* ── Brand colours ─────────────────────────────────────── */
+    --da-blue:           #0A84FF;
+    --da-blue-soft:      rgba(10,132,255,0.12);
+    --da-blue-mid:       rgba(10,132,255,0.25);
+    --da-green:          #30D158;
+    --da-green-soft:     rgba(48,209,88,0.12);
+    --da-orange:         #FF9F0A;
+    --da-orange-soft:    rgba(255,159,10,0.12);
+    --da-red:            #FF453A;
+    --da-red-soft:       rgba(255,69,58,0.10);
+    --da-purple:         #BF5AF2;
+    --da-purple-soft:    rgba(191,90,242,0.12);
+    --da-gold:           #FFD60A;
+    --da-gold-soft:      rgba(255,214,10,0.12);
+
+    /* ── Text ──────────────────────────────────────────────── */
+    --da-text-primary:   #1d1d1f;
+    --da-text-secondary: rgba(29,29,31,0.55);
+    --da-text-tertiary:  rgba(29,29,31,0.35);
+    --da-text-inverse:   #ffffff;
+    --da-text-on-blue:   #ffffff;
+    --da-text-link:      #0A84FF;
+
+    /* ── Borders & dividers ────────────────────────────────── */
+    --da-border:         rgba(0,0,0,0.08);
+    --da-border-mid:     rgba(0,0,0,0.14);
+    --da-border-strong:  rgba(0,0,0,0.25);
+    --da-border-focus:   #0A84FF;
+
+    /* ── Shadows ───────────────────────────────────────────── */
+    --da-shadow-xs:      0 1px 3px rgba(0,0,0,0.06);
+    --da-shadow-sm:      0 4px 12px rgba(0,0,0,0.08);
+    --da-shadow-md:      0 8px 24px rgba(0,0,0,0.10);
+    --da-shadow-lg:      0 16px 48px rgba(0,0,0,0.12);
+    --da-shadow-glow-blue: 0 8px 30px rgba(10,132,255,0.30);
+    --da-shadow-glow-green:0 8px 30px rgba(48,209,88,0.30);
+
+    /* ── Inputs & Forms ────────────────────────────────────── */
+    --da-input-bg:       #ffffff;
+    --da-input-border:   rgba(0,0,0,0.10);
+    --da-input-text:     #1d1d1f;
+    --da-input-ph:       rgba(29,29,31,0.35);
+    --da-input-focus-bg: #ffffff;
+
+    /* ── Scrollbar ─────────────────────────────────────────── */
+    --da-scroll-thumb:   rgba(0,0,0,0.15);
+    --da-scroll-track:   transparent;
+
+    /* ── Telegram header sync ──────────────────────────────── */
+    --da-tg-header:      #f5f5f7;
+    --da-tg-bg:          #f5f5f7;
+
+    /* ── Ambient / glow overlay ────────────────────────────── */
+    --da-ambient-opacity: 0;
+
+    /* ── Bottom nav ────────────────────────────────────────── */
+    --da-nav-bg:         rgba(255,255,255,0.72);
+    --da-nav-active-bg:  #000000;
+    --da-nav-active-fg:  #ffffff;
+    --da-nav-inactive:   rgba(0,0,0,0.35);
+
+    /* ── Preview panel ─────────────────────────────────────── */
+    --da-preview-bg:     #ffffff;
+    --da-preview-border: rgba(0,0,0,0.08);
+    --da-preview-shadow: 0 4px 24px rgba(0,0,0,0.08);
+
+    /* ── Upload zone ───────────────────────────────────────── */
+    --da-upload-bg:       rgba(10,132,255,0.05);
+    --da-upload-border:   rgba(10,132,255,0.30);
+    --da-upload-hover-bg: rgba(10,132,255,0.10);
+    --da-upload-drag-bg:  rgba(10,132,255,0.15);
+
+    /* ── Status banners ────────────────────────────────────── */
+    --da-success-bg:     rgba(48,209,88,0.10);
+    --da-success-border: rgba(48,209,88,0.25);
+    --da-success-text:   #28a745;
+    --da-error-bg:       rgba(255,69,58,0.10);
+    --da-error-border:   rgba(255,69,58,0.25);
+    --da-error-text:     #dc3545;
+    --da-info-bg:        rgba(10,132,255,0.10);
+    --da-info-border:    rgba(10,132,255,0.25);
+    --da-info-text:      #0A84FF;
+
+    /* ── Transitions ───────────────────────────────────────── */
+    --da-transition:     0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* ══════════════════════════════════════════════════════════════
+   DARK THEME  ( html.dark )
+   NOT a simple color inversion — carefully crafted dark palette.
+   ══════════════════════════════════════════════════════════════ */
+html.dark {
+    /* ── Page backgrounds ──────────────────────────────────── */
+    --da-bg-page:        #000000;
+    --da-bg-surface:     #151518;
+    --da-bg-elevated:    #1f1f22;
+    --da-bg-overlay:     rgba(21,21,24,0.85);
+    --da-bg-code:        #1a1a1d;
+
+    /* ── Brand colours (slightly vivid on dark) ────────────── */
+    --da-blue:           #0A84FF;
+    --da-blue-soft:      rgba(10,132,255,0.15);
+    --da-blue-mid:       rgba(10,132,255,0.28);
+    --da-green:          #30D158;
+    --da-green-soft:     rgba(48,209,88,0.14);
+    --da-orange:         #FF9F0A;
+    --da-orange-soft:    rgba(255,159,10,0.14);
+    --da-red:            #FF453A;
+    --da-red-soft:       rgba(255,69,58,0.13);
+    --da-purple:         #BF5AF2;
+    --da-purple-soft:    rgba(191,90,242,0.14);
+    --da-gold:           #FFD60A;
+    --da-gold-soft:      rgba(255,214,10,0.14);
+
+    /* ── Text ──────────────────────────────────────────────── */
+    --da-text-primary:   #f5f5f7;
+    --da-text-secondary: rgba(245,245,247,0.55);
+    --da-text-tertiary:  rgba(245,245,247,0.35);
+    --da-text-inverse:   #000000;
+    --da-text-on-blue:   #ffffff;
+    --da-text-link:      #4DA6FF;
+
+    /* ── Borders & dividers ────────────────────────────────── */
+    --da-border:         rgba(255,255,255,0.07);
+    --da-border-mid:     rgba(255,255,255,0.12);
+    --da-border-strong:  rgba(255,255,255,0.22);
+    --da-border-focus:   #0A84FF;
+
+    /* ── Shadows (darker on dark bg) ───────────────────────── */
+    --da-shadow-xs:      0 1px 3px rgba(0,0,0,0.30);
+    --da-shadow-sm:      0 4px 12px rgba(0,0,0,0.40);
+    --da-shadow-md:      0 8px 24px rgba(0,0,0,0.50);
+    --da-shadow-lg:      0 16px 48px rgba(0,0,0,0.60);
+    --da-shadow-glow-blue:  0 8px 30px rgba(10,132,255,0.25);
+    --da-shadow-glow-green: 0 8px 30px rgba(48,209,88,0.25);
+
+    /* ── Inputs & Forms ────────────────────────────────────── */
+    --da-input-bg:       #1f1f22;
+    --da-input-border:   rgba(255,255,255,0.08);
+    --da-input-text:     #f5f5f7;
+    --da-input-ph:       rgba(245,245,247,0.35);
+    --da-input-focus-bg: #242428;
+
+    /* ── Scrollbar ─────────────────────────────────────────── */
+    --da-scroll-thumb:   rgba(255,255,255,0.12);
+    --da-scroll-track:   transparent;
+
+    /* ── Telegram ──────────────────────────────────────────── */
+    --da-tg-header:      #000000;
+    --da-tg-bg:          #000000;
+
+    /* ── Ambient glow ──────────────────────────────────────── */
+    --da-ambient-opacity: 1;
+
+    /* ── Bottom nav ────────────────────────────────────────── */
+    --da-nav-bg:         rgba(21,21,24,0.80);
+    --da-nav-active-bg:  #ffffff;
+    --da-nav-active-fg:  #000000;
+    --da-nav-inactive:   rgba(255,255,255,0.35);
+
+    /* ── Preview panel ─────────────────────────────────────── */
+    --da-preview-bg:     #151518;
+    --da-preview-border: rgba(255,255,255,0.07);
+    --da-preview-shadow: 0 4px 24px rgba(0,0,0,0.50);
+
+    /* ── Upload zone ───────────────────────────────────────── */
+    --da-upload-bg:       rgba(10,132,255,0.07);
+    --da-upload-border:   rgba(10,132,255,0.28);
+    --da-upload-hover-bg: rgba(10,132,255,0.12);
+    --da-upload-drag-bg:  rgba(10,132,255,0.18);
+
+    /* ── Status banners ────────────────────────────────────── */
+    --da-success-bg:     rgba(48,209,88,0.12);
+    --da-success-border: rgba(48,209,88,0.22);
+    --da-success-text:   #30D158;
+    --da-error-bg:       rgba(255,69,58,0.12);
+    --da-error-border:   rgba(255,69,58,0.22);
+    --da-error-text:     #FF453A;
+    --da-info-bg:        rgba(10,132,255,0.12);
+    --da-info-border:    rgba(10,132,255,0.22);
+    --da-info-text:      #4DA6FF;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   GLOBAL ELEMENT DEFAULTS
+   Using tokens so every element auto-switches with theme.
+   ══════════════════════════════════════════════════════════════ */
+*, *::before, *::after { box-sizing: border-box; }
+
+html {
+    scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+}
+
+body {
+    background-color: var(--da-bg-page);
+    color:            var(--da-text-primary);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    line-height: 1.6;
+    overflow-x: hidden;
+    -webkit-tap-highlight-color: transparent;
+    overscroll-behavior-y: none;
+    transition: background-color var(--da-transition), color var(--da-transition);
+}
+
+/* ── Inputs, Textareas, Selects ──────────────────────────────── */
+input, textarea, select {
+    background:   var(--da-input-bg);
+    color:        var(--da-input-text);
+    border:       1px solid var(--da-input-border);
+    border-radius: 12px;
+    font-family:  inherit;
+    font-size:    15px;
+    padding:      12px 16px;
+    width:        100%;
+    outline:      none;
+    transition:   border-color var(--da-transition),
+                  background   var(--da-transition),
+                  box-shadow   var(--da-transition);
+}
+
+input::placeholder, textarea::placeholder {
+    color: var(--da-input-ph);
+}
+
+input:focus, textarea:focus, select:focus {
+    border-color: var(--da-border-focus);
+    background:   var(--da-input-focus-bg);
+    box-shadow:   0 0 0 3px var(--da-blue-soft);
+}
+
+select {
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%238888aa' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 14px center;
+    padding-right: 42px;
+}
+
+/* ── Scrollbars ──────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--da-scroll-track); }
+::-webkit-scrollbar-thumb {
+    background:   var(--da-scroll-thumb);
+    border-radius: 6px;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   THEME-AWARE COMPONENT LIBRARY
+   All components below work correctly in both themes
+   using only token references.
+   ══════════════════════════════════════════════════════════════ */
+
+/* ── Cards ───────────────────────────────────────────────────── */
+.da-card {
+    background:   var(--da-bg-surface);
+    border:       1px solid var(--da-border);
+    border-radius: 24px;
+    box-shadow:   var(--da-shadow-sm);
+    padding:      20px;
+    transition:   background var(--da-transition), border-color var(--da-transition);
+}
+
+.da-card-hover:hover {
+    border-color: var(--da-border-mid);
+    box-shadow:   var(--da-shadow-md);
+    transform:    translateY(-2px);
+    transition:   all var(--da-transition);
+}
+
+/* ── Upload Zone ─────────────────────────────────────────────── */
+.da-upload {
+    background:   var(--da-upload-bg);
+    border:       2px dashed var(--da-upload-border);
+    border-radius: 18px;
+    display:      flex;
+    flex-direction: column;
+    align-items:  center;
+    justify-content: center;
+    cursor:       pointer;
+    transition:   all var(--da-transition);
+    padding:      40px 20px;
+}
+
+.da-upload:hover  { background: var(--da-upload-hover-bg); }
+.da-upload.active { background: var(--da-upload-drag-bg); border-color: var(--da-blue); }
+
+/* ── Buttons ─────────────────────────────────────────────────── */
+.da-btn {
+    display:         inline-flex;
+    align-items:     center;
+    justify-content: center;
+    gap:             8px;
+    padding:         14px 24px;
+    border:          none;
+    border-radius:   16px;
+    font-family:     inherit;
+    font-size:       15px;
+    font-weight:     700;
+    cursor:          pointer;
+    text-decoration: none;
+    transition:      all var(--da-transition);
+    user-select:     none;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.da-btn:active { transform: scale(0.97); }
+
+.da-btn-primary {
+    background: var(--da-blue);
+    color:      var(--da-text-on-blue);
+    box-shadow: var(--da-shadow-glow-blue);
+}
+.da-btn-primary:hover {
+    filter:     brightness(1.1);
+    box-shadow: 0 12px 40px rgba(10,132,255,0.45);
+}
+
+.da-btn-secondary {
+    background: var(--da-bg-elevated);
+    color:      var(--da-text-primary);
+    border:     1px solid var(--da-border);
+}
+.da-btn-secondary:hover { background: var(--da-border); }
+
+.da-btn-ghost {
+    background: transparent;
+    color:      var(--da-text-secondary);
+    border:     1px solid var(--da-border);
+}
+.da-btn-ghost:hover {
+    background: var(--da-bg-elevated);
+    color:      var(--da-text-primary);
+}
+
+.da-btn-danger  { background: var(--da-red);    color: #fff; }
+.da-btn-success { background: var(--da-green);  color: #fff; }
+.da-btn-gold    { background: var(--da-gold);   color: #1a1a1a; }
+
+.da-btn-sm { padding: 8px 14px; font-size: 12px; border-radius: 10px; }
+.da-btn-lg { padding: 18px 32px; font-size: 16px; border-radius: 20px; }
+
+.da-btn:disabled {
+    opacity:    0.45;
+    cursor:     not-allowed;
+    transform:  none !important;
+    filter:     none !important;
+}
+
+/* ── Status Banners ──────────────────────────────────────────── */
+.da-status {
+    display:       flex;
+    align-items:   center;
+    gap:           12px;
+    padding:       14px 18px;
+    border-radius: 16px;
+    font-size:     14px;
+    font-weight:   600;
+    border:        1px solid;
+}
+.da-status-success { background: var(--da-success-bg); border-color: var(--da-success-border); color: var(--da-success-text); }
+.da-status-error   { background: var(--da-error-bg);   border-color: var(--da-error-border);   color: var(--da-error-text); }
+.da-status-info    { background: var(--da-info-bg);     border-color: var(--da-info-border);    color: var(--da-info-text); }
+
+/* ── Progress Spinner ────────────────────────────────────────── */
+.da-spinner {
+    width: 20px; height: 20px;
+    border: 2.5px solid rgba(255,255,255,0.3);
+    border-top-color: currentColor;
+    border-radius: 50%;
+    animation: da-spin 0.6s linear infinite;
+    display: inline-block;
+    flex-shrink: 0;
+}
+@keyframes da-spin { to { transform: rotate(360deg); } }
+
+/* ── Preview Panel ───────────────────────────────────────────── */
+.da-preview {
+    background:   var(--da-preview-bg);
+    border:       1px solid var(--da-preview-border);
+    border-radius: 20px;
+    box-shadow:   var(--da-preview-shadow);
+    overflow:     hidden;
+}
+
+/* ── Badge ───────────────────────────────────────────────────── */
+.da-badge {
+    display:      inline-flex;
+    align-items:  center;
+    gap:          5px;
+    padding:      4px 10px;
+    border-radius: 50px;
+    font-size:    11px;
+    font-weight:  700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+.da-badge-blue   { background: var(--da-blue-soft);   color: var(--da-blue); }
+.da-badge-green  { background: var(--da-green-soft);  color: var(--da-green); }
+.da-badge-orange { background: var(--da-orange-soft); color: var(--da-orange); }
+.da-badge-red    { background: var(--da-red-soft);    color: var(--da-red); }
+.da-badge-purple { background: var(--da-purple-soft); color: var(--da-purple); }
+.da-badge-gold   { background: var(--da-gold-soft);   color: var(--da-gold); }
+
+/* ── Tag Row ─────────────────────────────────────────────────── */
+.da-tag {
+    display:      inline-block;
+    padding:      4px 10px;
+    background:   var(--da-bg-elevated);
+    border:       1px solid var(--da-border);
+    border-radius: 8px;
+    font-size:    11px;
+    font-weight:  600;
+    color:        var(--da-text-secondary);
+}
+
+/* ── Divider ─────────────────────────────────────────────────── */
+.da-divider {
+    border: none;
+    border-top: 1px solid var(--da-border);
+    margin: 16px 0;
+}
+
+/* ── Form Section ────────────────────────────────────────────── */
+.da-form-group {
+    margin-bottom: 16px;
+}
+.da-label {
+    display:      block;
+    font-size:    12px;
+    font-weight:  700;
+    color:        var(--da-text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 8px;
+}
+
+/* ── Bottom Nav (shared across ALL pages) ───────────────────── */
+.da-bottom-nav {
+    position:   fixed;
+    bottom:     0; left: 0; right: 0;
+    z-index:    50;
+    display:    flex;
+    justify-content: center;
+    padding:    0 16px 20px;
+    pointer-events: none;
+}
+
+.da-bottom-nav > nav {
+    pointer-events: auto;
+    background: var(--da-nav-bg);
+    backdrop-filter: blur(20px) saturate(1.8);
+    -webkit-backdrop-filter: blur(20px) saturate(1.8);
+    border: 1px solid var(--da-border);
+    border-radius: 100px;
+    padding: 6px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    box-shadow: var(--da-shadow-lg);
+    transition: background var(--da-transition);
+}
+
+.da-nav-btn {
+    width: 48px; height: 48px;
+    border-radius: 50%;
+    border: none;
+    background: transparent;
+    color: var(--da-nav-inactive);
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all var(--da-transition);
+    text-decoration: none;
+}
+.da-nav-btn:hover { color: var(--da-text-primary); }
+.da-nav-btn.active {
+    background: var(--da-nav-active-bg);
+    color:      var(--da-nav-active-fg);
+    box-shadow: var(--da-shadow-sm);
+}
+.da-nav-btn svg { width: 22px; height: 22px; }
+
+/* ── Theme Toggle Switch ─────────────────────────────────────── */
+.da-theme-toggle {
+    position:        relative;
+    width:           52px; height: 30px;
+    background:      var(--da-bg-elevated);
+    border:          1px solid var(--da-border);
+    border-radius:   50px;
+    cursor:          pointer;
+    transition:      background var(--da-transition);
+    flex-shrink:     0;
+}
+.da-theme-toggle.active { background: var(--da-green); border-color: var(--da-green); }
+.da-theme-knob {
+    position:  absolute;
+    top: 3px; left: 3px;
+    width: 22px; height: 22px;
+    background: #fff;
+    border-radius: 50%;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.20);
+    transition: transform var(--da-transition);
+}
+.da-theme-toggle.active .da-theme-knob { transform: translateX(22px); }
+
+/* ── Language Flag Button ────────────────────────────────────── */
+.da-lang-btn {
+    display:      flex;
+    align-items:  center;
+    gap:          6px;
+    padding:      8px 14px;
+    background:   var(--da-bg-elevated);
+    border:       1px solid var(--da-border);
+    border-radius: 12px;
+    font-size:    13px;
+    font-weight:  600;
+    color:        var(--da-text-primary);
+    cursor:       pointer;
+    transition:   all var(--da-transition);
+    font-family:  inherit;
+}
+.da-lang-btn:hover { border-color: var(--da-blue); color: var(--da-blue); }
+
+/* ── Animations (global) ─────────────────────────────────────── */
+@keyframes da-slide-up {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes da-fade-in {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+@keyframes da-scale-in {
+    from { opacity: 0; transform: scale(0.96); }
+    to   { opacity: 1; transform: scale(1); }
+}
+
+.da-animate-up   { animation: da-slide-up  0.5s cubic-bezier(0.16,1,0.3,1) both; }
+.da-animate-fade { animation: da-fade-in   0.35s ease both; }
+.da-animate-scale{ animation: da-scale-in  0.3s cubic-bezier(0.16,1,0.3,1) both; }
+
+/* ── Reduce motion ───────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
+/* ── Safe area iOS ───────────────────────────────────────────── */
+.da-safe-bottom { padding-bottom: max(20px, env(safe-area-inset-bottom)); }
+.da-content-pad { padding-bottom: 100px; }

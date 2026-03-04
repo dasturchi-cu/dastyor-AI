@@ -1,0 +1,146 @@
+<!-- ================================================================
+     DASTYOR AI — Page Migration Snippet
+     Copy this block into EVERY webapp page to get theme + i18n + auth.
+     Replace:  {{PAGE_TITLE}}  with the i18n key for the page title
+               {{DATA_I18N_*}} with real data-i18n keys from i18n.js
+     ================================================================ -->
+
+<!--=== HEAD: insert BEFORE all other <link> and <script> tags ===-->
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+
+<!-- 1. Anti-flash: apply dark before first paint -->
+<script>if (localStorage.getItem('theme') !== 'light') document.documentElement.classList.add('dark');</script>
+
+<!-- 2. Theme CSS (MUST be first stylesheet to avoid FOUC) -->
+<link rel="stylesheet" href="theme.css" />
+
+<!-- 3. Telegram Mini App SDK -->
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+
+<!-- 4. i18n dictionary -->
+<script src="i18n.js"></script>
+
+<!-- 5. Google Fonts -->
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Outfit:wght@500;600;700;800&display=swap"
+    rel="stylesheet" />
+
+<!--=== BODY BOTTOM: just before </body> ===-->
+
+<!-- 6. Unified SDK (after Telegram SDK, after i18n.js) -->
+<script src="app.js"></script>
+
+<!-- 7. Page boot script -->
+<script>
+    // One-liner boot: applies theme + i18n + wires links + authenticates user
+    DastyorAI.initUI({
+        showLangPicker: true,          // show picker if no lang saved yet
+        autoNavLinks: true,          // auto-inject telegram_id on all <a>
+        profileEl: {                   // optional: auto-fill these element IDs
+            avatarId: 'userAvatar',  // <img> container for profile photo
+            nameId: 'userName',    // element showing first_name
+            initialsId: 'userInitials',// element showing first letter
+        },
+        onUser(user) {
+            // Called after auth succeeds.
+            // user: { telegram_id, first_name, username, photo_url, is_premium, files_processed }
+
+            if (user.is_premium) {
+                // Show PRO badge
+            }
+
+            // Example: fetch stats
+            DastyorAI.stats().then(s => {
+                if (s) console.log('files processed:', s.files_processed);
+            });
+        }
+    });
+
+    // React to theme changes (optional)
+    window.addEventListener('theme:change', ({ detail: { dark } }) => {
+        // e.g. update canvas, chart colours, etc.
+        console.log('theme changed → dark:', dark);
+    });
+
+    // React to language changes (optional)
+    window.addEventListener('i18n:change', ({ detail: { lang } }) => {
+        // Re-render any dynamic content that isn't covered by data-i18n attributes
+        console.log('language changed →', lang);
+    });
+</script>
+
+<!--=== HTML PATTERNS ===-->
+
+<!-- Translate static text: -->
+<span data-i18n="btn_generate">Yaratish</span>
+
+<!-- Translate placeholder: -->
+<input data-i18n-ph="ph_text" placeholder="Matn kiriting..." />
+
+<!-- Translate tooltip: -->
+<button data-i18n="btn_download" data-i18n-attr="title">⬇</button>
+
+<!-- Theme toggle switch: -->
+<div class="da-theme-toggle" role="switch" aria-label="Toggle theme">
+    <div class="da-theme-knob"></div>
+</div>
+
+<!-- Language picker button: -->
+<button class="da-lang-btn">
+    <span>🇺🇿</span>
+    <span>UZ</span>
+</button>
+
+<!-- Upload zone: -->
+<div class="da-upload" id="dropzone">
+    <span data-i18n="pdf_drop">Rasmlarni tanlang</span>
+</div>
+
+<!-- Status banner: -->
+<div class="da-status da-status-success" id="statusBanner" style="display:none">
+    <span>✅</span>
+    <span data-i18n="status_success">Muvaffaqiyatli!</span>
+</div>
+
+<!-- Primary button: -->
+<button class="da-btn da-btn-primary" id="generateBtn">
+    <span data-i18n="btn_generate">Yaratish</span>
+</button>
+
+<!--=== JS API PATTERNS ===-->
+<script>
+    /*
+        // Translate in JavaScript:
+        const msg = DastyorAI.t('status_processing');  // "Jarayon davom etmoqda..."
+    
+        // Navigate keeping telegram_id:
+        DastyorAI.navigate('cv.html');
+    
+        // Build FormData with telegram_id auto-injected:
+        const fd = DastyorAI.buildFormData();
+        fd.append('file', fileInput.files[0]);
+        fetch('/api/ocr_direct', { method: 'POST', body: fd });
+    
+        // Notify user via Telegram after file generated:
+        await DastyorAI.notify('✅ ' + DastyorAI.t('ocr_success'));
+    
+        // Toggle theme programmatically:
+        DastyorAI.toggleTheme();
+        // or
+        DastyorAI.setTheme('dark');  // 'dark' | 'light'
+    
+        // Check current theme:
+        if (DastyorAI.isDark()) { ... }
+    
+        // Change language:
+        DastyorAI.setLang('en');    // 'uz_lat' | 'uz_cyr' | 'en' | 'ru'
+    
+        // Translate a key:
+        DastyorAI.t('btn_generate');
+    
+        // Haptic feedback:
+        DastyorAI.haptic('success');   // 'light' | 'medium' | 'heavy' | 'success' | 'error'
+    */
+</script>

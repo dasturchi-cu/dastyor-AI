@@ -1,12 +1,18 @@
 <!DOCTYPE html>
-<html lang="uz" class="dark">
+<html lang="uz">
+<!-- theme applied BEFORE paint to prevent flash -->
+<script>if (localStorage.getItem('theme') !== 'light') document.documentElement.classList.add('dark');</script>
 
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>DASTYOR AI</title>
-    <!-- Telegram SDK -->
+    <!-- 1. Global theme tokens (FIRST — prevents FOUC) -->
+    <link rel="stylesheet" href="theme.css" />
+    <!-- 2. Telegram SDK -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <!-- 3. i18n (before DOM renders) -->
+    <script src="i18n.js"></script>
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link
@@ -241,79 +247,74 @@
     </main>
 
     <!-- =============== SETTINGS VIEW =============== -->
-    <main id="view-settings" class="view-layer max-w-md mx-auto min-h-screen px-5 pt-12">
-        <h1 class="font-display font-extrabold text-4xl mb-2 text-black dark:text-white animate-slide-up">Sozlamalar
-        </h1>
-        <p class="text-black/50 dark:text-white/50 mb-8 font-medium animate-slide-up" style="animation-delay: 0.05s;">
-            Ilovani o'zingizga moslang</p>
+    <main id="view-settings" class="view-layer max-w-md mx-auto min-h-screen px-5 pt-12" style="padding-bottom:100px">
+        <h1 class="font-display font-extrabold text-4xl mb-2 text-black dark:text-white da-animate-up"
+            data-i18n="home_settings">Sozlamalar</h1>
+        <p class="text-black/50 dark:text-white/50 mb-8 font-medium da-animate-up" style="animation-delay:.05s"
+            data-i18n="home_customize">Ilovani o'zingizga moslang</p>
 
-        <div class="bg-white dark:bg-neutral-900 border border-black/5 dark:border-white/5 rounded-[24px] overflow-hidden shadow-sm animate-slide-up"
-            style="animation-delay: 0.1s;">
+        <div class="bg-white dark:bg-[#151518] border border-black/5 dark:border-white/5 rounded-[24px] overflow-hidden shadow-sm da-animate-up"
+            style="animation-delay:.1s">
 
             <!-- Theme Toggle -->
-            <button onclick="toggleTheme()"
-                class="w-full flex items-center justify-between p-5 bg-transparent hover:bg-black/5 dark:hover:bg-white/5 active:bg-black/10 dark:active:bg-white/10 transition-colors border-b border-black/5 dark:border-white/5 text-left">
+            <div class="w-full flex items-center justify-between p-5 border-b border-black/5 dark:border-white/5">
                 <div class="flex items-center gap-4">
-                    <div
-                        class="w-10 h-10 rounded-xl bg-apple-orange/10 flex items-center justify-center text-xl text-apple-orange">
+                    <div class="w-10 h-10 rounded-xl bg-apple-orange/10 flex items-center justify-center text-xl">
                         <span id="themeIcon">🌙</span>
                     </div>
                     <div>
-                        <div class="font-bold text-black dark:text-white">Mavzu Rejimi</div>
-                        <div class="text-xs font-medium text-black/50 dark:text-white/50 mt-0.5" id="themeStatus">Tungi
-                            rejim yoqiq</div>
+                        <div class="font-bold text-black dark:text-white" data-i18n="settings_theme">Mavzu Rejimi</div>
+                        <div class="text-xs font-medium text-black/50 dark:text-white/50 mt-0.5" id="themeStatus"
+                            data-i18n="settings_dark">Tungi rejim yoqiq</div>
                     </div>
                 </div>
-                <div class="w-12 h-7 rounded-full bg-apple-green flex items-center px-1" id="themeToggleBody">
-                    <div class="w-5 h-5 rounded-full bg-white shadow-sm transform translate-x-5 transition-transform"
-                        id="themeToggleKnob"></div>
+                <!-- NEW: .da-theme-toggle — auto-wired by DastyorAI.initUI() -->
+                <div class="da-theme-toggle" role="switch" aria-label="Theme" id="themeSwitch">
+                    <div class="da-theme-knob"></div>
                 </div>
-            </button>
+            </div>
 
-            <!-- Language -->
-            <button
-                class="w-full flex items-center justify-between p-5 bg-transparent hover:bg-black/5 dark:hover:bg-white/5 active:bg-black/10 dark:active:bg-white/10 transition-colors border-b border-black/5 dark:border-white/5 text-left">
+            <!-- Language Switcher -->
+            <div class="w-full flex items-center justify-between p-5 border-b border-black/5 dark:border-white/5">
                 <div class="flex items-center gap-4">
-                    <div
-                        class="w-10 h-10 rounded-xl bg-apple-blue/10 flex items-center justify-center text-xl text-apple-blue">
+                    <div class="w-10 h-10 rounded-xl bg-apple-blue/10 flex items-center justify-center text-xl">
                         🌐
                     </div>
                     <div>
-                        <div class="font-bold text-black dark:text-white">Til</div>
-                        <div class="text-xs font-medium text-black/50 dark:text-white/50 mt-0.5">O'zbekcha</div>
+                        <div class="font-bold text-black dark:text-white" data-i18n="settings_lang">Til</div>
+                        <div class="text-xs font-medium text-black/50 dark:text-white/50 mt-0.5" id="langCurrentLabel">
+                            O'zbek (Lotin)</div>
                     </div>
                 </div>
-                <div class="text-black/20 dark:text-white/20">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
-                        stroke-linecap="round" stroke-linejoin="round">
-                        <path d="m9 18 6-6-6-6" />
-                    </svg>
-                </div>
-            </button>
+                <!-- Opens I18n.showPicker(true) via da-lang-btn auto-wiring -->
+                <button class="da-lang-btn" id="langPickerBtn">
+                    <span id="langFlag">🇺🇿</span>
+                    <span id="langCode">UZ</span>
+                </button>
+            </div>
 
             <!-- Support -->
             <a href="https://t.me/DastyorAiBot" target="_blank"
-                class="w-full flex items-center justify-between p-5 bg-transparent hover:bg-black/5 dark:hover:bg-white/5 active:bg-black/10 dark:active:bg-white/10 transition-colors text-left group">
+                class="w-full flex items-center justify-between p-5 bg-transparent hover:bg-black/5 dark:hover:bg-white/5 transition-colors text-left group">
                 <div class="flex items-center gap-4">
-                    <div
-                        class="w-10 h-10 rounded-xl bg-apple-purple/10 flex items-center justify-center text-xl text-apple-purple">
-                        💬
+                    <div class="w-10 h-10 rounded-xl bg-apple-purple/10 flex items-center justify-center text-xl">💬
                     </div>
                     <div>
-                        <div class="font-bold text-black dark:text-white">Yordam & Info</div>
-                        <div class="text-xs font-medium text-black/50 dark:text-white/50 mt-0.5">Savollar bo'yicha</div>
+                        <div class="font-bold text-black dark:text-white" data-i18n="settings_support">Yordam & Info
+                        </div>
+                        <div class="text-xs font-medium text-black/50 dark:text-white/50 mt-0.5"
+                            data-i18n="settings_via_bot">Bot orqali</div>
                     </div>
                 </div>
-                <div
-                    class="text-apple-blue font-bold text-sm bg-apple-blue/10 px-3 py-1 rounded-full group-hover:bg-apple-blue/20 transition-colors">
-                    Bot orqali
-                </div>
+                <div class="text-apple-blue font-bold text-sm bg-apple-blue/10 px-3 py-1 rounded-full group-hover:bg-apple-blue/20 transition-colors"
+                    data-i18n="settings_via_bot">Bot orqali</div>
             </a>
         </div>
 
-        <div class="text-center mt-12 text-black/30 dark:text-white/30 text-xs font-medium uppercase tracking-widest animate-slide-up"
-            style="animation-delay: 0.15s;">
-            DASTYOR AI v2.0 Platform
+        <div class="text-center mt-12 text-black/30 dark:text-white/30 text-xs font-medium uppercase tracking-widest da-animate-up"
+            style="animation-delay:.15s">
+            DASTYOR AI v2.0<br>
+            <span id="langVersionLabel" class="text-[10px]"></span>
         </div>
     </main>
 
@@ -345,92 +346,76 @@
         </nav>
     </div>
 
-    <!-- Unified SDK (must come AFTER Telegram SDK) -->
+    <!-- Load order: 1.theme.css (in <head>) 2.i18n.js (in <head>) 3.app.js 4.page script -->
     <script src="app.js"></script>
-    <!-- =============== LOGIC =============== -->
     <script>
-        DastyorAI.applyTheme();
-
-        // ── Theme toggle ──────────────────────────────────────────────
-        function applyTheme() {
-            const dark = localStorage.getItem('theme') !== 'light';
-            if (dark) {
-                document.documentElement.classList.add('dark');
-                document.getElementById('themeIcon').textContent = '🌙';
-                document.getElementById('themeStatus').textContent = 'Tungi rejim yoqiq';
-                document.getElementById('themeToggleBody').className = 'w-12 h-7 rounded-full bg-apple-green flex items-center px-1';
-                document.getElementById('themeToggleKnob').className = 'w-5 h-5 rounded-full bg-white shadow-sm transform translate-x-5 transition-transform';
-            } else {
-                document.documentElement.classList.remove('dark');
-                document.getElementById('themeIcon').textContent = '☀️';
-                document.getElementById('themeStatus').textContent = 'Kunduzgi rejim';
-                document.getElementById('themeToggleBody').className = 'w-12 h-7 rounded-full bg-black/10 flex items-center px-1';
-                document.getElementById('themeToggleKnob').className = 'w-5 h-5 rounded-full bg-white shadow-sm transform translate-x-0 transition-transform';
-            }
-        }
-        applyTheme();
-
-        function toggleTheme() {
-            const nowDark = localStorage.getItem('theme') !== 'light';
-            localStorage.setItem('theme', nowDark ? 'light' : 'dark');
-            applyTheme();
-            DastyorAI.applyTheme();
-            DastyorAI.haptic('medium');
-        }
-
-        // ── View switching ────────────────────────────────────────────
+        // ── View switcher (local UI, doesn't need SDK) ─────────────────
         function switchView(viewName) {
             document.querySelectorAll('.view-layer').forEach(el => el.classList.remove('active'));
             document.getElementById(`view-${viewName}`).classList.add('active');
-            document.querySelectorAll('.tab-btn').forEach(btn => {
-                btn.className = 'tab-btn px-6 py-3 rounded-full flex flex-col items-center justify-center gap-1 transition-all text-black/40 dark:text-white/40 hover:text-black dark:hover:text-white';
-            });
-            document.getElementById(`tab-${viewName}`).className = 'tab-btn px-6 py-3 rounded-full flex flex-col items-center justify-center gap-1 transition-all bg-black dark:bg-white text-white dark:text-black';
+            document.querySelectorAll('.tab-btn').forEach(btn =>
+                btn.className = 'tab-btn px-6 py-3 rounded-full flex flex-col items-center justify-center gap-1 transition-all text-black/40 dark:text-white/40 hover:text-black dark:hover:text-white'
+            );
+            document.getElementById(`tab-${viewName}`).className =
+                'tab-btn px-6 py-3 rounded-full flex flex-col items-center justify-center gap-1 transition-all bg-black dark:bg-white text-white dark:text-black';
             DastyorAI.haptic('light');
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
-        // ── Wire all internal links through SDK navigator ──────────────
-        // (preserves telegram_id across pages — the SDK adds it automatically)
-        document.querySelectorAll('a[href]').forEach(a => {
-            const href = a.getAttribute('href');
-            if (href && !href.startsWith('http') && !href.startsWith('//') && !href.startsWith('#')) {
-                a.addEventListener('click', e => {
-                    e.preventDefault();
-                    DastyorAI.navigate(href);
+        // ── Theme status label update ─────────────────────────────────
+        function _syncThemeLabel() {
+            const dark = DastyorAI.isDark();
+            document.getElementById('themeIcon').textContent = dark ? '🌙' : '☀️';
+            document.getElementById('themeStatus').setAttribute(
+                'data-i18n', dark ? 'settings_dark' : 'settings_light_on'
+            );
+            if (window.I18n) I18n.apply();
+        }
+        window.addEventListener('theme:change', _syncThemeLabel);
+
+        // ── Language label update ─────────────────────────────────────
+        const _flagMap = { uz_lat: '🇺🇿', uz_cyr: '🇺🇿', en: '🇬🇧', ru: '🇷🇺' };
+        const _codeMap = { uz_lat: 'UZ', uz_cyr: 'UZ', en: 'EN', ru: 'RU' };
+        const _nameMap = {
+            uz_lat: "O'zbek (Lotin)", uz_cyr: "Ўзбек (Кирилл)",
+            en: 'English', ru: 'Русский'
+        };
+        function _syncLangLabel() {
+            const lang = DastyorAI.getLang();
+            const flag = document.getElementById('langFlag');
+            const code = document.getElementById('langCode');
+            const label = document.getElementById('langCurrentLabel');
+            const ver = document.getElementById('langVersionLabel');
+            if (flag) flag.textContent = _flagMap[lang] || '🌐';
+            if (code) code.textContent = _codeMap[lang] || lang.toUpperCase();
+            if (label) label.textContent = _nameMap[lang] || lang;
+            if (ver) ver.textContent = `Language: ${lang}`;
+        }
+        window.addEventListener('i18n:change', _syncLangLabel);
+
+        // ── BOOT ──────────────────────────────────────────────────────
+        DastyorAI.initUI({
+            showLangPicker: true,
+            profileEl: { avatarId: 'userAvatarBox', nameId: 'userName', initialsId: 'userInitials' },
+            onUser(user) {
+                if (user.is_premium) {
+                    const badge = document.createElement('span');
+                    badge.className = 'text-[10px] font-black bg-amber-500 text-white px-2 py-0.5 rounded-full uppercase tracking-wider ml-2';
+                    badge.textContent = 'PRO';
+                    document.getElementById('userName')?.appendChild(badge);
+                }
+                // Live stats
+                DastyorAI.stats().then(s => {
+                    if (!s) return;
+                    const el = document.querySelector('.text-4xl.font-display');
+                    if (el) el.textContent = s.files_processed || '0';
                 });
             }
         });
 
-        // ── Init: authenticate + populate UI ─────────────────────────
-        DastyorAI.init().then(user => {
-            if (!user) return;  // Guest mode — UI shows defaults
-
-            // -- Profile --
-            document.getElementById('userName').textContent = user.first_name || 'User';
-            if (user.first_name) {
-                document.getElementById('userInitials').textContent = user.first_name.charAt(0).toUpperCase();
-            }
-            if (user.photo_url) {
-                document.getElementById('userAvatarBox').innerHTML =
-                    `<img src="${user.photo_url}" class="w-full h-full object-cover" referrerpolicy="no-referrer">`;
-            }
-
-            // -- Premium badge --
-            if (user.is_premium) {
-                const badge = document.createElement('span');
-                badge.className = 'text-[10px] font-black bg-amber-500 text-white px-2 py-0.5 rounded-full uppercase tracking-wider ml-2';
-                badge.textContent = 'PRO';
-                document.getElementById('userName').appendChild(badge);
-            }
-
-            // -- Load real stats from server --
-            DastyorAI.stats().then(s => {
-                if (!s) return;
-                const el = document.querySelector('.text-4xl.font-display');
-                if (el) el.textContent = s.files_processed || '0';
-            });
-        });
+        // Sync labels on first load
+        _syncThemeLabel();
+        _syncLangLabel();
     </script>
 </body>
 

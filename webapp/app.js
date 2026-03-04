@@ -277,27 +277,168 @@ const DastyorAI = (() => {
         }
     }
 
+    // ═══════════════════════════════════════════════════════════════════
+    // THEME SYSTEM
+    // ═══════════════════════════════════════════════════════════════════
+
     /**
-     * applyTheme() — Apply dark/light theme from localStorage and sync
-     * with Telegram WebApp header color.
+     * applyTheme() — Reads localStorage('theme') and applies it to the
+     * document, Telegram header, and any .da-theme-toggle switches on page.
+     * Called automatically by Theme.set() and by init().
      */
     function applyTheme() {
         const dark = localStorage.getItem('theme') !== 'light';
-        if (dark) {
-            document.documentElement.classList.add('dark');
-            _tg?.setHeaderColor?.('#000000');
-            _tg?.setBackgroundColor?.('#000000');
-        } else {
-            document.documentElement.classList.remove('dark');
-            _tg?.setHeaderColor?.('#f5f5f7');
-            _tg?.setBackgroundColor?.('#f5f5f7');
-        }
+        const root = document.documentElement;
+
+        // Apply class (drives all CSS token overrides in theme.css)
+        root.classList.toggle('dark', dark);
+
+        // Sync Telegram WebApp chrome colour
+        const headerColor = dark ? '#000000' : '#f5f5f7';
+        _tg?.setHeaderColor?.(headerColor);
+        _tg?.setBackgroundColor?.(headerColor);
+
+        // Sync any .da-theme-toggle switch elements on the page
+        document.querySelectorAll('.da-theme-toggle').forEach(sw => {
+            sw.classList.toggle('active', dark);
+            sw.setAttribute('aria-checked', String(dark));
+        });
+
+        // Dispatch event so individual pages can react
+        window.dispatchEvent(new CustomEvent('theme:change', { detail: { dark } }));
         return dark;
+    }
+
+    /** Toggle between dark and light, persist, apply. */
+    function toggleTheme() {
+        const nowDark = localStorage.getItem('theme') !== 'light';
+        localStorage.setItem('theme', nowDark ? 'light' : 'dark');
+        applyTheme();
+        haptic('medium');
+    }
+
+    /** Set theme explicitly: setTheme('dark') | setTheme('light') */
+    function setTheme(mode) {
+        localStorage.setItem('theme', mode === 'dark' ? 'dark' : 'light');
+        applyTheme();
+    }
+
+    /** Returns true if dark mode is currently active. */
+    function isDark() {
+        return localStorage.getItem('theme') !== 'light';
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
+    // i18n BRIDGE  (delegates to I18n if it is loaded)
+    // ═══════════════════════════════════════════════════════════════════
+
+    /** Change language and re-render all data-i18n elements. */
+    function setLang(lang) {
+        if (window.I18n) window.I18n.setLang(lang);
+        else localStorage.setItem('lang', lang);
+    }
+
+    /** Current language code. */
+    function getLang() {
+        return window.I18n?.getLang() ?? localStorage.getItem('lang') ?? 'uz_lat';
+    }
+
+    /** Shorthand for I18n.t() — translate a key. */
+    function t(key) {
+        return window.I18n?.t(key) ?? key;
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
+    // PAGE BOOTSTRAP HELPER
+    // ═══════════════════════════════════════════════════════════════════
+
+    /**
+     * initUI(options) — Convenience function to set up the full page in one call.
+     *
+     * options: {
+     *   onUser(user) — called with user object after auth,
+     *   showLangPicker — show language picker if first visit (default: true),
+     *   autoNavLinks — wire all internal <a> through navigate() (default: true),
+     *   profileEl — { avatar, name, initials } element IDs to auto-populate
+     * }
+     *
+     * Returns: Promise<user | null>
+     */
+    async function initUI(options = {}) {
+        const {
+            onUser         = null,
+            showLangPicker = true,
+            autoNavLinks   = true,
+            profileEl      = {},
+        } = options;
+
+        // 1. Apply theme immediately (synchronous — no flicker)
+        applyTheme();
+
+        // 2. Apply translations
+        if (window.I18n) {
+            I18n.apply();
+            if (showLangPicker) I18n.showPicker();
+        }
+
+        // 3. Wire internal navigation links
+        if (autoNavLinks) {
+            document.querySelectorAll('a[href]').forEach(a => {
+                const href = a.getAttribute('href');
+                if (href && !href.startsWith('http') && !href.startsWith('//') && !href.startsWith('#')) {
+                    // Remove any previous listener to avoid duplicates
+                    a._daNavHandler && a.removeEventListener('click', a._daNavHandler);
+                    a._daNavHandler = e => { e.preventDefault(); navigate(href); };
+                    a.addEventListener('click', a._daNavHandler);
+                }
+            });
+        }
+
+        // 4. Wire any .da-theme-toggle buttons on the page
+        document.querySelectorAll('.da-theme-toggle').forEach(sw => {
+            sw.addEventListener('click', toggleTheme);
+        });
+
+        // 5. Wire any .da-lang-btn buttons (open picker)
+        document.querySelectorAll('.da-lang-btn').forEach(btn => {
+            btn.addEventListener('click', () => window.I18n?.showPicker(true));
+        });
+
+        // 6. Authenticate and populate profile
+        const user = await init();
+        if (!user) return null;
+
+        // Auto-fill profile elements if provided
+        const { avatarId, nameId, initialsId } = profileEl;
+        if (nameId) {
+            const el = document.getElementById(nameId);
+            if (el) el.textContent = user.first_name || 'User';
+        }
+        if (initialsId) {
+            const el = document.getElementById(initialsId);
+            if (el && user.first_name) el.textContent = user.first_name.charAt(0).toUpperCase();
+        }
+        if (avatarId && user.photo_url) {
+            const el = document.getElementById(avatarId);
+            if (el) el.innerHTML = `<img src="${user.photo_url}" class="w-full h-full object-cover" referrerpolicy="no-referrer">`;
+        }
+
+        if (onUser) onUser(user);
+        return user;
+    }
+
+    // Dev shortcut: Shift+T toggles theme
+    if (typeof document !== 'undefined') {
+        document.addEventListener('keydown', e => {
+            if (e.shiftKey && e.key === 'T') { toggleTheme(); }
+        });
     }
 
     // ── Public surface ───────────────────────────────────────────────────
     return {
+        // Identity / Auth
         init,
+        initUI,
         getUser,
         getToken,
         getTelegramId,
@@ -305,11 +446,21 @@ const DastyorAI = (() => {
         notify,
         stats,
         buildFormData,
+        // Services
         translate,
         translit,
         haptic,
+        // Theme
         applyTheme,
-        get tg() { return _tg; },
+        toggleTheme,
+        setTheme,
+        isDark,
+        // i18n
+        setLang,
+        getLang,
+        t,
+        get tg()   { return _tg; },
         get BASE() { return _BASE; },
     };
 })();
+
