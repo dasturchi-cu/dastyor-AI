@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="uz" data-theme="dark">
+<html lang="uz" class="dark">
 
 <head>
   <meta charset="UTF-8" />
@@ -7,476 +7,107 @@
   <title>Real-time CV Builder | DASTYOR AI</title>
   <!-- Fonts -->
   <link
-    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@400;600;800&display=swap"
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@400;600;700;800&display=swap"
     rel="stylesheet" />
-  <!-- Telegram WebApp SDK -->
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  <!-- html2pdf for pixel-perfect PDF rendering -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
+  <!-- Tailwind -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            display: ['Outfit', 'sans-serif'],
+          },
+          colors: {
+            apple: {
+              blue: '#0A84FF',
+              green: '#30D158',
+              orange: '#FF9F0A',
+              purple: '#BF5AF2',
+            }
+          }
+        }
+      }
+    }
+  </script>
+
   <style>
-    :root {
-      /* Core Theme (Dark UI) */
-      --bg: #060d1c;
-      --surface: #0d1b2e;
-      --surface2: #14243b;
-      --border: rgba(255, 255, 255, 0.08);
-      --border-hover: rgba(255, 255, 255, 0.15);
-      --text: #ffffff;
-      --muted: #94a3b8;
-      --accent: #3b82f6;
-      --accent-glow: rgba(59, 130, 246, 0.3);
-      --green: #10b981;
-
-      /* CV Output Colors (Varies by template, defaults here) */
-      --cv-bg: #fff;
-      --cv-text: #1e293b;
-      --cv-heading: #0f172a;
-      --cv-accent: #2563eb;
-      --cv-sidebar: #f8fafc;
-      --cv-sidebar-text: #475569;
-    }
-
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
-
     body {
-      font-family: 'Inter', sans-serif;
-      background-color: var(--bg);
-      color: var(--text);
-      height: 100vh;
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
+      overscroll-behavior-y: none;
     }
 
-    /* HEADER */
-    .hdr {
-      height: 60px;
-      background: rgba(13, 27, 46, 0.8);
-      backdrop-filter: blur(12px);
-      border-bottom: 1px solid var(--border);
-      display: flex;
-      align-items: center;
-      padding: 0 20px;
-      justify-content: space-between;
-      flex-shrink: 0;
-      z-index: 10;
+    .scroller::-webkit-scrollbar {
+      width: 5px;
     }
 
-    .hdr-left {
-      display: flex;
-      align-items: center;
-      gap: 16px;
-    }
-
-    .back-btn {
-      background: var(--surface2);
-      border: 1px solid var(--border);
-      color: var(--text);
-      width: 36px;
-      height: 36px;
-      border-radius: 10px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      text-decoration: none;
-      transition: 0.2s;
-    }
-
-    .back-btn:hover {
-      background: var(--border-hover);
-    }
-
-    .hdr-title {
-      font-size: 16px;
-      font-weight: 700;
-      font-family: 'Outfit', sans-serif;
-    }
-
-    /* EXPORT BUTTONS */
-    .export-group {
-      display: flex;
-      gap: 10px;
-    }
-
-    .btn {
-      padding: 8px 16px;
-      border-radius: 10px;
-      font-size: 13px;
-      font-weight: 600;
-      cursor: pointer;
-      border: none;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      transition: all 0.2s;
-    }
-
-    .btn-pdf {
-      background: linear-gradient(135deg, #ef4444, #dc2626);
-      color: #fff;
-    }
-
-    .btn-doc {
-      background: linear-gradient(135deg, #3b82f6, #2563eb);
-      color: #fff;
-    }
-
-    .btn:hover {
-      transform: translateY(-1px);
-      filter: brightness(1.1);
-    }
-
-    .btn:active {
-      transform: scale(0.97);
-    }
-
-    /* LAYOUT */
-    .workspace {
-      display: flex;
-      flex: 1;
-      overflow: hidden;
-    }
-
-    /* EDITOR PANEL */
-    .editor-pane {
-      width: 45%;
-      min-width: 350px;
-      max-width: 500px;
-      background: var(--bg);
-      border-right: 1px solid var(--border);
-      display: flex;
-      flex-direction: column;
-      overflow-y: auto;
-    }
-
-    .editor-pane::-webkit-scrollbar {
-      width: 4px;
-    }
-
-    .editor-pane::-webkit-scrollbar-thumb {
-      background: rgba(255, 255, 255, 0.1);
+    .scroller::-webkit-scrollbar-thumb {
+      background: rgba(150, 150, 150, 0.3);
       border-radius: 4px;
     }
 
-    .editor-section {
-      padding: 24px;
-      border-bottom: 1px solid var(--border);
-    }
-
-    .section-title {
-      font-family: 'Outfit', sans-serif;
-      font-size: 15px;
-      font-weight: 700;
-      color: var(--accent);
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      margin-bottom: 16px;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    /* TEMPLATE SELECTOR */
-    .template-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 12px;
-    }
-
-    .tpl-card {
-      background: var(--surface2);
-      border: 2px solid var(--border);
-      border-radius: 12px;
-      aspect-ratio: 1 / 1.4;
-      cursor: pointer;
-      transition: 0.2s;
+    /* ─── CV OUTPUT CANVAS ─── */
+    .cv-canvas-wrapper {
       position: relative;
-      overflow: hidden;
+      transform-origin: top center;
+      transition: transform 0.1s ease;
     }
 
-    .tpl-card:hover {
-      border-color: var(--muted);
-    }
-
-    .tpl-card.active {
-      border-color: var(--accent);
-      box-shadow: 0 0 15px var(--accent-glow);
-    }
-
-    /* Tiny CSS drawings to represent the templates visually */
-    .tpl-content {
-      position: absolute;
-      inset: 6px;
-      pointer-events: none;
-    }
-
-    /* Tpl 1: Minimal */
-    .tpl-1-line1 {
-      height: 10px;
-      width: 60%;
-      background: #475569;
-      margin-bottom: 4px;
-      border-radius: 2px;
-    }
-
-    .tpl-1-line2 {
-      height: 4px;
-      width: 40%;
-      background: #94a3b8;
-      margin-bottom: 12px;
-      border-radius: 2px;
-    }
-
-    .tpl-1-block {
-      height: 30px;
-      width: 100%;
-      background: #e2e8f0;
-      border-radius: 2px;
-    }
-
-    /* Tpl 2: Split */
-    .tpl-2-side {
-      position: absolute;
-      left: 0;
-      top: 0;
-      bottom: 0;
-      width: 35%;
-      background: var(--accent);
-      border-radius: 2px;
-    }
-
-    .tpl-2-main {
-      position: absolute;
-      right: 0;
-      top: 0;
-      bottom: 0;
-      width: 60%;
-      background: #e2e8f0;
-      border-radius: 2px;
-    }
-
-    /* Tpl 3: Modern Header */
-    .tpl-3-header {
-      position: absolute;
-      left: 0;
-      top: 0;
-      right: 0;
-      height: 35%;
-      background: #1e293b;
-      border-radius: 2px;
-    }
-
-    .tpl-3-main {
-      position: absolute;
-      right: 0;
-      bottom: 0;
-      left: 0;
-      height: 60%;
-      background: #e2e8f0;
-      border-radius: 2px;
-    }
-
-    /* FORM CONTROLS */
-    .form-group {
-      margin-bottom: 16px;
-    }
-
-    .form-group label {
-      display: block;
-      font-size: 12px;
-      color: var(--muted);
-      font-weight: 600;
-      margin-bottom: 6px;
-    }
-
-    .form-control {
-      width: 100%;
-      background: var(--surface);
-      border: 1px solid var(--border);
-      color: var(--text);
-      padding: 12px;
-      border-radius: 10px;
-      font-family: inherit;
-      font-size: 14px;
-      transition: border-color 0.2s;
-    }
-
-    .form-control:focus {
-      outline: none;
-      border-color: var(--accent);
-      background: rgba(59, 130, 246, 0.03);
-    }
-
-    textarea.form-control {
-      resize: vertical;
-      min-height: 80px;
-    }
-
-    .photo-upload {
-      display: flex;
-      align-items: center;
-      gap: 16px;
-      margin-bottom: 16px;
-    }
-
-    .photo-preview-circle {
-      width: 60px;
-      height: 60px;
-      border-radius: 50%;
-      background: var(--surface2);
-      border: 2px dashed var(--muted);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      overflow: hidden;
-      font-size: 20px;
-    }
-
-    .photo-preview-circle img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-    }
-
-    .photo-btn {
-      background: var(--surface2);
-      border: 1px solid var(--border);
-      color: var(--text);
-      padding: 8px 16px;
-      border-radius: 8px;
-      font-size: 12px;
-      cursor: pointer;
-    }
-
-    /* REPEATER FIELDS (Experience / Education) */
-    .repeater-list {
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-      margin-bottom: 12px;
-    }
-
-    .repeater-item {
-      background: var(--surface2);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 12px;
-      position: relative;
-    }
-
-    .rm-btn {
-      position: absolute;
-      top: 12px;
-      right: 12px;
-      background: rgba(239, 68, 68, 0.1);
-      color: var(--red);
-      border: none;
-      border-radius: 6px;
-      width: 24px;
-      height: 24px;
-      cursor: pointer;
-      font-weight: bold;
-    }
-
-    .add-btn {
-      width: 100%;
-      background: rgba(59, 130, 246, 0.1);
-      color: var(--accent);
-      border: 1px dashed var(--accent);
-      padding: 10px;
-      border-radius: 10px;
-      font-weight: 600;
-      cursor: pointer;
-    }
-
-    /* PREVIEW PANEL */
-    .preview-pane {
-      flex: 1;
-      background: #0f172a;
-      /* Darker background to contrast paper */
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 30px;
-      overflow-y: auto;
-      position: relative;
-    }
-
-    .preview-pane::-webkit-scrollbar {
-      width: 6px;
-    }
-
-    .preview-pane::-webkit-scrollbar-thumb {
-      background: rgba(255, 255, 255, 0.2);
-      border-radius: 4px;
-    }
-
-    /* A4 Paper Canvas */
     .cv-canvas {
       width: 210mm;
       min-height: 297mm;
-      background: var(--cv-bg);
-      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
-      /* Transform scale for smaller screens if needed */
-      transform-origin: top center;
-      position: relative;
+      background: #fff;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+      margin-bottom: 30px;
       overflow: hidden;
-      color: var(--cv-text);
-      font-family: inherit;
+      font-family: 'Inter', sans-serif;
     }
 
-    /* ─── CV TEMPLATES CSS ─── */
-    /* TEMPLATE 1: MINIMAL CLEAN */
+    /* TPL 1: MINIMAL */
     .tpl-minimal {
-      padding: 40px 50px;
-      font-family: 'Inter', sans-serif;
-      color: #334155;
+      color: #1e293b;
+      padding: 25mm 20mm;
     }
 
     .tpl-minimal .header {
-      text-align: center;
+      display: flex;
+      gap: 25px;
       margin-bottom: 30px;
       border-bottom: 2px solid #e2e8f0;
-      padding-bottom: 30px;
+      padding-bottom: 20px;
     }
 
     .tpl-minimal .avatar {
-      width: 100px;
-      height: 100px;
-      border-radius: 50%;
+      width: 35mm;
+      height: 35mm;
+      border-radius: 5px;
       object-fit: cover;
-      margin-bottom: 15px;
     }
 
     .tpl-minimal .name {
-      font-size: 32px;
+      font-size: 26pt;
       font-weight: 800;
       color: #0f172a;
-      margin-bottom: 4px;
-      letter-spacing: -1px;
+      line-height: 1.1;
+      margin-bottom: 5px;
     }
 
     .tpl-minimal .role {
-      font-size: 16px;
-      font-weight: 500;
-      color: var(--accent);
-      text-transform: uppercase;
+      font-size: 14pt;
+      color: #3b82f6;
+      font-weight: 600;
       margin-bottom: 15px;
     }
 
-    .tpl-minimal .contact {
-      font-size: 12px;
-      color: #64748b;
+    .tpl-minimal .contact-wrap {
       display: flex;
-      justify-content: center;
       gap: 15px;
-      flex-wrap: wrap;
+      font-size: 10pt;
+      color: #64748b;
     }
 
     .tpl-minimal .section {
@@ -484,295 +115,190 @@
     }
 
     .tpl-minimal .sec-title {
-      font-size: 18px;
+      font-size: 13pt;
       font-weight: 700;
       color: #0f172a;
       text-transform: uppercase;
-      margin-bottom: 12px;
       letter-spacing: 1px;
+      margin-bottom: 12px;
     }
 
     .tpl-minimal .text {
-      font-size: 13px;
+      font-size: 10.5pt;
       line-height: 1.6;
     }
 
-    .tpl-minimal .entry {
-      margin-bottom: 15px;
-    }
-
-    .tpl-minimal .entry-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: baseline;
-      margin-bottom: 4px;
-    }
-
-    .tpl-minimal .entry-title {
-      font-size: 14px;
-      font-weight: 700;
-      color: #1e293b;
-    }
-
-    .tpl-minimal .entry-date {
-      font-size: 12px;
-      color: var(--accent);
-      font-weight: 600;
-    }
-
-    .tpl-minimal .entry-sub {
-      font-size: 13px;
-      font-weight: 500;
-      color: #64748b;
-      margin-bottom: 6px;
-    }
-
-    /* TEMPLATE 2: SPLIT SIDEBAR */
+    /* TPL 2: SPLIT PROFESSIONAL */
     .tpl-split {
       display: flex;
-      min-height: 297mm;
-      font-family: 'Inter', sans-serif;
+      color: #1e293b;
+      padding: 0;
     }
 
     .tpl-split .sidebar {
       width: 32%;
-      background: #1e293b;
-      color: #f8fafc;
-      padding: 40px 25px;
+      background: #0f172a;
+      color: #e2e8f0;
+      padding: 20mm 10mm;
     }
 
-    .tpl-split .mainbar {
+    .tpl-split .main {
       width: 68%;
-      background: #fff;
-      padding: 40px;
-      color: #334155;
+      padding: 20mm 15mm;
     }
 
     .tpl-split .avatar {
-      width: 120px;
-      height: 120px;
+      width: 35mm;
+      height: 35mm;
       border-radius: 50%;
       object-fit: cover;
-      border: 4px solid #3b82f6;
-      margin: 0 auto 20px;
-      display: block;
+      border: 3px solid #334155;
+      margin-bottom: 20px;
     }
 
     .tpl-split .name {
-      font-size: 28px;
+      font-size: 24pt;
       font-weight: 800;
-      color: #3b82f6;
-      margin-bottom: 5px;
-      line-height: 1.1;
+      color: #0f172a;
+      line-height: 1.2;
+      margin-bottom: 8px;
     }
 
     .tpl-split .role {
-      font-size: 15px;
-      font-weight: 400;
-      color: #94a3b8;
+      font-size: 14pt;
+      color: #3b82f6;
+      font-weight: 500;
       margin-bottom: 30px;
-      letter-spacing: 1px;
+    }
+
+    .tpl-split .sec-title-main {
+      font-size: 14pt;
+      font-weight: 800;
+      color: #0f172a;
+      border-bottom: 2px solid #e2e8f0;
+      padding-bottom: 8px;
+      margin-bottom: 15px;
       text-transform: uppercase;
-      border-bottom: 1px solid #334155;
-      padding-bottom: 15px;
     }
 
     .tpl-split .sec-title-side {
-      font-size: 14px;
+      font-size: 12pt;
       font-weight: 700;
       color: #fff;
-      text-transform: uppercase;
       margin-bottom: 15px;
+      text-transform: uppercase;
       letter-spacing: 1px;
     }
 
     .tpl-split .contact-item {
-      font-size: 12px;
+      font-size: 9.5pt;
       margin-bottom: 10px;
-      display: flex;
-      align-items: flex-start;
-      gap: 8px;
-      color: #cbd5e1;
-      word-breaks: break-all;
-    }
-
-    .tpl-split .sec-title-main {
-      font-size: 18px;
-      font-weight: 800;
-      color: #0f172a;
-      text-transform: uppercase;
-      margin-bottom: 15px;
-      border-bottom: 2px solid #f1f5f9;
-      padding-bottom: 8px;
-      letter-spacing: 1px;
+      line-height: 1.4;
     }
 
     .tpl-split .section {
       margin-bottom: 25px;
     }
 
-    .tpl-split .text {
-      font-size: 13px;
-      line-height: 1.6;
-    }
-
-    .tpl-split .entry {
-      margin-bottom: 18px;
-    }
-
-    .tpl-split .entry-title {
-      font-size: 15px;
-      font-weight: 700;
-      color: #0f172a;
-    }
-
-    .tpl-split .entry-sub {
-      font-size: 13px;
-      font-weight: 600;
-      color: #3b82f6;
-      margin-bottom: 4px;
-    }
-
-    .tpl-split .entry-date {
-      font-size: 12px;
-      color: #94a3b8;
-      margin-bottom: 6px;
-      display: block;
-    }
-
-    /* TEMPLATE 3: MODERN HEADER */
+    /* TPL 3: MODERN HEADER */
     .tpl-modern {
-      background: #fff;
+      padding: 0;
       color: #334155;
-      font-family: 'Outfit', sans-serif;
     }
 
     .tpl-modern .header {
-      background: #0f172a;
-      color: #fff;
-      padding: 50px 40px;
+      background: #1e293b;
+      color: white;
+      padding: 20mm;
       display: flex;
       align-items: center;
       gap: 30px;
     }
 
     .tpl-modern .avatar {
-      width: 140px;
-      height: 140px;
-      border-radius: 20px;
+      width: 40mm;
+      height: 40mm;
+      border-radius: 12px;
       object-fit: cover;
-      background: #fff;
-    }
-
-    .tpl-modern .header-info {
-      flex: 1;
     }
 
     .tpl-modern .name {
-      font-size: 38px;
-      font-weight: 800;
-      margin-bottom: 5px;
+      font-size: 28pt;
+      font-weight: 900;
       letter-spacing: -1px;
-      color: #fff;
+      margin-bottom: 5px;
     }
 
     .tpl-modern .role {
-      font-size: 16px;
+      font-size: 14pt;
       font-weight: 500;
-      color: #38bdf8;
-      text-transform: uppercase;
-      letter-spacing: 2px;
+      opacity: 0.9;
       margin-bottom: 15px;
     }
 
     .tpl-modern .contact {
-      font-size: 13px;
-      color: #94a3b8;
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
+      font-size: 10pt;
+      opacity: 0.8;
+      line-height: 1.5;
     }
 
     .tpl-modern .body {
-      padding: 40px;
       display: flex;
+      padding: 15mm 20mm;
       gap: 40px;
     }
 
     .tpl-modern .col-main {
-      width: 60%;
+      flex: 2;
     }
 
     .tpl-modern .col-side {
-      width: 40%;
+      flex: 1;
     }
 
     .tpl-modern .sec-title {
-      font-size: 18px;
+      font-size: 14pt;
       font-weight: 800;
       color: #0f172a;
+      margin-bottom: 15px;
       text-transform: uppercase;
-      margin-bottom: 16px;
+    }
+
+    /* Common Output Items */
+    .item-row {
+      margin-bottom: 15px;
+    }
+
+    .item-head {
       display: flex;
-      align-items: center;
-      gap: 10px;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 4px;
     }
 
-    .tpl-modern .sec-title::before {
-      content: '';
-      width: 24px;
-      height: 3px;
-      background: #38bdf8;
-      display: block;
-    }
-
-    .tpl-modern .section {
-      margin-bottom: 35px;
-    }
-
-    .tpl-modern .text {
-      font-size: 13.5px;
-      line-height: 1.7;
-      font-family: 'Inter', sans-serif;
-    }
-
-    .tpl-modern .entry {
-      position: relative;
-      padding-left: 20px;
-      border-left: 2px solid #e2e8f0;
-      margin-bottom: 20px;
-    }
-
-    .tpl-modern .entry::before {
-      content: '';
-      position: absolute;
-      left: -6px;
-      top: 0;
-      width: 10px;
-      height: 10px;
-      border-radius: 50%;
-      background: #38bdf8;
-    }
-
-    .tpl-modern .entry-title {
-      font-size: 15px;
+    .item-title {
       font-weight: 700;
-      color: #0f172a;
-      margin-bottom: 2px;
+      font-size: 11.5pt;
     }
 
-    .tpl-modern .entry-sub {
-      font-size: 13px;
-      font-weight: 600;
+    .item-date {
+      font-size: 9.5pt;
       color: #64748b;
+      font-weight: 600;
     }
 
-    .tpl-modern .entry-date {
-      font-size: 12px;
-      color: #38bdf8;
-      font-weight: 600;
-      margin-bottom: 8px;
-      font-family: 'Inter', sans-serif;
+    .item-sub {
+      font-size: 10.5pt;
+      font-weight: 500;
+      font-style: italic;
+      color: #3b82f6;
+      margin-bottom: 5px;
+    }
+
+    .item-desc {
+      font-size: 10pt;
+      line-height: 1.5;
+      color: #475569;
     }
 
     .badges-wrap {
@@ -782,21 +308,14 @@
     }
 
     .badge {
-      background: #f1f5f9;
-      padding: 6px 12px;
-      border-radius: 6px;
-      font-size: 12px;
+      background: #e2e8f0;
+      color: #0f172a;
+      padding: 4px 10px;
+      border-radius: 4px;
+      font-size: 9pt;
       font-weight: 600;
-      color: #334155;
-      font-family: 'Inter', sans-serif;
     }
 
-    .tpl-split .badge {
-      background: rgba(255, 255, 255, 0.1);
-      color: #fff;
-    }
-
-    /* Print Override */
     @media print {
       body * {
         visibility: hidden;
@@ -815,306 +334,408 @@
         min-height: 297mm;
         transform: none !important;
         box-shadow: none !important;
+        margin: 0;
       }
     }
   </style>
 </head>
 
-<body>
+<body
+  class="bg-white dark:bg-[#0a0a0c] text-neutral-900 dark:text-neutral-100 flex flex-col h-screen overflow-hidden antialiased selection:bg-apple-purple selection:text-white">
 
-  <div class="hdr">
-    <div class="hdr-left">
-      <a href="index.html" class="back-btn">←</a>
-      <div class="hdr-title">CV Builder</div>
+  <!-- Global Header -->
+  <header
+    class="h-16 flex-shrink-0 border-b border-black/5 dark:border-white/5 bg-white/80 dark:bg-[#0a0a0c]/80 backdrop-blur-xl flex items-center justify-between px-4 z-50">
+    <div class="flex items-center gap-3">
+      <a href="index.html"
+        class="w-10 h-10 rounded-xl bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 transition-colors flex items-center justify-center">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+          stroke-linecap="round" stroke-linejoin="round">
+          <path d="m15 18-6-6 6-6" />
+        </svg>
+      </a>
+      <h1 class="font-display font-bold text-lg tracking-tight">CV Builder</h1>
     </div>
-    <div class="export-group">
-      <button class="btn btn-doc" onclick="exportWord()">📄 Word (.docx)</button>
-      <button class="btn btn-pdf" onclick="exportPDF()">📥 PDF Yuklash</button>
+    <div class="flex items-center gap-2">
+      <!-- Mobile Toggle -->
+      <button id="mobileViewToggle" onclick="toggleMobileView()"
+        class="md:hidden px-4 py-2 bg-black/5 dark:bg-white/10 rounded-xl font-semibold text-sm">
+        👁️ Preview
+      </button>
+      <button onclick="exportWord()"
+        class="hidden md:flex items-center gap-2 px-4 py-2 bg-apple-blue/10 hover:bg-apple-blue/20 text-apple-blue rounded-xl font-bold text-sm transition-colors">
+        📄 Word
+      </button>
+      <button onclick="exportPDF()" id="btnPdf"
+        class="flex items-center gap-2 px-4 py-2 bg-gradient-to-br from-[#ef4444] to-[#dc2626] hover:opacity-90 active:scale-95 text-white rounded-xl font-bold text-sm transition-all shadow-md">
+        📥 PDF
+      </button>
     </div>
-  </div>
+  </header>
 
-  <div class="workspace">
-    <!-- LEFT: UI INPUTS -->
-    <div class="editor-pane" id="editorPane">
+  <div class="flex flex-1 overflow-hidden relative">
 
-      <div class="editor-section">
-        <div class="section-title">✨ Dizayn shablonlari</div>
-        <div class="template-grid" id="tplGrid">
-          <!-- Cards are generated via JS -->
+    <!-- EDITOR PANE -->
+    <div id="editorPane"
+      class="w-full md:w-[45%] md:max-w-md h-full scroller overflow-y-auto bg-white dark:bg-[#0a0a0c] border-r border-black/5 dark:border-white/5 pb-20">
+
+      <!-- TEMPLATE SETTINGS -->
+      <div class="p-6">
+        <div class="flex items-center gap-2 mb-4">
+          <div class="w-8 h-8 rounded-lg bg-apple-purple/10 flex items-center justify-center text-apple-purple">🎨</div>
+          <h2 class="font-display font-bold text-sm uppercase tracking-widest text-black/50 dark:text-white/50">Dizayn
+            Shablon</h2>
+        </div>
+
+        <div class="grid grid-cols-3 gap-3">
+          <div
+            class="tpl-card border-2 border-apple-purple rounded-xl aspect-[1/1.4] cursor-pointer hover:border-apple-purple/80 bg-black/5 dark:bg-white/5 relative overflow-hidden"
+            onclick="setTpl('minimal')" id="tpl-minimal">
+            <div class="absolute inset-0 flex flex-col p-2">
+              <div class="w-1/2 h-1 bg-black/20 dark:bg-white/20 mb-1 rounded"></div>
+              <div class="w-1/3 h-0.5 bg-black/10 dark:bg-white/10 mb-2 rounded"></div>
+              <div class="w-full h-0.5 bg-black/10 dark:bg-white/10 mb-2 rounded"></div>
+              <div class="w-3/4 h-8 bg-black/10 dark:bg-white/10 rounded"></div>
+            </div>
+          </div>
+          <div
+            class="tpl-card border-2 border-transparent hover:border-apple-purple/50 rounded-xl aspect-[1/1.4] cursor-pointer bg-black/5 dark:bg-white/5 relative overflow-hidden flex"
+            onclick="setTpl('split')" id="tpl-split">
+            <div class="w-1/3 h-full bg-black/20 dark:bg-white/20"></div>
+            <div class="w-2/3 h-full p-2 flex flex-col gap-1">
+              <div class="w-3/4 h-1 bg-black/10 dark:bg-white/10 rounded"></div>
+              <div class="w-full h-8 bg-black/5 dark:bg-white/5 rounded"></div>
+            </div>
+          </div>
+          <div
+            class="tpl-card border-2 border-transparent hover:border-apple-purple/50 rounded-xl aspect-[1/1.4] cursor-pointer bg-black/5 dark:bg-white/5 relative overflow-hidden flex flex-col"
+            onclick="setTpl('modern')" id="tpl-modern">
+            <div class="h-1/3 w-full bg-black/20 dark:bg-white/20 mb-1"></div>
+            <div class="flex-1 px-1 flex gap-1">
+              <div class="w-2/3 h-full bg-black/5 dark:bg-white/5 rounded"></div>
+              <div class="w-1/3 h-full bg-black/5 dark:bg-white/5 rounded"></div>
+            </div>
+          </div>
         </div>
       </div>
 
-      <div class="editor-section">
-        <div class="section-title">👤 Shaxsiy Ma'lumotlar</div>
+      <div class="h-px bg-black/5 dark:bg-white/5 mx-6"></div>
 
-        <div class="photo-upload">
-          <div class="photo-preview-circle" id="photoPrev">📸</div>
+      <!-- PERSONAL INFO -->
+      <div class="p-6">
+        <!-- Profile Image -->
+        <div class="flex items-center gap-4 mb-6">
+          <div id="photoPrev"
+            class="w-16 h-16 rounded-full bg-black/5 dark:bg-white/10 border border-black/10 dark:border-white/10 flex flex-shrink-0 items-center justify-center overflow-hidden cursor-pointer"
+            onclick="document.getElementById('imgInput').click()">
+            <span class="text-2xl opacity-50">📷</span>
+          </div>
           <div>
-            <input type="file" id="imgInput" accept="image/*" style="display:none" onchange="handleImage(this)">
-            <button class="photo-btn" onclick="document.getElementById('imgInput').click()">Rasm yuklash</button>
+            <input type="file" id="imgInput" accept="image/*" class="hidden" onchange="handleImage(this)">
+            <button
+              class="px-3 py-1.5 bg-apple-blue/10 text-apple-blue font-semibold text-xs rounded-full hover:bg-apple-blue/20 transition-colors"
+              onclick="document.getElementById('imgInput').click()">Rasm yuklash</button>
+            <p class="text-[10px] text-black/40 dark:text-white/40 mt-1">Professional tasvir tavsiya etiladi</p>
           </div>
         </div>
 
-        <div class="form-group">
-          <label>F.I.SH (To'liq ism)</label>
-          <input type="text" id="f_name" class="form-control" placeholder="Masalan: Alisher Navoiy"
-            oninput="updateCV()">
-        </div>
-        <div class="form-group">
-          <label>Kasb / Mutaxassislik</label>
-          <input type="text" id="f_role" class="form-control" placeholder="Senior Frontend Developer"
-            oninput="updateCV()">
-        </div>
-        <div class="form-group">
-          <label>Haqimda (Qisqacha)</label>
-          <textarea id="f_about" class="form-control" placeholder="O'zingiz va maqsadlaringiz haqida..."
-            oninput="updateCV()"></textarea>
-        </div>
-
-        <div style="display:flex; gap:12px;">
-          <div class="form-group" style="flex:1">
-            <label>Email</label>
-            <input type="email" id="f_email" class="form-control" placeholder="mail@gmail.com" oninput="updateCV()">
+        <div class="space-y-4">
+          <div>
+            <input type="text" id="f_name"
+              class="w-full bg-black/5 dark:bg-white/5 border border-transparent focus:border-apple-purple/50 rounded-xl px-4 py-3 text-sm outline-none transition-all"
+              placeholder="Ism Familiya (Masalan: Alisherov M.)" value="ALEX DESIGNER" oninput="updateCV()">
           </div>
-          <div class="form-group" style="flex:1">
-            <label>Telefon</label>
-            <input type="text" id="f_phone" class="form-control" placeholder="+998 90 123 45 67" oninput="updateCV()">
+          <div>
+            <input type="text" id="f_role"
+              class="w-full bg-black/5 dark:bg-white/5 border border-transparent focus:border-apple-purple/50 rounded-xl px-4 py-3 text-sm outline-none transition-all text-apple-blue font-medium"
+              placeholder="Kasb (Masalan: UI/UX Designer)" value="Senior Product Designer" oninput="updateCV()">
+          </div>
+          <div class="flex gap-3">
+            <input type="text" id="f_phone"
+              class="w-1/2 bg-black/5 dark:bg-white/5 border border-transparent focus:border-apple-purple/50 rounded-xl px-4 py-3 text-sm outline-none transition-all"
+              placeholder="Telefon (+998...)" value="+998 90 123 45 67" oninput="updateCV()">
+            <input type="email" id="f_email"
+              class="w-1/2 bg-black/5 dark:bg-white/5 border border-transparent focus:border-apple-purple/50 rounded-xl px-4 py-3 text-sm outline-none transition-all"
+              placeholder="Email" value="hello@dastyor.ai" oninput="updateCV()">
+          </div>
+          <div>
+            <input type="text" id="f_loc"
+              class="w-full bg-black/5 dark:bg-white/5 border border-transparent focus:border-apple-purple/50 rounded-xl px-4 py-3 text-sm outline-none transition-all"
+              placeholder="Manzil (Masalan: Toshkent Shahri)" value="Toshkent shahri, O'zbekiston" oninput="updateCV()">
+          </div>
+          <div>
+            <textarea id="f_about"
+              class="w-full h-24 bg-black/5 dark:bg-white/5 border border-transparent focus:border-apple-purple/50 rounded-xl px-4 py-3 text-sm outline-none transition-all resize-none"
+              placeholder="Haqingizda qisqacha ma'lumot (Summary)"
+              oninput="updateCV()">Raqamli mahsulotlar yaratish bo'yicha 5 yillik tajribaga ega dizayner. Minimalizm va foydalanuvchi qulayligini doim oldinga qo'yaman.</textarea>
           </div>
         </div>
-        <div class="form-group">
-          <label>Manzil</label>
-          <input type="text" id="f_loc" class="form-control" placeholder="Toshkent, O'zbekiston" oninput="updateCV()">
+      </div>
+
+      <div class="h-px bg-black/5 dark:bg-white/5 mx-6"></div>
+
+      <!-- EXPERIENCE -->
+      <div class="p-6">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="font-display font-bold text-sm uppercase tracking-widest text-black/50 dark:text-white/50">Ish
+            Tajribasi</h2>
         </div>
+        <div id="expList" class="space-y-3 mb-3"></div>
+        <button onclick="addExp()"
+          class="w-full py-2 border border-dashed border-apple-purple/50 text-apple-purple bg-apple-purple/5 rounded-xl font-bold text-sm hover:bg-apple-purple/10 transition-colors">+
+          Tajriba qo'shish</button>
       </div>
 
-      <div class="editor-section">
-        <div class="section-title">💻 Ko'nikmalar (Skills)</div>
-        <div class="form-group">
-          <label>Ko'nikmalarni vergul bilan ajratib yozing</label>
-          <textarea id="f_skills" class="form-control" placeholder="JavaScript, React, Python, UI/UX"
-            oninput="updateCV()"></textarea>
+      <div class="h-px bg-black/5 dark:bg-white/5 mx-6"></div>
+
+      <!-- EDUCATION -->
+      <div class="p-6">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="font-display font-bold text-sm uppercase tracking-widest text-black/50 dark:text-white/50">Ta'lim
+          </h2>
         </div>
+        <div id="eduList" class="space-y-3 mb-3"></div>
+        <button onclick="addEdu()"
+          class="w-full py-2 border border-dashed border-apple-blue/50 text-apple-blue bg-apple-blue/5 rounded-xl font-bold text-sm hover:bg-apple-blue/10 transition-colors">+
+          Ta'lim qo'shish</button>
       </div>
 
-      <div class="editor-section">
-        <div class="section-title">💼 Ish Tajribasi</div>
-        <div class="repeater-list" id="expList"></div>
-        <button class="add-btn" onclick="addExp()">+ Yangi ish joyi qo'shish</button>
-      </div>
+      <div class="h-px bg-black/5 dark:bg-white/5 mx-6"></div>
 
-      <div class="editor-section">
-        <div class="section-title">🎓 Ta'lim</div>
-        <div class="repeater-list" id="eduList"></div>
-        <button class="add-btn" onclick="addEdu()">+ Ta'lim joyi qo'shish</button>
+      <!-- SKILLS -->
+      <div class="p-6 pb-12">
+        <h2 class="font-display font-bold text-sm uppercase tracking-widest text-black/50 dark:text-white/50 mb-4">
+          Ko'nikmalar</h2>
+        <div class="bg-black/5 dark:bg-white/5 p-4 rounded-xl">
+          <input type="text" id="skillInput"
+            class="w-full bg-transparent border-b border-black/10 dark:border-white/10 px-0 py-2 text-sm outline-none focus:border-apple-purple mb-3"
+            placeholder="Ko'nikma yozib ENTER bosing..." onkeydown="handleSkillAdd(event)">
+          <div id="skillsWrap" class="flex flex-wrap gap-2"></div>
+        </div>
       </div>
 
     </div>
 
-    <!-- RIGHT: LIVE PREVIEW -->
-    <div class="preview-pane">
-      <div class="cv-canvas" id="cv-box">
-        <!-- Inner HTML injected live -->
+    <!-- PREVIEW PANE -->
+    <div id="previewPane"
+      class="hidden md:flex flex-1 h-full bg-[#1c1c1e] items-start justify-center p-8 scroller overflow-y-auto">
+      <div class="cv-canvas-wrapper" id="previewScaleWrapper">
+        <div class="cv-canvas tpl-minimal" id="cv-box">
+          <!-- HTML generated live here -->
+        </div>
       </div>
     </div>
+
   </div>
 
   <script>
-    // STATE
-    let activeTpl = 'split'; // minimal, split, modern
-    let avatarUrl = '';
-    let experiences = [{ id: 1, title: '', company: '', date: '', desc: '' }];
-    let educations = [{ id: 1, degree: '', school: '', date: '' }];
+    const tg = window.Telegram?.WebApp;
 
-    // UI SETUP
-    const tplConfig = [
-      { id: 'minimal', name: 'Minimal', html: '<div class="tpl-content"><div class="tpl-1-line1"></div><div class="tpl-1-line2"></div><div class="tpl-1-block"></div><div class="tpl-1-block" style="margin-top:4px"></div></div>' },
-      { id: 'split', name: 'Professional', html: '<div class="tpl-content"><div class="tpl-2-side"></div><div class="tpl-2-main"></div></div>' },
-      { id: 'modern', name: 'Modern', html: '<div class="tpl-content"><div class="tpl-3-header"></div><div class="tpl-3-main"></div></div>' }
-    ];
+    let avatarUrl = 'https://ui-avatars.com/api/?name=Alex&background=random';
+    let activeTpl = 'minimal';
 
-    function initTpls() {
-      const wrap = document.getElementById('tplGrid');
-      wrap.innerHTML = tplConfig.map(t =>
-        `<div class="tpl-card ${activeTpl === t.id ? 'active' : ''}" onclick="setTpl('${t.id}')">
-                    ${t.html}
-                </div>`
-      ).join('');
+    // Data states
+    let experiences = [{
+      id: 1, title: 'Senior Product Designer', company: 'Google Inc.', date: 'Dec 2021 - Present',
+      desc: 'Global miqyosdagi millionlab insonlar ishlatadigan raqamli mahsulotlar ustida ishlayman. Jamoa bilan birgalikda eng qiyin muammolarga UX yechimlar izlaymiz.'
+    }];
+
+    let education = [{
+      id: 1, title: 'Bakalavr - Kompyuter Ilmlari', company: 'IUT', date: '2016 - 2020',
+      desc: 'Dasturiy injiniring va ma\'lumotlar arxitekturasi asosi.'
+    }];
+
+    let skills = ['Figma', 'Prototyping', 'HTML/CSS', 'UX Research', 'Wireframing'];
+
+    // Mobile preview toggle
+    let mobilePreview = false;
+    function toggleMobileView() {
+      mobilePreview = !mobilePreview;
+      const ed = document.getElementById('editorPane');
+      const pv = document.getElementById('previewPane');
+      const btn = document.getElementById('mobileViewToggle');
+
+      if (mobilePreview) {
+        ed.classList.add('hidden');
+        pv.classList.remove('hidden');
+        pv.classList.add('w-full', 'px-2', 'py-4');
+        btn.innerHTML = '✍️ Tahrirlash';
+        setTimeout(autoScale, 50);
+      } else {
+        ed.classList.remove('hidden');
+        pv.classList.add('hidden');
+        pv.classList.remove('w-full', 'px-2', 'py-4');
+        btn.innerHTML = '👁️ Preview';
+      }
     }
 
-    function setTpl(id) {
-      activeTpl = id;
-      initTpls();
+    // Templates
+    function setTpl(t) {
+      activeTpl = t;
+      document.querySelectorAll('.tpl-card').forEach(el => el.classList.replace('border-apple-purple', 'border-transparent'));
+      document.getElementById(`tpl-${t}`).classList.replace('border-transparent', 'border-apple-purple');
       updateCV();
+      tg?.HapticFeedback?.impactOccurred('light');
     }
 
-    // IMAGE HANDLER
+    // Image
     function handleImage(input) {
       if (input.files && input.files[0]) {
         const reader = new FileReader();
         reader.onload = function (e) {
           avatarUrl = e.target.result;
-          document.getElementById('photoPrev').innerHTML = `<img src="${avatarUrl}">`;
+          document.getElementById('photoPrev').innerHTML = `<img src="${avatarUrl}" class="w-full h-full object-cover">`;
           updateCV();
         }
         reader.readAsDataURL(input.files[0]);
       }
     }
 
-    // REPEATER LOGIC
-    function addExp() { experiences.push({ id: Date.now(), title: '', company: '', date: '', desc: '' }); renderExp(); updateCV(); }
-    function removeExp(id) { experiences = experiences.filter(x => x.id !== id); renderExp(); updateCV(); }
+    // Skills
+    function renderSkillsInput() {
+      document.getElementById('skillsWrap').innerHTML = skills.map((s, i) => `
+                <div class="px-3 py-1 bg-white dark:bg-black rounded-lg text-xs font-semibold flex items-center gap-2 border border-black/5 dark:border-white/5">
+                    ${s} <span class="text-red-500 cursor-pointer text-[10px]" onclick="removeSkill(${i})">✖</span>
+                </div>
+            `).join('');
+    }
+    function handleSkillAdd(e) {
+      if (e.key === 'Enter' && e.target.value.trim() !== '') {
+        skills.push(e.target.value.trim());
+        e.target.value = '';
+        renderSkillsInput();
+        updateCV();
+      }
+    }
+    function removeSkill(i) { skills.splice(i, 1); renderSkillsInput(); updateCV(); }
+
+    // Expanders (Exp/Edu)
     function renderExp() {
       document.getElementById('expList').innerHTML = experiences.map((ex, i) => `
-                <div class="repeater-item">
-                    <button class="rm-btn" onclick="removeExp(${ex.id})">×</button>
-                    <input type="text" class="form-control" style="margin-bottom:8px" placeholder="Lavozim (masalan: Frontend Developer)" value="${ex.title}" oninput="experiences[${i}].title=this.value; updateCV()">
-                    <div style="display:flex;gap:8px;margin-bottom:8px;">
-                        <input type="text" class="form-control" placeholder="Kompaniya" value="${ex.company}" oninput="experiences[${i}].company=this.value; updateCV()">
-                        <input type="text" class="form-control" placeholder="Muddat (2020-2023)" value="${ex.date}" oninput="experiences[${i}].date=this.value; updateCV()">
+                <div class="bg-black/5 dark:bg-white/5 p-4 rounded-2xl relative group">
+                    <button class="absolute top-2 right-2 w-6 h-6 bg-red-500/10 text-red-500 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity" onclick="removeExp(${ex.id})">×</button>
+                    <input type="text" class="w-full bg-transparent border-b border-black/10 dark:border-white/10 px-0 py-2 text-sm font-bold outline-none mb-1 focus:border-apple-purple" placeholder="Lavozim" value="${ex.title}" oninput="experiences[${i}].title=this.value; updateCV()">
+                    <div class="flex gap-2 mb-2">
+                        <input type="text" class="w-1/2 bg-transparent border-b border-black/10 dark:border-white/10 px-0 py-2 text-xs outline-none focus:border-apple-purple" placeholder="Kompaniya" value="${ex.company}" oninput="experiences[${i}].company=this.value; updateCV()">
+                        <input type="text" class="w-1/2 bg-transparent border-b border-black/10 dark:border-white/10 px-0 py-2 text-xs outline-none focus:border-apple-purple" placeholder="Yillar" value="${ex.date}" oninput="experiences[${i}].date=this.value; updateCV()">
                     </div>
-                    <textarea class="form-control" placeholder="Vazifalar va yutuqlar..." oninput="experiences[${i}].desc=this.value; updateCV()">${ex.desc}</textarea>
+                    <textarea class="w-full bg-transparent border-b border-black/10 dark:border-white/10 px-0 py-2 text-xs outline-none focus:border-apple-purple resize-none h-14" placeholder="Faoliyat haqida..." oninput="experiences[${i}].desc=this.value; updateCV()">${ex.desc}</textarea>
                 </div>
             `).join('');
     }
+    function addExp() { experiences.push({ id: Date.now(), title: '', company: '', date: '', desc: '' }); renderExp(); updateCV(); }
+    function removeExp(id) { experiences = experiences.filter(x => x.id !== id); renderExp(); updateCV(); }
 
-    function addEdu() { educations.push({ id: Date.now(), degree: '', school: '', date: '' }); renderEdu(); updateCV(); }
-    function removeEdu(id) { educations = educations.filter(x => x.id !== id); renderEdu(); updateCV(); }
     function renderEdu() {
-      document.getElementById('eduList').innerHTML = educations.map((ed, i) => `
-                <div class="repeater-item">
-                    <button class="rm-btn" onclick="removeEdu(${ed.id})">×</button>
-                    <input type="text" class="form-control" style="margin-bottom:8px" placeholder="Mutaxassislik (Bakalavr...)" value="${ed.degree}" oninput="educations[${i}].degree=this.value; updateCV()">
-                    <div style="display:flex;gap:8px">
-                        <input type="text" class="form-control" placeholder="Universitet/Maktab" value="${ed.school}" oninput="educations[${i}].school=this.value; updateCV()">
-                        <input type="text" class="form-control" placeholder="Yillar" value="${ed.date}" oninput="educations[${i}].date=this.value; updateCV()">
+      document.getElementById('eduList').innerHTML = education.map((ed, i) => `
+                <div class="bg-black/5 dark:bg-white/5 p-4 rounded-2xl relative group">
+                    <button class="absolute top-2 right-2 w-6 h-6 bg-red-500/10 text-red-500 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity" onclick="removeEdu(${ed.id})">×</button>
+                    <input type="text" class="w-full bg-transparent border-b border-black/10 dark:border-white/10 px-0 py-2 text-sm font-bold outline-none mb-1 focus:border-apple-blue" placeholder="Daraja yoki Kurs" value="${ed.title}" oninput="education[${i}].title=this.value; updateCV()">
+                    <div class="flex gap-2 mb-2">
+                        <input type="text" class="w-1/2 bg-transparent border-b border-black/10 dark:border-white/10 px-0 py-2 text-xs outline-none focus:border-apple-blue" placeholder="Oliygoh" value="${ed.company}" oninput="education[${i}].company=this.value; updateCV()">
+                        <input type="text" class="w-1/2 bg-transparent border-b border-black/10 dark:border-white/10 px-0 py-2 text-xs outline-none focus:border-apple-blue" placeholder="Yillar" value="${ed.date}" oninput="education[${i}].date=this.value; updateCV()">
                     </div>
+                    <textarea class="w-full bg-transparent border-b border-black/10 dark:border-white/10 px-0 py-2 text-xs outline-none focus:border-apple-blue resize-none h-10" placeholder="Ma'lumotlar..." oninput="education[${i}].desc=this.value; updateCV()">${ed.desc}</textarea>
                 </div>
             `).join('');
     }
+    function addEdu() { education.push({ id: Date.now(), title: '', company: '', date: '', desc: '' }); renderEdu(); updateCV(); }
+    function removeEdu(id) { education = education.filter(x => x.id !== id); renderEdu(); updateCV(); }
 
-    // INIT
-    initTpls();
+    // Initialize lists
+    document.getElementById('userAvatarBox') && (document.getElementById('userAvatarBox').innerHTML = `<img src="${avatarUrl}" class="w-full h-full object-cover">`);
     renderExp();
     renderEdu();
+    renderSkillsInput();
 
-    // CORE ENGINE: LIVE PREVIEW RENDERER
-    function v(id) { return document.getElementById(id).value.trim(); }
+    function v(id) { return (document.getElementById(id).value || '').trim(); }
 
+    // ── LIVE ENGINE ──
     function updateCV() {
       const data = {
-        name: v('f_name') || 'Alisher Navoiy',
-        role: v('f_role') || 'Sizning Kasbingiz',
-        about: v('f_about') || "O'zingiz haqingizda ma'lumot qoldiring. Bu qism sizning maqsadlaringiz, xarakteringiz va sohadagi qiziqishlaringiz haqida qisqacha bo'ladi.",
-        email: v('f_email') || 'example@mail.com',
-        phone: v('f_phone') || '+998 90 000 00 00',
-        loc: v('f_loc') || "Toshkent, O'zbekiston",
-        skills: v('f_skills') ? v('f_skills').split(',').map(s => s.trim()).filter(s => s) : ['Muloqot', 'Liderlik', 'Jamoaviy ishlash'],
-        exp: experiences.filter(e => e.title || e.company),
-        edu: educations.filter(e => e.degree || e.school),
-        img: avatarUrl || 'https://via.placeholder.com/150'
+        name: v('f_name') || 'Ism Familiya',
+        role: v('f_role'),
+        phone: v('f_phone'),
+        email: v('f_email'),
+        loc: v('f_loc'),
+        about: v('f_about'),
+        img: avatarUrl
       };
 
+      const expHtml = experiences.map(e => `
+                <div class="item-row">
+                    <div class="item-head">
+                        <span class="item-title">${e.title}</span>
+                        <span class="item-date">${e.date}</span>
+                    </div>
+                    ${e.company ? `<div class="item-sub">${e.company}</div>` : ''}
+                    ${e.desc ? `<div class="item-desc">${e.desc}</div>` : ''}
+                </div>
+            `).join('');
+
+      const eduHtml = education.map(e => `
+                <div class="item-row">
+                    <div class="item-head">
+                        <span class="item-title">${e.title}</span>
+                        <span class="item-date">${e.date}</span>
+                    </div>
+                    ${e.company ? `<div class="item-sub">${e.company}</div>` : ''}
+                    ${e.desc ? `<div class="item-desc">${e.desc}</div>` : ''}
+                </div>
+            `).join('');
+
+      const skillsHtml = skills.map(s => `<span class="badge">${s}</span>`).join('');
       const box = document.getElementById('cv-box');
 
-      // Build Skills Badges
-      const skillsHtml = data.skills.map(s => `<div class="badge">${s}</div>`).join('');
-
-      // Build Exp and Edu HTML
-      const expHtml = data.exp.length > 0 ? data.exp.map(e => `
-                <div class="entry">
-                    <div class="entry-header">
-                        <div class="entry-title">${e.title}</div>
-                        <div class="entry-date">${e.date}</div>
-                    </div>
-                    <div class="entry-sub">${e.company}</div>
-                    <div class="text">${e.desc}</div>
-                </div>
-            `).join('') : '<div class="text">Tajriba ma\'lumoti yo\'q.</div>';
-
-      const eduHtml = data.edu.length > 0 ? data.edu.map(e => `
-                <div class="entry">
-                    <div class="entry-header">
-                        <div class="entry-title">${e.degree}</div>
-                        <div class="entry-date">${e.date}</div>
-                    </div>
-                    <div class="entry-sub">${e.school}</div>
-                </div>
-            `).join('') : '<div class="text">Ta\'lim ma\'lumoti yo\'q.</div>';
-
-      // HTML TEMPLATE RENDERERS
       if (activeTpl === 'minimal') {
         box.className = 'cv-canvas tpl-minimal';
         box.innerHTML = `
                     <div class="header">
-                        ${avatarUrl ? `<img src="${data.img}" class="avatar">` : ''}
-                        <div class="name">${data.name}</div>
-                        <div class="role">${data.role}</div>
-                        <div class="contact">
-                            <span>📧 ${data.email}</span>
-                            <span>📞 ${data.phone}</span>
-                            <span>📍 ${data.loc}</span>
+                        <img src="${data.img}" class="avatar">
+                        <div>
+                            <div class="name">${data.name}</div>
+                            <div class="role">${data.role}</div>
+                            <div class="contact-wrap">
+                                ${data.phone ? `<span>📞 ${data.phone}</span>` : ''}
+                                ${data.email ? `<span>| &nbsp; 📧 ${data.email}</span>` : ''}
+                                ${data.loc ? `<span>| &nbsp; 📍 ${data.loc}</span>` : ''}
+                            </div>
                         </div>
                     </div>
-                    <div class="section">
-                        <div class="sec-title">Haqimda</div>
-                        <div class="text">${data.about}</div>
-                    </div>
-                    <div class="section">
-                        <div class="sec-title">Tajriba</div>
-                        ${expHtml}
-                    </div>
-                    <div class="section">
-                        <div class="sec-title">Ta'lim</div>
-                        ${eduHtml}
-                    </div>
-                    <div class="section">
-                        <div class="sec-title">Ko'nikmalar</div>
-                        <div class="badges-wrap">${skillsHtml}</div>
-                    </div>
+                    
+                    ${data.about ? `<div class="section"><div class="sec-title">Profil Summary</div><div class="text">${data.about}</div></div>` : ''}
+                    
+                    ${experiences.length ? `<div class="section"><div class="sec-title">Tajriba</div>${expHtml}</div>` : ''}
+                    
+                    ${education.length ? `<div class="section"><div class="sec-title">Ta'lim</div>${eduHtml}</div>` : ''}
+                    
+                    ${skills.length ? `<div class="section"><div class="sec-title">Ko'nikmalar</div><div class="badges-wrap">${skillsHtml}</div></div>` : ''}
                 `;
-      }
-      else if (activeTpl === 'split') {
+      } else if (activeTpl === 'split') {
         box.className = 'cv-canvas tpl-split';
         box.innerHTML = `
                     <div class="sidebar">
                         <img src="${data.img}" class="avatar">
                         
-                        <div class="section" style="margin-top:30px">
-                            <div class="sec-title-side">Kontakt ma'lumotlar</div>
-                            <div class="contact-item">📞 <span>${data.phone}</span></div>
-                            <div class="contact-item">📧 <span>${data.email}</span></div>
-                            <div class="contact-item">📍 <span>${data.loc}</span></div>
-                        </div>
-
                         <div class="section">
-                            <div class="sec-title-side">Ko'nikmalar</div>
-                            <div class="badges-wrap" style="flex-direction:column; gap:6px;">
-                                ${data.skills.map(s => `<div class="badge">${s}</div>`).join('')}
-                            </div>
+                            <div class="sec-title-side">Bog'lanish</div>
+                            ${data.phone ? `<div class="contact-item">📞 ${data.phone}</div>` : ''}
+                            ${data.email ? `<div class="contact-item">📧 ${data.email}</div>` : ''}
+                            ${data.loc ? `<div class="contact-item">📍 ${data.loc}</div>` : ''}
                         </div>
+                        
+                        ${skills.length ? `<div class="section"><div class="sec-title-side">Skils</div><div class="badges-wrap" style="color:#000">${skillsHtml}</div></div>` : ''}
                     </div>
-                    <div class="mainbar">
+                    <div class="main">
                         <div class="name">${data.name}</div>
                         <div class="role">${data.role}</div>
 
-                        <div class="section">
-                            <div class="sec-title-main">Qisqacha profil</div>
-                            <div class="text">${data.about}</div>
-                        </div>
-
-                        <div class="section">
-                            <div class="sec-title-main">Professional Tajriba</div>
-                            ${expHtml}
-                        </div>
-
-                        <div class="section">
-                            <div class="sec-title-main">Ta'lim</div>
-                            ${eduHtml}
-                        </div>
+                        ${data.about ? `<div class="section"><div class="sec-title-main">Qisqacha profil</div><div class="text">${data.about}</div></div>` : ''}
+                        ${experiences.length ? `<div class="section"><div class="sec-title-main">Mehnat Faoliyati</div>${expHtml}</div>` : ''}
+                        ${education.length ? `<div class="section"><div class="sec-title-main">Ta'lim</div>${eduHtml}</div>` : ''}
                     </div>
                 `;
-      }
-      else if (activeTpl === 'modern') {
+      } else if (activeTpl === 'modern') {
         box.className = 'cv-canvas tpl-modern';
         box.innerHTML = `
                     <div class="header">
@@ -1130,64 +751,50 @@
                     </div>
                     <div class="body">
                         <div class="col-main">
-                            <div class="section">
-                                <div class="sec-title">Haqimda</div>
-                                <div class="text">${data.about}</div>
-                            </div>
-                            <div class="section">
-                                <div class="sec-title">Ish Tajribasi</div>
-                                ${expHtml}
-                            </div>
+                            ${data.about ? `<div class="section"><div class="sec-title">Haqimda</div><div class="text">${data.about}</div></div>` : ''}
+                            ${experiences.length ? `<div class="section"><div class="sec-title">Ish Tajribasi</div>${expHtml}</div>` : ''}
                         </div>
                         <div class="col-side">
-                            <div class="section">
-                                <div class="sec-title">Ta'lim</div>
-                                ${eduHtml}
-                            </div>
-                            <div class="section">
-                                <div class="sec-title">Ko'nikmalar</div>
-                                <div class="badges-wrap">
-                                    ${skillsHtml}
-                                </div>
-                            </div>
+                            ${education.length ? `<div class="section"><div class="sec-title">Ta'lim</div>${eduHtml}</div>` : ''}
+                            ${skills.length ? `<div class="section"><div class="sec-title">Ko'nikmalar</div><div class="badges-wrap">${skillsHtml}</div></div>` : ''}
                         </div>
                     </div>
                 `;
       }
-
       autoScale();
     }
 
-    // Scale canvas to fit viewport
     function autoScale() {
-      const pane = document.querySelector('.preview-pane');
-      const box = document.getElementById('cv-box');
+      const wrap = document.getElementById('previewScaleWrapper');
+      const pane = document.getElementById('previewPane');
+      if (pane.classList.contains('hidden')) return;
 
-      // A4 ratio 210 x 297 (~0.707)
-      const padding = 60;
-      const paneW = pane.clientWidth - padding;
-      const paneH = pane.clientHeight - padding;
+      let pw = pane.clientWidth;
+      if (!mobilePreview) pw -= 64;
 
-      // Native A4 in px (approx exactly what css has - 210mm is 793px)
       const natW = 793;
-      const natH = 1122;
+      const scale = Math.min(pw / natW, 1.2);
 
-      const scaleW = paneW / natW;
-      const scaleH = paneH / natH;
-      const scale = Math.min(scaleW, scaleH, 1); // no scale up beyond 1
-
-      box.style.transform = `scale(${scale})`;
+      wrap.style.transform = `scale(${scale})`;
+      if (mobilePreview) {
+        wrap.style.marginBottom = `-${(1 - scale) * 1122}px`;
+      } else {
+        wrap.style.marginBottom = '0';
+      }
     }
     window.addEventListener('resize', autoScale);
 
-    // INITIALIZE LIVE PREVIEW
-    setTimeout(() => updateCV(), 100);
+    setTimeout(() => {
+      if (document.documentElement.classList.contains('dark')) {
+        if (tg?.setHeaderColor) tg.setHeaderColor('#0a0a0c');
+      }
+      updateCV();
+    }, 100);
 
-    // EXTRA ACTIONS
     function exportPDF() {
       const el = document.getElementById('cv-box');
-      // Remove scale temporarily to render full quality
-      el.style.transform = 'none';
+      const wrap = document.getElementById('previewScaleWrapper');
+      wrap.style.transform = 'none';
 
       const opt = {
         margin: 0,
@@ -1197,29 +804,25 @@
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
       };
 
-      const btn = document.querySelector('.btn-pdf');
-      btn.innerHTML = "⏳ Kutib turing...";
+      const btn = document.getElementById('btnPdf');
+      const originalHtml = btn.innerHTML;
+      btn.innerHTML = "⏳ Kuting...";
       btn.disabled = true;
 
       html2pdf().set(opt).from(el).save().then(() => {
         autoScale();
-        btn.innerHTML = "📥 PDF Yuklash";
+        btn.innerHTML = originalHtml;
         btn.disabled = false;
-
-        // Show floating notification
-        const tg = window.Telegram?.WebApp;
-        if (tg && tg.showAlert) tg.showAlert("PDF Qurilmangizga saqlandi!");
+        if (tg && tg.showAlert) tg.showAlert("PDF Qurilmangizga muvaffaqiyatli saqlandi!");
       });
     }
 
     function exportWord() {
-      // Because pixel-perfect complex html styling to .docx inside purely client JS is generally broken,
-      // we will send the raw text payload to the backend OR instruct user.
-      // As required by user, UI logic should explain implementation.
-
-      // In a real full-stack app, we would POST `data` to backend and return a .docx. 
-      // For now, let's trigger an alert explaining exactly this logic.
-      alert("Word (.docx) formatida yuklash uchun ushbu ma'lumotlar backend API (Python) ga yuboriladi va tayyor Docx fayl qaytariladi. Hozircha bu PDF opsiyasi orqali to'liq ishlaydi. \n\n (Implementation: Serverga JSON payload ketadi, server 'python-docx' yordamida shablonni to'ldirib qaytaradi)");
+      if (tg && tg.showAlert) {
+        tg.showAlert("Word (.docx) formati backend orqali ishlab chiqish rejalashtirilgan. Hozircha PDF formati optimal tanlov.");
+      } else {
+        alert("Word (.docx) formati backend orqali ishlab chiqish rejalashtirilgan. Hozircha PDF formati optimal tanlov.");
+      }
     }
   </script>
 </body>

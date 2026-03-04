@@ -1,792 +1,445 @@
 <!DOCTYPE html>
-<html lang="uz" data-theme="dark">
+<html lang="uz" class="dark">
 
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>DASTYOR AI</title>
+    <!-- Telegram SDK -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap"
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Outfit:wght@500;600;700;800&display=swap"
         rel="stylesheet" />
+
+    <!-- Tailwind CSS (CDN for WebApp simplicity) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        display: ['Outfit', 'sans-serif'],
+                    },
+                    colors: {
+                        neutral: {
+                            850: '#1f1f22',
+                            900: '#151518',
+                            950: '#0a0a0c',
+                        },
+                        apple: {
+                            blue: '#0A84FF',
+                            green: '#30D158',
+                            orange: '#FF9F0A',
+                            purple: '#BF5AF2',
+                        }
+                    },
+                    animation: {
+                        'slide-up': 'slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+                        'fade-in': 'fadeIn 0.4s ease-out forwards',
+                    },
+                    keyframes: {
+                        slideUp: {
+                            '0%': { opacity: '0', transform: 'translateY(16px)' },
+                            '100%': { opacity: '1', transform: 'translateY(0)' },
+                        },
+                        fadeIn: {
+                            '0%': { opacity: '0' },
+                            '100%': { opacity: '1' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
     <style>
-        *,
-        *::before,
-        *::after {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
-
-        :root[data-theme="dark"] {
-            --bg: #050f1e;
-            --card: rgba(255, 255, 255, 0.04);
-            --hover: rgba(255, 255, 255, 0.07);
-            --border: rgba(255, 255, 255, 0.08);
-            --text: #f0f4f8;
-            --muted: #94a3b8;
-            --accent: #2563eb;
-            --accent-glow: rgba(37, 99, 235, 0.3);
-            --nav: rgba(10, 22, 40, 0.85);
-            --white: #ffffff;
-        }
-
-        :root[data-theme="light"] {
-            --bg: #f8fafc;
-            --card: #ffffff;
-            --hover: #f1f5f9;
-            --border: #e2e8f0;
-            --text: #0f172a;
-            --muted: #64748b;
-            --accent: #2563eb;
-            --accent-glow: rgba(37, 99, 235, 0.15);
-            --nav: rgba(255, 255, 255, 0.85);
-            --white: #ffffff;
-        }
-
+        /* Base Resets to clear out browser highlights */
         html,
         body {
-            min-height: 100%;
-            background: var(--bg);
-            color: var(--text);
-            font-family: 'Inter', system-ui, sans-serif;
-            overflow-x: hidden;
-            transition: background 0.3s ease, color 0.3s ease;
+            -webkit-tap-highlight-color: transparent;
+            overscroll-behavior-y: none;
         }
 
-        /* ── BG EFFECTS ── */
-        .bg-fx {
+        body {
+            background-color: #f5f5f7;
+            color: #1d1d1f;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        .dark body {
+            background-color: #000000;
+            color: #f5f5f7;
+        }
+
+        /* Ambient glowing background for dark mode */
+        .ambient-bg {
             position: fixed;
-            inset: 0;
+            top: -20vh;
+            left: -20vw;
+            width: 140vw;
+            height: 140vh;
+            background: radial-gradient(circle at 50% 10%, rgba(10, 132, 255, 0.12) 0%, transparent 60%);
             z-index: 0;
             pointer-events: none;
-            overflow: hidden;
+            opacity: 0;
+            transition: opacity 0.5s;
         }
 
-        .bg-fx [data-theme="dark"] & {
-            background:
-                radial-gradient(circle at 50% -20%, rgba(37, 99, 235, 0.15), transparent 70%),
-                linear-gradient(180deg, #050f1e 0%, #08182e 100%);
+        .dark .ambient-bg {
+            opacity: 1;
         }
 
-        .bg-grid {
-            position: absolute;
-            inset: 0;
-            background-image: linear-gradient(var(--border) 1px, transparent 1px),
-                linear-gradient(90deg, var(--border) 1px, transparent 1px);
-            background-size: 50px 50px;
-            opacity: 0.2;
-        }
-
-        /* ── PAGE ── */
-        .page {
-            position: relative;
-            z-index: 1;
-            padding-bottom: 90px;
-            max-width: 500px;
-            margin: 0 auto;
-        }
-
-        /* ── TOP HEADER (Reference style) ── */
-        .top-nav {
-            padding: 24px 20px 0;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-
-        .user-block {
-            display: flex;
-            align-items: center;
-            gap: 14px;
-        }
-
-        .avatar {
-            width: 52px;
-            height: 52px;
-            border-radius: 50%;
-            background: var(--accent);
-            border: 2px solid var(--white);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-            overflow: hidden;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .avatar img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-
-        .avatar .initials {
-            font-size: 20px;
-            font-weight: 800;
-            color: white;
-        }
-
-        .welcome-msg {
-            display: flex;
-            flex-direction: column;
-        }
-
-        .welcome-msg .small {
-            font-size: 13px;
-            color: var(--muted);
-            font-weight: 500;
-        }
-
-        .welcome-msg .name {
-            font-size: 18px;
-            font-weight: 800;
-            letter-spacing: -0.3px;
-        }
-
-        .badge-pro-icon {
-            font-size: 24px;
-            color: #f59e0b;
-        }
-
-        /* ── STATS CARDS ── */
-        .stats-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 12px;
-            padding: 24px 20px 0;
-        }
-
-        .stat-card {
-            background: var(--card);
-            border: 1px solid var(--border);
-            border-radius: 20px;
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-        }
-
-        .stat-card .label {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            font-size: 12px;
-            font-weight: 700;
-            text-transform: uppercase;
-            color: #f97316;
-            letter-spacing: 0.5px;
-        }
-
-        .stat-card .val {
-            font-size: 24px;
-            font-weight: 900;
-            letter-spacing: -0.5px;
-        }
-
-        /* ── SECTION LABEL ── */
-        .section-header {
-            padding: 32px 20px 12px;
-            font-size: 14px;
-            font-weight: 800;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            color: var(--muted);
-        }
-
-        /* ── SERVICE CARDS (PREMIUM STYLE) ── */
-        .services-list {
-            padding: 0 20px;
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-        }
-
-        .svc-btn {
-            background: var(--card);
-            border: 1px solid var(--border);
-            border-radius: 24px;
-            padding: 20px;
-            display: flex;
-            align-items: center;
-            gap: 16px;
-            text-decoration: none;
-            color: var(--text);
-            transition: transform 0.2s, background 0.2s;
-            -webkit-tap-highlight-color: transparent;
-        }
-
-        .svc-btn:active {
-            transform: scale(0.97);
-            background: var(--hover);
-        }
-
-        .svc-icon-box {
-            width: 64px;
-            height: 64px;
-            border-radius: 18px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 28px;
-            flex-shrink: 0;
-            transition: all 0.3s;
-        }
-
-        /* Color Variants from Reference */
-        .color-blue {
-            background: #eff6ff;
-            color: #2563eb;
-        }
-
-        .color-purple {
-            background: #faf5ff;
-            color: #8b5cf6;
-        }
-
-        .color-green {
-            background: #ecfdf5;
-            color: #10b981;
-        }
-
-        .color-gold {
-            background: #fffbeb;
-            color: #f59e0b;
-        }
-
-        [data-theme="dark"] .color-blue {
-            background: rgba(37, 99, 235, 0.1);
-            color: #60a5fa;
-        }
-
-        [data-theme="dark"] .color-purple {
-            background: rgba(139, 92, 246, 0.1);
-            color: #a78bfa;
-        }
-
-        [data-theme="dark"] .color-green {
-            background: rgba(16, 185, 129, 0.1);
-            color: #34d399;
-        }
-
-        [data-theme="dark"] .color-gold {
-            background: rgba(245, 158, 11, 0.1);
-            color: #fbbf24;
-        }
-
-        .svc-info {
-            flex: 1;
-        }
-
-        .svc-title {
-            font-size: 17px;
-            font-weight: 800;
-            margin-bottom: 2px;
-        }
-
-        .svc-desc {
-            font-size: 13px;
-            color: var(--muted);
-            font-weight: 500;
-            line-height: 1.4;
-        }
-
-        .svc-arrow {
-            color: var(--muted);
-            font-size: 18px;
-            font-family: inherit;
-        }
-
-        /* ── BOTTOM NAV ── */
-        .bottom-nav {
-            position: fixed;
-            bottom: 16px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: calc(100% - 40px);
-            max-width: 460px;
-            background: var(--nav);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border: 1px solid var(--border);
-            border-radius: 28px;
-            height: 72px;
-            display: flex;
-            align-items: center;
-            justify-content: space-around;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
-            z-index: 1000;
-        }
-
-        .nav-item {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 4px;
-            color: var(--muted);
-            text-decoration: none;
-            padding: 8px 16px;
-            transition: all 0.3s;
-            cursor: pointer;
-        }
-
-        .nav-item.active {
-            color: var(--accent);
-        }
-
-        .nav-icon {
-            font-size: 22px;
-        }
-
-        .nav-label {
-            font-size: 11px;
-            font-weight: 700;
-        }
-
-        /* ── SETTINGS MODAL ── */
-        .view {
+        /* Hide scrollbars */
+        ::-webkit-scrollbar {
             display: none;
         }
 
-        .view.active {
+        /* The active view toggler */
+        .view-layer {
+            display: none;
+            position: relative;
+            z-index: 10;
+            padding-bottom: 100px;
+            /* Space for bottom nav */
+        }
+
+        .view-layer.active {
             display: block;
-        }
-
-        .settings-content {
-            padding: 20px;
-        }
-
-        .setting-card {
-            background: var(--card);
-            border: 1px solid var(--border);
-            border-radius: 24px;
-            padding: 8px;
-            margin-bottom: 20px;
-        }
-
-        .setting-row {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 16px 12px;
-            border-bottom: 1px solid var(--border);
-            cursor: pointer;
-        }
-
-        .setting-row:last-child {
-            border-bottom: none;
-        }
-
-        .set-left {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-
-        .set-icon {
-            width: 40px;
-            height: 40px;
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 18px;
-        }
-
-        .set-info {
-            display: flex;
-            flex-direction: column;
-        }
-
-        .set-title {
-            font-size: 15px;
-            font-weight: 700;
-        }
-
-        .set-val {
-            font-size: 12px;
-            color: var(--muted);
-            font-weight: 600;
-            text-transform: uppercase;
-        }
-
-        /* ── LOGO (Footer/Header) ── */
-        .brand-footer {
-            text-align: center;
-            padding: 40px 0 20px;
-        }
-
-        .brand-logo-text {
-            font-weight: 900;
-            font-size: 16px;
-            letter-spacing: -0.5px;
-        }
-
-        .brand-logo-text span {
-            color: var(--accent);
-        }
-
-        /* ── ANIMATIONS ── */
-        @keyframes slideUp {
-            from {
-                opacity: 0;
-                transform: translateY(20px);
-            }
-
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        .animate-up {
-            animation: slideUp 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+            animation: fadeIn 0.3s forwards;
         }
     </style>
 </head>
 
-<body>
+<body class="antialiased selection:bg-apple-blue selection:text-white">
 
-    <div class="bg-fx">
-        <div class="bg-grid"></div>
-    </div>
+    <div class="ambient-bg"></div>
 
-    <!-- HOME VIEW -->
-    <div id="homeView" class="view active">
-        <div class="page">
-            <!-- TOP HEADER -->
-            <div class="top-nav">
-                <div class="user-block">
-                    <div class="avatar" id="picBox">
-                        <div class="initials" id="userInitial">?</div>
-                    </div>
-                    <div class="welcome-msg">
-                        <span class="small" id="txt_welcome">Xush kelibsiz,</span>
-                        <span class="name" id="userName">Foydalanuvchi</span>
-                    </div>
+    <!-- =============== HOME VIEW =============== -->
+    <main id="view-home" class="view-layer active max-w-md mx-auto min-h-screen">
+
+        <!-- Header Profile -->
+        <header class="pt-8 px-5 flex justify-between items-center animate-slide-up" style="animation-delay: 0.05s;">
+            <div class="flex items-center gap-4">
+                <div class="w-14 h-14 rounded-full bg-apple-blue shadow-lg shadow-apple-blue/20 flex items-center justify-center overflow-hidden border-2 border-white/10"
+                    id="userAvatarBox">
+                    <span class="text-white font-display font-bold text-xl" id="userInitials">U</span>
                 </div>
-                <div class="badge-pro-icon">🏆</div>
-            </div>
-
-            <!-- STATS -->
-            <div class="stats-grid">
-                <div class="stat-card animate-up" style="animation-delay: 0.1s;">
-                    <div class="label">🔥 STREAK</div>
-                    <div class="val">2 Days</div>
-                </div>
-                <div class="stat-card animate-up" style="animation-delay: 0.2s;">
-                    <div class="label" style="color: #3b82f6;">🌐 GLOBAL RANK</div>
-                    <div class="val">#12</div>
+                <div class="flex flex-col">
+                    <span class="text-sm font-medium text-black/50 dark:text-white/50" id="lbl_welcome">Xush
+                        kelibsiz,</span>
+                    <span class="text-xl font-display font-bold tracking-tight text-black dark:text-white leading-tight"
+                        id="userName">User</span>
                 </div>
             </div>
-
-            <div class="section-header" id="txt_path">Hujjat Yo'li</div>
-
-            <div class="services-list">
-                <a href="obyektivka.html" class="svc-btn animate-up" style="animation-delay: 0.3s;">
-                    <div class="svc-icon-box color-blue">📋</div>
-                    <div class="svc-info">
-                        <div class="svc-title" id="txt_oby">Obyektivka AI</div>
-                        <div class="svc-desc" id="txt_oby_d">Rasmiy malumotnoma tayyorlash jarayoni</div>
-                    </div>
-                    <div class="svc-arrow">›</div>
-                </a>
-
-                <a href="cv.html" class="svc-btn animate-up" style="animation-delay: 0.4s;">
-                    <div class="svc-icon-box color-purple">📄</div>
-                    <div class="svc-info">
-                        <div class="svc-title" id="txt_cv">CV Builder</div>
-                        <div class="svc-desc" id="txt_cv_d">Professional rezyume yaratish interfeysi</div>
-                    </div>
-                    <div class="svc-arrow">›</div>
-                </a>
-
-                <a href="more.html" class="svc-btn animate-up" style="animation-delay: 0.5s;">
-                    <div class="svc-icon-box color-green">⚡</div>
-                    <div class="svc-info">
-                        <div class="svc-title" id="txt_ai">AI Test Lab</div>
-                        <div class="svc-desc" id="txt_ai_d">Tarjima, OCR va boshqa aqlli servislar</div>
-                    </div>
-                    <div class="svc-arrow">›</div>
-                </a>
-
-                <a href="premium.html" class="svc-btn animate-up" style="animation-delay: 0.6s;">
-                    <div class="svc-icon-box color-gold">⭐</div>
-                    <div class="svc-info">
-                        <div class="svc-title" id="txt_prem">Premium Tarif</div>
-                        <div class="svc-desc" id="txt_prem_d">Cheksiz imkoniyatlar va ustuvorlik</div>
-                    </div>
-                    <div class="svc-arrow">›</div>
-                </a>
+            <div
+                class="w-10 h-10 rounded-full bg-black/5 dark:bg-white/10 flex items-center justify-center text-xl cursor-pointer hover:bg-black/10 transition-colors">
+                🏆
             </div>
+        </header>
 
-            <div class="brand-footer">
-                <div class="brand-logo-text">DASTYOR <span>AI</span></div>
-            </div>
-        </div>
-    </div>
-
-    <!-- SETTINGS VIEW -->
-    <div id="settingsView" class="view">
-        <div class="page">
-            <div style="padding: 40px 20px 20px;">
-                <h1 style="font-size: 32px; font-weight: 900;" id="txt_settings">Sozlamalar</h1>
-                <p style="color: var(--muted); font-size: 15px;" id="txt_personalize">Tajribani o'zingizga moslang</p>
-            </div>
-
-            <div class="settings-content">
-                <div class="setting-card">
-                    <div class="setting-row" onclick="toggleTheme()">
-                        <div class="set-left">
-                            <div class="set-icon" style="background: rgba(245, 158, 11, 0.1); color: #f59e0b;">🌙</div>
-                            <div class="set-info">
-                                <span class="set-title" id="txt_theme">Rejim</span>
-                                <span class="set-val" id="val_theme">Tungi</span>
-                            </div>
-                        </div>
-                        <div class="svc-arrow">›</div>
+        <!-- Dynamic Stats Card -->
+        <div class="px-5 mt-8 animate-slide-up" style="animation-delay: 0.1s;">
+            <div
+                class="bg-white dark:bg-neutral-900 border border-black/5 dark:border-white/5 rounded-3xl p-5 shadow-sm">
+                <div class="flex justify-between items-center mb-4">
+                    <div class="text-xs font-bold text-black/40 dark:text-white/40 uppercase tracking-widest">Aktivlik
                     </div>
-
-                    <div class="setting-row" onclick="cycleLanguage()">
-                        <div class="set-left">
-                            <div class="set-icon" style="background: rgba(16, 185, 129, 0.1); color: #10b981;">🌐</div>
-                            <div class="set-info">
-                                <span class="set-title" id="txt_lang">Til</span>
-                                <span class="set-val" id="val_lang">O'zbekcha</span>
-                            </div>
-                        </div>
-                        <div class="svc-arrow">›</div>
-                    </div>
-                </div>
-
-                <div class="setting-card">
-                    <a href="https://t.me/DastyorAiBot" target="_blank" class="setting-row"
-                        style="text-decoration: none; color: inherit;">
-                        <div class="set-left">
-                            <div class="set-icon" style="background: rgba(59, 130, 246, 0.1); color: #3b82f6;">❓</div>
-                            <div class="set-info">
-                                <span class="set-title" id="txt_help">Yordam Markazi</span>
-                                <span class="set-val">SUPPORT & FAQ</span>
-                            </div>
-                        </div>
-                        <div style="color: #3b82f6; font-weight: 800; font-size: 11px;">SUPPORT</div>
-                    </a>
-                </div>
-
-                <div style="text-align: center; margin-top: 40px;">
                     <div
-                        style="font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 1px;">
-                        Version 1.2.0</div>
-                    <div style="font-size: 12px; margin-top: 10px; color: var(--muted); opacity: 0.6;">© 2026 Dastyora
-                        Master AI. All rights reserved.</div>
+                        class="text-xs font-bold text-apple-green bg-apple-green/10 px-2 py-1 rounded-full uppercase tracking-wide">
+                        Faol</div>
+                </div>
+                <div class="flex items-end gap-2">
+                    <span class="text-4xl font-display font-extrabold tracking-tighter">1,240</span>
+                    <span class="text-sm font-medium text-black/50 dark:text-white/50 pb-1">so'rovlar</span>
                 </div>
             </div>
         </div>
+
+        <!-- Section Title -->
+        <div class="px-5 mt-8 mb-4 animate-slide-up" style="animation-delay: 0.15s;">
+            <h2 class="text-xs font-bold text-black/40 dark:text-white/40 uppercase tracking-widest">Ilovalar tizimi
+            </h2>
+        </div>
+
+        <!-- App Grid / List -->
+        <div class="px-5 flex flex-col gap-3 pb-8">
+
+            <!-- App Card 1: Obyektivka -->
+            <a href="obyektivka.html"
+                class="group flex items-center bg-white dark:bg-neutral-900 hover:bg-neutral-50 dark:hover:bg-neutral-800 border border-black/5 dark:border-white/5 p-4 rounded-[24px] shadow-sm transform transition-all active:scale-[0.98] animate-slide-up"
+                style="animation-delay: 0.2s;">
+                <div
+                    class="w-14 h-14 rounded-2xl bg-apple-blue/10 flex items-center justify-center text-2xl flex-shrink-0">
+                    📋
+                </div>
+                <div class="ml-4 flex-1">
+                    <h3 class="font-display font-bold text-lg leading-tight mb-1 text-black dark:text-white">Obyektivka
+                        AI</h3>
+                    <p class="text-xs font-medium text-black/50 dark:text-white/50 pr-4 leading-relaxed">Rasmiy, davlat
+                        standartlaridagi ma'lumotnoma tuzish</p>
+                </div>
+                <div
+                    class="text-black/20 dark:text-white/20 group-hover:text-apple-blue group-hover:translate-x-1 transition-all">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <path d="m9 18 6-6-6-6" />
+                    </svg>
+                </div>
+            </a>
+
+            <!-- App Card 2: CV Builder -->
+            <a href="cv.html"
+                class="group flex items-center bg-white dark:bg-neutral-900 hover:bg-neutral-50 dark:hover:bg-neutral-800 border border-black/5 dark:border-white/5 p-4 rounded-[24px] shadow-sm transform transition-all active:scale-[0.98] animate-slide-up"
+                style="animation-delay: 0.25s;">
+                <div
+                    class="w-14 h-14 rounded-2xl bg-apple-purple/10 flex items-center justify-center text-2xl flex-shrink-0">
+                    🪄
+                </div>
+                <div class="ml-4 flex-1">
+                    <h3 class="font-display font-bold text-lg leading-tight mb-1 text-black dark:text-white">CV Builder
+                    </h3>
+                    <p class="text-xs font-medium text-black/50 dark:text-white/50 pr-4 leading-relaxed">Zamonaviy,
+                        xalqaro formatdagi rezyume dizayneri</p>
+                </div>
+                <div
+                    class="text-black/20 dark:text-white/20 group-hover:text-apple-purple group-hover:translate-x-1 transition-all">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <path d="m9 18 6-6-6-6" />
+                    </svg>
+                </div>
+            </a>
+
+            <!-- App Card 3: AI Lab -->
+            <a href="more.html"
+                class="group flex items-center bg-white dark:bg-neutral-900 hover:bg-neutral-50 dark:hover:bg-neutral-800 border border-black/5 dark:border-white/5 p-4 rounded-[24px] shadow-sm transform transition-all active:scale-[0.98] animate-slide-up"
+                style="animation-delay: 0.3s;">
+                <div
+                    class="w-14 h-14 rounded-2xl bg-apple-green/10 flex items-center justify-center text-2xl flex-shrink-0">
+                    🧠
+                </div>
+                <div class="ml-4 flex-1">
+                    <h3 class="font-display font-bold text-lg leading-tight mb-1 text-black dark:text-white">AI Tools
+                    </h3>
+                    <p class="text-xs font-medium text-black/50 dark:text-white/50 pr-4 leading-relaxed">Tarjimon,
+                        rasmda o'qish va harf o'girish uskunalari</p>
+                </div>
+                <div
+                    class="text-black/20 dark:text-white/20 group-hover:text-apple-green group-hover:translate-x-1 transition-all">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <path d="m9 18 6-6-6-6" />
+                    </svg>
+                </div>
+            </a>
+
+        </div>
+    </main>
+
+    <!-- =============== SETTINGS VIEW =============== -->
+    <main id="view-settings" class="view-layer max-w-md mx-auto min-h-screen px-5 pt-12">
+        <h1 class="font-display font-extrabold text-4xl mb-2 text-black dark:text-white animate-slide-up">Sozlamalar
+        </h1>
+        <p class="text-black/50 dark:text-white/50 mb-8 font-medium animate-slide-up" style="animation-delay: 0.05s;">
+            Ilovani o'zingizga moslang</p>
+
+        <div class="bg-white dark:bg-neutral-900 border border-black/5 dark:border-white/5 rounded-[24px] overflow-hidden shadow-sm animate-slide-up"
+            style="animation-delay: 0.1s;">
+
+            <!-- Theme Toggle -->
+            <button onclick="toggleTheme()"
+                class="w-full flex items-center justify-between p-5 bg-transparent hover:bg-black/5 dark:hover:bg-white/5 active:bg-black/10 dark:active:bg-white/10 transition-colors border-b border-black/5 dark:border-white/5 text-left">
+                <div class="flex items-center gap-4">
+                    <div
+                        class="w-10 h-10 rounded-xl bg-apple-orange/10 flex items-center justify-center text-xl text-apple-orange">
+                        <span id="themeIcon">🌙</span>
+                    </div>
+                    <div>
+                        <div class="font-bold text-black dark:text-white">Mavzu Rejimi</div>
+                        <div class="text-xs font-medium text-black/50 dark:text-white/50 mt-0.5" id="themeStatus">Tungi
+                            rejim yoqiq</div>
+                    </div>
+                </div>
+                <div class="w-12 h-7 rounded-full bg-apple-green flex items-center px-1" id="themeToggleBody">
+                    <div class="w-5 h-5 rounded-full bg-white shadow-sm transform translate-x-5 transition-transform"
+                        id="themeToggleKnob"></div>
+                </div>
+            </button>
+
+            <!-- Language -->
+            <button
+                class="w-full flex items-center justify-between p-5 bg-transparent hover:bg-black/5 dark:hover:bg-white/5 active:bg-black/10 dark:active:bg-white/10 transition-colors border-b border-black/5 dark:border-white/5 text-left">
+                <div class="flex items-center gap-4">
+                    <div
+                        class="w-10 h-10 rounded-xl bg-apple-blue/10 flex items-center justify-center text-xl text-apple-blue">
+                        🌐
+                    </div>
+                    <div>
+                        <div class="font-bold text-black dark:text-white">Til</div>
+                        <div class="text-xs font-medium text-black/50 dark:text-white/50 mt-0.5">O'zbekcha</div>
+                    </div>
+                </div>
+                <div class="text-black/20 dark:text-white/20">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <path d="m9 18 6-6-6-6" />
+                    </svg>
+                </div>
+            </button>
+
+            <!-- Support -->
+            <a href="https://t.me/DastyorAiBot" target="_blank"
+                class="w-full flex items-center justify-between p-5 bg-transparent hover:bg-black/5 dark:hover:bg-white/5 active:bg-black/10 dark:active:bg-white/10 transition-colors text-left group">
+                <div class="flex items-center gap-4">
+                    <div
+                        class="w-10 h-10 rounded-xl bg-apple-purple/10 flex items-center justify-center text-xl text-apple-purple">
+                        💬
+                    </div>
+                    <div>
+                        <div class="font-bold text-black dark:text-white">Yordam & Info</div>
+                        <div class="text-xs font-medium text-black/50 dark:text-white/50 mt-0.5">Savollar bo'yicha</div>
+                    </div>
+                </div>
+                <div
+                    class="text-apple-blue font-bold text-sm bg-apple-blue/10 px-3 py-1 rounded-full group-hover:bg-apple-blue/20 transition-colors">
+                    Bot orqali
+                </div>
+            </a>
+        </div>
+
+        <div class="text-center mt-12 text-black/30 dark:text-white/30 text-xs font-medium uppercase tracking-widest animate-slide-up"
+            style="animation-delay: 0.15s;">
+            DASTYOR AI v2.0 Platform
+        </div>
+    </main>
+
+
+    <!-- =============== BOTTOM NAVIGATION =============== -->
+    <div class="fixed bottom-0 left-0 right-0 z-50 flex justify-center pb-6 pointer-events-none">
+        <nav
+            class="pointer-events-auto bg-white/70 dark:bg-neutral-900/70 backdrop-blur-2xl border border-black/5 dark:border-white/10 shadow-[0_20px_40px_rgba(0,0,0,0.1)] dark:shadow-[0_20px_40px_rgba(0,0,0,0.5)] rounded-full px-2 py-2 flex items-center gap-1">
+
+            <button onclick="switchView('home')" id="tab-home"
+                class="tab-btn px-6 py-3 rounded-full flex flex-col items-center justify-center gap-1 transition-all bg-black dark:bg-white text-white dark:text-black">
+                <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+                    <polyline points="9 22 9 12 15 12 15 22" />
+                </svg>
+            </button>
+
+            <button onclick="switchView('settings')" id="tab-settings"
+                class="tab-btn px-6 py-3 rounded-full flex flex-col items-center justify-center gap-1 transition-all text-black/40 dark:text-white/40 hover:text-black dark:hover:text-white">
+                <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="3" />
+                    <path
+                        d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
+                </svg>
+            </button>
+
+        </nav>
     </div>
 
-    <!-- BOTTOM NAV -->
-    <div class="bottom-nav">
-        <div class="nav-item active" onclick="switchView('home')" id="navHome">
-            <div class="nav-icon">🏠</div>
-            <div class="nav-label" id="lbl_home">Asosiy</div>
-        </div>
-        <div class="nav-item">
-            <div class="nav-icon">📖</div>
-            <div class="nav-label" id="lbl_tests">Turlar</div>
-        </div>
-        <div class="nav-item">
-            <div class="nav-icon">🏆</div>
-            <div class="nav-label" id="lbl_top">Reyting</div>
-        </div>
-        <div class="nav-item" onclick="switchView('settings')" id="navSettings">
-            <div class="nav-icon">⚙️</div>
-            <div class="nav-label" id="lbl_settings">Sozlamalar</div>
-        </div>
-    </div>
-
+    <!-- =============== LOGIC =============== -->
     <script>
         const tg = window.Telegram?.WebApp;
         let telegramId = '';
-        let currentLang = localStorage.getItem('lang') || 'uz';
-        let currentTheme = localStorage.getItem('theme') || 'dark';
 
-        // Translation Map
-        const i18n = {
-            uz: {
-                welcome: "Xush kelibsiz,",
-                path: "Hujjat Yo'li",
-                oby: "Obyektivka AI",
-                oby_d: "Rasmiy malumotnoma tayyorlash jarayoni",
-                cv: "CV Builder",
-                cv_d: "Professional rezyume yaratish interfeysi",
-                ai: "AI Test Lab",
-                ai_d: "Tarjima, OCR va boshqa aqlli servislar",
-                prem: "Premium Tarif",
-                prem_d: "Cheksiz imkoniyatlar va ustuvorlik",
-                settings: "Sozlamalar",
-                personalize: "Tajribani o'zingizga moslang",
-                theme: "Mavzu Rejimi",
-                lang: "Dastur Tili",
-                help: "Yordam Markazi",
-                dark: "Tungi",
-                light: "Kunduzgi",
-                lbl_home: "Asosiy",
-                lbl_tests: "Turlar",
-                lbl_top: "Reyting",
-                lbl_settings: "Sozlama"
-            },
-            en: {
-                welcome: "Welcome back,",
-                path: "Learning Path",
-                oby: "Obyektivka AI",
-                oby_d: "Official template generation process",
-                cv: "CV Builder",
-                cv_d: "Professional resume creation interface",
-                ai: "AI Test Lab",
-                ai_d: "Translation, OCR and smart services",
-                prem: "Premium Plan",
-                prem_d: "Unlimited access and priority support",
-                settings: "Settings",
-                personalize: "Personalize your experience",
-                theme: "Theme Mode",
-                lang: "App Language",
-                help: "Help Center",
-                dark: "Dark",
-                light: "Light",
-                lbl_home: "Home",
-                lbl_tests: "Tests",
-                lbl_top: "Global",
-                lbl_settings: "Settings"
+        // Handle Theme
+        let isDark = localStorage.getItem('theme') !== 'light';
+
+        function applyTheme() {
+            if (isDark) {
+                document.documentElement.classList.add('dark');
+                document.getElementById('themeIcon').textContent = '🌙';
+                document.getElementById('themeStatus').textContent = 'Tungi rejim';
+
+                document.getElementById('themeToggleBody').classList.replace('bg-black/10', 'bg-apple-green');
+                document.getElementById('themeToggleKnob').classList.replace('translate-x-0', 'translate-x-5');
+
+                if (tg?.setHeaderColor) tg.setHeaderColor('#000000');
+                if (tg?.setBackgroundColor) tg.setBackgroundColor('#000000');
+            } else {
+                document.documentElement.classList.remove('dark');
+                document.getElementById('themeIcon').textContent = '☀️';
+                document.getElementById('themeStatus').textContent = 'Kunduzgi rejim';
+
+                document.getElementById('themeToggleBody').classList.replace('bg-apple-green', 'bg-black/10');
+                document.getElementById('themeToggleKnob').classList.replace('translate-x-5', 'translate-x-0');
+
+                if (tg?.setHeaderColor) tg.setHeaderColor('#f5f5f7');
+                if (tg?.setBackgroundColor) tg.setBackgroundColor('#f5f5f7');
             }
-        };
+        }
+        applyTheme();
 
-        function checkAuth() {
+        function toggleTheme() {
+            isDark = !isDark;
+            localStorage.setItem('theme', isDark ? 'dark' : 'light');
+            applyTheme();
+            tg?.HapticFeedback?.impactOccurred('medium');
+        }
+
+        // Handle View Switching
+        function switchView(viewName) {
+            // Views
+            document.querySelectorAll('.view-layer').forEach(el => el.classList.remove('active'));
+            document.getElementById(`view-${viewName}`).classList.add('active');
+
+            // Tabs styles via Tailwind
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.className = "tab-btn px-6 py-3 rounded-full flex flex-col items-center justify-center gap-1 transition-all text-black/40 dark:text-white/40 hover:text-black dark:hover:text-white";
+            });
+
+            // Set active tab
+            document.getElementById(`tab-${viewName}`).className = "tab-btn px-6 py-3 rounded-full flex flex-col items-center justify-center gap-1 transition-all bg-black dark:bg-white text-white dark:text-black";
+
+            tg?.HapticFeedback?.impactOccurred('light');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        // Initialize user via Telegram params
+        function initApp() {
             if (tg) {
                 tg.ready();
                 tg.expand();
-                tg.BackButton.hide();
-                if (tg.setHeaderColor) tg.setHeaderColor(currentTheme === 'dark' ? '#050f1e' : '#f8fafc');
 
-                if (tg.initDataUnsafe?.user) {
-                    telegramId = tg.initDataUnsafe.user.id.toString();
-                    const user = tg.initDataUnsafe.user;
-                    if (user?.first_name) {
-                        document.getElementById('userName').textContent = user.first_name;
-                        document.getElementById('userInitial').textContent = user.first_name.charAt(0);
-                    }
-                    if (user.photo_url) {
-                        document.getElementById('picBox').innerHTML = `<img src="${user.photo_url}" alt="user">`;
-                    }
+                // Read from UI
+                const u = tg.initDataUnsafe?.user;
+                if (u) {
+                    telegramId = u.id;
                     sessionStorage.setItem('telegram_id', telegramId);
-                    return true;
+                    document.getElementById('userName').textContent = u.first_name || 'User';
+                    if (u.first_name) document.getElementById('userInitials').textContent = u.first_name.charAt(0);
+
+                    if (u.photo_url) {
+                        document.getElementById('userAvatarBox').innerHTML = `<img src="${u.photo_url}" class="w-full h-full object-cover">`;
+                    }
                 }
-                // Try parsing tg.initData raw string
-                if (tg.initData) {
-                    try {
-                        const p = new URLSearchParams(tg.initData);
-                        const u = JSON.parse(decodeURIComponent(p.get('user') || '{}'));
-                        if (u.id) {
-                            telegramId = u.id.toString();
-                            sessionStorage.setItem('telegram_id', telegramId);
-                            if (u.first_name) {
-                                document.getElementById('userName').textContent = u.first_name;
-                                document.getElementById('userInitial').textContent = u.first_name.charAt(0);
-                            }
-                            return true;
+            }
+
+            // Forward Telegram IDs to links to bypass authentication checks inside webviews
+            const storedId = telegramId || sessionStorage.getItem('telegram_id');
+            document.querySelectorAll('a').forEach(a => {
+                a.addEventListener('click', (e) => {
+                    const href = a.getAttribute('href');
+                    if (href && !href.startsWith('http')) {
+                        if (storedId) {
+                            e.preventDefault();
+                            const sep = href.includes('?') ? '&' : '?';
+                            window.location.href = `${href}${sep}telegram_id=${storedId}`;
                         }
-                    } catch (e) { }
-                }
-            }
-            // URL param fallback
-            const urlId = new URLSearchParams(window.location.search).get('telegram_id');
-            if (urlId) { telegramId = urlId; sessionStorage.setItem('telegram_id', telegramId); return true; }
-            // sessionStorage fallback (persists across page navigations)
-            const stored = sessionStorage.getItem('telegram_id');
-            if (stored) { telegramId = stored; return true; }
-            return false;
-        }
-
-        function switchView(view) {
-            document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
-            document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
-
-            if (view === 'home') {
-                document.getElementById('homeView').classList.add('active');
-                document.getElementById('navHome').classList.add('active');
-            } else if (view === 'settings') {
-                document.getElementById('settingsView').classList.add('active');
-                document.getElementById('navSettings').classList.add('active');
-            }
-            tg?.HapticFeedback?.impactOccurred('light');
-        }
-
-        function toggleTheme() {
-            currentTheme = currentTheme === 'dark' ? 'light' : 'dark';
-            document.documentElement.setAttribute('data-theme', currentTheme);
-            localStorage.setItem('theme', currentTheme);
-            updateUILables();
-            tg?.HapticFeedback?.impactOccurred('medium');
-        }
-
-        function cycleLanguage() {
-            currentLang = currentLang === 'uz' ? 'en' : 'uz';
-            localStorage.setItem('lang', currentLang);
-            updateUILables();
-            tg?.HapticFeedback?.impactOccurred('medium');
-        }
-
-        function updateUILables() {
-            const strings = i18n[currentLang];
-            document.getElementById('txt_welcome').textContent = strings.welcome;
-            document.getElementById('txt_path').textContent = strings.path;
-            document.getElementById('txt_oby').textContent = strings.oby;
-            document.getElementById('txt_oby_d').textContent = strings.oby_d;
-            document.getElementById('txt_cv').textContent = strings.cv;
-            document.getElementById('txt_cv_d').textContent = strings.cv_d;
-            document.getElementById('txt_ai').textContent = strings.ai;
-            document.getElementById('txt_ai_d').textContent = strings.ai_d;
-            document.getElementById('txt_prem').textContent = strings.prem;
-            document.getElementById('txt_prem_d').textContent = strings.prem_d;
-
-            document.getElementById('txt_settings').textContent = strings.settings;
-            document.getElementById('txt_personalize').textContent = strings.personalize;
-            document.getElementById('txt_theme').textContent = strings.theme;
-            document.getElementById('txt_lang').textContent = strings.lang;
-            document.getElementById('txt_help').textContent = strings.help;
-
-            document.getElementById('val_theme').textContent = currentTheme === 'dark' ? strings.dark : strings.light;
-            document.getElementById('val_lang').textContent = currentLang === 'uz' ? "O'zbekcha" : "English";
-
-            document.getElementById('lbl_home').textContent = strings.lbl_home;
-            document.getElementById('lbl_tests').textContent = strings.lbl_tests;
-            document.getElementById('lbl_top').textContent = strings.lbl_top;
-            document.getElementById('lbl_settings').textContent = strings.lbl_settings;
-        }
-
-        // Initialize state
-        document.documentElement.setAttribute('data-theme', currentTheme);
-        updateUILables();
-
-        if (!checkAuth()) {
-            setTimeout(() => {
-                if (!checkAuth()) {
-                    // Fail silently or show error screen as before
-                }
-            }, 500);
-        }
-
-        // Setup Link IDs persistence
-        document.querySelectorAll('a').forEach(a => {
-            a.addEventListener('click', (e) => {
-                const href = a.getAttribute('href');
-                if (!href || !href.endsWith('.html')) return;
-                const id = telegramId || sessionStorage.getItem('telegram_id');
-                if (id) {
-                    e.preventDefault();
-                    const separator = href.includes('?') ? '&' : '?';
-                    window.location.href = `${href}${separator}telegram_id=${id}`;
-                }
+                    }
+                });
             });
-        });
+        }
+
+        initApp();
     </script>
 </body>
 

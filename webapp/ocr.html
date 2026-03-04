@@ -1,386 +1,85 @@
 <!DOCTYPE html>
-<html lang="uz" data-theme="dark">
+<html lang="uz" class="dark">
 
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>Rasm → Word | DASTYOR AI</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap"
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Outfit:wght@500;600;700;800&display=swap"
         rel="stylesheet" />
+
+    <!-- Tailwind -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        display: ['Outfit', 'sans-serif'],
+                    },
+                    colors: {
+                        apple: {
+                            blue: '#0A84FF',
+                            green: '#30D158',
+                            orange: '#FF9F0A',
+                            purple: '#BF5AF2',
+                        }
+                    },
+                    animation: {
+                        'slide-up': 'slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+                    },
+                    keyframes: {
+                        slideUp: {
+                            '0%': { opacity: '0', transform: 'translateY(16px)' },
+                            '100%': { opacity: '1', transform: 'translateY(0)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
     <style>
-        *,
-        *::before,
-        *::after {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0
-        }
-
-        :root[data-theme="dark"] {
-            --bg: #060d1c;
-            --surface: #0d1b2e;
-            --surface2: #112240;
-            --border: rgba(255, 255, 255, .07);
-            --text: #e8edf4;
-            --sub: #8899aa;
-            --accent: #8b5cf6;
-            --accent2: #6d28d9;
-            --accent-glow: rgba(139, 92, 246, .25);
-            --green: #10b981;
-            --red: #ef4444;
-            --inp-bg: rgba(255, 255, 255, .04);
-        }
-
-        :root[data-theme="light"] {
-            --bg: #f0f4f8;
-            --surface: #ffffff;
-            --surface2: #f8fafc;
-            --border: #e2e8f0;
-            --text: #0f172a;
-            --sub: #64748b;
-            --accent: #7c3aed;
-            --accent2: #5b21b6;
-            --accent-glow: rgba(124, 58, 237, .12);
-            --green: #059669;
-            --red: #dc2626;
-            --inp-bg: #f8fafc;
-        }
-
-        html {
-            height: 100%;
-            -webkit-tap-highlight-color: transparent
+        html,
+        body {
+            -webkit-tap-highlight-color: transparent;
+            overscroll-behavior-y: none;
         }
 
         body {
-            font-family: 'Inter', sans-serif;
-            background: var(--bg);
-            color: var(--text);
-            min-height: 100dvh;
-            display: flex;
-            flex-direction: column;
+            background-color: #f5f5f7;
+            color: #1d1d1f;
+            transition: background-color 0.3s ease, color 0.3s ease;
         }
 
-        /* ── HEADER ── */
-        .hdr {
-            flex-shrink: 0;
-            height: 56px;
-            display: flex;
-            align-items: center;
-            padding: 0 16px;
-            gap: 12px;
-            background: var(--surface);
-            border-bottom: 1px solid var(--border);
-            position: sticky;
-            top: 0;
-            z-index: 10;
+        .dark body {
+            background-color: #000000;
+            color: #f5f5f7;
         }
 
-        .back-btn {
-            width: 38px;
-            height: 38px;
-            border-radius: 12px;
-            background: var(--inp-bg);
-            border: 1px solid var(--border);
-            color: var(--text);
-            font-size: 18px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            flex-shrink: 0;
-            transition: background .2s;
+        .scroller::-webkit-scrollbar {
+            width: 0px;
         }
 
-        .back-btn:active {
-            background: var(--accent-glow)
-        }
-
-        .hdr-info {
-            flex: 1;
-            min-width: 0
-        }
-
-        .hdr-title {
-            font-size: 15px;
-            font-weight: 800;
-            line-height: 1.2
-        }
-
-        .hdr-sub {
-            font-size: 11px;
-            color: var(--sub);
-            font-weight: 500
-        }
-
-        /* ── MAIN ── */
-        .main {
-            flex: 1;
-            overflow-y: auto;
-            overflow-x: hidden;
-            padding: 16px;
-            display: flex;
-            flex-direction: column;
-            gap: 14px;
-        }
-
-        .main::-webkit-scrollbar {
-            width: 0
-        }
-
-        /* ── UPLOAD ZONE ── */
-        .upload-zone {
-            border: 2px dashed var(--accent);
-            border-radius: 22px;
-            padding: 36px 20px;
-            text-align: center;
-            cursor: pointer;
-            background: rgba(139, 92, 246, .04);
-            transition: all .25s;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .upload-zone:hover {
-            background: rgba(139, 92, 246, .08);
-            border-color: var(--accent2)
-        }
-
-        .upload-zone.drag-over {
-            background: rgba(139, 92, 246, .14);
-            border-color: var(--green);
-            transform: scale(1.01);
-        }
-
-        .upload-icon {
-            font-size: 48px;
-            display: block;
-            margin-bottom: 10px
-        }
-
-        .upload-title {
-            font-size: 16px;
-            font-weight: 800;
-            color: var(--accent);
-            margin-bottom: 6px
-        }
-
-        .upload-sub {
-            font-size: 12px;
-            color: var(--sub);
-            font-weight: 500
-        }
-
-        /* ── MULTI-IMAGE QUEUE ── */
-        .queue-wrap {
-            display: none;
-            flex-direction: column;
-            gap: 10px;
-        }
-
-        .queue-wrap.show {
-            display: flex
-        }
-
-        .queue-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-
-        .queue-title {
-            font-size: 13px;
-            font-weight: 800;
-            color: var(--accent);
-            text-transform: uppercase;
-            letter-spacing: .5px;
-        }
-
-        .clear-all-btn {
-            background: none;
-            border: none;
-            color: var(--red);
-            font-size: 12px;
-            font-weight: 700;
-            cursor: pointer;
-            padding: 4px 8px;
-            border-radius: 8px;
-            transition: background .2s;
-        }
-
-        .clear-all-btn:hover {
-            background: rgba(239, 68, 68, .08)
-        }
-
-        .img-list {
-            display: flex;
-            flex-direction: column;
-            gap: 8px
-        }
-
-        .img-item {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            background: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: 14px;
-            padding: 10px 12px;
-            overflow: hidden;
-        }
-
-        .img-thumb {
-            width: 48px;
-            height: 48px;
-            border-radius: 10px;
-            object-fit: cover;
-            flex-shrink: 0;
-        }
-
-        .img-meta {
-            flex: 1;
-            min-width: 0
-        }
-
-        .img-name {
-            font-size: 13px;
-            font-weight: 700;
-            color: var(--text);
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap
-        }
-
-        .img-size {
-            font-size: 11px;
-            color: var(--sub);
-            font-weight: 500
-        }
-
-        .img-remove {
-            width: 28px;
-            height: 28px;
-            border-radius: 8px;
-            background: rgba(239, 68, 68, .1);
-            border: none;
-            color: var(--red);
-            font-size: 14px;
-            cursor: pointer;
-            flex-shrink: 0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .add-more-btn {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            padding: 12px;
-            border-radius: 14px;
-            border: 1.5px dashed var(--border);
-            background: none;
-            color: var(--accent);
-            font-family: 'Inter', sans-serif;
-            font-size: 13px;
-            font-weight: 700;
-            cursor: pointer;
-            transition: all .2s;
-        }
-
-        .add-more-btn:hover {
-            border-color: var(--accent);
-            background: rgba(139, 92, 246, .06)
-        }
-
-        /* ── TELEGRAM OPTIONAL SECTION ── */
-        .tg-section {
-            background: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: 16px;
-            padding: 14px 16px;
-        }
-
-        .tg-top {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-
-        .tg-icon {
-            font-size: 24px;
-            flex-shrink: 0
-        }
-
-        .tg-labels {
-            flex: 1
-        }
-
-        .tg-label-title {
-            font-size: 13px;
-            font-weight: 800
-        }
-
-        .tg-label-sub {
-            font-size: 11px;
-            color: var(--sub);
-            font-weight: 500
-        }
-
-        .tg-status-badge {
-            padding: 4px 10px;
-            border-radius: 10px;
-            font-size: 11px;
-            font-weight: 700;
-            color: var(--green);
-            background: rgba(16, 185, 129, .1);
-            border: 1px solid rgba(16, 185, 129, .3);
-        }
-
-        .tg-status-badge.offline {
-            color: var(--sub);
-            background: var(--inp-bg);
-            border-color: var(--border);
-        }
-
-        /* ── CONVERT BUTTON ── */
-        .conv-btn {
-            width: 100%;
-            height: 54px;
-            border-radius: 16px;
-            border: none;
-            background: linear-gradient(135deg, var(--accent), var(--accent2));
-            color: #fff;
-            font-family: 'Inter', sans-serif;
-            font-weight: 800;
-            font-size: 16px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            box-shadow: 0 6px 24px var(--accent-glow);
-            transition: transform .15s, box-shadow .15s, opacity .2s;
-        }
-
-        .conv-btn:active {
-            transform: scale(.97)
-        }
-
-        .conv-btn:disabled {
-            opacity: .45;
-            cursor: not-allowed;
-            transform: none
+        /* Drag active UI styling */
+        .drag-active {
+            border-color: #BF5AF2 !important;
+            background-color: rgba(191, 90, 242, 0.1) !important;
+            transform: scale(1.02);
+            transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
         }
 
         .spin {
-            width: 20px;
-            height: 20px;
-            border-radius: 50%;
-            border: 2.5px solid rgba(255, 255, 255, .3);
+            width: 18px;
+            height: 18px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
             border-top-color: #fff;
-            animation: spin .7s linear infinite;
+            border-radius: 50%;
+            animation: spin 0.7s linear infinite;
         }
 
         @keyframes spin {
@@ -389,309 +88,168 @@
             }
         }
 
-        /* ── PROGRESS BAR ── */
-        .progress-wrap {
-            display: none;
-            flex-direction: column;
-            gap: 8px;
-        }
-
-        .progress-wrap.show {
-            display: flex
-        }
-
-        .progress-labels {
-            display: flex;
-            justify-content: space-between;
-            font-size: 12px;
-            font-weight: 700
-        }
-
-        .progress-label {
-            color: var(--sub)
-        }
-
-        .progress-pct {
-            color: var(--accent)
-        }
-
-        .progress-bar-bg {
-            height: 6px;
-            border-radius: 3px;
-            background: var(--inp-bg);
-            overflow: hidden;
-        }
-
-        .progress-bar-fill {
-            height: 100%;
-            border-radius: 3px;
-            background: linear-gradient(90deg, var(--accent), var(--green));
-            width: 0%;
-            transition: width .4s ease;
-        }
-
-        /* ── STATUS BANNER ── */
-        .status {
-            border-radius: 14px;
-            padding: 12px 16px;
-            font-size: 13px;
-            font-weight: 600;
-            display: none;
-            gap: 10px;
-            align-items: flex-start;
-            line-height: 1.5;
-        }
-
-        .status.show {
-            display: flex
-        }
-
-        .status.success {
-            background: rgba(16, 185, 129, .08);
-            border: 1px solid rgba(16, 185, 129, .2);
-            color: var(--green)
-        }
-
-        .status.error {
-            background: rgba(239, 68, 68, .08);
-            border: 1px solid rgba(239, 68, 68, .2);
-            color: var(--red)
-        }
-
-        .status.info {
-            background: rgba(139, 92, 246, .08);
-            border: 1px solid rgba(139, 92, 246, .2);
-            color: var(--accent)
-        }
-
-        /* ── FEATURE CHIPS ── */
-        .features {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px
-        }
-
-        .feat {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            padding: 8px 12px;
-            background: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            font-size: 12px;
-            font-weight: 700;
-            color: var(--sub);
-        }
-
-        /* ── RESULT SECTION ── */
-        .result-card {
-            display: none;
-            background: var(--surface);
-            border: 1.5px solid rgba(16, 185, 129, .3);
-            border-radius: 18px;
-            padding: 18px;
-        }
-
-        .result-card.show {
-            display: block
-        }
-
-        .result-top {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            margin-bottom: 14px;
-        }
-
-        .result-icon {
-            font-size: 32px;
-            flex-shrink: 0
-        }
-
-        .result-title {
-            font-size: 15px;
-            font-weight: 800;
-            color: var(--green)
-        }
-
-        .result-sub {
-            font-size: 12px;
-            color: var(--sub);
-            font-weight: 500
-        }
-
-        .dl-btn {
-            width: 100%;
-            padding: 13px;
-            border-radius: 13px;
-            border: none;
-            background: var(--green);
-            color: #fff;
-            font-family: 'Inter', sans-serif;
-            font-weight: 800;
-            font-size: 14px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            transition: transform .15s;
-        }
-
-        .dl-btn:active {
-            transform: scale(.97)
-        }
-
-        .new-btn {
-            width: 100%;
-            padding: 11px;
-            border-radius: 13px;
-            border: 1.5px solid var(--border);
-            background: none;
-            color: var(--sub);
-            font-family: 'Inter', sans-serif;
-            font-weight: 700;
-            font-size: 13px;
-            cursor: pointer;
-            margin-top: 8px;
-            transition: background .2s;
-        }
-
-        .new-btn:hover {
-            background: var(--inp-bg)
+        /* Progress Bar Base */
+        .progress-bar {
+            transition: width 0.3s cubic-bezier(0.16, 1, 0.3, 1);
         }
     </style>
 </head>
 
-<body>
-    <!-- HEADER -->
-    <div class="hdr">
-        <div class="back-btn" id="backBtn">←</div>
-        <div class="hdr-info">
-            <div class="hdr-title">🖼️ Rasm → Word</div>
-            <div class="hdr-sub">AI orqali OCR va avtomatik yuklash</div>
+<body class="antialiased selection:bg-apple-purple selection:text-white flex flex-col h-screen overflow-hidden">
+
+    <!-- Global Header -->
+    <header
+        class="h-16 flex-shrink-0 border-b border-black/5 dark:border-white/5 bg-white/80 dark:bg-[#0a0a0c]/80 backdrop-blur-xl flex items-center px-4 z-50">
+        <a href="more.html"
+            class="w-10 h-10 rounded-xl bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 transition-colors flex items-center justify-center shrink-0"
+            id="backBtn">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+                stroke-linecap="round" stroke-linejoin="round">
+                <path d="m15 18-6-6 6-6" />
+            </svg>
+        </a>
+        <div class="ml-4 flex-1">
+            <h1 class="font-display font-bold text-lg tracking-tight leading-tight">Rasm → Word</h1>
+            <p class="text-[10px] font-semibold text-black/40 dark:text-white/40 uppercase tracking-widest"><span
+                    id="tgStatusBadge" class="text-apple-green">Telegram ulangan</span></p>
         </div>
-    </div>
+    </header>
 
-    <!-- MAIN -->
-    <div class="main">
+    <main class="flex-1 overflow-y-auto scroller relative flex flex-col">
+        <div class="max-w-xl w-full mx-auto p-4 md:p-6 flex flex-col h-full gap-5">
 
-        <!-- UPLOAD ZONE (shown when no files selected) -->
-        <div class="upload-zone" id="uploadZone" onclick="document.getElementById('imgInput').click()"
-            ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onDrop(event)">
-            <span class="upload-icon">🖼️</span>
-            <div class="upload-title">Rasm yuklash uchun bosing</div>
-            <div class="upload-sub">yoki shu yerga sudrab tashlang</div>
-            <div class="upload-sub" style="margin-top:6px">JPG, PNG, WEBP · 15 MB gacha · bitta yoki ko'p rasm</div>
-        </div>
-        <input type="file" id="imgInput" accept="image/*" multiple style="display:none"
-            onchange="handleFiles(this.files)" />
-
-        <!-- IMAGE QUEUE (shown after selection) -->
-        <div class="queue-wrap" id="queueWrap">
-            <div class="queue-header">
-                <span class="queue-title" id="queueTitle">0 ta rasm</span>
-                <button class="clear-all-btn" onclick="clearAll()">✕ Barchasini o'chirish</button>
-            </div>
-            <div class="img-list" id="imgList"></div>
-            <button class="add-more-btn" onclick="document.getElementById('imgInput').click()">
-                ＋ Yana rasm qo'shish
-            </button>
-        </div>
-
-        <!-- FEATURES -->
-        <div class="features">
-            <div class="feat">🎯 Yuqori aniqlik</div>
-            <div class="feat">🌐 O'zbek · Rus · Ingliz</div>
-            <div class="feat">📊 Jadval &amp; format</div>
-            <div class="feat">⚡ 10–30 soniya</div>
-        </div>
-
-        <!-- AUTO TELEGRAM SECTION -->
-        <div class="tg-section" id="tgSection">
-            <div class="tg-top">
-                <span class="tg-icon">🤖</span>
-                <div class="tg-labels">
-                    <div class="tg-label-title" id="tgLabelTitle">Bot orqali bog'langan</div>
-                    <div class="tg-label-sub" id="tgLabelSub">Hujjat botingizga ham avtomatik yuboriladi</div>
+            <!-- Connection Label -->
+            <div
+                class="flex items-center gap-3 bg-white dark:bg-[#151518] border border-black/5 dark:border-white/5 rounded-2xl p-3 animate-slide-up shadow-sm">
+                <div class="w-10 h-10 rounded-xl bg-apple-purple/10 flex items-center justify-center shrink-0">
+                    <span class="text-apple-purple font-bold text-lg">🤖</span>
                 </div>
-                <div class="tg-status-badge" id="tgStatusBadge">Faol</div>
-            </div>
-        </div>
-
-        <!-- PROGRESS -->
-        <div class="progress-wrap" id="progressWrap">
-            <div class="progress-labels">
-                <span class="progress-label" id="progressLabel">Rasm yuklanmoqda...</span>
-                <span class="progress-pct" id="progressPct">0%</span>
-            </div>
-            <div class="progress-bar-bg">
-                <div class="progress-bar-fill" id="progressFill"></div>
-            </div>
-        </div>
-
-        <!-- STATUS BANNER -->
-        <div class="status" id="statusBanner">
-            <span id="statusIcon">⚠️</span>
-            <span id="statusMsg"></span>
-        </div>
-
-        <!-- CONVERT BUTTON -->
-        <button class="conv-btn" id="convBtn" onclick="startOCR()" disabled>
-            ⚡ Word faylga aylantirish
-        </button>
-
-        <!-- RESULT CARD (shown after success) -->
-        <div class="result-card" id="resultCard">
-            <div class="result-top">
-                <span class="result-icon">✅</span>
                 <div>
-                    <div class="result-title">Word tayyor!</div>
-                    <div class="result-sub" id="resultSub">Yuklab olish boshlandi...</div>
+                    <h3 class="font-bold text-sm" id="tgLabelTitle">Obyektivka AI</h3>
+                    <p class="text-[11px] font-medium text-black/50 dark:text-white/50" id="tgLabelSub">Natijalar Word
+                        holida ham yuklanadi, ham bot orqali jo'natiladi.</p>
                 </div>
             </div>
-            <button class="dl-btn" id="dlBtn" onclick="reDownload()">⬇️ Qayta yuklab olish</button>
-            <button class="new-btn" onclick="startNew()">🔄 Yangi rasm yuklash</button>
-        </div>
 
-    </div><!-- /main -->
+            <!-- Upload Zone -->
+            <div class="flex-1 min-h-[200px] bg-white dark:bg-[#151518] border border-black/5 dark:border-white/5 rounded-[24px] overflow-hidden shadow-sm animate-slide-up relative"
+                style="animation-delay: 0.1s;">
+                <input type="file" id="imgInput" class="hidden" accept="image/*" multiple
+                    onchange="handleFiles(this.files)" />
+                <label for="imgInput" id="uploadZone"
+                    class="absolute inset-0 m-4 rounded-[18px] border-2 border-dashed border-apple-purple/30 bg-apple-purple/5 hover:bg-apple-purple/10 transition-colors flex flex-col items-center justify-center cursor-pointer select-none"
+                    ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onDrop(event)">
+
+                    <div
+                        class="w-20 h-20 mb-4 bg-white dark:bg-black rounded-[22px] shadow-sm flex items-center justify-center relative overflow-hidden">
+                        <svg class="text-apple-purple" width="36" height="36" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                            <polyline points="17 8 12 3 7 8" />
+                            <line x1="12" x2="12" y1="3" y2="15" />
+                        </svg>
+                    </div>
+
+                    <h2 class="font-display font-bold text-lg text-apple-purple mb-1">Rasmni yuklang</h2>
+                    <p class="text-xs font-semibold text-black/40 dark:text-white/40">Yoki bu yerga sudrab tashlang</p>
+                </label>
+
+                <!-- Queue Wrapper (hidden initially) -->
+                <div id="queueWrap" class="hidden absolute inset-0 bg-white dark:bg-[#151518] z-10 flex flex-col p-4">
+                    <div class="flex items-center justify-between mb-4 mt-2 px-2">
+                        <span class="text-[11px] font-bold text-apple-purple uppercase tracking-widest"
+                            id="queueTitle">0 ta rasm</span>
+                        <button onclick="clearAll()"
+                            class="text-[11px] font-bold text-red-500 bg-red-500/10 px-3 py-1.5 rounded-lg hover:bg-red-500/20 transition-colors uppercase tracking-wider">Barchasini
+                            tozalash</button>
+                    </div>
+
+                    <div class="flex-1 overflow-y-auto scroller px-2 pb-4 flex flex-col gap-3" id="imgList">
+                        <!-- Loaded dynamically -->
+                    </div>
+                </div>
+
+                <!-- Result Card overlay -->
+                <div id="resultCard"
+                    class="hidden absolute inset-0 bg-white/90 dark:bg-[#151518]/95 backdrop-blur-md z-20 flex-col items-center justify-center p-6 text-center shadow-lg">
+                    <div
+                        class="w-16 h-16 rounded-[22px] bg-apple-green/20 text-apple-green flex items-center justify-center text-3xl mb-4">
+                        ✅</div>
+                    <div class="font-display font-bold text-xl mb-2">Word tayyor!</div>
+                    <div class="text-xs font-medium text-black/50 dark:text-white/50 mb-8" id="resultSub">Yuklab olish
+                        boshlandi...</div>
+                    <div class="w-full flex flex-col gap-3">
+                        <button onclick="reDownload()"
+                            class="w-full py-4 rounded-xl bg-black/5 dark:bg-white/10 hover:bg-black/10 dark:hover:bg-white/20 font-bold transition-colors">⬇️
+                            Qayta yuklab olish</button>
+                        <button onclick="startNew()"
+                            class="w-full py-4 rounded-xl bg-apple-purple hover:bg-purple-600 active:scale-[0.98] text-white font-bold transition-all shadow-[0_8px_30px_rgba(139,92,246,0.25)]">🔄
+                            Yangi rasm yuklash</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Progress Block -->
+            <div id="progressWrap" class="hidden flex-col gap-2 mt-2 animate-slide-up" style="animation-delay: 0.15s;">
+                <div class="flex justify-between items-end mb-1">
+                    <span class="text-xs font-bold text-apple-purple tracking-tight" id="progressLabel">Rasm
+                        yuklanmoqda...</span>
+                    <span class="text-xs font-bold text-black/40 dark:text-white/40" id="progressPct">0%</span>
+                </div>
+                <div class="h-2 w-full bg-black/5 dark:bg-white/5 rounded-full overflow-hidden">
+                    <div class="h-full bg-apple-purple progress-bar rounded-full" id="progressFill" style="width:0%;">
+                    </div>
+                </div>
+            </div>
+
+            <!-- STATUS AND ACTION -->
+            <div class="mt-auto pt-2 pb-4 animate-slide-up flex flex-col gap-3" style="animation-delay: 0.2s;">
+                <div id="statusBanner"
+                    class="hidden items-center gap-2 p-3 rounded-xl text-sm font-semibold max-w-full leading-tight">
+                    <span id="statusIcon">⚠️</span>
+                    <span id="statusMsg"></span>
+                </div>
+
+                <button
+                    class="w-full py-4 rounded-2xl bg-apple-purple hover:bg-purple-600 active:scale-[0.98] disabled:opacity-50 disabled:active:scale-100 disabled:shadow-none text-white font-bold text-lg shadow-[0_8px_30px_rgba(139,92,246,0.3)] transition-all flex justify-center items-center gap-2"
+                    id="convBtn" onclick="startOCR()" disabled>
+                    ⚡ Word faylga aylantirish
+                </button>
+            </div>
+
+        </div>
+    </main>
 
     <script>
-        /* ═══════════════════════════════════════════════════════════════
-           INIT
-        ═══════════════════════════════════════════════════════════════ */
         const tg = window.Telegram?.WebApp;
-        const theme = localStorage.getItem('theme') || 'dark';
-        document.documentElement.setAttribute('data-theme', theme);
-        if (tg) {
-            tg.ready(); tg.expand();
-            if (tg.setHeaderColor) tg.setHeaderColor(theme === 'dark' ? '#060d1c' : '#f0f4f8');
-        }
-        const params = new URLSearchParams(location.search);
-        let telegramId = params.get('telegram_id')
-            || tg?.initDataUnsafe?.user?.id?.toString()
-            || sessionStorage.getItem('telegram_id')
-            || '';
+        let isDark = localStorage.getItem('theme') !== 'light';
 
-        // Apply auto Telegram UI state
-        if (telegramId) {
-            sessionStorage.setItem('telegram_id', telegramId);
+        if (isDark) {
+            document.documentElement.classList.add('dark');
+            if (tg?.setHeaderColor) tg.setHeaderColor('#0a0a0c');
+            if (tg?.setBackgroundColor) tg.setBackgroundColor('#000000');
         } else {
-            document.getElementById('tgLabelTitle').textContent = "Avtonom rejim (Faqat yuklab olish)";
-            document.getElementById('tgLabelSub').textContent = "Siz bot orqali kirmaganingiz uchun Telegram ga jo'natilmaydi.";
-            const badge = document.getElementById('tgStatusBadge');
-            badge.textContent = "Oflayn";
-            badge.className = "tg-status-badge offline";
+            document.documentElement.classList.remove('dark');
+            if (tg?.setHeaderColor) tg.setHeaderColor('#ffffff');
+            if (tg?.setBackgroundColor) tg.setBackgroundColor('#f5f5f7');
         }
 
-        document.getElementById('backBtn').onclick = () => {
-            location.href = 'index.html' + (telegramId ? '?telegram_id=' + telegramId : '');
+        const tid = new URLSearchParams(location.search).get('telegram_id') || sessionStorage.getItem('telegram_id') || tg?.initDataUnsafe?.user?.id?.toString() || '';
+        document.getElementById('backBtn').onclick = (e) => {
+            e.preventDefault();
+            location.href = 'more.html' + (tid ? '?telegram_id=' + tid : '');
         };
 
-        /* ═══════════════════════════════════════════════════════════════
-           FILE QUEUE STATE
-        ═══════════════════════════════════════════════════════════════ */
+        if (tid) {
+            sessionStorage.setItem('telegram_id', tid);
+        } else {
+            document.getElementById('tgLabelTitle').textContent = "Avtonom rejim";
+            document.getElementById('tgLabelSub').textContent = "Siz bot orqali kirmaganingiz uchun Telegram ga jo'natilmaydi, faqatgina yuklab olish mumkin.";
+            const badge = document.getElementById('tgStatusBadge');
+            badge.textContent = "Oflayn";
+            badge.className = "text-black/40 dark:text-white/40";
+        }
+
         let fileQueue = [];
         let lastDocxBlob = null;
         let lastFilename = '';
@@ -717,37 +275,39 @@
             fileQueue = [];
             renderQueue();
             hideStatus();
-            document.getElementById('resultCard').classList.remove('show');
+            document.getElementById('resultCard').classList.remove('flex');
+            document.getElementById('resultCard').classList.add('hidden');
         }
 
         function renderQueue() {
             const listEl = document.getElementById('imgList');
             const wrapEl = document.getElementById('queueWrap');
-            const zoneEl = document.getElementById('uploadZone');
             const titleEl = document.getElementById('queueTitle');
             const convBtn = document.getElementById('convBtn');
 
             if (fileQueue.length === 0) {
-                wrapEl.classList.remove('show');
-                zoneEl.style.display = '';
+                wrapEl.classList.remove('flex');
+                wrapEl.classList.add('hidden');
                 convBtn.disabled = true;
                 return;
             }
 
-            zoneEl.style.display = 'none';
-            wrapEl.classList.add('show');
+            wrapEl.classList.remove('hidden');
+            wrapEl.classList.add('flex');
             titleEl.textContent = `${fileQueue.length} ta rasm`;
 
             listEl.innerHTML = fileQueue.map((item, i) => `
-      <div class="img-item">
-        <img class="img-thumb" src="${item.url}" alt="${item.file.name}" />
-        <div class="img-meta">
-          <div class="img-name">${item.file.name}</div>
-          <div class="img-size">${formatSize(item.file.size)}</div>
-        </div>
-        <button class="img-remove" onclick="removeImg(${i})">✕</button>
-      </div>
-    `).join('');
+                <div class="flex items-center gap-3 bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/5 rounded-xl p-2.5 overflow-hidden slide-up" style="animation-delay: ${0.05 * i}s;">
+                    <img class="w-12 h-12 rounded-[10px] object-cover shrink-0" src="${item.url}" alt="${item.file.name}" />
+                    <div class="flex-1 min-w-0">
+                        <div class="font-bold text-sm truncate max-w-[200px]">${item.file.name}</div>
+                        <div class="text-[10px] font-semibold text-black/40 dark:text-white/40">${formatSize(item.file.size)}</div>
+                    </div>
+                    <button class="w-8 h-8 rounded-lg bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 text-black/50 dark:text-white/50 flex items-center justify-center transition-colors" onclick="removeImg(${i})">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+                    </button>
+                </div>
+            `).join('');
 
             convBtn.disabled = false;
             tg?.HapticFeedback?.impactOccurred('light');
@@ -759,59 +319,43 @@
             return (bytes / 1024 / 1024).toFixed(1) + ' MB';
         }
 
-        /* ═══════════════════════════════════════════════════════════════
-           DRAG & DROP
-        ═══════════════════════════════════════════════════════════════ */
-        function onDragOver(e) {
-            e.preventDefault();
-            document.getElementById('uploadZone').classList.add('drag-over');
-        }
-        function onDragLeave(e) {
-            document.getElementById('uploadZone').classList.remove('drag-over');
-        }
+        function onDragOver(e) { e.preventDefault(); document.getElementById('uploadZone').classList.add('drag-active'); }
+        function onDragLeave(e) { document.getElementById('uploadZone').classList.remove('drag-active'); }
         function onDrop(e) {
             e.preventDefault();
-            document.getElementById('uploadZone').classList.remove('drag-over');
+            document.getElementById('uploadZone').classList.remove('drag-active');
             handleFiles(e.dataTransfer.files);
         }
 
-        /* ═══════════════════════════════════════════════════════════════
-           PROGRESS UI
-        ═══════════════════════════════════════════════════════════════ */
         function setProgress(pct, label) {
-            document.getElementById('progressWrap').classList.add('show');
+            const p = document.getElementById('progressWrap');
+            p.classList.remove('hidden'); p.classList.add('flex');
             if (label) document.getElementById('progressLabel').textContent = label;
             document.getElementById('progressPct').textContent = pct + '%';
             document.getElementById('progressFill').style.width = pct + '%';
         }
         function hideProgress() {
-            document.getElementById('progressWrap').classList.remove('show');
+            const p = document.getElementById('progressWrap');
+            p.classList.remove('flex'); p.classList.add('hidden');
         }
 
-        /* ═══════════════════════════════════════════════════════════════
-           STATUS BANNER
-        ═══════════════════════════════════════════════════════════════ */
         function showStatus(type, icon, msg) {
             const b = document.getElementById('statusBanner');
-            b.className = 'status show ' + type;
+            b.classList.remove('hidden', 'bg-red-500/10', 'text-red-500', 'bg-apple-green/10', 'text-apple-green', 'bg-apple-purple/10', 'text-apple-purple');
+            b.classList.add('flex');
+            if (type === 'error') b.classList.add('bg-red-500/10', 'text-red-500', 'border', 'border-red-500/20');
+            else if (type === 'success') b.classList.add('bg-apple-green/10', 'text-apple-green', 'border', 'border-apple-green/20');
+            else b.classList.add('bg-apple-purple/10', 'text-apple-purple', 'border', 'border-apple-purple/20');
             document.getElementById('statusIcon').textContent = icon;
             document.getElementById('statusMsg').textContent = msg;
         }
-        function hideStatus() {
-            document.getElementById('statusBanner').className = 'status';
-        }
+        function hideStatus() { document.getElementById('statusBanner').classList.add('hidden'); }
 
-        /* ═══════════════════════════════════════════════════════════════
-           TRIGGER BROWSER DOWNLOAD FROM BLOB
-        ═══════════════════════════════════════════════════════════════ */
         function triggerDownload(blob, filename) {
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
-            a.href = url;
-            a.download = filename;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
+            a.href = url; a.download = filename;
+            document.body.appendChild(a); a.click(); document.body.removeChild(a);
             setTimeout(() => URL.revokeObjectURL(url), 10000);
         }
 
@@ -822,24 +366,23 @@
 
         function startNew() {
             clearAll();
-            document.getElementById('resultCard').classList.remove('show');
+            document.getElementById('resultCard').classList.remove('flex');
+            document.getElementById('resultCard').classList.add('hidden');
             hideStatus();
             lastDocxBlob = null;
         }
 
-        /* ═══════════════════════════════════════════════════════════════
-           MAIN OCR FUNCTION
-        ═══════════════════════════════════════════════════════════════ */
         async function startOCR() {
             if (fileQueue.length === 0) return;
 
             let apiBase = location.protocol === 'file:' ? 'https://dastyor-ai.onrender.com' : location.origin;
-
             const convBtn = document.getElementById('convBtn');
             convBtn.innerHTML = '<div class="spin"></div> Jarayon...';
             convBtn.disabled = true;
+            convBtn.classList.add('opacity-70');
             hideStatus();
-            document.getElementById('resultCard').classList.remove('show');
+            document.getElementById('resultCard').classList.remove('flex');
+            document.getElementById('resultCard').classList.add('hidden');
 
             let successCount = 0;
 
@@ -851,22 +394,17 @@
 
                 const fd = new FormData();
                 fd.append('file', item.file);
-                /* Automatically send the Telegram ID if known, user never needs to toggle it */
-                if (telegramId) fd.append('telegram_id', telegramId);
+                if (tid) fd.append('telegram_id', tid);
 
                 try {
-                    /* Artificial delay just to show UI if multiple files */
                     if (i > 0) await new Promise(r => setTimeout(r, 800));
-
                     setProgress(pct_start + 10, `${i + 1}/${fileQueue.length}: AI O'qimoqda (biroz kuting)...`);
 
                     const ctrl = new AbortController();
                     const timeout = setTimeout(() => ctrl.abort(), 90000);
 
                     const res = await fetch(apiBase + '/api/ocr_direct', {
-                        method: 'POST',
-                        body: fd,
-                        signal: ctrl.signal,
+                        method: 'POST', body: fd, signal: ctrl.signal,
                     });
                     clearTimeout(timeout);
 
@@ -884,18 +422,13 @@
                     const blob = await res.blob();
                     const filename = `Rasm_OCR_${item.file.name.replace(/\.[^.]+$/, '')}.docx`;
 
-                    lastDocxBlob = blob;
-                    lastFilename = filename;
-
+                    lastDocxBlob = blob; lastFilename = filename;
                     triggerDownload(blob, filename);
                     successCount++;
 
                 } catch (err) {
-                    if (err.name === 'AbortError') {
-                        showStatus('error', '⏱️', `${item.file.name}: AI server 90 soniya ichida javob bermadi.`);
-                    } else {
-                        showStatus('error', '❌', `${item.file.name}: Tarmoq xatosi: ${err.message}`);
-                    }
+                    if (err.name === 'AbortError') showStatus('error', '⏱️', `${item.file.name}: AI server javob bermadi.`);
+                    else showStatus('error', '❌', `${item.file.name}: Tarmoq xatosi: ${err.message}`);
                 }
             }
 
@@ -903,20 +436,17 @@
             setTimeout(() => hideProgress(), 1500);
 
             convBtn.innerHTML = '⚡ Word faylga aylantirish';
+            convBtn.classList.remove('opacity-70');
             convBtn.disabled = fileQueue.length === 0;
 
             if (successCount > 0) {
-                document.getElementById('resultCard').classList.add('show');
+                document.getElementById('resultCard').classList.remove('hidden');
+                document.getElementById('resultCard').classList.add('flex');
                 document.getElementById('resultSub').textContent =
-                    `${successCount} ta Word fayl yuklab olinganlarga tushdi` +
-                    (telegramId ? ` va o'z botingizga ham jo'natildi.` : `.`);
-
-                showStatus('success', '✅',
-                    `${successCount} ta rasm Word-ga aylantirildi!`
-                );
+                    `${successCount} ta jami fayl(lar) olinganlarga tushdi` +
+                    (tid ? ` va o'z botingizga ham jo'natildi.` : `.`);
                 tg?.HapticFeedback?.notificationOccurred('success');
             } else {
-                showStatus('error', '❌', 'Birorta fayl muvaffaqiyatli ishlanmadi.');
                 tg?.HapticFeedback?.notificationOccurred('error');
             }
         }

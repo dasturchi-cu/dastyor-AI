@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="uz" data-theme="dark">
+<html lang="uz" class="dark">
 
 <head>
     <meta charset="UTF-8" />
@@ -12,321 +12,63 @@
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
+    <!-- Tailwind -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        display: ['Outfit', 'sans-serif'],
+                    },
+                    colors: {
+                        apple: {
+                            blue: '#0A84FF',
+                            green: '#30D158',
+                            orange: '#FF9F0A',
+                            purple: '#BF5AF2',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
     <style>
-        :root {
-            --bg: #060d1c;
-            --surface: #0d1b2e;
-            --surface2: #14243b;
-            --border: rgba(255, 255, 255, 0.08);
-            --border-hover: rgba(255, 255, 255, 0.15);
-            --text: #ffffff;
-            --muted: #94a3b8;
-            --accent: #10b981;
-            /* Green for Obyektivka */
-            --accent-glow: rgba(16, 185, 129, 0.3);
-
-            --cv-bg: #fff;
-            --cv-text: #000;
-        }
-
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
-
         body {
-            font-family: 'Inter', sans-serif;
-            background-color: var(--bg);
-            color: var(--text);
-            height: 100vh;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
+            overscroll-behavior-y: none;
         }
 
-        /* HEADER */
-        .hdr {
-            height: 60px;
-            background: rgba(13, 27, 46, 0.8);
-            backdrop-filter: blur(12px);
-            border-bottom: 1px solid var(--border);
-            display: flex;
-            align-items: center;
-            padding: 0 20px;
-            justify-content: space-between;
-            flex-shrink: 0;
-            z-index: 10;
+        /* Custom scrollbars for editor */
+        .scroller::-webkit-scrollbar {
+            width: 5px;
         }
 
-        .hdr-left {
-            display: flex;
-            align-items: center;
-            gap: 16px;
-        }
-
-        .back-btn {
-            background: var(--surface2);
-            border: 1px solid var(--border);
-            color: var(--text);
-            width: 36px;
-            height: 36px;
-            border-radius: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            text-decoration: none;
-            transition: 0.2s;
-        }
-
-        .back-btn:hover {
-            background: var(--border-hover);
-        }
-
-        .hdr-title {
-            font-size: 16px;
-            font-weight: 700;
-            font-family: 'Outfit', sans-serif;
-        }
-
-        .export-group {
-            display: flex;
-            gap: 10px;
-        }
-
-        .btn {
-            padding: 8px 16px;
-            border-radius: 10px;
-            font-size: 13px;
-            font-weight: 600;
-            cursor: pointer;
-            border: none;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            transition: all 0.2s;
-        }
-
-        .btn-pdf {
-            background: linear-gradient(135deg, #10b981, #059669);
-            color: #fff;
-        }
-
-        .btn-doc {
-            background: linear-gradient(135deg, #3b82f6, #2563eb);
-            color: #fff;
-        }
-
-        .btn:hover {
-            transform: translateY(-1px);
-            filter: brightness(1.1);
-        }
-
-        .btn:active {
-            transform: scale(0.97);
-        }
-
-        /* LAYOUT */
-        .workspace {
-            display: flex;
-            flex: 1;
-            overflow: hidden;
-        }
-
-        /* EDITOR PANEL */
-        .editor-pane {
-            width: 45%;
-            min-width: 350px;
-            max-width: 500px;
-            background: var(--bg);
-            border-right: 1px solid var(--border);
-            display: flex;
-            flex-direction: column;
-            overflow-y: auto;
-        }
-
-        .editor-pane::-webkit-scrollbar {
-            width: 4px;
-        }
-
-        .editor-pane::-webkit-scrollbar-thumb {
-            background: rgba(255, 255, 255, 0.1);
+        .scroller::-webkit-scrollbar-thumb {
+            background: rgba(150, 150, 150, 0.3);
             border-radius: 4px;
         }
 
-        .editor-section {
-            padding: 24px;
-            border-bottom: 1px solid var(--border);
-        }
-
-        .section-title {
-            font-family: 'Outfit', sans-serif;
-            font-size: 15px;
-            font-weight: 700;
-            color: var(--accent);
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            margin-bottom: 16px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .form-group {
-            margin-bottom: 16px;
-        }
-
-        .form-group label {
-            display: block;
-            font-size: 12px;
-            color: var(--muted);
-            font-weight: 600;
-            margin-bottom: 6px;
-        }
-
-        .form-control {
-            width: 100%;
-            background: var(--surface);
-            border: 1px solid var(--border);
-            color: var(--text);
-            padding: 12px;
-            border-radius: 10px;
-            font-family: inherit;
-            font-size: 14px;
-            transition: border-color 0.2s;
-        }
-
-        .form-control:focus {
-            outline: none;
-            border-color: var(--accent);
-            background: rgba(16, 185, 129, 0.03);
-        }
-
-        textarea.form-control {
-            resize: vertical;
-            min-height: 80px;
-        }
-
-        .photo-upload {
-            display: flex;
-            align-items: center;
-            gap: 16px;
-            margin-bottom: 16px;
-        }
-
-        .photo-preview-circle {
-            width: 50px;
-            height: 65px;
-            border-radius: 6px;
-            background: var(--surface2);
-            border: 2px dashed var(--muted);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            overflow: hidden;
-            font-size: 20px;
-        }
-
-        .photo-preview-circle img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-
-        .photo-btn {
-            background: var(--surface2);
-            border: 1px solid var(--border);
-            color: var(--text);
-            padding: 8px 16px;
-            border-radius: 8px;
-            font-size: 12px;
-            cursor: pointer;
-        }
-
-        .repeater-list {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-            margin-bottom: 12px;
-        }
-
-        .repeater-item {
-            background: var(--surface2);
-            border: 1px solid var(--border);
-            border-radius: 10px;
-            padding: 12px;
+        /* A4 Paper Canvas - strict isolated CSS */
+        .cv-canvas-wrapper {
             position: relative;
+            transform-origin: top center;
+            transition: transform 0.1s ease;
         }
 
-        .rm-btn {
-            position: absolute;
-            top: 12px;
-            right: 12px;
-            background: rgba(239, 68, 68, 0.1);
-            color: var(--red);
-            border: none;
-            border-radius: 6px;
-            width: 24px;
-            height: 24px;
-            cursor: pointer;
-            font-weight: bold;
-        }
-
-        .add-btn {
-            width: 100%;
-            background: rgba(16, 185, 129, 0.1);
-            color: var(--accent);
-            border: 1px dashed var(--accent);
-            padding: 10px;
-            border-radius: 10px;
-            font-weight: 600;
-            cursor: pointer;
-        }
-
-        /* PREVIEW PANEL */
-        .preview-pane {
-            flex: 1;
-            background: #0f172a;
-            display: flex;
-            align-items: flex-start;
-            justify-content: center;
-            padding: 30px;
-            overflow-y: auto;
-            position: relative;
-        }
-
-        .preview-pane::-webkit-scrollbar {
-            width: 6px;
-        }
-
-        .preview-pane::-webkit-scrollbar-thumb {
-            background: rgba(255, 255, 255, 0.2);
-            border-radius: 4px;
-        }
-
-        /* A4 Paper Canvas */
-        .cv-canvas {
+        .tpl-oby {
             width: 210mm;
             min-height: 297mm;
-            background: var(--cv-bg);
-            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
-            transform-origin: top center;
-            position: relative;
-            overflow: hidden;
-            color: var(--cv-text);
-            margin-bottom: 30px;
-        }
-
-        /* ─── OBYEKTIVKA CSS TEMPLATE ─── */
-        .tpl-oby {
-            padding: 20mm 15mm 20mm 20mm;
-            /* standard standard margins */
-            font-family: 'Times New Roman', Times, serif;
+            background: #fff;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
             color: #000;
+            padding: 20mm 15mm 20mm 20mm;
+            font-family: 'Times New Roman', Times, serif;
             line-height: 1.25;
             font-size: 11pt;
-            background: #fff;
+            margin-bottom: 30px;
         }
 
         .tpl-oby strong {
@@ -456,191 +198,321 @@
                 transform: none !important;
                 box-shadow: none !important;
                 margin: 0;
+                padding: 0;
             }
         }
     </style>
 </head>
 
-<body>
+<body
+    class="bg-white dark:bg-[#0a0a0c] text-neutral-900 dark:text-neutral-100 flex flex-col h-screen overflow-hidden antialiased selection:bg-apple-blue selection:text-white">
 
-    <div class="hdr">
-        <div class="hdr-left">
-            <a href="index.html" class="back-btn">←</a>
-            <div class="hdr-title">Obyektivka Builder</div>
+    <!-- Global Header -->
+    <header
+        class="h-16 flex-shrink-0 border-b border-black/5 dark:border-white/5 bg-white/80 dark:bg-[#0a0a0c]/80 backdrop-blur-xl flex items-center justify-between px-4 z-50">
+        <div class="flex items-center gap-3">
+            <a href="index.html"
+                class="w-10 h-10 rounded-xl bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 transition-colors flex items-center justify-center">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <path d="m15 18-6-6 6-6" />
+                </svg>
+            </a>
+            <h1 class="font-display font-bold text-lg tracking-tight">Obyektivka AI</h1>
         </div>
-        <div class="export-group">
-            <button class="btn btn-doc" onclick="exportWord()">📄 Word (.docx)</button>
-            <button class="btn btn-pdf" onclick="exportPDF()">📥 PDF Yuklash</button>
+        <div class="flex items-center gap-2">
+            <!-- Mobile Toggle -->
+            <button id="mobileViewToggle" onclick="toggleMobileView()"
+                class="md:hidden px-4 py-2 bg-black/5 dark:bg-white/10 rounded-xl font-semibold text-sm">
+                👁️ Preview
+            </button>
+            <button onclick="exportWord()"
+                class="hidden md:flex items-center gap-2 px-4 py-2 bg-apple-blue/10 hover:bg-apple-blue/20 text-apple-blue rounded-xl font-bold text-sm transition-colors">
+                📄 Word
+            </button>
+            <button id="btnPdf" onclick="exportPDF()"
+                class="flex items-center gap-2 px-4 py-2 bg-gradient-to-br from-apple-green to-[#28a745] hover:opacity-90 active:scale-95 text-white rounded-xl font-bold text-sm transition-all shadow-md">
+                📥 PDF
+            </button>
         </div>
-    </div>
+    </header>
 
-    <div class="workspace">
-        <div class="editor-pane" id="editorPane">
+    <!-- Main Workspace -->
+    <div class="flex flex-1 overflow-hidden relative">
 
-            <div class="editor-section">
-                <div class="section-title">👤 Shaxsiy Ma'lumotlar</div>
+        <!-- EDITOR PANE -->
+        <div id="editorPane"
+            class="w-full md:w-[45%] md:max-w-md h-full scroller overflow-y-auto bg-white dark:bg-[#0a0a0c] border-r border-black/5 dark:border-white/5 pb-20">
 
-                <div class="photo-upload">
-                    <div class="photo-preview-circle" id="photoPrev">📸</div>
+            <div class="p-6">
+                <div class="flex items-center gap-2 mb-6">
+                    <div class="w-8 h-8 rounded-lg bg-apple-blue/10 flex items-center justify-center text-apple-blue">👤
+                    </div>
+                    <h2
+                        class="font-display font-bold text-sm uppercase tracking-widest text-black/50 dark:text-white/50">
+                        Shaxsiy</h2>
+                </div>
+
+                <!-- Photo Upload -->
+                <div class="flex flex-col items-center justify-center p-6 border-2 border-dashed border-black/10 dark:border-white/10 rounded-[24px] mb-6 hover:bg-black/5 dark:hover:bg-white/5 transition-colors cursor-pointer group"
+                    onclick="document.getElementById('imgInput').click()">
+                    <div id="photoPrev"
+                        class="w-[30mm] h-[40mm] bg-black/5 dark:bg-white/10 rounded-md overflow-hidden flex items-center justify-center mb-3">
+                        <svg class="w-8 h-8 text-black/20 dark:text-white/20 group-hover:scale-110 transition-transform"
+                            fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M3 9h18v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9Zm0 0V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v4M8 13h.01M16 13h.01M12 16h.01" />
+                        </svg>
+                    </div>
+                    <span class="text-sm font-semibold text-apple-blue">Rasm yuklash (3x4)</span>
+                    <input type="file" id="imgInput" accept="image/*" class="hidden" onchange="handleImage(this)">
+                </div>
+
+                <!-- Fields -->
+                <div class="space-y-4">
                     <div>
-                        <input type="file" id="imgInput" accept="image/*" style="display:none"
-                            onchange="handleImage(this)">
-                        <button class="photo-btn" onclick="document.getElementById('imgInput').click()">Rasm yuklash
-                            (3x4)</button>
+                        <label
+                            class="block text-xs font-bold text-black/40 dark:text-white/40 mb-1 ml-1 uppercase">To'liq
+                            ism (F.I.SH)</label>
+                        <input type="text" id="f_name"
+                            class="w-full bg-black/5 dark:bg-white/5 focus:bg-apple-blue/5 border border-transparent focus:border-apple-blue/50 rounded-xl px-4 py-3 text-sm outline-none transition-all"
+                            placeholder="ALISHEROV YUSUF MURATOVICH" oninput="updateCV()">
                     </div>
-                </div>
 
-                <div class="form-group">
-                    <label>F.I.SH (To'liq ism)</label>
-                    <input type="text" id="f_name" class="form-control"
-                        placeholder="Masalan: ALISHEROV YUSUF MURATOVICH" oninput="updateCV()">
-                </div>
-
-                <div style="display:flex; gap:12px;">
-                    <div class="form-group" style="flex:1">
-                        <label>Tug'ilgan yili</label>
-                        <input type="text" id="f_birth" class="form-control" placeholder="01.01.1990"
-                            oninput="updateCV()">
+                    <div class="flex gap-3">
+                        <div class="flex-1">
+                            <label
+                                class="block text-xs font-bold text-black/40 dark:text-white/40 mb-1 ml-1 uppercase">Tug'ilgan
+                                yili</label>
+                            <input type="text" id="f_birth"
+                                class="w-full bg-black/5 dark:bg-white/5 focus:bg-apple-blue/5 border border-transparent focus:border-apple-blue/50 rounded-xl px-4 py-3 text-sm outline-none transition-all"
+                                placeholder="01.01.1990" oninput="updateCV()">
+                        </div>
+                        <div class="flex-1">
+                            <label
+                                class="block text-xs font-bold text-black/40 dark:text-white/40 mb-1 ml-1 uppercase">Tug'ilgan
+                                joyi</label>
+                            <input type="text" id="f_place"
+                                class="w-full bg-black/5 dark:bg-white/5 focus:bg-apple-blue/5 border border-transparent focus:border-apple-blue/50 rounded-xl px-4 py-3 text-sm outline-none transition-all"
+                                placeholder="Toshkent viloyati" oninput="updateCV()">
+                        </div>
                     </div>
-                    <div class="form-group" style="flex:1">
-                        <label>Tug'ilgan joyi</label>
-                        <input type="text" id="f_place" class="form-control" placeholder="Toshkent viloyati"
-                            oninput="updateCV()">
-                    </div>
-                </div>
 
-                <div style="display:flex; gap:12px;">
-                    <div class="form-group" style="flex:1">
-                        <label>Millati</label>
-                        <input type="text" id="f_nation" class="form-control" placeholder="o'zbek" oninput="updateCV()">
+                    <div class="flex gap-3">
+                        <div class="flex-1">
+                            <label
+                                class="block text-xs font-bold text-black/40 dark:text-white/40 mb-1 ml-1 uppercase">Millati</label>
+                            <input type="text" id="f_nation"
+                                class="w-full bg-black/5 dark:bg-white/5 focus:bg-apple-blue/5 border border-transparent focus:border-apple-blue/50 rounded-xl px-4 py-3 text-sm outline-none transition-all"
+                                placeholder="o'zbek" oninput="updateCV()">
+                        </div>
+                        <div class="flex-1">
+                            <label
+                                class="block text-xs font-bold text-black/40 dark:text-white/40 mb-1 ml-1 uppercase">Partiyaviyligi</label>
+                            <input type="text" id="f_party"
+                                class="w-full bg-black/5 dark:bg-white/5 focus:bg-apple-blue/5 border border-transparent focus:border-apple-blue/50 rounded-xl px-4 py-3 text-sm outline-none transition-all"
+                                placeholder="yo'q" oninput="updateCV()">
+                        </div>
                     </div>
-                    <div class="form-group" style="flex:1">
-                        <label>Partiyaviyligi</label>
-                        <input type="text" id="f_party" class="form-control" placeholder="yo'q" oninput="updateCV()">
+
+                    <div class="flex gap-3">
+                        <div class="flex-1">
+                            <label
+                                class="block text-xs font-bold text-black/40 dark:text-white/40 mb-1 ml-1 uppercase">Ma'lumoti</label>
+                            <input type="text" id="f_edu"
+                                class="w-full bg-black/5 dark:bg-white/5 focus:bg-apple-blue/5 border border-transparent focus:border-apple-blue/50 rounded-xl px-4 py-3 text-sm outline-none transition-all"
+                                placeholder="oliy" oninput="updateCV()">
+                        </div>
+                        <div class="flex-1">
+                            <label
+                                class="block text-xs font-bold text-black/40 dark:text-white/40 mb-1 ml-1 uppercase">Tamomlagan</label>
+                            <input type="text" id="f_grad"
+                                class="w-full bg-black/5 dark:bg-white/5 focus:bg-apple-blue/5 border border-transparent focus:border-apple-blue/50 rounded-xl px-4 py-3 text-sm outline-none transition-all"
+                                placeholder="2015, TDYU" oninput="updateCV()">
+                        </div>
                     </div>
-                </div>
 
-                <div style="display:flex; gap:12px;">
-                    <div class="form-group" style="flex:1">
-                        <label>Ma'lumoti</label>
-                        <input type="text" id="f_edu" class="form-control" placeholder="oliy" oninput="updateCV()">
+                    <div>
+                        <label
+                            class="block text-xs font-bold text-black/40 dark:text-white/40 mb-1 ml-1 uppercase">Mutaxassisligi</label>
+                        <input type="text" id="f_spec"
+                            class="w-full bg-black/5 dark:bg-white/5 focus:bg-apple-blue/5 border border-transparent focus:border-apple-blue/50 rounded-xl px-4 py-3 text-sm outline-none transition-all"
+                            placeholder="huquqshunos" oninput="updateCV()">
                     </div>
-                    <div class="form-group" style="flex:1">
-                        <label>Tamomlagan yili va oliygoh</label>
-                        <input type="text" id="f_grad" class="form-control"
-                            placeholder="2015 yil, Toshkent davlat yuridik universiteti" oninput="updateCV()">
+
+                    <div class="flex gap-3">
+                        <div class="flex-1">
+                            <label
+                                class="block text-xs font-bold text-black/40 dark:text-white/40 mb-1 ml-1 uppercase">Ilmiy
+                                darajasi</label>
+                            <input type="text" id="f_degree"
+                                class="w-full bg-black/5 dark:bg-white/5 focus:bg-apple-blue/5 border border-transparent focus:border-apple-blue/50 rounded-xl px-4 py-3 text-sm outline-none transition-all"
+                                placeholder="yo'q" oninput="updateCV()">
+                        </div>
+                        <div class="flex-1">
+                            <label
+                                class="block text-xs font-bold text-black/40 dark:text-white/40 mb-1 ml-1 uppercase">Ilmiy
+                                unvoni</label>
+                            <input type="text" id="f_title"
+                                class="w-full bg-black/5 dark:bg-white/5 focus:bg-apple-blue/5 border border-transparent focus:border-apple-blue/50 rounded-xl px-4 py-3 text-sm outline-none transition-all"
+                                placeholder="yo'q" oninput="updateCV()">
+                        </div>
                     </div>
-                </div>
 
-                <div class="form-group">
-                    <label>Mutaxassisligi</label>
-                    <input type="text" id="f_spec" class="form-control" placeholder="huquqshunos" oninput="updateCV()">
-                </div>
-
-                <div style="display:flex; gap:12px;">
-                    <div class="form-group" style="flex:1">
-                        <label>Ilmiy darajasi</label>
-                        <input type="text" id="f_degree" class="form-control" placeholder="yo'q" oninput="updateCV()">
+                    <div>
+                        <label
+                            class="block text-xs font-bold text-black/40 dark:text-white/40 mb-1 ml-1 uppercase">Tillar</label>
+                        <input type="text" id="f_langs"
+                            class="w-full bg-black/5 dark:bg-white/5 focus:bg-apple-blue/5 border border-transparent focus:border-apple-blue/50 rounded-xl px-4 py-3 text-sm outline-none transition-all"
+                            placeholder="rus va ingliz tillari" oninput="updateCV()">
                     </div>
-                    <div class="form-group" style="flex:1">
-                        <label>Ilmiy unvoni</label>
-                        <input type="text" id="f_title" class="form-control" placeholder="yo'q" oninput="updateCV()">
+
+                    <div>
+                        <label
+                            class="block text-xs font-bold text-black/40 dark:text-white/40 mb-1 ml-1 uppercase">Mukofotlar</label>
+                        <input type="text" id="f_awards"
+                            class="w-full bg-black/5 dark:bg-white/5 focus:bg-apple-blue/5 border border-transparent focus:border-apple-blue/50 rounded-xl px-4 py-3 text-sm outline-none transition-all"
+                            placeholder="yo'q" oninput="updateCV()">
                     </div>
-                </div>
 
-                <div class="form-group">
-                    <label>Qaysi chet tillarini biladi</label>
-                    <input type="text" id="f_langs" class="form-control" placeholder="rus va ingliz tillari"
-                        oninput="updateCV()">
-                </div>
-
-                <div class="form-group">
-                    <label>Davlat mukofotlari</label>
-                    <input type="text" id="f_awards" class="form-control" placeholder="yo'q" oninput="updateCV()">
-                </div>
-
-                <div class="form-group">
-                    <label>Xalq deputatlari kengashi deputatimi</label>
-                    <input type="text" id="f_deputy" class="form-control" placeholder="yo'q" oninput="updateCV()">
+                    <div>
+                        <label
+                            class="block text-xs font-bold text-black/40 dark:text-white/40 mb-1 ml-1 uppercase">Deputatlik
+                            statusi</label>
+                        <input type="text" id="f_deputy"
+                            class="w-full bg-black/5 dark:bg-white/5 focus:bg-apple-blue/5 border border-transparent focus:border-apple-blue/50 rounded-xl px-4 py-3 text-sm outline-none transition-all"
+                            placeholder="yo'q" oninput="updateCV()">
+                    </div>
                 </div>
             </div>
 
-            <div class="editor-section">
-                <div class="section-title">💼 Mehnat Faoliyati</div>
-                <div class="repeater-list" id="expList"></div>
-                <button class="add-btn" onclick="addExp()">+ Ish joyi qo'shish</button>
+            <!-- Divider -->
+            <div class="h-px bg-black/5 dark:bg-white/5 mx-6"></div>
+
+            <div class="p-6">
+                <div class="flex items-center gap-2 mb-6">
+                    <div
+                        class="w-8 h-8 rounded-lg bg-apple-purple/10 flex items-center justify-center text-apple-purple">
+                        💼</div>
+                    <h2
+                        class="font-display font-bold text-sm uppercase tracking-widest text-black/50 dark:text-white/50">
+                        Mehnat Faoliyati</h2>
+                </div>
+
+                <div id="expList" class="space-y-3 mb-3"></div>
+                <button onclick="addExp()"
+                    class="w-full py-3 border border-dashed border-apple-purple/50 text-apple-purple bg-apple-purple/5 rounded-xl font-bold text-sm hover:bg-apple-purple/10 transition-colors">+
+                    Ish joyi qo'shish</button>
             </div>
 
-            <div class="editor-section">
-                <div class="section-title">👨‍👩‍👧 Yaqin qarindoshlari</div>
-                <div class="repeater-list" id="relList"></div>
-                <button class="add-btn" onclick="addRel()">+ Qarindosh qo'shish</button>
+            <div class="h-px bg-black/5 dark:bg-white/5 mx-6"></div>
+
+            <div class="p-6">
+                <div class="flex items-center gap-2 mb-6">
+                    <div
+                        class="w-8 h-8 rounded-lg bg-apple-orange/10 flex items-center justify-center text-apple-orange">
+                        👨‍👩‍👧</div>
+                    <h2
+                        class="font-display font-bold text-sm uppercase tracking-widest text-black/50 dark:text-white/50">
+                        Yaqin Qarindoshlari</h2>
+                </div>
+
+                <div id="relList" class="space-y-3 mb-3"></div>
+                <button onclick="addRel()"
+                    class="w-full py-3 border border-dashed border-apple-orange/50 text-apple-orange bg-apple-orange/5 rounded-xl font-bold text-sm hover:bg-apple-orange/10 transition-colors">+
+                    Qarindosh qo'shish</button>
             </div>
 
         </div>
 
-        <!-- RIGHT: LIVE PREVIEW -->
-        <div class="preview-pane">
-            <div class="cv-canvas tpl-oby" id="cv-box">
-                <!-- Inner HTML injected live -->
+        <!-- PREVIEW PANE -->
+        <div id="previewPane"
+            class="hidden md:flex flex-1 h-full bg-[#1c1c1e] items-start justify-center p-8 scroller overflow-y-auto">
+            <div class="cv-canvas-wrapper" id="previewScaleWrapper">
+                <div class="tpl-oby" id="cv-box">
+                    <!-- HTML generated live here -->
+                </div>
             </div>
         </div>
+
     </div>
 
     <script>
-        // STATE
+        const tg = window.Telegram?.WebApp;
+
         let avatarUrl = '';
         let experiences = [{ id: 1, years: '2015-2020 yy.', desc: "Toshkent shahri Yunusobod tumani hokimi o'rinbosari" }];
         let relatives = [{ id: 1, role: 'Otasi', name: 'Alisherov Muratjon', birth: '1965 yil, Toshkent viloyati', work: "Nafaqada", addr: "Toshkent shahri, Yunusobod tumani, 3-kvartal, 12-uy" }];
 
-        // IMAGE HANDLER
+        // View Toggle for mobile
+        let mobilePreview = false;
+        function toggleMobileView() {
+            mobilePreview = !mobilePreview;
+            const ed = document.getElementById('editorPane');
+            const pv = document.getElementById('previewPane');
+            const btn = document.getElementById('mobileViewToggle');
+
+            if (mobilePreview) {
+                ed.classList.add('hidden');
+                pv.classList.remove('hidden');
+                pv.classList.add('w-full', 'px-2', 'py-4'); // mobile specific padding
+                btn.innerHTML = '✍️ Tahrirlash';
+                setTimeout(autoScale, 50);
+            } else {
+                ed.classList.remove('hidden');
+                pv.classList.add('hidden');
+                pv.classList.remove('w-full', 'px-2', 'py-4');
+                btn.innerHTML = '👁️ Preview';
+            }
+        }
+
+        // Image Handling via FileReader
         function handleImage(input) {
             if (input.files && input.files[0]) {
                 const reader = new FileReader();
                 reader.onload = function (e) {
                     avatarUrl = e.target.result;
-                    document.getElementById('photoPrev').innerHTML = `<img src="${avatarUrl}">`;
+                    document.getElementById('photoPrev').innerHTML = `<img src="${avatarUrl}" class="w-full h-full object-cover">`;
                     updateCV();
                 }
                 reader.readAsDataURL(input.files[0]);
             }
         }
 
-        // REPEATER: EXPERIENCE
+        // Repeaters Builder
         function addExp() { experiences.push({ id: Date.now(), years: '', desc: '' }); renderExp(); updateCV(); }
         function removeExp(id) { experiences = experiences.filter(x => x.id !== id); renderExp(); updateCV(); }
         function renderExp() {
             document.getElementById('expList').innerHTML = experiences.map((ex, i) => `
-                <div class="repeater-item">
-                    <button class="rm-btn" onclick="removeExp(${ex.id})">×</button>
-                    <input type="text" class="form-control" style="margin-bottom:8px" placeholder="Yillar (Masalan: 2018 - 2023 yy.)" value="${ex.years}" oninput="experiences[${i}].years=this.value; updateCV()">
-                    <textarea class="form-control" placeholder="Ish joyi va lavozimi" oninput="experiences[${i}].desc=this.value; updateCV()">${ex.desc}</textarea>
+                <div class="bg-black/5 dark:bg-white/5 p-4 rounded-2xl relative group">
+                    <button class="absolute top-2 right-2 w-6 h-6 bg-red-500/10 text-red-500 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity" onclick="removeExp(${ex.id})">×</button>
+                    <input type="text" class="w-full bg-transparent border-b border-black/10 dark:border-white/10 px-0 py-2 text-sm outline-none mb-2 focus:border-apple-purple" placeholder="Yillar (2018-2023 yy.)" value="${ex.years}" oninput="experiences[${i}].years=this.value; updateCV()">
+                    <textarea class="w-full bg-transparent border-b border-black/10 dark:border-white/10 px-0 py-2 text-sm outline-none focus:border-apple-purple resize-none h-16" placeholder="Ish joyi va lavozimi" oninput="experiences[${i}].desc=this.value; updateCV()">${ex.desc}</textarea>
                 </div>
             `).join('');
         }
 
-        // REPEATER: RELATIVES
         function addRel() { relatives.push({ id: Date.now(), role: '', name: '', birth: '', work: '', addr: '' }); renderRel(); updateCV(); }
         function removeRel(id) { relatives = relatives.filter(x => x.id !== id); renderRel(); updateCV(); }
         function renderRel() {
             document.getElementById('relList').innerHTML = relatives.map((r, i) => `
-                <div class="repeater-item">
-                    <button class="rm-btn" onclick="removeRel(${r.id})">×</button>
-                    <div style="display:flex;gap:8px;margin-bottom:8px">
-                        <input type="text" class="form-control" placeholder="Qarindoshligi (Masalan: Otasi)" value="${r.role}" oninput="relatives[${i}].role=this.value; updateCV()">
-                        <input type="text" class="form-control" placeholder="F.I.SH" value="${r.name}" oninput="relatives[${i}].name=this.value; updateCV()">
+                <div class="bg-black/5 dark:bg-white/5 p-4 rounded-2xl relative group">
+                    <button class="absolute top-2 right-2 w-6 h-6 bg-red-500/10 text-red-500 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity" onclick="removeRel(${r.id})">×</button>
+                    <div class="flex gap-2">
+                        <input type="text" class="w-1/3 bg-transparent border-b border-black/10 dark:border-white/10 px-0 py-2 text-sm outline-none focus:border-apple-orange" placeholder="Qarindoshligi" value="${r.role}" oninput="relatives[${i}].role=this.value; updateCV()">
+                        <input type="text" class="w-2/3 bg-transparent border-b border-black/10 dark:border-white/10 px-0 py-2 text-sm outline-none focus:border-apple-orange" placeholder="F.I.SH" value="${r.name}" oninput="relatives[${i}].name=this.value; updateCV()">
                     </div>
-                    <input type="text" class="form-control" style="margin-bottom:8px" placeholder="Tug'ilgan yili va joyi" value="${r.birth}" oninput="relatives[${i}].birth=this.value; updateCV()">
-                    <input type="text" class="form-control" style="margin-bottom:8px" placeholder="Ish joyi va lavozimi" value="${r.work}" oninput="relatives[${i}].work=this.value; updateCV()">
-                    <input type="text" class="form-control" placeholder="Yashash manzili" value="${r.addr}" oninput="relatives[${i}].addr=this.value; updateCV()">
+                    <input type="text" class="w-full bg-transparent border-b border-black/10 dark:border-white/10 px-0 py-2 text-sm outline-none focus:border-apple-orange" placeholder="Tug'ilgan yili/joyi" value="${r.birth}" oninput="relatives[${i}].birth=this.value; updateCV()">
+                    <input type="text" class="w-full bg-transparent border-b border-black/10 dark:border-white/10 px-0 py-2 text-sm outline-none focus:border-apple-orange" placeholder="Ish joyi va lavozimi" value="${r.work}" oninput="relatives[${i}].work=this.value; updateCV()">
+                    <input type="text" class="w-full bg-transparent border-b border-black/10 dark:border-white/10 px-0 py-2 text-sm outline-none focus:border-apple-orange font-medium" placeholder="Yashash manzili" value="${r.addr}" oninput="relatives[${i}].addr=this.value; updateCV()">
                 </div>
             `).join('');
         }
 
-        // INIT
         renderExp();
         renderRel();
 
+        // ── LIVE ENGINE ──
         function v(id) { return document.getElementById(id).value.trim(); }
 
         function updateCV() {
@@ -651,7 +523,7 @@
                 nation: v('f_nation') || 'o\'zbek',
                 party: v('f_party') || 'yo\'q',
                 edu: v('f_edu') || 'oliy',
-                grad: v('f_grad') || '2015 yil, Toshkent davlat yuridik universiteti (kunduzgi)',
+                grad: v('f_grad') || '2015 yil, Toshkent davlat yuridik universiteti',
                 spec: v('f_spec') || 'huquqshunos',
                 degree: v('f_degree') || 'yo\'q',
                 title: v('f_title') || 'yo\'q',
@@ -708,59 +580,23 @@
                 </table>
 
                 <div class="info-grid">
-                    <div class="info-item">
-                        <strong>Tug'ilgan yili:</strong>
-                        ${data.birth}
-                    </div>
-                    <div class="info-item">
-                        <strong>Tug'ilgan joyi:</strong>
-                        ${data.place}
-                    </div>
+                    <div class="info-item"><strong>Tug'ilgan yili:</strong>${data.birth}</div>
+                    <div class="info-item"><strong>Tug'ilgan joyi:</strong>${data.place}</div>
                     
-                    <div class="info-item">
-                        <strong>Millati:</strong>
-                        ${data.nation}
-                    </div>
-                    <div class="info-item">
-                        <strong>Partiyaviyligi:</strong>
-                        ${data.party}
-                    </div>
+                    <div class="info-item"><strong>Millati:</strong>${data.nation}</div>
+                    <div class="info-item"><strong>Partiyaviyligi:</strong>${data.party}</div>
                     
-                    <div class="info-item">
-                        <strong>Ma'lumoti:</strong>
-                        ${data.edu}
-                    </div>
-                    <div class="info-item">
-                        <strong>Tamomlagan:</strong>
-                        ${data.grad}
-                    </div>
+                    <div class="info-item"><strong>Ma'lumoti:</strong>${data.edu}</div>
+                    <div class="info-item"><strong>Tamomlagan:</strong>${data.grad}</div>
                     
-                    <div class="info-item">
-                        <strong>Ma'lumoti bo'yicha mutaxassisligi:</strong>
-                        ${data.spec}
-                    </div>
-                    <div class="info-item">
-                        <strong>Ilmiy darajasi:</strong>
-                        ${data.degree}
-                    </div>
+                    <div class="info-item"><strong>Ma'lumoti bo'yicha mutaxassisligi:</strong>${data.spec}</div>
+                    <div class="info-item"><strong>Ilmiy darajasi:</strong>${data.degree}</div>
                     
-                    <div class="info-item">
-                        <strong>Ilmiy unvoni:</strong>
-                        ${data.title}
-                    </div>
-                    <div class="info-item">
-                        <strong>Qaysi chet tillarini biladi:</strong>
-                        ${data.langs}
-                    </div>
+                    <div class="info-item"><strong>Ilmiy unvoni:</strong>${data.title}</div>
+                    <div class="info-item"><strong>Qaysi chet tillarini biladi:</strong>${data.langs}</div>
                     
-                    <div class="info-item">
-                        <strong>Davlat mukofotlari bilan taqdirlanganmi (qanaqa):</strong>
-                        ${data.awards}
-                    </div>
-                    <div class="info-item">
-                        <strong>Xalq deputatlari respublika, viloyat, shahar va tuman Kengashi deputatimi, saylanadigan organlarning a'zosimi (ko'rsatilishi lozim):</strong>
-                        ${data.deputy}
-                    </div>
+                    <div class="info-item"><strong>Davlat mukofotlari:</strong>${data.awards}</div>
+                    <div class="info-item"><strong>Deputatlik:</strong>${data.deputy}</div>
                 </div>
 
                 <div class="section-title">MEHNAT FAOLIYATI</div>
@@ -773,30 +609,44 @@
             autoScale();
         }
 
+        // Auto scaler logic to fit exact A4 into frame
         function autoScale() {
-            const pane = document.querySelector('.preview-pane');
-            const box = document.getElementById('cv-box');
+            const wrap = document.getElementById('previewScaleWrapper');
+            const pane = document.getElementById('previewPane');
+            if (pane.classList.contains('hidden')) return;
 
-            const padding = 60;
-            const paneW = pane.clientWidth - padding;
-            const paneH = pane.clientHeight - padding;
+            // pane inner usable space
+            let pw = pane.clientWidth;
+            if (!mobilePreview) pw -= 64; // desktop padding offset
 
-            // Standard A4 is approx 793 x 1122 px
+            // Standard A4 is approx 793px width
             const natW = 793;
-            const natH = 1122;
+            const scale = Math.min(pw / natW, 1.2);
 
-            const scaleW = paneW / natW;
-            const scaleH = paneH / natH;
-            const scale = Math.min(scaleW, scaleH, 1);
+            wrap.style.transform = `scale(${scale})`;
 
-            box.style.transform = `scale(${scale})`;
+            // Fix height cutoff if scaled down severely on mobile
+            if (mobilePreview) {
+                wrap.style.marginBottom = `-${(1 - scale) * 1122}px`;
+            } else {
+                wrap.style.marginBottom = '0';
+            }
         }
         window.addEventListener('resize', autoScale);
-        setTimeout(() => updateCV(), 100);
+
+        // Initial setup
+        setTimeout(() => {
+            if (document.documentElement.classList.contains('dark')) {
+                if (tg?.setHeaderColor) tg.setHeaderColor('#0a0a0c');
+            }
+            updateCV();
+        }, 100);
 
         function exportPDF() {
             const el = document.getElementById('cv-box');
-            el.style.transform = 'none';
+            // Remove scaling before printing to ensure highest clarity
+            const wrap = document.getElementById('previewScaleWrapper');
+            wrap.style.transform = 'none';
 
             const opt = {
                 margin: 0,
@@ -806,22 +656,26 @@
                 jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
             };
 
-            const btn = document.querySelector('.btn-pdf');
-            btn.innerHTML = "⏳ Kuting...";
+            const btn = document.getElementById('btnPdf');
+            const originalHtml = btn.innerHTML;
+            btn.innerHTML = "⏳ Kutib turing...";
             btn.disabled = true;
 
             html2pdf().set(opt).from(el).save().then(() => {
                 autoScale();
-                btn.innerHTML = "📥 PDF Yuklash";
+                btn.innerHTML = originalHtml;
                 btn.disabled = false;
 
-                const tg = window.Telegram?.WebApp;
-                if (tg && tg.showAlert) tg.showAlert("Obyektivka PDF formati saqlandi!");
+                if (tg && tg.showAlert) tg.showAlert("Obyektivka qurilmangizga saqlandi!");
             });
         }
 
         function exportWord() {
-            alert("Word (.docx) formati tez kunda backend bilan birlashtiriladi. Hozirgi dizayn strukturasini saqlab qolish uchun PDF variantidan foydalanib turing.");
+            if (tg && tg.showAlert) {
+                tg.showAlert("Word (.docx) formati backend qismi tayyor bo'lgach yoqiladi. Hozir PDF variantini ishlating.");
+            } else {
+                alert("Word (.docx) formati backend qismi tayyor bo'lgach yoqiladi. Hozir PDF variantini ishlating.");
+            }
         }
     </script>
 </body>

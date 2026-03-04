@@ -1,342 +1,75 @@
 <!DOCTYPE html>
-<html lang="uz" data-theme="dark">
+<html lang="uz" class="dark">
 
 <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>Tarjima | DASTYOR AI</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap"
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Outfit:wght@500;600;700;800&display=swap"
         rel="stylesheet" />
+
+    <!-- Tailwind -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        display: ['Outfit', 'sans-serif'],
+                    },
+                    colors: {
+                        apple: {
+                            blue: '#0A84FF',
+                            green: '#30D158',
+                            orange: '#FF9F0A',
+                            purple: '#BF5AF2',
+                        }
+                    },
+                    animation: {
+                        'slide-up': 'slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+                    },
+                    keyframes: {
+                        slideUp: {
+                            '0%': { opacity: '0', transform: 'translateY(16px)' },
+                            '100%': { opacity: '1', transform: 'translateY(0)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
     <style>
-        *,
-        *::before,
-        *::after {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0
-        }
-
-        :root[data-theme="dark"] {
-            --bg: #060d1c;
-            --surface: #0d1b2e;
-            --surface2: #112240;
-            --border: rgba(255, 255, 255, .07);
-            --text: #e8edf4;
-            --sub: #8899aa;
-            --accent: #2563eb;
-            --accent-glow: rgba(37, 99, 235, .25);
-            --green: #10b981;
-            --red: #ef4444;
-            --inp-bg: rgba(255, 255, 255, .04);
-            --inp-focus: rgba(37, 99, 235, .08);
-        }
-
-        :root[data-theme="light"] {
-            --bg: #f0f4f8;
-            --surface: #ffffff;
-            --surface2: #f8fafc;
-            --border: #e2e8f0;
-            --text: #0f172a;
-            --sub: #64748b;
-            --accent: #2563eb;
-            --accent-glow: rgba(37, 99, 235, .12);
-            --green: #059669;
-            --red: #dc2626;
-            --inp-bg: #f8fafc;
-            --inp-focus: #eff6ff;
-        }
-
-        html {
-            height: 100%;
-            -webkit-tap-highlight-color: transparent
+        html,
+        body {
+            -webkit-tap-highlight-color: transparent;
+            overscroll-behavior-y: none;
         }
 
         body {
-            font-family: 'Inter', sans-serif;
-            background: var(--bg);
-            color: var(--text);
-            min-height: 100dvh;
-            display: flex;
-            flex-direction: column;
-            font-size: 15px;
+            background-color: #f5f5f7;
+            color: #1d1d1f;
+            transition: background-color 0.3s ease, color 0.3s ease;
         }
 
-        /* ── HEADER ── */
-        .hdr {
-            flex-shrink: 0;
-            height: 56px;
-            display: flex;
-            align-items: center;
-            padding: 0 16px;
-            gap: 12px;
-            background: var(--surface);
-            border-bottom: 1px solid var(--border);
-            position: sticky;
-            top: 0;
-            z-index: 10;
+        .dark body {
+            background-color: #000000;
+            color: #f5f5f7;
         }
 
-        .back-btn {
-            width: 38px;
-            height: 38px;
-            border-radius: 12px;
-            background: var(--inp-bg);
-            border: 1px solid var(--border);
-            color: var(--text);
-            font-size: 18px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            flex-shrink: 0;
-            transition: background .2s;
+        .scroller::-webkit-scrollbar {
+            width: 0px;
         }
 
-        .back-btn:active {
-            background: var(--accent-glow)
-        }
-
-        .hdr-center {
-            flex: 1;
-            min-width: 0
-        }
-
-        .hdr-title {
-            font-size: 15px;
-            font-weight: 800;
-            color: var(--text);
-            line-height: 1.2
-        }
-
-        .hdr-sub {
-            font-size: 11px;
-            color: var(--sub);
-            font-weight: 500
-        }
-
-        /* ── ENGINE BADGE ── */
-        .engine-badge {
-            display: flex;
-            align-items: center;
-            gap: 5px;
-            padding: 5px 10px;
-            border-radius: 20px;
-            font-size: 11px;
-            font-weight: 700;
-            background: var(--surface2);
-            border: 1px solid var(--border);
-            color: var(--sub);
-            transition: all .3s;
-            flex-shrink: 0;
-        }
-
-        .engine-badge.gemini {
-            color: var(--green);
-            border-color: rgba(16, 185, 129, .3);
-            background: rgba(16, 185, 129, .06)
-        }
-
-        .engine-badge.gtrans {
-            color: #f59e0b;
-            border-color: rgba(245, 158, 11, .3);
-            background: rgba(245, 158, 11, .06)
-        }
-
-        .engine-dot {
-            width: 6px;
-            height: 6px;
-            border-radius: 50%;
-            background: currentColor
-        }
-
-        /* ── MAIN ── */
-        .main {
-            flex: 1;
-            overflow-y: auto;
-            overflow-x: hidden;
-            padding: 16px;
-            display: flex;
-            flex-direction: column;
-            gap: 14px;
-        }
-
-        .main::-webkit-scrollbar {
-            width: 0
-        }
-
-        /* ── LANG SELECTOR ── */
-        .lang-bar {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            background: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: 16px;
-            padding: 10px 12px;
-        }
-
-        .lang-select {
-            flex: 1;
-            background: var(--inp-bg);
-            border: 1.5px solid var(--border);
-            border-radius: 12px;
-            color: var(--text);
-            font-family: 'Inter', sans-serif;
-            font-size: 13px;
-            font-weight: 700;
-            padding: 10px 12px;
-            outline: none;
-            cursor: pointer;
-            -webkit-appearance: none;
-            appearance: none;
-            transition: border-color .2s, background .2s;
-        }
-
-        .lang-select:focus {
-            border-color: var(--accent);
-            background: var(--inp-focus)
-        }
-
-        .swap-btn {
-            width: 38px;
-            height: 38px;
-            border-radius: 12px;
-            background: var(--accent);
-            border: none;
-            color: #fff;
-            font-size: 16px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-shrink: 0;
-            transition: transform .15s, background .2s;
-        }
-
-        .swap-btn:active {
-            transform: rotate(180deg) scale(.9)
-        }
-
-        /* ── TEXT PANELS ── */
-        .panels {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-
-        @media (min-width: 640px) {
-            .panels {
-                flex-direction: row
-            }
-        }
-
-        .panel {
-            flex: 1;
-            background: var(--surface);
-            border: 1.5px solid var(--border);
-            border-radius: 18px;
-            padding: 0;
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
-            transition: border-color .2s;
-        }
-
-        .panel:focus-within {
-            border-color: var(--accent)
-        }
-
-        .panel-hdr {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 10px 14px 6px;
-            border-bottom: 1px solid var(--border);
-        }
-
-        .panel-lang-label {
-            font-size: 11px;
-            font-weight: 800;
-            color: var(--accent);
-            text-transform: uppercase;
-            letter-spacing: .6px;
-        }
-
-        .panel-actions {
-            display: flex;
-            gap: 6px;
-            align-items: center
-        }
-
-        .char-count {
-            font-size: 11px;
-            color: var(--sub);
-            font-weight: 600;
-        }
-
-        .char-count.warn {
-            color: #f59e0b
-        }
-
-        .char-count.over {
-            color: var(--red)
-        }
-
-        .icon-btn {
-            width: 28px;
-            height: 28px;
-            border-radius: 8px;
-            border: 1px solid var(--border);
-            background: var(--inp-bg);
-            color: var(--sub);
-            font-size: 14px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all .2s;
-        }
-
-        .icon-btn:active {
-            background: var(--accent-glow);
-            color: var(--accent)
-        }
-
-        .icon-btn:hover {
-            background: var(--surface2)
-        }
-
-        .panel-textarea {
-            width: 100%;
-            min-height: 140px;
-            max-height: 260px;
-            padding: 14px;
-            background: transparent;
-            border: none;
-            color: var(--text);
-            font-family: 'Inter', sans-serif;
-            font-size: 15px;
-            font-weight: 500;
-            line-height: 1.6;
-            resize: none;
-            outline: none;
-            flex: 1;
-        }
-
-        .panel-textarea::placeholder {
-            color: var(--sub)
-        }
-
-        .panel-textarea[readonly] {
-            cursor: default
-        }
-
-        /* output shimmer while loading */
-        .panel.loading .panel-textarea {
-            background: linear-gradient(90deg, var(--inp-bg) 25%, var(--surface2) 50%, var(--inp-bg) 75%);
+        /* Shimmer for translation */
+        .loading-shimmer {
+            background: linear-gradient(90deg, rgba(255, 255, 255, 0.05) 25%, rgba(255, 255, 255, 0.1) 50%, rgba(255, 255, 255, 0.05) 75%);
             background-size: 200% 100%;
-            animation: shimmer 1.4s infinite;
+            animation: shimmer 1.5s infinite;
         }
 
         @keyframes shimmer {
@@ -349,240 +82,168 @@
             }
         }
 
-        /* ── TRANSLATE BUTTON ── */
-        .tr-btn {
-            width: 100%;
-            height: 52px;
-            border-radius: 16px;
-            border: none;
-            background: var(--accent);
-            color: #fff;
-            font-family: 'Inter', sans-serif;
-            font-weight: 700;
-            font-size: 16px;
-            cursor: pointer;
-            transition: transform .15s, box-shadow .15s, background .2s;
-            box-shadow: 0 4px 20px var(--accent-glow);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-        }
-
-        .tr-btn:active {
-            transform: scale(.97)
-        }
-
-        .tr-btn:disabled {
-            background: var(--surface2);
-            color: var(--sub);
-            box-shadow: none;
-            cursor: not-allowed;
-        }
-
-        .spinner {
-            width: 18px;
-            height: 18px;
-            border: 2.5px solid rgba(255, 255, 255, .3);
-            border-top-color: #fff;
-            border-radius: 50%;
-            animation: spin .7s linear infinite;
-        }
-
-        @keyframes spin {
-            to {
-                transform: rotate(360deg)
-            }
-        }
-
-        /* ── ERROR/STATUS BANNER ── */
-        .status-banner {
-            border-radius: 14px;
-            padding: 12px 16px;
-            font-size: 13px;
-            font-weight: 600;
-            display: none;
-            gap: 8px;
-            align-items: flex-start;
-            line-height: 1.5;
-        }
-
-        .status-banner.show {
-            display: flex
-        }
-
-        .status-banner.error {
-            background: rgba(239, 68, 68, .08);
-            border: 1px solid rgba(239, 68, 68, .2);
-            color: var(--red);
-        }
-
-        .status-banner.success {
-            background: rgba(16, 185, 129, .08);
-            border: 1px solid rgba(16, 185, 129, .2);
-            color: var(--green);
-        }
-
-        .status-banner.info {
-            background: rgba(37, 99, 235, .08);
-            border: 1px solid rgba(37, 99, 235, .2);
-            color: var(--accent);
-        }
-
-        /* ── FREQ PAIRS ── */
-        .freq-wrap {
-            margin-top: 4px
-        }
-
-        .freq-title {
-            font-size: 11px;
-            font-weight: 800;
-            color: var(--sub);
-            text-transform: uppercase;
-            letter-spacing: .6px;
-            margin-bottom: 8px;
-        }
-
-        .freq-chips {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 6px;
-        }
-
-        .freq-chip {
-            padding: 6px 12px;
-            background: var(--surface2);
-            border: 1px solid var(--border);
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: 600;
-            color: var(--sub);
-            cursor: pointer;
-            transition: all .2s;
-        }
-
-        .freq-chip:hover {
-            background: var(--accent-glow);
-            border-color: var(--accent);
-            color: var(--accent);
-        }
-
-        /* ── BOTTOM PADDING ── */
-        .bottom-pad {
-            height: 20px
+        .lang-select {
+            -webkit-appearance: none;
+            appearance: none;
         }
     </style>
 </head>
 
-<body>
+<body class="antialiased selection:bg-apple-blue selection:text-white flex flex-col h-screen overflow-hidden">
 
-    <!-- HEADER -->
-    <div class="hdr">
-        <div class="back-btn" id="backBtn">←</div>
-        <div class="hdr-center">
-            <div class="hdr-title">🌐 Tarjima</div>
-            <div class="hdr-sub">Matnni tezkor tarjima qiling</div>
+    <!-- Global Header -->
+    <header
+        class="h-16 flex-shrink-0 border-b border-black/5 dark:border-white/5 bg-white/80 dark:bg-[#0a0a0c]/80 backdrop-blur-xl flex items-center px-4 z-50">
+        <a href="more.html"
+            class="w-10 h-10 rounded-xl bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 transition-colors flex items-center justify-center shrink-0"
+            id="backBtn">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+                stroke-linecap="round" stroke-linejoin="round">
+                <path d="m15 18-6-6 6-6" />
+            </svg>
+        </a>
+        <div class="ml-4 flex-1">
+            <h1 class="font-display font-bold text-lg tracking-tight leading-tight">Tarjima AI</h1>
+            <p class="text-[10px] font-semibold text-black/40 dark:text-white/40 uppercase tracking-widest"><span
+                    id="engineLabel">Gemini & Google</span></p>
         </div>
-        <div class="engine-badge" id="engineBadge">
-            <div class="engine-dot"></div>
-            <span id="engineLabel">tayyor</span>
-        </div>
-    </div>
+    </header>
 
-    <!-- MAIN SCROLL AREA -->
-    <div class="main">
+    <main class="flex-1 overflow-y-auto scroller relative flex flex-col">
+        <div class="max-w-3xl w-full mx-auto p-4 md:p-6 flex flex-col h-full gap-4">
 
-        <!-- LANGUAGE SELECTOR -->
-        <div class="lang-bar">
-            <select class="lang-select" id="srcLang">
-                <option value="uz">🇺🇿 O'zbek</option>
-                <option value="en">🇬🇧 Ingliz</option>
-                <option value="ru">🇷🇺 Rus</option>
-            </select>
-            <button class="swap-btn" id="swapBtn" title="Tillarni almashtirish" onclick="swapLangs()">⇆</button>
-            <select class="lang-select" id="tgtLang">
-                <option value="en">🇬🇧 Ingliz</option>
-                <option value="uz">🇺🇿 O'zbek</option>
-                <option value="ru">🇷🇺 Rus</option>
-            </select>
-        </div>
-
-        <!-- TEXT PANELS -->
-        <div class="panels">
-            <!-- INPUT -->
-            <div class="panel" id="srcPanel">
-                <div class="panel-hdr">
-                    <span class="panel-lang-label" id="srcLangLabel">O'zbek</span>
-                    <div class="panel-actions">
-                        <span class="char-count" id="charCount">0 / 5000</span>
-                        <button class="icon-btn" title="Tozalash" onclick="clearSrc()">✕</button>
-                    </div>
+            <!-- Lang Bar -->
+            <div
+                class="flex items-center gap-3 bg-white dark:bg-[#151518] border border-black/5 dark:border-white/5 rounded-2xl p-2 animate-slide-up shadow-sm">
+                <div class="flex-1 relative">
+                    <select
+                        class="lang-select w-full bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 text-sm font-bold text-black dark:text-white rounded-xl px-4 py-3 outline-none transition-colors cursor-pointer"
+                        id="srcLang">
+                        <option value="uz">🇺🇿 O'zbekcha</option>
+                        <option value="en">🇬🇧 Inglizcha</option>
+                        <option value="ru">🇷🇺 Ruscha</option>
+                    </select>
+                    <div class="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none opacity-50">▼</div>
                 </div>
-                <textarea class="panel-textarea" id="srcText" placeholder="Tarjima qilish uchun matn kiriting…"
-                    maxlength="5000" oninput="onInput()"></textarea>
-            </div>
 
-            <!-- OUTPUT -->
-            <div class="panel" id="outPanel">
-                <div class="panel-hdr">
-                    <span class="panel-lang-label" id="tgtLangLabel">Ingliz</span>
-                    <div class="panel-actions">
-                        <button class="icon-btn" id="copyBtn" title="Nusxa olish" onclick="copyResult()">📋</button>
-                    </div>
+                <button
+                    class="w-10 h-10 rounded-xl bg-apple-blue text-white flex items-center justify-center font-bold text-lg hover:bg-blue-600 active:scale-95 transition-all shadow-md shadow-apple-blue/20 shrink-0"
+                    onclick="swapLangs()">
+                    ⇆
+                </button>
+
+                <div class="flex-1 relative">
+                    <select
+                        class="lang-select w-full bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 text-sm font-bold text-black dark:text-white rounded-xl px-4 py-3 outline-none transition-colors cursor-pointer"
+                        id="tgtLang">
+                        <option value="en" selected>🇬🇧 Inglizcha</option>
+                        <option value="uz">🇺🇿 O'zbekcha</option>
+                        <option value="ru">🇷🇺 Ruscha</option>
+                    </select>
+                    <div class="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none opacity-50">▼</div>
                 </div>
-                <textarea class="panel-textarea" id="outText" placeholder="Tarjima natijasi bu yerda chiqadi…"
-                    readonly></textarea>
             </div>
-        </div>
 
-        <!-- TRANSLATE BUTTON -->
-        <button class="tr-btn" id="trBtn" onclick="translateText()">
-            ⚡ Tarjima qilish
-        </button>
+            <!-- Translate Box Wrapper -->
+            <div class="flex flex-col md:flex-row gap-4 flex-1 h-full min-h-[400px]">
 
-        <!-- STATUS BANNER -->
-        <div class="status-banner" id="statusBanner">
-            <span id="statusIcon">⚠️</span>
-            <span id="statusMsg"></span>
-        </div>
+                <!-- INPUT PANEL -->
+                <div class="flex-1 flex flex-col bg-white dark:bg-[#151518] border border-black/5 dark:border-white/5 rounded-[24px] overflow-hidden shadow-sm animate-slide-up"
+                    style="animation-delay: 0.1s;">
+                    <div
+                        class="flex items-center justify-between px-5 py-3 border-b border-black/5 dark:border-white/5 bg-black/[0.02] dark:bg-white/[0.02]">
+                        <span class="text-[11px] font-bold text-apple-blue uppercase tracking-widest"
+                            id="srcLangLabel">O'zbekcha</span>
+                        <div class="flex items-center gap-3">
+                            <span class="text-[10px] font-bold text-black/30 dark:text-white/30" id="charCount">0 /
+                                5000</span>
+                            <button onclick="clearSrc()"
+                                class="text-black/30 dark:text-white/30 hover:text-black dark:hover:text-white transition-colors">✕</button>
+                        </div>
+                    </div>
+                    <textarea
+                        class="w-full flex-1 bg-transparent border-none p-5 text-base font-medium resize-none outline-none text-black dark:text-white placeholder-black/30 dark:placeholder-white/30 leading-relaxed"
+                        id="srcText" placeholder="Matnni bu yerga kiriting..." oninput="onInput()"></textarea>
+                </div>
 
-        <!-- QUICK PHRASE CHIPS -->
-        <div class="freq-wrap">
-            <div class="freq-title">Tezkor iboralar</div>
-            <div class="freq-chips">
-                <span class="freq-chip" onclick="setPhrase(this)">Salom, qandaysiz?</span>
-                <span class="freq-chip" onclick="setPhrase(this)">Rahmat!</span>
-                <span class="freq-chip" onclick="setPhrase(this)">Iltimos, yordam bering</span>
-                <span class="freq-chip" onclick="setPhrase(this)">Meni kechiring</span>
-                <span class="freq-chip" onclick="setPhrase(this)">Hujjatni tarjima qiling</span>
-                <span class="freq-chip" onclick="setPhrase(this)">Bu qancha turadi?</span>
+                <!-- OUTPUT PANEL -->
+                <div class="flex-1 flex flex-col bg-apple-blue/5 dark:bg-[#151518] border border-black/5 dark:border-white/5 rounded-[24px] overflow-hidden shadow-sm animate-slide-up relative"
+                    style="animation-delay: 0.15s;" id="outPanel">
+                    <div
+                        class="flex items-center justify-between px-5 py-3 border-b border-black/5 dark:border-white/5 bg-black/[0.02] dark:bg-white/[0.02]">
+                        <span class="text-[11px] font-bold text-apple-blue uppercase tracking-widest"
+                            id="tgtLangLabel">Inglizcha</span>
+                        <button onclick="copyResult()"
+                            class="text-black/30 dark:text-white/30 hover:text-apple-blue transition-colors">📋
+                            Nusxa</button>
+                    </div>
+                    <textarea
+                        class="w-full flex-1 bg-transparent border-none p-5 text-base font-semibold resize-none outline-none text-black dark:text-white placeholder-black/30 dark:placeholder-white/30 leading-relaxed"
+                        id="outText" placeholder="Tarjima shu yerda chiqadi..." readonly></textarea>
+                </div>
+
             </div>
-        </div>
 
-        <div class="bottom-pad"></div>
-    </div>
+            <!-- STATUS AND ACTION -->
+            <div class="mt-auto pt-2 animate-slide-up flex flex-col gap-3" style="animation-delay: 0.2s;">
+                <div id="statusBanner"
+                    class="hidden items-center gap-2 p-3 rounded-xl text-sm font-semibold max-w-full leading-tight">
+                    <span id="statusIcon">⚠️</span>
+                    <span id="statusMsg"></span>
+                </div>
+
+                <button
+                    class="w-full py-4 rounded-2xl bg-apple-blue hover:bg-blue-600 active:scale-[0.98] text-white font-bold text-lg shadow-[0_8px_30px_rgba(10,132,255,0.3)] transition-all flex justify-center items-center gap-2"
+                    id="trBtn" onclick="translateText()">
+                    ⚡ Tarjima Qilish
+                </button>
+            </div>
+
+            <!-- Quick Chips -->
+            <div class="animate-slide-up pb-6" style="animation-delay: 0.25s;">
+                <h3 class="text-[10px] font-bold text-black/40 dark:text-white/40 uppercase tracking-widest mb-3 pl-2">
+                    Tezkor iboralar</h3>
+                <div class="flex flex-wrap gap-2">
+                    <button
+                        class="px-4 py-2 rounded-full border border-black/10 dark:border-white/10 bg-white/50 dark:bg-white/5 hover:bg-black/5 dark:hover:bg-white/10 text-xs font-semibold transition-colors"
+                        onclick="setPhrase(this)">Salom, ahvollar qanday?</button>
+                    <button
+                        class="px-4 py-2 rounded-full border border-black/10 dark:border-white/10 bg-white/50 dark:bg-white/5 hover:bg-black/5 dark:hover:bg-white/10 text-xs font-semibold transition-colors"
+                        onclick="setPhrase(this)">Katta Rahmat!</button>
+                    <button
+                        class="px-4 py-2 rounded-full border border-black/10 dark:border-white/10 bg-white/50 dark:bg-white/5 hover:bg-black/5 dark:hover:bg-white/10 text-xs font-semibold transition-colors"
+                        onclick="setPhrase(this)">Iltimos, menga xabar bering</button>
+                    <button
+                        class="px-4 py-2 rounded-full border border-black/10 dark:border-white/10 bg-white/50 dark:bg-white/5 hover:bg-black/5 dark:hover:bg-white/10 text-xs font-semibold transition-colors"
+                        onclick="setPhrase(this)">Uchrashuvni bekor qila olasizmi?</button>
+                </div>
+            </div>
+
+        </div>
+    </main>
 
     <script>
-        /* ── INIT ── */
         const tg = window.Telegram?.WebApp;
-        const theme = localStorage.getItem('theme') || 'dark';
-        document.documentElement.setAttribute('data-theme', theme);
-        if (tg) {
-            tg.ready();
-            tg.expand();
-            if (tg.setHeaderColor) tg.setHeaderColor(theme === 'dark' ? '#060d1c' : '#f0f4f8');
+        let isDark = localStorage.getItem('theme') !== 'light';
+
+        if (isDark) {
+            document.documentElement.classList.add('dark');
+            if (tg?.setHeaderColor) tg.setHeaderColor('#0a0a0c');
+            if (tg?.setBackgroundColor) tg.setBackgroundColor('#000000');
+        } else {
+            document.documentElement.classList.remove('dark');
+            if (tg?.setHeaderColor) tg.setHeaderColor('#ffffff');
+            if (tg?.setBackgroundColor) tg.setBackgroundColor('#f5f5f7');
         }
-        const tid = new URLSearchParams(location.search).get('telegram_id')
-            || tg?.initDataUnsafe?.user?.id?.toString() || '';
-        document.getElementById('backBtn').onclick = () => {
-            location.href = 'index.html' + (tid ? '?telegram_id=' + tid : '');
+
+        const tid = new URLSearchParams(location.search).get('telegram_id') || sessionStorage.getItem('telegram_id') || tg?.initDataUnsafe?.user?.id?.toString() || '';
+        document.getElementById('backBtn').onclick = (e) => {
+            e.preventDefault();
+            location.href = 'more.html' + (tid ? '?telegram_id=' + tid : '');
         };
 
-        /* ── LANGUAGE CONFIG ── */
-        const LANG_NAMES = { uz: "O'zbek", en: "Ingliz", ru: "Rus" };
-        /* Gemini direction key: src_tgt */
+        const LANG_NAMES = { uz: "O'zbekcha", en: "Inglizcha", ru: "Ruscha" };
         const GEMINI_DIRS = new Set(['uz_en', 'en_uz', 'ru_uz', 'uz_ru', 'ru_en', 'en_ru']);
-        /* Google Translate language codes */
         const GT_CODES = { uz: 'uz', en: 'en', ru: 'ru' };
 
         let srcLang = 'uz', tgtLang = 'en';
@@ -596,50 +257,42 @@
 
         document.getElementById('srcLang').addEventListener('change', function () {
             srcLang = this.value;
-            if (srcLang === tgtLang) {
-                tgtLang = srcLang === 'uz' ? 'en' : 'uz';
-            }
+            if (srcLang === tgtLang) { tgtLang = srcLang === 'uz' ? 'en' : 'uz'; }
             updateLangLabels();
-            if (document.getElementById('srcText').value.trim()) translateText();
         });
         document.getElementById('tgtLang').addEventListener('change', function () {
             tgtLang = this.value;
-            if (srcLang === tgtLang) {
-                srcLang = tgtLang === 'uz' ? 'ru' : 'uz';
-            }
+            if (srcLang === tgtLang) { srcLang = tgtLang === 'uz' ? 'ru' : 'uz'; }
             updateLangLabels();
-            if (document.getElementById('srcText').value.trim()) translateText();
         });
 
         function swapLangs() {
-            const tmp = srcLang;
-            srcLang = tgtLang;
-            tgtLang = tmp;
-            /* also swap textarea contents */
+            const tmp = srcLang; srcLang = tgtLang; tgtLang = tmp;
             const srcT = document.getElementById('srcText');
             const outT = document.getElementById('outText');
             const prev = outT.value;
             if (prev) { srcT.value = prev; outT.value = ''; }
             updateLangLabels();
             onInput();
-            tg?.HapticFeedback?.impactOccurred('light');
+            tg?.HapticFeedback?.impactOccurred('medium');
         }
         updateLangLabels();
 
-        /* ── CHAR COUNTER ── */
         function onInput() {
             const len = document.getElementById('srcText').value.length;
             const cc = document.getElementById('charCount');
             cc.textContent = len + ' / 5000';
-            cc.className = 'char-count' + (len > 4500 ? (len >= 5000 ? ' over' : ' warn') : '');
+            if (len >= 5000) cc.className = "text-[10px] font-bold text-red-500";
+            else if (len > 4500) cc.className = "text-[10px] font-bold text-apple-orange";
+            else cc.className = "text-[10px] font-bold text-black/30 dark:text-white/30";
         }
 
-        /* ── QUICK PHRASE ── */
         function setPhrase(el) {
             document.getElementById('srcText').value = el.textContent;
             onInput();
             tg?.HapticFeedback?.selectionChanged();
         }
+
         function clearSrc() {
             document.getElementById('srcText').value = '';
             document.getElementById('outText').value = '';
@@ -647,54 +300,44 @@
             hideStatus();
         }
 
-        /* ── STATUS BANNER ── */
         function showStatus(type, icon, msg) {
             const b = document.getElementById('statusBanner');
-            b.className = 'status-banner show ' + type;
+            b.classList.remove('hidden', 'bg-red-500/10', 'text-red-500', 'bg-apple-green/10', 'text-apple-green', 'bg-apple-blue/10');
+            b.classList.add('flex');
+
+            if (type === 'error') b.classList.add('bg-red-500/10', 'text-red-500', 'border', 'border-red-500/20');
+            else if (type === 'success') b.classList.add('bg-apple-green/10', 'text-apple-green', 'border', 'border-apple-green/20');
+            else b.classList.add('bg-apple-blue/10', 'text-apple-blue', 'border', 'border-apple-blue/20');
+
             document.getElementById('statusIcon').textContent = icon;
             document.getElementById('statusMsg').textContent = msg;
         }
         function hideStatus() {
-            document.getElementById('statusBanner').className = 'status-banner';
+            document.getElementById('statusBanner').classList.add('hidden');
         }
-
-        /* ── ENGINE BADGE ── */
-        function setEngine(name, cls) {
-            const b = document.getElementById('engineBadge');
+        function setEngine(name) {
             document.getElementById('engineLabel').textContent = name;
-            b.className = 'engine-badge ' + cls;
         }
-
-        /* ── COPY RESULT ── */
         function copyResult() {
             const t = document.getElementById('outText').value;
             if (!t) return;
             navigator.clipboard?.writeText(t).then(() => {
-                document.getElementById('copyBtn').textContent = '✅';
-                setTimeout(() => { document.getElementById('copyBtn').textContent = '📋'; }, 1500);
+                tg?.HapticFeedback?.notificationOccurred('success');
             }).catch(() => {
-                /* fallback */
                 const el = document.getElementById('outText');
-                el.select();
-                document.execCommand('copy');
+                el.select(); document.execCommand('copy');
             });
             tg?.HapticFeedback?.notificationOccurred('success');
         }
 
-        /* ─────────────────────────────────────────────────────────
-           ENGINE 1 — Own server /api/translate (Gemini backend)
-           Works only when served from the FastAPI server.
-        ───────────────────────────────────────────────────────── */
         async function tryGeminiAPI(text, src, tgt) {
-            /* Determine the base URL — if file://, skip this engine */
             if (location.protocol === 'file:') return null;
-
             const dirKey = src + '_' + tgt;
-            if (!GEMINI_DIRS.has(dirKey)) return null;   /* unsupported pair */
+            if (!GEMINI_DIRS.has(dirKey)) return null;
 
-            const apiBase = location.origin;             /* https://dastyor-ai.onrender.com */
+            const apiBase = location.origin;
             const ctrl = new AbortController();
-            const timeout = setTimeout(() => ctrl.abort(), 12000); /* 12s timeout */
+            const timeout = setTimeout(() => ctrl.abort(), 12000);
 
             try {
                 const res = await fetch(apiBase + '/api/translate', {
@@ -705,32 +348,21 @@
                 });
                 clearTimeout(timeout);
 
-                if (!res.ok) {
-                    const err = await res.json().catch(() => ({}));
-                    throw new Error(err.detail || `HTTP ${res.status}`);
-                }
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
                 const data = await res.json();
                 if (data.translated_text) return { text: data.translated_text, engine: 'Gemini AI' };
                 return null;
             } catch (e) {
                 clearTimeout(timeout);
-                if (e.name === 'AbortError') throw new Error('Server javob bermadi (timeout)');
+                if (e.name === 'AbortError') throw new Error('Server (timeout)');
                 throw e;
             }
         }
 
-        /* ─────────────────────────────────────────────────────────
-           ENGINE 2 — Google Translate public API (no key needed)
-           Works anywhere: file://, telegram webview, any browser.
-           This is the official Google Translate Ajax endpoint used
-           by the web interface itself. No auth required for <5000 chars.
-        ───────────────────────────────────────────────────────── */
         async function tryGoogleTranslate(text, src, tgt) {
             const sl = GT_CODES[src] || src;
             const tl = GT_CODES[tgt] || tgt;
-            const url = `https://translate.googleapis.com/translate_a/single` +
-                `?client=gtx&sl=${encodeURIComponent(sl)}&tl=${encodeURIComponent(tl)}` +
-                `&dt=t&q=${encodeURIComponent(text)}`;
+            const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=${encodeURIComponent(sl)}&tl=${encodeURIComponent(tl)}&dt=t&q=${encodeURIComponent(text)}`;
 
             const ctrl = new AbortController();
             const timeout = setTimeout(() => ctrl.abort(), 15000);
@@ -738,114 +370,84 @@
             try {
                 const res = await fetch(url, { signal: ctrl.signal });
                 clearTimeout(timeout);
-                if (!res.ok) throw new Error(`Google Translate HTTP ${res.status}`);
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
                 const data = await res.json();
-                /* Response structure: [ [ ["translated","original",null,null,1], ... ], null, "uz" ] */
-                if (!Array.isArray(data) || !Array.isArray(data[0])) throw new Error('Noto\'g\'ri javob formati');
-                const translated = data[0]
-                    .filter(chunk => Array.isArray(chunk) && chunk[0])
-                    .map(chunk => chunk[0])
-                    .join('');
-                if (!translated) throw new Error('Tarjima bo\'sh qaytdi');
+                const translated = data[0].filter(chunk => Array.isArray(chunk) && chunk[0]).map(chunk => chunk[0]).join('');
+                if (!translated) throw new Error('Tarjima yiqildi');
                 return { text: translated, engine: 'Google Translate' };
             } catch (e) {
                 clearTimeout(timeout);
-                if (e.name === 'AbortError') throw new Error('Google Translate javob bermadi');
                 throw e;
             }
         }
 
-        /* ─────────────────────────────────────────────────────────
-           MAIN TRANSLATE ORCHESTRATOR
-           Strategy: try Gemini (server) first → fallback to Google
-        ───────────────────────────────────────────────────────── */
         async function translateText() {
             const srcText = document.getElementById('srcText').value.trim();
-            if (!srcText) {
-                showStatus('error', '⚠️', 'Matn kiriting!');
-                return;
-            }
-            if (srcText.length > 5000) {
-                showStatus('error', '⚠️', 'Matn 5000 belgidan oshmasligi kerak.');
-                return;
-            }
-            if (srcLang === tgtLang) {
-                showStatus('error', '⚠️', 'Manba va maqsad tillari bir xil bo\'lishi mumkin emas.');
-                return;
-            }
+            if (!srcText) { showStatus('error', '⚠️', 'Matn kiriting!'); return; }
+            if (srcText.length > 5000) { showStatus('error', '⚠️', 'Max 5000 belgi.'); return; }
+            if (srcLang === tgtLang) { showStatus('error', '⚠️', 'Tillarni almashtiring.'); return; }
 
             const btn = document.getElementById('trBtn');
             const outPanel = document.getElementById('outPanel');
             const outText = document.getElementById('outText');
 
-            btn.innerHTML = '<div class="spinner"></div> Tarjima qilinmoqda…';
+            btn.innerHTML = 'Kuting...';
             btn.disabled = true;
+            btn.classList.add('opacity-70');
             outText.value = '';
-            outPanel.classList.add('loading');
+            outText.classList.add('loading-shimmer');
             hideStatus();
-            setEngine('…', '');
+            setEngine('Yuklanmoqda...');
 
             let lastError = null;
 
-            /* ─── Try Engine 1: Gemini via own server ─── */
             try {
                 const result = await tryGeminiAPI(srcText, srcLang, tgtLang);
                 if (result) {
                     outText.value = result.text;
-                    outPanel.classList.remove('loading');
-                    setEngine(result.engine, 'gemini');
-                    showStatus('success', '✅', result.engine + ' orqali muvaffaqiyatli tarjima qilindi.');
+                    outText.classList.remove('loading-shimmer');
+                    setEngine(result.engine);
+                    showStatus('success', '✅', 'Tarjima qilindi');
                     tg?.HapticFeedback?.notificationOccurred('success');
-                    btn.innerHTML = '⚡ Tarjima qilish';
+                    btn.innerHTML = '⚡ Tarjima Qilish';
                     btn.disabled = false;
+                    btn.classList.remove('opacity-70');
                     return;
                 }
-            } catch (e) {
-                lastError = e.message;
-                /* log but don't show yet — try fallback */
-                console.warn('Gemini API failed:', e.message);
-            }
+            } catch (e) { lastError = e.message; }
 
-            /* ─── Try Engine 2: Google Translate (fallback) ─── */
             try {
                 const result = await tryGoogleTranslate(srcText, srcLang, tgtLang);
                 if (result) {
                     outText.value = result.text;
-                    outPanel.classList.remove('loading');
-                    setEngine(result.engine, 'gtrans');
-                    const note = lastError
-                        ? `${result.engine} orqali tarjima qilindi (server ishlamadi: ${lastError})`
-                        : `${result.engine} orqali muvaffaqiyatli tarjima qilindi.`;
-                    showStatus('info', '🌐', note);
+                    outText.classList.remove('loading-shimmer');
+                    setEngine(result.engine);
+                    showStatus('info', '🌐', 'Tarjima qilindi');
                     tg?.HapticFeedback?.notificationOccurred('success');
-                    btn.innerHTML = '⚡ Tarjima qilish';
+                    btn.innerHTML = '⚡ Tarjima Qilish';
                     btn.disabled = false;
+                    btn.classList.remove('opacity-70');
                     return;
                 }
-            } catch (e) {
-                lastError = (lastError ? lastError + '; ' : '') + e.message;
-                console.error('Google Translate failed:', e.message);
-            }
+            } catch (e) { lastError = (lastError ? lastError + '; ' : '') + e.message; }
 
-            /* ─── Both engines failed ─── */
-            outPanel.classList.remove('loading');
-            setEngine('xato', '');
-            showStatus('error', '❌',
-                'Tarjima amalga oshmadi. Internetni tekshiring va qayta urinib ko\'ring. ' +
-                (lastError ? '(' + lastError + ')' : '')
-            );
+            outText.classList.remove('loading-shimmer');
+            setEngine('Xato');
+            showStatus('error', '❌', 'Xatolik: ' + lastError);
             tg?.HapticFeedback?.notificationOccurred('error');
-            btn.innerHTML = '⚡ Tarjima qilish';
+            btn.innerHTML = '⚡ Tarjima Qilish';
             btn.disabled = false;
+            btn.classList.remove('opacity-70');
         }
 
-        /* ── ENTER KEY shortcut (Ctrl/Cmd + Enter) ── */
         document.getElementById('srcText').addEventListener('keydown', function (e) {
             if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
                 e.preventDefault();
                 translateText();
             }
         });
+
+        if (tg) { tg.ready(); tg.expand(); }
     </script>
 </body>
 

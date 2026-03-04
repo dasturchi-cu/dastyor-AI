@@ -1,204 +1,271 @@
 <!DOCTYPE html>
-<html lang="uz">
+<html lang="uz" class="dark">
 
 <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>Rasm → PDF | DASTYOR AI</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="style.css" />
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Outfit:wght@500;600;700;800&display=swap"
+        rel="stylesheet" />
+
+    <!-- Tailwind -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        display: ['Outfit', 'sans-serif'],
+                    },
+                    colors: {
+                        apple: {
+                            blue: '#0A84FF',
+                            green: '#30D158',
+                            orange: '#FF9F0A',
+                            purple: '#BF5AF2',
+                        }
+                    },
+                    animation: {
+                        'slide-up': 'slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+                    },
+                    keyframes: {
+                        slideUp: {
+                            '0%': { opacity: '0', transform: 'translateY(16px)' },
+                            '100%': { opacity: '1', transform: 'translateY(0)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
     <style>
-        .page-wrap {
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            padding: 100px 24px;
-            position: relative;
-            z-index: 1;
+        html,
+        body {
+            -webkit-tap-highlight-color: transparent;
+            overscroll-behavior-y: none;
         }
 
-        .page-card {
-            background: rgba(255, 255, 255, 0.04);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            border-radius: 28px;
-            padding: 52px;
-            max-width: 640px;
-            width: 100%;
-            text-align: center;
+        body {
+            background-color: #f5f5f7;
+            color: #1d1d1f;
+            transition: background-color 0.3s ease, color 0.3s ease;
         }
 
-        .big-icon {
-            font-size: 72px;
-            display: block;
-            margin-bottom: 20px;
+        .dark body {
+            background-color: #000000;
+            color: #f5f5f7;
         }
 
-        h1 {
-            font-size: 30px;
-            font-weight: 800;
-            color: white;
-            margin-bottom: 12px;
+        .scroller::-webkit-scrollbar {
+            width: 0px;
         }
 
-        .subtitle {
-            color: #94a3b8;
-            font-size: 15px;
-            margin-bottom: 32px;
+        /* Drag active UI styling */
+        .drag-active {
+            border-color: #0A84FF !important;
+            background-color: rgba(10, 132, 255, 0.1) !important;
+            transform: scale(1.02);
+            transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
         }
 
-        .upload-zone {
-            border: 2px dashed rgba(59, 130, 246, 0.3);
-            border-radius: 18px;
-            padding: 40px 20px;
-            cursor: pointer;
-            transition: all 0.3s;
-            margin-bottom: 20px;
+        .spin {
+            width: 18px;
+            height: 18px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-top-color: #fff;
+            border-radius: 50%;
+            animation: spin 0.7s linear infinite;
         }
 
-        .upload-zone:hover {
-            border-color: #3b82f6;
-            background: rgba(59, 130, 246, 0.05);
+        @keyframes spin {
+            to {
+                transform: rotate(360deg)
+            }
         }
 
-        .imgs-preview {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            justify-content: center;
-            margin-bottom: 20px;
-            min-height: 0;
-        }
-
-        .img-thumb {
-            width: 80px;
-            height: 80px;
-            border-radius: 10px;
-            object-fit: cover;
-            border: 2px solid rgba(59, 130, 246, 0.3);
-        }
-
-        .convert-btn {
-            width: 100%;
-            padding: 14px;
-            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
-            color: white;
-            border: none;
-            border-radius: 14px;
-            font-weight: 700;
-            font-size: 15px;
-            cursor: pointer;
-            transition: all 0.3s;
-            margin-bottom: 12px;
-        }
-
-        .convert-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 12px 30px rgba(59, 130, 246, 0.5);
-        }
-
-        .count-badge {
-            display: inline-block;
-            padding: 6px 16px;
-            background: rgba(59, 130, 246, 0.15);
-            border-radius: 50px;
-            font-size: 13px;
-            color: #60a5fa;
-            margin-bottom: 8px;
-        }
-
-        .back-link {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            color: #60a5fa;
-            text-decoration: none;
-            font-size: 14px;
+        /* Custom image grid style */
+        .img-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+            gap: 12px;
         }
     </style>
 </head>
 
-<body>
-    <canvas id="particles"></canvas>
-    <nav class="navbar scrolled" id="navbar">
-        <div class="nav-inner">
-            <a href="index.html" class="nav-logo">
-                <div class="logo-icon">
-                    <svg width="22" height="22" viewBox="0 0 28 28" fill="none">
-                        <circle cx="14" cy="14" r="14" fill="url(#l1)" />
-                        <path d="M8 14h12M14 8v12" stroke="white" stroke-width="2.5" stroke-linecap="round" />
-                        <defs>
-                            <linearGradient id="l1" x1="0" y1="0" x2="28" y2="28">
-                                <stop stop-color="#3b82f6" />
-                                <stop offset="1" stop-color="#1d4ed8" />
-                            </linearGradient>
-                        </defs>
-                    </svg>
-                </div>
-                <span>DASTYOR <b>AI</b></span>
-            </a>
-            <a href="index.html" class="back-link">← Bosh sahifa</a>
-        </div>
-    </nav>
-    <div class="page-wrap">
-        <div class="page-card">
-            <span style="font-size:72px;display:block;margin-bottom:10px">🖼️</span>
-            <h1>Rasm → PDF</h1>
-            <p class="subtitle">20 tagacha rasm tanlang va PDF tuzamiz</p>
+<body class="antialiased selection:bg-apple-blue selection:text-white flex flex-col h-screen overflow-hidden">
 
-            <div class="upload-zone" id="uploadZone" onclick="document.getElementById('pdfImages').click()">
-                <span style="font-size:40px">📁</span>
-                <p style="color:#60a5fa;font-weight:600;margin:12px 0 4px">Rasmlarni tanlash / qo'shish</p>
-                <p style="color:#64748b;font-size:13px">20 tagacha • JPG, PNG, WEBP</p>
+    <!-- Global Header -->
+    <header
+        class="h-16 flex-shrink-0 border-b border-black/5 dark:border-white/5 bg-white/80 dark:bg-[#0a0a0c]/80 backdrop-blur-xl flex items-center px-4 z-50">
+        <a href="more.html"
+            class="w-10 h-10 rounded-xl bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 transition-colors flex items-center justify-center shrink-0"
+            id="backBtn">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+                stroke-linecap="round" stroke-linejoin="round">
+                <path d="m15 18-6-6 6-6" />
+            </svg>
+        </a>
+        <div class="ml-4 flex-1">
+            <h1 class="font-display font-bold text-lg tracking-tight leading-tight">Rasm → PDF</h1>
+            <p class="text-[10px] font-semibold text-black/40 dark:text-white/40 uppercase tracking-widest"><span
+                    id="tgStatusBadge" class="text-apple-green">Telegram ulangan</span></p>
+        </div>
+    </header>
+
+    <main class="flex-1 overflow-y-auto scroller relative flex flex-col">
+        <div class="max-w-xl w-full mx-auto p-4 md:p-6 flex flex-col h-full gap-5">
+
+            <!-- Connection Label -->
+            <div
+                class="flex items-center gap-3 bg-white dark:bg-[#151518] border border-black/5 dark:border-white/5 rounded-2xl p-3 animate-slide-up shadow-sm">
+                <div class="w-10 h-10 rounded-xl bg-apple-blue/10 flex items-center justify-center shrink-0">
+                    <span class="text-apple-blue font-bold text-lg">📄</span>
+                </div>
+                <div>
+                    <h3 class="font-bold text-sm" id="tgLabelTitle">PDF Generatsiya</h3>
+                    <p class="text-[11px] font-medium text-black/50 dark:text-white/50" id="tgLabelSub">Natijalar
+                        qurilmangizga yuklanadi hamda bot orqali PDF holida jo'natiladi.</p>
+                </div>
             </div>
 
-            <input type="file" id="pdfImages" accept="image/*" multiple style="display:none"
-                onchange="previewImages(this)" />
-            <div id="countBadge" style="display:none" class="count-badge">0 ta rasm tanlandi</div>
-            <div class="imgs-preview" id="imgsPreview"></div>
-            <button class="convert-btn" id="pdfBtn" style="display:none" onclick="startImgToPdf()">📄 PDF
-                yaratish</button>
-            <button class="convert-btn" id="addMoreBtn"
-                style="display:none;background:rgba(59,130,246,0.15);color:#60a5fa"
-                onclick="document.getElementById('pdfImages').click()">➕ Ko'proq rasm qo'shish</button>
+            <!-- Upload Zone -->
+            <div class="flex-1 min-h-[250px] bg-white dark:bg-[#151518] border border-black/5 dark:border-white/5 rounded-[24px] overflow-hidden shadow-sm animate-slide-up relative flex flex-col"
+                style="animation-delay: 0.1s;">
+
+                <input type="file" id="imgInput" class="hidden" accept="image/*" multiple
+                    onchange="previewImages(this)" />
+                <label for="imgInput" id="uploadZone"
+                    class="absolute inset-0 m-4 rounded-[18px] border-2 border-dashed border-apple-blue/30 bg-apple-blue/5 hover:bg-apple-blue/10 transition-colors flex flex-col items-center justify-center cursor-pointer select-none"
+                    ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onDrop(event)">
+
+                    <div
+                        class="w-20 h-20 mb-4 bg-white dark:bg-black rounded-[22px] shadow-sm flex items-center justify-center relative overflow-hidden">
+                        <svg class="text-apple-blue" width="36" height="36" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                            <circle cx="8.5" cy="8.5" r="1.5" />
+                            <polyline points="21 15 16 10 5 21" />
+                        </svg>
+                    </div>
+
+                    <h2 class="font-display font-bold text-lg text-apple-blue mb-1">Rasmlarni tanlang</h2>
+                    <p class="text-[11px] font-semibold text-black/40 dark:text-white/40 max-w-[200px] text-center">Yoki
+                        bu yerga sudrab tashlang. Ko'pi bilan 20 ta rasm.</p>
+                </label>
+
+                <!-- Queue Wrapper (hidden initially) -->
+                <div id="queueWrap" class="hidden absolute inset-0 bg-white dark:bg-[#151518] z-10 flex-col">
+                    <div class="flex items-center justify-between p-4 border-b border-black/5 dark:border-white/5">
+                        <span class="text-[11px] font-bold text-apple-blue uppercase tracking-widest" id="countBadge">0
+                            ta rasm tanlandi</span>
+                        <div class="flex items-center gap-2">
+                            <button onclick="document.getElementById('imgInput').click()" id="addMoreBtn"
+                                class="text-[10px] font-bold text-apple-blue bg-apple-blue/10 px-3 py-1.5 rounded-lg hover:bg-apple-blue/20 transition-colors uppercase tracking-wider">➕
+                                Rasm Qo'shish</button>
+                            <button onclick="clearAll()"
+                                class="text-[10px] font-bold text-red-500 bg-red-500/10 px-3 py-1.5 rounded-lg hover:bg-red-500/20 transition-colors uppercase tracking-wider">Tozalash</button>
+                        </div>
+                    </div>
+
+                    <div class="flex-1 overflow-y-auto scroller p-4">
+                        <div class="img-grid" id="imgsPreview">
+                            <!-- Loaded dynamically -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Result Card overlay -->
+                <div id="resultCard"
+                    class="hidden absolute inset-0 bg-white/90 dark:bg-[#151518]/95 backdrop-blur-md z-20 flex-col items-center justify-center p-6 text-center shadow-lg">
+                    <div
+                        class="w-16 h-16 rounded-[22px] bg-apple-green/20 text-apple-green flex items-center justify-center text-3xl mb-4">
+                        ✅</div>
+                    <div class="font-display font-bold text-xl mb-2">PDF yaratildi!</div>
+                    <div class="text-xs font-medium text-black/50 dark:text-white/50 mb-8" id="resultSub">PDF
+                        muvaffaqiyatli saqlandi.</div>
+                    <div class="w-full flex flex-col gap-3">
+                        <button onclick="startNew()"
+                            class="w-full py-4 rounded-xl bg-apple-blue hover:bg-blue-600 active:scale-[0.98] text-white font-bold transition-all shadow-[0_8px_30px_rgba(10,132,255,0.25)]">🔄
+                            Yangi PDF yaratish</button>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- STATUS AND ACTION -->
+            <div class="mt-auto pt-2 pb-4 animate-slide-up flex flex-col gap-3" style="animation-delay: 0.2s;">
+                <div id="statusBanner"
+                    class="hidden items-center gap-2 p-3 rounded-xl text-sm font-semibold max-w-full leading-tight">
+                    <span id="statusIcon">⚠️</span>
+                    <span id="statusMsg"></span>
+                </div>
+
+                <button
+                    class="w-full py-4 rounded-2xl bg-apple-blue hover:bg-blue-600 active:scale-[0.98] disabled:opacity-50 disabled:active:scale-100 disabled:shadow-none text-white font-bold text-lg shadow-[0_8px_30px_rgba(10,132,255,0.3)] transition-all flex justify-center items-center gap-2"
+                    id="pdfBtn" onclick="startImgToPdf()" disabled>
+                    ⚡ PDF Yaratish
+                </button>
+            </div>
+
         </div>
-    </div>
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <script src="app.js"></script>
+    </main>
+
     <script>
         const tg = window.Telegram?.WebApp;
-        if (tg) { tg.ready(); tg.expand(); }
-        let telegramId = '';
+        let isDark = localStorage.getItem('theme') !== 'light';
 
-        function getTelegramId() {
-            if (tg && tg.initDataUnsafe?.user?.id) return tg.initDataUnsafe.user.id.toString();
-            const urlId = new URLSearchParams(window.location.search).get('telegram_id');
-            if (urlId) return urlId;
-            const stored = sessionStorage.getItem('telegram_id');
-            if (stored) return stored;
-            return '';
+        if (isDark) {
+            document.documentElement.classList.add('dark');
+            if (tg?.setHeaderColor) tg.setHeaderColor('#0a0a0c');
+            if (tg?.setBackgroundColor) tg.setBackgroundColor('#000000');
+        } else {
+            document.documentElement.classList.remove('dark');
+            if (tg?.setHeaderColor) tg.setHeaderColor('#ffffff');
+            if (tg?.setBackgroundColor) tg.setBackgroundColor('#f5f5f7');
         }
 
-        telegramId = getTelegramId();
-        if (telegramId) sessionStorage.setItem('telegram_id', telegramId);
+        const tid = new URLSearchParams(location.search).get('telegram_id') || sessionStorage.getItem('telegram_id') || tg?.initDataUnsafe?.user?.id?.toString() || '';
+        document.getElementById('backBtn').onclick = (e) => {
+            e.preventDefault();
+            location.href = 'more.html' + (tid ? '?telegram_id=' + tid : '');
+        };
+
+        if (tid) {
+            sessionStorage.setItem('telegram_id', tid);
+        } else {
+            document.getElementById('tgLabelTitle').textContent = "Avtonom rejim";
+            document.getElementById('tgLabelSub').textContent = "Siz bot orqali kirmaganingiz uchun Telegram ga jo'natilmaydi, faqatgina yuklab olish mumkin.";
+            const badge = document.getElementById('tgStatusBadge');
+            badge.textContent = "Oflayn";
+            badge.className = "text-black/40 dark:text-white/40";
+        }
 
         let selectedFiles = [];
 
+        function onDragOver(e) { e.preventDefault(); document.getElementById('uploadZone').classList.add('drag-active'); }
+        function onDragLeave(e) { document.getElementById('uploadZone').classList.remove('drag-active'); }
+        function onDrop(e) {
+            e.preventDefault();
+            document.getElementById('uploadZone').classList.remove('drag-active');
+
+            const dropInput = { files: e.dataTransfer.files };
+            previewImages(dropInput);
+        }
+
         function previewImages(input) {
             const newFiles = Array.from(input.files);
-
-            // Check for duplicates before adding
             for (let f of newFiles) {
                 if (!selectedFiles.some(existing => existing.name === f.name && existing.size === f.size)) {
                     selectedFiles.push(f);
                 }
             }
-            // limit to 20
-            selectedFiles = selectedFiles.slice(0, 20);
+            selectedFiles = selectedFiles.slice(0, 20); // max 20 limits
 
-            // Must reset value inside the timeout OR right away, but to be clean, just reset
             input.value = '';
             refreshThumbsOnly();
         }
@@ -208,51 +275,87 @@
             const badge = document.getElementById('countBadge');
             const btn = document.getElementById('pdfBtn');
             const addBtn = document.getElementById('addMoreBtn');
+            const wrapEl = document.getElementById('queueWrap');
 
             preview.innerHTML = '';
+
+            if (selectedFiles.length === 0) {
+                wrapEl.classList.remove('flex');
+                wrapEl.classList.add('hidden');
+                btn.disabled = true;
+                return;
+            }
+
+            wrapEl.classList.remove('hidden');
+            wrapEl.classList.add('flex');
+
             selectedFiles.forEach((f, idx) => {
-                const wrap = document.createElement('div');
-                wrap.style.cssText = 'position:relative;display:inline-block';
-                const img = document.createElement('img');
-                img.src = URL.createObjectURL(f);
-                img.className = 'img-thumb';
-                const del = document.createElement('button');
-                del.textContent = '×';
-                del.style.cssText = 'position:absolute;top:-6px;right:-6px;background:#ef4444;color:#fff;border:none;border-radius:50%;width:20px;height:20px;cursor:pointer;font-size:12px;font-weight:700;line-height:1';
-                del.onclick = () => {
-                    selectedFiles.splice(idx, 1);
-                    refreshThumbsOnly();
-                };
-                wrap.appendChild(img);
-                wrap.appendChild(del);
-                preview.appendChild(wrap);
+                const itemHtml = `
+                    <div class="relative group aspect-square rounded-xl bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/5 overflow-hidden slide-up" style="animation-delay: ${0.05 * Math.min(idx, 10)}s;">
+                        <img src="${URL.createObjectURL(f)}" class="w-full h-full object-cover" />
+                        <button onclick="removeImg(${idx})" class="absolute top-1 right-1 w-6 h-6 rounded-md bg-black/60 backdrop-blur-md text-white flex items-center justify-center opacity-80 hover:opacity-100 transition-opacity">
+                            <span class="text-xs font-bold leading-none">✕</span>
+                        </button>
+                    </div>
+                `;
+                preview.insertAdjacentHTML('beforeend', itemHtml);
             });
 
-            badge.textContent = selectedFiles.length + ' ta rasm tanlandi';
-            if (selectedFiles.length === 0) {
-                btn.style.display = 'none';
-                badge.style.display = 'none';
-                if (addBtn) addBtn.style.display = 'none';
+            badge.textContent = `${selectedFiles.length} ta rasm tanlandi`;
+            btn.disabled = false;
+
+            if (selectedFiles.length < 20) {
+                addBtn.classList.remove('hidden');
             } else {
-                btn.style.display = 'block';
-                badge.style.display = 'inline-block';
-                if (addBtn) addBtn.style.display = selectedFiles.length < 20 ? 'block' : 'none';
+                addBtn.classList.add('hidden');
             }
+
+            tg?.HapticFeedback?.impactOccurred('light');
         }
 
+        function removeImg(idx) {
+            selectedFiles.splice(idx, 1);
+            refreshThumbsOnly();
+        }
+
+        function clearAll() {
+            selectedFiles = [];
+            refreshThumbsOnly();
+            hideStatus();
+            document.getElementById('resultCard').classList.remove('flex');
+            document.getElementById('resultCard').classList.add('hidden');
+        }
+
+        function startNew() {
+            clearAll();
+            hideStatus();
+        }
+
+        function showStatus(type, icon, msg) {
+            const b = document.getElementById('statusBanner');
+            b.classList.remove('hidden', 'bg-red-500/10', 'text-red-500', 'bg-apple-green/10', 'text-apple-green', 'bg-apple-blue/10', 'text-apple-blue');
+            b.classList.add('flex');
+            if (type === 'error') b.classList.add('bg-red-500/10', 'text-red-500', 'border', 'border-red-500/20');
+            else b.classList.add('bg-apple-blue/10', 'text-apple-blue', 'border', 'border-apple-blue/20');
+            document.getElementById('statusIcon').textContent = icon;
+            document.getElementById('statusMsg').textContent = msg;
+        }
+        function hideStatus() { document.getElementById('statusBanner').classList.add('hidden'); }
+
         async function startImgToPdf() {
-            if (!telegramId) telegramId = getTelegramId();
             if (selectedFiles.length === 0) return;
 
             const btn = document.getElementById('pdfBtn');
-            btn.innerHTML = '⏳ Birlashtirilmoqda...';
+            btn.innerHTML = '<div class="spin"></div> Jarayon...';
             btn.disabled = true;
+            btn.classList.add('opacity-70');
+            hideStatus();
 
             const formData = new FormData();
-            if (telegramId) formData.append('telegram_id', telegramId);
+            if (tid) formData.append('telegram_id', tid);
             selectedFiles.forEach(f => formData.append('files', f));
 
-            let apiBase = location.protocol === 'file:' ? 'http://127.0.0.1:8000' : location.origin;
+            let apiBase = location.protocol === 'file:' ? 'https://dastyor-ai.onrender.com' : location.origin;
 
             try {
                 const res = await fetch(apiBase + '/api/pdf_direct', { method: 'POST', body: formData });
@@ -260,13 +363,14 @@
                 if (!res.ok) {
                     let errText = "Server xatosi";
                     try { const errData = await res.json(); errText = errData.detail || errData.error || errText; } catch (e) { }
-                    alert("Xatolik: " + errText);
-                    btn.innerHTML = '📄 PDF yaratish';
+                    showStatus('error', '❌', "Xatolik: " + errText);
+                    btn.innerHTML = '⚡ PDF Yaratish';
+                    btn.classList.remove('opacity-70');
                     btn.disabled = false;
+                    tg?.HapticFeedback?.notificationOccurred('error');
                     return;
                 }
 
-                // Download the generated PDF directly in the browser
                 const blob = await res.blob();
                 const url = window.URL.createObjectURL(blob);
                 const a = document.createElement('a');
@@ -277,22 +381,28 @@
                 a.click();
                 window.URL.revokeObjectURL(url);
 
-                if (telegramId && tg) {
-                    tg.showAlert("✅ PDF qurilmangizga yuklandi va botga yuborildi!");
+                if (tid && tg) {
+                    document.getElementById('resultSub').textContent = "Qurilmangizga yuklandi va botga yuborildi!";
                 } else {
-                    alert("✅ PDF yuklab olindi!");
+                    document.getElementById('resultSub').textContent = "PDF yuklab olindi!";
                 }
 
-                // Clear the files
-                selectedFiles = [];
-                refreshThumbsOnly();
+                document.getElementById('resultCard').classList.remove('hidden');
+                document.getElementById('resultCard').classList.add('flex');
+
+                btn.innerHTML = '⚡ PDF Yaratish';
+                btn.classList.remove('opacity-70');
+                btn.disabled = false;
+
+                tg?.HapticFeedback?.notificationOccurred('success');
 
             } catch (e) {
-                alert("Serverga ulanishda xato: " + e.message);
+                showStatus('error', '❌', "Server ulanishda xato: " + e.message);
+                btn.innerHTML = '⚡ PDF Yaratish';
+                btn.classList.remove('opacity-70');
+                btn.disabled = false;
+                tg?.HapticFeedback?.notificationOccurred('error');
             }
-
-            btn.innerHTML = '📄 PDF yaratish';
-            btn.disabled = false;
         }
     </script>
 </body>
