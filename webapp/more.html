@@ -5,8 +5,14 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>Xizmatlar | DASTYOR AI</title>
-    <!-- Telegram SDK -->
+    <!-- 1. Theme init FIRST — prevents flash of wrong theme -->
+    <script src="theme-init.js"></script>
+    <!-- 2. Global theme tokens -->
+    <link rel="stylesheet" href="theme.css">
+    <!-- 3. Telegram SDK -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <!-- 4. i18n (before DOM renders) -->
+    <script src="i18n.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link
         href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Outfit:wght@500;600;700;800&display=swap"
@@ -57,17 +63,6 @@
             overscroll-behavior-y: none;
         }
 
-        body {
-            background-color: #f5f5f7;
-            color: #1d1d1f;
-            transition: background-color 0.3s ease, color 0.3s ease;
-        }
-
-        .dark body {
-            background-color: #000000;
-            color: #f5f5f7;
-        }
-
         ::-webkit-scrollbar {
             display: none;
         }
@@ -79,15 +74,15 @@
     <main class="max-w-md mx-auto pt-8 px-5">
 
         <header class="mb-8 animate-slide-up">
-            <h1 class="font-display font-extrabold text-4xl mb-1 text-black dark:text-white" id="txt_title">Xizmatlar
-            </h1>
-            <p class="text-sm font-medium text-black/50 dark:text-white/50" id="txt_sub">Barcha aqlli vositalar markazi
-            </p>
+            <h1 class="font-display font-extrabold text-4xl mb-1 text-black dark:text-white" id="txt_title"
+                data-i18n="more_title">Xizmatlar</h1>
+            <p class="text-sm font-medium text-black/50 dark:text-white/50" id="txt_sub" data-i18n="more_sub">Barcha
+                aqlli vositalar markazi</p>
         </header>
 
         <div class="mb-4 animate-slide-up" style="animation-delay: 0.1s;">
-            <h2 class="text-xs font-bold text-black/40 dark:text-white/40 uppercase tracking-widest pl-2" id="txt_sec1">
-                Til va Matn</h2>
+            <h2 class="text-xs font-bold text-black/40 dark:text-white/40 uppercase tracking-widest pl-2" id="txt_sec1"
+                data-i18n="more_sec1">Til va Matn</h2>
         </div>
 
         <div class="flex flex-col gap-3 mb-8">
@@ -99,10 +94,10 @@
                     🌐
                 </div>
                 <div class="ml-4 flex-1">
-                    <h3 class="font-display font-bold text-[17px] mb-0.5 text-black dark:text-white" id="txt_s1_t">
-                        Tarjima AI</h3>
-                    <p class="text-xs font-medium text-black/50 dark:text-white/50 leading-snug" id="txt_s1_d">Matn va
-                        hujjatlarni 100+ tillarga ravon tarjima qilish</p>
+                    <h3 class="font-display font-bold text-[17px] mb-0.5 text-black dark:text-white" id="txt_s1_t"
+                        data-i18n="svc_translate">Tarjima AI</h3>
+                    <p class="text-xs font-medium text-black/50 dark:text-white/50 leading-snug" id="txt_s1_d"
+                        data-i18n="svc_translate_d">Matn va hujjatlarni 100+ tillarga ravon tarjima qilish</p>
                 </div>
                 <svg class="text-black/20 dark:text-white/20 group-hover:text-apple-green group-hover:translate-x-1 transition-all"
                     width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
@@ -119,10 +114,10 @@
                     🔤
                 </div>
                 <div class="ml-4 flex-1">
-                    <h3 class="font-display font-bold text-[17px] mb-0.5 text-black dark:text-white" id="txt_s2_t">Krill
-                        / Lotin</h3>
-                    <p class="text-xs font-medium text-black/50 dark:text-white/50 leading-snug" id="txt_s2_d">O'zbek
-                        alifbosini bir zumda bexato o'giting</p>
+                    <h3 class="font-display font-bold text-[17px] mb-0.5 text-black dark:text-white" id="txt_s2_t"
+                        data-i18n="svc_translit">Krill / Lotin</h3>
+                    <p class="text-xs font-medium text-black/50 dark:text-white/50 leading-snug" id="txt_s2_d"
+                        data-i18n="svc_translit_d">O'zbek alifbosini bir zumda bexato o'giting</p>
                 </div>
                 <svg class="text-black/20 dark:text-white/20 group-hover:text-apple-orange group-hover:translate-x-1 transition-all"
                     width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
@@ -134,8 +129,8 @@
 
 
         <div class="mb-4 animate-slide-up" style="animation-delay: 0.25s;">
-            <h2 class="text-xs font-bold text-black/40 dark:text-white/40 uppercase tracking-widest pl-2" id="txt_sec2">
-                Fayl Vositalari</h2>
+            <h2 class="text-xs font-bold text-black/40 dark:text-white/40 uppercase tracking-widest pl-2" id="txt_sec2"
+                data-i18n="more_sec2">Fayl Vositalari</h2>
         </div>
 
         <div class="flex flex-col gap-3">
@@ -147,10 +142,10 @@
                     🖼️
                 </div>
                 <div class="ml-4 flex-1">
-                    <h3 class="font-display font-bold text-[17px] mb-0.5 text-black dark:text-white" id="txt_s3_t">Rasm
-                        → Word</h3>
-                    <p class="text-xs font-medium text-black/50 dark:text-white/50 leading-snug" id="txt_s3_d">Rasm yoki
-                        skanerdan matnni Word (.docx) formatiga aylanitirish</p>
+                    <h3 class="font-display font-bold text-[17px] mb-0.5 text-black dark:text-white" id="txt_s3_t"
+                        data-i18n="svc_ocr">Rasm → Word</h3>
+                    <p class="text-xs font-medium text-black/50 dark:text-white/50 leading-snug" id="txt_s3_d"
+                        data-i18n="svc_ocr_d">Rasm yoki skanerdan matnni Word (.docx) formatiga aylanitirish</p>
                 </div>
                 <svg class="text-black/20 dark:text-white/20 group-hover:text-apple-purple group-hover:translate-x-1 transition-all"
                     width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
@@ -167,10 +162,10 @@
                     📎
                 </div>
                 <div class="ml-4 flex-1">
-                    <h3 class="font-display font-bold text-[17px] mb-0.5 text-black dark:text-white" id="txt_s4_t">Rasm
-                        → PDF</h3>
-                    <p class="text-xs font-medium text-black/50 dark:text-white/50 leading-snug" id="txt_s4_d">Ko'plab
-                        rasmlarni bitta tartibli PDF hujjatga yig'ish</p>
+                    <h3 class="font-display font-bold text-[17px] mb-0.5 text-black dark:text-white" id="txt_s4_t"
+                        data-i18n="svc_pdf">Rasm → PDF</h3>
+                    <p class="text-xs font-medium text-black/50 dark:text-white/50 leading-snug" id="txt_s4_d"
+                        data-i18n="svc_pdf_d">Ko'plab rasmlarni bitta tartibli PDF hujjatga yig'ish</p>
                 </div>
                 <svg class="text-black/20 dark:text-white/20 group-hover:text-apple-blue group-hover:translate-x-1 transition-all"
                     width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
@@ -217,75 +212,15 @@
         </nav>
     </div>
 
+    <!-- app.js provides the boot setup -->
+    <script src="app.js"></script>
     <script>
         const tg = window.Telegram?.WebApp;
-        let isDark = localStorage.getItem('theme') !== 'light';
-        let currentLang = localStorage.getItem('lang') || 'uz';
+        // Theme and i18n applied automatically by index boot logic and DastyorAI.initUI
 
-        if (isDark) {
-            document.documentElement.classList.add('dark');
-            if (tg?.setHeaderColor) tg.setHeaderColor('#000000');
-        } else {
-            document.documentElement.classList.remove('dark');
-            if (tg?.setHeaderColor) tg.setHeaderColor('#f5f5f7');
-        }
-
-        const i18n = {
-            uz: {
-                title: "Xizmatlar", sub: "Barcha aqlli vositalar markazi",
-                sec1: "Til va Matn", sec2: "Fayl Vositalari",
-                s1_t: "Tarjima AI", s1_d: "Matn va hujjatlarni 100+ tillarga ravon tarjima qilish",
-                s2_t: "Krill / Lotin", s2_d: "O'zbek alifbosini bir zumda bexato o'giring",
-                s3_t: "Rasm → Word", s3_d: "Rasm yoki skanerdan matnni Word (.docx) formatiga aylanitirish",
-                s4_t: "Rasm → PDF", s4_d: "Ko'plab rasmlarni bitta tartibli PDF hujjatga yig'ish"
-            },
-            en: {
-                title: "Services", sub: "All smart tools in one place",
-                sec1: "Language & Text", sec2: "File Tools",
-                s1_t: "Translate AI", s1_d: "Professional document translation",
-                s2_t: "Transliteration", s2_d: "Instant Cyrillic to Latin converter",
-                s3_t: "Image → Word", s3_d: "Extract text from images to editable Word format",
-                s4_t: "Image → PDF", s4_d: "Merge multiple images into a unified PDF file"
-            }
-        };
-
-        function updateUI() {
-            const strings = i18n[currentLang];
-            document.getElementById('txt_title').textContent = strings.title;
-            document.getElementById('txt_sub').textContent = strings.sub;
-            document.getElementById('txt_sec1').textContent = strings.sec1;
-            document.getElementById('txt_sec2').textContent = strings.sec2;
-            document.getElementById('txt_s1_t').textContent = strings.s1_t;
-            document.getElementById('txt_s1_d').textContent = strings.s1_d;
-            document.getElementById('txt_s2_t').textContent = strings.s2_t;
-            document.getElementById('txt_s2_d').textContent = strings.s2_d;
-            document.getElementById('txt_s3_t').textContent = strings.s3_t;
-            document.getElementById('txt_s3_d').textContent = strings.s3_d;
-            document.getElementById('txt_s4_t').textContent = strings.s4_t;
-            document.getElementById('txt_s4_d').textContent = strings.s4_d;
-
-            if (tg) {
-                tg.ready();
-                tg.expand();
-            }
-        }
-        updateUI();
-
-        // Settings redirection logic since settings is on index.html
-        document.querySelectorAll('a').forEach(a => {
-            a.addEventListener('click', (e) => {
-                const href = a.getAttribute('href');
-                if (href && !href.startsWith('http')) {
-                    let id = new URLSearchParams(window.location.search).get('telegram_id') || sessionStorage.getItem('telegram_id');
-                    if (id) {
-                        e.preventDefault();
-                        const sep = href.includes('?') ? '&' : '?';
-                        window.location.href = `${href}${sep}telegram_id=${id}`;
-                    }
-                }
-            });
+        DastyorAI.initUI({
+            autoNavLinks: true
         });
-    </script>
-</body>
+</body >
 
-</html>
+</html >

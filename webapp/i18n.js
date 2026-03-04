@@ -69,6 +69,10 @@ const I18n = (() => {
         // ════════════════════════════════════════════════
         // SERVICES / MORE PAGE
         // ════════════════════════════════════════════════
+        more_title:        { uz_lat: 'Xizmatlar',         uz_cyr: 'Хизматлар',           en: 'Services',             ru: 'Услуги'               },
+        more_sub:          { uz_lat: 'Barcha aqlli vositalar markazi', uz_cyr: 'Барча ақлли воситалар маркази', en: 'All smart tools center', ru: 'Центр умных инструментов' },
+        more_sec1:         { uz_lat: 'Til va Matn',       uz_cyr: 'Тил ва Матн',         en: 'Language & Text',      ru: 'Язык и Текст'         },
+        more_sec2:         { uz_lat: 'Fayl Vositalari',   uz_cyr: 'Файл Воситалари',     en: 'File Tools',           ru: 'Файловые Инструменты' },
         svc_obyektivka:    { uz_lat: 'Obyektivka AI',     uz_cyr: 'Объективка AI',       en: 'CV Record AI',         ru: 'Объективка AI'        },
         svc_obyektivka_d:  { uz_lat: "Rasmiy, davlat standartlaridagi ma'lumotnoma", uz_cyr: "Расмий, давлат стандартларидаги маълумотнома", en: 'Official government-format record', ru: 'Официальная анкета госстандарта' },
         svc_cv:            { uz_lat: 'CV Builder',        uz_cyr: 'CV Builder',          en: 'CV Builder',           ru: 'Конструктор резюме'   },
@@ -140,6 +144,42 @@ const I18n = (() => {
         obv_add_rel:       { uz_lat: "Qarindosh qo'shish", uz_cyr: "Қариндош қўшиш",  en: 'Add relative',         ru: 'Добавить родственника'},
         obv_preview:       { uz_lat: "Oldindan ko'rish", uz_cyr: "Олдиндан кўриш",     en: 'Preview',              ru: 'Предпросмотр'         },
         obv_generate:      { uz_lat: "Hujjat yaratish",  uz_cyr: "Ҳужжат яратиш",      en: 'Generate document',    ru: 'Создать документ'     },
+        
+        // Obyektivka form placeholders
+        ph_obv_name:       { uz_lat: "Alisherov Yusuf Muratovich", uz_cyr: "Алишеров Юсуф Муратович", en: 'John Smith Doe', ru: 'Иванов Иван Иванович' },
+        ph_obv_birth:      { uz_lat: "01.01.1990",       uz_cyr: "01.01.1990",          en: '01.01.1990',           ru: '01.01.1990'           },
+        ph_obv_place:      { uz_lat: "Toshkent viloyati", uz_cyr: "Тошкент вилояти",     en: 'Tashkent region',      ru: 'Ташкентская область'  },
+        ph_obv_nation:     { uz_lat: "o'zbek",           uz_cyr: "ўзбек",               en: 'uzbek',                ru: 'узбек(чка)'           },
+        ph_obv_party:      { uz_lat: "yo'q",             uz_cyr: "йўқ",                 en: 'none',                 ru: 'нет'                  },
+        ph_obv_edu:        { uz_lat: "oliy",             uz_cyr: "олий",                en: 'higher',               ru: 'высшее'               },
+        ph_obv_grad:       { uz_lat: "2015, TDYU",       uz_cyr: "2015, ТДЮУ",          en: '2015, TSUL',           ru: '2015, ТГЮУ'           },
+        ph_obv_spec:       { uz_lat: "huquqshunos",      uz_cyr: "ҳуқуқшунос",          en: 'lawyer',               ru: 'юрист'                },
+        ph_obv_title:      { uz_lat: "Ilmiy unvoni",     uz_cyr: "Илмий унвони",        en: 'Academic title',       ru: 'Ученое звание'        },
+        ph_obv_langs:      { uz_lat: "rus va ingliz tillari", uz_cyr: "рус ва инглиз тиллари", en: 'russian and english', ru: 'русский и английский' },
+        ph_obv_deputy:     { uz_lat: "Deputatlik statusi",uz_cyr: "Депутатлик статуси",  en: 'Deputy status',        ru: 'Статус депутата'      },
+        
+        // Obyektivka generated document texts
+        obv_main_title:    { uz_lat: "M A ' L U M O T N O M A", uz_cyr: "М А Ъ Л У М О Т Н О М А", en: "P R O F I L E", ru: "А Н К Е Т А" },
+        obv_info_birth:    { uz_lat: "Tug'ilgan yili:",  uz_cyr: "Туғилган йили:",      en: 'Year of birth:',       ru: 'Год рождения:'        },
+        obv_info_place:    { uz_lat: "Tug'ilgan joyi:",  uz_cyr: "Туғилган жойи:",      en: 'Place of birth:',      ru: 'Место рождения:'      },
+        obv_info_nation:   { uz_lat: "Millati:",         uz_cyr: "Миллати:",            en: 'Nationality:',         ru: 'Национальность:'      },
+        obv_info_party:    { uz_lat: "Partiyaviyligi:",  uz_cyr: "Партиявийлиги:",      en: 'Party membership:',    ru: 'Партийность:'         },
+        obv_info_edu:      { uz_lat: "Ma'lumoti:",       uz_cyr: "Маълумоти:",          en: 'Education:',           ru: 'Образование:'         },
+        obv_info_grad:     { uz_lat: "Tamomlagan:",      uz_cyr: "Тамомлаган:",         en: 'Graduated:',           ru: 'Окончил(а):'          },
+        obv_info_spec:     { uz_lat: "Ma'lumoti bo'yicha mutaxassisligi:", uz_cyr: "Маълумоти бўйича мутахассислиги:", en: 'Specialty:', ru: 'Специальность:' },
+        obv_info_degree:   { uz_lat: "Ilmiy darajasi:",  uz_cyr: "Илмий даражаси:",     en: 'Academic degree:',     ru: 'Ученая степень:'      },
+        obv_info_title:    { uz_lat: "Ilmiy unvoni:",    uz_cyr: "Илмий унвони:",       en: 'Academic title:',      ru: 'Ученое звание:'       },
+        obv_info_langs:    { uz_lat: "Qaysi chet tillarini biladi:", uz_cyr: "Қайси чет тилларини билади:", en: 'Foreign languages:', ru: 'Знание языков:' },
+        obv_info_awards:   { uz_lat: "Davlat mukofotlari:", uz_cyr: "Давлат мукофотлари:", en: 'State awards:',      ru: 'Гос. награды:'        },
+        obv_info_deputy:   { uz_lat: "Deputatlik:",      uz_cyr: "Депутатлик:",         en: 'Deputy status:',       ru: 'Статус депутата:'     },
+        obv_exp_title:     { uz_lat: "MEHNAT FAOLIYATI", uz_cyr: "МЕҲНАТ ФАОЛИЯТИ",     en: 'WORK EXPERIENCE',      ru: 'ТРУДОВАЯ ДЕЯТЕЛЬНОСТЬ'},
+        obv_no_data:       { uz_lat: "Ma'lumot kiritilmagan", uz_cyr: "Маълумот киритилмаган", en: 'No data provided',   ru: 'Нет данных'           },
+        obv_rel_role:      { uz_lat: "Qarindosh-<br>ligi", uz_cyr: "Қариндош-<br>лиги",  en: 'Relation',             ru: 'Степень<br>родства'   },
+        obv_rel_name:      { uz_lat: "Familiyasi, ismi va otasining ismi", uz_cyr: "Фамилияси, исми ва отасининг исми", en: 'Full name', ru: 'Ф.И.О.' },
+        obv_rel_birth:     { uz_lat: "Tug'ilgan yili va joyi", uz_cyr: "Туғилган йили ва жойи", en: 'Birth year and place', ru: 'Год и место рождения' },
+        obv_rel_work:      { uz_lat: "Ish joyi va lavozimi", uz_cyr: "Иш жойи ва лавозими", en: 'Workplace and role', ru: 'Должность и место работы' },
+        obv_rel_addr:      { uz_lat: "Yashash manzili",  uz_cyr: "Яшаш манзили",        en: 'Home address',         ru: 'Домашний адрес'       },
+        obv_rel_title:     { uz_lat: "NING YAQIN QARINDOSHLARI HAQIDA<br>M A ' L U M O T", uz_cyr: "НИНГ ЯҚИН ҚАРИНДОШЛАРИ ҲАҚИДА<br>М А Ъ Л У М О Т", en: "'S CLOSE RELATIVES", ru: "(И) БЛИЗКИЕ РОДСТВЕННИКИ" },
 
         // ════════════════════════════════════════════════
         // CV BUILDER
@@ -147,18 +187,30 @@ const I18n = (() => {
         cv_title:          { uz_lat: 'CV Builder',        uz_cyr: 'CV Builder',          en: 'CV Builder',           ru: 'Конструктор резюме'   },
         cv_sub:            { uz_lat: "Professional rezyume yarating", uz_cyr: "Professional резюме яратинг", en: 'Build a professional resume', ru: 'Создайте профессиональное резюме' },
         cv_template:       { uz_lat: "Shablon",           uz_cyr: "Шаблон",              en: 'Template',             ru: 'Шаблон'               },
+        cv_tpl_title:      { uz_lat: "Dizayn Shablon",    uz_cyr: "Дизайн Шаблон",       en: 'Design Template',      ru: 'Шаблон дизайна'       },
         cv_tpl_minimal:    { uz_lat: "Minimal",           uz_cyr: "Минимал",             en: 'Minimal',              ru: 'Минимальный'          },
         cv_tpl_split:      { uz_lat: "Split",             uz_cyr: "Split",               en: 'Split',                ru: 'Разделённый'          },
         cv_tpl_modern:     { uz_lat: "Modern",            uz_cyr: "Замонавий",           en: 'Modern',               ru: 'Современный'          },
         cv_name:           { uz_lat: "Ism Familiya",      uz_cyr: "Исм Фамилия",         en: 'Full Name',            ru: 'Полное имя'           },
         cv_spec:           { uz_lat: "Mutaxassislik",     uz_cyr: "Мутахассислик",       en: 'Job title',            ru: 'Должность'            },
         cv_about:          { uz_lat: "O'zim haqimda",    uz_cyr: "Ўзим ҳақимда",        en: 'About me',             ru: 'О себе'               },
-        cv_experience:     { uz_lat: "Ish tajribasi",     uz_cyr: "Иш тажрибаси",        en: 'Experience',           ru: 'Опыт работы'          },
+        cv_experience:     { uz_lat: "Ish Tajribasi",     uz_cyr: "Иш Тажрибаси",        en: 'Experience',           ru: 'Опыт работы'          },
         cv_education:      { uz_lat: "Ta'lim",            uz_cyr: "Таълим",              en: 'Education',            ru: 'Образование'          },
         cv_skills:         { uz_lat: "Ko'nikmalar",        uz_cyr: "Кўникмалар",          en: 'Skills',               ru: 'Навыки'               },
         cv_languages:      { uz_lat: "Tillar",             uz_cyr: "Тиллар",              en: 'Languages',            ru: 'Языки'                },
-        cv_add_exp:        { uz_lat: "Tajriba qo'shish",  uz_cyr: "Тажриба қўшиш",      en: 'Add experience',       ru: 'Добавить опыт'        },
-        cv_preview:        { uz_lat: "Ko'rish",            uz_cyr: "Кўриш",               en: 'Preview',              ru: 'Просмотр'             },
+        cv_contact:        { uz_lat: "Aloqa",              uz_cyr: "Алоқа",               en: 'Contact',              ru: 'Контакты'             },
+        cv_add_exp:        { uz_lat: "+ Tajriba qo'shish", uz_cyr: "+ Тажриба қўшиш",    en: '+ Add experience',     ru: '+ Добавить опыт'      },
+        cv_add_edu:        { uz_lat: "+ Ta'lim qo'shish",  uz_cyr: "+ Таълим қўшиш",     en: '+ Add education',      ru: '+ Добавить образ.'    },
+        cv_upload_img:     { uz_lat: "Rasm yuklash",      uz_cyr: "Расм юклаш",          en: 'Upload Photo',         ru: 'Загрузить фото'       },
+        cv_rec_img:        { uz_lat: "Professional tasvir tavsiya etiladi", uz_cyr: "Профессионал тасвир тавсия этилади", en: 'Professional image recommended', ru: 'Рекомендуется профессиональное фото' },
+        ph_cv_name:        { uz_lat: "Ism Familiya (Masalan: Alisherov M.)", uz_cyr: "Исм Фамилия (Масалан: Алишеров М.)", en: 'Full Name (e.g. John Doe)', ru: 'ФИО (Например: Иванов И.И.)' },
+        ph_cv_role:        { uz_lat: "Kasb (Masalan: UI/UX Designer)", uz_cyr: "Касб (Масалан: UI/UX Designer)", en: 'Role (e.g. UI/UX Designer)', ru: 'Профессия (Напр. UI/UX Дизайнер)' },
+        ph_cv_phone:       { uz_lat: "Telefon (+998...)", uz_cyr: "Телефон (+998...)",   en: 'Phone (+1...)',        ru: 'Телефон (+7...)'      },
+        ph_cv_loc:         { uz_lat: "Manzil (Masalan: Toshkent Shahri)", uz_cyr: "Манзил (Масалан: Тошкент Шаҳри)", en: 'Location (e.g. New York, USA)', ru: 'Адрес (Напр. г. Москва)' },
+        ph_cv_about:       { uz_lat: "Haqingizda qisqacha ma'lumot (Summary)", uz_cyr: "Ҳақингизда қисқача маълумот (Summary)", en: 'Short summary about yourself', ru: 'Краткая информация о себе' },
+        ph_skill:          { uz_lat: "Ko'nikma yozib ENTER bosing...", uz_cyr: "Кўникма ёзиб ENTER босинг...", en: 'Type skill and press ENTER...', ru: 'Введите навык и нажмите ENTER...' },
+        cv_btn_preview:    { uz_lat: "👁️ Preview",        uz_cyr: "👁️ Preview",         en: '👁️ Preview',         ru: '👁️ Предпросмотр'      },
+        cv_btn_edit:       { uz_lat: "✍️ Tahrirlash",     uz_cyr: "✍️ Таҳрирлаш",       en: '✍️ Edit',            ru: '✍️ Редактировать'     },
 
         // ════════════════════════════════════════════════
         // OCR PAGE
@@ -181,6 +233,7 @@ const I18n = (() => {
         pdf_add_more:      { uz_lat: "Rasm Qo'shish",     uz_cyr: "Расм Қўшиш",          en: 'Add Images',           ru: 'Добавить изображения' },
         pdf_btn:           { uz_lat: "PDF Yaratish",       uz_cyr: "PDF Яратиш",          en: 'Create PDF',           ru: 'Создать PDF'          },
         pdf_success:       { uz_lat: "PDF tayyor!",        uz_cyr: "PDF тайёр!",          en: 'PDF ready!',           ru: 'PDF готов!'           },
+        pdf_saved:         { uz_lat: "PDF qurilmangizga muvaffaqiyatli saqlandi!", uz_cyr: "PDF қурилмангизга муваффақиятли сақланди!", en: 'PDF successfully saved to your device!', ru: 'PDF успешно сохранен!' },
 
         // ════════════════════════════════════════════════
         // TRANSLATION PAGE
@@ -218,12 +271,16 @@ const I18n = (() => {
         prem_monthly:      { uz_lat: "Premium Oylik",      uz_cyr: "Premium Ойлик",       en: 'Premium Monthly',      ru: 'Премиум Ежемесячный'  },
         prem_unlimited:    { uz_lat: "Cheksiz",            uz_cyr: "Чексиз",              en: 'Unlimited',            ru: 'Безлимитно'           },
         prem_docs:         { uz_lat: "hujjat/oy",          uz_cyr: "ҳужжат/ой",           en: 'docs/month',           ru: 'докум./мес.'          },
+        prem_docs2:        { uz_lat: "hujjatlar",          uz_cyr: "ҳужжатлар",           en: 'documents',            ru: 'документы'            },
         prem_all_svc:      { uz_lat: "Barcha Pro xizmatlar", uz_cyr: "Барча Pro хизматлар", en: 'All Pro services',  ru: 'Все Pro услуги'       },
+        prem_pro:          { uz_lat: "Pro xizmatlar",      uz_cyr: "Pro хизматлар",       en: 'Pro services',         ru: 'Pro услуги'           },
         prem_priority:     { uz_lat: "Ustuvor navbat",     uz_cyr: "Устувор навбат",       en: 'Priority queue',       ru: 'Приоритетная очередь' },
+        prem_fast:         { uz_lat: "Tezkor aloqa",       uz_cyr: "Тезкор алоқа",         en: 'Fast support',         ru: 'Быстрая поддержка'    },
         prem_support:      { uz_lat: "yordam",             uz_cyr: "ёрдам",               en: 'support',              ru: 'поддержка'            },
         prem_btn_free:     { uz_lat: "Boshlash",           uz_cyr: "Бошлаш",              en: 'Start Free',           ru: 'Начать бесплатно'     },
         prem_btn_get:      { uz_lat: "Hozir olish",        uz_cyr: "Ҳозир олиш",          en: 'Get Now',              ru: 'Получить сейчас'      },
         prem_payment:      { uz_lat: "To'lov usullari",    uz_cyr: "Тўлов усуллари",       en: 'Payment methods',      ru: 'Способы оплаты'       },
+        prem_pop:          { uz_lat: "TOP",                uz_cyr: "TOP",                 en: 'TOP',                  ru: 'ТОП'                  },
 
         // ════════════════════════════════════════════════
         // LANGUAGE PICKER MODAL
@@ -237,8 +294,18 @@ const I18n = (() => {
     // State
     // ─────────────────────────────────────────────────
     const VALID_LANGS = ['uz_lat', 'uz_cyr', 'en', 'ru'];
-    let _lang = localStorage.getItem(LS_KEY) || 'uz_lat';
+    
+    // Check URL first, then LocalStorage, then fallback
+    const urlParams = new URLSearchParams(window.location.search);
+    const urlLang = urlParams.get('lang');
+    
+    let _lang = urlLang || localStorage.getItem(LS_KEY) || 'uz_lat';
     if (!VALID_LANGS.includes(_lang)) _lang = 'uz_lat';
+    
+    // Auto-save if it came from URL
+    if (urlLang && VALID_LANGS.includes(urlLang)) {
+        localStorage.setItem(LS_KEY, urlLang);
+    }
 
     /** Translate a key in the current language. Falls back to uz_lat. */
     function t(key) {

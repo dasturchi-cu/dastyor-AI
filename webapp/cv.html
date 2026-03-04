@@ -5,11 +5,16 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>Real-time CV Builder | DASTYOR AI</title>
-  <!-- Fonts -->
+  <!-- 1. Theme init FIRST — prevents flash of wrong theme -->
+  <script src="theme-init.js"></script>
+  <!-- 2. Fonts -->
   <link
     href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@400;600;700;800&display=swap"
     rel="stylesheet" />
+  <!-- 3. Telegram SDK -->
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <!-- 4. Global theme tokens -->
+  <link rel="stylesheet" href="theme.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
   <!-- Tailwind -->
@@ -133,6 +138,7 @@
       display: flex;
       color: #1e293b;
       padding: 0;
+      min-height: 297mm;
     }
 
     .tpl-split .sidebar {
@@ -159,13 +165,13 @@
     .tpl-split .name {
       font-size: 24pt;
       font-weight: 800;
-      color: #0f172a;
+      color: #e2e8f0;
       line-height: 1.2;
       margin-bottom: 8px;
     }
 
     .tpl-split .role {
-      font-size: 14pt;
+      font-size: 12pt;
       color: #3b82f6;
       font-weight: 500;
       margin-bottom: 30px;
@@ -185,15 +191,17 @@
       font-size: 12pt;
       font-weight: 700;
       color: #fff;
+      border-bottom: 1px solid #334155;
+      padding-bottom: 5px;
       margin-bottom: 15px;
       text-transform: uppercase;
-      letter-spacing: 1px;
     }
 
     .tpl-split .contact-item {
       font-size: 9.5pt;
       margin-bottom: 10px;
       line-height: 1.4;
+      word-break: break-all;
     }
 
     .tpl-split .section {
@@ -204,6 +212,7 @@
     .tpl-modern {
       padding: 0;
       color: #334155;
+      min-height: 297mm;
     }
 
     .tpl-modern .header {
@@ -232,7 +241,7 @@
     .tpl-modern .role {
       font-size: 14pt;
       font-weight: 500;
-      opacity: 0.9;
+      color: #94a3b8;
       margin-bottom: 15px;
     }
 
@@ -249,11 +258,11 @@
     }
 
     .tpl-modern .col-main {
-      flex: 2;
+      flex: 6;
     }
 
     .tpl-modern .col-side {
-      flex: 1;
+      flex: 4;
     }
 
     .tpl-modern .sec-title {
@@ -262,6 +271,303 @@
       color: #0f172a;
       margin-bottom: 15px;
       text-transform: uppercase;
+    }
+
+    /* TPL 4: ATS SAFE */
+    .tpl-ats {
+      padding: 20mm;
+      font-family: 'Arial', sans-serif;
+      color: #000;
+    }
+
+    .tpl-ats .header {
+      text-align: center;
+      border-bottom: 1px solid #000;
+      padding-bottom: 15px;
+      margin-bottom: 20px;
+    }
+
+    .tpl-ats .name {
+      font-size: 24pt;
+      font-weight: bold;
+      margin-bottom: 4px;
+      text-transform: uppercase;
+    }
+
+    .tpl-ats .role {
+      font-size: 12pt;
+      margin-bottom: 10px;
+    }
+
+    .tpl-ats .contact-wrap {
+      font-size: 10pt;
+      display: flex;
+      justify-content: center;
+      gap: 15px;
+      flex-wrap: wrap;
+    }
+
+    .tpl-ats .section {
+      margin-bottom: 20px;
+    }
+
+    .tpl-ats .sec-title {
+      font-size: 12pt;
+      font-weight: bold;
+      text-transform: uppercase;
+      border-bottom: 1px solid #000;
+      padding-bottom: 3px;
+      margin-bottom: 10px;
+    }
+
+    /* TPL 5: ELEGANT CLASSIC */
+    .tpl-elegant {
+      padding: 20mm;
+      font-family: 'Georgia', serif;
+      color: #333;
+    }
+
+    .tpl-elegant .header {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+
+    .tpl-elegant .name {
+      font-size: 32pt;
+      font-variant: small-caps;
+      letter-spacing: 2px;
+      color: #111;
+      margin-bottom: 5px;
+    }
+
+    .tpl-elegant .role {
+      font-size: 13pt;
+      font-style: italic;
+      color: #555;
+      margin-bottom: 10px;
+    }
+
+    .tpl-elegant .contact-wrap {
+      font-size: 10pt;
+      color: #666;
+    }
+
+    .tpl-elegant .body-cols {
+      display: flex;
+      gap: 30px;
+    }
+
+    .tpl-elegant .col-main {
+      flex: 2;
+    }
+
+    .tpl-elegant .col-side {
+      flex: 1;
+      border-left: 1px solid #ddd;
+      padding-left: 30px;
+    }
+
+    .tpl-elegant .sec-title {
+      font-size: 14pt;
+      padding-bottom: 5px;
+      border-bottom: 1px dashed #ccc;
+      margin-bottom: 15px;
+      text-transform: uppercase;
+      color: #222;
+      font-weight: bold;
+    }
+
+    /* TPL 6: CORPORATE */
+    .tpl-corporate {
+      padding: 0;
+      color: #333;
+      min-height: 297mm;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .tpl-corporate .header {
+      background: #2563eb;
+      color: #fff;
+      padding: 20mm;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+    }
+
+    .tpl-corporate .name {
+      font-size: 26pt;
+      font-weight: 800;
+      margin-bottom: 5px;
+    }
+
+    .tpl-corporate .role {
+      font-size: 14pt;
+      font-weight: 500;
+      opacity: 0.9;
+    }
+
+    .tpl-corporate .contact-wrap {
+      text-align: right;
+      font-size: 10pt;
+      opacity: 0.9;
+    }
+
+    .tpl-corporate .body-cols {
+      display: flex;
+      padding: 15mm 20mm;
+      gap: 35px;
+      flex: 1;
+      background: #fff;
+    }
+
+    .tpl-corporate .col-main {
+      flex: 7;
+    }
+
+    .tpl-corporate .col-side {
+      flex: 3;
+    }
+
+    .tpl-corporate .sec-title {
+      font-size: 13pt;
+      font-weight: bold;
+      color: #1e3a8a;
+      margin-bottom: 15px;
+      text-transform: uppercase;
+      border-bottom: 2px solid #bfdbfe;
+      padding-bottom: 4px;
+    }
+
+    /* TPL 7: CREATIVE */
+    .tpl-creative {
+      padding: 0;
+      display: flex;
+      color: #2d3748;
+      min-height: 297mm;
+    }
+
+    .tpl-creative .left {
+      width: 35%;
+      background: #fdf2f8;
+      padding: 20mm 15mm;
+      border-right: 2px solid #fbcfe8;
+    }
+
+    .tpl-creative .right {
+      width: 65%;
+      padding: 20mm 15mm;
+      background: #fff;
+    }
+
+    .tpl-creative .avatar {
+      width: 40mm;
+      height: 40mm;
+      border-radius: 20mm;
+      object-fit: cover;
+      margin: 0 auto 20px auto;
+      display: block;
+      border: 4px solid #f9a8d4;
+    }
+
+    .tpl-creative .name {
+      font-size: 24pt;
+      font-weight: 900;
+      color: #db2777;
+      text-align: center;
+      line-height: 1.1;
+      margin-bottom: 10px;
+    }
+
+    .tpl-creative .role {
+      font-size: 12pt;
+      color: #9d174d;
+      text-align: center;
+      margin-bottom: 30px;
+      font-weight: 600;
+    }
+
+    .tpl-creative .contact-item {
+      font-size: 10pt;
+      margin-bottom: 12px;
+      color: #831843;
+    }
+
+    .tpl-creative .sec-title {
+      font-size: 14pt;
+      font-weight: 800;
+      color: #be185d;
+      text-transform: uppercase;
+      margin-bottom: 15px;
+    }
+
+    .tpl-creative .sec-title-left {
+      border-bottom: 2px solid #f9a8d4;
+      margin-bottom: 15px;
+      padding-bottom: 5px;
+    }
+
+    /* TPL 8: PROFESSIONAL LEFT */
+    .tpl-prof {
+      display: flex;
+      padding: 0;
+      min-height: 297mm;
+      background: #fff;
+      color: #475569;
+    }
+
+    .tpl-prof .left-strip {
+      width: 50px;
+      background: #0f172a;
+    }
+
+    .tpl-prof .content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      padding: 20mm;
+    }
+
+    .tpl-prof .header {
+      display: flex;
+      align-items: center;
+      gap: 30px;
+      margin-bottom: 35px;
+    }
+
+    .tpl-prof .name {
+      font-size: 30pt;
+      font-weight: 300;
+      color: #0f172a;
+      margin-bottom: 5px;
+    }
+
+    .tpl-prof .name strong {
+      font-weight: 800;
+    }
+
+    .tpl-prof .role {
+      font-size: 14pt;
+      color: #0284c7;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+    }
+
+    .tpl-prof .contact-wrap {
+      display: flex;
+      gap: 20px;
+      font-size: 10pt;
+      color: #64748b;
+      margin-top: 15px;
+    }
+
+    .tpl-prof .sec-title {
+      font-size: 15pt;
+      font-weight: 700;
+      color: #0f172a;
+      border-bottom: 3px solid #0f172a;
+      padding-bottom: 5px;
+      margin-bottom: 20px;
     }
 
     /* Common Output Items */
@@ -345,11 +651,10 @@
 </head>
 
 <body
-  class="bg-white dark:bg-[#0a0a0c] text-neutral-900 dark:text-neutral-100 flex flex-col h-screen overflow-hidden antialiased selection:bg-apple-purple selection:text-white">
+  class="text-neutral-900 dark:text-neutral-100 flex flex-col h-screen overflow-hidden antialiased selection:bg-apple-purple selection:text-white">
 
   <!-- Global Header -->
-  <header
-    class="h-16 flex-shrink-0 border-b border-black/5 dark:border-white/5 bg-white/80 dark:bg-[#0a0a0c]/80 backdrop-blur-xl flex items-center justify-between px-4 z-50">
+  <header class="builder-header h-16 flex-shrink-0 flex items-center justify-between px-4 z-50">
     <div class="flex items-center gap-3">
       <a href="index.html"
         class="w-10 h-10 rounded-xl bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 transition-colors flex items-center justify-center">
@@ -363,7 +668,8 @@
     <div class="flex items-center gap-2">
       <!-- Mobile Toggle -->
       <button id="mobileViewToggle" onclick="toggleMobileView()"
-        class="md:hidden px-4 py-2 bg-black/5 dark:bg-white/10 rounded-xl font-semibold text-sm">
+        class="md:hidden px-4 py-2 bg-black/5 dark:bg-white/10 rounded-xl font-semibold text-sm"
+        data-i18n="cv_btn_preview">
         👁️ Preview
       </button>
       <button onclick="exportWord()"
@@ -388,39 +694,131 @@
       <div class="p-6">
         <div class="flex items-center gap-2 mb-4">
           <div class="w-8 h-8 rounded-lg bg-apple-purple/10 flex items-center justify-center text-apple-purple">🎨</div>
-          <h2 class="font-display font-bold text-sm uppercase tracking-widest text-black/50 dark:text-white/50">Dizayn
-            Shablon</h2>
+          <h2 class="font-display font-bold text-sm uppercase tracking-widest text-black/50 dark:text-white/50"
+            data-i18n="cv_tpl_title">Dizayn Shablon</h2>
         </div>
 
-        <div class="grid grid-cols-3 gap-3">
+        <div class="grid grid-cols-4 md:grid-cols-4 gap-2">
+          <!-- 1 Minimal -->
           <div
-            class="tpl-card border-2 border-apple-purple rounded-xl aspect-[1/1.4] cursor-pointer hover:border-apple-purple/80 bg-black/5 dark:bg-white/5 relative overflow-hidden"
+            class="tpl-card border-2 border-apple-purple rounded-xl aspect-[1/1.4] cursor-pointer hover:border-apple-purple/80 bg-black/5 dark:bg-white/5 relative overflow-hidden group"
             onclick="setTpl('minimal')" id="tpl-minimal">
-            <div class="absolute inset-0 flex flex-col p-2">
-              <div class="w-1/2 h-1 bg-black/20 dark:bg-white/20 mb-1 rounded"></div>
-              <div class="w-1/3 h-0.5 bg-black/10 dark:bg-white/10 mb-2 rounded"></div>
-              <div class="w-full h-0.5 bg-black/10 dark:bg-white/10 mb-2 rounded"></div>
-              <div class="w-3/4 h-8 bg-black/10 dark:bg-white/10 rounded"></div>
+            <div
+              class="absolute inset-x-0 bottom-0 bg-black/60 text-white text-[9px] text-center font-bold py-1 backdrop-blur transition-transform z-10">
+              Minimal</div>
+            <div class="absolute inset-0 flex flex-col p-1.5 opacity-80">
+              <div class="w-1/2 h-[2px] bg-black/20 dark:bg-white/20 mb-0.5 rounded"></div>
+              <div class="w-1/3 h-[1px] bg-black/10 dark:bg-white/10 mb-1 rounded"></div>
+              <div class="w-full h-[1px] bg-black/10 dark:bg-white/10 mb-1 rounded"></div>
+              <div class="w-3/4 h-2 bg-black/10 dark:bg-white/10 rounded"></div>
             </div>
           </div>
+
+          <!-- 2 Split -->
           <div
-            class="tpl-card border-2 border-transparent hover:border-apple-purple/50 rounded-xl aspect-[1/1.4] cursor-pointer bg-black/5 dark:bg-white/5 relative overflow-hidden flex"
+            class="tpl-card border-2 border-transparent hover:border-apple-purple/50 rounded-xl aspect-[1/1.4] cursor-pointer bg-black/5 dark:bg-white/5 relative overflow-hidden flex group"
             onclick="setTpl('split')" id="tpl-split">
-            <div class="w-1/3 h-full bg-black/20 dark:bg-white/20"></div>
-            <div class="w-2/3 h-full p-2 flex flex-col gap-1">
-              <div class="w-3/4 h-1 bg-black/10 dark:bg-white/10 rounded"></div>
-              <div class="w-full h-8 bg-black/5 dark:bg-white/5 rounded"></div>
+            <div
+              class="absolute inset-x-0 bottom-0 bg-black/60 text-white text-[9px] text-center font-bold py-1 backdrop-blur transition-transform z-10 hidden group-hover:block">
+              Split</div>
+            <div class="w-1/3 h-full bg-black/30 dark:bg-white/30"></div>
+            <div class="w-2/3 h-full p-1.5 flex flex-col gap-0.5 opacity-80">
+              <div class="w-3/4 h-[2px] bg-black/20 dark:bg-white/20 rounded"></div>
+              <div class="w-full h-2 mt-1 bg-black/10 dark:bg-white/10 rounded"></div>
             </div>
           </div>
+
+          <!-- 3 Modern -->
           <div
-            class="tpl-card border-2 border-transparent hover:border-apple-purple/50 rounded-xl aspect-[1/1.4] cursor-pointer bg-black/5 dark:bg-white/5 relative overflow-hidden flex flex-col"
+            class="tpl-card border-2 border-transparent hover:border-apple-purple/50 rounded-xl aspect-[1/1.4] cursor-pointer bg-black/5 dark:bg-white/5 relative overflow-hidden flex flex-col group"
             onclick="setTpl('modern')" id="tpl-modern">
-            <div class="h-1/3 w-full bg-black/20 dark:bg-white/20 mb-1"></div>
-            <div class="flex-1 px-1 flex gap-1">
-              <div class="w-2/3 h-full bg-black/5 dark:bg-white/5 rounded"></div>
-              <div class="w-1/3 h-full bg-black/5 dark:bg-white/5 rounded"></div>
+            <div
+              class="absolute inset-x-0 bottom-0 bg-black/60 text-white text-[9px] text-center font-bold py-1 backdrop-blur transition-transform z-10 hidden group-hover:block">
+              Modern</div>
+            <div class="h-1/3 w-full bg-black/30 dark:bg-white/30 mb-0.5"></div>
+            <div class="flex-1 px-1 flex gap-1 opacity-80">
+              <div class="w-2/3 h-full bg-black/10 dark:bg-white/10 rounded"></div>
+              <div class="w-1/3 h-full bg-black/10 dark:bg-white/10 rounded"></div>
             </div>
           </div>
+
+          <!-- 4 ATS Safe -->
+          <div
+            class="tpl-card border-2 border-transparent hover:border-apple-purple/50 rounded-xl aspect-[1/1.4] cursor-pointer bg-black/5 dark:bg-white/5 relative overflow-hidden group"
+            onclick="setTpl('ats')" id="tpl-ats">
+            <div
+              class="absolute inset-x-0 bottom-0 bg-black/60 text-white text-[9px] text-center font-bold py-1 backdrop-blur transition-transform z-10 hidden group-hover:block">
+              ATS Safe</div>
+            <div class="absolute inset-0 flex flex-col p-1.5 opacity-80 items-center">
+              <div class="w-3/4 h-[2px] bg-black/30 dark:bg-white/30 mb-1 rounded text-center"></div>
+              <div class="w-full h-[1px] bg-black/10 dark:bg-white/10 mb-1 rounded"></div>
+              <div class="w-full flex-1 bg-black/5 dark:bg-white/5 rounded"></div>
+            </div>
+          </div>
+
+          <!-- 5 Elegant -->
+          <div
+            class="tpl-card border-2 border-transparent hover:border-apple-purple/50 rounded-xl aspect-[1/1.4] cursor-pointer bg-black/5 dark:bg-white/5 relative overflow-hidden group"
+            onclick="setTpl('elegant')" id="tpl-elegant">
+            <div
+              class="absolute inset-x-0 bottom-0 bg-black/60 text-white text-[9px] text-center font-bold py-1 backdrop-blur transition-transform z-10 hidden group-hover:block">
+              Elegant</div>
+            <div class="absolute inset-0 flex flex-col p-1.5 opacity-80 items-center">
+              <div class="w-1/2 h-[3px] bg-black/30 dark:bg-white/30 mb-0.5 rounded text-center"></div>
+              <div class="w-1/3 h-[1px] bg-black/20 dark:bg-white/20 mb-1.5 rounded"></div>
+              <div class="w-full flex gap-1 h-full">
+                <div class="w-2/3 bg-black/5 dark:bg-white/5 rounded"></div>
+                <div class="w-1/3 bg-black/10 border-l border-black/20 dark:border-white/20 rounded"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 6 Corporate -->
+          <div
+            class="tpl-card border-2 border-transparent hover:border-apple-purple/50 rounded-xl aspect-[1/1.4] cursor-pointer bg-[#eff6ff] dark:bg-[#1e3a8a]/20 relative overflow-hidden flex flex-col group"
+            onclick="setTpl('corporate')" id="tpl-corporate">
+            <div
+              class="absolute inset-x-0 bottom-0 bg-black/60 text-white text-[9px] text-center font-bold py-1 backdrop-blur transition-transform z-10 hidden group-hover:block">
+              Corporate</div>
+            <div class="h-[25%] w-full bg-[#2563eb] mb-1"></div>
+            <div class="flex-1 px-1 flex gap-1 opacity-80">
+              <div class="w-3/4 h-full bg-black/5 dark:bg-white/5 rounded border-t-2 border-[#bfdbfe]"></div>
+              <div class="w-1/4 h-full bg-black/10 dark:bg-white/10 rounded"></div>
+            </div>
+          </div>
+
+          <!-- 7 Creative -->
+          <div
+            class="tpl-card border-2 border-transparent hover:border-apple-purple/50 rounded-xl aspect-[1/1.4] cursor-pointer bg-black/5 dark:bg-white/5 relative overflow-hidden flex group"
+            onclick="setTpl('creative')" id="tpl-creative">
+            <div
+              class="absolute inset-x-0 bottom-0 bg-black/60 text-white text-[9px] text-center font-bold py-1 backdrop-blur transition-transform z-10 hidden group-hover:block">
+              Creative</div>
+            <div
+              class="w-[35%] h-full bg-[#fdf2f8] dark:bg-[#831843] border-r border-[#f9a8d4] flex flex-col items-center pt-2">
+              <div class="w-6 h-6 rounded-full bg-[#db2777] border border-[#f9a8d4]"></div>
+            </div>
+            <div class="flex-1 h-full p-1.5 flex flex-col gap-0.5 opacity-80">
+              <div class="w-full h-[2px] bg-black/20 dark:bg-white/20 rounded"></div>
+              <div class="w-3/4 h-2 mt-1 bg-black/5 dark:bg-white/5 rounded"></div>
+            </div>
+          </div>
+
+          <!-- 8 Professional -->
+          <div
+            class="tpl-card border-2 border-transparent hover:border-apple-purple/50 rounded-xl aspect-[1/1.4] cursor-pointer bg-black/5 dark:bg-white/5 relative overflow-hidden flex group"
+            onclick="setTpl('prof')" id="tpl-prof">
+            <div
+              class="absolute inset-x-0 bottom-0 bg-black/60 text-white text-[9px] text-center font-bold py-1 backdrop-blur transition-transform z-10 hidden group-hover:block">
+              Prof.</div>
+            <div class="w-[10%] h-full bg-black"></div>
+            <div class="flex-1 h-full p-2 flex flex-col opacity-80">
+              <div class="w-3/4 h-[3px] bg-black/30 dark:bg-white/30 rounded mb-1"></div>
+              <div class="w-full h-[1px] bg-black/10 dark:bg-white/10 rounded mb-1"></div>
+              <div class="w-full h-full bg-black/5 rounded"></div>
+            </div>
+          </div>
+
         </div>
       </div>
 
@@ -439,8 +837,9 @@
             <input type="file" id="imgInput" accept="image/*" class="hidden" onchange="handleImage(this)">
             <button
               class="px-3 py-1.5 bg-apple-blue/10 text-apple-blue font-semibold text-xs rounded-full hover:bg-apple-blue/20 transition-colors"
-              onclick="document.getElementById('imgInput').click()">Rasm yuklash</button>
-            <p class="text-[10px] text-black/40 dark:text-white/40 mt-1">Professional tasvir tavsiya etiladi</p>
+              onclick="document.getElementById('imgInput').click()" data-i18n="cv_upload_img">Rasm yuklash</button>
+            <p class="text-[10px] text-black/40 dark:text-white/40 mt-1" data-i18n="cv_rec_img">Professional tasvir
+              tavsiya etiladi</p>
           </div>
         </div>
 
@@ -448,30 +847,35 @@
           <div>
             <input type="text" id="f_name"
               class="w-full bg-black/5 dark:bg-white/5 border border-transparent focus:border-apple-purple/50 rounded-xl px-4 py-3 text-sm outline-none transition-all"
-              placeholder="Ism Familiya (Masalan: Alisherov M.)" value="ALEX DESIGNER" oninput="updateCV()">
+              placeholder="Ism Familiya (Masalan: Alisherov M.)" data-i18n="ph_cv_name" data-i18n-attr="placeholder"
+              value="ALEX DESIGNER" oninput="updateCV()">
           </div>
           <div>
             <input type="text" id="f_role"
               class="w-full bg-black/5 dark:bg-white/5 border border-transparent focus:border-apple-purple/50 rounded-xl px-4 py-3 text-sm outline-none transition-all text-apple-blue font-medium"
-              placeholder="Kasb (Masalan: UI/UX Designer)" value="Senior Product Designer" oninput="updateCV()">
+              placeholder="Kasb (Masalan: UI/UX Designer)" data-i18n="ph_cv_role" data-i18n-attr="placeholder"
+              value="Senior Product Designer" oninput="updateCV()">
           </div>
           <div class="flex gap-3">
             <input type="text" id="f_phone"
               class="w-1/2 bg-black/5 dark:bg-white/5 border border-transparent focus:border-apple-purple/50 rounded-xl px-4 py-3 text-sm outline-none transition-all"
-              placeholder="Telefon (+998...)" value="+998 90 123 45 67" oninput="updateCV()">
+              placeholder="Telefon (+998...)" data-i18n="ph_cv_phone" data-i18n-attr="placeholder"
+              value="+998 90 123 45 67" oninput="updateCV()">
             <input type="email" id="f_email"
               class="w-1/2 bg-black/5 dark:bg-white/5 border border-transparent focus:border-apple-purple/50 rounded-xl px-4 py-3 text-sm outline-none transition-all"
-              placeholder="Email" value="hello@dastyor.ai" oninput="updateCV()">
+              placeholder="Email" data-i18n="ph_email" data-i18n-attr="placeholder" value="hello@dastyor.ai"
+              oninput="updateCV()">
           </div>
           <div>
             <input type="text" id="f_loc"
               class="w-full bg-black/5 dark:bg-white/5 border border-transparent focus:border-apple-purple/50 rounded-xl px-4 py-3 text-sm outline-none transition-all"
-              placeholder="Manzil (Masalan: Toshkent Shahri)" value="Toshkent shahri, O'zbekiston" oninput="updateCV()">
+              placeholder="Manzil (Masalan: Toshkent Shahri)" data-i18n="ph_cv_loc" data-i18n-attr="placeholder"
+              value="Toshkent shahri, O'zbekiston" oninput="updateCV()">
           </div>
           <div>
             <textarea id="f_about"
               class="w-full h-24 bg-black/5 dark:bg-white/5 border border-transparent focus:border-apple-purple/50 rounded-xl px-4 py-3 text-sm outline-none transition-all resize-none"
-              placeholder="Haqingizda qisqacha ma'lumot (Summary)"
+              placeholder="Haqingizda qisqacha ma'lumot (Summary)" data-i18n="ph_cv_about" data-i18n-attr="placeholder"
               oninput="updateCV()">Raqamli mahsulotlar yaratish bo'yicha 5 yillik tajribaga ega dizayner. Minimalizm va foydalanuvchi qulayligini doim oldinga qo'yaman.</textarea>
           </div>
         </div>
@@ -482,13 +886,13 @@
       <!-- EXPERIENCE -->
       <div class="p-6">
         <div class="flex items-center justify-between mb-4">
-          <h2 class="font-display font-bold text-sm uppercase tracking-widest text-black/50 dark:text-white/50">Ish
-            Tajribasi</h2>
+          <h2 class="font-display font-bold text-sm uppercase tracking-widest text-black/50 dark:text-white/50"
+            data-i18n="cv_experience">Ish Tajribasi</h2>
         </div>
         <div id="expList" class="space-y-3 mb-3"></div>
         <button onclick="addExp()"
-          class="w-full py-2 border border-dashed border-apple-purple/50 text-apple-purple bg-apple-purple/5 rounded-xl font-bold text-sm hover:bg-apple-purple/10 transition-colors">+
-          Tajriba qo'shish</button>
+          class="w-full py-2 border border-dashed border-apple-purple/50 text-apple-purple bg-apple-purple/5 rounded-xl font-bold text-sm hover:bg-apple-purple/10 transition-colors"
+          data-i18n="cv_add_exp">+ Tajriba qo'shish</button>
       </div>
 
       <div class="h-px bg-black/5 dark:bg-white/5 mx-6"></div>
@@ -496,25 +900,26 @@
       <!-- EDUCATION -->
       <div class="p-6">
         <div class="flex items-center justify-between mb-4">
-          <h2 class="font-display font-bold text-sm uppercase tracking-widest text-black/50 dark:text-white/50">Ta'lim
-          </h2>
+          <h2 class="font-display font-bold text-sm uppercase tracking-widest text-black/50 dark:text-white/50"
+            data-i18n="cv_education">Ta'lim</h2>
         </div>
         <div id="eduList" class="space-y-3 mb-3"></div>
         <button onclick="addEdu()"
-          class="w-full py-2 border border-dashed border-apple-blue/50 text-apple-blue bg-apple-blue/5 rounded-xl font-bold text-sm hover:bg-apple-blue/10 transition-colors">+
-          Ta'lim qo'shish</button>
+          class="w-full py-2 border border-dashed border-apple-blue/50 text-apple-blue bg-apple-blue/5 rounded-xl font-bold text-sm hover:bg-apple-blue/10 transition-colors"
+          data-i18n="cv_add_edu">+ Ta'lim qo'shish</button>
       </div>
 
       <div class="h-px bg-black/5 dark:bg-white/5 mx-6"></div>
 
       <!-- SKILLS -->
       <div class="p-6 pb-12">
-        <h2 class="font-display font-bold text-sm uppercase tracking-widest text-black/50 dark:text-white/50 mb-4">
-          Ko'nikmalar</h2>
+        <h2 class="font-display font-bold text-sm uppercase tracking-widest text-black/50 dark:text-white/50 mb-4"
+          data-i18n="cv_skills">Ko'nikmalar</h2>
         <div class="bg-black/5 dark:bg-white/5 p-4 rounded-xl">
           <input type="text" id="skillInput"
             class="w-full bg-transparent border-b border-black/10 dark:border-white/10 px-0 py-2 text-sm outline-none focus:border-apple-purple mb-3"
-            placeholder="Ko'nikma yozib ENTER bosing..." onkeydown="handleSkillAdd(event)">
+            placeholder="Ko'nikma yozib ENTER bosing..." data-i18n="ph_skill" data-i18n-attr="placeholder"
+            onkeydown="handleSkillAdd(event)">
           <div id="skillsWrap" class="flex flex-wrap gap-2"></div>
         </div>
       </div>
@@ -564,13 +969,13 @@
         ed.classList.add('hidden');
         pv.classList.remove('hidden');
         pv.classList.add('w-full', 'px-2', 'py-4');
-        btn.innerHTML = '✍️ Tahrirlash';
+        btn.innerHTML = I18n.t('cv_btn_edit') || '✍️ Tahrirlash';
         setTimeout(autoScale, 50);
       } else {
         ed.classList.remove('hidden');
         pv.classList.add('hidden');
         pv.classList.remove('w-full', 'px-2', 'py-4');
-        btn.innerHTML = '👁️ Preview';
+        btn.innerHTML = I18n.t('cv_btn_preview') || '👁️ Preview';
       }
     }
 
@@ -708,13 +1113,13 @@
                         </div>
                     </div>
                     
-                    ${data.about ? `<div class="section"><div class="sec-title">Profil Summary</div><div class="text">${data.about}</div></div>` : ''}
+                    ${data.about ? `<div class="section"><div class="sec-title">${I18n.t('cv_about')}</div><div class="text">${data.about}</div></div>` : ''}
                     
-                    ${experiences.length ? `<div class="section"><div class="sec-title">Tajriba</div>${expHtml}</div>` : ''}
+                    ${experiences.length ? `<div class="section"><div class="sec-title">${I18n.t('cv_experience')}</div>${expHtml}</div>` : ''}
                     
-                    ${education.length ? `<div class="section"><div class="sec-title">Ta'lim</div>${eduHtml}</div>` : ''}
+                    ${education.length ? `<div class="section"><div class="sec-title">${I18n.t('cv_education')}</div>${eduHtml}</div>` : ''}
                     
-                    ${skills.length ? `<div class="section"><div class="sec-title">Ko'nikmalar</div><div class="badges-wrap">${skillsHtml}</div></div>` : ''}
+                    ${skills.length ? `<div class="section"><div class="sec-title">${I18n.t('cv_skills')}</div><div class="badges-wrap">${skillsHtml}</div></div>` : ''}
                 `;
       } else if (activeTpl === 'split') {
         box.className = 'cv-canvas tpl-split';
@@ -723,21 +1128,21 @@
                         <img src="${data.img}" class="avatar">
                         
                         <div class="section">
-                            <div class="sec-title-side">Bog'lanish</div>
+                            <div class="sec-title-side">${I18n.t('cv_contact')}</div>
                             ${data.phone ? `<div class="contact-item">📞 ${data.phone}</div>` : ''}
                             ${data.email ? `<div class="contact-item">📧 ${data.email}</div>` : ''}
                             ${data.loc ? `<div class="contact-item">📍 ${data.loc}</div>` : ''}
                         </div>
                         
-                        ${skills.length ? `<div class="section"><div class="sec-title-side">Skils</div><div class="badges-wrap" style="color:#000">${skillsHtml}</div></div>` : ''}
+                        ${skills.length ? `<div class="section"><div class="sec-title-side">${I18n.t('cv_skills')}</div><div class="badges-wrap" style="color:#000">${skillsHtml}</div></div>` : ''}
                     </div>
                     <div class="main">
                         <div class="name">${data.name}</div>
                         <div class="role">${data.role}</div>
 
-                        ${data.about ? `<div class="section"><div class="sec-title-main">Qisqacha profil</div><div class="text">${data.about}</div></div>` : ''}
-                        ${experiences.length ? `<div class="section"><div class="sec-title-main">Mehnat Faoliyati</div>${expHtml}</div>` : ''}
-                        ${education.length ? `<div class="section"><div class="sec-title-main">Ta'lim</div>${eduHtml}</div>` : ''}
+                        ${data.about ? `<div class="section"><div class="sec-title-main">${I18n.t('cv_about')}</div><div class="text">${data.about}</div></div>` : ''}
+                        ${experiences.length ? `<div class="section"><div class="sec-title-main">${I18n.t('cv_experience')}</div>${expHtml}</div>` : ''}
+                        ${education.length ? `<div class="section"><div class="sec-title-main">${I18n.t('cv_education')}</div>${eduHtml}</div>` : ''}
                     </div>
                 `;
       } else if (activeTpl === 'modern') {
@@ -756,15 +1161,136 @@
                     </div>
                     <div class="body">
                         <div class="col-main">
-                            ${data.about ? `<div class="section"><div class="sec-title">Haqimda</div><div class="text">${data.about}</div></div>` : ''}
-                            ${experiences.length ? `<div class="section"><div class="sec-title">Ish Tajribasi</div>${expHtml}</div>` : ''}
+                            ${data.about ? `<div class="section"><div class="sec-title">${I18n.t('cv_about')}</div><div class="text">${data.about}</div></div>` : ''}
+                            ${experiences.length ? `<div class="section"><div class="sec-title">${I18n.t('cv_experience')}</div>${expHtml}</div>` : ''}
                         </div>
                         <div class="col-side">
-                            ${education.length ? `<div class="section"><div class="sec-title">Ta'lim</div>${eduHtml}</div>` : ''}
-                            ${skills.length ? `<div class="section"><div class="sec-title">Ko'nikmalar</div><div class="badges-wrap">${skillsHtml}</div></div>` : ''}
+                            ${education.length ? `<div class="section"><div class="sec-title">${I18n.t('cv_education')}</div>${eduHtml}</div>` : ''}
+                            ${skills.length ? `<div class="section"><div class="sec-title">${I18n.t('cv_skills')}</div><div class="badges-wrap">${skillsHtml}</div></div>` : ''}
                         </div>
                     </div>
                 `;
+      } else if (activeTpl === 'ats') {
+        box.className = 'cv-canvas tpl-ats';
+        box.innerHTML = `
+            <div class="header">
+                <div class="name">${data.name}</div>
+                <div class="role">${data.role}</div>
+                <div class="contact-wrap">
+                    ${data.phone ? `<span>📞 ${data.phone}</span>` : ''}
+                    ${data.email ? `<span>📧 ${data.email}</span>` : ''}
+                    ${data.loc ? `<span>📍 ${data.loc}</span>` : ''}
+                </div>
+            </div>
+            ${data.about ? `<div class="section"><div class="sec-title">${I18n.t('cv_about')}</div><div class="text">${data.about}</div></div>` : ''}
+            ${experiences.length ? `<div class="section"><div class="sec-title">${I18n.t('cv_experience')}</div>${expHtml}</div>` : ''}
+            ${education.length ? `<div class="section"><div class="sec-title">${I18n.t('cv_education')}</div>${eduHtml}</div>` : ''}
+            ${skills.length ? `<div class="section"><div class="sec-title">${I18n.t('cv_skills')}</div><div style="font-size:10pt;">${skills.map(s => s).join(', ')}</div></div>` : ''}
+        `;
+      } else if (activeTpl === 'elegant') {
+        box.className = 'cv-canvas tpl-elegant';
+        box.innerHTML = `
+            <div class="header">
+                <div class="name">${data.name}</div>
+                <div class="role">${data.role}</div>
+                <div class="contact-wrap">
+                    ${data.phone ? `<span>${data.phone}</span> ` : ''}
+                    ${data.email ? `<span> | ${data.email}</span> ` : ''}
+                    ${data.loc ? `<span> | ${data.loc}</span>` : ''}
+                </div>
+            </div>
+            <div class="body-cols">
+                <div class="col-main">
+                    ${data.about ? `<div class="section"><div class="sec-title">${I18n.t('cv_about')}</div><div class="text">${data.about}</div></div>` : ''}
+                    ${experiences.length ? `<div class="section"><div class="sec-title">${I18n.t('cv_experience')}</div>${expHtml}</div>` : ''}
+                </div>
+                <div class="col-side">
+                    ${education.length ? `<div class="section"><div class="sec-title">${I18n.t('cv_education')}</div>${eduHtml}</div>` : ''}
+                    ${skills.length ? `<div class="section"><div class="sec-title">${I18n.t('cv_skills')}</div><div class="badges-wrap">${skillsHtml}</div></div>` : ''}
+                </div>
+            </div>
+        `;
+      } else if (activeTpl === 'corporate') {
+        box.className = 'cv-canvas tpl-corporate';
+        box.innerHTML = `
+            <div class="header">
+                <div>
+                   <div class="name">${data.name}</div>
+                   <div class="role">${data.role}</div>
+                </div>
+                <div class="contact-wrap">
+                   ${data.phone ? `<div>${data.phone}</div>` : ''}
+                   ${data.email ? `<div>${data.email}</div>` : ''}
+                   ${data.loc ? `<div>${data.loc}</div>` : ''}
+                </div>
+            </div>
+            <div class="body-cols">
+                <div class="col-main">
+                    ${data.about ? `<div class="section"><div class="sec-title">${I18n.t('cv_about')}</div><div class="text">${data.about}</div></div>` : ''}
+                    ${experiences.length ? `<div class="section"><div class="sec-title">${I18n.t('cv_experience')}</div>${expHtml}</div>` : ''}
+                </div>
+                <div class="col-side">
+                    ${education.length ? `<div class="section"><div class="sec-title">${I18n.t('cv_education')}</div>${eduHtml}</div>` : ''}
+                    ${skills.length ? `<div class="section"><div class="sec-title">${I18n.t('cv_skills')}</div><div class="badges-wrap" style="color:#000">${skillsHtml}</div></div>` : ''}
+                </div>
+            </div>
+        `;
+      } else if (activeTpl === 'creative') {
+        box.className = 'cv-canvas tpl-creative';
+        box.innerHTML = `
+            <div class="left">
+                <img src="${data.img}" class="avatar">
+                <div class="name">${data.name}</div>
+                <div class="role">${data.role}</div>
+                
+                <div class="section">
+                    <div class="sec-title sec-title-left">${I18n.t('cv_contact')}</div>
+                    ${data.phone ? `<div class="contact-item">📞 ${data.phone}</div>` : ''}
+                    ${data.email ? `<div class="contact-item">📧 ${data.email}</div>` : ''}
+                    ${data.loc ? `<div class="contact-item">📍 ${data.loc}</div>` : ''}
+                </div>
+                
+                ${skills.length ? `<div class="section"><div class="sec-title sec-title-left">${I18n.t('cv_skills')}</div><div class="badges-wrap" style="color:#000">${skillsHtml}</div></div>` : ''}
+            </div>
+            <div class="right">
+                ${data.about ? `<div class="section"><div class="sec-title">${I18n.t('cv_about')}</div><div class="text">${data.about}</div></div>` : ''}
+                ${experiences.length ? `<div class="section"><div class="sec-title">${I18n.t('cv_experience')}</div>${expHtml}</div>` : ''}
+                ${education.length ? `<div class="section"><div class="sec-title">${I18n.t('cv_education')}</div>${eduHtml}</div>` : ''}
+            </div>
+        `;
+      } else if (activeTpl === 'prof') {
+        box.className = 'cv-canvas tpl-prof';
+        const [firstName, ...lastName] = data.name.split(' ');
+        const nameHtml = lastName.length ? `<strong>${firstName}</strong> ${lastName.join(' ')}` : `<strong>${firstName}</strong>`;
+        box.innerHTML = `
+            <div class="left-strip"></div>
+            <div class="content">
+                <div class="header">
+                    <img src="${data.img}" class="avatar" style="width: 35mm; height: 35mm; border-radius: 5px; object-fit: cover;">
+                    <div>
+                        <div class="name">${nameHtml}</div>
+                        <div class="role">${data.role}</div>
+                        <div class="contact-wrap">
+                            ${data.phone ? `<span>${data.phone}</span>` : ''}
+                            ${data.email ? `<span>&bull; ${data.email}</span>` : ''}
+                            ${data.loc ? `<span>&bull; ${data.loc}</span>` : ''}
+                        </div>
+                    </div>
+                </div>
+                
+                ${data.about ? `<div class="section"><div class="sec-title">${I18n.t('cv_about')}</div><div class="text">${data.about}</div></div>` : ''}
+                
+                <div style="display:flex; gap: 30px;">
+                    <div style="flex:2">
+                        ${experiences.length ? `<div class="section"><div class="sec-title">${I18n.t('cv_experience')}</div>${expHtml}</div>` : ''}
+                    </div>
+                    <div style="flex:1">
+                        ${education.length ? `<div class="section"><div class="sec-title">${I18n.t('cv_education')}</div>${eduHtml}</div>` : ''}
+                        ${skills.length ? `<div class="section"><div class="sec-title">${I18n.t('cv_skills')}</div><div class="badges-wrap">${skillsHtml}</div></div>` : ''}
+                    </div>
+                </div>
+            </div>
+        `;
       }
       autoScale();
     }
@@ -790,11 +1316,10 @@
     window.addEventListener('resize', autoScale);
 
     setTimeout(() => {
-      if (document.documentElement.classList.contains('dark')) {
-        if (tg?.setHeaderColor) tg.setHeaderColor('#0a0a0c');
-      }
       updateCV();
     }, 100);
+
+    window.addEventListener('i18n:change', updateCV);
 
     function exportPDF() {
       const el = document.getElementById('cv-box');
@@ -811,14 +1336,14 @@
 
       const btn = document.getElementById('btnPdf');
       const originalHtml = btn.innerHTML;
-      btn.innerHTML = "⏳ Kuting...";
+      btn.innerHTML = I18n.t('status_processing');
       btn.disabled = true;
 
       html2pdf().set(opt).from(el).save().then(() => {
         autoScale();
         btn.innerHTML = originalHtml;
         btn.disabled = false;
-        if (tg && tg.showAlert) tg.showAlert("PDF Qurilmangizga muvaffaqiyatli saqlandi!");
+        if (tg && tg.showAlert) tg.showAlert(I18n.t('pdf_saved'));
       });
     }
 
@@ -843,7 +1368,7 @@
     // ── exportWord() — Server-side DOCX + Telegram auto-delivery ────────
     async function exportWord() {
       const btn = document.querySelector('button[onclick="exportWord()"]');
-      if (btn) { btn.disabled = true; btn.innerHTML = '⏳ Kuting...'; }
+      if (btn) { btn.disabled = true; btn.innerHTML = I18n.t('status_processing'); }
 
       // Collect all form data
       const payload = {

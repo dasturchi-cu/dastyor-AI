@@ -15,6 +15,8 @@ import os
 from telegram import Update, WebAppInfo, InlineKeyboardMarkup, InlineKeyboardButton
 from telegram.ext import ContextTypes
 from bot.keyboards.reply_keyboards import get_main_menu
+from bot.services.user_service import get_user_lang, set_user_lang, save_chat_id
+from bot.utils.i18n import t
 
 WEBAPP_BASE  = os.getenv("WEBAPP_BASE",  "https://dastyor-ai.onrender.com/webapp")
 BOT_USERNAME = os.getenv("BOT_USERNAME", "DastyorAiBot")
@@ -40,8 +42,9 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     uid = user.id
     first_name = user.first_name or "Do'stim"
 
+    lang = get_user_lang(uid)
+
     # ── Persist chat_id immediately so file delivery always works ──────
-    from bot.services.user_service import save_chat_id
     save_chat_id(uid, update.effective_chat.id if update.effective_chat else uid)
 
     # ── Check payload ──────────────────────────────────────────────────
@@ -51,11 +54,11 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if action:
         # ── Deep-link: open specific tool directly ───────────────────
         page_file, btn_label, description = action
-        url = f"{WEBAPP_BASE}/{page_file}?telegram_id={uid}"
+        url = f"{WEBAPP_BASE}/{page_file}?telegram_id={uid}&lang={lang}"
 
         text = (
             f"Assalomu alaykum, {first_name}! 👋\n\n"
-            f"🚀 <b>{description}</b> uchun quyidagi tugmani bosing:"
+            f"🚀 <b>{description}</b>:"
         )
         keyboard = InlineKeyboardMarkup([[
             InlineKeyboardButton(btn_label, web_app=WebAppInfo(url=url))
@@ -63,65 +66,74 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(text, reply_markup=keyboard, parse_mode="HTML")
         return
 
-    # ── Default /start — full welcome menu ────────────────────────────
-    welcome_text = (
-        f"Assalomu alaykum, {first_name}! 👋\n\n"
-        "🚀 <b>DASTYOR AI</b> — hujjat va AI xizmatlar platformasi.\n\n"
-        "✨ Barcha xizmatlar:\n"
-        "• 📋 Obyektivka / Ma'lumotnoma\n"
-        "• 📄 CV / Rezyume yaratish\n"
-        "• 📸 Rasimdan Word / PDF\n"
-        "• 🌐 Tarjima (UZ ↔ EN ↔ RU)\n"
-        "• 🔤 Krill ↔ Lotin konvertatsiya\n"
-        "• ✏️ Imlo tekshirish\n\n"
-        "Quyidagi tugmani bosib <b>Mini App</b>ni oching:"
-    )
+    # ── Default /start — Ask for language ────────────────────────────
+    kb = InlineKeyboardMarkup([
+        [InlineKeyboardButton("🇺🇿 O'zbek (Lotin)", callback_data="lang_uz_lat"), InlineKeyboardButton("🇺🇿 Ўзбек (Кир)", callback_data="lang_uz_cyr")],
+        [InlineKeyboardButton("🇷🇺 Русский", callback_data="lang_ru"), InlineKeyboardButton("🇬🇧 English", callback_data="lang_en")]
+    ])
+    await update.message.reply_text(t("choose_lang", lang), reply_markup=kb)
 
+
+async def language_callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    uid = query.from_user.id
+    first_name = query.from_user.first_name or "Do'stim"
+    await query.answer()
+
+    lang_code = query.data.replace("lang_", "")
+    set_user_lang(uid, lang_code)
+
+    await query.edit_message_text(t("lang_saved", lang_code))
+
+    welcome_text = t("welcome", lang_code, name=first_name)
+    
     keyboard = InlineKeyboardMarkup([
         [InlineKeyboardButton(
-            "🚀 Appni ochish",
-            web_app=WebAppInfo(url=f"{WEBAPP_BASE}/index.html?telegram_id={uid}")
+            t("btn_app", lang_code),
+            web_app=WebAppInfo(url=f"{WEBAPP_BASE}/index.html?telegram_id={uid}&lang={lang_code}")
         )],
         [
             InlineKeyboardButton(
-                "📋 Obyektivka",
-                web_app=WebAppInfo(url=f"{WEBAPP_BASE}/obyektivka.html?telegram_id={uid}")
+                t("btn_oby", lang_code),
+                web_app=WebAppInfo(url=f"{WEBAPP_BASE}/obyektivka.html?telegram_id={uid}&lang={lang_code}")
             ),
             InlineKeyboardButton(
-                "📄 CV",
-                web_app=WebAppInfo(url=f"{WEBAPP_BASE}/cv.html?telegram_id={uid}")
+                t("btn_cv", lang_code),
+                web_app=WebAppInfo(url=f"{WEBAPP_BASE}/cv.html?telegram_id={uid}&lang={lang_code}")
             ),
         ],
         [
             InlineKeyboardButton(
-                "📸 OCR",
-                web_app=WebAppInfo(url=f"{WEBAPP_BASE}/ocr.html?telegram_id={uid}")
+                t("btn_ocr", lang_code),
+                web_app=WebAppInfo(url=f"{WEBAPP_BASE}/ocr.html?telegram_id={uid}&lang={lang_code}")
             ),
             InlineKeyboardButton(
-                "💎 Premium",
-                web_app=WebAppInfo(url=f"{WEBAPP_BASE}/premium.html?telegram_id={uid}")
+                t("btn_premium", lang_code),
+                web_app=WebAppInfo(url=f"{WEBAPP_BASE}/premium.html?telegram_id={uid}&lang={lang_code}")
             ),
         ],
     ])
 
-    await update.message.reply_text(
-        welcome_text,
+    await context.bot.send_message(
+        chat_id=uid,
+        text=welcome_text,
         reply_markup=keyboard,
         parse_mode="HTML",
     )
 
-    # Also show the reply keyboard for quick access inside the chat
-    await update.message.reply_text(
-        "📌 Yoki menyudan tanlang:",
-        reply_markup=get_main_menu(uid),
+    await context.bot.send_message(
+        chat_id=uid,
+        text=t("or_menu", lang_code),
+        reply_markup=get_main_menu(uid, lang_code),
     )
 
 
 async def menu_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handle /menu"""
     uid = update.effective_user.id if update.effective_user else None
+    lang = get_user_lang(uid)
     await update.message.reply_text(
-        "🏠 <b>Bosh menyu</b>",
-        reply_markup=get_main_menu(uid),
+        t("or_menu", lang).replace("👇 ", ""),
+        reply_markup=get_main_menu(uid, lang),
         parse_mode="HTML",
     )

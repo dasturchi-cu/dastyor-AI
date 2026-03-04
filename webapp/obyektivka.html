@@ -5,11 +5,16 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>Obyektivka Builder | DASTYOR AI</title>
-    <!-- Fonts -->
+    <!-- 1. Theme init FIRST — prevents flash of wrong theme -->
+    <script src="theme-init.js"></script>
+    <!-- 2. Fonts -->
     <link
         href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@400;600;800&display=swap"
         rel="stylesheet" />
+    <!-- 3. Telegram SDK -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <!-- 4. Global theme tokens -->
+    <link rel="stylesheet" href="theme.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
     <!-- Tailwind -->
@@ -209,11 +214,10 @@
 </head>
 
 <body
-    class="bg-white dark:bg-[#0a0a0c] text-neutral-900 dark:text-neutral-100 flex flex-col h-screen overflow-hidden antialiased selection:bg-apple-blue selection:text-white">
+    class="text-neutral-900 dark:text-neutral-100 flex flex-col h-screen overflow-hidden antialiased selection:bg-apple-blue selection:text-white">
 
     <!-- Global Header -->
-    <header
-        class="h-16 flex-shrink-0 border-b border-black/5 dark:border-white/5 bg-white/80 dark:bg-[#0a0a0c]/80 backdrop-blur-xl flex items-center justify-between px-4 z-50">
+    <header class="builder-header h-16 flex-shrink-0 flex items-center justify-between px-4 z-50">
         <div class="flex items-center gap-3">
             <a href="index.html"
                 class="w-10 h-10 rounded-xl bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 transition-colors flex items-center justify-center">
@@ -261,304 +265,357 @@
                 <!-- Photo Upload -->
                 <div class="flex flex-col items-center justify-center p-6 border-2 border-dashed border-black/10 dark:border-white/10 rounded-[24px] mb-6 hover:bg-black/5 dark:hover:bg-white/5 transition-colors cursor-pointer group"
                     onclick="document.getElementById('imgInput').click()">
-                    <div id="photoPrev"
-                        class="w-[30mm] h-[40mm] bg-black/5 dark:bg-white/10 rounded-md overflow-hidden flex items-center justify-center mb-3">
-                        <svg class="w-8 h-8 text-black/20 dark:text-white/20 group-hover:scale-110 transition-transform"
-                            fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                            <path stroke-linecap="round" stroke-linejoin="round"
-                                d="M3 9h18v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9Zm0 0V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v4M8 13h.01M16 13h.01M12 16h.01" />
-                        </svg>
+                    <div
+                        class="flex flex-col items-center justify-center p-6 border-2 border-dashed border-black/10 dark:border-white/10 rounded-[24px] mb-6 hover:bg-black/5 dark:hover:bg-white/5 transition-colors cursor-pointer group">
+                        <div id="photoPrev"
+                            class="w-[30mm] h-[40mm] bg-black/5 dark:bg-white/10 rounded-md overflow-hidden flex items-center justify-center mb-3">
+                            <svg class="w-8 h-8 text-black/20 dark:text-white/20 group-hover:scale-110 transition-transform"
+                                fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round"
+                                    d="M3 9h18v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9Zm0 0V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v4M8 13h.01M16 13h.01M12 16h.01" />
+                            </svg>
+                        </div>
+                        <div>
+                            <input type="file" id="imgInput" accept="image/*" class="hidden"
+                                onchange="handleImage(this)">
+                            <button
+                                class="px-3 py-1.5 bg-apple-blue/10 text-apple-blue font-semibold text-xs rounded-full hover:bg-apple-blue/20 transition-colors"
+                                onclick="document.getElementById('imgInput').click()" data-i18n="cv_upload_img">Rasm
+                                yuklash</button>
+                            <p class="text-[10px] text-black/40 dark:text-white/40 mt-1" data-i18n="cv_rec_img">3x4
+                                o'lchamdagi rasmiy tasvir</p>
+                        </div>
                     </div>
-                    <span class="text-sm font-semibold text-apple-blue">Rasm yuklash (3x4)</span>
-                    <input type="file" id="imgInput" accept="image/*" class="hidden" onchange="handleImage(this)">
+
+                    <!-- Fields -->
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-xs font-bold text-black/40 dark:text-white/40 mb-1 ml-1 uppercase"
+                                data-i18n="obv_fullname">F.I.Sh.</label>
+                            <input type="text" id="f_name"
+                                class="w-full bg-black/5 dark:bg-white/5 focus:bg-apple-purple/5 border border-transparent focus:border-apple-purple/50 rounded-xl px-4 py-3 text-sm outline-none transition-all font-bold"
+                                placeholder="Alisherov Yusuf Muratovich" data-i18n="ph_obv_name"
+                                data-i18n-attr="placeholder" oninput="updateCV()">
+                        </div>
+
+                        <div class="flex gap-3">
+                            <div class="flex-1">
+                                <label
+                                    class="block text-xs font-bold text-black/40 dark:text-white/40 mb-1 ml-1 uppercase"
+                                    data-i18n="obv_birth">Tug'ilgan
+                                    sana</label>
+                                <input type="text" id="f_birth"
+                                    class="w-full bg-black/5 dark:bg-white/5 focus:bg-apple-blue/5 border border-transparent focus:border-apple-blue/50 rounded-xl px-4 py-3 text-sm outline-none transition-all"
+                                    placeholder="01.01.1990" data-i18n="ph_obv_birth" data-i18n-attr="placeholder"
+                                    oninput="updateCV()">
+                            </div>
+                            <div class="flex-1">
+                                <label
+                                    class="block text-xs font-bold text-black/40 dark:text-white/40 mb-1 ml-1 uppercase"
+                                    data-i18n="obv_birthplace">Tug'ilgan
+                                    joyi</label>
+                                <input type="text" id="f_place"
+                                    class="w-full bg-black/5 dark:bg-white/5 focus:bg-apple-blue/5 border border-transparent focus:border-apple-blue/50 rounded-xl px-4 py-3 text-sm outline-none transition-all"
+                                    placeholder="Toshkent viloyati" data-i18n="ph_obv_place"
+                                    data-i18n-attr="placeholder" oninput="updateCV()">
+                            </div>
+                        </div>
+
+                        <div class="flex gap-3">
+                            <div class="flex-1">
+                                <label
+                                    class="block text-xs font-bold text-black/40 dark:text-white/40 mb-1 ml-1 uppercase"
+                                    data-i18n="obv_nation">Millati</label>
+                                <input type="text" id="f_nation"
+                                    class="w-full bg-black/5 dark:bg-white/5 focus:bg-apple-blue/5 border border-transparent focus:border-apple-blue/50 rounded-xl px-4 py-3 text-sm outline-none transition-all"
+                                    placeholder="o'zbek" data-i18n="ph_obv_nation" data-i18n-attr="placeholder"
+                                    oninput="updateCV()">
+                            </div>
+                            <div class="flex-1">
+                                <label
+                                    class="block text-xs font-bold text-black/40 dark:text-white/40 mb-1 ml-1 uppercase"
+                                    data-i18n="obv_party">Partiyaviyligi</label>
+                                <input type="text" id="f_party"
+                                    class="w-full bg-black/5 dark:bg-white/5 focus:bg-apple-blue/5 border border-transparent focus:border-apple-blue/50 rounded-xl px-4 py-3 text-sm outline-none transition-all"
+                                    placeholder="yo'q" data-i18n="ph_obv_party" data-i18n-attr="placeholder"
+                                    oninput="updateCV()">
+                            </div>
+                        </div>
+
+                        <div class="flex gap-3">
+                            <div class="flex-1">
+                                <label
+                                    class="block text-xs font-bold text-black/40 dark:text-white/40 mb-1 ml-1 uppercase"
+                                    data-i18n="obv_education">Ma'lumoti</label>
+                                <input type="text" id="f_edu"
+                                    class="w-full bg-black/5 dark:bg-white/5 focus:bg-apple-blue/5 border border-transparent focus:border-apple-blue/50 rounded-xl px-4 py-3 text-sm outline-none transition-all"
+                                    placeholder="oliy" data-i18n="ph_obv_edu" data-i18n-attr="placeholder"
+                                    oninput="updateCV()">
+                            </div>
+                            <div class="flex-1">
+                                <label
+                                    class="block text-xs font-bold text-black/40 dark:text-white/40 mb-1 ml-1 uppercase"
+                                    data-i18n="obv_graduated">Tamomlagan</label>
+                                <input type="text" id="f_grad"
+                                    class="w-full bg-black/5 dark:bg-white/5 focus:bg-apple-blue/5 border border-transparent focus:border-apple-blue/50 rounded-xl px-4 py-3 text-sm outline-none transition-all"
+                                    placeholder="2015, TDYU" data-i18n="ph_obv_grad" data-i18n-attr="placeholder"
+                                    oninput="updateCV()">
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold text-black/40 dark:text-white/40 mb-1 ml-1 uppercase"
+                                data-i18n="obv_specialty">Mutaxassisligi</label>
+                            <input type="text" id="f_spec"
+                                class="w-full bg-black/5 dark:bg-white/5 focus:bg-apple-blue/5 border border-transparent focus:border-apple-blue/50 rounded-xl px-4 py-3 text-sm outline-none transition-all"
+                                placeholder="huquqshunos" data-i18n="ph_obv_spec" data-i18n-attr="placeholder"
+                                oninput="updateCV()">
+                        </div>
+
+                        <div class="flex gap-3">
+                            <div class="flex-1">
+                                <label
+                                    class="block text-xs font-bold text-black/40 dark:text-white/40 mb-1 ml-1 uppercase"
+                                    data-i18n="obv_degree">Ilmiy
+                                    darajasi</label>
+                                <input type="text" id="f_degree"
+                                    class="w-full bg-black/5 dark:bg-white/5 focus:bg-apple-blue/5 border border-transparent focus:border-apple-blue/50 rounded-xl px-4 py-3 text-sm outline-none transition-all"
+                                    placeholder="yo'q" data-i18n="ph_obv_degree" data-i18n-attr="placeholder"
+                                    oninput="updateCV()">
+                            </div>
+                            <div class="flex-1">
+                                <label
+                                    class="block text-xs font-bold text-black/40 dark:text-white/40 mb-1 ml-1 uppercase"
+                                    data-i18n="obv_title">Ilmiy
+                                    unvoni</label>
+                                <input type="text" id="f_title"
+                                    class="w-full bg-black/5 dark:bg-white/5 focus:bg-apple-blue/5 border border-transparent focus:border-apple-blue/50 rounded-xl px-4 py-3 text-sm outline-none transition-all"
+                                    placeholder="yo'q" data-i18n="ph_obv_title" data-i18n-attr="placeholder"
+                                    oninput="updateCV()">
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold text-black/40 dark:text-white/40 mb-1 ml-1 uppercase"
+                                data-i18n="obv_languages">Tillar</label>
+                            <input type="text" id="f_langs"
+                                class="w-full bg-black/5 dark:bg-white/5 focus:bg-apple-blue/5 border border-transparent focus:border-apple-blue/50 rounded-xl px-4 py-3 text-sm outline-none transition-all"
+                                placeholder="rus va ingliz tillari" data-i18n="ph_obv_langs"
+                                data-i18n-attr="placeholder" oninput="updateCV()">
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold text-black/40 dark:text-white/40 mb-1 ml-1 uppercase"
+                                data-i18n="obv_awards">Mukofotlar</label>
+                            <input type="text" id="f_awards"
+                                class="w-full bg-black/5 dark:bg-white/5 focus:bg-apple-blue/5 border border-transparent focus:border-apple-blue/50 rounded-xl px-4 py-3 text-sm outline-none transition-all"
+                                placeholder="yo'q" data-i18n="ph_obv_awards" data-i18n-attr="placeholder"
+                                oninput="updateCV()">
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold text-black/40 dark:text-white/40 mb-1 ml-1 uppercase"
+                                data-i18n="obv_deputy">Deputatlik
+                                statusi</label>
+                            <input type="text" id="f_deputy"
+                                class="w-full bg-black/5 dark:bg-white/5 focus:bg-apple-blue/5 border border-transparent focus:border-apple-blue/50 rounded-xl px-4 py-3 text-sm outline-none transition-all"
+                                placeholder="yo'q" data-i18n="ph_obv_deputy" data-i18n-attr="placeholder"
+                                oninput="updateCV()">
+                        </div>
+                    </div>
                 </div>
 
-                <!-- Fields -->
-                <div class="space-y-4">
-                    <div>
-                        <label
-                            class="block text-xs font-bold text-black/40 dark:text-white/40 mb-1 ml-1 uppercase">To'liq
-                            ism (F.I.SH)</label>
-                        <input type="text" id="f_name"
-                            class="w-full bg-black/5 dark:bg-white/5 focus:bg-apple-blue/5 border border-transparent focus:border-apple-blue/50 rounded-xl px-4 py-3 text-sm outline-none transition-all"
-                            placeholder="ALISHEROV YUSUF MURATOVICH" oninput="updateCV()">
+                <!-- Divider -->
+                <div class="h-px bg-black/5 dark:bg-white/5 mx-6"></div>
+
+                <div class="p-6">
+                    <div class="flex items-center gap-2 mb-6">
+                        <div
+                            class="w-8 h-8 rounded-lg bg-apple-purple/10 flex items-center justify-center text-apple-purple">
+                            🧑‍💼</div>
+                        <h2 class="font-display font-bold text-sm uppercase tracking-widest text-black/50 dark:text-white/50"
+                            data-i18n="obv_work">
+                            Mehnat Faoliyati</h2>
                     </div>
 
-                    <div class="flex gap-3">
-                        <div class="flex-1">
-                            <label
-                                class="block text-xs font-bold text-black/40 dark:text-white/40 mb-1 ml-1 uppercase">Tug'ilgan
-                                yili</label>
-                            <input type="text" id="f_birth"
-                                class="w-full bg-black/5 dark:bg-white/5 focus:bg-apple-blue/5 border border-transparent focus:border-apple-blue/50 rounded-xl px-4 py-3 text-sm outline-none transition-all"
-                                placeholder="01.01.1990" oninput="updateCV()">
-                        </div>
-                        <div class="flex-1">
-                            <label
-                                class="block text-xs font-bold text-black/40 dark:text-white/40 mb-1 ml-1 uppercase">Tug'ilgan
-                                joyi</label>
-                            <input type="text" id="f_place"
-                                class="w-full bg-black/5 dark:bg-white/5 focus:bg-apple-blue/5 border border-transparent focus:border-apple-blue/50 rounded-xl px-4 py-3 text-sm outline-none transition-all"
-                                placeholder="Toshkent viloyati" oninput="updateCV()">
-                        </div>
-                    </div>
-
-                    <div class="flex gap-3">
-                        <div class="flex-1">
-                            <label
-                                class="block text-xs font-bold text-black/40 dark:text-white/40 mb-1 ml-1 uppercase">Millati</label>
-                            <input type="text" id="f_nation"
-                                class="w-full bg-black/5 dark:bg-white/5 focus:bg-apple-blue/5 border border-transparent focus:border-apple-blue/50 rounded-xl px-4 py-3 text-sm outline-none transition-all"
-                                placeholder="o'zbek" oninput="updateCV()">
-                        </div>
-                        <div class="flex-1">
-                            <label
-                                class="block text-xs font-bold text-black/40 dark:text-white/40 mb-1 ml-1 uppercase">Partiyaviyligi</label>
-                            <input type="text" id="f_party"
-                                class="w-full bg-black/5 dark:bg-white/5 focus:bg-apple-blue/5 border border-transparent focus:border-apple-blue/50 rounded-xl px-4 py-3 text-sm outline-none transition-all"
-                                placeholder="yo'q" oninput="updateCV()">
-                        </div>
-                    </div>
-
-                    <div class="flex gap-3">
-                        <div class="flex-1">
-                            <label
-                                class="block text-xs font-bold text-black/40 dark:text-white/40 mb-1 ml-1 uppercase">Ma'lumoti</label>
-                            <input type="text" id="f_edu"
-                                class="w-full bg-black/5 dark:bg-white/5 focus:bg-apple-blue/5 border border-transparent focus:border-apple-blue/50 rounded-xl px-4 py-3 text-sm outline-none transition-all"
-                                placeholder="oliy" oninput="updateCV()">
-                        </div>
-                        <div class="flex-1">
-                            <label
-                                class="block text-xs font-bold text-black/40 dark:text-white/40 mb-1 ml-1 uppercase">Tamomlagan</label>
-                            <input type="text" id="f_grad"
-                                class="w-full bg-black/5 dark:bg-white/5 focus:bg-apple-blue/5 border border-transparent focus:border-apple-blue/50 rounded-xl px-4 py-3 text-sm outline-none transition-all"
-                                placeholder="2015, TDYU" oninput="updateCV()">
-                        </div>
-                    </div>
-
-                    <div>
-                        <label
-                            class="block text-xs font-bold text-black/40 dark:text-white/40 mb-1 ml-1 uppercase">Mutaxassisligi</label>
-                        <input type="text" id="f_spec"
-                            class="w-full bg-black/5 dark:bg-white/5 focus:bg-apple-blue/5 border border-transparent focus:border-apple-blue/50 rounded-xl px-4 py-3 text-sm outline-none transition-all"
-                            placeholder="huquqshunos" oninput="updateCV()">
-                    </div>
-
-                    <div class="flex gap-3">
-                        <div class="flex-1">
-                            <label
-                                class="block text-xs font-bold text-black/40 dark:text-white/40 mb-1 ml-1 uppercase">Ilmiy
-                                darajasi</label>
-                            <input type="text" id="f_degree"
-                                class="w-full bg-black/5 dark:bg-white/5 focus:bg-apple-blue/5 border border-transparent focus:border-apple-blue/50 rounded-xl px-4 py-3 text-sm outline-none transition-all"
-                                placeholder="yo'q" oninput="updateCV()">
-                        </div>
-                        <div class="flex-1">
-                            <label
-                                class="block text-xs font-bold text-black/40 dark:text-white/40 mb-1 ml-1 uppercase">Ilmiy
-                                unvoni</label>
-                            <input type="text" id="f_title"
-                                class="w-full bg-black/5 dark:bg-white/5 focus:bg-apple-blue/5 border border-transparent focus:border-apple-blue/50 rounded-xl px-4 py-3 text-sm outline-none transition-all"
-                                placeholder="yo'q" oninput="updateCV()">
-                        </div>
-                    </div>
-
-                    <div>
-                        <label
-                            class="block text-xs font-bold text-black/40 dark:text-white/40 mb-1 ml-1 uppercase">Tillar</label>
-                        <input type="text" id="f_langs"
-                            class="w-full bg-black/5 dark:bg-white/5 focus:bg-apple-blue/5 border border-transparent focus:border-apple-blue/50 rounded-xl px-4 py-3 text-sm outline-none transition-all"
-                            placeholder="rus va ingliz tillari" oninput="updateCV()">
-                    </div>
-
-                    <div>
-                        <label
-                            class="block text-xs font-bold text-black/40 dark:text-white/40 mb-1 ml-1 uppercase">Mukofotlar</label>
-                        <input type="text" id="f_awards"
-                            class="w-full bg-black/5 dark:bg-white/5 focus:bg-apple-blue/5 border border-transparent focus:border-apple-blue/50 rounded-xl px-4 py-3 text-sm outline-none transition-all"
-                            placeholder="yo'q" oninput="updateCV()">
-                    </div>
-
-                    <div>
-                        <label
-                            class="block text-xs font-bold text-black/40 dark:text-white/40 mb-1 ml-1 uppercase">Deputatlik
-                            statusi</label>
-                        <input type="text" id="f_deputy"
-                            class="w-full bg-black/5 dark:bg-white/5 focus:bg-apple-blue/5 border border-transparent focus:border-apple-blue/50 rounded-xl px-4 py-3 text-sm outline-none transition-all"
-                            placeholder="yo'q" oninput="updateCV()">
-                    </div>
+                    <div id="expList" class="space-y-3 mb-3"></div>
+                    <button onclick="addExp()"
+                        class="w-full py-3 border border-dashed border-apple-purple/50 text-apple-purple bg-apple-purple/5 rounded-xl font-bold text-sm hover:bg-apple-purple/10 transition-colors"
+                        data-i18n="obv_add_work">+
+                        Ish joyi qo'shish</button>
                 </div>
+
+                <div class="h-px bg-black/5 dark:bg-white/5 mx-6"></div>
+
+                <div class="p-6">
+                    <div class="flex items-center gap-2 mb-6">
+                        <div
+                            class="w-8 h-8 rounded-lg bg-apple-orange/10 flex items-center justify-center text-apple-orange">
+                            👨‍👩‍👧</div>
+                        <h2 class="font-display font-bold text-sm uppercase tracking-widest text-black/50 dark:text-white/50"
+                            data-i18n="obv_relatives">
+                            Yaqin Qarindoshlari</h2>
+                    </div>
+
+                    <div id="relList" class="space-y-3 mb-3"></div>
+                    <button onclick="addRel()"
+                        class="w-full py-3 border border-dashed border-apple-orange/50 text-apple-orange bg-apple-orange/5 rounded-xl font-bold text-sm hover:bg-apple-orange/10 transition-colors"
+                        data-i18n="obv_add_rel">+
+                        Qarindosh qo'shish</button>
+                </div>
+
             </div>
 
-            <!-- Divider -->
-            <div class="h-px bg-black/5 dark:bg-white/5 mx-6"></div>
-
-            <div class="p-6">
-                <div class="flex items-center gap-2 mb-6">
-                    <div
-                        class="w-8 h-8 rounded-lg bg-apple-purple/10 flex items-center justify-center text-apple-purple">
-                        💼</div>
-                    <h2
-                        class="font-display font-bold text-sm uppercase tracking-widest text-black/50 dark:text-white/50">
-                        Mehnat Faoliyati</h2>
+            <!-- PREVIEW PANE -->
+            <div id="previewPane"
+                class="hidden md:flex flex-1 h-full bg-[#1c1c1e] items-start justify-center p-8 scroller overflow-y-auto">
+                <div class="cv-canvas-wrapper" id="previewScaleWrapper">
+                    <div class="tpl-oby" id="cv-box">
+                        <!-- HTML generated live here -->
+                    </div>
                 </div>
-
-                <div id="expList" class="space-y-3 mb-3"></div>
-                <button onclick="addExp()"
-                    class="w-full py-3 border border-dashed border-apple-purple/50 text-apple-purple bg-apple-purple/5 rounded-xl font-bold text-sm hover:bg-apple-purple/10 transition-colors">+
-                    Ish joyi qo'shish</button>
-            </div>
-
-            <div class="h-px bg-black/5 dark:bg-white/5 mx-6"></div>
-
-            <div class="p-6">
-                <div class="flex items-center gap-2 mb-6">
-                    <div
-                        class="w-8 h-8 rounded-lg bg-apple-orange/10 flex items-center justify-center text-apple-orange">
-                        👨‍👩‍👧</div>
-                    <h2
-                        class="font-display font-bold text-sm uppercase tracking-widest text-black/50 dark:text-white/50">
-                        Yaqin Qarindoshlari</h2>
-                </div>
-
-                <div id="relList" class="space-y-3 mb-3"></div>
-                <button onclick="addRel()"
-                    class="w-full py-3 border border-dashed border-apple-orange/50 text-apple-orange bg-apple-orange/5 rounded-xl font-bold text-sm hover:bg-apple-orange/10 transition-colors">+
-                    Qarindosh qo'shish</button>
             </div>
 
         </div>
 
-        <!-- PREVIEW PANE -->
-        <div id="previewPane"
-            class="hidden md:flex flex-1 h-full bg-[#1c1c1e] items-start justify-center p-8 scroller overflow-y-auto">
-            <div class="cv-canvas-wrapper" id="previewScaleWrapper">
-                <div class="tpl-oby" id="cv-box">
-                    <!-- HTML generated live here -->
-                </div>
-            </div>
-        </div>
+        <script>
+            const tg = window.Telegram?.WebApp;
 
-    </div>
+            let avatarUrl = '';
+            let experiences = [{ id: 1, years: '2015-2020 yy.', desc: "Toshkent shahri Yunusobod tumani hokimi o'rinbosari" }];
+            let relatives = [{ id: 1, role: 'Otasi', name: 'Alisherov Muratjon', birth: '1965 yil, Toshkent viloyati', work: "Nafaqada", addr: "Toshkent shahri, Yunusobod tumani, 3-kvartal, 12-uy" }];
 
-    <script>
-        const tg = window.Telegram?.WebApp;
+            // View Toggle for mobile
+            let mobilePreview = false;
+            function toggleMobileView() {
+                mobilePreview = !mobilePreview;
+                const ed = document.getElementById('editorPane');
+                const pv = document.getElementById('previewPane');
+                const btn = document.getElementById('mobileViewToggle');
 
-        let avatarUrl = '';
-        let experiences = [{ id: 1, years: '2015-2020 yy.', desc: "Toshkent shahri Yunusobod tumani hokimi o'rinbosari" }];
-        let relatives = [{ id: 1, role: 'Otasi', name: 'Alisherov Muratjon', birth: '1965 yil, Toshkent viloyati', work: "Nafaqada", addr: "Toshkent shahri, Yunusobod tumani, 3-kvartal, 12-uy" }];
-
-        // View Toggle for mobile
-        let mobilePreview = false;
-        function toggleMobileView() {
-            mobilePreview = !mobilePreview;
-            const ed = document.getElementById('editorPane');
-            const pv = document.getElementById('previewPane');
-            const btn = document.getElementById('mobileViewToggle');
-
-            if (mobilePreview) {
-                ed.classList.add('hidden');
-                pv.classList.remove('hidden');
-                pv.classList.add('w-full', 'px-2', 'py-4'); // mobile specific padding
-                btn.innerHTML = '✍️ Tahrirlash';
-                setTimeout(autoScale, 50);
-            } else {
-                ed.classList.remove('hidden');
-                pv.classList.add('hidden');
-                pv.classList.remove('w-full', 'px-2', 'py-4');
-                btn.innerHTML = '👁️ Preview';
-            }
-        }
-
-        // Image Handling via FileReader
-        function handleImage(input) {
-            if (input.files && input.files[0]) {
-                const reader = new FileReader();
-                reader.onload = function (e) {
-                    avatarUrl = e.target.result;
-                    document.getElementById('photoPrev').innerHTML = `<img src="${avatarUrl}" class="w-full h-full object-cover">`;
-                    updateCV();
+                if (mobilePreview) {
+                    ed.classList.add('hidden');
+                    pv.classList.remove('hidden');
+                    pv.classList.add('w-full', 'px-2', 'py-4'); // mobile specific padding
+                    btn.innerHTML = I18n.t('cv_btn_edit') || '✍️ Tahrirlash';
+                    setTimeout(autoScale, 50);
+                } else {
+                    ed.classList.remove('hidden');
+                    pv.classList.add('hidden');
+                    pv.classList.remove('w-full', 'px-2', 'py-4');
+                    btn.innerHTML = I18n.t('cv_btn_preview') || '👁️ Preview';
                 }
-                reader.readAsDataURL(input.files[0]);
             }
-        }
 
-        // Repeaters Builder
-        function addExp() { experiences.push({ id: Date.now(), years: '', desc: '' }); renderExp(); updateCV(); }
-        function removeExp(id) { experiences = experiences.filter(x => x.id !== id); renderExp(); updateCV(); }
-        function renderExp() {
-            document.getElementById('expList').innerHTML = experiences.map((ex, i) => `
+            window.addEventListener('i18n:change', () => {
+                renderExp();
+                renderRel();
+                updateCV();
+            });
+
+            // Image Handling via FileReader
+            function handleImage(input) {
+                if (input.files && input.files[0]) {
+                    const reader = new FileReader();
+                    reader.onload = function (e) {
+                        avatarUrl = e.target.result;
+                        document.getElementById('photoPrev').innerHTML = `<img src="${avatarUrl}" class="w-full h-full object-cover">`;
+                        updateCV();
+                    }
+                    reader.readAsDataURL(input.files[0]);
+                }
+            }
+
+            // Repeaters Builder
+            function addExp() { experiences.push({ id: Date.now(), years: '', desc: '' }); renderExp(); updateCV(); }
+            function removeExp(id) { experiences = experiences.filter(x => x.id !== id); renderExp(); updateCV(); }
+            function renderExp() {
+                const ph_years = (I18n.t('ph_obv_years') || "Yillar (2018-2023 yy.)").replace(/<br>/g, ' ');
+                const ph_work = (I18n.t('ph_obv_workdesc') || "Ish joyi va lavozimi").replace(/<br>/g, ' ');
+
+                document.getElementById('expList').innerHTML = experiences.map((ex, i) => `
                 <div class="bg-black/5 dark:bg-white/5 p-4 rounded-2xl relative group">
                     <button class="absolute top-2 right-2 w-6 h-6 bg-red-500/10 text-red-500 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity" onclick="removeExp(${ex.id})">×</button>
-                    <input type="text" class="w-full bg-transparent border-b border-black/10 dark:border-white/10 px-0 py-2 text-sm outline-none mb-2 focus:border-apple-purple" placeholder="Yillar (2018-2023 yy.)" value="${ex.years}" oninput="experiences[${i}].years=this.value; updateCV()">
-                    <textarea class="w-full bg-transparent border-b border-black/10 dark:border-white/10 px-0 py-2 text-sm outline-none focus:border-apple-purple resize-none h-16" placeholder="Ish joyi va lavozimi" oninput="experiences[${i}].desc=this.value; updateCV()">${ex.desc}</textarea>
+                    <input type="text" class="w-full bg-transparent border-b border-black/10 dark:border-white/10 px-0 py-2 text-sm outline-none mb-2 focus:border-apple-purple" placeholder="${ph_years}" value="${ex.years}" oninput="experiences[${i}].years=this.value; updateCV()">
+                    <textarea class="w-full bg-transparent border-b border-black/10 dark:border-white/10 px-0 py-2 text-sm outline-none focus:border-apple-purple resize-none h-16" placeholder="${ph_work}" oninput="experiences[${i}].desc=this.value; updateCV()">${ex.desc}</textarea>
                 </div>
             `).join('');
-        }
+            }
 
-        function addRel() { relatives.push({ id: Date.now(), role: '', name: '', birth: '', work: '', addr: '' }); renderRel(); updateCV(); }
-        function removeRel(id) { relatives = relatives.filter(x => x.id !== id); renderRel(); updateCV(); }
-        function renderRel() {
-            document.getElementById('relList').innerHTML = relatives.map((r, i) => `
+            function addRel() { relatives.push({ id: Date.now(), role: '', name: '', birth: '', work: '', addr: '' }); renderRel(); updateCV(); }
+            function removeRel(id) { relatives = relatives.filter(x => x.id !== id); renderRel(); updateCV(); }
+            function renderRel() {
+                const ph_role = (I18n.t('obv_rel_role') || "Qarindoshligi").replace(/<br>/g, ' ');
+                const ph_name = (I18n.t('obv_rel_name') || "F.I.SH").replace(/<br>/g, ' ');
+                const ph_birth = (I18n.t('obv_rel_birth') || "Tug'ilgan yili/joyi").replace(/<br>/g, ' ');
+                const ph_work = (I18n.t('obv_rel_work') || "Ish joyi va lavozimi").replace(/<br>/g, ' ');
+                const ph_addr = (I18n.t('obv_rel_addr') || "Yashash manzili").replace(/<br>/g, ' ');
+
+                document.getElementById('relList').innerHTML = relatives.map((r, i) => `
                 <div class="bg-black/5 dark:bg-white/5 p-4 rounded-2xl relative group">
                     <button class="absolute top-2 right-2 w-6 h-6 bg-red-500/10 text-red-500 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity" onclick="removeRel(${r.id})">×</button>
                     <div class="flex gap-2">
-                        <input type="text" class="w-1/3 bg-transparent border-b border-black/10 dark:border-white/10 px-0 py-2 text-sm outline-none focus:border-apple-orange" placeholder="Qarindoshligi" value="${r.role}" oninput="relatives[${i}].role=this.value; updateCV()">
-                        <input type="text" class="w-2/3 bg-transparent border-b border-black/10 dark:border-white/10 px-0 py-2 text-sm outline-none focus:border-apple-orange" placeholder="F.I.SH" value="${r.name}" oninput="relatives[${i}].name=this.value; updateCV()">
+                        <input type="text" class="w-1/3 bg-transparent border-b border-black/10 dark:border-white/10 px-0 py-2 text-sm outline-none focus:border-apple-orange" placeholder="${ph_role}" value="${r.role}" oninput="relatives[${i}].role=this.value; updateCV()">
+                        <input type="text" class="w-2/3 bg-transparent border-b border-black/10 dark:border-white/10 px-0 py-2 text-sm outline-none focus:border-apple-orange" placeholder="${ph_name}" value="${r.name}" oninput="relatives[${i}].name=this.value; updateCV()">
                     </div>
-                    <input type="text" class="w-full bg-transparent border-b border-black/10 dark:border-white/10 px-0 py-2 text-sm outline-none focus:border-apple-orange" placeholder="Tug'ilgan yili/joyi" value="${r.birth}" oninput="relatives[${i}].birth=this.value; updateCV()">
-                    <input type="text" class="w-full bg-transparent border-b border-black/10 dark:border-white/10 px-0 py-2 text-sm outline-none focus:border-apple-orange" placeholder="Ish joyi va lavozimi" value="${r.work}" oninput="relatives[${i}].work=this.value; updateCV()">
-                    <input type="text" class="w-full bg-transparent border-b border-black/10 dark:border-white/10 px-0 py-2 text-sm outline-none focus:border-apple-orange font-medium" placeholder="Yashash manzili" value="${r.addr}" oninput="relatives[${i}].addr=this.value; updateCV()">
+                    <input type="text" class="w-full bg-transparent border-b border-black/10 dark:border-white/10 px-0 py-2 text-sm outline-none focus:border-apple-orange" placeholder="${ph_birth}" value="${r.birth}" oninput="relatives[${i}].birth=this.value; updateCV()">
+                    <input type="text" class="w-full bg-transparent border-b border-black/10 dark:border-white/10 px-0 py-2 text-sm outline-none focus:border-apple-orange" placeholder="${ph_work}" value="${r.work}" oninput="relatives[${i}].work=this.value; updateCV()">
+                    <input type="text" class="w-full bg-transparent border-b border-black/10 dark:border-white/10 px-0 py-2 text-sm outline-none focus:border-apple-orange font-medium" placeholder="${ph_addr}" value="${r.addr}" oninput="relatives[${i}].addr=this.value; updateCV()">
                 </div>
             `).join('');
-        }
+            }
 
-        renderExp();
-        renderRel();
+            renderExp();
+            renderRel();
 
-        // ── LIVE ENGINE ──
-        function v(id) { return document.getElementById(id).value.trim(); }
+            // ── LIVE ENGINE ──
+            function v(id) { return document.getElementById(id).value.trim(); }
 
-        function updateCV() {
-            const data = {
-                name: v('f_name') || 'ALISHEROV YUSUF MURATOVICH',
-                birth: v('f_birth') || '01.01.1990',
-                place: v('f_place') || 'Toshkent viloyati',
-                nation: v('f_nation') || 'o\'zbek',
-                party: v('f_party') || 'yo\'q',
-                edu: v('f_edu') || 'oliy',
-                grad: v('f_grad') || '2015 yil, Toshkent davlat yuridik universiteti',
-                spec: v('f_spec') || 'huquqshunos',
-                degree: v('f_degree') || 'yo\'q',
-                title: v('f_title') || 'yo\'q',
-                langs: v('f_langs') || 'rus va ingliz tillari',
-                awards: v('f_awards') || 'yo\'q',
-                deputy: v('f_deputy') || 'yo\'q',
-                exp: experiences.filter(e => e.years || e.desc),
-                rel: relatives.filter(e => e.role || e.name)
-            };
+            function updateCV() {
+                const vT = (id, key) => v(id) || (I18n.t(key) || '').split(' (')[0];
+                const vR = (id, def) => v(id) || def;
 
-            const box = document.getElementById('cv-box');
+                const defaultName = vR('f_name', I18n.t('ph_obv_name') || 'ALISHEROV YUSUF MURATOVICH').split(' (')[0];
+                const notData = I18n.t('ph_obv_party') || "yo'q";
 
-            const expHtml = data.exp.length > 0 ?
-                `<table class="exp-table">` + data.exp.map(e => `
+                const data = {
+                    name: defaultName,
+                    birth: vT('f_birth', 'ph_obv_birth'),
+                    place: vT('f_place', 'ph_obv_place'),
+                    nation: vT('f_nation', 'ph_obv_nation'),
+                    party: vR('f_party', notData),
+                    edu: vT('f_edu', 'ph_obv_edu'),
+                    grad: vT('f_grad', 'ph_obv_grad'),
+                    spec: vT('f_spec', 'ph_obv_spec'),
+                    degree: vR('f_degree', notData),
+                    title: vR('f_title', notData),
+                    langs: vT('f_langs', 'ph_obv_langs'),
+                    awards: vR('f_awards', notData),
+                    deputy: vR('f_deputy', notData),
+                    exp: experiences.filter(e => e.years || e.desc),
+                    rel: relatives.filter(e => e.role || e.name)
+                };
+
+                const box = document.getElementById('cv-box');
+
+                const expHtml = data.exp.length > 0 ?
+                    `<table class="exp-table">` + data.exp.map(e => `
                     <tr>
                         <td>${e.years}</td>
                         <td>- ${e.desc}</td>
                     </tr>
-                `).join('') + `</table>` : '<div style="text-align:center; font-style:italic">Ma\'lumot kiritilmagan</div>';
+                `).join('') + `</table>` : `<div style="text-align:center; font-style:italic">${I18n.t('obv_no_data')}</div>`;
 
-            const relHtml = data.rel.length > 0 ?
-                `<table class="rel-table">
+                const relHtml = data.rel.length > 0 ?
+                    `<table class="rel-table">
                     <tr>
-                        <th style="width:12%">Qarindosh-<br>ligi</th>
-                        <th style="width:23%">Familiyasi, ismi va otasining ismi</th>
-                        <th style="width:20%">Tug'ilgan yili va joyi</th>
-                        <th style="width:25%">Ish joyi va lavozimi</th>
-                        <th style="width:20%">Yashash manzili</th>
+                        <th style="width:12%">${I18n.t('obv_rel_role')}</th>
+                        <th style="width:23%">${I18n.t('obv_rel_name')}</th>
+                        <th style="width:20%">${I18n.t('obv_rel_birth')}</th>
+                        <th style="width:25%">${I18n.t('obv_rel_work')}</th>
+                        <th style="width:20%">${I18n.t('obv_rel_addr')}</th>
                     </tr>` +
-                data.rel.map(r => `
+                    data.rel.map(r => `
                     <tr>
                         <td>${r.role}</td>
                         <td>${r.name}</td>
@@ -566,12 +623,12 @@
                         <td>${r.work}</td>
                         <td>${r.addr}</td>
                     </tr>
-                `).join('') + `</table>` : '<div style="text-align:center; font-style:italic">Ma\'lumot kiritilmagan</div>';
+                `).join('') + `</table>` : `<div style="text-align:center; font-style:italic">${I18n.t('obv_no_data')}</div>`;
 
-            let imgHtml = avatarUrl ? `<img src="${avatarUrl}" class="avatar">` : `<div style="width:30mm;height:40mm;border:1px solid #000;display:flex;align-items:center;justify-content:center;color:#aaa;font-size:10pt;">4x6</div>`;
+                let imgHtml = avatarUrl ? `<img src="${avatarUrl}" class="avatar">` : `<div style="width:30mm;height:40mm;border:1px solid #000;display:flex;align-items:center;justify-content:center;color:#aaa;font-size:10pt;">4x6</div>`;
 
-            box.innerHTML = `
-                <div class="title">M A ' L U M O T N O M A</div>
+                box.innerHTML = `
+                <div class="title">${I18n.t('obv_main_title')}</div>
                 
                 <table class="header-table">
                     <tr>
@@ -585,182 +642,182 @@
                 </table>
 
                 <div class="info-grid">
-                    <div class="info-item"><strong>Tug'ilgan yili:</strong>${data.birth}</div>
-                    <div class="info-item"><strong>Tug'ilgan joyi:</strong>${data.place}</div>
+                    <div class="info-item"><strong>${I18n.t('obv_info_birth')}</strong>${data.birth}</div>
+                    <div class="info-item"><strong>${I18n.t('obv_info_place')}</strong>${data.place}</div>
                     
-                    <div class="info-item"><strong>Millati:</strong>${data.nation}</div>
-                    <div class="info-item"><strong>Partiyaviyligi:</strong>${data.party}</div>
+                    <div class="info-item"><strong>${I18n.t('obv_info_nation')}</strong>${data.nation}</div>
+                    <div class="info-item"><strong>${I18n.t('obv_info_party')}</strong>${data.party}</div>
                     
-                    <div class="info-item"><strong>Ma'lumoti:</strong>${data.edu}</div>
-                    <div class="info-item"><strong>Tamomlagan:</strong>${data.grad}</div>
+                    <div class="info-item"><strong>${I18n.t('obv_info_edu')}</strong>${data.edu}</div>
+                    <div class="info-item"><strong>${I18n.t('obv_info_grad')}</strong>${data.grad}</div>
                     
-                    <div class="info-item"><strong>Ma'lumoti bo'yicha mutaxassisligi:</strong>${data.spec}</div>
-                    <div class="info-item"><strong>Ilmiy darajasi:</strong>${data.degree}</div>
+                    <div class="info-item"><strong>${I18n.t('obv_info_spec')}</strong>${data.spec}</div>
+                    <div class="info-item"><strong>${I18n.t('obv_info_degree')}</strong>${data.degree}</div>
                     
-                    <div class="info-item"><strong>Ilmiy unvoni:</strong>${data.title}</div>
-                    <div class="info-item"><strong>Qaysi chet tillarini biladi:</strong>${data.langs}</div>
+                    <div class="info-item"><strong>${I18n.t('obv_info_title')}</strong>${data.title}</div>
+                    <div class="info-item"><strong>${I18n.t('obv_info_langs')}</strong>${data.langs}</div>
                     
-                    <div class="info-item"><strong>Davlat mukofotlari:</strong>${data.awards}</div>
-                    <div class="info-item"><strong>Deputatlik:</strong>${data.deputy}</div>
+                    <div class="info-item"><strong>${I18n.t('obv_info_awards')}</strong>${data.awards}</div>
+                    <div class="info-item"><strong>${I18n.t('obv_info_deputy')}</strong>${data.deputy}</div>
                 </div>
 
-                <div class="section-title">MEHNAT FAOLIYATI</div>
+                <div class="section-title">${I18n.t('obv_exp_title')}</div>
                 ${expHtml}
 
-                <div class="section-title">${data.name.split(' ')[0]}NING YAQIN QARINDOSHLARI HAQIDA<br>M A ' L U M O T</div>
+                <div class="section-title">${data.name.split(' ')[0]}${I18n.t('obv_rel_title')}</div>
                 ${relHtml}
             `;
 
-            autoScale();
-        }
-
-        // Auto scaler logic to fit exact A4 into frame
-        function autoScale() {
-            const wrap = document.getElementById('previewScaleWrapper');
-            const pane = document.getElementById('previewPane');
-            if (pane.classList.contains('hidden')) return;
-
-            // pane inner usable space
-            let pw = pane.clientWidth;
-            if (!mobilePreview) pw -= 64; // desktop padding offset
-
-            // Standard A4 is approx 793px width
-            const natW = 793;
-            const scale = Math.min(pw / natW, 1.2);
-
-            wrap.style.transform = `scale(${scale})`;
-
-            // Fix height cutoff if scaled down severely on mobile
-            if (mobilePreview) {
-                wrap.style.marginBottom = `-${(1 - scale) * 1122}px`;
-            } else {
-                wrap.style.marginBottom = '0';
-            }
-        }
-        window.addEventListener('resize', autoScale);
-
-        // Initial setup
-        setTimeout(() => {
-            if (document.documentElement.classList.contains('dark')) {
-                if (tg?.setHeaderColor) tg.setHeaderColor('#0a0a0c');
-            }
-            updateCV();
-        }, 100);
-
-        function exportPDF() {
-            const el = document.getElementById('cv-box');
-            // Remove scaling before printing to ensure highest clarity
-            const wrap = document.getElementById('previewScaleWrapper');
-            wrap.style.transform = 'none';
-
-            const opt = {
-                margin: 0,
-                filename: 'Obyektivka_' + new Date().getTime() + '.pdf',
-                image: { type: 'jpeg', quality: 1.0 },
-                html2canvas: { scale: 2, useCORS: true },
-                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-            };
-
-            const btn = document.getElementById('btnPdf');
-            const originalHtml = btn.innerHTML;
-            btn.innerHTML = "⏳ Kutib turing...";
-            btn.disabled = true;
-
-            html2pdf().set(opt).from(el).save().then(() => {
                 autoScale();
-                btn.innerHTML = originalHtml;
-                btn.disabled = false;
-
-                if (tg && tg.showAlert) tg.showAlert("Obyektivka qurilmangizga saqlandi!");
-            });
-        }
-
-        function exportWord() {
-            // ── Telegram-integrated DOCX export ───────────────
-            const btnEl = document.querySelector('button[onclick="exportWord()"]');
-            if (btnEl) { btnEl.disabled = true; btnEl.innerHTML = '⏳ Kuting...'; }
-
-            function _showTelegramToast(msg) {
-                let t = document.getElementById('_tg_toast');
-                if (!t) {
-                    t = document.createElement('div');
-                    t.id = '_tg_toast';
-                    t.style.cssText = 'position:fixed;bottom:88px;left:50%;transform:translateX(-50%);'
-                        + 'background:#30D158;color:#fff;font-weight:700;font-size:13px;padding:10px 20px;'
-                        + 'border-radius:999px;box-shadow:0 8px 24px rgba(0,0,0,.25);z-index:9999;'
-                        + 'white-space:nowrap;transition:opacity .4s ease';
-                    document.body.appendChild(t);
-                }
-                t.textContent = msg;
-                t.style.opacity = '1';
-                clearTimeout(t._hideTimer);
-                t._hideTimer = setTimeout(() => { t.style.opacity = '0'; }, 4000);
             }
 
-            const v = (id) => (document.getElementById(id)?.value || '').trim();
+            // Auto scaler logic to fit exact A4 into frame
+            function autoScale() {
+                const wrap = document.getElementById('previewScaleWrapper');
+                const pane = document.getElementById('previewPane');
+                if (pane.classList.contains('hidden')) return;
 
-            const payload = {
-                telegram_id: DastyorAI.getTelegramId() ? parseInt(DastyorAI.getTelegramId()) : null,
-                token: DastyorAI.getToken() || undefined,
-                format: 'word',
-                fullname: v('f_name'),
-                birthdate: v('f_birth'),
-                birthplace: v('f_place'),
-                nation: v('f_nation'),
-                party: v('f_party'),
-                education: v('f_edu'),
-                graduated: v('f_grad'),
-                specialty: v('f_spec'),
-                degree: v('f_degree'),
-                scientific_title: v('f_title'),
-                languages: v('f_langs'),
-                military_rank: '',
-                awards: v('f_awards'),
-                deputy: v('f_deputy'),
-                work_experience: experiences.map(e => ({ year: e.years, position: e.desc })),
-                relatives: relatives.map(r => ({
-                    degree: r.role,
-                    fullname: r.name,
-                    birth_year_place: r.birth,
-                    work_place: r.work,
-                    address: r.addr
-                })),
-            };
+                // pane inner usable space
+                let pw = pane.clientWidth;
+                if (!mobilePreview) pw -= 64; // desktop padding offset
 
-            fetch(DastyorAI.BASE + '/api/generate_obyektivka', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload),
-            })
-                .then(resp => {
-                    if (!resp.ok) return resp.json().then(e => { throw new Error(e.detail || 'Server xatosi'); });
-                    return resp.blob();
-                })
-                .then(blob => {
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    const safe = (payload.fullname || 'Obyektivka').replace(/\s+/g, '_');
-                    a.href = url;
-                    a.download = `DASTYOR_Obyektivka_${safe}.docx`;
-                    document.body.appendChild(a);
-                    a.click();
-                    setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 2000);
+                // Standard A4 is approx 793px width
+                const natW = 793;
+                const scale = Math.min(pw / natW, 1.2);
 
-                    if (payload.telegram_id) {
-                        _showTelegramToast('✅ Word fayl yuklab olindi va Telegram ga yuborildi!');
-                    } else {
-                        _showTelegramToast('✅ Word fayl yuklab olindi!');
-                    }
-                })
-                .catch(err => {
-                    console.error('exportWord error:', err);
-                    alert('Word yaratishda xato: ' + err.message);
-                })
-                .finally(() => {
-                    if (btnEl) { btnEl.disabled = false; btnEl.innerHTML = '📄 Word'; }
+                wrap.style.transform = `scale(${scale})`;
+
+                // Fix height cutoff if scaled down severely on mobile
+                if (mobilePreview) {
+                    wrap.style.marginBottom = `-${(1 - scale) * 1122}px`;
+                } else {
+                    wrap.style.marginBottom = '0';
+                }
+            }
+            window.addEventListener('resize', autoScale);
+
+            // Initial setup
+            setTimeout(() => {
+                if (document.documentElement.classList.contains('dark')) {
+                    if (tg?.setHeaderColor) tg.setHeaderColor('#0a0a0c');
+                }
+                updateCV();
+            }, 100);
+
+            function exportPDF() {
+                const el = document.getElementById('cv-box');
+                // Remove scaling before printing to ensure highest clarity
+                const wrap = document.getElementById('previewScaleWrapper');
+                wrap.style.transform = 'none';
+
+                const opt = {
+                    margin: 0,
+                    filename: 'Obyektivka_' + new Date().getTime() + '.pdf',
+                    image: { type: 'jpeg', quality: 1.0 },
+                    html2canvas: { scale: 2, useCORS: true },
+                    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+                };
+
+                const btn = document.getElementById('btnPdf');
+                const originalHtml = btn.innerHTML;
+                btn.innerHTML = "⏳ Kutib turing...";
+                btn.disabled = true;
+
+                html2pdf().set(opt).from(el).save().then(() => {
+                    autoScale();
+                    btn.innerHTML = originalHtml;
+                    btn.disabled = false;
+
+                    if (tg && tg.showAlert) tg.showAlert("Obyektivka qurilmangizga saqlandi!");
                 });
-        }
-    </script>
+            }
+
+            function exportWord() {
+                // ── Telegram-integrated DOCX export ───────────────
+                const btnEl = document.querySelector('button[onclick="exportWord()"]');
+                if (btnEl) { btnEl.disabled = true; btnEl.innerHTML = '⏳ Kuting...'; }
+
+                function _showTelegramToast(msg) {
+                    let t = document.getElementById('_tg_toast');
+                    if (!t) {
+                        t = document.createElement('div');
+                        t.id = '_tg_toast';
+                        t.style.cssText = 'position:fixed;bottom:88px;left:50%;transform:translateX(-50%);'
+                            + 'background:#30D158;color:#fff;font-weight:700;font-size:13px;padding:10px 20px;'
+                            + 'border-radius:999px;box-shadow:0 8px 24px rgba(0,0,0,.25);z-index:9999;'
+                            + 'white-space:nowrap;transition:opacity .4s ease';
+                        document.body.appendChild(t);
+                    }
+                    t.textContent = msg;
+                    t.style.opacity = '1';
+                    clearTimeout(t._hideTimer);
+                    t._hideTimer = setTimeout(() => { t.style.opacity = '0'; }, 4000);
+                }
+
+                const v = (id) => (document.getElementById(id)?.value || '').trim();
+
+                const payload = {
+                    telegram_id: DastyorAI.getTelegramId() ? parseInt(DastyorAI.getTelegramId()) : null,
+                    token: DastyorAI.getToken() || undefined,
+                    format: 'word',
+                    fullname: v('f_name'),
+                    birthdate: v('f_birth'),
+                    birthplace: v('f_place'),
+                    nation: v('f_nation'),
+                    party: v('f_party'),
+                    education: v('f_edu'),
+                    graduated: v('f_grad'),
+                    specialty: v('f_spec'),
+                    degree: v('f_degree'),
+                    scientific_title: v('f_title'),
+                    languages: v('f_langs'),
+                    military_rank: '',
+                    awards: v('f_awards'),
+                    deputy: v('f_deputy'),
+                    work_experience: experiences.map(e => ({ year: e.years, position: e.desc })),
+                    relatives: relatives.map(r => ({
+                        degree: r.role,
+                        fullname: r.name,
+                        birth_year_place: r.birth,
+                        work_place: r.work,
+                        address: r.addr
+                    })),
+                };
+
+                fetch(DastyorAI.BASE + '/api/generate_obyektivka', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload),
+                })
+                    .then(resp => {
+                        if (!resp.ok) return resp.json().then(e => { throw new Error(e.detail || 'Server xatosi'); });
+                        return resp.blob();
+                    })
+                    .then(blob => {
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        const safe = (payload.fullname || 'Obyektivka').replace(/\s+/g, '_');
+                        a.href = url;
+                        a.download = `DASTYOR_Obyektivka_${safe}.docx`;
+                        document.body.appendChild(a);
+                        a.click();
+                        setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 2000);
+
+                        if (payload.telegram_id) {
+                            _showTelegramToast('✅ Word fayl yuklab olindi va Telegram ga yuborildi!');
+                        } else {
+                            _showTelegramToast('✅ Word fayl yuklab olindi!');
+                        }
+                    })
+                    .catch(err => {
+                        console.error('exportWord error:', err);
+                        alert('Word yaratishda xato: ' + err.message);
+                    })
+                    .finally(() => {
+                        if (btnEl) { btnEl.disabled = false; btnEl.innerHTML = '📄 Word'; }
+                    });
+            }
+        </script>
 </body>
 
 </html>

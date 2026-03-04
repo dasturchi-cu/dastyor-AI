@@ -5,8 +5,14 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>Premium | DASTYOR AI</title>
-    <!-- Telegram SDK -->
+    <!-- 1. Theme init FIRST — prevents flash of wrong theme -->
+    <script src="theme-init.js"></script>
+    <!-- 2. Global theme tokens -->
+    <link rel="stylesheet" href="theme.css">
+    <!-- 3. Telegram SDK -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <!-- 4. i18n (before DOM renders) -->
+    <script src="i18n.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link
         href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Outfit:wght@500;600;700;800&display=swap"
@@ -57,17 +63,6 @@
             overscroll-behavior-y: none;
         }
 
-        body {
-            background-color: #f5f5f7;
-            color: #1d1d1f;
-            transition: background-color 0.3s ease, color 0.3s ease;
-        }
-
-        .dark body {
-            background-color: #000000;
-            color: #f5f5f7;
-        }
-
         ::-webkit-scrollbar {
             display: none;
         }
@@ -83,9 +78,10 @@
     <main class="max-w-md mx-auto pt-8 px-5">
 
         <header class="mb-8 text-center animate-slide-up">
-            <h1 class="font-display font-extrabold text-4xl mb-1 text-black dark:text-white" id="txt_title">Premium
-                Tarif</h1>
-            <p class="text-sm font-medium text-black/50 dark:text-white/50" id="txt_sub">Chegaralarni kengaytiring</p>
+            <h1 class="font-display font-extrabold text-4xl mb-1 text-black dark:text-white" id="txt_title"
+                data-i18n="prem_title">Premium Tarif</h1>
+            <p class="text-sm font-medium text-black/50 dark:text-white/50" id="txt_sub" data-i18n="prem_sub">
+                Chegaralarni kengaytiring</p>
         </header>
 
         <div class="flex flex-col gap-6 mb-8">
@@ -94,7 +90,7 @@
             <div class="p-6 rounded-[32px] bg-white dark:bg-neutral-900 border border-black/5 dark:border-white/5 shadow-sm transform transition-all animate-slide-up relative overflow-hidden group"
                 style="animation-delay: 0.1s;">
                 <div class="text-xs font-bold text-black/40 dark:text-white/40 uppercase tracking-widest mb-1"
-                    id="txt_p1_n">Bepul</div>
+                    id="txt_p1_n" data-i18n="prem_free">Bepul</div>
                 <div class="font-display font-black text-4xl text-black dark:text-white mb-6">0 <span
                         class="text-base font-semibold text-black/30 dark:text-white/30">/ mo</span></div>
 
@@ -104,8 +100,8 @@
                             stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
                             <polyline points="20 6 9 17 4 12" />
                         </svg>
-                        <span>5 <span class="text-black/50 dark:text-white/50 font-medium"
-                                id="txt_f_docs">hujjat/oy</span></span>
+                        <span>5 <span class="text-black/50 dark:text-white/50 font-medium" id="txt_f_docs"
+                                data-i18n="prem_docs">hujjat/oy</span></span>
                     </li>
                     <li class="flex items-center gap-3 text-sm font-bold text-black dark:text-white">
                         <svg class="text-apple-green" width="16" height="16" viewBox="0 0 24 24" fill="none"
@@ -121,7 +117,7 @@
                             <line x1="18" y1="6" x2="6" y2="18" />
                             <line x1="6" y1="6" x2="18" y2="18" />
                         </svg>
-                        <span id="txt_f_pro">Pro xizmatlar</span>
+                        <span id="txt_f_pro" data-i18n="prem_pro">Pro xizmatlar</span>
                     </li>
                     <li
                         class="flex items-center gap-3 text-sm font-medium text-black/30 dark:text-white/30 line-through">
@@ -130,25 +126,24 @@
                             <line x1="18" y1="6" x2="6" y2="18" />
                             <line x1="6" y1="6" x2="18" y2="18" />
                         </svg>
-                        <span id="txt_f_fast">Tezkor aloqa</span>
+                        <span id="txt_f_fast" data-i18n="prem_fast">Tezkor aloqa</span>
                     </li>
                 </ul>
 
                 <a href="index.html"
                     class="block w-full text-center py-4 rounded-2xl bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 active:scale-[0.98] text-black dark:text-white font-bold transition-all text-[15px]"
-                    id="txt_btn_free">
+                    id="txt_btn_free" data-i18n="prem_btn_free">
                     Boshlash
                 </a>
             </div>
 
-            <!-- PREMIUM PLAN -->
             <div class="p-6 rounded-[32px] bg-gradient-to-b from-amber-500/10 to-amber-500/5 dark:from-amber-500/15 dark:to-transparent border-2 border-amber-500/50 shadow-sm gold-glow transform transition-all animate-slide-up relative overflow-hidden group"
                 style="animation-delay: 0.2s;">
                 <div class="absolute top-4 right-4 bg-amber-500 text-white px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest shadow-md"
-                    id="txt_pop">TOP</div>
+                    id="txt_pop" data-i18n="prem_pop">TOP</div>
 
                 <div class="text-xs font-bold text-amber-600 dark:text-amber-500 uppercase tracking-widest mb-1"
-                    id="txt_p2_n">Premium Oylik</div>
+                    id="txt_p2_n" data-i18n="prem_monthly">Premium Oylik</div>
                 <div class="font-display font-black text-4xl text-black dark:text-white mb-6">29k <span
                         class="text-base font-semibold text-black/30 dark:text-white/30">/ mo</span></div>
 
@@ -158,37 +153,38 @@
                             stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
                             <polyline points="20 6 9 17 4 12" />
                         </svg>
-                        <span><span id="txt_inf" class="font-black text-amber-500">Cheksiz</span> <span
-                                class="text-black/50 dark:text-white/50 font-medium"
-                                id="txt_f_docs2">hujjatlar</span></span>
+                        <span><span id="txt_inf" class="font-black text-amber-500"
+                                data-i18n="prem_unlimited">Cheksiz</span> <span
+                                class="text-black/50 dark:text-white/50 font-medium" id="txt_f_docs2"
+                                data-i18n="prem_docs2">hujjatlar</span></span>
                     </li>
                     <li class="flex items-center gap-3 text-sm font-bold text-black dark:text-white">
                         <svg class="text-amber-500" width="16" height="16" viewBox="0 0 24 24" fill="none"
                             stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
                             <polyline points="20 6 9 17 4 12" />
                         </svg>
-                        <span id="txt_f_pro2">Barcha Pro xizmatlar</span>
+                        <span id="txt_f_pro2" data-i18n="prem_all_svc">Barcha Pro xizmatlar</span>
                     </li>
                     <li class="flex items-center gap-3 text-sm font-bold text-black dark:text-white">
                         <svg class="text-amber-500" width="16" height="16" viewBox="0 0 24 24" fill="none"
                             stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
                             <polyline points="20 6 9 17 4 12" />
                         </svg>
-                        <span id="txt_f_fast2">Ustuvor navbat</span>
+                        <span id="txt_f_fast2" data-i18n="prem_priority">Ustuvor navbat</span>
                     </li>
                     <li class="flex items-center gap-3 text-sm font-bold text-black dark:text-white">
                         <svg class="text-amber-500" width="16" height="16" viewBox="0 0 24 24" fill="none"
                             stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
                             <polyline points="20 6 9 17 4 12" />
                         </svg>
-                        <span>24/7 <span class="text-black/50 dark:text-white/50 font-medium"
-                                id="txt_f_sup">yordam</span></span>
+                        <span>24/7 <span class="text-black/50 dark:text-white/50 font-medium" id="txt_f_sup"
+                                data-i18n="prem_support">yordam</span></span>
                     </li>
                 </ul>
 
                 <a href="https://t.me/DastyorAiBot"
                     class="block w-full text-center py-4 rounded-2xl bg-amber-500 shadow-[0_8px_20px_rgba(245,158,11,0.4)] hover:brightness-110 active:scale-[0.98] text-white font-bold transition-all text-[15px]"
-                    id="txt_btn_get">
+                    id="txt_btn_get" data-i18n="prem_btn_get">
                     Hozir olish
                 </a>
             </div>
@@ -197,7 +193,7 @@
 
         <div class="px-2 animate-slide-up" style="animation-delay: 0.3s;">
             <h3 class="text-[10px] font-bold text-black/40 dark:text-white/40 uppercase tracking-widest text-center mb-4"
-                id="txt_pay">To'lov usullari</h3>
+                id="txt_pay" data-i18n="prem_payment">To'lov usullari</h3>
             <div class="flex flex-wrap justify-center gap-2">
                 <div
                     class="px-4 py-2 rounded-xl bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/5 flex items-center justify-center font-bold text-sm text-black/60 dark:text-white/60">
@@ -252,79 +248,14 @@
         </nav>
     </div>
 
+    <!-- app.js provides the boot setup -->
+    <script src="app.js"></script>
     <script>
         const tg = window.Telegram?.WebApp;
-        let currentLang = localStorage.getItem('lang') || 'uz';
-        let isDark = localStorage.getItem('theme') !== 'light';
+        // Theme and i18n are handled by universal scripts
 
-        if (isDark) {
-            document.documentElement.classList.add('dark');
-            if (tg?.setHeaderColor) tg.setHeaderColor('#000000');
-        } else {
-            document.documentElement.classList.remove('dark');
-            if (tg?.setHeaderColor) tg.setHeaderColor('#f5f5f7');
-        }
-
-        const i18n = {
-            uz: {
-                title: "Premium Tarif", sub: "Chegaralarni kengaytiring",
-                p1_n: "Bepul", p2_n: "Premium Oylik",
-                f_docs: "hujjat/oy", f_docs2: "hujjatlar",
-                f_pro: "Pro xizmatlar", f_pro2: "Barcha Pro xizmatlar",
-                f_fast: "Tezkor aloqa", f_fast2: "Ustuvor navbat",
-                f_sup: "yordam", inf: "Cheksiz",
-                btn_free: "Boshlash", btn_get: "Hozir olish",
-                pop: "TOP", pay: "To'lov usullari",
-            },
-            en: {
-                title: "Premium Plan", sub: "Expand your possibilities",
-                p1_n: "Free", p2_n: "Premium Monthly",
-                f_docs: "docs/month", f_docs2: "documents",
-                f_pro: "Pro services", f_pro2: "All Pro services",
-                f_fast: "Fast support", f_fast2: "Priority queue",
-                f_sup: "support", inf: "Unlimited",
-                btn_free: "Start Free", btn_get: "Get Now",
-                pop: "TOP", pay: "Payment Methods",
-            }
-        };
-
-        function updateUI() {
-            const strings = i18n[currentLang];
-            document.getElementById('txt_title').textContent = strings.title;
-            document.getElementById('txt_sub').textContent = strings.sub;
-            document.getElementById('txt_p1_n').textContent = strings.p1_n;
-            document.getElementById('txt_p2_n').textContent = strings.p2_n;
-            document.getElementById('txt_f_docs').textContent = strings.f_docs;
-            document.getElementById('txt_f_docs2').textContent = strings.f_docs2;
-            document.getElementById('txt_f_pro').textContent = strings.f_pro;
-            document.getElementById('txt_f_pro2').textContent = strings.f_pro2;
-            document.getElementById('txt_f_fast').textContent = strings.f_fast;
-            document.getElementById('txt_f_fast2').textContent = strings.f_fast2;
-            document.getElementById('txt_f_sup').textContent = strings.f_sup;
-            document.getElementById('txt_inf').textContent = strings.inf;
-            document.getElementById('txt_btn_free').textContent = strings.btn_free;
-            document.getElementById('txt_btn_get').textContent = strings.btn_get;
-            document.getElementById('txt_pop').textContent = strings.pop;
-            document.getElementById('txt_pay').textContent = strings.pay;
-
-            if (tg) {
-                tg.ready();
-                tg.expand();
-            }
-        }
-
-        updateUI();
-
-        document.querySelectorAll('a').forEach(a => {
-            a.addEventListener('click', (e) => {
-                const href = a.getAttribute('href');
-                let id = new URLSearchParams(window.location.search).get('telegram_id') || sessionStorage.getItem('telegram_id');
-                if (href && href.endsWith('.html') && id) {
-                    e.preventDefault();
-                    const separator = href.includes('?') ? '&' : '?';
-                    window.location.href = `${href}${separator}telegram_id=${id}`;
-                }
-            });
+        DastyorAI.initUI({
+            autoNavLinks: true
         });
     </script>
 </body>

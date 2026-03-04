@@ -1,17 +1,17 @@
 <!DOCTYPE html>
 <html lang="uz">
-<!-- theme applied BEFORE paint to prevent flash -->
-<script>if (localStorage.getItem('theme') !== 'light') document.documentElement.classList.add('dark');</script>
 
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>DASTYOR AI</title>
-    <!-- 1. Global theme tokens (FIRST — prevents FOUC) -->
+    <!-- 1. Theme init FIRST — prevents flash of wrong theme -->
+    <script src="theme-init.js"></script>
+    <!-- 2. Global theme tokens -->
     <link rel="stylesheet" href="theme.css" />
-    <!-- 2. Telegram SDK -->
+    <!-- 3. Telegram SDK -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <!-- 3. i18n (before DOM renders) -->
+    <!-- 4. i18n (before DOM renders) -->
     <script src="i18n.js"></script>
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -135,8 +135,8 @@
                     <span class="text-white font-display font-bold text-xl" id="userInitials">U</span>
                 </div>
                 <div class="flex flex-col">
-                    <span class="text-sm font-medium text-black/50 dark:text-white/50" id="lbl_welcome">Xush
-                        kelibsiz,</span>
+                    <span class="text-sm font-medium text-black/50 dark:text-white/50" id="lbl_welcome"
+                        data-i18n="welcome">Xush kelibsiz,</span>
                     <span class="text-xl font-display font-bold tracking-tight text-black dark:text-white leading-tight"
                         id="userName">User</span>
                 </div>
@@ -152,23 +152,23 @@
             <div
                 class="bg-white dark:bg-neutral-900 border border-black/5 dark:border-white/5 rounded-3xl p-5 shadow-sm">
                 <div class="flex justify-between items-center mb-4">
-                    <div class="text-xs font-bold text-black/40 dark:text-white/40 uppercase tracking-widest">Aktivlik
-                    </div>
-                    <div
-                        class="text-xs font-bold text-apple-green bg-apple-green/10 px-2 py-1 rounded-full uppercase tracking-wide">
-                        Faol</div>
+                    <div class="text-xs font-bold text-black/40 dark:text-white/40 uppercase tracking-widest"
+                        data-i18n="home_activity">Aktivlik</div>
+                    <div class="text-xs font-bold text-apple-green bg-apple-green/10 px-2 py-1 rounded-full uppercase tracking-wide"
+                        data-i18n="home_active">Faol</div>
                 </div>
                 <div class="flex items-end gap-2">
                     <span class="text-4xl font-display font-extrabold tracking-tighter">1,240</span>
-                    <span class="text-sm font-medium text-black/50 dark:text-white/50 pb-1">so'rovlar</span>
+                    <span class="text-sm font-medium text-black/50 dark:text-white/50 pb-1"
+                        data-i18n="home_requests">so'rovlar</span>
                 </div>
             </div>
         </div>
 
         <!-- Section Title -->
         <div class="px-5 mt-8 mb-4 animate-slide-up" style="animation-delay: 0.15s;">
-            <h2 class="text-xs font-bold text-black/40 dark:text-white/40 uppercase tracking-widest">Ilovalar tizimi
-            </h2>
+            <h2 class="text-xs font-bold text-black/40 dark:text-white/40 uppercase tracking-widest"
+                data-i18n="home_apps">Ilovalar tizimi</h2>
         </div>
 
         <!-- App Grid / List -->
@@ -183,10 +183,10 @@
                     📋
                 </div>
                 <div class="ml-4 flex-1">
-                    <h3 class="font-display font-bold text-lg leading-tight mb-1 text-black dark:text-white">Obyektivka
-                        AI</h3>
-                    <p class="text-xs font-medium text-black/50 dark:text-white/50 pr-4 leading-relaxed">Rasmiy, davlat
-                        standartlaridagi ma'lumotnoma tuzish</p>
+                    <h3 class="font-display font-bold text-lg leading-tight mb-1 text-black dark:text-white"
+                        data-i18n="svc_obyektivka">Obyektivka AI</h3>
+                    <p class="text-xs font-medium text-black/50 dark:text-white/50 pr-4 leading-relaxed"
+                        data-i18n="svc_obyektivka_d">Rasmiy, davlat standartlaridagi ma'lumotnoma tuzish</p>
                 </div>
                 <div
                     class="text-black/20 dark:text-white/20 group-hover:text-apple-blue group-hover:translate-x-1 transition-all">
@@ -206,10 +206,10 @@
                     🪄
                 </div>
                 <div class="ml-4 flex-1">
-                    <h3 class="font-display font-bold text-lg leading-tight mb-1 text-black dark:text-white">CV Builder
-                    </h3>
-                    <p class="text-xs font-medium text-black/50 dark:text-white/50 pr-4 leading-relaxed">Zamonaviy,
-                        xalqaro formatdagi rezyume dizayneri</p>
+                    <h3 class="font-display font-bold text-lg leading-tight mb-1 text-black dark:text-white"
+                        data-i18n="svc_cv">CV Builder</h3>
+                    <p class="text-xs font-medium text-black/50 dark:text-white/50 pr-4 leading-relaxed"
+                        data-i18n="svc_cv_d">Zamonaviy, xalqaro formatdagi rezyume dizayneri</p>
                 </div>
                 <div
                     class="text-black/20 dark:text-white/20 group-hover:text-apple-purple group-hover:translate-x-1 transition-all">
@@ -229,10 +229,10 @@
                     🧠
                 </div>
                 <div class="ml-4 flex-1">
-                    <h3 class="font-display font-bold text-lg leading-tight mb-1 text-black dark:text-white">AI Tools
-                    </h3>
-                    <p class="text-xs font-medium text-black/50 dark:text-white/50 pr-4 leading-relaxed">Tarjimon,
-                        rasmda o'qish va harf o'girish uskunalari</p>
+                    <h3 class="font-display font-bold text-lg leading-tight mb-1 text-black dark:text-white"
+                        data-i18n="svc_ai_tools">AI Tools</h3>
+                    <p class="text-xs font-medium text-black/50 dark:text-white/50 pr-4 leading-relaxed"
+                        data-i18n="svc_ai_tools_d">Tarjimon, rasmda o'qish va harf o'girish uskunalari</p>
                 </div>
                 <div
                     class="text-black/20 dark:text-white/20 group-hover:text-apple-green group-hover:translate-x-1 transition-all">

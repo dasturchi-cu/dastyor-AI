@@ -41,6 +41,7 @@ from bot.handlers.image_to_pdf import image_to_pdf_handler, collect_pdf_images a
 from bot.handlers.spell_check import spell_check_handler, process_spell_check
 from bot.handlers.start import start_command, menu_command
 from bot.keyboards.reply_keyboards import get_main_menu, get_back_button
+from bot.utils.i18n import get_regex_for_key, t
 from bot.handlers.smart_logic import (
     handle_smart_photo, handle_smart_document, handle_smart_audio, smart_callback_handler
 )
@@ -49,11 +50,12 @@ from bot.handlers.webapp_data import web_app_data_handler
 # Services
 from bot.services.usage_tracker import can_use as check_usage_limit, increment_usage
 from bot.services.settings_service import is_premium
-from bot.services.user_service import increment_file_count, is_user_banned
+from bot.services.user_service import increment_file_count, is_user_banned, get_user_lang
 
 async def back_to_main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data.clear()
-    await update.message.reply_text("🏠 Asosiy menyu", reply_markup=get_main_menu(update.effective_user.id if update.effective_user else None))
+    lang = get_user_lang(update.effective_user.id) if update.effective_user else "uz_lat"
+    await update.message.reply_text(t("or_menu", lang), reply_markup=get_main_menu(update.effective_user.id if update.effective_user else None, lang))
 
 async def premium_info_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
@@ -111,37 +113,39 @@ async def handle_router_text(update: Update, context: ContextTypes.DEFAULT_TYPE)
     # 2. NLP / Keyword Routing
     import re
     # Obyektivka (obyektivga, obyektovka, obyektvka, abyektiv)
+    uid = update.effective_user.id
+    lang = get_user_lang(uid)
     if re.search(r'(obyektiv|obyektov|abyektiv|obekt|resume|rezume|sivi|ma\'lumotnoma)', text):
-        await update.message.reply_text("🤖 Tushundim! **Obyektivka** xizmatini ochyapman...")
+        await update.message.reply_text(t("opening_service", lang, service="Obyektivka"))
         await obyektivka_handler(update, context)
         return
 
     # OCR / Word (docx, doc, dox, vord, ocr, textga)
     elif re.search(r'(ocr|word|vord|docx|doc|dox|matn|textga|oqib ber)', text) or (('rasm' in text or 'skan' in text) and ('o\'qi' in text or 'qil' in text)):
-        await update.message.reply_text("🤖 Tushundim! **Rasm -> Word** xizmatini ochyapman...")
+        await update.message.reply_text(t("opening_service", lang, service="Rasm -> Word"))
         await ocr_handler(update, context)
         return
 
     # Image 2 PDF (rasm... pdf)
     elif 'pdf' in text and ('rasm' in text or 'qo\'sh' in text or 'birlash' in text):
-        await update.message.reply_text("🤖 Tushundim! **Rasm -> PDF** xizmatini ochyapman...")
+        await update.message.reply_text(t("opening_service", lang, service="Rasm -> PDF"))
         await image_to_pdf_handler(update, context)
         return
 
     # Translate (tarjima, pervod, perevod, translate)
     elif re.search(r'(tarjima|perevod|pervod|translate|tarjma|o\'gir)', text):
-        await update.message.reply_text("🤖 Tushundim! **Tarjima** xizmatini ochyapman...")
+        await update.message.reply_text(t("opening_service", lang, service="Tarjima"))
         await translate_handler(update, context)
         return
     
     # Spell Check (imlo, xato, grammatika)
     elif re.search(r'(imlo|xato|tekshir|grammatika)', text):
-        await update.message.reply_text("🤖 Tushundim! **Imlo tekshirish** xizmatini ochyapman...")
+        await update.message.reply_text(t("opening_service", lang, service="Imlo tekshirish"))
         await spell_check_handler(update, context)
         return
 
     # 3. Fallback
-    await update.message.reply_text("❓ Tushunmadim. Menyudan bo'lim tanlang yoki aniqroq yozing.", reply_markup=get_main_menu())
+    await update.message.reply_text(t("unknown_cmd", lang), reply_markup=get_main_menu(uid, lang))
 
 async def handle_router_doc(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not await unified_router_check(update, context): return
@@ -226,14 +230,17 @@ async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> N
 async def _webapp_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE, action: str):
     """Generic handler: sends inline button opening the correct webapp page."""
     from bot.handlers.start import _ACTION_MAP, WEBAPP_BASE, BOT_USERNAME
+    from bot.services.user_service import get_user_lang
+    from bot.utils.i18n import t
     uid = update.effective_user.id if update.effective_user else 0
+    lang = get_user_lang(uid)
     page_info = _ACTION_MAP.get(action)
     if not page_info:
-        await update.message.reply_text("❌ Noma'lum buyruq.")
+        await update.message.reply_text("❌ Noma'lum buyruq.") # Or t("unknown_cmd", lang)
         return
     page_file, btn_label, desc = page_info
     from telegram import WebAppInfo, InlineKeyboardMarkup, InlineKeyboardButton
-    url = f"{WEBAPP_BASE}/{page_file}?telegram_id={uid}"
+    url = f"{WEBAPP_BASE}/{page_file}?telegram_id={uid}&lang={lang}"
     kb = InlineKeyboardMarkup([[InlineKeyboardButton(btn_label, web_app=WebAppInfo(url=url))]])
     await update.message.reply_text(f"🚀 <b>{desc}</b>", reply_markup=kb, parse_mode="HTML")
 
@@ -294,25 +301,31 @@ def setup_application():
         premium_callback_handler,
         pattern="^prem_"
     ))
+    
+    # We will add a language selection callback handler here:
+    from bot.handlers.start import language_callback_handler
+    application.add_handler(CallbackQueryHandler(language_callback_handler, pattern="^lang_"))
+    
     application.add_handler(CallbackQueryHandler(smart_callback_handler, pattern="^smart_"))
     application.add_handler(CallbackQueryHandler(button_callback_handler))
 
     # 4. Text Menu Navigation
-    application.add_handler(MessageHandler(filters.Regex("^🔙 Orqaga$"), back_to_main_menu))
+    # Provide a simple check or regex for Back button
+    application.add_handler(MessageHandler(filters.Regex("^(🔙 Orqaga|🔙 Назад|🔙 Back|🔙 Оркага)$"), back_to_main_menu))
     
     admin_buttons = "^(📊 Statistika|📨 Xabar yuborish|📢 Kanallar|💎 Premium Boshqaruv|⚙️ Sozlamalar|👥 Foydalanuvchilar|🚪 Panelni yopish)$"
     application.add_handler(MessageHandler(filters.Regex(admin_buttons), handle_admin_text))
 
-    application.add_handler(MessageHandler(filters.Regex("^📄 Rasm→Word AI$"), ocr_handler))
-    application.add_handler(MessageHandler(filters.Regex("^📋 Obyektivka AI$"), obyektivka_handler))
-    application.add_handler(MessageHandler(filters.Regex("^🔤 Krill-Lotin$"), transliterate_handler))
-    application.add_handler(MessageHandler(filters.Regex("^🌐 Tarjima fayl$"), translate_handler))
-    application.add_handler(MessageHandler(filters.Regex("^🖼 Rasm→PDF$"), image_to_pdf_handler))
-    application.add_handler(MessageHandler(filters.Regex("^✏️ Imlo tekshirish$"), spell_check_handler))
-    application.add_handler(MessageHandler(filters.Regex("^💎 Premium xizmatlar$"), premium_info_handler))
+    application.add_handler(MessageHandler(filters.Regex(get_regex_for_key("btn_ocr")), ocr_handler))
+    application.add_handler(MessageHandler(filters.Regex(get_regex_for_key("btn_oby")), obyektivka_handler))
+    application.add_handler(MessageHandler(filters.Regex(get_regex_for_key("btn_translit")), transliterate_handler))
+    application.add_handler(MessageHandler(filters.Regex(get_regex_for_key("btn_translate")), translate_handler))
+    application.add_handler(MessageHandler(filters.Regex(get_regex_for_key("btn_pdf")), image_to_pdf_handler))
+    application.add_handler(MessageHandler(filters.Regex(get_regex_for_key("btn_spell")), spell_check_handler))
+    application.add_handler(MessageHandler(filters.Regex(get_regex_for_key("btn_premium")), premium_info_handler))
     
-    application.add_handler(MessageHandler(filters.Regex("^🔡 Kirill → Lotin$"), krill_to_lotin_handler))
-    application.add_handler(MessageHandler(filters.Regex("^🔠 Lotin → Kirill$"), lotin_to_krill_handler))
+    application.add_handler(MessageHandler(filters.Regex("^(🔡 Kirill → Lotin|🔡 Кирилл → Лотин)$"), krill_to_lotin_handler))
+    application.add_handler(MessageHandler(filters.Regex("^(🔠 Lotin → Kirill|🔠 Лотин → Кирилл)$"), lotin_to_krill_handler))
 
     async def go_translate(update: Update, context: ContextTypes.DEFAULT_TYPE):
         text = update.message.text
@@ -329,9 +342,9 @@ def setup_application():
         go_translate
     ))
     
-    application.add_handler(MessageHandler(filters.Regex("^💰 Balans$"), balance_handler))
-    application.add_handler(MessageHandler(filters.Regex("^Aloqa ✉️$"), contact_handler))
-    application.add_handler(MessageHandler(filters.Regex("^🆘 Yordam$"), help_button_handler))
+    application.add_handler(MessageHandler(filters.Regex(get_regex_for_key("btn_balance")), balance_handler))
+    application.add_handler(MessageHandler(filters.Regex(get_regex_for_key("btn_contact")), contact_handler))
+    application.add_handler(MessageHandler(filters.Regex(get_regex_for_key("btn_help")), help_button_handler))
 
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_router_text))
     application.add_handler(MessageHandler(filters.Document.ALL, handle_router_doc))

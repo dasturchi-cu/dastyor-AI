@@ -67,6 +67,7 @@ def track_user_activity(user, command=None):
             "ban_reason": None,
             "ban_date": None,
             "blocked_bot": False, # New field: User blocked bot
+            "lang": "uz_lat",
             "premium_history": []
         }
     else:
@@ -145,8 +146,22 @@ def save_chat_id(user_id, chat_id):
             "ban_reason": None,
             "ban_date": None,
             "blocked_bot": False,
+            "lang": "uz_lat",
             "premium_history": []
         }
+        _save_profiles()
+
+def get_user_lang(user_id) -> str:
+    data = _load_profiles()
+    uid = str(user_id)
+    profile = data.get(uid, {})
+    return profile.get("lang", "uz_lat")
+
+def set_user_lang(user_id, lang: str):
+    data = _load_profiles()
+    uid = str(user_id)
+    if uid in data:
+        data[uid]["lang"] = lang
         _save_profiles()
 
 

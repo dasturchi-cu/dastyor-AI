@@ -9,8 +9,8 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
 
-<!-- 1. Anti-flash: apply dark before first paint -->
-<script>if (localStorage.getItem('theme') !== 'light') document.documentElement.classList.add('dark');</script>
+<!-- 1. Theme init FIRST — prevents flash of wrong theme -->
+<script src="theme-init.js"></script>
 
 <!-- 2. Theme CSS (MUST be first stylesheet to avoid FOUC) -->
 <link rel="stylesheet" href="theme.css" />

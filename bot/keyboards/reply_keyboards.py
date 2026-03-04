@@ -1,37 +1,38 @@
 from telegram import ReplyKeyboardMarkup, KeyboardButton, WebAppInfo
+from bot.utils.i18n import t
 
 
-def get_main_menu(user_id=None):
+def get_main_menu(user_id=None, lang="uz_lat"):
     """
-    Returns the main menu grid matching plan.md exactly.
+    Returns the main menu grid matching plan.md exactly, translated.
     9 service buttons + webapp launcher.
     """
     base_url = "https://dastyor-ai.onrender.com/webapp/index.html"
-    web_app_url = f"{base_url}?telegram_id={user_id}" if user_id else base_url
+    web_app_url = f"{base_url}?telegram_id={user_id}&lang={lang}" if user_id else f"{base_url}?lang={lang}"
 
     keyboard = [
         [
-            KeyboardButton("🚀 Appni ochish", web_app=WebAppInfo(url=web_app_url))
+            KeyboardButton(t("btn_app", lang), web_app=WebAppInfo(url=web_app_url))
         ],
         [
-            KeyboardButton("📋 Obyektivka AI"),
-            KeyboardButton("📄 Rasm→Word AI")
+            KeyboardButton(t("btn_oby", lang)),
+            KeyboardButton(t("btn_ocr", lang))
         ],
         [
-            KeyboardButton("🔤 Krill-Lotin"),
-            KeyboardButton("🌐 Tarjima fayl")
+            KeyboardButton(t("btn_translit", lang)),
+            KeyboardButton(t("btn_translate", lang))
         ],
         [
-            KeyboardButton("🖼 Rasm→PDF"),
-            KeyboardButton("✏️ Imlo tekshirish")
+            KeyboardButton(t("btn_pdf", lang)),
+            KeyboardButton(t("btn_spell", lang))
         ],
         [
-            KeyboardButton("💎 Premium xizmatlar")
+            KeyboardButton(t("btn_premium", lang))
         ],
         [
-            KeyboardButton("💰 Balans"),
-            KeyboardButton("✉️ Aloqa"),
-            KeyboardButton("🆘 Yordam")
+            KeyboardButton(t("btn_balance", lang)),
+            KeyboardButton(t("btn_contact", lang)),
+            KeyboardButton(t("btn_help", lang))
         ]
     ]
 

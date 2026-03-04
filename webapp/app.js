@@ -282,50 +282,75 @@ const DastyorAI = (() => {
     // ═══════════════════════════════════════════════════════════════════
 
     /**
-     * applyTheme() — Reads localStorage('theme') and applies it to the
-     * document, Telegram header, and any .da-theme-toggle switches on page.
-     * Called automatically by Theme.set() and by init().
+     * applyTheme() — Applies current theme to DOM, Telegram chrome,
+     * and all toggle switches. Delegates to window.DA_THEME (theme-init.js).
+     * Called automatically by toggleTheme(), setTheme(), and initUI().
      */
     function applyTheme() {
-        const dark = localStorage.getItem('theme') !== 'light';
-        const root = document.documentElement;
+        // DA_THEME is set by theme-init.js which loads before app.js.
+        // But be defensive in case the order is wrong.
+        const dark = window.DA_THEME
+            ? window.DA_THEME.isDark()
+            : (localStorage.getItem('da_theme') || localStorage.getItem('theme')) !== 'light';
 
-        // Apply class (drives all CSS token overrides in theme.css)
-        root.classList.toggle('dark', dark);
+        const root = document.documentElement;
+        root.classList.toggle('dark',  dark);
+        root.classList.toggle('light', !dark);
 
         // Sync Telegram WebApp chrome colour
-        const headerColor = dark ? '#000000' : '#f5f5f7';
-        _tg?.setHeaderColor?.(headerColor);
-        _tg?.setBackgroundColor?.(headerColor);
+        const bg = dark ? '#000000' : '#f5f5f7';
+        _tg?.setHeaderColor?.(bg);
+        _tg?.setBackgroundColor?.(bg);
 
-        // Sync any .da-theme-toggle switch elements on the page
+        // Sync all .da-theme-toggle switch elements on the page
         document.querySelectorAll('.da-theme-toggle').forEach(sw => {
-            sw.classList.toggle('active', dark);
+            sw.setAttribute('data-theme', dark ? 'dark' : 'light');
             sw.setAttribute('aria-checked', String(dark));
+            // Legacy active class for pages still using it
+            sw.classList.toggle('active', dark);
         });
 
-        // Dispatch event so individual pages can react
-        window.dispatchEvent(new CustomEvent('theme:change', { detail: { dark } }));
+        // Emit unified event for page-level listeners
+        window.dispatchEvent(new CustomEvent('da-theme-change', { detail: { dark } }));
+        // Legacy event name for older pages
+        window.dispatchEvent(new CustomEvent('theme:change',    { detail: { dark } }));
+
         return dark;
     }
 
-    /** Toggle between dark and light, persist, apply. */
+    /** Toggle dark ↔ light, persist, apply, haptic feedback. */
     function toggleTheme() {
-        const nowDark = localStorage.getItem('theme') !== 'light';
-        localStorage.setItem('theme', nowDark ? 'light' : 'dark');
+        if (window.DA_THEME) {
+            window.DA_THEME.toggle();
+        } else {
+            const nowDark = (localStorage.getItem('da_theme') || localStorage.getItem('theme')) !== 'light';
+            localStorage.setItem('da_theme', nowDark ? 'light' : 'dark');
+            localStorage.setItem('theme',    nowDark ? 'light' : 'dark');
+        }
         applyTheme();
         haptic('medium');
     }
 
-    /** Set theme explicitly: setTheme('dark') | setTheme('light') */
+    /**
+     * Set theme explicitly.
+     * setTheme('dark') | setTheme('light')
+     */
     function setTheme(mode) {
-        localStorage.setItem('theme', mode === 'dark' ? 'dark' : 'light');
+        if (window.DA_THEME) {
+            window.DA_THEME.set(mode);
+        } else {
+            const val = mode === 'dark' ? 'dark' : 'light';
+            localStorage.setItem('da_theme', val);
+            localStorage.setItem('theme',    val);
+        }
         applyTheme();
     }
 
     /** Returns true if dark mode is currently active. */
     function isDark() {
-        return localStorage.getItem('theme') !== 'light';
+        return window.DA_THEME
+            ? window.DA_THEME.isDark()
+            : document.documentElement.classList.contains('dark');
     }
 
     // ═══════════════════════════════════════════════════════════════════
@@ -372,8 +397,15 @@ const DastyorAI = (() => {
             profileEl      = {},
         } = options;
 
-        // 1. Apply theme immediately (synchronous — no flicker)
+        // 1. Apply theme — no-transitions guard prevents animation on load
+        document.documentElement.classList.add('no-transitions');
         applyTheme();
+        // Remove guard after first paint so subsequent transitions work smoothly
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                document.documentElement.classList.remove('no-transitions');
+            });
+        });
 
         // 2. Apply translations
         if (window.I18n) {
@@ -394,9 +426,12 @@ const DastyorAI = (() => {
             });
         }
 
-        // 4. Wire any .da-theme-toggle buttons on the page
+        // 4. Wire .da-theme-toggle buttons — both click toggle AND initial state sync
         document.querySelectorAll('.da-theme-toggle').forEach(sw => {
-            sw.addEventListener('click', toggleTheme);
+            // Remove duplicate listeners
+            sw._daThemeHandler && sw.removeEventListener('click', sw._daThemeHandler);
+            sw._daThemeHandler = () => toggleTheme();
+            sw.addEventListener('click', sw._daThemeHandler);
         });
 
         // 5. Wire any .da-lang-btn buttons (open picker)
@@ -404,7 +439,10 @@ const DastyorAI = (() => {
             btn.addEventListener('click', () => window.I18n?.showPicker(true));
         });
 
-        // 6. Authenticate and populate profile
+        // 6. Listen for theme changes fired by other tabs / pages
+        window.addEventListener('da-theme-change', () => applyTheme());
+
+        // 7. Authenticate and populate profile
         const user = await init();
         if (!user) return null;
 

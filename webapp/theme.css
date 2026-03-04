@@ -575,3 +575,138 @@ select {
 /* ── Safe area iOS ───────────────────────────────────────────── */
 .da-safe-bottom { padding-bottom: max(20px, env(safe-area-inset-bottom)); }
 .da-content-pad { padding-bottom: 100px; }
+
+/* ══════════════════════════════════════════════════════════════
+   CV / OBYEKTIVKA BUILDER — theme overrides
+   The document canvas itself always renders as white paper,
+   but the surrounding editor shell uses tokens.
+   ══════════════════════════════════════════════════════════════ */
+
+/* Editor shell background in dark mode */
+html.dark .builder-editor {
+    background: var(--da-bg-page);
+    color:      var(--da-text-primary);
+}
+
+/* Preview shell (the grey/dark area behind the A4 canvas) */
+.builder-preview-shell {
+    background: #1c1c1e;   /* always near-black — like a lightbox frame */
+    transition: background var(--da-transition);
+}
+html.light .builder-preview-shell {
+    background: #e8e8ed;   /* slightly warm grey in light mode */
+}
+
+/* The actual A4 paper canvas — always white paper, never themed */
+.builder-canvas {
+    background: #ffffff !important;
+    color:      #000000 !important;
+}
+
+/* Form inputs inside builder editor */
+html.dark .builder-editor input,
+html.dark .builder-editor textarea,
+html.dark .builder-editor select {
+    background:   var(--da-input-bg);
+    color:        var(--da-input-text);
+    border-color: var(--da-input-border);
+}
+html.dark .builder-editor input::placeholder,
+html.dark .builder-editor textarea::placeholder {
+    color: var(--da-input-ph);
+}
+
+/* Builder header bar */
+.builder-header {
+    background:   var(--da-bg-overlay);
+    border-bottom: 1px solid var(--da-border);
+    backdrop-filter: blur(20px) saturate(1.8);
+    -webkit-backdrop-filter: blur(20px) saturate(1.8);
+    transition: background var(--da-transition), border-color var(--da-transition);
+}
+
+/* Skill badges in CV builder */
+html.dark .cv-skill-badge {
+    background:   var(--da-bg-elevated);
+    border-color: var(--da-border);
+    color:        var(--da-text-primary);
+}
+
+/* ══════════════════════════════════════════════════════════════
+   TRANSITION GUARD
+   Applied to <html> during theme-init.js execution to prevent
+   any CSS transitions from firing during initial class switch.
+   Removed immediately after the first paint.
+   ══════════════════════════════════════════════════════════════ */
+html.no-transitions *,
+html.no-transitions *::before,
+html.no-transitions *::after {
+    transition: none !important;
+    animation:  none !important;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   OS-LEVEL FALLBACK (no-JS or theme-init.js not yet loaded)
+   Only active when html has neither .dark nor .light class.
+   ══════════════════════════════════════════════════════════════ */
+@media (prefers-color-scheme: dark) {
+    html:not(.light):not(.dark) {
+        --da-bg-page:      #000000;
+        --da-bg-surface:   #151518;
+        --da-text-primary: #f5f5f7;
+    }
+}
+
+/* ══════════════════════════════════════════════════════════════
+   THEME TOGGLE SWITCH — extended states
+   ══════════════════════════════════════════════════════════════ */
+.da-theme-toggle[data-theme="dark"] {
+    background: var(--da-blue);
+    border-color: var(--da-blue);
+}
+.da-theme-toggle[data-theme="dark"] .da-theme-knob {
+    transform: translateX(22px);
+}
+
+/* Sun/Moon icons inside the knob */
+.da-theme-icon-sun,
+.da-theme-icon-moon {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 12px;
+    line-height: 1;
+    transition: opacity var(--da-transition);
+    pointer-events: none;
+}
+.da-theme-icon-sun  { left:  7px; }
+.da-theme-icon-moon { right: 7px; }
+
+html.dark  .da-theme-icon-sun  { opacity: 0; }
+html.dark  .da-theme-icon-moon { opacity: 1; }
+html.light .da-theme-icon-sun  { opacity: 1; }
+html.light .da-theme-icon-moon { opacity: 0; }
+
+/* ══════════════════════════════════════════════════════════════
+   GLOBAL TRANSITION — applied AFTER no-transitions is removed
+   ══════════════════════════════════════════════════════════════ */
+body,
+.da-card,
+header,
+nav,
+.builder-editor,
+.builder-header,
+input,
+textarea,
+select,
+.da-btn,
+.da-badge,
+.da-status,
+.da-upload {
+    transition:
+        background-color var(--da-transition),
+        background       var(--da-transition),
+        border-color     var(--da-transition),
+        color            var(--da-transition),
+        box-shadow       var(--da-transition);
+}
