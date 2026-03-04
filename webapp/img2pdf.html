@@ -246,31 +246,45 @@
         }
 
         let selectedFiles = [];
+        // BUG #6 FIX: Track every ObjectURL we create so we can revoke them ALL
+        // before the next render cycle. Without this, stale blob handles persist
+        // and the browser may show images from the PREVIOUS selection.
+        let _activeThumbURLs = [];
+
+        function _revokeAllThumbs() {
+            _activeThumbURLs.forEach(u => { try { URL.revokeObjectURL(u); } catch (_) { } });
+            _activeThumbURLs = [];
+        }
 
         function onDragOver(e) { e.preventDefault(); document.getElementById('uploadZone').classList.add('drag-active'); }
         function onDragLeave(e) { document.getElementById('uploadZone').classList.remove('drag-active'); }
         function onDrop(e) {
             e.preventDefault();
             document.getElementById('uploadZone').classList.remove('drag-active');
-
-            const dropInput = { files: e.dataTransfer.files };
-            previewImages(dropInput);
+            previewImages({ files: e.dataTransfer.files });
         }
 
         function previewImages(input) {
             const newFiles = Array.from(input.files);
             for (let f of newFiles) {
-                if (!selectedFiles.some(existing => existing.name === f.name && existing.size === f.size)) {
+                // Deduplicate by name+size (same file, different selection)
+                if (!selectedFiles.some(ex => ex.name === f.name && ex.size === f.size)) {
                     selectedFiles.push(f);
                 }
             }
-            selectedFiles = selectedFiles.slice(0, 20); // max 20 limits
+            selectedFiles = selectedFiles.slice(0, 20); // Hard cap at 20
 
-            input.value = '';
+            // Reset the file input so selecting the same file again triggers onChange
+            if (input.value !== undefined) input.value = '';
             refreshThumbsOnly();
         }
 
         function refreshThumbsOnly() {
+            // ── Revoke ALL previously created ObjectURLs FIRST ─────────────────
+            // This prevents Bug #6: browser reusing stale blob handles from old
+            // selections when a new set of files is picked.
+            _revokeAllThumbs();
+
             const preview = document.getElementById('imgsPreview');
             const badge = document.getElementById('countBadge');
             const btn = document.getElementById('pdfBtn');
@@ -290,9 +304,13 @@
             wrapEl.classList.add('flex');
 
             selectedFiles.forEach((f, idx) => {
+                // Create FRESH URL for each file this render cycle
+                const objUrl = URL.createObjectURL(f);
+                _activeThumbURLs.push(objUrl);  // track it for future revocation
+
                 const itemHtml = `
-                    <div class="relative group aspect-square rounded-xl bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/5 overflow-hidden slide-up" style="animation-delay: ${0.05 * Math.min(idx, 10)}s;">
-                        <img src="${URL.createObjectURL(f)}" class="w-full h-full object-cover" />
+                    <div class="relative group aspect-square rounded-xl bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/5 overflow-hidden" style="animation-delay: ${0.04 * Math.min(idx, 10)}s;">
+                        <img src="${objUrl}" class="w-full h-full object-cover" loading="lazy" />
                         <button onclick="removeImg(${idx})" class="absolute top-1 right-1 w-6 h-6 rounded-md bg-black/60 backdrop-blur-md text-white flex items-center justify-center opacity-80 hover:opacity-100 transition-opacity">
                             <span class="text-xs font-bold leading-none">✕</span>
                         </button>
@@ -303,12 +321,7 @@
 
             badge.textContent = `${selectedFiles.length} ta rasm tanlandi`;
             btn.disabled = false;
-
-            if (selectedFiles.length < 20) {
-                addBtn.classList.remove('hidden');
-            } else {
-                addBtn.classList.add('hidden');
-            }
+            addBtn.classList.toggle('hidden', selectedFiles.length >= 20);
 
             tg?.HapticFeedback?.impactOccurred('light');
         }

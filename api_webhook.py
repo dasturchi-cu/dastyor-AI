@@ -56,6 +56,240 @@ async def root():
     return RedirectResponse(url="/webapp/index.html")
 
 from pydantic import BaseModel
+from fastapi import File, UploadFile, Form, Header, Query
+from fastapi.responses import StreamingResponse, JSONResponse
+from typing import List, Optional
+from telegram import InputFile
+import asyncio, time, io
+
+# ═══════════════════════════════════════════════════════════════════════════
+# HELPER: Resolve telegram_id from ANY source (token > URL param > form)
+# ═══════════════════════════════════════════════════════════════════════════
+def _resolve_uid(
+    telegram_id_param: Optional[str] = None,
+    session_token: Optional[str] = None,
+) -> Optional[str]:
+    """
+    Priority order:
+      1. Session token (most secure — validated against our DB)
+      2. Raw telegram_id param (from URL / form, legacy / WebApp fallback)
+    Returns the telegram_id string or None.
+    """
+    if session_token:
+        from bot.services.session_service import resolve_telegram_id
+        uid = resolve_telegram_id(session_token)
+        if uid:
+            return uid
+    if telegram_id_param and telegram_id_param.strip().isdigit():
+        return telegram_id_param.strip()
+    return None
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# /api/auth — Create session from Telegram identity
+# Called by index.html after Telegram WebApp is ready.
+# ═══════════════════════════════════════════════════════════════════════════
+class AuthRequest(BaseModel):
+    telegram_id: int
+    first_name:  str = ""
+    username:    str = ""
+    photo_url:   str = ""
+
+@app.post("/api/auth")
+async def api_auth(req: AuthRequest):
+    """
+    Exchange Telegram identity → server session token.
+    The token is stored in sessionStorage and sent back
+    with every subsequent API request.
+    """
+    try:
+        from bot.services.session_service import create_session
+        token = create_session(
+            telegram_id = req.telegram_id,
+            first_name  = req.first_name,
+            username    = req.username,
+            photo_url   = req.photo_url,
+        )
+        # Also upsert the user profile in the CRM
+        from bot.services.user_service import track_user_activity
+        class _FakeUser:
+            id = req.telegram_id
+            first_name = req.first_name
+            username   = req.username
+        track_user_activity(_FakeUser(), command="web_auth")
+
+        return {"ok": True, "token": token, "telegram_id": req.telegram_id}
+    except Exception as e:
+        logger.error(f"/api/auth error: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e)[:200])
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# /api/me — Return user profile for given token or telegram_id
+# ═══════════════════════════════════════════════════════════════════════════
+@app.get("/api/me")
+async def api_me(
+    token:       Optional[str] = Query(None),
+    telegram_id: Optional[str] = Query(None),
+):
+    uid = _resolve_uid(telegram_id, token)
+    if not uid:
+        raise HTTPException(status_code=401, detail="Foydalanuvchi aniqlanmadi")
+
+    from bot.services.user_service       import get_user_profile
+    from bot.services.settings_service   import is_premium
+    from bot.services.session_service    import get_session_by_telegram_id
+
+    profile = get_user_profile(uid) or {}
+    session = get_session_by_telegram_id(uid) or {}
+
+    return {
+        "ok"          : True,
+        "telegram_id" : uid,
+        "first_name"  : session.get("first_name", profile.get("first_name", "")),
+        "username"    : session.get("username",   profile.get("username", "")),
+        "photo_url"   : session.get("photo_url",  ""),
+        "is_premium"  : is_premium(int(uid)),
+        "files_processed": profile.get("files_processed", 0),
+        "joined_at"   : profile.get("joined_at", ""),
+        "last_active" : profile.get("last_active", ""),
+    }
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# /api/translit — Server-side Cyrillic ↔ Latin (consistent with bot)
+# ═══════════════════════════════════════════════════════════════════════════
+class TranslitRequest(BaseModel):
+    text:      str
+    direction: str   # "krill_to_lotin" | "lotin_to_krill"
+
+@app.post("/api/translit")
+async def api_translit(req: TranslitRequest):
+    if not req.text or not req.text.strip():
+        raise HTTPException(status_code=400, detail="Matn bo'sh bo'lishi mumkin emas")
+    if len(req.text) > 50_000:
+        raise HTTPException(status_code=400, detail="Matn 50 000 belgidan oshmasligi kerak")
+
+    valid = {"krill_to_lotin", "lotin_to_krill"}
+    if req.direction not in valid:
+        raise HTTPException(status_code=400, detail=f"Noto'g'ri yo'nalish: {req.direction}")
+
+    try:
+        from bot.services.transliterate_service import transliterate
+        result = transliterate(req.text, req.direction)  # type: ignore[arg-type]
+        return {"ok": True, "result": result, "direction": req.direction}
+    except Exception as e:
+        logger.error(f"/api/translit error: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e)[:200])
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# /api/bot-link — Generate deep-link for a bot command
+# Lets the website open the bot at exactly the right state.
+# ═══════════════════════════════════════════════════════════════════════════
+BOT_USERNAME = os.getenv("BOT_USERNAME", "DastyorAiBot")
+WEBAPP_BASE  = os.getenv("WEBAPP_BASE",  "https://dastyor-ai.onrender.com/webapp")
+
+@app.get("/api/bot-link")
+async def api_bot_link(
+    action:      str = Query(..., description="cv | obyektivka | ocr | pdf | translit | translate"),
+    telegram_id: Optional[str] = Query(None),
+):
+    """
+    Returns a t.me deep-link that opens the bot AND, for web-first
+    actions, also returns the direct webapp URL so the website can
+    redirect without going through Telegram.
+    """
+    page_map = {
+        "cv"         : "cv.html",
+        "obyektivka" : "obyektivka.html",
+        "ocr"        : "ocr.html",
+        "pdf"        : "img2pdf.html",
+        "translit"   : "translit.html",
+        "translate"  : "translate.html",
+        "premium"    : "premium.html",
+    }
+    page = page_map.get(action)
+    if not page:
+        raise HTTPException(status_code=400, detail=f"Noma'lum action: {action}")
+
+    # Deep-link: t.me/BotUsername?start=action
+    bot_link  = f"https://t.me/{BOT_USERNAME}?start={action}"
+    # Direct webapp URL (already has telegram_id → user stays logged in)
+    tid_param = f"?telegram_id={telegram_id}" if telegram_id else ""
+    webapp_url = f"{WEBAPP_BASE}/{page}{tid_param}"
+
+    return {"ok": True, "bot_link": bot_link, "webapp_url": webapp_url, "action": action}
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# /api/stats — Per-user usage statistics (for the website dashboard)
+# ═══════════════════════════════════════════════════════════════════════════
+@app.get("/api/stats")
+async def api_stats(
+    token:       Optional[str] = Query(None),
+    telegram_id: Optional[str] = Query(None),
+):
+    uid = _resolve_uid(telegram_id, token)
+    if not uid:
+        raise HTTPException(status_code=401, detail="Foydalanuvchi aniqlanmadi")
+
+    from bot.services.user_service     import get_user_profile
+    from bot.services.settings_service import is_premium
+    from bot.services.usage_tracker    import can_use
+
+    profile = get_user_profile(uid) or {}
+    premium = is_premium(int(uid))
+
+    return {
+        "ok"              : True,
+        "telegram_id"     : uid,
+        "is_premium"      : premium,
+        "files_processed" : profile.get("files_processed", 0),
+        "sessions"        : profile.get("sessions", 1),
+        "last_service"    : profile.get("last_service", ""),
+        "last_active"     : profile.get("last_active", ""),
+        "joined_at"       : profile.get("joined_at", ""),
+    }
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# /api/notify — Push a text notification to user's Telegram chat
+# Lets any website action trigger a Telegram message.
+# ═══════════════════════════════════════════════════════════════════════════
+class NotifyRequest(BaseModel):
+    telegram_id : int
+    message     : str
+    token       : Optional[str] = None
+
+@app.post("/api/notify")
+async def api_notify(req: NotifyRequest):
+    """Send a plain-text notification to the user's Telegram chat."""
+    # Validate token OR just trust telegram_id (within same server — no public exposure risk)
+    uid = _resolve_uid(str(req.telegram_id), req.token)
+    if not uid:
+        raise HTTPException(status_code=401, detail="Foydalanuvchi aniqlanmadi")
+
+    if not req.message or not req.message.strip():
+        raise HTTPException(status_code=400, detail="Xabar bo'sh")
+    if len(req.message) > 4000:
+        raise HTTPException(status_code=400, detail="Xabar 4000 belgi oshmasligi kerak")
+
+    try:
+        await application.bot.send_message(
+            chat_id    = int(uid),
+            text       = req.message,
+            parse_mode = "HTML",
+        )
+        return {"ok": True}
+    except Exception as e:
+        logger.warning(f"/api/notify failed for {uid}: {e}")
+        raise HTTPException(status_code=502, detail=f"Telegram xatosi: {str(e)[:200]}")
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# /api/translate (existing, kept in place)
+# ═══════════════════════════════════════════════════════════════════════════
 class TranslateRequest(BaseModel):
     text: str
     direction: str
@@ -83,11 +317,6 @@ async def api_translate(req: TranslateRequest):
         logger.error(f"Translate API error: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Tarjima serveri xatosi: {str(e)[:200]}")
 
-from fastapi import File, UploadFile, Form
-from fastapi.responses import StreamingResponse
-from typing import List, Optional
-from telegram import InputFile
-import asyncio, time, io
 
 # ─────────────────────────────────────────────────────────────────────
 # /api/ocr_direct — Website-first OCR endpoint

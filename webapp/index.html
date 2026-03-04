@@ -345,101 +345,92 @@
         </nav>
     </div>
 
+    <!-- Unified SDK (must come AFTER Telegram SDK) -->
+    <script src="app.js"></script>
     <!-- =============== LOGIC =============== -->
     <script>
-        const tg = window.Telegram?.WebApp;
-        let telegramId = '';
+        DastyorAI.applyTheme();
 
-        // Handle Theme
-        let isDark = localStorage.getItem('theme') !== 'light';
-
+        // ── Theme toggle ──────────────────────────────────────────────
         function applyTheme() {
-            if (isDark) {
+            const dark = localStorage.getItem('theme') !== 'light';
+            if (dark) {
                 document.documentElement.classList.add('dark');
                 document.getElementById('themeIcon').textContent = '🌙';
-                document.getElementById('themeStatus').textContent = 'Tungi rejim';
-
-                document.getElementById('themeToggleBody').classList.replace('bg-black/10', 'bg-apple-green');
-                document.getElementById('themeToggleKnob').classList.replace('translate-x-0', 'translate-x-5');
-
-                if (tg?.setHeaderColor) tg.setHeaderColor('#000000');
-                if (tg?.setBackgroundColor) tg.setBackgroundColor('#000000');
+                document.getElementById('themeStatus').textContent = 'Tungi rejim yoqiq';
+                document.getElementById('themeToggleBody').className = 'w-12 h-7 rounded-full bg-apple-green flex items-center px-1';
+                document.getElementById('themeToggleKnob').className = 'w-5 h-5 rounded-full bg-white shadow-sm transform translate-x-5 transition-transform';
             } else {
                 document.documentElement.classList.remove('dark');
                 document.getElementById('themeIcon').textContent = '☀️';
                 document.getElementById('themeStatus').textContent = 'Kunduzgi rejim';
-
-                document.getElementById('themeToggleBody').classList.replace('bg-apple-green', 'bg-black/10');
-                document.getElementById('themeToggleKnob').classList.replace('translate-x-5', 'translate-x-0');
-
-                if (tg?.setHeaderColor) tg.setHeaderColor('#f5f5f7');
-                if (tg?.setBackgroundColor) tg.setBackgroundColor('#f5f5f7');
+                document.getElementById('themeToggleBody').className = 'w-12 h-7 rounded-full bg-black/10 flex items-center px-1';
+                document.getElementById('themeToggleKnob').className = 'w-5 h-5 rounded-full bg-white shadow-sm transform translate-x-0 transition-transform';
             }
         }
         applyTheme();
 
         function toggleTheme() {
-            isDark = !isDark;
-            localStorage.setItem('theme', isDark ? 'dark' : 'light');
+            const nowDark = localStorage.getItem('theme') !== 'light';
+            localStorage.setItem('theme', nowDark ? 'light' : 'dark');
             applyTheme();
-            tg?.HapticFeedback?.impactOccurred('medium');
+            DastyorAI.applyTheme();
+            DastyorAI.haptic('medium');
         }
 
-        // Handle View Switching
+        // ── View switching ────────────────────────────────────────────
         function switchView(viewName) {
-            // Views
             document.querySelectorAll('.view-layer').forEach(el => el.classList.remove('active'));
             document.getElementById(`view-${viewName}`).classList.add('active');
-
-            // Tabs styles via Tailwind
             document.querySelectorAll('.tab-btn').forEach(btn => {
-                btn.className = "tab-btn px-6 py-3 rounded-full flex flex-col items-center justify-center gap-1 transition-all text-black/40 dark:text-white/40 hover:text-black dark:hover:text-white";
+                btn.className = 'tab-btn px-6 py-3 rounded-full flex flex-col items-center justify-center gap-1 transition-all text-black/40 dark:text-white/40 hover:text-black dark:hover:text-white';
             });
-
-            // Set active tab
-            document.getElementById(`tab-${viewName}`).className = "tab-btn px-6 py-3 rounded-full flex flex-col items-center justify-center gap-1 transition-all bg-black dark:bg-white text-white dark:text-black";
-
-            tg?.HapticFeedback?.impactOccurred('light');
+            document.getElementById(`tab-${viewName}`).className = 'tab-btn px-6 py-3 rounded-full flex flex-col items-center justify-center gap-1 transition-all bg-black dark:bg-white text-white dark:text-black';
+            DastyorAI.haptic('light');
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
-        // Initialize user via Telegram params
-        function initApp() {
-            if (tg) {
-                tg.ready();
-                tg.expand();
+        // ── Wire all internal links through SDK navigator ──────────────
+        // (preserves telegram_id across pages — the SDK adds it automatically)
+        document.querySelectorAll('a[href]').forEach(a => {
+            const href = a.getAttribute('href');
+            if (href && !href.startsWith('http') && !href.startsWith('//') && !href.startsWith('#')) {
+                a.addEventListener('click', e => {
+                    e.preventDefault();
+                    DastyorAI.navigate(href);
+                });
+            }
+        });
 
-                // Read from UI
-                const u = tg.initDataUnsafe?.user;
-                if (u) {
-                    telegramId = u.id;
-                    sessionStorage.setItem('telegram_id', telegramId);
-                    document.getElementById('userName').textContent = u.first_name || 'User';
-                    if (u.first_name) document.getElementById('userInitials').textContent = u.first_name.charAt(0);
+        // ── Init: authenticate + populate UI ─────────────────────────
+        DastyorAI.init().then(user => {
+            if (!user) return;  // Guest mode — UI shows defaults
 
-                    if (u.photo_url) {
-                        document.getElementById('userAvatarBox').innerHTML = `<img src="${u.photo_url}" class="w-full h-full object-cover">`;
-                    }
-                }
+            // -- Profile --
+            document.getElementById('userName').textContent = user.first_name || 'User';
+            if (user.first_name) {
+                document.getElementById('userInitials').textContent = user.first_name.charAt(0).toUpperCase();
+            }
+            if (user.photo_url) {
+                document.getElementById('userAvatarBox').innerHTML =
+                    `<img src="${user.photo_url}" class="w-full h-full object-cover" referrerpolicy="no-referrer">`;
             }
 
-            // Forward Telegram IDs to links to bypass authentication checks inside webviews
-            const storedId = telegramId || sessionStorage.getItem('telegram_id');
-            document.querySelectorAll('a').forEach(a => {
-                a.addEventListener('click', (e) => {
-                    const href = a.getAttribute('href');
-                    if (href && !href.startsWith('http')) {
-                        if (storedId) {
-                            e.preventDefault();
-                            const sep = href.includes('?') ? '&' : '?';
-                            window.location.href = `${href}${sep}telegram_id=${storedId}`;
-                        }
-                    }
-                });
-            });
-        }
+            // -- Premium badge --
+            if (user.is_premium) {
+                const badge = document.createElement('span');
+                badge.className = 'text-[10px] font-black bg-amber-500 text-white px-2 py-0.5 rounded-full uppercase tracking-wider ml-2';
+                badge.textContent = 'PRO';
+                document.getElementById('userName').appendChild(badge);
+            }
 
-        initApp();
+            // -- Load real stats from server --
+            DastyorAI.stats().then(s => {
+                if (!s) return;
+                const el = document.querySelector('.text-4xl.font-display');
+                if (el) el.textContent = s.files_processed || '0';
+            });
+        });
     </script>
 </body>
 

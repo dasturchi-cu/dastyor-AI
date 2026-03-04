@@ -19,10 +19,11 @@ if GOOGLE_API_KEY:
     except Exception as e:
         logger.error(f"Failed to init Gemini: {e}")
 
-# Models to try in order
+# Models to try in order (newest first — keeps working as Gemini releases progress)
 GEMINI_MODELS = [
-    'gemini-1.5-flash',
-    'gemini-1.5-pro',
+    'gemini-2.5-flash',
+    'gemini-2.0-flash',
+    'gemini-1.5-flash-latest',
 ]
 
 async def get_model():

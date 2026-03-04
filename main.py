@@ -223,6 +223,29 @@ async def button_callback_handler(update: Update, context: ContextTypes.DEFAULT_
 async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> None:
     logger.error(msg="Exception while handling an update:", exc_info=context.error)
 
+async def _webapp_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE, action: str):
+    """Generic handler: sends inline button opening the correct webapp page."""
+    from bot.handlers.start import _ACTION_MAP, WEBAPP_BASE, BOT_USERNAME
+    uid = update.effective_user.id if update.effective_user else 0
+    page_info = _ACTION_MAP.get(action)
+    if not page_info:
+        await update.message.reply_text("❌ Noma'lum buyruq.")
+        return
+    page_file, btn_label, desc = page_info
+    from telegram import WebAppInfo, InlineKeyboardMarkup, InlineKeyboardButton
+    url = f"{WEBAPP_BASE}/{page_file}?telegram_id={uid}"
+    kb = InlineKeyboardMarkup([[InlineKeyboardButton(btn_label, web_app=WebAppInfo(url=url))]])
+    await update.message.reply_text(f"🚀 <b>{desc}</b>", reply_markup=kb, parse_mode="HTML")
+
+async def cmd_cv(u, c):        await _webapp_cmd(u, c, "cv")
+async def cmd_obyektivka(u,c): await _webapp_cmd(u, c, "obyektivka")
+async def cmd_ocr(u, c):       await _webapp_cmd(u, c, "ocr")
+async def cmd_pdf(u, c):       await _webapp_cmd(u, c, "pdf")
+async def cmd_translit(u, c):  await _webapp_cmd(u, c, "translit")
+async def cmd_translate(u, c): await _webapp_cmd(u, c, "translate")
+async def cmd_premium(u, c):   await _webapp_cmd(u, c, "premium")
+
+
 def setup_application():
     if not BOT_TOKEN:
         logger.error("BOT_TOKEN is missing!")
@@ -233,10 +256,18 @@ def setup_application():
     # 1. CRM Middleware (Tracks + Checks Ban)
     application.add_handler(TypeHandler(Update, track_user), group=-1)
 
-    # 2. Commands
-    application.add_handler(CommandHandler("start", start_command))
-    application.add_handler(CommandHandler("menu", menu_command))
-    application.add_handler(CommandHandler("help", help_command))
+    # 2. Core Commands
+    application.add_handler(CommandHandler("start",       start_command))
+    application.add_handler(CommandHandler("menu",        menu_command))
+    application.add_handler(CommandHandler("help",        help_command))
+    # ── Feature shortcut commands (open the matching webapp page directly) ──
+    application.add_handler(CommandHandler("cv",          cmd_cv))
+    application.add_handler(CommandHandler("obyektivka",  cmd_obyektivka))
+    application.add_handler(CommandHandler("ocr",         cmd_ocr))
+    application.add_handler(CommandHandler("pdf",         cmd_pdf))
+    application.add_handler(CommandHandler("translit",    cmd_translit))
+    application.add_handler(CommandHandler("translate",   cmd_translate))
+    application.add_handler(CommandHandler("premium",     cmd_premium))
 
     # Track bot block/unblock
     application.add_handler(ChatMemberHandler(chat_member_updated, ChatMemberHandler.MY_CHAT_MEMBER))
