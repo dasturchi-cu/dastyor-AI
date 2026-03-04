@@ -184,6 +184,37 @@ async def translate_document_gemini(file_path: str, target_language: str = "uz")
         return ""
 
 
+async def translate_text(text: str, direction: str = "uz_en") -> str:
+    """
+    Translate plain text using Gemini. Used by /api/translate web endpoint.
+    direction: uz_en | en_uz | ru_uz | uz_ru | ru_en
+    """
+    model = await get_model()
+    if not model:
+        return "AI model mavjud emas."
+
+    lang_map = {
+        "uz_en": ("O'zbek", "English"),
+        "en_uz": ("English", "O'zbek"),
+        "ru_uz": ("Russian", "O'zbek"),
+        "uz_ru": ("O'zbek", "Russian"),
+        "ru_en": ("Russian", "English"),
+    }
+    src, tgt = lang_map.get(direction, ("O'zbek", "English"))
+
+    prompt = (
+        f"Translate the following {src} text to {tgt}.\n"
+        "Return ONLY the translated text, no explanations.\n\n"
+        f"{text}"
+    )
+    try:
+        resp = await model.generate_content_async(prompt)
+        return resp.text.strip() if resp and resp.text else "Natija bo'sh."
+    except Exception as e:
+        logger.error(f"translate_text error: {e}")
+        return f"Tarjimada xato: {e}"
+
+
 async def extract_obyektivka_data(text: str) -> dict:
     """
     Extract structured data from text using Gemini asynchronously

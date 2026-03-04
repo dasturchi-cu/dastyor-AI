@@ -428,8 +428,17 @@
         }
 
         async function startOCR() {
+            // Attempt auth once more at submit time (in case checkAuth was not called)
             if (!telegramId) {
-                alert("Faqat Telegram bot ichida ishlaydi (yoki URL da telegram_id yo'q).");
+                const urlId = new URLSearchParams(window.location.search).get('telegram_id');
+                if (urlId) telegramId = urlId;
+            }
+            if (!telegramId) {
+                if (tg && tg.showAlert) {
+                    tg.showAlert("Iltimos, botni oching: @DastyorAiBot");
+                } else {
+                    alert("Faqat Telegram bot orqali ishlaydi. @DastyorAiBot ga o'ting.");
+                }
                 return;
             }
             if (selectedFiles.length === 0) return;
