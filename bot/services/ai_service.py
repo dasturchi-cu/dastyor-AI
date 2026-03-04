@@ -19,9 +19,8 @@ if GOOGLE_API_KEY:
     except Exception as e:
         logger.error(f"Failed to init Gemini: {e}")
 
-# Models to try in order (gemini-2.0-flash is fastest & cheapest)
+# Models to try in order
 GEMINI_MODELS = [
-    'gemini-2.0-flash',
     'gemini-1.5-flash',
     'gemini-1.5-pro',
 ]
