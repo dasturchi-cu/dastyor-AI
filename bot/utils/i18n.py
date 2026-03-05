@@ -144,10 +144,10 @@ _DICT = {
          "uz_lat": "{limit} ta/kun", "uz_cyr": "{limit} та/кун", "en": "{limit} per day", "ru": "{limit} в день"
     },
     "contact_msg": {
-        "uz_lat": "📞 **Aloqa uchun:**\n\nAdmin: @DastyorAI\_Admin\nTexnik yordam: @DastyorSupport\n\nSavol yoki takliflaringizni yozib qoldirishingiz mumkin.",
-        "uz_cyr": "📞 **Алоқа учун:**\n\nАдмин: @DastyorAI\_Admin\nТехник ёрдам: @DastyorSupport\n\nСавол ёки таклифларингизни ёзиб қолдиришингиз мумкин.",
-        "en": "📞 **Contact:**\n\nAdmin: @DastyorAI\_Admin\nTech Support: @DastyorSupport\n\nYou can send your questions or suggestions.",
-        "ru": "📞 **Связь:**\n\nАдмин: @DastyorAI\_Admin\nТехподдержка: @DastyorSupport\n\nМожете оставить ваши вопросы или предложения."
+        "uz_lat": "📞 **Aloqa uchun:**\n\nAdmin: @DastyorAI\\_Admin\nTexnik yordam: @DastyorSupport\n\nSavol yoki takliflaringizni yozib qoldirishingiz mumkin.",
+        "uz_cyr": "📞 **Алоқа учун:**\n\nАдмин: @DastyorAI\\_Admin\nТехник ёрдам: @DastyorSupport\n\nСавол ёки таклифларингизни ёзиб қолдиришингиз мумкин.",
+        "en": "📞 **Contact:**\n\nAdmin: @DastyorAI\\_Admin\nTech Support: @DastyorSupport\n\nYou can send your questions or suggestions.",
+        "ru": "📞 **Связь:**\n\nАдмин: @DastyorAI\\_Admin\nТехподдержка: @DastyorSupport\n\nМожете оставить ваши вопросы или предложения."
     },
     "opening_service": {
         "uz_lat": "🤖 Tushundim! **{service}** xizmatini ochyapman...",
