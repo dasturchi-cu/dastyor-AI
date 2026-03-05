@@ -35,12 +35,12 @@ from bot.handlers.common import balance_handler, contact_handler, help_button_ha
 
 from bot.handlers.ocr_to_word import ocr_to_word_handler as ocr_handler, handle_ocr_image as process_ocr_image
 from bot.handlers.obyektivka import obyektivka_handler, handle_obyektivka_audio as process_obyektivka_audio
-from bot.handlers.transliterate import transliterate_handler, process_transliteration as process_transliterate, krill_to_lotin_handler, lotin_to_krill_handler
+from bot.handlers.transliterate import transliterate_handler, process_transliteration as process_transliterate, krill_to_lotin_handler, lotin_to_krill_handler, translit_direction_callback
 from bot.handlers.translate import translate_handler, process_translation as process_translate_doc, set_translation_direction
 from bot.handlers.image_to_pdf import image_to_pdf_handler, collect_pdf_images as process_image_to_pdf
 from bot.handlers.spell_check import spell_check_handler, process_spell_check
 from bot.handlers.start import start_command, menu_command
-from bot.keyboards.reply_keyboards import get_main_menu, get_back_button
+from bot.keyboards.reply_keyboards import get_main_menu, get_back_button, get_more_menu
 from bot.utils.i18n import get_regex_for_key, t
 from bot.handlers.smart_logic import (
     handle_smart_photo, handle_smart_document, handle_smart_audio, smart_callback_handler
@@ -56,6 +56,23 @@ async def back_to_main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data.clear()
     lang = get_user_lang(update.effective_user.id) if update.effective_user else "uz_lat"
     await update.message.reply_text(t("or_menu", lang), reply_markup=get_main_menu(update.effective_user.id if update.effective_user else None, lang))
+
+async def more_menu_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Show 'Boshqa xizmatlar' sub-menu"""
+    uid = update.effective_user.id if update.effective_user else None
+    lang = get_user_lang(uid)
+    await update.message.reply_text(t("more_menu_title", lang), reply_markup=get_more_menu(lang))
+
+async def cv_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Open CV Resume webapp page via WebApp inline button"""
+    from bot.handlers.start import _ACTION_MAP, WEBAPP_BASE
+    from telegram import WebAppInfo, InlineKeyboardMarkup, InlineKeyboardButton
+    uid = update.effective_user.id if update.effective_user else 0
+    lang = get_user_lang(uid)
+    page_file, btn_label, desc = _ACTION_MAP["cv"]
+    url = f"{WEBAPP_BASE}/{page_file}?telegram_id={uid}&lang={lang}"
+    kb = InlineKeyboardMarkup([[InlineKeyboardButton(btn_label, web_app=WebAppInfo(url=url))]])
+    await update.message.reply_text(f"🚀 <b>{desc}</b>", reply_markup=kb, parse_mode="HTML")
 
 async def premium_info_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
@@ -101,9 +118,8 @@ async def handle_router_text(update: Update, context: ContextTypes.DEFAULT_TYPE)
     text = update.message.text.lower()
     
     # 1. State-based routing
-    if state == 'transliterate_text' or context.user_data.get('transliterate_direction'):
+    if state in ['transliterate_text', 'translit_content'] or context.user_data.get('transliterate_direction'):
          await process_transliterate(update, context)
-         increment_file_count(update.effective_user.id, "Transliterate Text")
          return
     elif state == 'pdf_images':
          await process_image_to_pdf(update, context)
@@ -155,9 +171,9 @@ async def handle_router_doc(update: Update, context: ContextTypes.DEFAULT_TYPE):
     direction = context.user_data.get('transliterate_direction') or context.user_data.get('translate_direction')
     uid = update.effective_user.id
     
-    if (state == 'doc_transliterate' or direction) and 'translit' in str(direction).lower():
+    if state == 'translit_content' or ((state == 'doc_transliterate' or direction) and 'translit' in str(direction).lower()):
         await process_transliterate(update, context)
-        increment_file_count(uid, "Transliterate Doc")
+        return
     elif 'translate' in str(direction).lower():
         await process_translate_doc(update, context)
         increment_file_count(uid, "Translate Doc")
@@ -307,11 +323,14 @@ def setup_application():
     application.add_handler(CallbackQueryHandler(language_callback_handler, pattern="^lang_"))
     
     application.add_handler(CallbackQueryHandler(smart_callback_handler, pattern="^smart_"))
+    application.add_handler(CallbackQueryHandler(translit_direction_callback, pattern="^trl_"))
     application.add_handler(CallbackQueryHandler(button_callback_handler))
 
-    # 4. Text Menu Navigation
-    # Provide a simple check or regex for Back button
+    # 4. Text Menu Navigation — Asosiy tugmalar
+    application.add_handler(MessageHandler(filters.Regex(get_regex_for_key("back_to_menu")), back_to_main_menu))
     application.add_handler(MessageHandler(filters.Regex("^(🔙 Orqaga|🔙 Назад|🔙 Back|🔙 Оркага)$"), back_to_main_menu))
+    application.add_handler(MessageHandler(filters.Regex(get_regex_for_key("btn_more")), more_menu_handler))
+    application.add_handler(MessageHandler(filters.Regex(get_regex_for_key("btn_cv")), cv_handler))
     
     admin_buttons = "^(📊 Statistika|📨 Xabar yuborish|📢 Kanallar|💎 Premium Boshqaruv|⚙️ Sozlamalar|👥 Foydalanuvchilar|🚪 Panelni yopish)$"
     application.add_handler(MessageHandler(filters.Regex(admin_buttons), handle_admin_text))

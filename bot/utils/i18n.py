@@ -35,16 +35,22 @@ _DICT = {
         "ru": "🚀 Открыть приложение"
     },
     "btn_cv": {
-        "uz_lat": "📄 CV",
-        "uz_cyr": "📄 CV",
-        "en": "📄 Resume",
-        "ru": "📄 Резюме"
+        "uz_lat": "📄 CV Resume",
+        "uz_cyr": "📄 CV Resume",
+        "en": "📄 CV Resume",
+        "ru": "📄 CV Резюме"
+    },
+    "btn_more": {
+        "uz_lat": "🔧 Boshqa xizmatlar",
+        "uz_cyr": "🔧 Бошқа хизматлар",
+        "en": "🔧 More Services",
+        "ru": "🔧 Другие услуги"
     },
     "btn_oby": {
-        "uz_lat": "🧑‍💼 Obyektivka",
-        "uz_cyr": "🧑‍💼 Объективка",
-        "en": "🧑‍💼 CV Record",
-        "ru": "🧑‍💼 Анкета"
+        "uz_lat": "📋 Obyektivka",
+        "uz_cyr": "📋 Объективка",
+        "en": "📋 CV Record",
+        "ru": "📋 Анкета"
     },
     "btn_ocr": {
         "uz_lat": "👁️ OCR",
@@ -99,6 +105,18 @@ _DICT = {
         "uz_cyr": "🆘 Ёрдам",
         "en": "🆘 Help",
         "ru": "🆘 Помощь"
+    },
+    "back_to_menu": {
+        "uz_lat": "🔙 Orqaga",
+        "uz_cyr": "🔙 Орқага",
+        "en": "🔙 Back",
+        "ru": "🔙 Назад"
+    },
+    "more_menu_title": {
+        "uz_lat": "🔧 Boshqa xizmatlarni tanlang:",
+        "uz_cyr": "🔧 Бошқа хизматларни танланг:",
+        "en": "🔧 Choose a service:",
+        "ru": "🔧 Выберите услугу:"
     },
     "or_menu": {
         "uz_lat": "👇 Yoki menyudan tanlang:",

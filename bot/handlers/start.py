@@ -88,10 +88,6 @@ async def language_callback_handler(update: Update, context: ContextTypes.DEFAUL
     welcome_text = t("welcome", lang_code, name=first_name)
     
     keyboard = InlineKeyboardMarkup([
-        [InlineKeyboardButton(
-            t("btn_app", lang_code),
-            web_app=WebAppInfo(url=f"{WEBAPP_BASE}/index.html?telegram_id={uid}&lang={lang_code}")
-        )],
         [
             InlineKeyboardButton(
                 t("btn_oby", lang_code),
@@ -104,12 +100,22 @@ async def language_callback_handler(update: Update, context: ContextTypes.DEFAUL
         ],
         [
             InlineKeyboardButton(
+                t("btn_translit", lang_code),
+                web_app=WebAppInfo(url=f"{WEBAPP_BASE}/translit.html?telegram_id={uid}&lang={lang_code}")
+            ),
+            InlineKeyboardButton(
+                t("btn_translate", lang_code),
+                web_app=WebAppInfo(url=f"{WEBAPP_BASE}/translate.html?telegram_id={uid}&lang={lang_code}")
+            ),
+        ],
+        [
+            InlineKeyboardButton(
                 t("btn_ocr", lang_code),
                 web_app=WebAppInfo(url=f"{WEBAPP_BASE}/ocr.html?telegram_id={uid}&lang={lang_code}")
             ),
             InlineKeyboardButton(
-                t("btn_premium", lang_code),
-                web_app=WebAppInfo(url=f"{WEBAPP_BASE}/premium.html?telegram_id={uid}&lang={lang_code}")
+                t("btn_pdf", lang_code),
+                web_app=WebAppInfo(url=f"{WEBAPP_BASE}/img2pdf.html?telegram_id={uid}&lang={lang_code}")
             ),
         ],
     ])

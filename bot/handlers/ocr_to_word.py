@@ -20,8 +20,30 @@ from docx.enum.text import WD_ALIGN_PARAGRAPH
 
 logger = logging.getLogger(__name__)
 
+from bs4.element import NavigableString, Tag
+
+def _add_run_with_style(paragraph_obj, element, bold=False, italic=False, underline=False):
+    """Recursively parses HTML elements and adds styled runs to a docx paragraph."""
+    is_bold = bold or element.name in ['b', 'strong', 'h1', 'h2', 'h3', 'th']
+    is_italic = italic or element.name in ['i', 'em']
+    is_underline = underline or element.name in ['u']
+    
+    for child in element.children:
+        if isinstance(child, NavigableString):
+            text = str(child).replace('\n', ' ')
+            if text.strip() or text == ' ':
+                run = paragraph_obj.add_run(text)
+                run.bold = is_bold
+                run.italic = is_italic
+                run.underline = is_underline
+        elif isinstance(child, Tag):
+            if child.name == 'br':
+                paragraph_obj.add_run().add_break()
+            else:
+                _add_run_with_style(paragraph_obj, child, is_bold, is_italic, is_underline)
+
 def add_html_to_docx(doc, html_content):
-    """Parses HTML and maps it to Word layout (tables, widths, alignment)"""
+    """Parses HTML and maps it to Word layout (tables, widths, alignment, inline fonts, lists)"""
     
     # Set Narrow Margins (1.27 cm) for better 1:1 fit
     if doc.sections:
@@ -32,74 +54,87 @@ def add_html_to_docx(doc, html_content):
         section.bottom_margin = Cm(1.27)
     
     soup = BeautifulSoup(html_content, 'html.parser')
+    root = soup.body if soup.body else soup
     
-    for element in soup.children:
-        if element.name == None: continue 
-        
+    def apply_align(p, align_str):
+        if not align_str: return
+        align_str = align_str.lower()
+        if 'center' in align_str: p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        elif 'right' in align_str: p.alignment = WD_ALIGN_PARAGRAPH.RIGHT
+        elif 'justify' in align_str: p.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
+
+    for element in root.children:
+        if isinstance(element, NavigableString):
+            text = str(element).strip()
+            if text:
+                doc.add_paragraph(text)
+            continue
+            
         if element.name == 'table':
-            rows = element.find_all('tr')
+            rows = element.find_all('tr', recursive=False)
+            if not rows and element.tbody:
+                rows = element.tbody.find_all('tr', recursive=False)
             if not rows: continue
             
-            # Count cols
+            # Count max cols exactly
             max_cols = 0
             for row in rows:
-                cols = row.find_all(['td', 'th'])
+                cols = row.find_all(['td', 'th'], recursive=False)
                 if len(cols) > max_cols: max_cols = len(cols)
             
             if max_cols > 0:
                 table = doc.add_table(rows=len(rows), cols=max_cols)
                 table.style = 'Table Grid'
-                table.autofit = False # Disable autofit to use manual widths
+                table.autofit = False
                 table.allow_autofit = False
                 
-                # Check for widths in the first row
                 total_width = section.page_width - section.left_margin - section.right_margin
-                first_row_cols = rows[0].find_all(['td', 'th'])
                 
-                # Try to apply widths if provided
-                try:
+                # Try to apply widths from first row
+                if len(rows) > 0:
+                    first_row_cols = rows[0].find_all(['td', 'th'], recursive=False)
                     for j, col in enumerate(first_row_cols):
                         width_attr = col.get('width', '').replace('%', '')
                         if width_attr and width_attr.isdigit() and j < max_cols:
                             percent = int(width_attr)
                             width_val = total_width * (percent / 100)
-                            # Apply to all cells in this column
                             for r_idx in range(len(rows)):
-                                table.cell(r_idx, j).width = width_val
-                except: pass
+                                try: table.cell(r_idx, j).width = width_val
+                                except: pass
 
                 # Fill data
                 for i, row in enumerate(rows):
-                    cols = row.find_all(['td', 'th'])
+                    cols = row.find_all(['td', 'th'], recursive=False)
                     for j, col in enumerate(cols):
                         if j < max_cols:
                             cell = table.cell(i, j)
-                            cell.text = col.get_text(strip=True)
+                            # Clear default text run
+                            p = cell.paragraphs[0]
+                            p.text = ""
+                            
+                            align = col.get('align', '')
+                            apply_align(p, align)
+                            _add_run_with_style(p, col)
         
-        elif element.name in ['p', 'h1', 'h2', 'h3', 'div']:
-            text = element.get_text(strip=True)
-            if not text: continue
-            
+        elif element.name in ['p', 'h1', 'h2', 'h3', 'h4', 'div']:
             style = 'Normal'
             if element.name == 'h1': style = 'Heading 1'
             elif element.name == 'h2': style = 'Heading 2'
+            elif element.name == 'h3': style = 'Heading 3'
             
-            p = doc.add_paragraph(text, style=style)
+            p = doc.add_paragraph(style=style)
+            align = element.get('align', '')
+            apply_align(p, align)
+            _add_run_with_style(p, element)
             
-            # Check alignment
-            align = element.get('align', '').lower()
-            if align == 'center':
-                p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-            elif align == 'right':
-                p.alignment = WD_ALIGN_PARAGRAPH.RIGHT
+        elif element.name in ['ul', 'ol']:
+            style = 'List Bullet' if element.name == 'ul' else 'List Number'
+            for li in element.find_all('li', recursive=False):
+                p = doc.add_paragraph(style=style)
+                _add_run_with_style(p, li)
                 
-        elif element.name == 'ul':
-            for li in element.find_all('li'):
-                doc.add_paragraph(li.get_text(strip=True), style='List Bullet')
-                
-        elif element.name == 'ol':
-            for li in element.find_all('li'):
-                doc.add_paragraph(li.get_text(strip=True), style='List Number')
+        elif element.name == 'br':
+            doc.add_paragraph()
 
 
 async def perform_ocr_and_send(context, image_path, chat_id, user_id):

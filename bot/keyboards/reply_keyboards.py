@@ -4,36 +4,20 @@ from bot.utils.i18n import t
 
 def get_main_menu(user_id=None, lang="uz_lat"):
     """
-    Returns the main menu grid matching plan.md exactly, translated.
-    9 service buttons + webapp launcher.
+    Main menu — 4 clear buttons for mobile.
+    Layout:
+      [ Obyektivka ]  [ CV Resume ]
+      [   Balans   ]  [ Boshqa xizmatlar ]
     """
-    base_url = "https://dastyor-ai.onrender.com/webapp/index.html"
-    web_app_url = f"{base_url}?telegram_id={user_id}&lang={lang}" if user_id else f"{base_url}?lang={lang}"
-
     keyboard = [
         [
-            KeyboardButton(t("btn_app", lang), web_app=WebAppInfo(url=web_app_url))
-        ],
-        [
             KeyboardButton(t("btn_oby", lang)),
-            KeyboardButton(t("btn_ocr", lang))
-        ],
-        [
-            KeyboardButton(t("btn_translit", lang)),
-            KeyboardButton(t("btn_translate", lang))
-        ],
-        [
-            KeyboardButton(t("btn_pdf", lang)),
-            KeyboardButton(t("btn_spell", lang))
-        ],
-        [
-            KeyboardButton(t("btn_premium", lang))
+            KeyboardButton(t("btn_cv", lang)),
         ],
         [
             KeyboardButton(t("btn_balance", lang)),
-            KeyboardButton(t("btn_contact", lang)),
-            KeyboardButton(t("btn_help", lang))
-        ]
+            KeyboardButton(t("btn_more", lang)),
+        ],
     ]
 
     return ReplyKeyboardMarkup(
@@ -43,47 +27,81 @@ def get_main_menu(user_id=None, lang="uz_lat"):
     )
 
 
-def get_krill_lotin_menu():
-    """Kirill-Lotin conversion menu"""
+def get_more_menu(lang="uz_lat"):
+    """
+    'Boshqa xizmatlar' sub-menu — 6 buttons.
+    Layout:
+      [ Krill-Lotin   ]  [ Rasm → PDF     ]
+      [ Imlo tekshirish] [ Tarjima        ]
+      [ Rasm → Word AI]  [ Aloqa          ]
+      [ ← Orqaga                          ]
+    """
+    keyboard = [
+        [
+            KeyboardButton(t("btn_translit", lang)),
+            KeyboardButton(t("btn_pdf", lang)),
+        ],
+        [
+            KeyboardButton(t("btn_spell", lang)),
+            KeyboardButton(t("btn_translate", lang)),
+        ],
+        [
+            KeyboardButton(t("btn_ocr", lang)),
+            KeyboardButton(t("btn_contact", lang)),
+        ],
+        [
+            KeyboardButton(t("back_to_menu", lang)),
+        ],
+    ]
+
+    return ReplyKeyboardMarkup(
+        keyboard,
+        resize_keyboard=True,
+        one_time_keyboard=False
+    )
+
+
+def get_krill_lotin_menu(lang="uz_lat"):
+    """Kirill-Lotin conversion sub-menu"""
     keyboard = [
         [
             KeyboardButton("🔡 Kirill → Lotin"),
-            KeyboardButton("🔠 Lotin → Kirill")
+            KeyboardButton("🔠 Lotin → Kirill"),
         ],
-        [KeyboardButton("🔙 Orqaga")]
+        [KeyboardButton(t("back_to_menu", lang))],
     ]
     return ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
 
 
-def get_translate_menu():
-    """Translation language selection menu — 5 directions per plan.md"""
+def get_translate_menu(lang="uz_lat"):
+    """Translation language selection menu — 5 directions"""
     keyboard = [
         [
             KeyboardButton("🇺🇿 O'zbek → Ingliz"),
-            KeyboardButton("🇬🇧 Ingliz → O'zbek")
+            KeyboardButton("🇬🇧 Ingliz → O'zbek"),
         ],
         [
             KeyboardButton("🇷🇺 Rus → O'zbek"),
-            KeyboardButton("O'zbek → Rus 🇷🇺")
+            KeyboardButton("O'zbek → Rus 🇷🇺"),
         ],
         [
-            KeyboardButton("Rus → Ingliz")
+            KeyboardButton("Rus → Ingliz"),
         ],
-        [KeyboardButton("🔙 Orqaga")]
+        [KeyboardButton(t("back_to_menu", lang))],
     ]
     return ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
 
 
-def get_back_button():
+def get_back_button(lang="uz_lat"):
     """Simple back button"""
-    keyboard = [[KeyboardButton("🔙 Orqaga")]]
+    keyboard = [[KeyboardButton(t("back_to_menu", lang))]]
     return ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
 
 
-def get_image_to_pdf_keyboard():
+def get_image_to_pdf_keyboard(lang="uz_lat"):
     """Keyboard for Rasm → PDF flow"""
     keyboard = [
         [KeyboardButton("✅ Tayyor — PDF tuzish")],
-        [KeyboardButton("🔙 Orqaga")]
+        [KeyboardButton(t("back_to_menu", lang))],
     ]
     return ReplyKeyboardMarkup(keyboard, resize_keyboard=True)

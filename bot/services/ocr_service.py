@@ -57,18 +57,21 @@ async def extract_text_from_image(image_path: str) -> str:
         model = genai.GenerativeModel('gemini-2.5-flash')
 
         prompt = """
-        You are a professional Document Digitizer.
-        Your goal is to convert this image into an HTML document that represents the ORIGINAL LAYOUT EXACTLY 1:1.
+        You are an expert OCR AI and Document Digitizer.
+        Convert the provided image into a structured HTML document that EXACTLY matches the original layout, formatting, and text.
         
         CRITICAL RULES:
-        1. **Tables & Widgets**: If the document looks like a form or has columns, YOU MUST USE HTML `<table>`.
-        2. **Column Widths**: You MUST estimate the width of each column and add `width="X%"` to the `<td>` or `<th>` tags. Example: `<td width="30%">`.
-        3. **Margins & Spacing**: Use `<br>` for empty lines to preserve vertical spacing.
-        4. **Structuring**:
-           - If text is side-by-side, use a table row with 2 cells.
-           - Preserve alignment (`align="center"`, `align="right"`).
-        5. **Formatting**: Bold (`<b>`), Italic (`<i>`), Headers (`<h1>`).
-        6. **Output**: Return ONLY the HTML code. No markdown text.
+        1. **Typography**: Preserve exact font structures. Use <b> or <strong> for bold, <i> or <em> for italics, and <u> for underlines.
+        2. **Layout & Alignment**: Preserve text alignment using <div align="center">, <p align="right">, or <h1 align="center">.
+        3. **Tables**: If text is side-by-side (like columns) or in a grid/form, YOU MUST USE HTML <table>.
+           - Accurately estimate column widths and set them on the first row: <td width="30%">.
+           - Map empty cells correctly.
+        4. **Structure**: 
+           - Use <h1>, <h2>, <h3> for titles/headings.
+           - Use <ul>, <ol>, and <li> for lists.
+           - Use <p> for paragraphs.
+        5. **Spacing**: Use <br> to preserve exact vertical empty lines between paragraphs or items.
+        6. **Clean Output**: Return ONLY valid HTML. No markdown formatting (like ```html), no explanations.
         """
         
         # Async generation
