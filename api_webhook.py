@@ -586,6 +586,34 @@ async def health():
 
 
 # ═══════════════════════════════════════════════════════════════════════════
+# /api/upload_to_telegram — Direct file sender to Telegram from Frontend JS
+# ═══════════════════════════════════════════════════════════════════════════
+@app.post("/api/upload_to_telegram")
+async def api_upload_to_telegram(
+    file: UploadFile = File(...),
+    telegram_id: str = Form(None),
+    token: str = Form(None),
+    caption: str = Form("")
+):
+    uid = _resolve_uid(telegram_id, token)
+    if not uid:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+        
+    try:
+        content = await file.read()
+        logger.info(f"Sending frontend-generated file {file.filename} to UID {uid}")
+        await application.bot.send_document(
+            chat_id=uid,
+            document=content,
+            filename=file.filename,
+            caption=caption or "✅ Faylingiz tayyorlandi!"
+        )
+        return {"ok": True}
+    except Exception as e:
+        logger.error(f"Error sending file via /api/upload_to_telegram: {e}", exc_info=True)
+        return {"ok": False, "error": str(e)}
+
+# ═══════════════════════════════════════════════════════════════════════════
 # /api/generate_cv — CV DOCX generator (Website → Server → Browser + Telegram)
 # ─────────────────────────────────────────────────────────────────────────────
 # Architecture:

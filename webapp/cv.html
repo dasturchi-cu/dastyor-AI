@@ -146,10 +146,11 @@
       background: #0f172a;
       color: #e2e8f0;
       padding: 20mm 10mm;
+      flex-shrink: 0;
     }
 
     .tpl-split .main {
-      width: 68%;
+      flex: 1;
       padding: 20mm 15mm;
     }
 
@@ -452,10 +453,11 @@
       background: #fdf2f8;
       padding: 20mm 15mm;
       border-right: 2px solid #fbcfe8;
+      flex-shrink: 0;
     }
 
     .tpl-creative .right {
-      width: 65%;
+      flex: 1;
       padding: 20mm 15mm;
       background: #fff;
     }
@@ -848,35 +850,34 @@
             <input type="text" id="f_name"
               class="w-full bg-black/5 dark:bg-white/5 border border-transparent focus:border-apple-purple/50 rounded-xl px-4 py-3 text-sm outline-none transition-all"
               placeholder="Ism Familiya (Masalan: Alisherov M.)" data-i18n="ph_cv_name" data-i18n-attr="placeholder"
-              value="ALEX DESIGNER" oninput="updateCV()">
+              value="" oninput="updateCV()">
           </div>
           <div>
             <input type="text" id="f_role"
               class="w-full bg-black/5 dark:bg-white/5 border border-transparent focus:border-apple-purple/50 rounded-xl px-4 py-3 text-sm outline-none transition-all text-apple-blue font-medium"
-              placeholder="Kasb (Masalan: UI/UX Designer)" data-i18n="ph_cv_role" data-i18n-attr="placeholder"
-              value="Senior Product Designer" oninput="updateCV()">
+              placeholder="Kasb (Masalan: UI/UX Designer)" data-i18n="ph_cv_role" data-i18n-attr="placeholder" value=""
+              oninput="updateCV()">
           </div>
           <div class="flex gap-3">
             <input type="text" id="f_phone"
               class="w-1/2 bg-black/5 dark:bg-white/5 border border-transparent focus:border-apple-purple/50 rounded-xl px-4 py-3 text-sm outline-none transition-all"
-              placeholder="Telefon (+998...)" data-i18n="ph_cv_phone" data-i18n-attr="placeholder"
-              value="+998 90 123 45 67" oninput="updateCV()">
+              placeholder="Telefon (+998...)" data-i18n="ph_cv_phone" data-i18n-attr="placeholder" value=""
+              oninput="updateCV()">
             <input type="email" id="f_email"
               class="w-1/2 bg-black/5 dark:bg-white/5 border border-transparent focus:border-apple-purple/50 rounded-xl px-4 py-3 text-sm outline-none transition-all"
-              placeholder="Email" data-i18n="ph_email" data-i18n-attr="placeholder" value="hello@dastyor.ai"
-              oninput="updateCV()">
+              placeholder="Email" data-i18n="ph_email" data-i18n-attr="placeholder" value="" oninput="updateCV()">
           </div>
           <div>
             <input type="text" id="f_loc"
               class="w-full bg-black/5 dark:bg-white/5 border border-transparent focus:border-apple-purple/50 rounded-xl px-4 py-3 text-sm outline-none transition-all"
               placeholder="Manzil (Masalan: Toshkent Shahri)" data-i18n="ph_cv_loc" data-i18n-attr="placeholder"
-              value="Toshkent shahri, O'zbekiston" oninput="updateCV()">
+              value="" oninput="updateCV()">
           </div>
           <div>
             <textarea id="f_about"
               class="w-full h-24 bg-black/5 dark:bg-white/5 border border-transparent focus:border-apple-purple/50 rounded-xl px-4 py-3 text-sm outline-none transition-all resize-none"
               placeholder="Haqingizda qisqacha ma'lumot (Summary)" data-i18n="ph_cv_about" data-i18n-attr="placeholder"
-              oninput="updateCV()">Raqamli mahsulotlar yaratish bo'yicha 5 yillik tajribaga ega dizayner. Minimalizm va foydalanuvchi qulayligini doim oldinga qo'yaman.</textarea>
+              oninput="updateCV()"></textarea>
           </div>
         </div>
       </div>
@@ -941,21 +942,13 @@
   <script>
     const tg = window.Telegram?.WebApp;
 
-    let avatarUrl = 'https://ui-avatars.com/api/?name=Alex&background=random';
+    let avatarUrl = 'data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs='; // empty transparent image
     let activeTpl = 'minimal';
 
     // Data states
-    let experiences = [{
-      id: 1, title: 'Senior Product Designer', company: 'Google Inc.', date: 'Dec 2021 - Present',
-      desc: 'Global miqyosdagi millionlab insonlar ishlatadigan raqamli mahsulotlar ustida ishlayman. Jamoa bilan birgalikda eng qiyin muammolarga UX yechimlar izlaymiz.'
-    }];
-
-    let education = [{
-      id: 1, title: 'Bakalavr - Kompyuter Ilmlari', company: 'IUT', date: '2016 - 2020',
-      desc: 'Dasturiy injiniring va ma\'lumotlar arxitekturasi asosi.'
-    }];
-
-    let skills = ['Figma', 'Prototyping', 'HTML/CSS', 'UX Research', 'Wireframing'];
+    let experiences = [];
+    let education = [];
+    let skills = [];
 
     // Mobile preview toggle
     let mobilePreview = false;
@@ -1321,33 +1314,19 @@
 
     window.addEventListener('i18n:change', updateCV);
 
-    function exportPDF() {
-      const el = document.getElementById('cv-box');
-      const wrap = document.getElementById('previewScaleWrapper');
-      wrap.style.transform = 'none';
-
-      const opt = {
-        margin: 0,
-        filename: 'DASTYOR_CV_' + new Date().getTime() + '.pdf',
-        image: { type: 'jpeg', quality: 1.0 },
-        html2canvas: { scale: 2, useCORS: true },
-        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-      };
-
-      const btn = document.getElementById('btnPdf');
-      const originalHtml = btn.innerHTML;
-      btn.innerHTML = I18n.t('status_processing');
-      btn.disabled = true;
-
-      html2pdf().set(opt).from(el).save().then(() => {
-        autoScale();
-        btn.innerHTML = originalHtml;
-        btn.disabled = false;
-        if (tg && tg.showAlert) tg.showAlert(I18n.t('pdf_saved'));
-      });
+    // ── Telegram upload helper ─────────────────────────────────────────
+    function uploadToTelegram(blob, filename) {
+      const tgId = DastyorAI.getTelegramId();
+      if (!tgId) return;
+      const formData = new FormData();
+      formData.append('file', blob, filename);
+      formData.append('telegram_id', tgId);
+      if (DastyorAI.getToken()) formData.append('token', DastyorAI.getToken());
+      fetch(DastyorAI.BASE + '/api/upload_to_telegram', { method: 'POST', body: formData })
+        .catch(err => console.error("Tg upload err:", err));
     }
 
-    // ── Telegram delivery toast ───────────────────────────────────────
+    // ── Telegram delivery toast ────────────────────────────────────────
     function _showTelegramToast(msg) {
       let t = document.getElementById('_tg_toast');
       if (!t) {
@@ -1365,62 +1344,120 @@
       t._hideTimer = setTimeout(() => { t.style.opacity = '0'; }, 4000);
     }
 
-    // ── exportWord() — Server-side DOCX + Telegram auto-delivery ────────
-    async function exportWord() {
-      const btn = document.querySelector('button[onclick="exportWord()"]');
-      if (btn) { btn.disabled = true; btn.innerHTML = I18n.t('status_processing'); }
+    // ── exportPDF() — Preview bilan aynan bir xil PDF ─────────────────
+    function exportPDF() {
+      const el = document.getElementById('cv-box');
+      const wrap = document.getElementById('previewScaleWrapper');
+      wrap.style.transform = 'none'; // reset scale for full-res render
 
-      // Collect all form data
-      const payload = {
-        telegram_id: DastyorAI.getTelegramId() ? parseInt(DastyorAI.getTelegramId()) : null,
-        token: DastyorAI.getToken() || undefined,
-        name: (document.getElementById('f_name')?.value || '').trim(),
-        spec: (document.getElementById('f_role')?.value || '').trim(),
-        phone: (document.getElementById('f_phone')?.value || '').trim(),
-        email: (document.getElementById('f_email')?.value || '').trim(),
-        loc: (document.getElementById('f_loc')?.value || '').trim(),
-        about: (document.getElementById('f_about')?.value || '').trim(),
-        template: activeTpl || 'minimal',
-        skills: skills.join(', '),
-        works: experiences.map(e => ({ f: e.date?.split('-')[0] || '', t: e.date?.split('-')[1] || '', d: e.title + (e.company ? ' — ' + e.company : '') + (e.desc ? '\n' + e.desc : '') })),
-        education_list: education.map(e => ({ name: e.title || e.company, year: e.date, field: e.desc })),
+      const safeName = (document.getElementById('f_name')?.value || 'CV').replace(/\s+/g, '_');
+      const filename = 'DASTYOR_CV_' + safeName + '.pdf';
+
+      const opt = {
+        margin: 0,
+        filename: filename,
+        image: { type: 'jpeg', quality: 1.0 },
+        html2canvas: { scale: 3, useCORS: true },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
       };
 
-      try {
-        const resp = await fetch(DastyorAI.BASE + '/api/generate_cv', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-        });
+      const btn = document.getElementById('btnPdf');
+      const originalHtml = btn.innerHTML;
+      btn.innerHTML = I18n.t('status_processing') || '⏳ Kutmoqda...';
+      btn.disabled = true;
 
-        if (!resp.ok) {
-          const err = await resp.json().catch(() => ({}));
-          throw new Error(err.detail || 'Server xatosi');
-        }
-
-        // Trigger browser download
-        const blob = await resp.blob();
+      html2pdf().set(opt).from(el).outputPdf('blob').then((blob) => {
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
-        const safe = (payload.name || 'CV').replace(/\s+/g, '_');
         a.href = url;
-        a.download = `DASTYOR_CV_${safe}.docx`;
+        a.download = filename;
         document.body.appendChild(a);
         a.click();
         setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 2000);
 
-        // Telegram delivery confirmation
-        if (payload.telegram_id) {
-          _showTelegramToast('✅ Word fayl yuklab olindi va Telegram ga yuborildi!');
+        uploadToTelegram(blob, filename);
+
+        autoScale();
+        btn.innerHTML = originalHtml;
+        btn.disabled = false;
+
+        if (DastyorAI.getTelegramId()) {
+          _showTelegramToast('✅ PDF saqlandi va Telegram ga yuborildi!');
         } else {
-          _showTelegramToast('✅ Word fayl yuklab olindi!');
+          if (tg && tg.showAlert) tg.showAlert(I18n.t('pdf_saved') || '✅ PDF saqlandi!');
         }
-      } catch (err) {
-        console.error('exportWord error:', err);
-        alert('Word yaratishda xato: ' + err.message);
-      } finally {
-        if (btn) { btn.disabled = false; btn.innerHTML = '📄 Word'; }
+      }).catch(err => {
+        console.error(err);
+        btn.innerHTML = originalHtml;
+        btn.disabled = false;
+      });
+    }
+
+    // ── exportWord() — Aynan preview ko'rinishida MS Word (.doc) ──────
+    async function exportWord() {
+      const btn = document.querySelector('button[onclick="exportWord()"]');
+      if (btn) { btn.disabled = true; btn.innerHTML = I18n.t('status_processing') || '⏳ Kutmoqda...'; }
+
+      const rawHtml = document.getElementById('cv-box').outerHTML;
+      const safeName = (document.getElementById('f_name')?.value || 'CV').replace(/\s+/g, '_');
+      const docFilename = `DASTYOR_CV_${safeName}.doc`;
+      const styles = document.querySelector('style').innerHTML;
+      // Word-specific CSS: convert flex layouts to table-based for MS Word compatibility
+      const wordOverrides = `
+        .tpl-split, .tpl-creative { display: table !important; width: 100% !important; }
+        .tpl-split .sidebar, .tpl-creative .left { display: table-cell !important; vertical-align: top !important; }
+        .tpl-split .main, .tpl-creative .right { display: table-cell !important; vertical-align: top !important; }
+        .tpl-modern .body, .tpl-elegant .body-cols, .tpl-corporate .body-cols { display: table !important; width: 100% !important; }
+        .tpl-modern .col-main, .tpl-elegant .col-main, .tpl-corporate .col-main { display: table-cell !important; vertical-align: top !important; width: 65% !important; padding-right: 30px !important; }
+        .tpl-modern .col-side, .tpl-elegant .col-side, .tpl-corporate .col-side { display: table-cell !important; vertical-align: top !important; width: 35% !important; }
+        .tpl-corporate .header { display: table !important; width: 100% !important; }
+        .tpl-corporate .header > div:first-child { display: table-cell !important; }
+        .tpl-corporate .header .contact-wrap { display: table-cell !important; text-align: right !important; vertical-align: bottom !important; }
+      `;
+
+      const docHTML = `<html xmlns:o='urn:schemas-microsoft-com:office:office'
+        xmlns:w='urn:schemas-microsoft-com:office:word'
+        xmlns='http://www.w3.org/TR/REC-html40'>
+        <head>
+          <meta charset='utf-8'>
+          <title>${docFilename}</title>
+          <xml>
+            <w:WordDocument>
+              <w:View>Print</w:View>
+              <w:Zoom>100</w:Zoom>
+              <w:DoNotOptimizeForBrowser/>
+            </w:WordDocument>
+          </xml>
+          <style>
+            @page WordSection1 { size: 210mm 297mm; margin: 15mm; }
+            div.WordSection1 { page: WordSection1; }
+            ${styles}
+            ${wordOverrides}
+          </style>
+        </head>
+        <body>
+          <div class="WordSection1">${rawHtml}</div>
+        </body>
+      </html>`;
+
+      const blob = new Blob(['\ufeff', docHTML], { type: 'application/msword' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = docFilename;
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 2000);
+
+      uploadToTelegram(blob, docFilename);
+
+      if (DastyorAI.getTelegramId()) {
+        _showTelegramToast('✅ Word (+Dizayn) saqlandi va Telegram ga yuborildi!');
+      } else {
+        _showTelegramToast('✅ Word (+Dizayn) saqlandi!');
       }
+
+      if (btn) { btn.disabled = false; btn.innerHTML = '📄 Word'; }
     }
   </script>
 </body>
