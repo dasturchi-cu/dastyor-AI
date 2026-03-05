@@ -207,8 +207,8 @@ async def ocr_to_word_handler(update: Update, context: ContextTypes.DEFAULT_TYPE
     context.user_data['waiting_for'] = 'ocr_image'
     
     msg = (
-        "📸 **Rasm → Word AI**\n\n"
-        "Rasmni yuboring, men uni Word hujjatga aylantirib beraman."
+        "📜 **Hujjat rasmi → Word AI** ✨\n\n"
+        "Hujjat rasmini yuboring, men uni format, shrift, jadvallari saqlangan holatda Wordga aylantirib beraman."
     )
     await update.message.reply_text(
         msg,

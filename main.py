@@ -121,11 +121,13 @@ async def handle_router_text(update: Update, context: ContextTypes.DEFAULT_TYPE)
     if state in ['transliterate_text', 'translit_content'] or context.user_data.get('transliterate_direction'):
          await process_transliterate(update, context)
          return
+    elif state == 'translate_input' or context.user_data.get('translate_direction'):
+         await process_translate_doc(update, context)
+         return
     elif state == 'pdf_images':
          await process_image_to_pdf(update, context)
          return
 
-    # 2. NLP / Keyword Routing
     # 2. NLP / Keyword Routing
     import re
     # Obyektivka (obyektivga, obyektovka, obyektvka, abyektiv)
@@ -168,13 +170,16 @@ async def handle_router_doc(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if await process_admin_state_input(update, context): return
     
     state = context.user_data.get('waiting_for')
-    direction = context.user_data.get('transliterate_direction') or context.user_data.get('translate_direction')
+    transliterate_dir = context.user_data.get('transliterate_direction')
+    translate_dir = context.user_data.get('translate_direction')  # e.g. 'ru_uz', 'uz_en'
     uid = update.effective_user.id
     
-    if state == 'translit_content' or ((state == 'doc_transliterate' or direction) and 'translit' in str(direction).lower()):
+    # Transliterate mode
+    if state == 'translit_content' or transliterate_dir:
         await process_transliterate(update, context)
         return
-    elif 'translate' in str(direction).lower():
+    # Translate mode — detected by presence of translate_direction key
+    elif translate_dir or state == 'translate_input':
         await process_translate_doc(update, context)
         increment_file_count(uid, "Translate Doc")
     elif state == 'spell_check_doc' or state == 'spellcheck_file':
@@ -354,6 +359,8 @@ def setup_application():
         elif "Rus → O'zbek" in text: direction = "ru_uz"
         elif "O'zbek → Rus" in text: direction = "uz_ru"
         elif "Rus → Ingliz" in text: direction = "ru_en"
+        # Clear any stale state before starting new translation session
+        context.user_data.pop('waiting_for', None)
         await set_translation_direction(update, context, direction)
 
     application.add_handler(MessageHandler(
