@@ -1,4 +1,4 @@
-from telegram import Update, InputFile
+from telegram import Update, InputFile, InlineKeyboardMarkup, InlineKeyboardButton, WebAppInfo
 from telegram.ext import ContextTypes
 from bot.keyboards.reply_keyboards import get_back_button, get_main_menu
 import os
@@ -6,7 +6,8 @@ import time
 import logging
 from bot.utils.progress import send_progress, update_progress
 from bot.services.ai_service import transcribe_audio, extract_obyektivka_data
-from bot.services.doc_generator import generate_obyektivka_docx
+import json
+from config import WEBAPP_BASE
 
 # Project root directory (where config.py lives)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -52,39 +53,38 @@ async def process_obyektivka_from_audio_path(context, audio_path, chat_id, user_
             f"🎓 {extracted_data.get('education', 'N/A')}"
         )
         
-        await update_progress(context, progress_msg, 80, "Hujjat tayyorlanmoqda (DOCX)...")
+        await update_progress(context, progress_msg, 80, "Web-shaklga bog'lanmoqda...")
         
-        # 3. Generate DOCX
-        import asyncio
-        temp_docx = await asyncio.to_thread(generate_obyektivka_docx, extracted_data)
+        # 3. Save to JSON and generate Link
+        os.makedirs("temp", exist_ok=True)
+        json_path = f"temp/oby_data_{user_id}.json"
         
-        if not temp_docx or not os.path.exists(temp_docx):
-            await progress_msg.edit_text("❌ Hujjat yaratishda xatolik.")
-            return
-
-        # 4. Send Document
-        await update_progress(context, progress_msg, 100, "Yuborilmoqda...")
+        try:
+            with open(json_path, "w", encoding="utf-8") as f:
+                json.dump(extracted_data, f, ensure_ascii=False)
+        except Exception as e:
+            logger.error(f"Error saving temp json: {e}")
         
-        with open(temp_docx, 'rb') as f:
-            await context.bot.send_document(
-                chat_id=chat_id,
-                document=InputFile(f, filename=os.path.basename(temp_docx)),
-                caption=f"{summary}\n\n✅ **Obyektivka tayyor!**",
-                parse_mode="Markdown"
-            )
+        await update_progress(context, progress_msg, 100, "Tayyor!")
+        
+        # 4. Give webapp link
+        kb = [[InlineKeyboardButton(
+            "📋 Formani ko'rish / Yuklab olish", 
+            web_app=WebAppInfo(url=f"{WEBAPP_BASE}/obyektivka.html?autoload=1&telegram_id={user_id}")
+        )]]
+        
+        await context.bot.send_message(
+            chat_id=chat_id,
+            text=f"{summary}\n\n✅ **Ma'lumotlaringiz tayyorlandi.**\nQuyidagi havola orqali formani ko'rib chiqing va Word (DOCX) yoki PDF yuklab oling.",
+            parse_mode="Markdown",
+            reply_markup=InlineKeyboardMarkup(kb)
+        )
             
         await progress_msg.delete()
         
     except Exception as e:
         logger.error(f"Obyektivka Process Error: {e}", exc_info=True)
         await progress_msg.edit_text(f"❌ Xatolik: {e}")
-        
-    finally:
-        # Cleanup DOCX
-        try:
-            if temp_docx and os.path.exists(temp_docx):
-                os.remove(temp_docx)
-        except: pass
 
 
 async def obyektivka_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):

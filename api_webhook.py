@@ -689,6 +689,29 @@ async def api_generate_cv(req: CVRequest):
 
 
 # ═══════════════════════════════════════════════════════════════════════════
+# /api/get_oby_data — Fetch temporary parsed data for Obyektivka
+# ═══════════════════════════════════════════════════════════════════════════
+@app.get("/api/get_oby_data")
+async def api_get_oby_data(
+    token: str = Query(None),
+    telegram_id: str = Query(None),
+):
+    uid = _resolve_uid(telegram_id, token)
+    if not uid:
+        raise HTTPException(status_code=401, detail="Foydalanuvchi aniqlanmadi")
+    
+    path = f"temp/oby_data_{uid}.json"
+    if os.path.exists(path):
+        import json
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            return {"ok": True, "data": data}
+        except Exception as e:
+            logger.error(f"Error reading oby_data: {e}")
+    return {"ok": False}
+
+# ═══════════════════════════════════════════════════════════════════════════
 # /api/generate_obyektivka— Obyektivka DOCX generator
 # ═══════════════════════════════════════════════════════════════════════════
 class ObyektivkaRequest(BaseModel):

@@ -701,7 +701,61 @@
                 if (document.documentElement.classList.contains('dark')) {
                     if (tg?.setHeaderColor) tg.setHeaderColor('#0a0a0c');
                 }
-                updateCV();
+
+                // Fetch AI extracted data
+                const tid = DastyorAI.getTelegramId();
+                const isAutoload = new URLSearchParams(location.search).get('autoload');
+
+                if (tid && isAutoload) {
+                    fetch(DastyorAI.BASE + '/api/get_oby_data?telegram_id=' + tid)
+                        .then(r => r.json())
+                        .then(res => {
+                            if (res.ok && res.data) {
+                                const d = res.data;
+                                document.getElementById('f_name').value = d.fullname || '';
+                                document.getElementById('f_birth').value = d.birthdate || '';
+                                document.getElementById('f_place').value = d.birthplace || '';
+                                document.getElementById('f_nation').value = d.nation || '';
+                                document.getElementById('f_party').value = d.party || '';
+                                document.getElementById('f_edu').value = d.education || '';
+                                document.getElementById('f_grad').value = d.graduated || '';
+                                document.getElementById('f_spec').value = d.specialty || '';
+                                document.getElementById('f_degree').value = d.degree || '';
+                                document.getElementById('f_title').value = d.scientific_title || '';
+                                document.getElementById('f_langs').value = d.languages || '';
+                                document.getElementById('f_awards').value = d.awards || '';
+                                document.getElementById('f_deputy').value = d.deputy || '';
+
+                                if (d.work_experience && Array.isArray(d.work_experience) && d.work_experience.length > 0) {
+                                    experiences = d.work_experience.map((e, i) => ({
+                                        id: Date.now() + i,
+                                        years: e.year || '',
+                                        desc: e.position || ''
+                                    }));
+                                } else { experiences = []; }
+                                renderExp();
+
+                                if (d.relatives && Array.isArray(d.relatives) && d.relatives.length > 0) {
+                                    relatives = d.relatives.map((r, i) => ({
+                                        id: Date.now() + i,
+                                        role: r.degree || '',
+                                        name: r.fullname || '',
+                                        birth: r.birth_year_place || '',
+                                        work: r.work_place || '',
+                                        addr: r.address || ''
+                                    }));
+                                } else { relatives = []; }
+                                renderRel();
+
+                                updateCV();
+                                if (tg?.showAlert) tg.showAlert("Ma'lumotlar AI orqali kiritildi. O'zgartirishingiz va yuklab olishingiz mumkin!");
+                            } else {
+                                updateCV();
+                            }
+                        }).catch(() => updateCV());
+                } else {
+                    updateCV();
+                }
             }, 100);
 
             function exportPDF() {
