@@ -58,9 +58,17 @@ async def root():
 from pydantic import BaseModel
 from fastapi import File, UploadFile, Form, Header, Query
 from fastapi.responses import StreamingResponse, JSONResponse
-from typing import List, Optional
+from typing import List, Optional, Literal
 from telegram import InputFile
 import asyncio, time, io
+
+from bot.services.render_service import (
+    generate_cv_pdf, generate_cv_word, build_cv_context, safe_filename,
+    generate_obyektivka_pdf, generate_obyektivka_word, build_obyektivka_context,
+)
+
+SITE_BASE_URL = os.getenv("SITE_BASE_URL", "https://dastyor-ai.onrender.com")
+
 
 # ═══════════════════════════════════════════════════════════════════════════
 # HELPER: Resolve telegram_id from ANY source (token > URL param > form)
@@ -871,7 +879,195 @@ async def api_generate_obyektivka(req: ObyektivkaRequest):
 
 
 
+
+# ═══════════════════════════════════════════════════════════════════════════
+# /api/export_cv  — Server-side CV export (PDF or Word)
+# ═══════════════════════════════════════════════════════════════════════════
+class ExportCVRequest(BaseModel):
+    telegram_id : Optional[int]  = None
+    token       : Optional[str]  = None
+    format      : str            = "pdf"   # "pdf" | "word"
+    # CV fields (mirrors CVRequest above)
+    name        : str  = ""
+    spec        : str  = ""
+    phone       : str  = ""
+    email       : str  = ""
+    loc         : str  = ""
+    addr        : str  = ""
+    birth       : str  = ""
+    place       : str  = ""
+    nation      : str  = ""
+    langs       : str  = ""
+    about       : str  = ""
+    template    : str  = "minimal"
+    works       : list = []
+    education_list: list = []
+    skills      : str  = ""
+    img         : str  = ""   # absolute URL of profile photo (optional)
+
+@app.post("/api/export_cv")
+async def api_export_cv(req: ExportCVRequest):
+    """
+    Server-side CV export.
+    Renders the SAME Jinja2 template used for the browser preview, so
+    the exported file is pixel-perfect regardless of client environment.
+    """
+    ts = int(time.time())
+    uid_str = _resolve_uid(str(req.telegram_id) if req.telegram_id else None, req.token)
+    fmt = req.format.lower()
+    data = req.dict(exclude={"telegram_id", "token", "format"})
+    safe = safe_filename(req.name or "CV")
+    bot_suffix = "_@DastyorAiBot"
+
+    if fmt == "word":
+        # ── Word export (.doc) ──────────────────────────────────────────
+        filename = f"DASTYOR_CV_{safe}_{ts}{bot_suffix}.doc"
+        file_bytes = generate_cv_word(data)
+        media_type = "application/msword"
+    else:
+        # ── PDF export (WeasyPrint → exact browser render) ─────────────
+        filename = f"DASTYOR_CV_{safe}_{ts}{bot_suffix}.pdf"
+        pdf_bytes = generate_cv_pdf(data, base_url=SITE_BASE_URL)
+        if not pdf_bytes:
+            # WeasyPrint unavailable → fall back to python-docx PDF
+            from bot.services.doc_generator import generate_cv_docx, convert_to_pdf_safe
+            docx_path = await asyncio.get_event_loop().run_in_executor(None, generate_cv_docx, data)
+            pdf_path = convert_to_pdf_safe(docx_path) if docx_path else None
+            if pdf_path and os.path.exists(pdf_path):
+                with open(pdf_path, "rb") as fh:
+                    pdf_bytes = fh.read()
+                for p in [pdf_path, docx_path]:
+                    try: os.remove(p)
+                    except: pass
+            else:
+                raise HTTPException(status_code=500, detail="PDF yaratishda xato")
+        file_bytes = pdf_bytes
+        media_type = "application/pdf"
+
+    # ── Background Telegram delivery ────────────────────────────────────
+    if uid_str:
+        from bot.services.user_service import increment_file_count
+        increment_file_count(int(uid_str), f"CV Export {fmt.upper()}")
+
+        async def _send():
+            try:
+                buf = io.BytesIO(file_bytes)
+                buf.name = filename
+                chat_id = int(uid_str)
+                await application.bot.send_document(
+                    chat_id=chat_id,
+                    document=InputFile(buf, filename=filename),
+                    caption=(
+                        f"✅ <b>CV tayyor!</b>\n"
+                        f"👤 <b>{req.name}</b>  · 🎨 {req.template}\n"
+                        f"📎 <code>{filename}</code>"
+                    ),
+                    parse_mode="HTML",
+                )
+            except Exception as tg_err:
+                logger.warning(f"CV export Telegram send failed: {tg_err}")
+
+        asyncio.create_task(_send())
+
+    return StreamingResponse(
+        io.BytesIO(file_bytes),
+        media_type=media_type,
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# /api/export_obyektivka  — Server-side Obyektivka export
+# ═══════════════════════════════════════════════════════════════════════════
+class ExportObyektivkaRequest(BaseModel):
+    telegram_id    : Optional[int] = None
+    token          : Optional[str] = None
+    format         : str           = "pdf"  # "pdf" | "word"
+    fullname       : str = ""
+    birthdate      : str = ""
+    birthplace     : str = ""
+    nation         : str = ""
+    party          : str = ""
+    education      : str = ""
+    graduated      : str = ""
+    specialty      : str = ""
+    degree         : str = ""
+    scientific_title: str = ""
+    languages      : str = ""
+    military_rank  : str = ""
+    awards         : str = ""
+    deputy         : str = ""
+    address        : str = ""
+    phone          : str = ""
+    work_experience: list = []
+    relatives      : list = []
+
+@app.post("/api/export_obyektivka")
+async def api_export_obyektivka(req: ExportObyektivkaRequest):
+    """
+    Server-side Obyektivka export — same template as browser preview.
+    """
+    ts  = int(time.time())
+    uid_str = _resolve_uid(str(req.telegram_id) if req.telegram_id else None, req.token)
+    fmt  = req.format.lower()
+    data = req.dict(exclude={"telegram_id", "token", "format"})
+    safe = safe_filename(req.fullname or "Obyektivka")
+    bot_suffix = "_@DastyorAiBot"
+
+    if fmt == "word":
+        filename   = f"DASTYOR_Obyektivka_{safe}_{ts}{bot_suffix}.doc"
+        file_bytes = generate_obyektivka_word(data)
+        media_type = "application/msword"
+    else:
+        filename  = f"DASTYOR_Obyektivka_{safe}_{ts}{bot_suffix}.pdf"
+        pdf_bytes = generate_obyektivka_pdf(data, base_url=SITE_BASE_URL)
+        if not pdf_bytes:
+            from bot.services.doc_generator import generate_obyektivka_docx, convert_to_pdf_safe
+            docx_path = await asyncio.get_event_loop().run_in_executor(None, generate_obyektivka_docx, data)
+            pdf_path  = convert_to_pdf_safe(docx_path) if docx_path else None
+            if pdf_path and os.path.exists(pdf_path):
+                with open(pdf_path, "rb") as fh:
+                    pdf_bytes = fh.read()
+                for p in [pdf_path, docx_path]:
+                    try: os.remove(p)
+                    except: pass
+            else:
+                raise HTTPException(status_code=500, detail="PDF yaratishda xato")
+        file_bytes = pdf_bytes
+        media_type = "application/pdf"
+
+    if uid_str:
+        from bot.services.user_service import increment_file_count
+        increment_file_count(int(uid_str), f"Obyektivka Export {fmt.upper()}")
+
+        async def _send_oby():
+            try:
+                buf = io.BytesIO(file_bytes)
+                buf.name = filename
+                await application.bot.send_document(
+                    chat_id=int(uid_str),
+                    document=InputFile(buf, filename=filename),
+                    caption=(
+                        f"✅ <b>Obyektivka tayyor!</b>\n"
+                        f"👤 <b>{req.fullname}</b>\n"
+                        f"📎 <code>{filename}</code>"
+                    ),
+                    parse_mode="HTML",
+                )
+            except Exception as e:
+                logger.warning(f"Obyektivka export Telegram send failed: {e}")
+
+        asyncio.create_task(_send_oby())
+
+    return StreamingResponse(
+        io.BytesIO(file_bytes),
+        media_type=media_type,
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
 @app.post("/webhook")
+
 async def webhook(request: Request):
     """
     Handle incoming Telegram updates via POST request.

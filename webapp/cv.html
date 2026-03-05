@@ -1344,29 +1344,52 @@
       t._hideTimer = setTimeout(() => { t.style.opacity = '0'; }, 4000);
     }
 
-    // ── exportPDF() — Preview bilan aynan bir xil PDF ─────────────────
-    function exportPDF() {
-      const el = document.getElementById('cv-box');
-      const wrap = document.getElementById('previewScaleWrapper');
-      wrap.style.transform = 'none'; // reset scale for full-res render
-
-      const safeName = (document.getElementById('f_name')?.value || 'CV').replace(/\s+/g, '_');
-      const filename = 'DASTYOR_CV_' + safeName + '_@DastyorAiBot.pdf';
-
-      const opt = {
-        margin: 0,
-        filename: filename,
-        image: { type: 'jpeg', quality: 1.0 },
-        html2canvas: { scale: 3, useCORS: true },
-        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+    // ── _collectCVData() — forma ma'lumotlarini to'playdi ────────────
+    function _collectCVData(format) {
+      const get = id => (document.getElementById(id)?.value || '').trim();
+      return {
+        format: format,
+        telegram_id: DastyorAI.getTelegramId() ? parseInt(DastyorAI.getTelegramId()) : null,
+        token: DastyorAI.getToken() || null,
+        name: get('f_name'),
+        spec: get('f_spec'),
+        phone: get('f_phone'),
+        email: get('f_email'),
+        loc: get('f_loc'),
+        addr: get('f_addr'),
+        birth: get('f_birth'),
+        place: get('f_place'),
+        nation: get('f_nation'),
+        langs: get('f_langs'),
+        about: get('f_about'),
+        template: cvData.template || 'minimal',
+        skills: get('f_skills'),
+        works: cvData.works || [],
+        education_list: cvData.edu_list || [],
+        img: cvData.img || '',
       };
+    }
 
+    // ── exportPDF() — Server-side, pixel-perfect PDF ───────────────────
+    async function exportPDF() {
       const btn = document.getElementById('btnPdf');
       const originalHtml = btn.innerHTML;
       btn.innerHTML = I18n.t('status_processing') || '⏳ Kutmoqda...';
       btn.disabled = true;
 
-      html2pdf().set(opt).from(el).outputPdf('blob').then((blob) => {
+      const safeName = (_collectCVData('pdf').name || 'CV').replace(/\s+/g, '_');
+      const filename = `DASTYOR_CV_${safeName}_@DastyorAiBot.pdf`;
+
+      try {
+        const res = await fetch(DastyorAI.BASE + '/api/export_cv', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(_collectCVData('pdf')),
+        });
+
+        if (!res.ok) throw new Error('Server xatosi: ' + res.status);
+
+        const blob = await res.blob();
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
@@ -1375,17 +1398,40 @@
         a.click();
         setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 2000);
 
-        uploadToTelegram(blob, filename);
+        _showTelegramToast(DastyorAI.getTelegramId()
+          ? '✅ PDF saqlandi va Telegram ga yuborildi!'
+          : '✅ PDF saqlandi!');
+      } catch (err) {
+        console.error('exportPDF server error:', err);
+        // Fallback: client-side html2pdf
+        _exportPDFClientSide(filename, btn, originalHtml);
+        return;
+      }
 
+      autoScale();
+      btn.innerHTML = originalHtml;
+      btn.disabled = false;
+    }
+
+    // Fallback: old client-side export using html2pdf.js
+    function _exportPDFClientSide(filename, btn, originalHtml) {
+      const el = document.getElementById('cv-box');
+      document.getElementById('previewScaleWrapper').style.transform = 'none';
+      html2pdf().set({
+        margin: 0, filename,
+        image: { type: 'jpeg', quality: 1.0 },
+        html2canvas: { scale: 3, useCORS: true },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+      }).from(el).outputPdf('blob').then(blob => {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = filename;
+        document.body.appendChild(a); a.click();
+        setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 2000);
+        uploadToTelegram(blob, filename);
         autoScale();
         btn.innerHTML = originalHtml;
         btn.disabled = false;
-
-        if (DastyorAI.getTelegramId()) {
-          _showTelegramToast('✅ PDF saqlandi va Telegram ga yuborildi!');
-        } else {
-          if (tg && tg.showAlert) tg.showAlert(I18n.t('pdf_saved') || '✅ PDF saqlandi!');
-        }
       }).catch(err => {
         console.error(err);
         btn.innerHTML = originalHtml;
@@ -1393,72 +1439,62 @@
       });
     }
 
-    // ── exportWord() — Aynan preview ko'rinishida MS Word (.doc) ──────
+    // ── exportWord() — Server-side, pixel-perfect Word ─────────────────
     async function exportWord() {
       const btn = document.querySelector('button[onclick="exportWord()"]');
       if (btn) { btn.disabled = true; btn.innerHTML = I18n.t('status_processing') || '⏳ Kutmoqda...'; }
 
-      const rawHtml = document.getElementById('cv-box').outerHTML;
-      const safeName = (document.getElementById('f_name')?.value || 'CV').replace(/\s+/g, '_');
-      const docFilename = `DASTYOR_CV_${safeName}_@DastyorAiBot.doc`;
-      const styles = document.querySelector('style').innerHTML;
-      // Word-specific CSS: convert flex layouts to table-based for MS Word compatibility
-      const wordOverrides = `
-        .tpl-split, .tpl-creative { display: table !important; width: 100% !important; }
-        .tpl-split .sidebar, .tpl-creative .left { display: table-cell !important; vertical-align: top !important; }
-        .tpl-split .main, .tpl-creative .right { display: table-cell !important; vertical-align: top !important; }
-        .tpl-modern .body, .tpl-elegant .body-cols, .tpl-corporate .body-cols { display: table !important; width: 100% !important; }
-        .tpl-modern .col-main, .tpl-elegant .col-main, .tpl-corporate .col-main { display: table-cell !important; vertical-align: top !important; width: 65% !important; padding-right: 30px !important; }
-        .tpl-modern .col-side, .tpl-elegant .col-side, .tpl-corporate .col-side { display: table-cell !important; vertical-align: top !important; width: 35% !important; }
-        .tpl-corporate .header { display: table !important; width: 100% !important; }
-        .tpl-corporate .header > div:first-child { display: table-cell !important; }
-        .tpl-corporate .header .contact-wrap { display: table-cell !important; text-align: right !important; vertical-align: bottom !important; }
-      `;
+      const safeName = (_collectCVData('word').name || 'CV').replace(/\s+/g, '_');
+      const filename = `DASTYOR_CV_${safeName}_@DastyorAiBot.doc`;
 
-      const docHTML = `<html xmlns:o='urn:schemas-microsoft-com:office:office'
-        xmlns:w='urn:schemas-microsoft-com:office:word'
-        xmlns='http://www.w3.org/TR/REC-html40'>
-        <head>
-          <meta charset='utf-8'>
-          <title>${docFilename}</title>
-          <xml>
-            <w:WordDocument>
-              <w:View>Print</w:View>
-              <w:Zoom>100</w:Zoom>
-              <w:DoNotOptimizeForBrowser/>
-            </w:WordDocument>
-          </xml>
-          <style>
-            @page WordSection1 { size: 210mm 297mm; margin: 15mm; }
-            div.WordSection1 { page: WordSection1; }
-            ${styles}
-            ${wordOverrides}
-          </style>
-        </head>
-        <body>
-          <div class="WordSection1">${rawHtml}</div>
-        </body> 
-      </html>`;
+      try {
+        const res = await fetch(DastyorAI.BASE + '/api/export_cv', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(_collectCVData('word')),
+        });
 
-      const blob = new Blob(['\ufeff', docHTML], { type: 'application/msword' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = docFilename;
-      document.body.appendChild(a);
-      a.click();
-      setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 2000);
+        if (!res.ok) throw new Error('Server xatosi: ' + res.status);
 
-      uploadToTelegram(blob, docFilename);
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 2000);
 
-      if (DastyorAI.getTelegramId()) {
-        _showTelegramToast('✅ Word (+Dizayn) saqlandi va Telegram ga yuborildi!');
-      } else {
-        _showTelegramToast('✅ Word (+Dizayn) saqlandi!');
+        _showTelegramToast(DastyorAI.getTelegramId()
+          ? '✅ Word saqlandi va Telegram ga yuborildi!'
+          : '✅ Word saqlandi!');
+      } catch (err) {
+        console.error('exportWord server error:', err);
+        _exportWordClientSide(filename);
       }
 
       if (btn) { btn.disabled = false; btn.innerHTML = '📄 Word'; }
     }
+
+    // Fallback: old client-side Word blob export
+    function _exportWordClientSide(filename) {
+      const rawHtml = document.getElementById('cv-box').outerHTML;
+      const styles = document.querySelector('style').innerHTML;
+      const docHTML = `<html xmlns:o='urn:schemas-microsoft-com:office:office'
+        xmlns:w='urn:schemas-microsoft-com:office:word'
+        xmlns='http://www.w3.org/TR/REC-html40'>
+        <head><meta charset='utf-8'><title>${filename}</title>
+        <style>@page WordSection1{size:210mm 297mm;margin:15mm;}div.WordSection1{page:WordSection1;}${styles}</style>
+        </head><body><div class="WordSection1">${rawHtml}</div></body></html>`;
+      const blob = new Blob(['\ufeff', docHTML], { type: 'application/msword' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = filename;
+      document.body.appendChild(a); a.click();
+      setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 2000);
+      uploadToTelegram(blob, filename);
+    }
+
   </script>
 </body>
 

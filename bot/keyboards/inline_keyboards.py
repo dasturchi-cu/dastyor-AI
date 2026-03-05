@@ -36,3 +36,18 @@ def get_smart_audio_keyboard():
         [InlineKeyboardButton("🗑 Bekor qilish", callback_data="smart_cancel")]
     ]
     return InlineKeyboardMarkup(keyboard)
+
+def get_smart_translate_keyboard():
+    """Inline keyboard for selecting translation direction inside smart flow"""
+    keyboard = [
+        [
+            InlineKeyboardButton("🇷🇺 Rus → O'zbek",   callback_data="smart_trl_ru_uz"),
+            InlineKeyboardButton("🇺🇿 O'zbek → Rus",   callback_data="smart_trl_uz_ru"),
+        ],
+        [
+            InlineKeyboardButton("🇬🇧 Ingliz → O'zbek", callback_data="smart_trl_en_uz"),
+            InlineKeyboardButton("🇺🇿 O'zbek → Ingliz", callback_data="smart_trl_uz_en"),
+        ],
+        [InlineKeyboardButton("🗑 Bekor qilish", callback_data="smart_cancel")]
+    ]
+    return InlineKeyboardMarkup(keyboard)

@@ -179,13 +179,85 @@ async def smart_callback_handler(update: Update, context: ContextTypes.DEFAULT_T
             await process_obyektivka_from_audio_path(context, temp_path, chat_id, user_id)
             return
             
-        # === 5. Translate (Doc -> Doc) ===
+        # === 5. Translate (Doc → Doc) — Step 1: choose direction ===
         elif data == "smart_translate":
-             # We need to ask for direction.
-             # This requires a new Inline Keyboard for language selection specific to Smart Router.
-             # For now, let's just use default "Uzbek -> English" or tell user to use menu.
-             await query.message.edit_text("🌍 Tarjima funksiyasi menyu orqali mavjud. Iltimos, 'Tarjima fayl' bo'limini tanlang.")
-             return
+            from bot.keyboards.inline_keyboards import get_smart_translate_keyboard
+            await query.message.edit_text(
+                "🌍 <b>Tarjima yo'nalishini tanlang:</b>",
+                parse_mode="HTML",
+                reply_markup=get_smart_translate_keyboard()
+            )
+            return
+
+        # === 5b. Translate — Step 2: direction chosen, do translation ===
+        elif data.startswith("smart_trl_"):
+            direction = data.replace("smart_trl_", "")  # e.g. 'ru_uz'
+            DIRECTION_LABELS = {
+                'ru_uz': "Rus → O'zbek", 'uz_ru': "O'zbek → Rus",
+                'en_uz': "Ingliz → O'zbek", 'uz_en': "O'zbek → Ingliz",
+            }
+            TARGET_LANG = {'ru_uz': 'uz', 'uz_ru': 'ru', 'en_uz': 'uz', 'uz_en': 'en'}
+            label = DIRECTION_LABELS.get(direction, direction)
+            target_lang = TARGET_LANG.get(direction, 'uz')
+
+            file_name = context.user_data.get('smart_file_name', 'document.docx')
+            ext = os.path.splitext(file_name)[1].lower()
+
+            if ext not in ('.docx',):
+                await query.message.edit_text(
+                    f"❌ <b>{ext}</b> formati qo'llab-quvvatlanmaydi.\n"
+                    "Faqat <b>.docx</b> (Word) tarjima qilinadi.",
+                    parse_mode="HTML"
+                )
+                return
+
+            await query.message.edit_text(
+                f"⏳ <b>'{file_name}'</b> tarjima qilinmoqda...\n"
+                f"🔄 {label} · AI ishlamoqda (30–90 son).",
+                parse_mode="HTML"
+            )
+
+            temp_path = f"smart_trl_{user_id}_{int(time.time())}{ext}"
+            translated_path = None
+            try:
+                from telegram import InputFile
+                from bot.services.ai_service import translate_document_gemini
+
+                file_obj = await context.bot.get_file(file_id)
+                await file_obj.download_to_drive(temp_path)
+
+                translated_path = await translate_document_gemini(temp_path, target_lang)
+
+                if translated_path and os.path.exists(translated_path):
+                    base_name = os.path.splitext(file_name)[0]
+                    out_name = f"{base_name}_{target_lang}_@DastyorAiBot{ext}"
+                    await query.message.delete()
+                    with open(translated_path, "rb") as fp:
+                        await context.bot.send_document(
+                            chat_id=chat_id,
+                            document=InputFile(fp, filename=out_name),
+                            caption=(
+                                f"✅ <b>Tarjima tayyor!</b>\n"
+                                f"📄 Original: <code>{file_name}</code>\n"
+                                f"🔄 {label}\n"
+                                f"📎 <code>{out_name}</code>"
+                            ),
+                            parse_mode="HTML"
+                        )
+                else:
+                    await query.message.edit_text(
+                        "❌ Tarjima qilishda xatolik yuz berdi.\n"
+                        "Fayl bo'sh yoki murakkab tuzilmaga ega bo'lishi mumkin."
+                    )
+            except Exception as trl_err:
+                logger.error(f"Smart translate error: {trl_err}", exc_info=True)
+                await query.message.edit_text(f"❌ Xatolik: {str(trl_err)[:120]}")
+            finally:
+                for p in [temp_path, translated_path]:
+                    if p and os.path.exists(p):
+                        try: os.remove(p)
+                        except: pass
+            return
 
         # ... other handlers ...
         

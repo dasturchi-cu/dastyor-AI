@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="uz">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Ma'lumotnoma — {{ data.fullname }}</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Times+New+Roman:ital,wght@0,400;0,700;1,400&display=swap');
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Times New Roman', 'Times', serif;
+            font-size: 11pt;
+            color: #111;
+            background: #fff;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+
+        .page {
+            width: 210mm;
+            min-height: 297mm;
+            margin: 0 auto;
+            padding: 15mm 15mm 10mm;
+            background: #fff;
+        }
+
+        /* ── TITLE ─────────────────────────────────────────── */
+        .doc-title {
+            text-align: center;
+            font-size: 14pt;
+            font-weight: bold;
+            letter-spacing: 0.15em;
+            margin-bottom: 16px;
+        }
+
+        /* ── HEADER TABLE (photo | info) ───────────────────── */
+        .header-table {
+            width: 100%;
+            border-collapse: collapse;
+            border: 1px solid #999;
+            margin-bottom: 14px;
+        }
+
+        .header-table td {
+            vertical-align: top;
+            padding: 8px 10px;
+            border: 1px solid #999;
+        }
+
+        .photo-cell {
+            width: 28%;
+            text-align: center;
+            color: #999;
+            font-style: italic;
+            font-size: 9pt;
+        }
+
+        .photo-cell img {
+            max-width: 100%;
+            max-height: 140px;
+            object-fit: cover;
+        }
+
+        .info-cell {
+            width: 72%;
+        }
+
+        .info-row {
+            display: flex;
+            margin-bottom: 5px;
+            font-size: 10.5pt;
+        }
+
+        .info-label {
+            font-weight: bold;
+            min-width: 200px;
+            flex-shrink: 0;
+            padding-right: 6px;
+        }
+
+        .info-value {
+            color: #222;
+        }
+
+        /* ── SECTION TITLES ────────────────────────────────── */
+        .section-title {
+            text-align: center;
+            font-weight: bold;
+            font-size: 11pt;
+            margin: 14px 0 8px;
+            text-transform: uppercase;
+        }
+
+        /* ── WORK EXPERIENCE TABLE ─────────────────────────── */
+        .exp-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 14px;
+            font-size: 10pt;
+        }
+
+        .exp-table th,
+        .exp-table td {
+            border: 1px solid #999;
+            padding: 5px 8px;
+        }
+
+        .exp-table th {
+            background: #d9d9d9;
+            font-weight: bold;
+            text-align: center;
+        }
+
+        .exp-table td:first-child {
+            width: 25%;
+        }
+
+        /* ── RELATIVES TABLE ───────────────────────────────── */
+        .rel-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 9pt;
+        }
+
+        .rel-table th,
+        .rel-table td {
+            border: 1px solid #999;
+            padding: 4px 6px;
+        }
+
+        .rel-table th {
+            background: #d9d9d9;
+            font-weight: bold;
+            text-align: center;
+        }
+
+        .rel-table td:nth-child(1) {
+            width: 14%;
+        }
+
+        .rel-table td:nth-child(2) {
+            width: 18%;
+        }
+
+        .rel-table td:nth-child(3) {
+            width: 20%;
+        }
+
+        .rel-table td:nth-child(4) {
+            width: 25%;
+        }
+
+        .rel-table td:nth-child(5) {
+            width: 23%;
+        }
+
+        /* ── Print ─────────────────────────────────────────── */
+        @page {
+            size: A4;
+            margin: 0;
+        }
+
+        @media print {
+
+            html,
+            body {
+                width: 210mm;
+                height: 297mm;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    {% set d = data %}
+
+    <div class="page">
+
+        <!-- ── TITLE ──────────────────────────────────── -->
+        <div class="doc-title">M A ' L U M O T N O M A</div>
+
+        <!-- ── HEADER: photo + personal info ─────────── -->
+        <table class="header-table">
+            <tr>
+                <td class="photo-cell">
+                    {% if d.img %}
+                    <img src="{{ d.img }}" alt="Fotosurat">
+                    {% else %}
+                    [Fotosurat]
+                    {% endif %}
+                </td>
+                <td class="info-cell">
+                    <div class="info-row"><span class="info-label">Familiya, ismi, sharifi:</span><span
+                            class="info-value">{{ d.fullname or '—' }}</span></div>
+                    <div class="info-row"><span class="info-label">Tug'ilgan yili, kuni va oyi:</span><span
+                            class="info-value">{{ d.birthdate or '—' }}</span></div>
+                    <div class="info-row"><span class="info-label">Tug'ilgan joyi:</span><span class="info-value">{{
+                            d.birthplace or '—' }}</span></div>
+                    <div class="info-row"><span class="info-label">Millati:</span><span class="info-value">{{ d.nation
+                            or '—' }}</span></div>
+                    <div class="info-row"><span class="info-label">Partiyaviyligi:</span><span class="info-value">{{
+                            d.party or 'Partiyasiz' }}</span></div>
+                    <div class="info-row"><span class="info-label">Ma'lumoti:</span><span class="info-value">{{
+                            d.education or '—' }}</span></div>
+                    <div class="info-row"><span class="info-label">Qaysi oliy maktabni tamomlagan:</span><span
+                            class="info-value">{{ d.graduated or '—' }}</span></div>
+                    <div class="info-row"><span class="info-label">Mutaxassisligi:</span><span class="info-value">{{
+                            d.specialty or '—' }}</span></div>
+                    <div class="info-row"><span class="info-label">Ilmiy darajasi:</span><span class="info-value">{{
+                            d.degree or '—' }}</span></div>
+                    <div class="info-row"><span class="info-label">Ilmiy unvoni:</span><span class="info-value">{{
+                            d.scientific_title or '—' }}</span></div>
+                    <div class="info-row"><span class="info-label">Qaysi chet tillarini biladi:</span><span
+                            class="info-value">{{ d.languages or '—' }}</span></div>
+                    <div class="info-row"><span class="info-label">Harbiy unvoni:</span><span class="info-value">{{
+                            d.military_rank or '—' }}</span></div>
+                    <div class="info-row"><span class="info-label">Davlat mukofotlari:</span><span class="info-value">{{
+                            d.awards or '—' }}</span></div>
+                    <div class="info-row"><span class="info-label">Deputatligi:</span><span class="info-value">{{
+                            d.deputy or '—' }}</span></div>
+                </td>
+            </tr>
+        </table>
+
+        <!-- ── WORK EXPERIENCE ────────────────────────── -->
+        <div class="section-title">MEHNAT FAOLIYATI</div>
+        <table class="exp-table">
+            <thead>
+                <tr>
+                    <th>Yillar</th>
+                    <th>Ish joyi va lavozimi</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if d.work_experience %}
+                {% for exp in d.work_experience %}
+                <tr>
+                    <td>{{ exp.year or exp.years or '—' }}</td>
+                    <td>{{ exp.position or exp.desc or '—' }}</td>
+                </tr>
+                {% endfor %}
+                {% else %}
+                <tr>
+                    <td>—</td>
+                    <td>—</td>
+                </tr>
+                {% endif %}
+            </tbody>
+        </table>
+
+        <!-- ── RELATIVES ──────────────────────────────── -->
+        {% set fn = (d.fullname or '').split(' ')[0] | upper %}
+        <div class="section-title">{{ fn }}NING YAQIN QARINDOSHLARI HAQIDA MA'LUMOT</div>
+        <table class="rel-table">
+            <thead>
+                <tr>
+                    <th>Qarindoshligi</th>
+                    <th>F.I.SH.</th>
+                    <th>Tug'ilgan yili va joyi</th>
+                    <th>Ish joyi</th>
+                    <th>Yashash manzili</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if d.relatives %}
+                {% for rel in d.relatives %}
+                <tr>
+                    <td>{{ rel.degree or rel.role or '—' }}</td>
+                    <td>{{ rel.fullname or rel.name or '—' }}</td>
+                    <td>{{ rel.birth_year_place or rel.birth or '—' }}</td>
+                    <td>{{ rel.work_place or rel.work or '—' }}</td>
+                    <td>{{ rel.address or rel.addr or '—' }}</td>
+                </tr>
+                {% endfor %}
+                {% else %}
+                <tr>
+                    <td>—</td>
+                    <td>—</td>
+                    <td>—</td>
+                    <td>—</td>
+                    <td>—</td>
+                </tr>
+                {% endif %}
+            </tbody>
+        </table>
+
+    </div>
+
+</body>
+
+</html>
