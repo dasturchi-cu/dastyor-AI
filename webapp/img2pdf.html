@@ -373,7 +373,7 @@
                 const a = document.createElement('a');
                 a.style.display = 'none';
                 a.href = url;
-                a.download = `DASTYOR_AI_Rasmlar_${new Date().getTime()}.pdf`;
+                a.download = `DASTYOR_AI_Rasmlar_${new Date().getTime()}_@DastyorAiBot.pdf`;
                 document.body.appendChild(a);
                 a.click();
                 window.URL.revokeObjectURL(url);

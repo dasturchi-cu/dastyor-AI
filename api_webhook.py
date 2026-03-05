@@ -421,7 +421,7 @@ async def api_ocr_direct(
     _cleanup(img_path)
 
     # ── 6. Stream DOCX bytes to browser → triggers auto-download ─────
-    filename = f"DASTYOR_OCR_{ts}.docx"
+    filename = f"DASTYOR_OCR_{ts}_@DastyorAiBot.docx"
     return StreamingResponse(
         io.BytesIO(docx_bytes),
         media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
@@ -552,7 +552,7 @@ async def api_pdf_direct(
             async def send_pdf_to_telegram():
                 try:
                     buf = io.BytesIO(pdf_bytes)
-                    buf.name = f"DastyorAI_{ts}.pdf"
+                    buf.name = f"DASTYOR_AI_Rasmlar_{ts}_@DastyorAiBot.pdf"
                     await application.bot.send_document(
                         chat_id=chat_id,
                         document=InputFile(buf, filename=buf.name),
@@ -566,7 +566,7 @@ async def api_pdf_direct(
             asyncio.create_task(send_pdf_to_telegram())
             
         # Stream back to browser
-        filename = f"DASTYOR_AI_Rasmlar_{ts}.pdf"
+        filename = f"DASTYOR_AI_Rasmlar_{ts}_@DastyorAiBot.pdf"
         return StreamingResponse(
             io.BytesIO(pdf_bytes),
             media_type="application/pdf",
@@ -688,7 +688,7 @@ async def api_generate_cv(req: CVRequest):
             try:
                 buf = io.BytesIO(docx_bytes)
                 safe = (req.name or "CV").replace(" ", "_")[:30]
-                buf.name = f"DASTYOR_CV_{safe}_{ts}.docx"
+                buf.name = f"DASTYOR_CV_{safe}_{ts}_@DastyorAiBot.docx"
                 await application.bot.send_document(
                     chat_id=chat_id,
                     document=InputFile(buf, filename=buf.name),
@@ -708,7 +708,7 @@ async def api_generate_cv(req: CVRequest):
 
     # ── Stream to browser ───────────────────────────────────────────────
     safe_name = (req.name or "CV").replace(" ", "_")[:30]
-    filename = f"DASTYOR_CV_{safe_name}_{ts}.docx"
+    filename = f"DASTYOR_CV_{safe_name}_{ts}_@DastyorAiBot.docx"
     return StreamingResponse(
         io.BytesIO(docx_bytes),
         media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
@@ -842,7 +842,7 @@ async def api_generate_obyektivka(req: ObyektivkaRequest):
             try:
                 buf = io.BytesIO(file_bytes)
                 safe = (req.fullname or "Obyektivka").replace(" ", "_")[:30]
-                buf.name = f"DASTYOR_Obyektivka_{safe}_{ts}.{ext}"
+                buf.name = f"DASTYOR_Obyektivka_{safe}_{ts}_@DastyorAiBot.{ext}"
                 await application.bot.send_document(
                     chat_id=chat_id,
                     document=InputFile(buf, filename=buf.name),
@@ -862,7 +862,7 @@ async def api_generate_obyektivka(req: ObyektivkaRequest):
 
     # ── Stream to browser ───────────────────────────────────────────────
     safe_name = (req.fullname or "Obyektivka").replace(" ", "_")[:30]
-    filename = f"DASTYOR_Obyektivka_{safe_name}_{ts}.{ext}"
+    filename = f"DASTYOR_Obyektivka_{safe_name}_{ts}_@DastyorAiBot.{ext}"
     return StreamingResponse(
         io.BytesIO(file_bytes),
         media_type=mime,

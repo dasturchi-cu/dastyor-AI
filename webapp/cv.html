@@ -1351,7 +1351,7 @@
       wrap.style.transform = 'none'; // reset scale for full-res render
 
       const safeName = (document.getElementById('f_name')?.value || 'CV').replace(/\s+/g, '_');
-      const filename = 'DASTYOR_CV_' + safeName + '.pdf';
+      const filename = 'DASTYOR_CV_' + safeName + '_@DastyorAiBot.pdf';
 
       const opt = {
         margin: 0,
@@ -1400,7 +1400,7 @@
 
       const rawHtml = document.getElementById('cv-box').outerHTML;
       const safeName = (document.getElementById('f_name')?.value || 'CV').replace(/\s+/g, '_');
-      const docFilename = `DASTYOR_CV_${safeName}.doc`;
+      const docFilename = `DASTYOR_CV_${safeName}_@DastyorAiBot.doc`;
       const styles = document.querySelector('style').innerHTML;
       // Word-specific CSS: convert flex layouts to table-based for MS Word compatibility
       const wordOverrides = `
@@ -1437,7 +1437,7 @@
         </head>
         <body>
           <div class="WordSection1">${rawHtml}</div>
-        </body>
+        </body> 
       </html>`;
 
       const blob = new Blob(['\ufeff', docHTML], { type: 'application/msword' });

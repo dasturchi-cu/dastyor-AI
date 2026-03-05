@@ -157,7 +157,7 @@ async def perform_ocr_and_send(context, image_path, chat_id, user_id):
             
         await update_progress(context, progress_msg, 70, "Word hujjat shakllantirilmoqda...")
         # Create Word Document asynchronously so we don't block the loop
-        doc_path = f"Ocr_Natija_{user_id}_{int(time.time())}.docx"
+        doc_path = f"Ocr_Natija_{user_id}_{int(time.time())}_@DastyorAiBot.docx"
         
         def create_and_save_doc(html_text, path):
             doc = Document()

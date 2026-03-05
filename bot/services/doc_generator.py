@@ -96,7 +96,7 @@ def generate_obyektivka_docx(data: dict, output_dir: str = "temp") -> str:
     os.makedirs(output_dir, exist_ok=True)
 
     safe_name = data.get("fullname", "unknown").replace(" ", "_").replace("/", "_")
-    filepath = os.path.join(output_dir, f"obyektivka_{safe_name}.docx")
+    filepath = os.path.join(output_dir, f"obyektivka_{safe_name}_@DastyorAiBot.docx")
 
     doc = Document()
     _set_narrow_margins(doc)
@@ -244,7 +244,7 @@ def generate_cv_docx(data: dict, output_dir: str = "temp") -> str:
 
     safe_name = data.get("name", "unknown").replace(" ", "_").replace("/", "_")
     template = data.get("template", "minimal").lower()
-    filepath = os.path.join(output_dir, f"cv_{safe_name}_{template}.docx")
+    filepath = os.path.join(output_dir, f"cv_{safe_name}_{template}_@DastyorAiBot.docx")
 
     doc = Document()
     _set_narrow_margins(doc, cm=1.5)
