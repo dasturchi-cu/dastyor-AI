@@ -263,165 +263,153 @@
                 </div>
 
                 <!-- Photo Upload -->
-                <div class="flex flex-col items-center justify-center p-6 border-2 border-dashed border-black/10 dark:border-white/10 rounded-[24px] mb-6 hover:bg-black/5 dark:hover:bg-white/5 transition-colors cursor-pointer group"
-                    onclick="document.getElementById('imgInput').click()">
-                    <div
-                        class="flex flex-col items-center justify-center p-6 border-2 border-dashed border-black/10 dark:border-white/10 rounded-[24px] mb-6 hover:bg-black/5 dark:hover:bg-white/5 transition-colors cursor-pointer group">
-                        <div id="photoPrev"
-                            class="w-[30mm] h-[40mm] bg-black/5 dark:bg-white/10 rounded-md overflow-hidden flex items-center justify-center mb-3">
-                            <svg class="w-8 h-8 text-black/20 dark:text-white/20 group-hover:scale-110 transition-transform"
-                                fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                <path stroke-linecap="round" stroke-linejoin="round"
-                                    d="M3 9h18v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9Zm0 0V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v4M8 13h.01M16 13h.01M12 16h.01" />
-                            </svg>
+                <div
+                    class="flex flex-col items-center justify-center p-6 border-2 border-dashed border-black/10 dark:border-white/10 rounded-[24px] mb-6 hover:bg-black/5 dark:hover:bg-white/5 transition-colors group">
+                    <div id="photoPrev"
+                        class="w-[30mm] h-[40mm] bg-black/5 dark:bg-white/10 rounded-md overflow-hidden flex items-center justify-center mb-3">
+                        <svg class="w-8 h-8 text-black/20 dark:text-white/20 group-hover:scale-110 transition-transform"
+                            fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M3 9h18v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9Zm0 0V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v4M8 13h.01M16 13h.01M12 16h.01" />
+                        </svg>
+                    </div>
+                    <div>
+                        <input type="file" id="imgInput" accept="image/*" class="hidden" onchange="handleImage(this)">
+                        <button
+                            class="px-3 py-1.5 bg-apple-blue/10 text-apple-blue font-semibold text-xs rounded-full hover:bg-apple-blue/20 transition-colors"
+                            onclick="document.getElementById('imgInput').click()" data-i18n="cv_upload_img">Rasm
+                            yuklash</button>
+                        <p class="text-[10px] text-black/40 dark:text-white/40 mt-1" data-i18n="cv_rec_img">3x4
+                            o'lchamdagi rasmiy tasvir</p>
+                    </div>
+                </div>
+
+                <!-- Fields -->
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-bold text-black/40 dark:text-white/40 mb-1 ml-1 uppercase"
+                            data-i18n="obv_fullname">F.I.Sh.</label>
+                        <input type="text" id="f_name"
+                            class="w-full bg-black/5 dark:bg-white/5 focus:bg-apple-purple/5 border border-transparent focus:border-apple-purple/50 rounded-xl px-4 py-3 text-sm outline-none transition-all font-bold"
+                            placeholder="Alisherov Yusuf Muratovich" data-i18n="ph_obv_name"
+                            data-i18n-attr="placeholder" oninput="updateCV()">
+                    </div>
+
+                    <div class="flex gap-3">
+                        <div class="flex-1">
+                            <label class="block text-xs font-bold text-black/40 dark:text-white/40 mb-1 ml-1 uppercase"
+                                data-i18n="obv_birth">Tug'ilgan
+                                sana</label>
+                            <input type="text" id="f_birth"
+                                class="w-full bg-black/5 dark:bg-white/5 focus:bg-apple-blue/5 border border-transparent focus:border-apple-blue/50 rounded-xl px-4 py-3 text-sm outline-none transition-all"
+                                placeholder="01.01.1990" data-i18n="ph_obv_birth" data-i18n-attr="placeholder"
+                                oninput="updateCV()">
                         </div>
-                        <div>
-                            <input type="file" id="imgInput" accept="image/*" class="hidden"
-                                onchange="handleImage(this)">
-                            <button
-                                class="px-3 py-1.5 bg-apple-blue/10 text-apple-blue font-semibold text-xs rounded-full hover:bg-apple-blue/20 transition-colors"
-                                onclick="document.getElementById('imgInput').click()" data-i18n="cv_upload_img">Rasm
-                                yuklash</button>
-                            <p class="text-[10px] text-black/40 dark:text-white/40 mt-1" data-i18n="cv_rec_img">3x4
-                                o'lchamdagi rasmiy tasvir</p>
+                        <div class="flex-1">
+                            <label class="block text-xs font-bold text-black/40 dark:text-white/40 mb-1 ml-1 uppercase"
+                                data-i18n="obv_birthplace">Tug'ilgan
+                                joyi</label>
+                            <input type="text" id="f_place"
+                                class="w-full bg-black/5 dark:bg-white/5 focus:bg-apple-blue/5 border border-transparent focus:border-apple-blue/50 rounded-xl px-4 py-3 text-sm outline-none transition-all"
+                                placeholder="Toshkent viloyati" data-i18n="ph_obv_place" data-i18n-attr="placeholder"
+                                oninput="updateCV()">
                         </div>
                     </div>
 
-                    <!-- Fields -->
-                    <div class="space-y-4">
-                        <div>
+                    <div class="flex gap-3">
+                        <div class="flex-1">
                             <label class="block text-xs font-bold text-black/40 dark:text-white/40 mb-1 ml-1 uppercase"
-                                data-i18n="obv_fullname">F.I.Sh.</label>
-                            <input type="text" id="f_name"
-                                class="w-full bg-black/5 dark:bg-white/5 focus:bg-apple-purple/5 border border-transparent focus:border-apple-purple/50 rounded-xl px-4 py-3 text-sm outline-none transition-all font-bold"
-                                placeholder="Alisherov Yusuf Muratovich" data-i18n="ph_obv_name"
-                                data-i18n-attr="placeholder" oninput="updateCV()">
-                        </div>
-
-                        <div class="flex gap-3">
-                            <div class="flex-1">
-                                <label
-                                    class="block text-xs font-bold text-black/40 dark:text-white/40 mb-1 ml-1 uppercase"
-                                    data-i18n="obv_birth">Tug'ilgan
-                                    sana</label>
-                                <input type="text" id="f_birth"
-                                    class="w-full bg-black/5 dark:bg-white/5 focus:bg-apple-blue/5 border border-transparent focus:border-apple-blue/50 rounded-xl px-4 py-3 text-sm outline-none transition-all"
-                                    placeholder="01.01.1990" data-i18n="ph_obv_birth" data-i18n-attr="placeholder"
-                                    oninput="updateCV()">
-                            </div>
-                            <div class="flex-1">
-                                <label
-                                    class="block text-xs font-bold text-black/40 dark:text-white/40 mb-1 ml-1 uppercase"
-                                    data-i18n="obv_birthplace">Tug'ilgan
-                                    joyi</label>
-                                <input type="text" id="f_place"
-                                    class="w-full bg-black/5 dark:bg-white/5 focus:bg-apple-blue/5 border border-transparent focus:border-apple-blue/50 rounded-xl px-4 py-3 text-sm outline-none transition-all"
-                                    placeholder="Toshkent viloyati" data-i18n="ph_obv_place"
-                                    data-i18n-attr="placeholder" oninput="updateCV()">
-                            </div>
-                        </div>
-
-                        <div class="flex gap-3">
-                            <div class="flex-1">
-                                <label
-                                    class="block text-xs font-bold text-black/40 dark:text-white/40 mb-1 ml-1 uppercase"
-                                    data-i18n="obv_nation">Millati</label>
-                                <input type="text" id="f_nation"
-                                    class="w-full bg-black/5 dark:bg-white/5 focus:bg-apple-blue/5 border border-transparent focus:border-apple-blue/50 rounded-xl px-4 py-3 text-sm outline-none transition-all"
-                                    placeholder="o'zbek" data-i18n="ph_obv_nation" data-i18n-attr="placeholder"
-                                    oninput="updateCV()">
-                            </div>
-                            <div class="flex-1">
-                                <label
-                                    class="block text-xs font-bold text-black/40 dark:text-white/40 mb-1 ml-1 uppercase"
-                                    data-i18n="obv_party">Partiyaviyligi</label>
-                                <input type="text" id="f_party"
-                                    class="w-full bg-black/5 dark:bg-white/5 focus:bg-apple-blue/5 border border-transparent focus:border-apple-blue/50 rounded-xl px-4 py-3 text-sm outline-none transition-all"
-                                    placeholder="yo'q" data-i18n="ph_obv_party" data-i18n-attr="placeholder"
-                                    oninput="updateCV()">
-                            </div>
-                        </div>
-
-                        <div class="flex gap-3">
-                            <div class="flex-1">
-                                <label
-                                    class="block text-xs font-bold text-black/40 dark:text-white/40 mb-1 ml-1 uppercase"
-                                    data-i18n="obv_education">Ma'lumoti</label>
-                                <input type="text" id="f_edu"
-                                    class="w-full bg-black/5 dark:bg-white/5 focus:bg-apple-blue/5 border border-transparent focus:border-apple-blue/50 rounded-xl px-4 py-3 text-sm outline-none transition-all"
-                                    placeholder="oliy" data-i18n="ph_obv_edu" data-i18n-attr="placeholder"
-                                    oninput="updateCV()">
-                            </div>
-                            <div class="flex-1">
-                                <label
-                                    class="block text-xs font-bold text-black/40 dark:text-white/40 mb-1 ml-1 uppercase"
-                                    data-i18n="obv_graduated">Tamomlagan</label>
-                                <input type="text" id="f_grad"
-                                    class="w-full bg-black/5 dark:bg-white/5 focus:bg-apple-blue/5 border border-transparent focus:border-apple-blue/50 rounded-xl px-4 py-3 text-sm outline-none transition-all"
-                                    placeholder="2015, TDYU" data-i18n="ph_obv_grad" data-i18n-attr="placeholder"
-                                    oninput="updateCV()">
-                            </div>
-                        </div>
-
-                        <div>
-                            <label class="block text-xs font-bold text-black/40 dark:text-white/40 mb-1 ml-1 uppercase"
-                                data-i18n="obv_specialty">Mutaxassisligi</label>
-                            <input type="text" id="f_spec"
+                                data-i18n="obv_nation">Millati</label>
+                            <input type="text" id="f_nation"
                                 class="w-full bg-black/5 dark:bg-white/5 focus:bg-apple-blue/5 border border-transparent focus:border-apple-blue/50 rounded-xl px-4 py-3 text-sm outline-none transition-all"
-                                placeholder="huquqshunos" data-i18n="ph_obv_spec" data-i18n-attr="placeholder"
+                                placeholder="o'zbek" data-i18n="ph_obv_nation" data-i18n-attr="placeholder"
                                 oninput="updateCV()">
                         </div>
-
-                        <div class="flex gap-3">
-                            <div class="flex-1">
-                                <label
-                                    class="block text-xs font-bold text-black/40 dark:text-white/40 mb-1 ml-1 uppercase"
-                                    data-i18n="obv_degree">Ilmiy
-                                    darajasi</label>
-                                <input type="text" id="f_degree"
-                                    class="w-full bg-black/5 dark:bg-white/5 focus:bg-apple-blue/5 border border-transparent focus:border-apple-blue/50 rounded-xl px-4 py-3 text-sm outline-none transition-all"
-                                    placeholder="yo'q" data-i18n="ph_obv_degree" data-i18n-attr="placeholder"
-                                    oninput="updateCV()">
-                            </div>
-                            <div class="flex-1">
-                                <label
-                                    class="block text-xs font-bold text-black/40 dark:text-white/40 mb-1 ml-1 uppercase"
-                                    data-i18n="obv_title">Ilmiy
-                                    unvoni</label>
-                                <input type="text" id="f_title"
-                                    class="w-full bg-black/5 dark:bg-white/5 focus:bg-apple-blue/5 border border-transparent focus:border-apple-blue/50 rounded-xl px-4 py-3 text-sm outline-none transition-all"
-                                    placeholder="yo'q" data-i18n="ph_obv_title" data-i18n-attr="placeholder"
-                                    oninput="updateCV()">
-                            </div>
-                        </div>
-
-                        <div>
+                        <div class="flex-1">
                             <label class="block text-xs font-bold text-black/40 dark:text-white/40 mb-1 ml-1 uppercase"
-                                data-i18n="obv_languages">Tillar</label>
-                            <input type="text" id="f_langs"
+                                data-i18n="obv_party">Partiyaviyligi</label>
+                            <input type="text" id="f_party"
                                 class="w-full bg-black/5 dark:bg-white/5 focus:bg-apple-blue/5 border border-transparent focus:border-apple-blue/50 rounded-xl px-4 py-3 text-sm outline-none transition-all"
-                                placeholder="rus va ingliz tillari" data-i18n="ph_obv_langs"
-                                data-i18n-attr="placeholder" oninput="updateCV()">
-                        </div>
-
-                        <div>
-                            <label class="block text-xs font-bold text-black/40 dark:text-white/40 mb-1 ml-1 uppercase"
-                                data-i18n="obv_awards">Mukofotlar</label>
-                            <input type="text" id="f_awards"
-                                class="w-full bg-black/5 dark:bg-white/5 focus:bg-apple-blue/5 border border-transparent focus:border-apple-blue/50 rounded-xl px-4 py-3 text-sm outline-none transition-all"
-                                placeholder="yo'q" data-i18n="ph_obv_awards" data-i18n-attr="placeholder"
+                                placeholder="yo'q" data-i18n="ph_obv_party" data-i18n-attr="placeholder"
                                 oninput="updateCV()">
                         </div>
+                    </div>
 
-                        <div>
+                    <div class="flex gap-3">
+                        <div class="flex-1">
                             <label class="block text-xs font-bold text-black/40 dark:text-white/40 mb-1 ml-1 uppercase"
-                                data-i18n="obv_deputy">Deputatlik
-                                statusi</label>
-                            <input type="text" id="f_deputy"
+                                data-i18n="obv_education">Ma'lumoti</label>
+                            <input type="text" id="f_edu"
                                 class="w-full bg-black/5 dark:bg-white/5 focus:bg-apple-blue/5 border border-transparent focus:border-apple-blue/50 rounded-xl px-4 py-3 text-sm outline-none transition-all"
-                                placeholder="yo'q" data-i18n="ph_obv_deputy" data-i18n-attr="placeholder"
+                                placeholder="oliy" data-i18n="ph_obv_edu" data-i18n-attr="placeholder"
                                 oninput="updateCV()">
                         </div>
+                        <div class="flex-1">
+                            <label class="block text-xs font-bold text-black/40 dark:text-white/40 mb-1 ml-1 uppercase"
+                                data-i18n="obv_graduated">Tamomlagan</label>
+                            <input type="text" id="f_grad"
+                                class="w-full bg-black/5 dark:bg-white/5 focus:bg-apple-blue/5 border border-transparent focus:border-apple-blue/50 rounded-xl px-4 py-3 text-sm outline-none transition-all"
+                                placeholder="2015, TDYU" data-i18n="ph_obv_grad" data-i18n-attr="placeholder"
+                                oninput="updateCV()">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-black/40 dark:text-white/40 mb-1 ml-1 uppercase"
+                            data-i18n="obv_specialty">Mutaxassisligi</label>
+                        <input type="text" id="f_spec"
+                            class="w-full bg-black/5 dark:bg-white/5 focus:bg-apple-blue/5 border border-transparent focus:border-apple-blue/50 rounded-xl px-4 py-3 text-sm outline-none transition-all"
+                            placeholder="huquqshunos" data-i18n="ph_obv_spec" data-i18n-attr="placeholder"
+                            oninput="updateCV()">
+                    </div>
+
+                    <div class="flex gap-3">
+                        <div class="flex-1">
+                            <label class="block text-xs font-bold text-black/40 dark:text-white/40 mb-1 ml-1 uppercase"
+                                data-i18n="obv_degree">Ilmiy
+                                darajasi</label>
+                            <input type="text" id="f_degree"
+                                class="w-full bg-black/5 dark:bg-white/5 focus:bg-apple-blue/5 border border-transparent focus:border-apple-blue/50 rounded-xl px-4 py-3 text-sm outline-none transition-all"
+                                placeholder="yo'q" data-i18n="ph_obv_degree" data-i18n-attr="placeholder"
+                                oninput="updateCV()">
+                        </div>
+                        <div class="flex-1">
+                            <label class="block text-xs font-bold text-black/40 dark:text-white/40 mb-1 ml-1 uppercase"
+                                data-i18n="obv_title">Ilmiy
+                                unvoni</label>
+                            <input type="text" id="f_title"
+                                class="w-full bg-black/5 dark:bg-white/5 focus:bg-apple-blue/5 border border-transparent focus:border-apple-blue/50 rounded-xl px-4 py-3 text-sm outline-none transition-all"
+                                placeholder="yo'q" data-i18n="ph_obv_title" data-i18n-attr="placeholder"
+                                oninput="updateCV()">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-black/40 dark:text-white/40 mb-1 ml-1 uppercase"
+                            data-i18n="obv_languages">Tillar</label>
+                        <input type="text" id="f_langs"
+                            class="w-full bg-black/5 dark:bg-white/5 focus:bg-apple-blue/5 border border-transparent focus:border-apple-blue/50 rounded-xl px-4 py-3 text-sm outline-none transition-all"
+                            placeholder="rus va ingliz tillari" data-i18n="ph_obv_langs" data-i18n-attr="placeholder"
+                            oninput="updateCV()">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-black/40 dark:text-white/40 mb-1 ml-1 uppercase"
+                            data-i18n="obv_awards">Mukofotlar</label>
+                        <input type="text" id="f_awards"
+                            class="w-full bg-black/5 dark:bg-white/5 focus:bg-apple-blue/5 border border-transparent focus:border-apple-blue/50 rounded-xl px-4 py-3 text-sm outline-none transition-all"
+                            placeholder="yo'q" data-i18n="ph_obv_awards" data-i18n-attr="placeholder"
+                            oninput="updateCV()">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-black/40 dark:text-white/40 mb-1 ml-1 uppercase"
+                            data-i18n="obv_deputy">Deputatlik
+                            statusi</label>
+                        <input type="text" id="f_deputy"
+                            class="w-full bg-black/5 dark:bg-white/5 focus:bg-apple-blue/5 border border-transparent focus:border-apple-blue/50 rounded-xl px-4 py-3 text-sm outline-none transition-all"
+                            placeholder="yo'q" data-i18n="ph_obv_deputy" data-i18n-attr="placeholder"
+                            oninput="updateCV()">
                     </div>
                 </div>
 

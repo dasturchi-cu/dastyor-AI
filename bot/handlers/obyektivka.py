@@ -7,9 +7,8 @@ import logging
 from bot.utils.progress import send_progress, update_progress
 from bot.services.ai_service import transcribe_audio, extract_obyektivka_data
 import json
-from config import WEBAPP_BASE
 
-# Project root directory (where config.py lives)
+WEBAPP_BASE = os.getenv("WEBAPP_BASE", "https://dastyor-ai.onrender.com/webapp")
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 logger = logging.getLogger(__name__)
