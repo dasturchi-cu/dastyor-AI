@@ -1,4 +1,41 @@
-<!DOCTYPE html>
+"""
+Rebuild cv_template.html and obyektivka_template.html so they are
+pixel-perfect identical to the browser preview in cv.html / obyektivka.html.
+
+Strategy:
+  1. Extract the exact <style> block from cv.html (lines 44-648).
+  2. Remove browser-only rules (media print hide, box-shadow, margin-bottom).
+  3. Add @page { size:A4; margin:0 }.
+  4. Write a complete Jinja2 template with the EXACT same HTML structure
+     that updateCV() builds in the browser.
+"""
+
+import re
+
+# ──────────────────────────────────────────────────────────────────────────────
+#  PART 1  — cv_template.html
+# ──────────────────────────────────────────────────────────────────────────────
+with open("webapp/cv.html", "r", encoding="utf-8") as f:
+    src = f.read().replace("\r\n", "\n")
+
+# Extract the CSS block (first <style>...</style>)
+m = re.search(r"<style>(.*?)</style>", src, re.DOTALL)
+css_raw = m.group(1)
+
+# Strip browser-only noise
+css_raw = re.sub(r"@media print\s*\{.*?\}", "", css_raw, flags=re.DOTALL)
+css_raw = css_raw.replace("box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);", "")
+css_raw = css_raw.replace("margin-bottom: 30px;", "margin: 0;")
+# Remove scrollbar / overscroll rules (not needed in PDF)
+css_raw = re.sub(r"body\s*\{\s*overscroll-behavior-y:\s*none;\s*\}", "", css_raw)
+css_raw = re.sub(r"\.scroller.*?\}", "", css_raw, flags=re.DOTALL)
+css_raw = re.sub(r"\.cv-canvas-wrapper.*?\}", "", css_raw, flags=re.DOTALL)
+
+css_raw += """
+    @page { size: A4; margin: 0; }
+"""
+
+CV_TEMPLATE = """<!DOCTYPE html>
 <html lang="uz">
 <head>
   <meta charset="UTF-8">
@@ -13,599 +50,7 @@
       -webkit-print-color-adjust: exact;
       print-color-adjust: exact;
     }
-
-    
-
-    
-
-    
-
-    /* ─── CV OUTPUT CANVAS ─── */
-    
-
-    .cv-canvas {
-      width: 210mm;
-      min-height: 297mm;
-      background: #fff;
-      
-      margin: 0;
-      overflow: hidden;
-      font-family: 'Inter', sans-serif;
-    }
-
-    /* TPL 1: MINIMAL */
-    .tpl-minimal {
-      color: #1e293b;
-      padding: 25mm 20mm;
-    }
-
-    .tpl-minimal .header {
-      display: flex;
-      gap: 25px;
-      margin: 0;
-      border-bottom: 2px solid #e2e8f0;
-      padding-bottom: 20px;
-    }
-
-    .tpl-minimal .avatar {
-      width: 35mm;
-      height: 35mm;
-      border-radius: 5px;
-      object-fit: cover;
-    }
-
-    .tpl-minimal .name {
-      font-size: 26pt;
-      font-weight: 800;
-      color: #0f172a;
-      line-height: 1.1;
-      margin-bottom: 5px;
-    }
-
-    .tpl-minimal .role {
-      font-size: 14pt;
-      color: #3b82f6;
-      font-weight: 600;
-      margin-bottom: 15px;
-    }
-
-    .tpl-minimal .contact-wrap {
-      display: flex;
-      gap: 15px;
-      font-size: 10pt;
-      color: #64748b;
-    }
-
-    .tpl-minimal .section {
-      margin-bottom: 25px;
-    }
-
-    .tpl-minimal .sec-title {
-      font-size: 13pt;
-      font-weight: 700;
-      color: #0f172a;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      margin-bottom: 12px;
-    }
-
-    .tpl-minimal .text {
-      font-size: 10.5pt;
-      line-height: 1.6;
-    }
-
-    /* TPL 2: SPLIT PROFESSIONAL */
-    .tpl-split {
-      display: flex;
-      color: #1e293b;
-      padding: 0;
-      min-height: 297mm;
-    }
-
-    .tpl-split .sidebar {
-      width: 32%;
-      background: #0f172a;
-      color: #e2e8f0;
-      padding: 20mm 10mm;
-      flex-shrink: 0;
-    }
-
-    .tpl-split .main {
-      flex: 1;
-      padding: 20mm 15mm;
-    }
-
-    .tpl-split .avatar {
-      width: 35mm;
-      height: 35mm;
-      border-radius: 50%;
-      object-fit: cover;
-      border: 3px solid #334155;
-      margin-bottom: 20px;
-    }
-
-    .tpl-split .name {
-      font-size: 24pt;
-      font-weight: 800;
-      color: #e2e8f0;
-      line-height: 1.2;
-      margin-bottom: 8px;
-    }
-
-    .tpl-split .role {
-      font-size: 12pt;
-      color: #3b82f6;
-      font-weight: 500;
-      margin: 0;
-    }
-
-    .tpl-split .sec-title-main {
-      font-size: 14pt;
-      font-weight: 800;
-      color: #0f172a;
-      border-bottom: 2px solid #e2e8f0;
-      padding-bottom: 8px;
-      margin-bottom: 15px;
-      text-transform: uppercase;
-    }
-
-    .tpl-split .sec-title-side {
-      font-size: 12pt;
-      font-weight: 700;
-      color: #fff;
-      border-bottom: 1px solid #334155;
-      padding-bottom: 5px;
-      margin-bottom: 15px;
-      text-transform: uppercase;
-    }
-
-    .tpl-split .contact-item {
-      font-size: 9.5pt;
-      margin-bottom: 10px;
-      line-height: 1.4;
-      word-break: break-all;
-    }
-
-    .tpl-split .section {
-      margin-bottom: 25px;
-    }
-
-    /* TPL 3: MODERN HEADER */
-    .tpl-modern {
-      padding: 0;
-      color: #334155;
-      min-height: 297mm;
-    }
-
-    .tpl-modern .header {
-      background: #1e293b;
-      color: white;
-      padding: 20mm;
-      display: flex;
-      align-items: center;
-      gap: 30px;
-    }
-
-    .tpl-modern .avatar {
-      width: 40mm;
-      height: 40mm;
-      border-radius: 12px;
-      object-fit: cover;
-    }
-
-    .tpl-modern .name {
-      font-size: 28pt;
-      font-weight: 900;
-      letter-spacing: -1px;
-      margin-bottom: 5px;
-    }
-
-    .tpl-modern .role {
-      font-size: 14pt;
-      font-weight: 500;
-      color: #94a3b8;
-      margin-bottom: 15px;
-    }
-
-    .tpl-modern .contact {
-      font-size: 10pt;
-      opacity: 0.8;
-      line-height: 1.5;
-    }
-
-    .tpl-modern .body {
-      display: flex;
-      padding: 15mm 20mm;
-      gap: 40px;
-    }
-
-    .tpl-modern .col-main {
-      flex: 6;
-    }
-
-    .tpl-modern .col-side {
-      flex: 4;
-    }
-
-    .tpl-modern .sec-title {
-      font-size: 14pt;
-      font-weight: 800;
-      color: #0f172a;
-      margin-bottom: 15px;
-      text-transform: uppercase;
-    }
-
-    /* TPL 4: ATS SAFE */
-    .tpl-ats {
-      padding: 20mm;
-      font-family: 'Arial', sans-serif;
-      color: #000;
-    }
-
-    .tpl-ats .header {
-      text-align: center;
-      border-bottom: 1px solid #000;
-      padding-bottom: 15px;
-      margin-bottom: 20px;
-    }
-
-    .tpl-ats .name {
-      font-size: 24pt;
-      font-weight: bold;
-      margin-bottom: 4px;
-      text-transform: uppercase;
-    }
-
-    .tpl-ats .role {
-      font-size: 12pt;
-      margin-bottom: 10px;
-    }
-
-    .tpl-ats .contact-wrap {
-      font-size: 10pt;
-      display: flex;
-      justify-content: center;
-      gap: 15px;
-      flex-wrap: wrap;
-    }
-
-    .tpl-ats .section {
-      margin-bottom: 20px;
-    }
-
-    .tpl-ats .sec-title {
-      font-size: 12pt;
-      font-weight: bold;
-      text-transform: uppercase;
-      border-bottom: 1px solid #000;
-      padding-bottom: 3px;
-      margin-bottom: 10px;
-    }
-
-    /* TPL 5: ELEGANT CLASSIC */
-    .tpl-elegant {
-      padding: 20mm;
-      font-family: 'Georgia', serif;
-      color: #333;
-    }
-
-    .tpl-elegant .header {
-      text-align: center;
-      margin: 0;
-    }
-
-    .tpl-elegant .name {
-      font-size: 32pt;
-      font-variant: small-caps;
-      letter-spacing: 2px;
-      color: #111;
-      margin-bottom: 5px;
-    }
-
-    .tpl-elegant .role {
-      font-size: 13pt;
-      font-style: italic;
-      color: #555;
-      margin-bottom: 10px;
-    }
-
-    .tpl-elegant .contact-wrap {
-      font-size: 10pt;
-      color: #666;
-    }
-
-    .tpl-elegant .body-cols {
-      display: flex;
-      gap: 30px;
-    }
-
-    .tpl-elegant .col-main {
-      flex: 2;
-    }
-
-    .tpl-elegant .col-side {
-      flex: 1;
-      border-left: 1px solid #ddd;
-      padding-left: 30px;
-    }
-
-    .tpl-elegant .sec-title {
-      font-size: 14pt;
-      padding-bottom: 5px;
-      border-bottom: 1px dashed #ccc;
-      margin-bottom: 15px;
-      text-transform: uppercase;
-      color: #222;
-      font-weight: bold;
-    }
-
-    /* TPL 6: CORPORATE */
-    .tpl-corporate {
-      padding: 0;
-      color: #333;
-      min-height: 297mm;
-      display: flex;
-      flex-direction: column;
-    }
-
-    .tpl-corporate .header {
-      background: #2563eb;
-      color: #fff;
-      padding: 20mm;
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-end;
-    }
-
-    .tpl-corporate .name {
-      font-size: 26pt;
-      font-weight: 800;
-      margin-bottom: 5px;
-    }
-
-    .tpl-corporate .role {
-      font-size: 14pt;
-      font-weight: 500;
-      opacity: 0.9;
-    }
-
-    .tpl-corporate .contact-wrap {
-      text-align: right;
-      font-size: 10pt;
-      opacity: 0.9;
-    }
-
-    .tpl-corporate .body-cols {
-      display: flex;
-      padding: 15mm 20mm;
-      gap: 35px;
-      flex: 1;
-      background: #fff;
-    }
-
-    .tpl-corporate .col-main {
-      flex: 7;
-    }
-
-    .tpl-corporate .col-side {
-      flex: 3;
-    }
-
-    .tpl-corporate .sec-title {
-      font-size: 13pt;
-      font-weight: bold;
-      color: #1e3a8a;
-      margin-bottom: 15px;
-      text-transform: uppercase;
-      border-bottom: 2px solid #bfdbfe;
-      padding-bottom: 4px;
-    }
-
-    /* TPL 7: CREATIVE */
-    .tpl-creative {
-      padding: 0;
-      display: flex;
-      color: #2d3748;
-      min-height: 297mm;
-    }
-
-    .tpl-creative .left {
-      width: 35%;
-      background: #fdf2f8;
-      padding: 20mm 15mm;
-      border-right: 2px solid #fbcfe8;
-      flex-shrink: 0;
-    }
-
-    .tpl-creative .right {
-      flex: 1;
-      padding: 20mm 15mm;
-      background: #fff;
-    }
-
-    .tpl-creative .avatar {
-      width: 40mm;
-      height: 40mm;
-      border-radius: 20mm;
-      object-fit: cover;
-      margin: 0 auto 20px auto;
-      display: block;
-      border: 4px solid #f9a8d4;
-    }
-
-    .tpl-creative .name {
-      font-size: 24pt;
-      font-weight: 900;
-      color: #db2777;
-      text-align: center;
-      line-height: 1.1;
-      margin-bottom: 10px;
-    }
-
-    .tpl-creative .role {
-      font-size: 12pt;
-      color: #9d174d;
-      text-align: center;
-      margin: 0;
-      font-weight: 600;
-    }
-
-    .tpl-creative .contact-item {
-      font-size: 10pt;
-      margin-bottom: 12px;
-      color: #831843;
-    }
-
-    .tpl-creative .sec-title {
-      font-size: 14pt;
-      font-weight: 800;
-      color: #be185d;
-      text-transform: uppercase;
-      margin-bottom: 15px;
-    }
-
-    .tpl-creative .sec-title-left {
-      border-bottom: 2px solid #f9a8d4;
-      margin-bottom: 15px;
-      padding-bottom: 5px;
-    }
-
-    /* TPL 8: PROFESSIONAL LEFT */
-    .tpl-prof {
-      display: flex;
-      padding: 0;
-      min-height: 297mm;
-      background: #fff;
-      color: #475569;
-    }
-
-    .tpl-prof .left-strip {
-      width: 50px;
-      background: #0f172a;
-    }
-
-    .tpl-prof .content {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      padding: 20mm;
-    }
-
-    .tpl-prof .header {
-      display: flex;
-      align-items: center;
-      gap: 30px;
-      margin-bottom: 35px;
-    }
-
-    .tpl-prof .name {
-      font-size: 30pt;
-      font-weight: 300;
-      color: #0f172a;
-      margin-bottom: 5px;
-    }
-
-    .tpl-prof .name strong {
-      font-weight: 800;
-    }
-
-    .tpl-prof .role {
-      font-size: 14pt;
-      color: #0284c7;
-      letter-spacing: 2px;
-      text-transform: uppercase;
-    }
-
-    .tpl-prof .contact-wrap {
-      display: flex;
-      gap: 20px;
-      font-size: 10pt;
-      color: #64748b;
-      margin-top: 15px;
-    }
-
-    .tpl-prof .sec-title {
-      font-size: 15pt;
-      font-weight: 700;
-      color: #0f172a;
-      border-bottom: 3px solid #0f172a;
-      padding-bottom: 5px;
-      margin-bottom: 20px;
-    }
-
-    /* Common Output Items */
-    .item-row {
-      margin-bottom: 15px;
-    }
-
-    .item-head {
-      display: flex;
-      justify-content: space-between;
-      align-items: baseline;
-      margin-bottom: 4px;
-    }
-
-    .item-title {
-      font-weight: 700;
-      font-size: 11.5pt;
-    }
-
-    .item-date {
-      font-size: 9.5pt;
-      color: #64748b;
-      font-weight: 600;
-    }
-
-    .item-sub {
-      font-size: 10.5pt;
-      font-weight: 500;
-      font-style: italic;
-      color: #3b82f6;
-      margin-bottom: 5px;
-    }
-
-    .item-desc {
-      font-size: 10pt;
-      line-height: 1.5;
-      color: #475569;
-    }
-
-    .badges-wrap {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-    }
-
-    .badge {
-      background: #e2e8f0;
-      color: #0f172a;
-      padding: 4px 10px;
-      border-radius: 4px;
-      font-size: 9pt;
-      font-weight: 600;
-    }
-
-    
-
-      #cv-box,
-      #cv-box * {
-        visibility: visible;
-      }
-
-      #cv-box {
-        position: absolute;
-        left: 0;
-        top: 0;
-        width: 210mm;
-        min-height: 297mm;
-        transform: none !important;
-        box-shadow: none !important;
-        margin: 0;
-      }
-    }
-  
-    @page { size: A4; margin: 0; }
-
+""" + css_raw + """
   </style>
 </head>
 <body>
@@ -624,7 +69,7 @@
         <span class="item-date">{{ e.date }}</span>
       </div>
       {%- if e.company -%}<div class="item-sub">{{ e.company }}</div>{%- endif -%}
-      {%- if e.desc -%}<div class="item-desc">{{ e.desc | replace('\n','<br>') | safe }}</div>{%- endif -%}
+      {%- if e.desc -%}<div class="item-desc">{{ e.desc | replace('\\n','<br>') | safe }}</div>{%- endif -%}
     </div>
     {%- endfor -%}
   </div>
@@ -713,7 +158,7 @@
       <div class="item-row">
         <div class="item-head"><span class="item-title">{{ e.title }}</span><span class="item-date">{{ e.date }}</span></div>
         {%- if e.company -%}<div class="item-sub">{{ e.company }}</div>{%- endif -%}
-        {%- if e.desc -%}<div class="item-desc">{{ e.desc | replace('\n','<br>') | safe }}</div>{%- endif -%}
+        {%- if e.desc -%}<div class="item-desc">{{ e.desc | replace('\\n','<br>') | safe }}</div>{%- endif -%}
       </div>
       {%- endfor -%}
     </div>
@@ -910,3 +355,134 @@
 {%- endif -%}
 </body>
 </html>
+"""
+
+with open("templates/cv_template.html", "w", encoding="utf-8") as f:
+    f.write(CV_TEMPLATE)
+
+print("cv_template.html written successfully")
+
+# ──────────────────────────────────────────────────────────────────────────────
+#  PART 2  — obyektivka_template.html  (extract CSS from obyektivka.html)
+# ──────────────────────────────────────────────────────────────────────────────
+with open("webapp/obyektivka.html", "r", encoding="utf-8") as f:
+    src_oby = f.read().replace("\r\n", "\n")
+
+m2 = re.search(r"<style>(.*?)</style>", src_oby, re.DOTALL)
+css_oby = m2.group(1)
+css_oby = re.sub(r"@media print\s*\{.*?\}", "", css_oby, flags=re.DOTALL)
+css_oby = css_oby.replace("box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);", "")
+css_oby = css_oby.replace("margin-bottom: 30px;", "margin: 0;")
+css_oby = re.sub(r"body\s*\{\s*overscroll-behavior-y:\s*none;\s*\}", "", css_oby)
+css_oby = re.sub(r"\.scroller.*?\}", "", css_oby, flags=re.DOTALL)
+css_oby = re.sub(r"\.cv-canvas-wrapper.*?\}", "", css_oby, flags=re.DOTALL)
+css_oby += "\n    @page { size: A4; margin: 0; }\n"
+
+OBY_TEMPLATE = """<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="UTF-8">
+  <title>Ma'lumotnoma — {{ data.fullname }}</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: #fff;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+""" + css_oby + """
+  </style>
+</head>
+<body>
+{%- set d = data -%}
+<div class="tpl-oby">
+
+  <div class="title">M A ' L U M O T N O M A</div>
+
+  <table class="header-table">
+    <tr>
+      <td class="col-main">
+        <div class="name">{{ (d.fullname or '—').upper() }}</div>
+      </td>
+      <td class="col-img">
+        {%- if d.img -%}
+        <img src="{{ d.img }}" class="avatar" alt="Fotosurat">
+        {%- else -%}
+        <div style="width:30mm;height:40mm;margin-left:auto;border:1px solid #aaa;display:flex;align-items:center;justify-content:center;color:#aaa;font-size:9pt;">4x6</div>
+        {%- endif -%}
+      </td>
+    </tr>
+  </table>
+
+  <div class="info-grid">
+    <div class="info-item"><strong>Tug'ilgan yili, kuni va oyi:</strong>{{ d.birthdate or '—' }}</div>
+    <div class="info-item"><strong>Tug'ilgan joyi:</strong>{{ d.birthplace or '—' }}</div>
+    <div class="info-item"><strong>Millati:</strong>{{ d.nation or '—' }}</div>
+    <div class="info-item"><strong>Partiyaviyligi:</strong>{{ d.party or 'Partiyasiz' }}</div>
+    <div class="info-item"><strong>Ma'lumoti:</strong>{{ d.education or '—' }}</div>
+    <div class="info-item"><strong>Qaysi oliy maktabni tamomlagan:</strong>{{ d.graduated or '—' }}</div>
+    <div class="info-item"><strong>Mutaxassisligi:</strong>{{ d.specialty or '—' }}</div>
+    <div class="info-item"><strong>Ilmiy darajasi:</strong>{{ d.degree or "yo'q" }}</div>
+    <div class="info-item"><strong>Ilmiy unvoni:</strong>{{ d.scientific_title or "yo'q" }}</div>
+    <div class="info-item"><strong>Qaysi chet tillarini biladi:</strong>{{ d.languages or '—' }}</div>
+    <div class="info-item"><strong>Harbiy unvoni:</strong>{{ d.military_rank or '—' }}</div>
+    <div class="info-item"><strong>Davlat mukofotlari:</strong>{{ d.awards or "yo'q" }}</div>
+    <div class="info-item" style="grid-column:1/-1"><strong>Deputatmi yoki boshqa saylanadigan organlar a'zosimi:</strong>{{ d.deputy or "yo'q" }}</div>
+  </div>
+
+  <div class="section-title">MEHNAT FAOLIYATI</div>
+  {%- if d.work_experience and d.work_experience | length > 0 -%}
+  <table class="exp-table">
+    <thead><tr><th>Yillar</th><th>Ish joyi va lavozimi</th></tr></thead>
+    <tbody>
+    {%- for e in d.work_experience -%}
+    <tr>
+      <td>{{ e.year or e.years or '—' }}</td>
+      <td>{{ (e.position or e.desc or '—') | replace('\\n', '<br>') | safe }}</td>
+    </tr>
+    {%- endfor -%}
+    </tbody>
+  </table>
+  {%- else -%}
+  <div style="text-align:center;font-style:italic;padding:10px 0;">Ma'lumot kiritilmagan</div>
+  {%- endif -%}
+
+  {%- set fn = (d.fullname or '').split(' ')[0] | upper -%}
+  <div class="section-title">{{ fn }}NING YAQIN QARINDOSHLARI HAQIDA MA'LUMOT</div>
+  {%- if d.relatives and d.relatives | length > 0 -%}
+  <table class="rel-table">
+    <thead>
+      <tr>
+        <th style="width:12%">Qarindoshligi</th>
+        <th style="width:20%">F.I.SH.</th>
+        <th style="width:18%">Tug'ilgan yili va joyi</th>
+        <th style="width:28%">Ish joyi va lavozimi</th>
+        <th style="width:22%">Yashash manzili</th>
+      </tr>
+    </thead>
+    <tbody>
+    {%- for r in d.relatives -%}
+    <tr>
+      <td>{{ r.degree or r.role or '—' }}</td>
+      <td>{{ r.fullname or r.name or '—' }}</td>
+      <td>{{ r.birth_year_place or r.birth or '—' }}</td>
+      <td>{{ r.work_place or r.work or '—' }}</td>
+      <td>{{ r.address or r.addr or '—' }}</td>
+    </tr>
+    {%- endfor -%}
+    </tbody>
+  </table>
+  {%- else -%}
+  <div style="text-align:center;font-style:italic;padding:10px 0;">Ma'lumot kiritilmagan</div>
+  {%- endif -%}
+
+</div>
+</body>
+</html>
+"""
+
+with open("templates/obyektivka_template.html", "w", encoding="utf-8") as f:
+    f.write(OBY_TEMPLATE)
+
+print("obyektivka_template.html written successfully")

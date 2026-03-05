@@ -819,8 +819,14 @@
                 };
             }
 
+            // ── Detect Telegram Mini App environment ─────────────────────
+            function _isTgWebApp() {
+                return !!(window.Telegram?.WebApp?.initData);
+            }
+
             // ── exportPDF() — Server-side, pixel-perfect PDF ──────────
             async function exportPDF() {
+                const inTelegram = _isTgWebApp();
                 const btn = document.getElementById('btnPdf');
                 const originalHtml = btn.innerHTML;
                 btn.innerHTML = '⏳ Kutib turing...';
@@ -838,21 +844,27 @@
 
                     if (!res.ok) throw new Error('Server xatosi: ' + res.status);
 
-                    const blob = await res.blob();
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url; a.download = filename;
-                    document.body.appendChild(a); a.click();
-                    setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 2000);
-
-                    _showTelegramToast(DastyorAI.getTelegramId()
-                        ? '✅ PDF saqlandi va Telegram ga yuborildi!'
-                        : '✅ PDF saqlandi!');
+                    if (inTelegram) {
+                        // Inside Telegram Mini App: bot sends the file directly. Skip browser download.
+                        await res.arrayBuffer();
+                        _showTelegramToast('✅ PDF Telegram chatga yuborildi!');
+                    } else {
+                        const blob = await res.blob();
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url; a.download = filename;
+                        document.body.appendChild(a); a.click();
+                        setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 2000);
+                        _showTelegramToast('✅ PDF saqlandi!');
+                    }
                 } catch (err) {
                     console.error('exportPDF server error:', err);
-                    // Fallback: client-side html2pdf.js
-                    _exportPDFClientSide(filename, btn, originalHtml);
-                    return;
+                    if (!inTelegram) {
+                        _exportPDFClientSide(filename, btn, originalHtml);
+                        return;
+                    } else {
+                        _showTelegramToast('❌ Xatolik yuz berdi. Qayta urinib ko\'ring.');
+                    }
                 }
 
                 autoScale();
@@ -889,6 +901,7 @@
 
             // ── exportWord() — Server-side, pixel-perfect Word ────────
             async function exportWord() {
+                const inTelegram = _isTgWebApp();
                 const btnEl = document.querySelector('button[onclick="exportWord()"]');
                 if (btnEl) { btnEl.disabled = true; btnEl.innerHTML = '⏳ Kuting...'; }
 
@@ -904,19 +917,22 @@
 
                     if (!res.ok) throw new Error('Server xatosi: ' + res.status);
 
-                    const blob = await res.blob();
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url; a.download = filename;
-                    document.body.appendChild(a); a.click();
-                    setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 2000);
-
-                    _showTelegramToast(DastyorAI.getTelegramId()
-                        ? '✅ Word saqlandi va Telegram ga yuborildi!'
-                        : '✅ Word saqlandi!');
+                    if (inTelegram) {
+                        await res.arrayBuffer();
+                        _showTelegramToast('✅ Word fayl Telegram chatga yuborildi!');
+                    } else {
+                        const blob = await res.blob();
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url; a.download = filename;
+                        document.body.appendChild(a); a.click();
+                        setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 2000);
+                        _showTelegramToast('✅ Word saqlandi!');
+                    }
                 } catch (err) {
                     console.error('exportWord server error:', err);
-                    _exportWordClientSide(filename);
+                    if (!inTelegram) _exportWordClientSide(filename);
+                    else _showTelegramToast('❌ Xatolik yuz berdi. Qayta urinib ko\'ring.');
                 }
 
                 if (btnEl) { btnEl.disabled = false; btnEl.innerHTML = '📄 Word'; }
