@@ -34,14 +34,14 @@ _jinja_env = Environment(
     autoescape=select_autoescape(["html"]),
 )
 
-# ── WeasyPrint (optional dep — safe import) ───────────────────────────────
+# ── Playwright (Pixel-perfect PDF from HTML) ───────────────────────────────
 try:
-    from weasyprint import HTML as WeasyprintHTML, CSS
-    WEASYPRINT_OK = True
-    logger.info("WeasyPrint: available ✅")
+    from playwright.async_api import async_playwright
+    PLAYWRIGHT_OK = True
+    logger.info("Playwright: available ✅")
 except ImportError:
-    WEASYPRINT_OK = False
-    logger.warning("WeasyPrint not installed — PDF will fall back to python-docx conversion")
+    PLAYWRIGHT_OK = False
+    logger.warning("Playwright not installed — PDF will fall back to python-docx conversion")
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -136,41 +136,60 @@ def render_obyektivka_html(data: dict) -> str:
 
 
 # ═══════════════════════════════════════════════════════════════════════════
-# PDF GENERATION  (WeasyPrint)
+# PDF GENERATION  (Playwright - Pixel Perfect)
 # ═══════════════════════════════════════════════════════════════════════════
 
-def generate_cv_pdf(data: dict, base_url: str | None = None) -> bytes | None:
+async def generate_cv_pdf(data: dict, base_url: str | None = None) -> bytes | None:
     """
-    Render CV template → PDF bytes via WeasyPrint.
-    Returns None if WeasyPrint is not installed.
-
-    base_url: absolute URL of the website root so that relative resources
-              (fonts, images) resolve correctly during server-side rendering.
-              Example: 'https://dastyor-ai.onrender.com'
+    Render CV template → PDF bytes via Headless Chromium (Playwright).
+    Returns None if Playwright is not installed.
     """
-    if not WEASYPRINT_OK:
-        logger.warning("WeasyPrint not available, PDF generation skipped")
+    if not PLAYWRIGHT_OK:
+        logger.warning("Playwright not available, PDF generation skipped")
         return None
 
     html_str = render_cv_html(data)
-    pdf_bytes = WeasyprintHTML(
-        string=html_str,
-        base_url=base_url or str(TEMPLATES_DIR),
-    ).write_pdf()
-    return pdf_bytes
+    
+    # We must prepend a <base href="..."> if base_url is set so assets load correctly
+    if base_url:
+        if "<head>" in html_str:
+            html_str = html_str.replace("<head>", f"<head><base href='{base_url}'>")
+    
+    async with async_playwright() as p:
+        browser = await p.chromium.launch(args=['--no-sandbox', '--disable-setuid-sandbox'])
+        page = await browser.new_page()
+        await page.set_content(html_str, wait_until="networkidle")
+        pdf_bytes = await page.pdf(
+            format="A4",
+            print_background=True,
+            margin={"top": "0", "right": "0", "bottom": "0", "left": "0"}
+        )
+        await browser.close()
+        return pdf_bytes
 
 
-def generate_obyektivka_pdf(data: dict, base_url: str | None = None) -> bytes | None:
-    """Render Obyektivka template → PDF bytes via WeasyPrint."""
-    if not WEASYPRINT_OK:
+async def generate_obyektivka_pdf(data: dict, base_url: str | None = None) -> bytes | None:
+    """Render Obyektivka template → PDF bytes via Headless Chromium."""
+    if not PLAYWRIGHT_OK:
         return None
 
     html_str = render_obyektivka_html(data)
-    pdf_bytes = WeasyprintHTML(
-        string=html_str,
-        base_url=base_url or str(TEMPLATES_DIR),
-    ).write_pdf()
-    return pdf_bytes
+    
+    if base_url:
+        if "<head>" in html_str:
+            html_str = html_str.replace("<head>", f"<head><base href='{base_url}'>")
+
+    async with async_playwright() as p:
+        browser = await p.chromium.launch(args=['--no-sandbox', '--disable-setuid-sandbox'])
+        page = await browser.new_page()
+        await page.set_content(html_str, wait_until="networkidle")
+        pdf_bytes = await page.pdf(
+            format="A4",
+            print_background=True,
+            margin={"top": "0", "right": "0", "bottom": "0", "left": "0"}
+        )
+        await browser.close()
+        return pdf_bytes
 
 
 # ═══════════════════════════════════════════════════════════════════════════

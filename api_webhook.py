@@ -925,11 +925,11 @@ async def api_export_cv(req: ExportCVRequest):
         file_bytes = generate_cv_word(data)
         media_type = "application/msword"
     else:
-        # ── PDF export (WeasyPrint → exact browser render) ─────────────
+        # ── PDF export (Playwright → exact browser render) ─────────────
         filename = f"DASTYOR_CV_{safe}_{ts}{bot_suffix}.pdf"
-        pdf_bytes = generate_cv_pdf(data, base_url=SITE_BASE_URL)
+        pdf_bytes = await generate_cv_pdf(data, base_url=SITE_BASE_URL)
         if not pdf_bytes:
-            # WeasyPrint unavailable → fall back to python-docx PDF
+            # Playwright unavailable → fall back to python-docx PDF
             from bot.services.doc_generator import generate_cv_docx, convert_to_pdf_safe
             docx_path = await asyncio.get_event_loop().run_in_executor(None, generate_cv_docx, data)
             pdf_path = convert_to_pdf_safe(docx_path) if docx_path else None
@@ -1020,7 +1020,7 @@ async def api_export_obyektivka(req: ExportObyektivkaRequest):
         media_type = "application/msword"
     else:
         filename  = f"DASTYOR_Obyektivka_{safe}_{ts}{bot_suffix}.pdf"
-        pdf_bytes = generate_obyektivka_pdf(data, base_url=SITE_BASE_URL)
+        pdf_bytes = await generate_obyektivka_pdf(data, base_url=SITE_BASE_URL)
         if not pdf_bytes:
             from bot.services.doc_generator import generate_obyektivka_docx, convert_to_pdf_safe
             docx_path = await asyncio.get_event_loop().run_in_executor(None, generate_obyektivka_docx, data)
