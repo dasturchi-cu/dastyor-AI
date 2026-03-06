@@ -585,25 +585,7 @@
       font-weight: 600;
     }
 
-    
 
-      #cv-box,
-      #cv-box * {
-        visibility: visible;
-      }
-
-      #cv-box {
-        position: absolute;
-        left: 0;
-        top: 0;
-        width: 210mm;
-        min-height: 297mm;
-        transform: none !important;
-        box-shadow: none !important;
-        margin: 0;
-      }
-    }
-  
     @page { size: A4; margin: 0; }
 
   </style>
@@ -612,11 +594,44 @@
 {%- set d = data -%}
 {%- set tpl = d.template | default('minimal') -%}
 
+{#── MULTI-LANG LABELS ──────────────────────────────────────────────────────#}
+{%- set _labels = {
+  'uz_lat': {
+    'about':      "Haqida",
+    'experience': "Ish tajribasi",
+    'education':  "Ta'lim",
+    'skills':     "Ko'nikmalar",
+    'contact':    "Aloqa"
+  },
+  'uz_cyr': {
+    'about':      "Ҳақида",
+    'experience': "Иш Тажрибаси",
+    'education':  "Таълим",
+    'skills':     "Кўникмалар",
+    'contact':    "Алоқа"
+  },
+  'en': {
+    'about':      "About",
+    'experience': "Experience",
+    'education':  "Education",
+    'skills':     "Skills",
+    'contact':    "Contact"
+  },
+  'ru': {
+    'about':      "О себе",
+    'experience': "Опыт работы",
+    'education':  "Образование",
+    'skills':     "Навыки",
+    'contact':    "Контакты"
+  }
+} -%}
+{%- set ll = _labels.get(d.lang or 'uz_lat', _labels['uz_lat']) -%}
+
 {#── REUSABLE MACROS ────────────────────────────────────────────────────────#}
-{%- macro expBlock() -%}
+{%- macro expBlock(ll) -%}
   {%- if d.experiences -%}
   <div class="section">
-    <div class="sec-title">Ish tajribasi</div>
+    <div class="sec-title">{{ ll.experience }}</div>
     {%- for e in d.experiences -%}
     <div class="item-row">
       <div class="item-head">
@@ -631,10 +646,10 @@
   {%- endif -%}
 {%- endmacro -%}
 
-{%- macro eduBlock() -%}
+{%- macro eduBlock(ll) -%}
   {%- if d.education -%}
   <div class="section">
-    <div class="sec-title">Ta'lim</div>
+    <div class="sec-title">{{ ll.education }}</div>
     {%- for e in d.education -%}
     <div class="item-row">
       <div class="item-head">
@@ -648,10 +663,10 @@
   {%- endif -%}
 {%- endmacro -%}
 
-{%- macro skillsBlock() -%}
+{%- macro skillsBlock(ll) -%}
   {%- if d.skills -%}
   <div class="section">
-    <div class="sec-title">Ko'nikmalar</div>
+    <div class="sec-title">{{ ll.skills }}</div>
     <div class="badges-wrap">
       {%- for s in d.skills -%}<span class="badge">{{ s }}</span>{%- endfor -%}
     </div>

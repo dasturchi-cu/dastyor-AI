@@ -791,6 +791,7 @@
             const get = id => (document.getElementById(id)?.value || '').trim();
             return {
                 format: format,
+                lang: I18n.getLang(),
                 telegram_id: DastyorAI.getTelegramId() ? parseInt(DastyorAI.getTelegramId()) : null,
                 token: DastyorAI.getToken() || null,
                 fullname: get('f_name'),

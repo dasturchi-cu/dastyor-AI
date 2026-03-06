@@ -1351,6 +1351,7 @@
       }));
       return {
         format: format,
+        lang: I18n.getLang(),
         telegram_id: DastyorAI.getTelegramId() ? parseInt(DastyorAI.getTelegramId()) : null,
         token: DastyorAI.getToken() || null,
         name: get('f_name'),

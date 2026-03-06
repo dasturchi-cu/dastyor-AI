@@ -887,6 +887,7 @@ class ExportCVRequest(BaseModel):
     telegram_id : Optional[int]  = None
     token       : Optional[str]  = None
     format      : str            = "pdf"   # "pdf" | "word"
+    lang        : str            = "uz_lat"
     # CV fields (mirrors CVRequest above)
     name        : str  = ""
     spec        : str  = ""
@@ -920,10 +921,19 @@ async def api_export_cv(req: ExportCVRequest):
     bot_suffix = "_@DastyorAiBot"
 
     if fmt == "word":
-        # ── Word export (.doc) ──────────────────────────────────────────
-        filename = f"DASTYOR_CV_{safe}_{ts}{bot_suffix}.doc"
-        file_bytes = generate_cv_word(data)
-        media_type = "application/msword"
+        # ── Word export — real .docx (python-docx, mobile-compatible) ──
+        filename = f"DASTYOR_CV_{safe}_{ts}{bot_suffix}.docx"
+        from bot.services.doc_generator import generate_cv_docx
+        docx_path = await asyncio.get_event_loop().run_in_executor(None, generate_cv_docx, data)
+        if not docx_path or not os.path.exists(docx_path):
+            raise HTTPException(status_code=500, detail="Word fayl yaratishda xato")
+        with open(docx_path, "rb") as fh:
+            file_bytes = fh.read()
+        try:
+            os.remove(docx_path)
+        except Exception:
+            pass
+        media_type = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
     else:
         # ── PDF export (Playwright → exact browser render) ─────────────
         filename = f"DASTYOR_CV_{safe}_{ts}{bot_suffix}.pdf"
@@ -983,6 +993,7 @@ class ExportObyektivkaRequest(BaseModel):
     telegram_id    : Optional[int] = None
     token          : Optional[str] = None
     format         : str           = "pdf"  # "pdf" | "word"
+    lang           : str           = "uz_lat"
     fullname       : str = ""
     birthdate      : str = ""
     birthplace     : str = ""
@@ -1015,9 +1026,19 @@ async def api_export_obyektivka(req: ExportObyektivkaRequest):
     bot_suffix = "_@DastyorAiBot"
 
     if fmt == "word":
-        filename   = f"DASTYOR_Obyektivka_{safe}_{ts}{bot_suffix}.doc"
-        file_bytes = generate_obyektivka_word(data)
-        media_type = "application/msword"
+        # ── Word export — real .docx (python-docx, mobile-compatible) ──
+        filename = f"DASTYOR_Obyektivka_{safe}_{ts}{bot_suffix}.docx"
+        from bot.services.doc_generator import generate_obyektivka_docx
+        docx_path = await asyncio.get_event_loop().run_in_executor(None, generate_obyektivka_docx, data)
+        if not docx_path or not os.path.exists(docx_path):
+            raise HTTPException(status_code=500, detail="Word fayl yaratishda xato")
+        with open(docx_path, "rb") as fh:
+            file_bytes = fh.read()
+        try:
+            os.remove(docx_path)
+        except Exception:
+            pass
+        media_type = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
     else:
         filename  = f"DASTYOR_Obyektivka_{safe}_{ts}{bot_suffix}.pdf"
         pdf_bytes = await generate_obyektivka_pdf(data, base_url=SITE_BASE_URL)

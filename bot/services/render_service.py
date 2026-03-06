@@ -41,7 +41,16 @@ try:
     logger.info("Playwright: available ✅")
 except ImportError:
     PLAYWRIGHT_OK = False
-    logger.warning("Playwright not installed — PDF will fall back to python-docx conversion")
+    logger.warning("Playwright not installed — PDF will fall back to WeasyPrint")
+
+# ── WeasyPrint (Pure-Python PDF fallback) ──────────────────────────────────
+try:
+    from weasyprint import HTML as WeasyHTML
+    WEASYPRINT_OK = True
+    logger.info("WeasyPrint: available ✅")
+except Exception:
+    WEASYPRINT_OK = False
+    logger.warning("WeasyPrint not installed — PDF will fall back to python-docx conversion")
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -78,6 +87,7 @@ def build_cv_context(raw: dict) -> dict:
 
     return {
         "template":    raw.get("template", "minimal").lower(),
+        "lang":        raw.get("lang", "uz_lat"),
         "name":        raw.get("name", ""),
         "role":        raw.get("spec", "") or raw.get("role", ""),
         "phone":       raw.get("phone", ""),
@@ -96,11 +106,12 @@ def build_obyektivka_context(raw: dict) -> dict:
     works = raw.get("work_experience", [])
     relatives = raw.get("relatives", [])
     return {
+        "lang":           raw.get("lang", "uz_lat"),
         "fullname":       raw.get("fullname", ""),
         "birthdate":      raw.get("birthdate", "") or raw.get("birth", ""),
         "birthplace":     raw.get("birthplace", "") or raw.get("place", ""),
         "nation":         raw.get("nation", ""),
-        "party":          raw.get("party", "Partiyasiz"),
+        "party":          raw.get("party", ""),
         "education":      raw.get("education", ""),
         "graduated":      raw.get("graduated", ""),
         "specialty":      raw.get("specialty", ""),
@@ -141,55 +152,101 @@ def render_obyektivka_html(data: dict) -> str:
 
 async def generate_cv_pdf(data: dict, base_url: str | None = None) -> bytes | None:
     """
-    Render CV template → PDF bytes via Headless Chromium (Playwright).
-    Returns None if Playwright is not installed.
+    Render CV template → PDF bytes.
+    Tries Playwright first (pixel-perfect), then WeasyPrint as fallback.
+    Returns None if both are unavailable.
     """
-    if not PLAYWRIGHT_OK:
-        logger.warning("Playwright not available, PDF generation skipped")
-        return None
-
     html_str = render_cv_html(data)
-    
-    # We must prepend a <base href="..."> if base_url is set so assets load correctly
-    if base_url:
-        if "<head>" in html_str:
-            html_str = html_str.replace("<head>", f"<head><base href='{base_url}'>")
-    
-    async with async_playwright() as p:
-        browser = await p.chromium.launch(args=['--no-sandbox', '--disable-setuid-sandbox'])
-        page = await browser.new_page()
-        await page.set_content(html_str, wait_until="networkidle")
-        pdf_bytes = await page.pdf(
-            format="A4",
-            print_background=True,
-            margin={"top": "0", "right": "0", "bottom": "0", "left": "0"}
-        )
-        await browser.close()
-        return pdf_bytes
+
+    if base_url and "<head>" in html_str:
+        html_str = html_str.replace("<head>", f"<head><base href='{base_url}'>")
+
+    # ── 1. Playwright (headless Chromium) ──────────────────────────────
+    if PLAYWRIGHT_OK:
+        try:
+            async with async_playwright() as p:
+                browser = await p.chromium.launch(
+                    args=['--no-sandbox', '--disable-setuid-sandbox',
+                          '--disable-dev-shm-usage']
+                )
+                page = await browser.new_page()
+                await page.set_content(html_str, wait_until="networkidle")
+                pdf_bytes = await page.pdf(
+                    format="A4",
+                    print_background=True,
+                    margin={"top": "0", "right": "0", "bottom": "0", "left": "0"}
+                )
+                await browser.close()
+                logger.info("CV PDF generated via Playwright")
+                return pdf_bytes
+        except Exception as e:
+            logger.warning(f"Playwright PDF failed: {e} — trying WeasyPrint")
+
+    # ── 2. WeasyPrint fallback ─────────────────────────────────────────
+    if WEASYPRINT_OK:
+        try:
+            import asyncio
+            loop = asyncio.get_event_loop()
+            pdf_bytes = await loop.run_in_executor(
+                None,
+                lambda: WeasyHTML(string=html_str, base_url=base_url).write_pdf()
+            )
+            logger.info("CV PDF generated via WeasyPrint")
+            return pdf_bytes
+        except Exception as e:
+            logger.warning(f"WeasyPrint PDF failed: {e}")
+
+    logger.error("All PDF backends failed for CV")
+    return None
 
 
 async def generate_obyektivka_pdf(data: dict, base_url: str | None = None) -> bytes | None:
-    """Render Obyektivka template → PDF bytes via Headless Chromium."""
-    if not PLAYWRIGHT_OK:
-        return None
-
+    """
+    Render Obyektivka template → PDF bytes.
+    Tries Playwright first, then WeasyPrint as fallback.
+    """
     html_str = render_obyektivka_html(data)
-    
-    if base_url:
-        if "<head>" in html_str:
-            html_str = html_str.replace("<head>", f"<head><base href='{base_url}'>")
 
-    async with async_playwright() as p:
-        browser = await p.chromium.launch(args=['--no-sandbox', '--disable-setuid-sandbox'])
-        page = await browser.new_page()
-        await page.set_content(html_str, wait_until="networkidle")
-        pdf_bytes = await page.pdf(
-            format="A4",
-            print_background=True,
-            margin={"top": "0", "right": "0", "bottom": "0", "left": "0"}
-        )
-        await browser.close()
-        return pdf_bytes
+    if base_url and "<head>" in html_str:
+        html_str = html_str.replace("<head>", f"<head><base href='{base_url}'>")
+
+    # ── 1. Playwright ──────────────────────────────────────────────────
+    if PLAYWRIGHT_OK:
+        try:
+            async with async_playwright() as p:
+                browser = await p.chromium.launch(
+                    args=['--no-sandbox', '--disable-setuid-sandbox',
+                          '--disable-dev-shm-usage']
+                )
+                page = await browser.new_page()
+                await page.set_content(html_str, wait_until="networkidle")
+                pdf_bytes = await page.pdf(
+                    format="A4",
+                    print_background=True,
+                    margin={"top": "0", "right": "0", "bottom": "0", "left": "0"}
+                )
+                await browser.close()
+                logger.info("Obyektivka PDF generated via Playwright")
+                return pdf_bytes
+        except Exception as e:
+            logger.warning(f"Playwright PDF failed: {e} — trying WeasyPrint")
+
+    # ── 2. WeasyPrint fallback ─────────────────────────────────────────
+    if WEASYPRINT_OK:
+        try:
+            import asyncio
+            loop = asyncio.get_event_loop()
+            pdf_bytes = await loop.run_in_executor(
+                None,
+                lambda: WeasyHTML(string=html_str, base_url=base_url).write_pdf()
+            )
+            logger.info("Obyektivka PDF generated via WeasyPrint")
+            return pdf_bytes
+        except Exception as e:
+            logger.warning(f"WeasyPrint PDF failed: {e}")
+
+    logger.error("All PDF backends failed for Obyektivka")
+    return None
 
 
 # ═══════════════════════════════════════════════════════════════════════════
