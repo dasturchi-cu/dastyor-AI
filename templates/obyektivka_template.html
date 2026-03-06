@@ -1,237 +1,368 @@
 <!DOCTYPE html>
 <html lang="uz">
+
 <head>
   <meta charset="UTF-8">
   <title>Ma'lumotnoma — {{ data.fullname }}</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+    rel="stylesheet">
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
     body {
       background: #fff;
       -webkit-print-color-adjust: exact;
       print-color-adjust: exact;
     }
 
-        
 
-        /* Custom scrollbars for editor */
-        
 
-        
+    /* Custom scrollbars for editor */
 
-        /* A4 Paper Canvas - strict isolated CSS */
-        
 
-        .tpl-oby {
-            width: 210mm;
-            min-height: 297mm;
-            background: #fff;
-            
-            color: #000;
-            padding: 20mm 15mm 20mm 20mm;
-            font-family: 'Times New Roman', Times, serif;
-            line-height: 1.25;
-            font-size: 11pt;
-            margin: 0;
-        }
 
-        .tpl-oby strong {
-            font-weight: bold;
-        }
 
-        .tpl-oby .title {
-            text-align: center;
-            font-size: 16pt;
-            font-weight: bold;
-            margin-bottom: 25px;
-            letter-spacing: 1px;
-        }
+    /* A4 Paper Canvas - strict isolated CSS */
 
-        .tpl-oby .header-table {
-            width: 100%;
-            margin-bottom: 15px;
-            border-collapse: collapse;
-        }
 
-        .tpl-oby .header-table td {
-            vertical-align: top;
-        }
+    .tpl-oby {
+      width: 210mm;
+      min-height: 297mm;
+      background: #fff;
 
-        .tpl-oby .col-main {
-            text-align: center;
-            vertical-align: middle;
-            padding-right: 15mm;
-        }
+      color: #000;
+      padding: 20mm 15mm 20mm 20mm;
+      font-family: 'Times New Roman', Times, serif;
+      line-height: 1.25;
+      font-size: 11pt;
+      margin: 0;
+    }
 
-        .tpl-oby .name {
-            font-size: 16pt;
-            font-weight: bold;
-            text-transform: uppercase;
-            line-height: 1.3;
-        }
+    .tpl-oby strong {
+      font-weight: bold;
+    }
 
-        .tpl-oby .col-img {
-            width: 35mm;
-            text-align: right;
-        }
+    .tpl-oby .title {
+      text-align: center;
+      font-size: 16pt;
+      font-weight: bold;
+      margin-bottom: 25px;
+      letter-spacing: 1px;
+    }
 
-        .tpl-oby .avatar {
-            width: 30mm;
-            height: 40mm;
-            object-fit: cover;
-            border: 1px solid #aaa;
-            display: inline-block;
-        }
+    .tpl-oby .header-table {
+      width: 100%;
+      margin-bottom: 15px;
+      border-collapse: collapse;
+    }
 
-        .tpl-oby .info-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 15px 25px;
-            margin-bottom: 25px;
-            font-size: 11.5pt;
-        }
+    .tpl-oby .header-table td {
+      vertical-align: top;
+    }
 
-        .tpl-oby .info-item strong {
-            display: block;
-            margin-bottom: 3px;
-            font-weight: bold;
-            font-size: 10.5pt;
-        }
+    .tpl-oby .col-main {
+      text-align: center;
+      vertical-align: middle;
+      padding-right: 15mm;
+    }
 
-        .tpl-oby .section-title {
-            text-align: center;
-            font-weight: bold;
-            font-size: 12.5pt;
-            margin-top: 25px;
-            margin-bottom: 15px;
-            text-transform: uppercase;
-        }
+    .tpl-oby .name {
+      font-size: 16pt;
+      font-weight: bold;
+      text-transform: uppercase;
+      line-height: 1.3;
+    }
 
-        .tpl-oby .exp-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 20px;
-            font-size: 11pt;
-        }
+    .tpl-oby .col-img {
+      width: 35mm;
+      text-align: right;
+    }
 
-        .tpl-oby .exp-table td {
-            padding: 6px 0;
-            vertical-align: top;
-        }
+    .tpl-oby .avatar {
+      width: 30mm;
+      height: 40mm;
+      object-fit: cover;
+      border: 1px solid #aaa;
+      display: inline-block;
+    }
 
-        .tpl-oby .exp-table td:first-child {
-            width: 28%;
-            padding-right: 10px;
-        }
+    .tpl-oby .info-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 15px 25px;
+      margin-bottom: 25px;
+      font-size: 11.5pt;
+    }
 
-        .tpl-oby .rel-table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 10pt;
-            text-align: center;
-        }
+    .tpl-oby .info-item strong {
+      display: block;
+      margin-bottom: 3px;
+      font-weight: bold;
+      font-size: 10.5pt;
+    }
 
-        .tpl-oby .rel-table th,
-        .tpl-oby .rel-table td {
-            border: 1px solid #000;
-            padding: 6px 4px;
-            vertical-align: middle;
-        }
+    .tpl-oby .section-title {
+      text-align: center;
+      font-weight: bold;
+      font-size: 12.5pt;
+      margin-top: 25px;
+      margin-bottom: 15px;
+      text-transform: uppercase;
+    }
 
-        .tpl-oby .rel-table th {
-            font-weight: bold;
-            font-size: 9.5pt;
-        }
+    .tpl-oby .exp-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 20px;
+      font-size: 11pt;
+    }
 
-  
-    
-    @page { size: A4; margin: 0; }
+    .tpl-oby .exp-table td {
+      padding: 6px 0;
+      vertical-align: top;
+    }
 
+    .tpl-oby .exp-table td:first-child {
+      width: 28%;
+      padding-right: 10px;
+    }
+
+    .tpl-oby .rel-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 10pt;
+      text-align: center;
+    }
+
+    .tpl-oby .rel-table th,
+    .tpl-oby .rel-table td {
+      border: 1px solid #000;
+      padding: 6px 4px;
+      vertical-align: middle;
+    }
+
+    .tpl-oby .rel-table th {
+      font-weight: bold;
+      font-size: 9.5pt;
+    }
+
+
+
+    @page {
+      size: A4;
+      margin: 0;
+    }
   </style>
 </head>
+
 <body>
-{%- set d = data -%}
-<div class="tpl-oby">
+  {%- set d = data -%}
+  {%- set _lbl = {
+  'uz_lat': {
+  'title': "M A ' L U M O T N O M A",
+  'bdate': "Tug'ilgan yili, kuni va oyi:",
+  'bplace': "Tug'ilgan joyi:",
+  'nation': "Millati:",
+  'party': "Partiyaviyligi:",
+  'edu': "Ma'lumoti:",
+  'grad': "Qaysi oliy maktabni tamomlagan:",
+  'spec': "Mutaxassisligi:",
+  'degree': "Ilmiy darajasi:",
+  'stitle': "Ilmiy unvoni:",
+  'langs': "Qaysi chet tillarini biladi:",
+  'military': "Harbiy unvoni:",
+  'awards': "Davlat mukofotlari:",
+  'deputy': "Deputatmi yoki boshqa saylanadigan organlar a'zosimi:",
+  'work_title': "MEHNAT FAOLIYATI",
+  'yillar': "Yillar",
+  'lavozim': "Ish joyi va lavozimi",
+  'rel_title': "NING YAQIN QARINDOSHLARI HAQIDA MA'LUMOT",
+  'qarindoshlik': "Qarindoshligi",
+  'fish': "F.I.SH.",
+  'tjoyi': "Tug'ilgan yili va joyi",
+  'ishjoyi': "Ish joyi va lavozimi",
+  'manzil': "Yashash manzili",
+  'empty': "Ma'lumot kiritilmagan",
+  'none': "—"
+  },
+  'uz_cyr': {
+  'title': "М А Ъ Л У М О Т Н О М А",
+  'bdate': "Туғилган йили, куни ва ойи:",
+  'bplace': "Туғилган жойи:",
+  'nation': "Миллати:",
+  'party': "Партиявийлиги:",
+  'edu': "Маълумоти:",
+  'grad': "Қайси олий мактабни тамомлаган:",
+  'spec': "Мутахассислиги:",
+  'degree': "Илмий даражаси:",
+  'stitle': "Илмий унвони:",
+  'langs': "Қайси чет тилларини билади:",
+  'military': "Ҳарбий унвони:",
+  'awards': "Давлат мукофотлари:",
+  'deputy': "Депутатми ёки бошқа сайланадиган органлар аъзосими:",
+  'work_title': "МЕҲНАТ ФАОЛИЯТИ",
+  'yillar': "Йиллар",
+  'lavozim': "Иш жойи ва лавозими",
+  'rel_title': "НИНГ ЯҚИН ҚАРИНДОШЛАРИ ҲАҚИДА МАЪЛУМОТ",
+  'qarindoshlik': "Қариндошлиги",
+  'fish': "Ф.И.Ш.",
+  'tjoyi': "Туғилган йили ва жойи",
+  'ishjoyi': "Иш жойи ва лавозими",
+  'manzil': "Яшаш манзили",
+  'empty': "Маълумот киритилмаган",
+  'none': "—"
+  },
+  'en': {
+  'title': "C U R R I C U L U M V I T A E",
+  'bdate': "Date of birth:",
+  'bplace': "Place of birth:",
+  'nation': "Nationality:",
+  'party': "Party membership:",
+  'edu': "Education:",
+  'grad': "University graduated from:",
+  'spec': "Specialty:",
+  'degree': "Academic degree:",
+  'stitle': "Academic title:",
+  'langs': "Foreign languages:",
+  'military': "Military rank:",
+  'awards': "State awards:",
+  'deputy': "Is a deputy or member of other elected bodies:",
+  'work_title': "WORK EXPERIENCE",
+  'yillar': "Years",
+  'lavozim': "Position and Workplace",
+  'rel_title': "'S CLOSE RELATIVES INFORMATION",
+  'qarindoshlik': "Relationship",
+  'fish': "Full Name",
+  'tjoyi': "Year and place of birth",
+  'ishjoyi': "Workplace and position",
+  'manzil': "Residential address",
+  'empty': "No data entered",
+  'none': "—"
+  },
+  'ru': {
+  'title': "О Б Ъ Е К Т И В К А",
+  'bdate': "Год, число и месяц рождения:",
+  'bplace': "Место рождения:",
+  'nation': "Национальность:",
+  'party': "Партийность:",
+  'edu': "Образование:",
+  'grad': "Какое высшее учебное заведение окончил(а):",
+  'spec': "Специальность:",
+  'degree': "Ученая степень:",
+  'stitle': "Ученое звание:",
+  'langs': "Какими иностранными языками владеет:",
+  'military': "Воинское звание:",
+  'awards': "Государственные награды:",
+  'deputy': "Является ли депутатом или членом других выборных органов:",
+  'work_title': "ТРУДОВАЯ ДЕЯТЕЛЬНОСТЬ",
+  'yillar': "Годы",
+  'lavozim': "Место работы и должность",
+  'rel_title': " О БЛИЗКИХ РОДСТВЕННИКАХ",
+  'qarindoshlik': "Степень родства",
+  'fish': "Ф.И.О.",
+  'tjoyi': "Год и место рождения",
+  'ishjoyi': "Место работы и должность",
+  'manzil': "Место жительства",
+  'empty': "Сведения не введены",
+  'none': "—"
+  }
+  } -%}
+  {%- set ll = _lbl.get(d.lang or 'uz_lat', _lbl['uz_lat']) -%}
 
-  <div class="title">M A ' L U M O T N O M A</div>
+  <div class="tpl-oby">
 
-  <table class="header-table">
-    <tr>
-      <td class="col-main">
-        <div class="name">{{ (d.fullname or '—').upper() }}</div>
-      </td>
-      <td class="col-img">
-        {%- if d.img -%}
-        <img src="{{ d.img }}" class="avatar" alt="Fotosurat">
-        {%- else -%}
-        <div style="width:30mm;height:40mm;margin-left:auto;border:1px solid #aaa;display:flex;align-items:center;justify-content:center;color:#aaa;font-size:9pt;">4x6</div>
-        {%- endif -%}
-      </td>
-    </tr>
-  </table>
+    <div class="title">{{ ll.title }}</div>
 
-  <div class="info-grid">
-    <div class="info-item"><strong>Tug'ilgan yili, kuni va oyi:</strong>{{ d.birthdate or '—' }}</div>
-    <div class="info-item"><strong>Tug'ilgan joyi:</strong>{{ d.birthplace or '—' }}</div>
-    <div class="info-item"><strong>Millati:</strong>{{ d.nation or '—' }}</div>
-    <div class="info-item"><strong>Partiyaviyligi:</strong>{{ d.party or 'Partiyasiz' }}</div>
-    <div class="info-item"><strong>Ma'lumoti:</strong>{{ d.education or '—' }}</div>
-    <div class="info-item"><strong>Qaysi oliy maktabni tamomlagan:</strong>{{ d.graduated or '—' }}</div>
-    <div class="info-item"><strong>Mutaxassisligi:</strong>{{ d.specialty or '—' }}</div>
-    <div class="info-item"><strong>Ilmiy darajasi:</strong>{{ d.degree or "yo'q" }}</div>
-    <div class="info-item"><strong>Ilmiy unvoni:</strong>{{ d.scientific_title or "yo'q" }}</div>
-    <div class="info-item"><strong>Qaysi chet tillarini biladi:</strong>{{ d.languages or '—' }}</div>
-    <div class="info-item"><strong>Harbiy unvoni:</strong>{{ d.military_rank or '—' }}</div>
-    <div class="info-item"><strong>Davlat mukofotlari:</strong>{{ d.awards or "yo'q" }}</div>
-    <div class="info-item" style="grid-column:1/-1"><strong>Deputatmi yoki boshqa saylanadigan organlar a'zosimi:</strong>{{ d.deputy or "yo'q" }}</div>
-  </div>
-
-  <div class="section-title">MEHNAT FAOLIYATI</div>
-  {%- if d.work_experience and d.work_experience | length > 0 -%}
-  <table class="exp-table">
-    <thead><tr><th>Yillar</th><th>Ish joyi va lavozimi</th></tr></thead>
-    <tbody>
-    {%- for e in d.work_experience -%}
-    <tr>
-      <td>{{ e.year or e.years or '—' }}</td>
-      <td>{{ (e.position or e.desc or '—') | replace('\n', '<br>') | safe }}</td>
-    </tr>
-    {%- endfor -%}
-    </tbody>
-  </table>
-  {%- else -%}
-  <div style="text-align:center;font-style:italic;padding:10px 0;">Ma'lumot kiritilmagan</div>
-  {%- endif -%}
-
-  {%- set fn = (d.fullname or '').split(' ')[0] | upper -%}
-  <div class="section-title">{{ fn }}NING YAQIN QARINDOSHLARI HAQIDA MA'LUMOT</div>
-  {%- if d.relatives and d.relatives | length > 0 -%}
-  <table class="rel-table">
-    <thead>
+    <table class="header-table">
       <tr>
-        <th style="width:12%">Qarindoshligi</th>
-        <th style="width:20%">F.I.SH.</th>
-        <th style="width:18%">Tug'ilgan yili va joyi</th>
-        <th style="width:28%">Ish joyi va lavozimi</th>
-        <th style="width:22%">Yashash manzili</th>
+        <td class="col-main">
+          <div class="name">{{ (d.fullname or ll.none).upper() }}</div>
+        </td>
+        <td class="col-img">
+          {%- if d.img -%}
+          <img src="{{ d.img }}" class="avatar" alt="Fotosurat">
+          {%- else -%}
+          <div
+            style="width:30mm;height:40mm;margin-left:auto;border:1px solid #aaa;display:flex;align-items:center;justify-content:center;color:#aaa;font-size:9pt;">
+            4x6</div>
+          {%- endif -%}
+        </td>
       </tr>
-    </thead>
-    <tbody>
-    {%- for r in d.relatives -%}
-    <tr>
-      <td>{{ r.degree or r.role or '—' }}</td>
-      <td>{{ r.fullname or r.name or '—' }}</td>
-      <td>{{ r.birth_year_place or r.birth or '—' }}</td>
-      <td>{{ r.work_place or r.work or '—' }}</td>
-      <td>{{ r.address or r.addr or '—' }}</td>
-    </tr>
-    {%- endfor -%}
-    </tbody>
-  </table>
-  {%- else -%}
-  <div style="text-align:center;font-style:italic;padding:10px 0;">Ma'lumot kiritilmagan</div>
-  {%- endif -%}
+    </table>
 
-</div>
+    <div class="info-grid">
+      <div class="info-item"><strong>{{ ll.bdate }}</strong>{{ d.birthdate or ll.none }}</div>
+      <div class="info-item"><strong>{{ ll.bplace }}</strong>{{ d.birthplace or ll.none }}</div>
+      <div class="info-item"><strong>{{ ll.nation }}</strong>{{ d.nation or ll.none }}</div>
+      <div class="info-item"><strong>{{ ll.party }}</strong>{{ d.party or ll.none }}</div>
+      <div class="info-item"><strong>{{ ll.edu }}</strong>{{ d.education or ll.none }}</div>
+      <div class="info-item"><strong>{{ ll.grad }}</strong>{{ d.graduated or ll.none }}</div>
+      <div class="info-item"><strong>{{ ll.spec }}</strong>{{ d.specialty or ll.none }}</div>
+      <div class="info-item"><strong>{{ ll.degree }}</strong>{{ d.degree or ll.none }}</div>
+      <div class="info-item"><strong>{{ ll.stitle }}</strong>{{ d.scientific_title or ll.none }}</div>
+      <div class="info-item"><strong>{{ ll.langs }}</strong>{{ d.languages or ll.none }}</div>
+      <div class="info-item"><strong>{{ ll.military }}</strong>{{ d.military_rank or ll.none }}</div>
+      <div class="info-item"><strong>{{ ll.awards }}</strong>{{ d.awards or ll.none }}</div>
+      <div class="info-item" style="grid-column:1/-1"><strong>{{ ll.deputy }}</strong>{{ d.deputy or ll.none }}</div>
+    </div>
+
+    <div class="section-title">{{ ll.work_title }}</div>
+    {%- if d.work_experience and d.work_experience | length > 0 -%}
+    <table class="exp-table">
+      <thead>
+        <tr>
+          <th>{{ ll.yillar }}</th>
+          <th>{{ ll.lavozim }}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {%- for e in d.work_experience -%}
+        <tr>
+          <td>{{ e.year or e.years or ll.none }}</td>
+          <td>{{ (e.position or e.desc or ll.none) | replace('\n', '<br>') | safe }}</td>
+        </tr>
+        {%- endfor -%}
+      </tbody>
+    </table>
+    {%- else -%}
+    <div style="text-align:center;font-style:italic;padding:10px 0;">{{ ll.empty }}</div>
+    {%- endif -%}
+
+    {%- set fn = (d.fullname or '').split(' ')[0] | upper -%}
+    <div class="section-title">{% if d.lang == 'ru' %}СВЕДЕНИЯ{{ ll.rel_title }}{% else %}{{ fn }}{{ ll.rel_title }}{%
+      endif %}</div>
+    {%- if d.relatives and d.relatives | length > 0 -%}
+    <table class="rel-table">
+      <thead>
+        <tr>
+          <th style="width:12%">{{ ll.qarindoshlik }}</th>
+          <th style="width:20%">{{ ll.fish }}</th>
+          <th style="width:18%">{{ ll.tjoyi }}</th>
+          <th style="width:28%">{{ ll.ishjoyi }}</th>
+          <th style="width:22%">{{ ll.manzil }}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {%- for r in d.relatives -%}
+        <tr>
+          <td>{{ r.degree or r.role or ll.none }}</td>
+          <td>{{ r.fullname or r.name or ll.none }}</td>
+          <td>{{ r.birth_year_place or r.birth or ll.none }}</td>
+          <td>{{ r.work_place or r.work or ll.none }}</td>
+          <td>{{ r.address or r.addr or ll.none }}</td>
+        </tr>
+        {%- endfor -%}
+      </tbody>
+    </table>
+    {%- else -%}
+    <div style="text-align:center;font-style:italic;padding:10px 0;">{{ ll.empty }}</div>
+    {%- endif -%}
+
+  </div>
 </body>
+
 </html>

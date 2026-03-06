@@ -1,11 +1,19 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="uz">
+
 <head>
   <meta charset="UTF-8">
   <title>CV | DASTYOR AI</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@400;600;700;800&display=swap"
+    rel="stylesheet">
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
     body {
       font-family: 'Inter', sans-serif;
       background: #fff;
@@ -14,20 +22,20 @@
       print-color-adjust: exact;
     }
 
-    
 
-    
 
-    
 
-    /* ─── CV OUTPUT CANVAS ─── */
-    
+
+
+
+    /* в”Ђв”Ђв”Ђ CV OUTPUT CANVAS в”Ђв”Ђв”Ђ */
+
 
     .cv-canvas {
       width: 210mm;
       min-height: 297mm;
       background: #fff;
-      
+
       margin: 0;
       overflow: hidden;
       font-family: 'Inter', sans-serif;
@@ -586,49 +594,56 @@
     }
 
 
-    @page { size: A4; margin: 0; }
-
+    @page {
+      size: A4;
+      margin: 0;
+    }
   </style>
 </head>
-<body>
-{%- set d = data -%}
-{%- set tpl = d.template | default('minimal') -%}
 
-{#── MULTI-LANG LABELS ──────────────────────────────────────────────────────#}
-{%- set _labels = {
+<body>
+  {%- set d = data -%}
+  {%- set tpl = d.template | default('minimal') -%}
+
+  {#в”Ђв”Ђ MULTI-LANG LABELS в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ#}
+  {%- set _labels = {
   'uz_lat': {
-    'about':      "Haqida",
-    'experience': "Ish tajribasi",
-    'education':  "Ta'lim",
-    'skills':     "Ko'nikmalar",
-    'contact':    "Aloqa"
+  'about': "Haqida",
+  'experience': "Ish tajribasi",
+  'education': "Ta'lim",
+  'skills': "Ko'nikmalar",
+  'contact': "Aloqa",
+  'name_ph': "Ism Familiya"
   },
   'uz_cyr': {
-    'about':      "Ҳақида",
-    'experience': "Иш Тажрибаси",
-    'education':  "Таълим",
-    'skills':     "Кўникмалар",
-    'contact':    "Алоқа"
+  'about': "ТІР°Т›РёРґР°",
+  'experience': "РС€ РўР°Р¶СЂРёР±Р°СЃРё",
+  'education': "РўР°СЉР»РёРј",
+  'skills': "РљСћРЅРёРєРјР°Р»Р°СЂ",
+  'contact': "РђР»РѕТ›Р°",
+  'name_ph': "РСЃРј Р¤Р°РјРёР»РёСЏ"
   },
   'en': {
-    'about':      "About",
-    'experience': "Experience",
-    'education':  "Education",
-    'skills':     "Skills",
-    'contact':    "Contact"
+  'about': "About",
+  'experience': "Experience",
+  'education': "Education",
+  'skills': "Skills",
+  'contact': "Contact",
+  'name_ph': "Full Name"
   },
   'ru': {
-    'about':      "О себе",
-    'experience': "Опыт работы",
-    'education':  "Образование",
-    'skills':     "Навыки",
-    'contact':    "Контакты"
+  'about': "Рћ СЃРµР±Рµ",
+  'experience': "РћРїС‹С‚ СЂР°Р±РѕС‚С‹",
+  'education': "РћР±СЂР°Р·РѕРІР°РЅРёРµ",
+  'skills': "РќР°РІС‹РєРё",
+  'contact': "РљРѕРЅС‚Р°РєС‚С‹",
+  'name_ph': "РРјСЏ Р¤Р°РјРёР»РёСЏ"
   }
-} -%}
-{%- set ll = _labels.get(d.lang or 'uz_lat', _labels['uz_lat']) -%}
+  } -%}
+  {%- set ll = _labels.get(d.lang or 'uz_lat', _labels['uz_lat']) -%}
 
-{#── REUSABLE MACROS ────────────────────────────────────────────────────────#}
-{%- macro expBlock(ll) -%}
+  {#в”Ђв”Ђ REUSABLE MACROS в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ#}
+  {%- macro expBlock(ll) -%}
   {%- if d.experiences -%}
   <div class="section">
     <div class="sec-title">{{ ll.experience }}</div>
@@ -644,9 +659,9 @@
     {%- endfor -%}
   </div>
   {%- endif -%}
-{%- endmacro -%}
+  {%- endmacro -%}
 
-{%- macro eduBlock(ll) -%}
+  {%- macro eduBlock(ll) -%}
   {%- if d.education -%}
   <div class="section">
     <div class="sec-title">{{ ll.education }}</div>
@@ -661,9 +676,9 @@
     {%- endfor -%}
   </div>
   {%- endif -%}
-{%- endmacro -%}
+  {%- endmacro -%}
 
-{%- macro skillsBlock(ll) -%}
+  {%- macro skillsBlock(ll) -%}
   {%- if d.skills -%}
   <div class="section">
     <div class="sec-title">{{ ll.skills }}</div>
@@ -672,256 +687,292 @@
     </div>
   </div>
   {%- endif -%}
-{%- endmacro -%}
+  {%- endmacro -%}
 
-{#── MINIMAL ─────────────────────────────────────────────────────────────────#}
-{%- if tpl == 'minimal' -%}
-<div class="cv-canvas tpl-minimal">
-  <div class="header">
-    {%- if d.img -%}<img src="{{ d.img }}" class="avatar" alt="avatar">{%- endif -%}
-    <div>
-      <div class="name">{{ d.name or 'Ism Familiya' }}</div>
-      <div class="role">{{ d.role or '' }}</div>
-      <div class="contact-wrap">
-        {%- if d.phone -%}<span>📞 {{ d.phone }}</span>{%- endif -%}
-        {%- if d.email -%}<span>✉️ {{ d.email }}</span>{%- endif -%}
-        {%- if d.loc -%}<span>📍 {{ d.loc }}</span>{%- endif -%}
-      </div>
-    </div>
-  </div>
-  {%- if d.about -%}
-  <div class="section"><div class="sec-title">Haqida</div><div class="text">{{ d.about }}</div></div>
-  {%- endif -%}
-  {{ expBlock() }}
-  {{ eduBlock() }}
-  {{ skillsBlock() }}
-</div>
-
-{#── SPLIT ──────────────────────────────────────────────────────────────────#}
-{%- elif tpl == 'split' -%}
-<div class="cv-canvas tpl-split">
-  <div class="sidebar">
-    {%- if d.img -%}<img src="{{ d.img }}" class="avatar" alt="avatar">{%- endif -%}
-    <div class="section">
-      <div class="sec-title-side">Aloqa</div>
-      {%- if d.phone -%}<div class="contact-item">📞 {{ d.phone }}</div>{%- endif -%}
-      {%- if d.email -%}<div class="contact-item">✉️ {{ d.email }}</div>{%- endif -%}
-      {%- if d.loc -%}<div class="contact-item">📍 {{ d.loc }}</div>{%- endif -%}
-    </div>
-    {%- if d.skills -%}
-    <div class="section">
-      <div class="sec-title-side">Ko'nikmalar</div>
-      <div class="badges-wrap">{%- for s in d.skills -%}<span class="badge">{{ s }}</span>{%- endfor -%}</div>
-    </div>
-    {%- endif -%}
-  </div>
-  <div class="main">
-    <div class="name">{{ d.name or 'Ism Familiya' }}</div>
-    <div class="role">{{ d.role or '' }}</div>
-    {%- if d.about -%}
-    <div class="section"><div class="sec-title-main">Haqida</div><div class="text">{{ d.about }}</div></div>
-    {%- endif -%}
-    {%- if d.experiences -%}
-    <div class="section">
-      <div class="sec-title-main">Ish tajribasi</div>
-      {%- for e in d.experiences -%}
-      <div class="item-row">
-        <div class="item-head"><span class="item-title">{{ e.title }}</span><span class="item-date">{{ e.date }}</span></div>
-        {%- if e.company -%}<div class="item-sub">{{ e.company }}</div>{%- endif -%}
-        {%- if e.desc -%}<div class="item-desc">{{ e.desc | replace('\n','<br>') | safe }}</div>{%- endif -%}
-      </div>
-      {%- endfor -%}
-    </div>
-    {%- endif -%}
-    {%- if d.education -%}
-    <div class="section">
-      <div class="sec-title-main">Ta'lim</div>
-      {%- for e in d.education -%}
-      <div class="item-row">
-        <div class="item-head"><span class="item-title">{{ e.title }}</span><span class="item-date">{{ e.date }}</span></div>
-        {%- if e.company -%}<div class="item-sub">{{ e.company }}</div>{%- endif -%}
-      </div>
-      {%- endfor -%}
-    </div>
-    {%- endif -%}
-  </div>
-</div>
-
-{#── MODERN ──────────────────────────────────────────────────────────────────#}
-{%- elif tpl == 'modern' -%}
-<div class="cv-canvas tpl-modern">
-  <div class="header">
-    {%- if d.img -%}<img src="{{ d.img }}" class="avatar" alt="avatar">{%- endif -%}
-    <div class="header-info">
-      <div class="name">{{ d.name or 'Ism Familiya' }}</div>
-      <div class="role">{{ d.role or '' }}</div>
-      <div class="contact">
-        {%- if d.phone or d.email -%}<div>
-          {%- if d.phone -%}📞 {{ d.phone }}{%- endif -%}
-          {%- if d.phone and d.email %} &nbsp;|&nbsp; {%- endif -%}
-          {%- if d.email -%}✉️ {{ d.email }}{%- endif -%}
-        </div>{%- endif -%}
-        {%- if d.loc -%}<div>📍 {{ d.loc }}</div>{%- endif -%}
-      </div>
-    </div>
-  </div>
-  <div class="body">
-    <div class="col-main">
-      {%- if d.about -%}<div class="section"><div class="sec-title">Haqida</div><div class="text">{{ d.about }}</div></div>{%- endif -%}
-      {{ expBlock() }}
-    </div>
-    <div class="col-side">
-      {{ eduBlock() }}
-      {{ skillsBlock() }}
-    </div>
-  </div>
-</div>
-
-{#── ATS SAFE ────────────────────────────────────────────────────────────────#}
-{%- elif tpl == 'ats' -%}
-<div class="cv-canvas tpl-ats">
-  <div class="header">
-    <div class="name">{{ d.name or 'Ism Familiya' }}</div>
-    <div class="role">{{ d.role or '' }}</div>
-    <div class="contact-wrap">
-      {%- if d.phone -%}<span>📞 {{ d.phone }}</span>{%- endif -%}
-      {%- if d.email -%}<span>✉️ {{ d.email }}</span>{%- endif -%}
-      {%- if d.loc -%}<span>📍 {{ d.loc }}</span>{%- endif -%}
-    </div>
-  </div>
-  {%- if d.about -%}<div class="section"><div class="sec-title">Haqida</div><div class="text">{{ d.about }}</div></div>{%- endif -%}
-  {{ expBlock() }}
-  {{ eduBlock() }}
-  {%- if d.skills -%}
-  <div class="section"><div class="sec-title">Ko'nikmalar</div><div style="font-size:10pt;">{{ d.skills | join(', ') }}</div></div>
-  {%- endif -%}
-</div>
-
-{#── ELEGANT ─────────────────────────────────────────────────────────────────#}
-{%- elif tpl == 'elegant' -%}
-<div class="cv-canvas tpl-elegant">
-  <div class="header">
-    <div class="name">{{ d.name or 'Ism Familiya' }}</div>
-    <div class="role">{{ d.role or '' }}</div>
-    <div class="contact-wrap">
-      {%- if d.phone -%}{{ d.phone }}{%- endif -%}
-      {%- if d.email -%} &nbsp;·&nbsp; {{ d.email }}{%- endif -%}
-      {%- if d.loc -%} &nbsp;·&nbsp; {{ d.loc }}{%- endif -%}
-    </div>
-  </div>
-  <div class="body-cols">
-    <div class="col-main">
-      {%- if d.about -%}<div class="section"><div class="sec-title">Haqida</div><div class="text">{{ d.about }}</div></div>{%- endif -%}
-      {{ expBlock() }}
-    </div>
-    <div class="col-side">
-      {{ eduBlock() }}
-      {{ skillsBlock() }}
-    </div>
-  </div>
-</div>
-
-{#── CORPORATE ───────────────────────────────────────────────────────────────#}
-{%- elif tpl == 'corporate' -%}
-<div class="cv-canvas tpl-corporate">
-  <div class="header">
-    <div>
-      {%- if d.img -%}<img src="{{ d.img }}" class="avatar" style="width:35mm;height:35mm;border-radius:5px;object-fit:cover;margin-bottom:12px;" alt="avatar">{%- endif -%}
-      <div class="name">{{ d.name or 'Ism Familiya' }}</div>
-      <div class="role">{{ d.role or '' }}</div>
-    </div>
-    <div class="contact-wrap">
-      {%- if d.phone -%}<div>📞 {{ d.phone }}</div>{%- endif -%}
-      {%- if d.email -%}<div>✉️ {{ d.email }}</div>{%- endif -%}
-      {%- if d.loc -%}<div>📍 {{ d.loc }}</div>{%- endif -%}
-    </div>
-  </div>
-  <div class="body-cols">
-    <div class="col-main">
-      {%- if d.about -%}<div class="section"><div class="sec-title">Haqida</div><div class="text">{{ d.about }}</div></div>{%- endif -%}
-      {{ expBlock() }}
-    </div>
-    <div class="col-side">
-      {{ eduBlock() }}
-      {{ skillsBlock() }}
-    </div>
-  </div>
-</div>
-
-{#── CREATIVE ────────────────────────────────────────────────────────────────#}
-{%- elif tpl == 'creative' -%}
-<div class="cv-canvas tpl-creative">
-  <div class="left">
-    {%- if d.img -%}<img src="{{ d.img }}" class="avatar" alt="avatar">{%- endif -%}
-    <div class="name">{{ d.name or 'Ism' }}</div>
-    <div class="role">{{ d.role or '' }}</div>
-    <div class="section">
-      <div class="sec-title sec-title-left">Aloqa</div>
-      {%- if d.phone -%}<div class="contact-item">📞 {{ d.phone }}</div>{%- endif -%}
-      {%- if d.email -%}<div class="contact-item">✉️ {{ d.email }}</div>{%- endif -%}
-      {%- if d.loc -%}<div class="contact-item">📍 {{ d.loc }}</div>{%- endif -%}
-    </div>
-    {%- if d.skills -%}
-    <div class="section">
-      <div class="sec-title sec-title-left">Ko'nikmalar</div>
-      <div class="badges-wrap">{%- for s in d.skills -%}<span class="badge">{{ s }}</span>{%- endfor -%}</div>
-    </div>
-    {%- endif -%}
-    {%- if d.education -%}
-    <div class="section">
-      <div class="sec-title sec-title-left">Ta'lim</div>
-      {%- for e in d.education -%}
-      <div class="item-row">
-        <div style="font-weight:700;font-size:9.5pt;color:#831843;">{{ e.title }}</div>
-        <div style="font-size:8.5pt;opacity:0.7;">{{ e.company }}{%- if e.date %} · {{ e.date }}{%- endif -%}</div>
-      </div>
-      {%- endfor -%}
-    </div>
-    {%- endif -%}
-  </div>
-  <div class="right">
-    {%- if d.about -%}<div class="section"><div class="sec-title">Haqida</div><div class="text">{{ d.about }}</div></div>{%- endif -%}
-    {{ expBlock() }}
-  </div>
-</div>
-
-{#── PROFESSIONAL ────────────────────────────────────────────────────────────#}
-{%- elif tpl == 'prof' -%}
-{%- set parts = (d.name or 'Ism Familiya').split(' ') -%}
-<div class="cv-canvas tpl-prof">
-  <div class="left-strip"></div>
-  <div class="content">
+  {#в”Ђв”Ђ MINIMAL в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ#}
+  {%- if tpl == 'minimal' -%}
+  <div class="cv-canvas tpl-minimal">
     <div class="header">
-      {%- if d.img -%}<img src="{{ d.img }}" class="avatar" style="width:35mm;height:35mm;border-radius:5px;object-fit:cover;" alt="avatar">{%- endif -%}
+      {%- if d.img -%}<img src="{{ d.img }}" class="avatar" alt="avatar">{%- endif -%}
       <div>
-        <div class="name"><strong>{{ parts[0] }}</strong>{% if parts|length > 1 %} {{ parts[1:] | join(' ') }}{% endif %}</div>
+        <div class="name">{{ d.name or ll.name_ph }}</div>
         <div class="role">{{ d.role or '' }}</div>
         <div class="contact-wrap">
-          {%- if d.phone -%}<span>{{ d.phone }}</span>{%- endif -%}
-          {%- if d.email -%}<span>· {{ d.email }}</span>{%- endif -%}
-          {%- if d.loc -%}<span>· {{ d.loc }}</span>{%- endif -%}
+          {%- if d.phone -%}<span>рџ“ћ {{ d.phone }}</span>{%- endif -%}
+          {%- if d.email -%}<span>вњ‰пёЏ {{ d.email }}</span>{%- endif -%}
+          {%- if d.loc -%}<span>рџ“Ќ {{ d.loc }}</span>{%- endif -%}
         </div>
       </div>
     </div>
-    {%- if d.about -%}<div class="section"><div class="sec-title">Haqida</div><div class="text">{{ d.about }}</div></div>{%- endif -%}
-    <div style="display:flex;gap:30px;">
-      <div style="flex:2">{{ expBlock() }}</div>
-      <div style="flex:1">{{ eduBlock() }}{{ skillsBlock() }}</div>
+    {%- if d.about -%}
+    <div class="section">
+      <div class="sec-title">{{ ll.about }}</div>
+      <div class="text">{{ d.about }}</div>
     </div>
+    {%- endif -%}
+    {{ expBlock(ll) }}
+    {{ eduBlock(ll) }}
+    {{ skillsBlock(ll) }}
   </div>
-</div>
 
-{#── FALLBACK ────────────────────────────────────────────────────────────────#}
-{%- else -%}
-<div class="cv-canvas tpl-minimal">
-  <div class="header">
-    <div>
-      <div class="name">{{ d.name or 'Ism Familiya' }}</div>
+  {#в”Ђв”Ђ SPLIT в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ#}
+  {%- elif tpl == 'split' -%}
+  <div class="cv-canvas tpl-split">
+    <div class="sidebar">
+      {%- if d.img -%}<img src="{{ d.img }}" class="avatar" alt="avatar">{%- endif -%}
+      <div class="section">
+        <div class="sec-title-side">{{ ll.contact }}</div>
+        {%- if d.phone -%}<div class="contact-item">рџ“ћ {{ d.phone }}</div>{%- endif -%}
+        {%- if d.email -%}<div class="contact-item">вњ‰пёЏ {{ d.email }}</div>{%- endif -%}
+        {%- if d.loc -%}<div class="contact-item">рџ“Ќ {{ d.loc }}</div>{%- endif -%}
+      </div>
+      {%- if d.skills -%}
+      <div class="section">
+        <div class="sec-title-side">{{ ll.skills }}</div>
+        <div class="badges-wrap">{%- for s in d.skills -%}<span class="badge">{{ s }}</span>{%- endfor -%}</div>
+      </div>
+      {%- endif -%}
+    </div>
+    <div class="main">
+      <div class="name">{{ d.name or ll.name_ph }}</div>
       <div class="role">{{ d.role or '' }}</div>
+      {%- if d.about -%}
+      <div class="section">
+        <div class="sec-title-main">{{ ll.about }}</div>
+        <div class="text">{{ d.about }}</div>
+      </div>
+      {%- endif -%}
+      {%- if d.experiences -%}
+      <div class="section">
+        <div class="sec-title-main">{{ ll.experience }}</div>
+        {%- for e in d.experiences -%}
+        <div class="item-row">
+          <div class="item-head"><span class="item-title">{{ e.title }}</span><span class="item-date">{{ e.date
+              }}</span></div>
+          {%- if e.company -%}<div class="item-sub">{{ e.company }}</div>{%- endif -%}
+          {%- if e.desc -%}<div class="item-desc">{{ e.desc | replace('\n','<br>') | safe }}</div>{%- endif -%}
+        </div>
+        {%- endfor -%}
+      </div>
+      {%- endif -%}
+      {%- if d.education -%}
+      <div class="section">
+        <div class="sec-title-main">{{ ll.education }}</div>
+        {%- for e in d.education -%}
+        <div class="item-row">
+          <div class="item-head"><span class="item-title">{{ e.title }}</span><span class="item-date">{{ e.date
+              }}</span></div>
+          {%- if e.company -%}<div class="item-sub">{{ e.company }}</div>{%- endif -%}
+        </div>
+        {%- endfor -%}
+      </div>
+      {%- endif -%}
     </div>
   </div>
-  {%- if d.about -%}<div class="section"><p>{{ d.about }}</p></div>{%- endif -%}
-</div>
-{%- endif -%}
+
+  {#в”Ђв”Ђ MODERN в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ#}
+  {%- elif tpl == 'modern' -%}
+  <div class="cv-canvas tpl-modern">
+    <div class="header">
+      {%- if d.img -%}<img src="{{ d.img }}" class="avatar" alt="avatar">{%- endif -%}
+      <div class="header-info">
+        <div class="name">{{ d.name or ll.name_ph }}</div>
+        <div class="role">{{ d.role or '' }}</div>
+        <div class="contact">
+          {%- if d.phone or d.email -%}<div>
+            {%- if d.phone -%}рџ“ћ {{ d.phone }}{%- endif -%}
+            {%- if d.phone and d.email %} &nbsp;|&nbsp; {%- endif -%}
+            {%- if d.email -%}вњ‰пёЏ {{ d.email }}{%- endif -%}
+          </div>{%- endif -%}
+          {%- if d.loc -%}<div>рџ“Ќ {{ d.loc }}</div>{%- endif -%}
+        </div>
+      </div>
+    </div>
+    <div class="body">
+      <div class="col-main">
+        {%- if d.about -%}<div class="section">
+          <div class="sec-title">{{ ll.about }}</div>
+          <div class="text">{{ d.about }}</div>
+        </div>{%- endif -%}
+        {{ expBlock(ll) }}
+      </div>
+      <div class="col-side">
+        {{ eduBlock(ll) }}
+        {{ skillsBlock(ll) }}
+      </div>
+    </div>
+  </div>
+
+  {#в”Ђв”Ђ ATS SAFE в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ#}
+  {%- elif tpl == 'ats' -%}
+  <div class="cv-canvas tpl-ats">
+    <div class="header">
+      <div class="name">{{ d.name or ll.name_ph }}</div>
+      <div class="role">{{ d.role or '' }}</div>
+      <div class="contact-wrap">
+        {%- if d.phone -%}<span>рџ“ћ {{ d.phone }}</span>{%- endif -%}
+        {%- if d.email -%}<span>вњ‰пёЏ {{ d.email }}</span>{%- endif -%}
+        {%- if d.loc -%}<span>рџ“Ќ {{ d.loc }}</span>{%- endif -%}
+      </div>
+    </div>
+    {%- if d.about -%}<div class="section">
+      <div class="sec-title">{{ ll.about }}</div>
+      <div class="text">{{ d.about }}</div>
+    </div>{%- endif -%}
+    {{ expBlock(ll) }}
+    {{ eduBlock(ll) }}
+    {%- if d.skills -%}
+    <div class="section">
+      <div class="sec-title">{{ ll.skills }}</div>
+      <div style="font-size:10pt;">{{ d.skills | join(', ') }}</div>
+    </div>
+    {%- endif -%}
+  </div>
+
+  {#в”Ђв”Ђ ELEGANT в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ#}
+  {%- elif tpl == 'elegant' -%}
+  <div class="cv-canvas tpl-elegant">
+    <div class="header">
+      <div class="name">{{ d.name or ll.name_ph }}</div>
+      <div class="role">{{ d.role or '' }}</div>
+      <div class="contact-wrap">
+        {%- if d.phone -%}{{ d.phone }}{%- endif -%}
+        {%- if d.email -%} &nbsp;В·&nbsp; {{ d.email }}{%- endif -%}
+        {%- if d.loc -%} &nbsp;В·&nbsp; {{ d.loc }}{%- endif -%}
+      </div>
+    </div>
+    <div class="body-cols">
+      <div class="col-main">
+        {%- if d.about -%}<div class="section">
+          <div class="sec-title">{{ ll.about }}</div>
+          <div class="text">{{ d.about }}</div>
+        </div>{%- endif -%}
+        {{ expBlock(ll) }}
+      </div>
+      <div class="col-side">
+        {{ eduBlock(ll) }}
+        {{ skillsBlock(ll) }}
+      </div>
+    </div>
+  </div>
+
+  {#в”Ђв”Ђ CORPORATE в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ#}
+  {%- elif tpl == 'corporate' -%}
+  <div class="cv-canvas tpl-corporate">
+    <div class="header">
+      <div>
+        {%- if d.img -%}<img src="{{ d.img }}" class="avatar"
+          style="width:35mm;height:35mm;border-radius:5px;object-fit:cover;margin-bottom:12px;" alt="avatar">{%- endif
+        -%}
+        <div class="name">{{ d.name or ll.name_ph }}</div>
+        <div class="role">{{ d.role or '' }}</div>
+      </div>
+      <div class="contact-wrap">
+        {%- if d.phone -%}<div>рџ“ћ {{ d.phone }}</div>{%- endif -%}
+        {%- if d.email -%}<div>вњ‰пёЏ {{ d.email }}</div>{%- endif -%}
+        {%- if d.loc -%}<div>рџ“Ќ {{ d.loc }}</div>{%- endif -%}
+      </div>
+    </div>
+    <div class="body-cols">
+      <div class="col-main">
+        {%- if d.about -%}<div class="section">
+          <div class="sec-title">{{ ll.about }}</div>
+          <div class="text">{{ d.about }}</div>
+        </div>{%- endif -%}
+        {{ expBlock(ll) }}
+      </div>
+      <div class="col-side">
+        {{ eduBlock(ll) }}
+        {{ skillsBlock(ll) }}
+      </div>
+    </div>
+  </div>
+
+  {#в”Ђв”Ђ CREATIVE в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ#}
+  {%- elif tpl == 'creative' -%}
+  <div class="cv-canvas tpl-creative">
+    <div class="left">
+      {%- if d.img -%}<img src="{{ d.img }}" class="avatar" alt="avatar">{%- endif -%}
+      <div class="name">{{ d.name or 'Ism' }}</div>
+      <div class="role">{{ d.role or '' }}</div>
+      <div class="section">
+        <div class="sec-title sec-title-left">{{ ll.contact }}</div>
+        {%- if d.phone -%}<div class="contact-item">рџ“ћ {{ d.phone }}</div>{%- endif -%}
+        {%- if d.email -%}<div class="contact-item">вњ‰пёЏ {{ d.email }}</div>{%- endif -%}
+        {%- if d.loc -%}<div class="contact-item">рџ“Ќ {{ d.loc }}</div>{%- endif -%}
+      </div>
+      {%- if d.skills -%}
+      <div class="section">
+        <div class="sec-title sec-title-left">{{ ll.skills }}</div>
+        <div class="badges-wrap">{%- for s in d.skills -%}<span class="badge">{{ s }}</span>{%- endfor -%}</div>
+      </div>
+      {%- endif -%}
+      {%- if d.education -%}
+      <div class="section">
+        <div class="sec-title sec-title-left">{{ ll.education }}</div>
+        {%- for e in d.education -%}
+        <div class="item-row">
+          <div style="font-weight:700;font-size:9.5pt;color:#831843;">{{ e.title }}</div>
+          <div style="font-size:8.5pt;opacity:0.7;">{{ e.company }}{%- if e.date %} В· {{ e.date }}{%- endif -%}</div>
+        </div>
+        {%- endfor -%}
+      </div>
+      {%- endif -%}
+    </div>
+    <div class="right">
+      {%- if d.about -%}<div class="section">
+        <div class="sec-title">{{ ll.about }}</div>
+        <div class="text">{{ d.about }}</div>
+      </div>{%- endif -%}
+      {{ expBlock(ll) }}
+    </div>
+  </div>
+
+  {#в”Ђв”Ђ PROFESSIONAL в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ#}
+  {%- elif tpl == 'prof' -%}
+  {%- set parts = (d.name or ll.name_ph).split(' ') -%}
+  <div class="cv-canvas tpl-prof">
+    <div class="left-strip"></div>
+    <div class="content">
+      <div class="header">
+        {%- if d.img -%}<img src="{{ d.img }}" class="avatar"
+          style="width:35mm;height:35mm;border-radius:5px;object-fit:cover;" alt="avatar">{%- endif -%}
+        <div>
+          <div class="name"><strong>{{ parts[0] }}</strong>{% if parts|length > 1 %} {{ parts[1:] | join(' ') }}{% endif
+            %}</div>
+          <div class="role">{{ d.role or '' }}</div>
+          <div class="contact-wrap">
+            {%- if d.phone -%}<span>{{ d.phone }}</span>{%- endif -%}
+            {%- if d.email -%}<span>В· {{ d.email }}</span>{%- endif -%}
+            {%- if d.loc -%}<span>В· {{ d.loc }}</span>{%- endif -%}
+          </div>
+        </div>
+      </div>
+      {%- if d.about -%}<div class="section">
+        <div class="sec-title">{{ ll.about }}</div>
+        <div class="text">{{ d.about }}</div>
+      </div>{%- endif -%}
+      <div style="display:flex;gap:30px;">
+        <div style="flex:2">{{ expBlock(ll) }}</div>
+        <div style="flex:1">{{ eduBlock(ll) }}{{ skillsBlock(ll) }}</div>
+      </div>
+    </div>
+  </div>
+
+  {#в”Ђв”Ђ FALLBACK в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ#}
+  {%- else -%}
+  <div class="cv-canvas tpl-minimal">
+    <div class="header">
+      <div>
+        <div class="name">{{ d.name or ll.name_ph }}</div>
+        <div class="role">{{ d.role or '' }}</div>
+      </div>
+    </div>
+    {%- if d.about -%}<div class="section">
+      <p>{{ d.about }}</p>
+    </div>{%- endif -%}
+  </div>
+  {%- endif -%}
 </body>
+
 </html>

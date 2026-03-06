@@ -24,6 +24,7 @@ async def web_app_data_handler(update: Update, context: ContextTypes.DEFAULT_TYP
             msg = await update.message.reply_text(f"⏳ Obyektivka ({fmt.upper()}) tayyorlanmoqda...")
             
             doc_data = {
+                "lang": payload.get("lang", "uz_lat"),
                 "fullname": payload.get("fullname", ""),
                 "birthdate": payload.get("bdate", ""),
                 "birthplace": payload.get("bplace", ""),
