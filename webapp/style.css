@@ -896,3 +896,18 @@ body {
   .footer-links { flex-wrap: wrap; justify-content: center; }
   .hero-buttons { justify-content: center; }
 }
+
+@media (max-width: 480px) {
+  .orb-container { width: 240px; height: 240px; }
+  .hero { padding: 90px 16px 40px; gap: 32px; }
+  .hero-stats { gap: 16px; flex-wrap: wrap; }
+  .stat-n { font-size: 22px; }
+  .hero-buttons { flex-direction: column; align-items: center; }
+  .btn-primary, .btn-ghost { width: 100%; justify-content: center; }
+  .prem-inner { padding: 24px 16px; }
+  .price-card { padding: 24px 16px; }
+  .svc-card { padding: 20px; }
+  .feat-card { padding: 20px; }
+  .section-head { margin-bottom: 36px; }
+  .nav-inner { height: 60px; }
+}

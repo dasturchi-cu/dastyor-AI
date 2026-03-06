@@ -598,12 +598,12 @@
             const box = document.getElementById('cv-box');
 
             const expHtml = data.exp.length > 0 ?
-                `<table class="exp-table">` + data.exp.map(e => `
+                `<table class="exp-table"><thead><tr><th style="width:28%;font-weight:bold">Yillar</th><th style="font-weight:bold">Ish joyi va lavozimi</th></tr></thead><tbody>` + data.exp.map(e => `
                     <tr>
                         <td>${e.years}</td>
                         <td>- ${e.desc}</td>
                     </tr>
-                `).join('') + `</table>` : `<div style="text-align:center; font-style:italic">${I18n.t('obv_no_data')}</div>`;
+                `).join('') + `</tbody></table>` : `<div style="text-align:center; font-style:italic">${I18n.t('obv_no_data')}</div>`;
 
             const relHtml = data.rel.length > 0 ?
                 `<table class="rel-table">
