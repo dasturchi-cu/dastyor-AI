@@ -323,9 +323,7 @@ def setup_application():
         pattern="^prem_"
     ))
     
-    # We will add a language selection callback handler here:
-    from bot.handlers.start import language_callback_handler
-    application.add_handler(CallbackQueryHandler(language_callback_handler, pattern="^lang_"))
+    # Language callback handler removed — bot uses Uzbek by default
     
     application.add_handler(CallbackQueryHandler(smart_callback_handler, pattern="^smart_"))
     application.add_handler(CallbackQueryHandler(translit_direction_callback, pattern="^trl_"))

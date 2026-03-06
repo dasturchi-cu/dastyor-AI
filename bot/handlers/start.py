@@ -1,25 +1,23 @@
 """
-/start command with deep-link action support.
+/start command handler — prямо menuni ko'rsatadi (til so'ramasdan).
 
-New deep-link format:  /start <action>
+Deep-link format:  /start <action>
   action: cv | obyektivka | ocr | pdf | translit | translate | premium
 
-On /start with a known action the bot:
-  1. Greets the user
-  2. Sends an inline button that opens the EXACT webapp page
-  3. Passes telegram_id in the URL so the site can call /api/auth
-
-On plain /start (no payload) it shows the full service menu.
+Oddiy /start: to'g'ridan-to'g'ri menuni ko'rsatadi.
 """
 import os
 from telegram import Update, WebAppInfo, InlineKeyboardMarkup, InlineKeyboardButton
 from telegram.ext import ContextTypes
 from bot.keyboards.reply_keyboards import get_main_menu
-from bot.services.user_service import get_user_lang, set_user_lang, save_chat_id
+from bot.services.user_service import get_user_lang, save_chat_id
 from bot.utils.i18n import t
 
 WEBAPP_BASE  = os.getenv("WEBAPP_BASE",  "https://dastyor-ai.onrender.com/webapp")
 BOT_USERNAME = os.getenv("BOT_USERNAME", "DastyorAiBot")
+
+# Default til — o'zbek lotin
+DEFAULT_LANG = "uz_lat"
 
 # Map deep-link payload → (page_file, button_label, description)
 _ACTION_MAP: dict[str, tuple[str, str, str]] = {
@@ -42,7 +40,8 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     uid = user.id
     first_name = user.first_name or "Do'stim"
 
-    lang = get_user_lang(uid)
+    # Har doim o'zbek tili (bot uchun til tanlash yo'q)
+    lang = DEFAULT_LANG
 
     # ── Persist chat_id immediately so file delivery always works ──────
     save_chat_id(uid, update.effective_chat.id if update.effective_chat else uid)
@@ -66,80 +65,76 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(text, reply_markup=keyboard, parse_mode="HTML")
         return
 
-    # ── Default /start — Ask for language ────────────────────────────
-    kb = InlineKeyboardMarkup([
-        [InlineKeyboardButton("🇺🇿 O'zbek (Lotin)", callback_data="lang_uz_lat"), InlineKeyboardButton("🇺🇿 Ўзбек (Кир)", callback_data="lang_uz_cyr")],
-        [InlineKeyboardButton("🇷🇺 Русский", callback_data="lang_ru"), InlineKeyboardButton("🇬🇧 English", callback_data="lang_en")]
-    ])
-    await update.message.reply_text(t("choose_lang", lang), reply_markup=kb)
+    # ── Default /start — to'g'ridan-to'g'ri menuni ko'rsat ──────────
+    welcome_text = (
+        f"Assalomu alaykum, <b>{first_name}</b>! 👋\n\n"
+        f"🤖 <b>DASTYOR AI</b> — hujjat tayyorlash assistantingiz!\n\n"
+        f"📋 <b>Nima qila olaman:</b>\n"
+        f"• Obyektivka tayyorlash\n"
+        f"• CV (rezyume) yaratish\n"
+        f"• Rasmdan matn ajratish (OCR)\n"
+        f"• Krill ↔ Lotin aylantirish\n"
+        f"• Matn tarjima qilish\n"
+        f"• Rasmlarni PDFga birlashtirish\n\n"
+        f"👇 Quyidagi menyudan xizmat tanlang:"
+    )
 
-
-async def language_callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    uid = query.from_user.id
-    first_name = query.from_user.first_name or "Do'stim"
-    await query.answer()
-
-    lang_code = query.data.replace("lang_", "")
-    set_user_lang(uid, lang_code)
-
-    await query.edit_message_text(t("lang_saved", lang_code))
-
-    welcome_text = t("welcome", lang_code, name=first_name)
-    
     keyboard = InlineKeyboardMarkup([
         [
             InlineKeyboardButton(
-                t("btn_oby", lang_code),
-                web_app=WebAppInfo(url=f"{WEBAPP_BASE}/obyektivka.html?telegram_id={uid}&lang={lang_code}")
+                "📋 Obyektivka",
+                web_app=WebAppInfo(url=f"{WEBAPP_BASE}/obyektivka.html?telegram_id={uid}&lang={lang}")
             ),
             InlineKeyboardButton(
-                t("btn_cv", lang_code),
-                web_app=WebAppInfo(url=f"{WEBAPP_BASE}/cv.html?telegram_id={uid}&lang={lang_code}")
-            ),
-        ],
-        [
-            InlineKeyboardButton(
-                t("btn_translit", lang_code),
-                web_app=WebAppInfo(url=f"{WEBAPP_BASE}/translit.html?telegram_id={uid}&lang={lang_code}")
-            ),
-            InlineKeyboardButton(
-                t("btn_translate", lang_code),
-                web_app=WebAppInfo(url=f"{WEBAPP_BASE}/translate.html?telegram_id={uid}&lang={lang_code}")
+                "📄 CV yaratish",
+                web_app=WebAppInfo(url=f"{WEBAPP_BASE}/cv.html?telegram_id={uid}&lang={lang}")
             ),
         ],
         [
             InlineKeyboardButton(
-                t("btn_ocr", lang_code),
-                web_app=WebAppInfo(url=f"{WEBAPP_BASE}/ocr.html?telegram_id={uid}&lang={lang_code}")
+                "🔤 Krill ↔ Lotin",
+                web_app=WebAppInfo(url=f"{WEBAPP_BASE}/translit.html?telegram_id={uid}&lang={lang}")
             ),
             InlineKeyboardButton(
-                t("btn_pdf", lang_code),
-                web_app=WebAppInfo(url=f"{WEBAPP_BASE}/img2pdf.html?telegram_id={uid}&lang={lang_code}")
+                "🌐 Tarjima",
+                web_app=WebAppInfo(url=f"{WEBAPP_BASE}/translate.html?telegram_id={uid}&lang={lang}")
+            ),
+        ],
+        [
+            InlineKeyboardButton(
+                "📸 Rasm → Word",
+                web_app=WebAppInfo(url=f"{WEBAPP_BASE}/ocr.html?telegram_id={uid}&lang={lang}")
+            ),
+            InlineKeyboardButton(
+                "🖼 Rasm → PDF",
+                web_app=WebAppInfo(url=f"{WEBAPP_BASE}/img2pdf.html?telegram_id={uid}&lang={lang}")
+            ),
+        ],
+        [
+            InlineKeyboardButton(
+                "💎 Premium",
+                web_app=WebAppInfo(url=f"{WEBAPP_BASE}/premium.html?telegram_id={uid}&lang={lang}")
             ),
         ],
     ])
 
-    await context.bot.send_message(
-        chat_id=uid,
-        text=welcome_text,
+    await update.message.reply_text(
+        welcome_text,
         reply_markup=keyboard,
         parse_mode="HTML",
     )
 
-    await context.bot.send_message(
-        chat_id=uid,
-        text=t("or_menu", lang_code),
-        reply_markup=get_main_menu(uid, lang_code),
+    await update.message.reply_text(
+        "🚀 Appni ochish uchun pastdagi tugmani bosing:",
+        reply_markup=get_main_menu(uid, lang),
     )
 
 
 async def menu_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handle /menu"""
     uid = update.effective_user.id if update.effective_user else None
-    lang = get_user_lang(uid)
     await update.message.reply_text(
-        t("or_menu", lang).replace("👇 ", ""),
-        reply_markup=get_main_menu(uid, lang),
+        "Menyudan xizmat tanlang:",
+        reply_markup=get_main_menu(uid, DEFAULT_LANG),
         parse_mode="HTML",
     )
