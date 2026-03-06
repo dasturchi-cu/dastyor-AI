@@ -10,7 +10,7 @@ import os
 from telegram import Update, WebAppInfo, InlineKeyboardMarkup, InlineKeyboardButton
 from telegram.ext import ContextTypes
 from bot.keyboards.reply_keyboards import get_main_menu
-from bot.services.user_service import get_user_lang, save_chat_id
+from bot.services.user_service import save_chat_id
 from bot.utils.i18n import t
 
 WEBAPP_BASE  = os.getenv("WEBAPP_BASE",  "https://dastyor-ai.onrender.com/webapp")

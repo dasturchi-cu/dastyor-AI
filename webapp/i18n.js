@@ -294,17 +294,41 @@ const I18n = (() => {
     // State
     // ─────────────────────────────────────────────────
     const VALID_LANGS = ['uz_lat', 'uz_cyr', 'en', 'ru'];
-    
+
+    // ── CloudStorage helpers (Telegram WebApp >= 6.9) ─────────────────
+    // localStorage bilan birga CloudStorage ga ham saqlanadi,
+    // shunda Telegram Miniapp muhitida til o'zgarishi barqaror ishlaydi.
+    function _csSet(key, value) {
+        try {
+            const cs = window.Telegram?.WebApp?.CloudStorage;
+            if (cs && typeof cs.setItem === 'function') {
+                cs.setItem(key, value);
+            }
+        } catch (_) {}
+    }
+
+    function _csGet(key, callback) {
+        try {
+            const cs = window.Telegram?.WebApp?.CloudStorage;
+            if (cs && typeof cs.getItem === 'function') {
+                cs.getItem(key, (err, val) => callback(err ? null : (val || null)));
+                return;
+            }
+        } catch (_) {}
+        callback(null);
+    }
+
     // Check URL first, then LocalStorage, then fallback
     const urlParams = new URLSearchParams(window.location.search);
     const urlLang = urlParams.get('lang');
-    
+
     let _lang = urlLang || localStorage.getItem(LS_KEY) || 'uz_lat';
     if (!VALID_LANGS.includes(_lang)) _lang = 'uz_lat';
-    
+
     // Auto-save if it came from URL
     if (urlLang && VALID_LANGS.includes(urlLang)) {
         localStorage.setItem(LS_KEY, urlLang);
+        _csSet(LS_KEY, urlLang);
     }
 
     /** Translate a key in the current language. Falls back to uz_lat. */
@@ -314,13 +338,14 @@ const I18n = (() => {
         return entry[_lang] ?? entry['uz_lat'] ?? key;
     }
 
-    /** Change language, persist to localStorage, and re-apply to DOM. */
+    /** Change language, persist to localStorage + CloudStorage, and re-apply to DOM. */
     function setLang(lang) {
         if (!VALID_LANGS.includes(lang)) {
             console.warn(`[I18n] unknown lang: ${lang}`); return;
         }
         _lang = lang;
-        localStorage.setItem(LS_KEY, lang);
+        localStorage.setItem(LS_KEY, lang);   // sync, zudlik bilan
+        _csSet(LS_KEY, lang);                  // async, Telegram CloudStorage
         apply();
         // Dispatch event so pages can react
         window.dispatchEvent(new CustomEvent('i18n:change', { detail: { lang } }));
@@ -473,5 +498,22 @@ const I18n = (() => {
     return { t, setLang, getLang, getLangs, apply, showPicker, _pickLang, _confirmPick };
 })();
 
-// Auto-apply on load (runs immediately when script is parsed)
-document.addEventListener('DOMContentLoaded', () => I18n.apply());
+// Auto-apply on load + CloudStorage sync
+document.addEventListener('DOMContentLoaded', () => {
+    I18n.apply();
+
+    // CloudStorage dan til o'qish (async) — localStorage ustidan yozadi agar farq bo'lsa
+    // Bu Telegram WebApp muhitida localStorage ishlamagan holda ham tilni saqlaydi
+    const cs = window.Telegram?.WebApp?.CloudStorage;
+    if (cs && typeof cs.getItem === 'function') {
+        cs.getItem('lang', (err, cloudLang) => {
+            if (!err && cloudLang && ['uz_lat', 'uz_cyr', 'en', 'ru'].includes(cloudLang)) {
+                if (cloudLang !== I18n.getLang()) {
+                    // CloudStorage da boshqa til saqlangan — yangilaymiz
+                    localStorage.setItem('lang', cloudLang);
+                    I18n.setLang(cloudLang);
+                }
+            }
+        });
+    }
+});

@@ -157,14 +157,6 @@ def get_user_lang(user_id) -> str:
     profile = data.get(uid, {})
     return profile.get("lang", "uz_lat")
 
-def set_user_lang(user_id, lang: str):
-    data = _load_profiles()
-    uid = str(user_id)
-    if uid in data:
-        data[uid]["lang"] = lang
-        _save_profiles()
-
-
 def get_chat_id(user_id) -> int | None:
     """
     Return the Telegram chat_id for a user_id.

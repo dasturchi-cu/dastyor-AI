@@ -117,6 +117,18 @@
             display: block;
             animation: fadeIn 0.3s forwards;
         }
+
+        /* Language pill buttons */
+        .lang-pill {
+            border-color: var(--da-border-mid, rgba(0,0,0,0.14));
+            color: var(--da-text-secondary, #555);
+            background: var(--da-bg-elevated, #f5f5f7);
+        }
+        .dark .lang-pill {
+            border-color: rgba(255,255,255,0.15);
+            color: rgba(255,255,255,0.6);
+            background: rgba(255,255,255,0.07);
+        }
     </style>
 </head>
 
@@ -286,11 +298,21 @@
                             O'zbek (Lotin)</div>
                     </div>
                 </div>
-                <!-- Opens I18n.showPicker(true) via da-lang-btn auto-wiring -->
-                <button class="da-lang-btn" id="langPickerBtn">
-                    <span id="langFlag">🇺🇿</span>
-                    <span id="langCode">UZ</span>
-                </button>
+                <!-- 3 til tugmalari -->
+                <div class="flex items-center gap-1.5" id="langPillGroup">
+                    <button onclick="pickLang('uz_lat')" id="langPill-uz"
+                        class="lang-pill flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all">
+                        🇺🇿 UZ
+                    </button>
+                    <button onclick="pickLang('ru')" id="langPill-ru"
+                        class="lang-pill flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all">
+                        🇷🇺 RU
+                    </button>
+                    <button onclick="pickLang('en')" id="langPill-en"
+                        class="lang-pill flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all">
+                        🇬🇧 EN
+                    </button>
+                </div>
             </div>
 
             <!-- Support -->
@@ -373,25 +395,44 @@
         }
         window.addEventListener('theme:change', _syncThemeLabel);
 
-        // ── Language label update ─────────────────────────────────────
-        const _flagMap = { uz_lat: '🇺🇿', uz_cyr: '🇺🇿', en: '🇬🇧', ru: '🇷🇺' };
-        const _codeMap = { uz_lat: 'UZ', uz_cyr: 'UZ', en: 'EN', ru: 'RU' };
+        // ── Language pill helpers ─────────────────────────────────────
         const _nameMap = {
             uz_lat: "O'zbek (Lotin)", uz_cyr: "Ўзбек (Кирилл)",
             en: 'English', ru: 'Русский'
         };
-        function _syncLangLabel() {
+        // uz / uz_cyr → UZ pill; ru → RU pill; en → EN pill
+        const _pillMap = { uz_lat: 'uz', uz_cyr: 'uz', en: 'en', ru: 'ru' };
+
+        function pickLang(lang) {
+            if (typeof I18n !== 'undefined') I18n.setLang(lang);
+        }
+
+        function _syncLangButtons() {
             const lang = DastyorAI.getLang();
-            const flag = document.getElementById('langFlag');
-            const code = document.getElementById('langCode');
+            const activePill = _pillMap[lang] || 'uz';
+            ['uz', 'ru', 'en'].forEach(function(code) {
+                const btn = document.getElementById('langPill-' + code);
+                if (!btn) return;
+                if (code === activePill) {
+                    btn.style.background = 'var(--da-blue, #007AFF)';
+                    btn.style.color = '#fff';
+                    btn.style.borderColor = 'var(--da-blue, #007AFF)';
+                } else {
+                    btn.style.background = '';
+                    btn.style.color = '';
+                    btn.style.borderColor = '';
+                }
+            });
             const label = document.getElementById('langCurrentLabel');
             const ver = document.getElementById('langVersionLabel');
-            if (flag) flag.textContent = _flagMap[lang] || '🌐';
-            if (code) code.textContent = _codeMap[lang] || lang.toUpperCase();
             if (label) label.textContent = _nameMap[lang] || lang;
-            if (ver) ver.textContent = `Language: ${lang}`;
+            if (ver) ver.textContent = 'Language: ' + lang;
         }
-        window.addEventListener('i18n:change', _syncLangLabel);
+
+        // alias kept in case other code calls _syncLangLabel
+        function _syncLangLabel() { _syncLangButtons(); }
+
+        window.addEventListener('i18n:change', _syncLangButtons);
 
         // ── BOOT ──────────────────────────────────────────────────────
         DastyorAI.initUI({
@@ -415,7 +456,7 @@
 
         // Sync labels on first load
         _syncThemeLabel();
-        _syncLangLabel();
+        _syncLangButtons();
     </script>
 </body>
 

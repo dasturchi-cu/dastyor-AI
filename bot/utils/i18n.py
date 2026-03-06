@@ -1,24 +1,12 @@
 import json
 import os
+import re
 from pathlib import Path
 
+# Bot faqat o'zbek tilida ishlaydi — o'zgartirish mumkin emas
 DEFAULT_LANG = "uz_lat"
 
 _DICT = {
-    # start / language selection
-    "choose_lang": {
-        "uz_lat": "Iltimos, tilni tanlang 🌍",
-        "uz_cyr": "Илтимос, тилни танланг 🌍",
-        "en": "Please choose a language 🌍",
-        "ru": "Пожалуйста, выберите язык 🌍"
-    },
-    "lang_saved": {
-        "uz_lat": "Til saqlandi! Asosiy menyu:",
-        "uz_cyr": "Тил сақланди! Асосий меню:",
-        "en": "Language saved! Main menu:",
-        "ru": "Язык сохранен! Главное меню:"
-    },
-    
     # welcome text
     "welcome": {
         "uz_lat": "Assalomu alaykum, {name}! 👋\n\n📌 <b>DASTYOR AI</b> — hujjat va AI xizmatlar platformasi.\n\nQuyidagi xizmatlardan birini tanlang yoki Mini Appni oching:",
@@ -163,28 +151,24 @@ _DICT = {
     }
 }
 
+def get_regex_for_key(key: str) -> str:
+    """Kalit uchun barcha til variantlarini qamrab oluvchi regex pattern qaytaradi."""
+    entry = _DICT.get(key)
+    if not entry:
+        return re.escape(key)
+    patterns = [re.escape(v) for v in entry.values() if v]
+    return "^(" + "|".join(patterns) + ")$"
+
+
 def t(key: str, lang: str = DEFAULT_LANG, **kwargs) -> str:
-    if not lang:
-        lang = DEFAULT_LANG
+    # Bot har doim o'zbek tilida — lang parametri e'tiborga olinmaydi
     entry = _DICT.get(key)
     if not entry:
         return key
-    text = entry.get(lang) or entry.get(DEFAULT_LANG) or key
+    text = entry.get(DEFAULT_LANG) or key
     if kwargs:
         try:
             return text.format(**kwargs)
         except Exception:
             return text
     return text
-
-def get_all_keys(key: str) -> list:
-    """Returns all translated strings for a given key, used for detecting incoming text"""
-    entry = _DICT.get(key)
-    if not entry: return [key]
-    return list(set(entry.values()))
-
-def get_regex_for_key(key: str) -> str:
-    """Returns a Regex pattern matching ANY translation of the key."""
-    keys = get_all_keys(key)
-    escaped = [k.replace("(", r"\(").replace(")", r"\)").replace("?", r"\?") for k in keys]
-    return "^(" + "|".join(escaped) + ")$"
