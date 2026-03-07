@@ -754,6 +754,7 @@ class ObyektivkaRequest(BaseModel):
     telegram_id : Optional[int] = None
     token       : Optional[str] = None
     format      : str = "word"      # "word" | "pdf"
+    lang        : str = "uz_lat"    # uz_lat | uz_cyr | en | ru
     # personal info
     fullname    : str = ""
     birthdate   : str = ""
@@ -788,6 +789,7 @@ async def api_generate_obyektivka(req: ObyektivkaRequest):
     )
 
     doc_data = {
+        "lang"            : req.lang,
         "fullname"        : req.fullname,
         "birthdate"       : req.birthdate,
         "birthplace"      : req.birthplace,
