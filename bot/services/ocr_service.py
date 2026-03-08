@@ -1,13 +1,18 @@
 """
 OCR Service Module (Async Optimized)
 Handles Image-to-Text conversion using Gemini asynchronously to prevent blocking.
+Uses a dedicated thread pool so OCR never blocks other bot features.
 """
 import logging
 import asyncio
+from concurrent.futures import ThreadPoolExecutor
 import google.generativeai as genai
 from config import GOOGLE_API_KEY
 
 logger = logging.getLogger(__name__)
+
+# Dedicated thread pool for OCR tasks — prevents blocking other bot features
+_ocr_executor = ThreadPoolExecutor(max_workers=4, thread_name_prefix="ocr")
 
 async def extract_text_from_image(image_path: str) -> str:
     """
@@ -44,7 +49,7 @@ async def extract_text_from_image(image_path: str) -> str:
                 return None
 
         # Execute upload in thread
-        myfile = await loop.run_in_executor(None, blocking_upload)
+        myfile = await loop.run_in_executor(_ocr_executor, blocking_upload)
         
         if not myfile:
             return ""
@@ -77,12 +82,12 @@ async def extract_text_from_image(image_path: str) -> str:
         # Async generation
         result = await model.generate_content_async([myfile, prompt])
         
-        # Cleanup file in background
-        async def cleanup():
+        # Cleanup file in background (non-blocking)
+        def _cleanup_file(name):
             try:
-                genai.delete_file(myfile.name)
+                genai.delete_file(name)
             except: pass
-        asyncio.create_task(cleanup())
+        loop.run_in_executor(_ocr_executor, _cleanup_file, myfile.name)
         
         if result and result.text:
             text = result.text.replace("```html", "").replace("```", "").strip()
