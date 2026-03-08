@@ -80,10 +80,11 @@ async def process_translation(update: Update, context: ContextTypes.DEFAULT_TYPE
         await context.bot.send_chat_action(chat_id=message.chat_id, action=ChatAction.TYPING)
 
         try:
+            import html as html_mod
             result = await translate_text(text_in, direction)
+            escaped_result = html_mod.escape(result)
             await status_msg.edit_text(
-                f"✅ <b>Tarjima tayyor ({label})</b>\n\n{result}",
-                parse_mode="HTML",
+                escaped_result,
                 reply_markup=get_back_button()
             )
         except Exception as e:

@@ -1,7 +1,6 @@
 from telegram import Update
 from telegram.ext import ContextTypes
 from bot.keyboards.reply_keyboards import get_main_menu
-from bot.keyboards.reply_keyboards import get_main_menu
 from bot.services.user_service import get_user_profile, get_user_lang
 from bot.services.settings_service import get_daily_limit
 from bot.utils.i18n import t
@@ -15,7 +14,6 @@ async def balance_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     files = profile.get("files_processed", 0) if profile else 0
     
     # Check premium
-    from bot.services.settings_service import is_premium
     from bot.services.settings_service import is_premium
     has_premium = is_premium(user_id)
     lang = get_user_lang(user_id)

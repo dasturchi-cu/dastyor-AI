@@ -31,6 +31,7 @@ from bot.handlers.premium_callbacks import premium_callback_handler
 from bot.handlers.help import help_command
 from bot.handlers.chat_member import chat_member_updated
 from bot.handlers.common import balance_handler, contact_handler, help_button_handler
+from bot.handlers.feedback import start_feedback, handle_feedback
 
 
 from bot.handlers.ocr_to_word import ocr_to_word_handler as ocr_handler, handle_ocr_image as process_ocr_image
@@ -127,6 +128,9 @@ async def handle_router_text(update: Update, context: ContextTypes.DEFAULT_TYPE)
     elif state == 'pdf_images':
          await process_image_to_pdf(update, context)
          return
+    elif state == 'feedback':
+         await handle_feedback(update, context)
+         return
 
     # 2. NLP / Keyword Routing
     import re
@@ -189,6 +193,8 @@ async def handle_router_doc(update: Update, context: ContextTypes.DEFAULT_TYPE):
         # Some users send images as documents
         await process_ocr_image(update, context)
         increment_file_count(uid, "OCR Doc-Image")
+    elif state == 'feedback':
+        await handle_feedback(update, context)
     else:
         # Smart Logic
         await handle_smart_document(update, context)
@@ -206,6 +212,8 @@ async def handle_router_photo(update: Update, context: ContextTypes.DEFAULT_TYPE
     elif state == 'pdf_images':
         await process_image_to_pdf(update, context)
         increment_file_count(uid, "Image to PDF")
+    elif state == 'feedback':
+        await handle_feedback(update, context)
     else:
         # Smart Logic (Photo)
         await handle_smart_photo(update, context)
@@ -220,6 +228,8 @@ async def handle_router_audio(update: Update, context: ContextTypes.DEFAULT_TYPE
     if state == 'obyektivka_audio':
         await process_obyektivka_audio(update, context)
         increment_file_count(uid, "Obyektivka Audio")
+    elif state == 'feedback':
+        await handle_feedback(update, context)
     else:
         # Smart logic handles unknown audio
         await handle_smart_audio(update, context)
@@ -367,7 +377,7 @@ def setup_application():
     ))
     
     application.add_handler(MessageHandler(filters.Regex(get_regex_for_key("btn_balance")), balance_handler))
-    application.add_handler(MessageHandler(filters.Regex(get_regex_for_key("btn_contact")), contact_handler))
+    application.add_handler(MessageHandler(filters.Regex(get_regex_for_key("btn_contact")), start_feedback))
     application.add_handler(MessageHandler(filters.Regex(get_regex_for_key("btn_help")), help_button_handler))
 
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_router_text))

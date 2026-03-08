@@ -62,7 +62,7 @@ async def collect_pdf_images(update: Update, context: ContextTypes.DEFAULT_TYPE)
         return
 
     # Tayyor komandasi
-    if message.text and message.text.lower() == "tayyor":
+    if message.text and ("tayyor" in message.text.lower()):
         images = context.user_data.get("pdf_images", [])
 
         if not images:
@@ -133,7 +133,7 @@ async def collect_pdf_images(update: Update, context: ContextTypes.DEFAULT_TYPE)
                 except Exception:
                     pass
 
-            if pdf_path:
+            if pdf_path is not None:
                 try:
                     if os.path.exists(pdf_path):
                         os.remove(pdf_path)

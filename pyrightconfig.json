@@ -1,0 +1,6 @@
+{
+  "venvPath": "c:/Users/User/hujjatchi_ai_bot",
+  "venv": "venv",
+  "include": ["."],
+  "extraPaths": ["c:/Users/User/hujjatchi_ai_bot/venv/Lib/site-packages", "c:/Users/User/hujjatchi_ai_bot"]
+}
