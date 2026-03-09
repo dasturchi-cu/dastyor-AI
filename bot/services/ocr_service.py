@@ -72,10 +72,13 @@ CRITICAL RULES:
 5. **Spacing**: Use <br> to preserve vertical spacing.
 6. **Clean Output**: Return ONLY valid HTML. No markdown, no explanations."""
 
-        # Async generation WITH timeout
+        # Run the heavy multimodal generation in a thread so the event loop is never blocked
+        def _run_generation():
+            return model.generate_content([myfile, prompt])
+
         try:
             result = await asyncio.wait_for(
-                model.generate_content_async([myfile, prompt]),
+                loop.run_in_executor(_ocr_executor, _run_generation),
                 timeout=OCR_TIMEOUT
             )
         except asyncio.TimeoutError:
