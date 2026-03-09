@@ -409,17 +409,42 @@
     input.setAttribute('inputmode', 'tel');
     input.placeholder = input.placeholder || '+998 90 123-45-67';
 
+    // Block non-numeric keys (allow digits, +, backspace, delete, arrows, tab)
+    input.addEventListener('keydown', e => {
+      if (e.ctrlKey || e.metaKey || e.altKey) return; // allow ctrl+C/V etc.
+      const allowed = ['Backspace', 'Delete', 'Tab', 'Enter', 'Escape',
+        'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End'];
+      if (allowed.includes(e.key)) return;
+      if (e.key === '+') return;
+      if (!/^\d$/.test(e.key)) e.preventDefault();
+    });
+
+    // Strip any non-digit chars that arrive via paste or autofill, then format
     input.addEventListener('input', () => {
       const raw = input.value;
-      const digits = raw.replace(/\D/g, '');
+      // Remove anything that's not a digit or +
+      const cleaned = raw.replace(/[^\d+]/g, '');
+      const digits = cleaned.replace(/\D/g, '');
       if (digits.length >= 4) {
-        const formatted = fmtPhone(raw);
+        const formatted = fmtPhone(cleaned);
         if (formatted !== raw) {
           input.value = formatted;
           try { input.setSelectionRange(input.value.length, input.value.length); } catch (_) {}
           fireInput(input);
         }
+      } else if (cleaned !== raw) {
+        input.value = cleaned;
+        try { input.setSelectionRange(input.value.length, input.value.length); } catch (_) {}
       }
+    });
+
+    // Handle paste — strip letters before processing
+    input.addEventListener('paste', e => {
+      e.preventDefault();
+      const pasted = (e.clipboardData || window.clipboardData).getData('text');
+      const digits = pasted.replace(/\D/g, '');
+      input.value = digits;
+      fireInput(input);
     });
   }
 
@@ -627,11 +652,12 @@
     initDropdown(document.getElementById('f_degree'), DATA.degrees, { label: 'Ilmiy darajasi', placeholder: "yo'q" });
     initDropdown(document.getElementById('f_title'), DATA.titles, { label: 'Ilmiy unvoni', placeholder: "yo'q" });
     initDropdown(document.getElementById('f_langs'), DATA.languages, { label: 'Tillar (bir nechta tanlash mumkin)', placeholder: "o'zbek tili", multi: true });
+    initPhone(document.getElementById('f_phone'));
+    initAutocomplete(document.getElementById('f_addr'), locs, { capitalize: true });
 
     // ─ CV fields ─────────────────────────────────────────────────
-    // f_name — already handled above (guard prevents double-init)
+    // f_name, f_phone — already handled above (guard prevents double-init)
     initAutocomplete(document.getElementById('f_role'), DATA.specializations, { capitalize: true });
-    initPhone(document.getElementById('f_phone'));
     initAutocomplete(document.getElementById('f_loc'), locs, { capitalize: true });
 
     // ─ CV dynamic fields (exp/edu lists) ────────────────────────
