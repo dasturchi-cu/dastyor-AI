@@ -890,7 +890,7 @@ async def api_generate_obyektivka(req: ObyektivkaRequest):
                 )
                 logger.info(f"Obyektivka sent to Telegram chat {chat_id}")
             except Exception as tg_err:
-                logger.warning(f"Obyektivka Telegram send failed (non-fatal): {tg_err}")
+                logger.error(f"Obyektivka Telegram yuborishda xato (send_document): {tg_err}", exc_info=True)
 
         asyncio.create_task(_send_oby())
 

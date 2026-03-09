@@ -581,10 +581,14 @@
     <script>
         const tg = window.Telegram?.WebApp;
 
-        // DastyorAI fallback
         const DastyorAI = {
             BASE: '',
-            getTelegramId: () => tg?.initDataUnsafe?.user?.id || null,
+            getTelegramId: () => {
+                const uid = tg?.initDataUnsafe?.user?.id;
+                if (uid) return uid;
+                const params = new URLSearchParams(window.location.search);
+                return params.get('telegram_id') || null;
+            },
             getToken: () => null
         };
 
@@ -1131,54 +1135,73 @@
         // ═══════════════════════════════════════════════════════════
 
         async function exportWord() {
-            if (!tg || !tg.sendData) {
-                showToast("Faqat Telegram bot ichida ishlaydi!", "error");
-                return;
-            }
-
             const btn = document.getElementById('btnWord');
             const originalHtml = btn.innerHTML;
             btn.innerHTML = '<svg class="animate-spin h-4 w-4 mr-2" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg> Yuklanmoqda...';
             btn.disabled = true;
 
+            const telegramId = tg?.initDataUnsafe?.user?.id || DastyorAI.getTelegramId();
+
             const payload = {
-                action: "generate_obyektivka",
+                telegram_id: telegramId ? parseInt(telegramId) : null,
+                token: DastyorAI.getToken(),
                 format: "word",
                 lang: I18n.getLang(),
                 fullname: v('f_name'),
-                bdate: getBirthDate(),
-                bplace: v('f_place'),
+                birthdate: getBirthDate(),
+                birthplace: v('f_place'),
                 nation: v('f_nation'),
                 party: v('f_party'),
-                edu: v('f_edu'),
-                grad: v('f_grad'),
-                spec: v('f_spec'),
-                deg: v('f_degree'),
-                ttl: v('f_title'),
-                langs: v('f_langs'),
-                mil: v('f_military'),
-                award: v('f_awards'),
-                dep: v('f_deputy'),
-                works: experiences.map(e => ({
-                    f: e.startYear || '',
-                    t: e.endYear || '',
-                    d: e.desc || ''
+                education: v('f_edu'),
+                graduated: v('f_grad'),
+                specialty: v('f_spec'),
+                degree: v('f_degree'),
+                scientific_title: v('f_title'),
+                languages: v('f_langs'),
+                military_rank: v('f_military'),
+                awards: v('f_awards'),
+                deputy: v('f_deputy'),
+                work_experience: experiences.map(e => ({
+                    year: (e.startYear && e.endYear ? `${e.startYear}-${e.endYear}` : e.startYear || e.endYear || ''),
+                    position: e.desc || ''
                 })),
-                rels: relatives.map(r => ({
-                    type: r.role || '',
-                    name: r.name || '',
-                    birth: r.birth || '',
-                    job: r.work || '',
-                    addr: r.addr || ''
+                relatives: relatives.map(r => ({
+                    degree: r.role || '',
+                    fullname: r.name || '',
+                    birth_year_place: r.birth || '',
+                    work_place: r.work || '',
+                    address: r.addr || ''
                 }))
             };
 
             try {
-                tg.sendData(JSON.stringify(payload));
-                // tg.sendData yopiladi
+                const res = await fetch('/api/generate_obyektivka', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!res.ok) {
+                    let errStr = "Server xatosi";
+                    try { const errObj = await res.json(); errStr = errObj.detail || errStr; } catch(e){}
+                    throw new Error(errStr);
+                }
+
+                const blob = await res.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `DASTYOR_Obyektivka_${(v('f_name') || 'Ma_lumotnoma').replace(/\s+/g, '_')}_Word.docx`;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                window.URL.revokeObjectURL(url);
+                
+                showToast("✅ Fayl tayyor va botga yuborildi!", "success");
             } catch (err) {
-                console.error("tg.sendData xatolik:", err);
-                showToast("Xatolik yuz berdi", "error");
+                console.error("exportWord xatolik:", err);
+                showToast("Xatolik: " + err.message, "error");
+            } finally {
                 btn.innerHTML = originalHtml;
                 btn.disabled = false;
             }

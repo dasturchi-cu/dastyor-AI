@@ -1349,12 +1349,16 @@
         }
     });
 
-    // DastyorAI fallback
-    const DastyorAI = {
-      BASE: '',
-      getTelegramId: () => tg?.initDataUnsafe?.user?.id || null,
-      getToken: () => null
-    };
+        const DastyorAI = {
+            BASE: '',
+            getTelegramId: () => {
+                const uid = tg?.initDataUnsafe?.user?.id;
+                if (uid) return uid;
+                const params = new URLSearchParams(window.location.search);
+                return params.get('telegram_id') || null;
+            },
+            getToken: () => null
+        };
 
     let avatarUrl = 'data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=';
     let activeTpl = 'minimal';
