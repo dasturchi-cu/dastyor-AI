@@ -633,6 +633,36 @@
     initAutocomplete(document.getElementById('f_role'), DATA.specializations, { capitalize: true });
     initPhone(document.getElementById('f_phone'));
     initAutocomplete(document.getElementById('f_loc'), locs, { capitalize: true });
+
+    // ─ CV dynamic fields (exp/edu lists) ────────────────────────
+    initDynamic();
+  }
+
+  // ── DYNAMIC CV FIELDS (called after renderExp/renderEdu) ──────────────────
+  function initDynamic() {
+    // Experience: Lavozim (job title)
+    document.querySelectorAll('#expList [placeholder="Lavozim"]').forEach(el => {
+      initAutocomplete(el, DATA.specializations, { capitalize: true });
+    });
+
+    // Experience: Kompaniya (company) — gov orgs + free text
+    document.querySelectorAll('#expList [placeholder="Kompaniya"]').forEach(el => {
+      initAutocomplete(el, DATA.govOrgs, { capitalize: true });
+    });
+
+    // Education: Oliygoh (university)
+    document.querySelectorAll('#eduList [placeholder="Oliygoh"]').forEach(el => {
+      initAutocomplete(el, DATA.universities, { capitalize: true });
+    });
+
+    // Education: Daraja yoki Kurs (degree/course)
+    document.querySelectorAll('#eduList [placeholder="Daraja yoki Kurs"]').forEach(el => {
+      initDropdown(el, [
+        'Bakalavr', 'Magistr', 'PhD (Doktorantura)', 'DSc (Fan doktori)',
+        "O'rta maxsus (kollej)", 'Kurs / Sertifikat', 'Aspirantura',
+        "Boshlang'ich kasb-hunar",
+      ], { label: "Ma'lumot darajasi", placeholder: 'Bakalavr' });
+    });
   }
 
   // Run after DOM
@@ -643,6 +673,6 @@
   }
 
   // Expose globally for external use if needed
-  window.SmartAutoFill = { DATA, initCapitalize, initDate, initPhone, initAutocomplete, initDropdown };
+  window.SmartAutoFill = { DATA, initCapitalize, initDate, initPhone, initAutocomplete, initDropdown, initDynamic };
 
 })();

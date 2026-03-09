@@ -1020,6 +1020,7 @@
                     <textarea class="w-full bg-transparent border-b border-black/10 dark:border-white/10 px-0 py-2 text-xs outline-none focus:border-apple-purple resize-none h-14" placeholder="Faoliyat haqida..." oninput="experiences[${i}].desc=this.value; updateCV()">${ex.desc}</textarea>
                 </div>
             `).join('');
+      if (window.SmartAutoFill) SmartAutoFill.initDynamic();
     }
     function addExp() { experiences.push({ id: Date.now(), title: '', company: '', date: '', desc: '' }); renderExp(); updateCV(); }
     function removeExp(id) { experiences = experiences.filter(x => x.id !== id); renderExp(); updateCV(); }
@@ -1036,6 +1037,7 @@
                     <textarea class="w-full bg-transparent border-b border-black/10 dark:border-white/10 px-0 py-2 text-xs outline-none focus:border-apple-blue resize-none h-10" placeholder="Ma'lumotlar..." oninput="education[${i}].desc=this.value; updateCV()">${ed.desc}</textarea>
                 </div>
             `).join('');
+      if (window.SmartAutoFill) SmartAutoFill.initDynamic();
     }
     function addEdu() { education.push({ id: Date.now(), title: '', company: '', date: '', desc: '' }); renderEdu(); updateCV(); }
     function removeEdu(id) { education = education.filter(x => x.id !== id); renderEdu(); updateCV(); }
