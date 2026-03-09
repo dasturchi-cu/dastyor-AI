@@ -83,7 +83,8 @@ async def process_translation(update: Update, context: ContextTypes.DEFAULT_TYPE
             import html as html_mod
             result = await translate_text(text_in, direction)
             escaped_result = html_mod.escape(result)
-            await status_msg.edit_text(
+            await status_msg.delete()
+            await message.reply_text(
                 escaped_result,
                 reply_markup=get_back_button()
             )
