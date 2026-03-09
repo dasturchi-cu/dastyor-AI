@@ -6,15 +6,133 @@ from docx.oxml.ns import qn
 from docx.oxml import OxmlElement
 
 # ─────────────────────────────────────────────────────────────────────────────
-# DESIGN CONSTANTS (Matched from CSS tokens)
+# MULTILINGUAL LABELS
 # ─────────────────────────────────────────────────────────────────────────────
-NAVY_CLR       = RGBColor(0x1A, 0x3A, 0x6B)  # #1a3a6b
-NAVY_HEX       = "1A3A6B"
-LIGHT_BLUE_HEX = "F0F4FB"
-STRIPE_HEX     = "F8F9FC"
-BORDER_HEX     = "C5D0E4"
-LABEL_CLR      = RGBColor(0x4A, 0x5A, 0x80)  # #4a5a80
-DARK_TEXT      = RGBColor(0x1A, 0x1A, 0x2E)  # #1a1a2e
+_OBY_LBL = {
+    "uz_lat": {
+        "title":     "MA'LUMOTNOMA",
+        "name_lbl":  "F.I.SH.",
+        "bdate":     "Tug'ilgan yili, kuni va oyi",
+        "bplace":    "Tug'ilgan joyi",
+        "nation":    "Millati",
+        "party":     "Partiyaviyligi",
+        "edu":       "Ma'lumoti",
+        "grad":      "Qaysi oliy (o'rta) maktabni tamomlagan",
+        "spec":      "Mutaxassisligi",
+        "degree":    "Ilmiy darajasi",
+        "stitle":    "Ilmiy unvoni",
+        "langs":     "Qaysi chet tillarini biladi",
+        "military":  "Harbiy yoki maxsus unvoni",
+        "awards":    "Davlat mukofotlari",
+        "deputy":    "Deputatlik statusi",
+        "exp_title": "MEHNAT FAOLIYATI",
+        "exp_col1":  "Yillar",
+        "exp_col2":  "Ish joyi va lavozimi",
+        "rel_suffix":"YAQIN QARINDOSHLARI HAQIDA MA'LUMOT",
+        "rel_c1":    "Qarindoshligi",
+        "rel_c2":    "F.I.SH.",
+        "rel_c3":    "Tug'ilgan yili va joyi",
+        "rel_c4":    "Ish joyi va lavozimi",
+        "rel_c5":    "Yashash manzili",
+        "photo":     "4x6",
+        "empty":     "—",
+    },
+    "uz_cyr": {
+        "title":     "МАЪЛУМОТНОМА",
+        "name_lbl":  "Ф.И.Ш.",
+        "bdate":     "Туғилган йили, куни ва ойи",
+        "bplace":    "Туғилган жойи",
+        "nation":    "Миллати",
+        "party":     "Партиявийлиги",
+        "edu":       "Маълумоти",
+        "grad":      "Қайси олий мактабни тамомлаган",
+        "spec":      "Мутахассислиги",
+        "degree":    "Илмий даражаси",
+        "stitle":    "Илмий унвони",
+        "langs":     "Қайси чет тилларини билади",
+        "military":  "Ҳарбий ёки махсус унвони",
+        "awards":    "Давлат мукофотлари",
+        "deputy":    "Депутатлик статуси",
+        "exp_title": "МЕҲНАТ ФАОЛИЯТИ",
+        "exp_col1":  "Йиллар",
+        "exp_col2":  "Иш жойи ва лавозими",
+        "rel_suffix":"ЯҚИН ҚАРИНДОШЛАРИ ҲАҚИДА МАЪЛУМОТ",
+        "rel_c1":    "Қариндошлиги",
+        "rel_c2":    "Ф.И.Ш.",
+        "rel_c3":    "Туғилган йили ва жойи",
+        "rel_c4":    "Иш жойи ва лавозими",
+        "rel_c5":    "Яшаш манзили",
+        "photo":     "4x6",
+        "empty":     "—",
+    },
+    "en": {
+        "title":     "CURRICULUM VITAE",
+        "name_lbl":  "Full Name",
+        "bdate":     "Date of Birth",
+        "bplace":    "Place of Birth",
+        "nation":    "Nationality",
+        "party":     "Party Membership",
+        "edu":       "Education",
+        "grad":      "University Graduated From",
+        "spec":      "Specialty",
+        "degree":    "Academic Degree",
+        "stitle":    "Academic Title",
+        "langs":     "Foreign Languages",
+        "military":  "Military Rank",
+        "awards":    "State Awards",
+        "deputy":    "Deputy Status",
+        "exp_title": "WORK EXPERIENCE",
+        "exp_col1":  "Period",
+        "exp_col2":  "Position & Workplace",
+        "rel_suffix":"CLOSE RELATIVES INFORMATION",
+        "rel_c1":    "Relationship",
+        "rel_c2":    "Full Name",
+        "rel_c3":    "Year & Place of Birth",
+        "rel_c4":    "Workplace & Position",
+        "rel_c5":    "Home Address",
+        "photo":     "4x6",
+        "empty":     "—",
+    },
+    "ru": {
+        "title":     "ОБЪЕКТИВКА",
+        "name_lbl":  "Ф.И.О.",
+        "bdate":     "Год, число и месяц рождения",
+        "bplace":    "Место рождения",
+        "nation":    "Национальность",
+        "party":     "Партийность",
+        "edu":       "Образование",
+        "grad":      "Какое учебное заведение окончил(а)",
+        "spec":      "Специальность",
+        "degree":    "Учёная степень",
+        "stitle":    "Учёное звание",
+        "langs":     "Какими иностранными языками владеет",
+        "military":  "Воинское звание",
+        "awards":    "Государственные награды",
+        "deputy":    "Статус депутата",
+        "exp_title": "ТРУДОВАЯ ДЕЯТЕЛЬНОСТЬ",
+        "exp_col1":  "Годы",
+        "exp_col2":  "Место работы и должность",
+        "rel_suffix":"СВЕДЕНИЯ О БЛИЗКИХ РОДСТВЕННИКАХ",
+        "rel_c1":    "Степень родства",
+        "rel_c2":    "Ф.И.О.",
+        "rel_c3":    "Год и место рождения",
+        "rel_c4":    "Место работы и должность",
+        "rel_c5":    "Место жительства",
+        "photo":     "4x6",
+        "empty":     "—",
+    },
+}
+
+# ─────────────────────────────────────────────────────────────────────────────
+# DESIGN CONSTANTS (Simple B&W Classic Resume look)
+# ─────────────────────────────────────────────────────────────────────────────
+NAVY_CLR       = RGBColor(0x00, 0x00, 0x00)  # #000000 
+NAVY_HEX       = "000000"
+LIGHT_BLUE_HEX = "FFFFFF"
+STRIPE_HEX     = "FFFFFF"
+BORDER_HEX     = "000000"
+LABEL_CLR      = RGBColor(0x00, 0x00, 0x00)  # #000000
+DARK_TEXT      = RGBColor(0x00, 0x00, 0x00)  # #000000
 
 FONT_BODY = "Times New Roman"
 
@@ -129,7 +247,12 @@ def generate_obyektivka_docx(user_data: dict, photo_path: str, output_filepath: 
     """
     Word hujjatini noldan, pixel-perfect ko'rinishda yaratadigan funktsiya.
     Dizayn A4 format, aniq margin va style parametrlari bilan yozilgan.
+    Ko'p tilli: uz_lat | uz_cyr | en | ru
     """
+    # ── Language setup ─────────────────────────────────────────────────
+    lang = user_data.get('lang', 'uz_lat') or 'uz_lat'
+    lb = _OBY_LBL.get(lang, _OBY_LBL['uz_lat'])
+
     doc = Document()
     _set_margins(doc)
     
@@ -161,7 +284,7 @@ def generate_obyektivka_docx(user_data: dict, photo_path: str, output_filepath: 
     title_p = doc.add_paragraph()
     title_p.alignment = WD_ALIGN_PARAGRAPH.CENTER
     _para_spacing(title_p, before_pt=4, after_pt=6)
-    _run(title_p, "MA'LUMOTNOMA", bold=True, size_pt=15.0, color=NAVY_CLR, spacing_pt=4)
+    _run(title_p, lb['title'], bold=True, size_pt=15.0, color=NAVY_CLR, spacing_pt=4)
     # Title line
     title_line_p = doc.add_paragraph()
     title_line_p.alignment = WD_ALIGN_PARAGRAPH.CENTER
@@ -185,7 +308,7 @@ def generate_obyektivka_docx(user_data: dict, photo_path: str, output_filepath: 
     np_lbl = cell_name.paragraphs[0]
     _para_spacing(np_lbl, before_pt=6, after_pt=2)
     np_lbl.paragraph_format.left_indent = Cm(0.3)
-    _run(np_lbl, "F.I.SH.", bold=False, size_pt=8.0, color=LABEL_CLR, spacing_pt=1.5)
+    _run(np_lbl, lb['name_lbl'], bold=False, size_pt=8.0, color=LABEL_CLR, spacing_pt=1.5)
     
     np_val = cell_name.add_paragraph()
     _para_spacing(np_val, before_pt=2, after_pt=6, line_rule=1.1)
@@ -213,12 +336,12 @@ def generate_obyektivka_docx(user_data: dict, photo_path: str, output_filepath: 
 
     # 4. Info Table
     info_rows = [
-        ("Tug'ilgan yili, kuni va oyi", user_data.get('birthdate', ''), "Tug'ilgan joyi", user_data.get('birthplace', '')),
-        ("Millati", user_data.get('nation', ''), "Partiyaviyligi", user_data.get('party', '')),
-        ("Ma'lumoti", user_data.get('education', ''), "Tamomlagan", user_data.get('graduated', '')),
-        ("Mutaxassisligi", user_data.get('specialty', ''), "Ilmiy darajasi", user_data.get('degree', '')),
-        ("Ilmiy unvoni", user_data.get('scientific_title', ''), "Tillar", user_data.get('languages', '')),
-        ("Mukofotlar", user_data.get('awards', ''), "Deputatlik statusi", user_data.get('deputy', '')),
+        (lb['bdate'],   user_data.get('birthdate', ''),      lb['bplace'],   user_data.get('birthplace', '')),
+        (lb['nation'],  user_data.get('nation', ''),         lb['party'],    user_data.get('party', '')),
+        (lb['edu'],     user_data.get('education', ''),      lb['grad'],     user_data.get('graduated', '')),
+        (lb['spec'],    user_data.get('specialty', ''),      lb['degree'],   user_data.get('degree', '')),
+        (lb['stitle'],  user_data.get('scientific_title',''),lb['langs'],    user_data.get('languages', '')),
+        (lb['awards'],  user_data.get('awards', ''),         lb['deputy'],   user_data.get('deputy', '')),
     ]
 
     info_tbl = doc.add_table(rows=len(info_rows), cols=2)
@@ -254,12 +377,12 @@ def generate_obyektivka_docx(user_data: dict, photo_path: str, output_filepath: 
     _remove_table_borders(sect_tbl)
     sect_cell = sect_tbl.cell(0, 0)
     _cell_shading(sect_cell, LIGHT_BLUE_HEX)
-    _set_cell_borders(sect_cell, NAVY_HEX, "12", top=True, bottom=False, left=False, right=False) # Top 2px Navy
-    _set_cell_borders(sect_cell, BORDER_HEX, "4", top=False, bottom=True, left=False, right=False) # Bottom thin
+    _set_cell_borders(sect_cell, NAVY_HEX, "12", top=True, bottom=False, left=False, right=False)
+    _set_cell_borders(sect_cell, BORDER_HEX, "4", top=False, bottom=True, left=False, right=False)
     sp = sect_cell.paragraphs[0]
     sp.alignment = WD_ALIGN_PARAGRAPH.CENTER
     _para_spacing(sp, before_pt=4, after_pt=4)
-    _run(sp, "MEHNAT FAOLIYATI", bold=True, size_pt=10.5, color=NAVY_CLR, spacing_pt=2)
+    _run(sp, lb['exp_title'], bold=True, size_pt=10.5, color=NAVY_CLR, spacing_pt=2)
     
     doc.add_paragraph()
 
@@ -272,7 +395,7 @@ def generate_obyektivka_docx(user_data: dict, photo_path: str, output_filepath: 
         # Header
         h_years = wtbl.cell(0, 0)
         h_pos = wtbl.cell(0, 1)
-        for hcell, ht in [(h_years, "Yillar"), (h_pos, "Ish joyi va lavozimi")]:
+        for hcell, ht in [(h_years, lb['exp_col1']), (h_pos, lb['exp_col2'])]:
             _cell_shading(hcell, NAVY_HEX)
             _set_cell_borders(hcell, NAVY_HEX, "4")
             hp = hcell.paragraphs[0]
@@ -299,7 +422,9 @@ def generate_obyektivka_docx(user_data: dict, photo_path: str, output_filepath: 
     doc.add_paragraph()
 
     # 6. Relatives Section Header
-    fname = (user_data.get('fullname', '')).split(" ")[0].upper()
+    fname = (user_data.get('fullname', '') or '').split(" ")[0].upper()
+    rel_title = lb['rel_suffix'] if lang == 'ru' else f"{fname} {lb['rel_suffix']}"
+
     sect_rel = doc.add_table(rows=1, cols=1)
     _remove_table_borders(sect_rel)
     r_cell = sect_rel.cell(0, 0)
@@ -309,7 +434,7 @@ def generate_obyektivka_docx(user_data: dict, photo_path: str, output_filepath: 
     rp = r_cell.paragraphs[0]
     rp.alignment = WD_ALIGN_PARAGRAPH.CENTER
     _para_spacing(rp, before_pt=4, after_pt=4)
-    _run(rp, f"{fname} YAQIN QARINDOSHLARI HAQIDA MA'LUMOT", bold=True, size_pt=10.5, color=NAVY_CLR, spacing_pt=2)
+    _run(rp, rel_title, bold=True, size_pt=10.5, color=NAVY_CLR, spacing_pt=2)
 
     doc.add_paragraph()
 
@@ -319,7 +444,7 @@ def generate_obyektivka_docx(user_data: dict, photo_path: str, output_filepath: 
         rtbl = doc.add_table(rows=1+len(rels), cols=5)
         _remove_table_borders(rtbl)
         _set_col_widths(rtbl, pw, [13, 20, 17, 28, 22])
-        headers = ["Qarindoshligi", "F.I.SH.", "Tug'ilgan yili va joyi", "Ish joyi va lavozimi", "Yashash manzili"]
+        headers = [lb['rel_c1'], lb['rel_c2'], lb['rel_c3'], lb['rel_c4'], lb['rel_c5']]
         for j, h in enumerate(headers):
             hc = rtbl.cell(0, j)
             _cell_shading(hc, NAVY_HEX)

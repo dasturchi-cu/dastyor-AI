@@ -12,6 +12,7 @@
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="i18n.js"></script>
     
     <script>
         tailwind.config = {
@@ -294,41 +295,41 @@
             font-size: 10.5pt;
             margin-bottom: 24px;
         }
-        .tpl-oby .accent-bar { width: 100%; height: 4px; background: #1a3a6b; margin-bottom: 14px; }
+        .tpl-oby .accent-bar { width: 100%; height: 2px; background: #000; margin-bottom: 14px; }
         .tpl-oby .title {
-            text-align: center; font-size: 15pt; font-weight: bold;
-            letter-spacing: 4px; color: #1a3a6b; margin-bottom: 12px; text-transform: uppercase;
+            text-align: center; font-size: 14pt; font-weight: bold;
+            letter-spacing: 2px; color: #000; margin-bottom: 12px; text-transform: uppercase;
         }
-        .tpl-oby .title-line { width: 60mm; height: 1px; background: #1a3a6b; margin: 0 auto 16px; opacity: 0.35; }
+        .tpl-oby .title-line { width: 60mm; height: 1px; background: #000; margin: 0 auto 16px; opacity: 1; }
         .tpl-oby .header-table { width: 100%; margin-bottom: 16px; border-collapse: collapse; }
         .tpl-oby .header-table td { vertical-align: middle; }
         .tpl-oby .col-main { vertical-align: middle; padding-right: 10mm; }
-        .tpl-oby .name-block { background: #f0f4fb; border-left: 4px solid #1a3a6b; padding: 10px 14px; display: block; width: 100%; }
-        .tpl-oby .name-label { display: block; font-size: 8pt; color: #6b7a99; font-weight: normal; letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 5px; }
-        .tpl-oby .name { font-size: 14pt; font-weight: bold; text-transform: uppercase; color: #1a1a2e; line-height: 1.35; letter-spacing: 0.5px; }
+        .tpl-oby .name-block { background: transparent; border-left: 2px solid #000; padding: 5px 10px; display: block; width: 100%; }
+        .tpl-oby .name-label { display: block; font-size: 8pt; color: #000; font-weight: normal; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 5px; }
+        .tpl-oby .name { font-size: 13pt; font-weight: bold; text-transform: uppercase; color: #000; line-height: 1.35; letter-spacing: 0.5px; }
         .tpl-oby .col-img { width: 36mm; text-align: center; vertical-align: middle; }
-        .tpl-oby .photo-frame { display: inline-block; border: 2px solid #1a3a6b; padding: 2px; background: #fff; }
+        .tpl-oby .photo-frame { display: inline-block; border: 1px solid #000; padding: 2px; background: #fff; }
         .tpl-oby .avatar { width: 30mm; height: 40mm; object-fit: cover; display: block; }
-        .tpl-oby .photo-placeholder { width: 30mm; height: 40mm; background: #f0f4fb; display: flex; align-items: center; justify-content: center; font-size: 9pt; color: #9ba8c4; }
+        .tpl-oby .photo-placeholder { width: 30mm; height: 40mm; background: #fff; border: 1px dashed #000; display: flex; align-items: center; justify-content: center; font-size: 9pt; color: #000; }
         .tpl-oby .info-table { width: 100%; border-collapse: collapse; margin-bottom: 18px; }
-        .tpl-oby .info-table tr:nth-child(even) td { background: #f8f9fc; }
-        .tpl-oby .info-table td { vertical-align: top; padding: 6px 10px; font-size: 10pt; border-bottom: 1px solid #e8ecf4; width: 50%; }
-        .tpl-oby .info-table td:first-child { border-right: 1px solid #e8ecf4; }
-        .tpl-oby .info-lbl { display: block; font-weight: bold; font-size: 8.5pt; color: #4a5a80; margin-bottom: 2px; letter-spacing: 0.3px; text-transform: uppercase; }
-        .tpl-oby .info-val { display: block; font-size: 10.5pt; color: #1a1a2e; }
+        .tpl-oby .info-table tr td { background: transparent; }
+        .tpl-oby .info-table td { vertical-align: top; padding: 4px 6px; font-size: 10pt; border-bottom: 1px solid #000; width: 50%; color: #000; }
+        .tpl-oby .info-table td:first-child { border-right: 1px solid #000; }
+        .tpl-oby .info-lbl { display: block; font-weight: bold; font-size: 8.5pt; color: #000; margin-bottom: 2px; text-transform: uppercase; }
+        .tpl-oby .info-val { display: block; font-size: 10pt; color: #000; }
         .tpl-oby .section-header { margin-top: 18px; margin-bottom: 10px; }
-        .tpl-oby .sect-title { font-size: 10.5pt; font-weight: bold; text-transform: uppercase; letter-spacing: 2px; color: #1a3a6b; text-align: center; padding: 6px 0; border-top: 2px solid #1a3a6b; border-bottom: 1px solid #c5d0e4; background: #f0f4fb; }
-        .tpl-oby .exp-table { width: 100%; border-collapse: collapse; margin-bottom: 14px; font-size: 10.5pt; }
-        .tpl-oby .exp-table thead th { background: #1a3a6b; color: #fff; font-weight: bold; text-align: center; padding: 7px 10px; font-size: 9.5pt; border: 1px solid #1a3a6b; }
-        .tpl-oby .exp-table tbody tr:nth-child(even) td { background: #f8f9fc; }
-        .tpl-oby .exp-table td { padding: 7px 10px; vertical-align: top; border: 1px solid #c5d0e4; font-size: 10pt; }
-        .tpl-oby .exp-table td:first-child { width: 26%; font-weight: bold; color: #1a3a6b; }
+        .tpl-oby .sect-title { font-size: 10pt; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; color: #000; text-align: center; padding: 4px 0; border-top: 1px solid #000; border-bottom: 1px solid #000; background: transparent; }
+        .tpl-oby .exp-table { width: 100%; border-collapse: collapse; margin-bottom: 14px; font-size: 10pt; }
+        .tpl-oby .exp-table thead th { background: transparent; color: #000; font-weight: bold; text-align: center; padding: 5px 8px; font-size: 9pt; border: 1px solid #000; }
+        .tpl-oby .exp-table tbody tr td { background: transparent; }
+        .tpl-oby .exp-table td { padding: 5px 8px; vertical-align: top; border: 1px solid #000; font-size: 10pt; color: #000; }
+        .tpl-oby .exp-table td:first-child { width: 26%; font-weight: bold; }
         .tpl-oby .rel-table { width: 100%; border-collapse: collapse; font-size: 9pt; text-align: center; }
-        .tpl-oby .rel-table thead th { background: #1a3a6b; color: #fff; font-weight: bold; padding: 6px 4px; font-size: 8.5pt; border: 1px solid #1a3a6b; }
-        .tpl-oby .rel-table tbody tr:nth-child(even) td { background: #f8f9fc; }
-        .tpl-oby .rel-table td { border: 1px solid #c5d0e4; padding: 5px 4px; font-size: 9pt; }
-        .tpl-oby .empty-state { text-align: center; font-style: italic; padding: 10px 0; font-size: 9.5pt; color: #8a96b0; }
-        .tpl-oby .footer-bar { width: 100%; height: 3px; background: #1a3a6b; margin-top: 20px; opacity: 0.15; }
+        .tpl-oby .rel-table thead th { background: transparent; color: #000; font-weight: bold; padding: 4px; font-size: 8.5pt; border: 1px solid #000; }
+        .tpl-oby .rel-table tbody tr td { background: transparent; }
+        .tpl-oby .rel-table td { border: 1px solid #000; padding: 4px; font-size: 9pt; color: #000; }
+        .tpl-oby .empty-state { text-align: center; font-style: italic; padding: 10px 0; font-size: 9.5pt; color: #000; }
+        .tpl-oby .footer-bar { width: 100%; height: 2px; background: #000; margin-top: 20px; opacity: 1; }
 
         /* Toast */
         .toast {
@@ -373,15 +374,24 @@
             </div>
         </div>
         <div class="flex items-center gap-3">
+            <!-- Language Selector -->
+            <select id="langSelect" onchange="changeLang(this.value)"
+                class="input-premium text-xs py-2 px-3 rounded-xl cursor-pointer"
+                style="min-height:unset; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.12); color:#fff; font-size:12px; padding:6px 12px;">
+                <option value="uz_lat">🇺🇿 UZ Lotin</option>
+                <option value="uz_cyr">🇺🇿 UZ Kirill</option>
+                <option value="en">🇬🇧 English</option>
+                <option value="ru">🇷🇺 Русский</option>
+            </select>
             <button id="mobileViewToggle" onclick="toggleMobileView()" class="hidden md:hidden px-4 py-2.5 glass-light rounded-xl font-semibold text-sm hover:bg-white/10 transition-all btn-toggle-mobile">
-                👁️ Ko'rish
+                <span data-i18n="obv_preview">Ko'rish</span>
             </button>
             <button onclick="exportWord()" class="btn-primary" id="btnWord">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                     <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
                     <polyline points="14 2 14 8 20 8"/>
                 </svg>
-                Word yuklab olish
+                <span data-i18n="btn_export_word">Word yuklab olish</span>
             </button>
         </div>
     </header>
@@ -398,7 +408,7 @@
                     <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-brand-500/20 to-brand-600/10 flex items-center justify-center">
                         <span class="text-lg">👤</span>
                     </div>
-                    <h2 class="font-display font-bold text-sm uppercase tracking-[0.2em] text-white/50">Shaxsiy Ma'lumotlar</h2>
+                    <h2 class="font-display font-bold text-sm uppercase tracking-[0.2em] text-white/50" data-i18n="obv_title">Shaxsiy Ma'lumotlar</h2>
                 </div>
 
                 <!-- Photo Upload -->
@@ -415,14 +425,14 @@
 
                 <!-- F.I.Sh -->
                 <div class="mb-4">
-                    <label class="text-[11px] text-white/40 mb-1.5 block font-medium">F.I.SH. (Familiya Ism Sharif)</label>
-                    <input type="text" id="f_name" class="input-premium bold" placeholder="masalan: alisherov yusuf muratovich" oninput="formatName(this)">
+                    <label class="text-[11px] text-white/40 mb-1.5 block font-medium" data-i18n="obv_fullname">F.I.SH. (Familiya Ism Sharif)</label>
+                    <input type="text" id="f_name" class="input-premium bold" data-i18n-ph="ph_obv_name" placeholder="masalan: alisherov yusuf muratovich" oninput="formatName(this)">
                 </div>
 
                 <!-- Tug'ilgan sana + joy -->
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                     <div>
-                        <label class="text-[11px] text-white/40 mb-2 block font-medium">Tug'ilgan sana</label>
+                        <label class="text-[11px] text-white/40 mb-2 block font-medium" data-i18n="obv_birth">Tug'ilgan sana</label>
                         <div class="grid grid-cols-3 gap-2">
                             <select id="f_birth_day" class="input-premium text-center text-sm py-3" onchange="updateCV()">
                                 <option value="" disabled selected>Kun</option>
@@ -436,29 +446,29 @@
                         </div>
                     </div>
                     <div>
-                        <label class="text-[11px] text-white/40 mb-2 block font-medium">Tug'ilgan joyi</label>
-                        <input type="text" id="f_place" class="input-premium" placeholder="masalan: toshkent viloyati" oninput="formatCapitalize(this)">
+                        <label class="text-[11px] text-white/40 mb-2 block font-medium" data-i18n="obv_birthplace">Tug'ilgan joyi</label>
+                        <input type="text" id="f_place" class="input-premium" data-i18n-ph="ph_obv_place" placeholder="masalan: toshkent viloyati" oninput="formatCapitalize(this)">
                     </div>
                 </div>
 
                 <!-- Millat + Partiya -->
                 <div class="grid grid-cols-2 gap-3 mb-4">
                     <div>
-                        <label class="text-[11px] text-white/40 mb-1.5 block font-medium">Millati</label>
-                        <input type="text" id="f_nation" class="input-premium" placeholder="masalan: o'zbek" oninput="formatCapitalize(this)">
+                        <label class="text-[11px] text-white/40 mb-1.5 block font-medium" data-i18n="obv_nation">Millati</label>
+                        <input type="text" id="f_nation" class="input-premium" data-i18n-ph="ph_obv_nation" placeholder="masalan: o'zbek" oninput="formatCapitalize(this)">
                     </div>
                     <div>
-                        <label class="text-[11px] text-white/40 mb-1.5 block font-medium">Partiyaviyligi</label>
-                        <input type="text" id="f_party" class="input-premium" placeholder="masalan: yo'q" oninput="formatCapitalize(this)">
+                        <label class="text-[11px] text-white/40 mb-1.5 block font-medium" data-i18n="obv_party">Partiyaviyligi</label>
+                        <input type="text" id="f_party" class="input-premium" data-i18n-ph="ph_obv_party" placeholder="masalan: yo'q" oninput="formatCapitalize(this)">
                     </div>
                 </div>
 
                 <!-- Ta'lim + Tamomlagan -->
                 <div class="grid grid-cols-2 gap-3 mb-4">
                     <div>
-                        <label class="text-[11px] text-white/40 mb-1.5 block font-medium">Ma'lumoti</label>
+                        <label class="text-[11px] text-white/40 mb-1.5 block font-medium" data-i18n="obv_education">Ma'lumoti</label>
                         <select id="f_edu" class="input-premium" onchange="updateCV()">
-                            <option value="" disabled selected>Tanlang</option>
+                            <option value="" disabled selected data-i18n="btn_clear">Tanlang</option>
                             <option value="Oliy">Oliy</option>
                             <option value="O'rta maxsus">O'rta maxsus</option>
                             <option value="O'rta">O'rta</option>
@@ -466,63 +476,63 @@
                         </select>
                     </div>
                     <div>
-                        <label class="text-[11px] text-white/40 mb-1.5 block font-medium">Tamomlagan (yil, OTM)</label>
-                        <input type="text" id="f_grad" class="input-premium" placeholder="2015, TDYU" oninput="formatCapitalize(this)">
+                        <label class="text-[11px] text-white/40 mb-1.5 block font-medium" data-i18n="obv_graduated">Tamomlagan (yil, OTM)</label>
+                        <input type="text" id="f_grad" class="input-premium" data-i18n-ph="ph_obv_grad" placeholder="2015, TDYU" oninput="formatCapitalize(this)">
                     </div>
                 </div>
 
                 <!-- Mutaxassislik -->
                 <div class="mb-4">
-                    <label class="text-[11px] text-white/40 mb-1.5 block font-medium">Mutaxassisligi</label>
-                    <input type="text" id="f_spec" class="input-premium" placeholder="masalan: huquqshunos" oninput="formatCapitalize(this)">
+                    <label class="text-[11px] text-white/40 mb-1.5 block font-medium" data-i18n="obv_specialty">Mutaxassisligi</label>
+                    <input type="text" id="f_spec" class="input-premium" data-i18n-ph="ph_obv_spec" placeholder="masalan: huquqshunos" oninput="formatCapitalize(this)">
                 </div>
 
                 <!-- Ilmiy daraja + unvon -->
                 <div class="grid grid-cols-2 gap-3 mb-4">
                     <div>
-                        <label class="text-[11px] text-white/40 mb-1.5 block font-medium">Ilmiy darajasi</label>
-                        <input type="text" id="f_degree" class="input-premium" placeholder="masalan: yo'q" oninput="formatCapitalize(this)">
+                        <label class="text-[11px] text-white/40 mb-1.5 block font-medium" data-i18n="obv_degree">Ilmiy darajasi</label>
+                        <input type="text" id="f_degree" class="input-premium" data-i18n-ph="ph_obv_party" placeholder="masalan: yo'q" oninput="formatCapitalize(this)">
                     </div>
                     <div>
-                        <label class="text-[11px] text-white/40 mb-1.5 block font-medium">Ilmiy unvoni</label>
-                        <input type="text" id="f_title" class="input-premium" placeholder="masalan: yo'q" oninput="formatCapitalize(this)">
+                        <label class="text-[11px] text-white/40 mb-1.5 block font-medium" data-i18n="ph_obv_title">Ilmiy unvoni</label>
+                        <input type="text" id="f_title" class="input-premium" data-i18n-ph="ph_obv_title" placeholder="masalan: yo'q" oninput="formatCapitalize(this)">
                     </div>
                 </div>
 
                 <!-- Tillar -->
                 <div class="mb-4">
-                    <label class="text-[11px] text-white/40 mb-1.5 block font-medium">Qaysi chet tillarini biladi</label>
-                    <input type="text" id="f_langs" class="input-premium" placeholder="masalan: rus va ingliz tillari" oninput="formatCapitalize(this)">
+                    <label class="text-[11px] text-white/40 mb-1.5 block font-medium" data-i18n="obv_languages">Qaysi chet tillarini biladi</label>
+                    <input type="text" id="f_langs" class="input-premium" data-i18n-ph="ph_obv_langs" placeholder="masalan: rus va ingliz tillari" oninput="formatCapitalize(this)">
                 </div>
 
                 <!-- Harbiy unvon -->
                 <div class="mb-4">
-                    <label class="text-[11px] text-white/40 mb-1.5 block font-medium">Harbiy yoki maxsus unvoni</label>
-                    <input type="text" id="f_military" class="input-premium" placeholder="masalan: yo'q" oninput="formatCapitalize(this)">
+                    <label class="text-[11px] text-white/40 mb-1.5 block font-medium" data-i18n="obv_awards">Harbiy yoki maxsus unvoni</label>
+                    <input type="text" id="f_military" class="input-premium" data-i18n-ph="ph_obv_party" placeholder="masalan: yo'q" oninput="formatCapitalize(this)">
                 </div>
 
                 <!-- Mukofotlar -->
                 <div class="mb-4">
-                    <label class="text-[11px] text-white/40 mb-1.5 block font-medium">Davlat mukofotlari</label>
-                    <input type="text" id="f_awards" class="input-premium" placeholder="masalan: yo'q" oninput="formatCapitalize(this)">
+                    <label class="text-[11px] text-white/40 mb-1.5 block font-medium" data-i18n="obv_awards">Davlat mukofotlari</label>
+                    <input type="text" id="f_awards" class="input-premium" data-i18n-ph="ph_obv_party" placeholder="masalan: yo'q" oninput="formatCapitalize(this)">
                 </div>
 
                 <!-- Deputat -->
                 <div class="mb-4">
-                    <label class="text-[11px] text-white/40 mb-1.5 block font-medium">Deputatlik statusi</label>
-                    <input type="text" id="f_deputy" class="input-premium" placeholder="masalan: yo'q" oninput="formatCapitalize(this)">
+                    <label class="text-[11px] text-white/40 mb-1.5 block font-medium" data-i18n="ph_obv_deputy">Deputatlik statusi</label>
+                    <input type="text" id="f_deputy" class="input-premium" data-i18n-ph="ph_obv_deputy" placeholder="masalan: yo'q" oninput="formatCapitalize(this)">
                 </div>
 
                 <!-- Telefon -->
                 <div class="mb-4">
-                    <label class="text-[11px] text-white/40 mb-1.5 block font-medium">Telefon raqami</label>
-                    <input type="tel" id="f_phone" class="input-premium" placeholder="90 123 45 67" oninput="formatPhone(this)" maxlength="17">
+                    <label class="text-[11px] text-white/40 mb-1.5 block font-medium" data-i18n="ph_phone">Telefon raqami</label>
+                    <input type="tel" id="f_phone" class="input-premium" data-i18n-ph="ph_cv_phone" placeholder="90 123 45 67" oninput="formatPhone(this)" maxlength="17">
                 </div>
 
                 <!-- Manzil -->
                 <div class="mb-4">
-                    <label class="text-[11px] text-white/40 mb-1.5 block font-medium">Yashash manzili</label>
-                    <input type="text" id="f_addr" class="input-premium" placeholder="masalan: toshkent shahri, yunusobod tumani..." oninput="formatCapitalize(this)">
+                    <label class="text-[11px] text-white/40 mb-1.5 block font-medium" data-i18n="obv_relatives">Yashash manzili</label>
+                    <input type="text" id="f_addr" class="input-premium" data-i18n-ph="ph_obv_place" placeholder="masalan: toshkent shahri, yunusobod tumani..." oninput="formatCapitalize(this)">
                 </div>
             </div>
 
@@ -534,10 +544,10 @@
                     <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-accent-emerald/20 to-accent-emerald/5 flex items-center justify-center">
                         <span class="text-lg">💼</span>
                     </div>
-                    <h2 class="font-display font-bold text-sm uppercase tracking-[0.2em] text-white/50">Mehnat Faoliyati</h2>
+                    <h2 class="font-display font-bold text-sm uppercase tracking-[0.2em] text-white/50" data-i18n="obv_work">Mehnat Faoliyati</h2>
                 </div>
                 <div id="expList"></div>
-                <button onclick="addExp()" class="btn-add">+ Ish joyi qo'shish</button>
+                <button onclick="addExp()" class="btn-add" id="btnAddWork"><span data-i18n="obv_add_work">+ Ish joyi qo'shish</span></button>
             </div>
 
             <div class="h-px bg-gradient-to-r from-transparent via-white/10 to-transparent mx-6"></div>
@@ -548,10 +558,10 @@
                     <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-accent-amber/20 to-accent-amber/5 flex items-center justify-center">
                         <span class="text-lg">👨‍👩‍👧‍👦</span>
                     </div>
-                    <h2 class="font-display font-bold text-sm uppercase tracking-[0.2em] text-white/50">Yaqin Qarindoshlari</h2>
+                    <h2 class="font-display font-bold text-sm uppercase tracking-[0.2em] text-white/50" data-i18n="obv_relatives">Yaqin Qarindoshlari</h2>
                 </div>
                 <div id="relList"></div>
-                <button onclick="addRel()" class="btn-add">+ Qarindosh qo'shish</button>
+                <button onclick="addRel()" class="btn-add" id="btnAddRel"><span data-i18n="obv_add_rel">+ Qarindosh qo'shish</span></button>
             </div>
 
         </div>
@@ -570,21 +580,6 @@
 
     <script>
         const tg = window.Telegram?.WebApp;
-
-        // Simple I18n fallback
-        const I18n = {
-            t: (key) => {
-                const translations = {
-                    obv_main_title: "MA'LUMOTNOMA",
-                    obv_ph_namelabel: 'F.I.SH.',
-                    obv_exp_title: 'MEHNAT FAOLIYATI',
-                    obv_rel_title: "YAQIN QARINDOSHLARI HAQIDA MA'LUMOT",
-                    obv_no_data: "Ma'lumot yo'q",
-                };
-                return translations[key] || key;
-            },
-            getLang: () => 'uz'
-        };
 
         // DastyorAI fallback
         const DastyorAI = {
@@ -838,13 +833,27 @@
 
         function v(id) { return (document.getElementById(id)?.value || '').trim(); }
 
+        // Multilingual month names
+        const _MONTHS = {
+            uz_lat: ['Yanvar','Fevral','Mart','Aprel','May','Iyun','Iyul','Avgust','Sentabr','Oktabr','Noyabr','Dekabr'],
+            uz_cyr: ['Январ','Феврал','Март','Апрел','Май','Июн','Июл','Август','Сентябр','Октябр','Ноябр','Декабр'],
+            en:     ['January','February','March','April','May','June','July','August','September','October','November','December'],
+            ru:     ['Января','Февраля','Марта','Апреля','Мая','Июня','Июля','Августа','Сентября','Октября','Ноября','Декабря'],
+        };
+
+        const _YEAR_SFX = {
+            uz_lat: ' yil', uz_cyr: ' йил', en: '', ru: ' г.',
+        };
+
         function getBirthDate() {
             const day = v('f_birth_day');
             const month = v('f_birth_month');
             const year = v('f_birth_year');
             if (day && month && year) {
-                const monthNames = ['yanvar', 'fevral', 'mart', 'aprel', 'may', 'iyun', 'iyul', 'avgust', 'sentabr', 'oktabr', 'noyabr', 'dekabr'];
-                return `${year} yil ${parseInt(day)} ${monthNames[parseInt(month) - 1]}`;
+                const lang = I18n.getLang();
+                const months = _MONTHS[lang] || _MONTHS['uz_lat'];
+                const sfx   = _YEAR_SFX[lang] ?? ' yil';
+                return `${year}${sfx} ${parseInt(day)} ${months[parseInt(month) - 1]}`;
             }
             return '';
         }
@@ -875,37 +884,156 @@
             };
 
             const box = document.getElementById('cv-box');
+            const t = I18n.t;
+            const lang = I18n.getLang();
+
+            // Localized labels for document
+            const _L = {
+                uz_lat: {
+                    title: "MA'LUMOTNOMA",
+                    name_lbl: 'F.I.SH.',
+                    bdate: "Tug'ilgan yili, kuni va oyi",
+                    bplace: "Tug'ilgan joyi",
+                    nation: 'Millati',
+                    party: 'Partiyaviyligi',
+                    edu: "Ma'lumoti",
+                    grad: 'Tamomlagan',
+                    spec: 'Mutaxassisligi',
+                    degree: 'Ilmiy darajasi',
+                    title_l: 'Ilmiy unvoni',
+                    langs: "Chet tillarni bilishi",
+                    military: "Harbiy/maxsus unvoni",
+                    awards: 'Davlat mukofotlari',
+                    deputy: 'Deputatlik statusi',
+                    phone: 'Telefon',
+                    addr: 'Yashash manzili',
+                    exp_title: 'MEHNAT FAOLIYATI',
+                    exp_col1: 'Yillari',
+                    exp_col2: 'Ish joyi va egallagan lavozimlari',
+                    rel_suffix: "YAQIN QARINDOSHLARI HAQIDA MA'LUMOT",
+                    rel_c1: 'Qarindoshligi', rel_c2: 'F.I.SH.',
+                    rel_c3: "Tug'ilgan yili va joyi",
+                    rel_c4: 'Ish joyi va lavozimi', rel_c5: 'Yashash manzili',
+                    empty: "Ma'lumot yo'q",
+                },
+                uz_cyr: {
+                    title: 'МАЪЛУМОТНОМА',
+                    name_lbl: 'Ф.И.Ш.',
+                    bdate: 'Туғилган йили, куни ва ойи',
+                    bplace: 'Туғилган жойи',
+                    nation: 'Миллати',
+                    party: 'Партиявийлиги',
+                    edu: 'Маълумоти',
+                    grad: 'Тамомлаган',
+                    spec: 'Мутахассислиги',
+                    degree: 'Илмий даражаси',
+                    title_l: 'Илмий унвони',
+                    langs: 'Чет тилларни билиши',
+                    military: 'Ҳарбий/махсус унвони',
+                    awards: 'Давлат мукофотлари',
+                    deputy: 'Депутатлик статуси',
+                    phone: 'Телефон',
+                    addr: 'Яшаш манзили',
+                    exp_title: 'МЕҲНАТ ФАОЛИЯТИ',
+                    exp_col1: 'Йиллари',
+                    exp_col2: 'Иш жойи ва эгаллаган лавозимлари',
+                    rel_suffix: 'ЯҚИН ҚАРИНДОШЛАРИ ҲАҚИДА МАЪЛУМОТ',
+                    rel_c1: 'Қариндошлиги', rel_c2: 'Ф.И.Ш.',
+                    rel_c3: 'Туғилган йили ва жойи',
+                    rel_c4: 'Иш жойи ва лавозими', rel_c5: 'Яшаш манзили',
+                    empty: 'Маълумот йўқ',
+                },
+                en: {
+                    title: 'CURRICULUM VITAE',
+                    name_lbl: 'Full Name',
+                    bdate: 'Date of Birth',
+                    bplace: 'Place of Birth',
+                    nation: 'Nationality',
+                    party: 'Party Membership',
+                    edu: 'Education',
+                    grad: 'Graduated From',
+                    spec: 'Specialty',
+                    degree: 'Academic Degree',
+                    title_l: 'Academic Title',
+                    langs: 'Foreign Languages',
+                    military: 'Military Rank',
+                    awards: 'State Awards',
+                    deputy: 'Deputy Status',
+                    phone: 'Phone',
+                    addr: 'Residential Address',
+                    exp_title: 'WORK EXPERIENCE',
+                    exp_col1: 'Period',
+                    exp_col2: 'Position & Workplace',
+                    rel_suffix: 'CLOSE RELATIVES INFORMATION',
+                    rel_c1: 'Relationship', rel_c2: 'Full Name',
+                    rel_c3: 'Year & Place of Birth',
+                    rel_c4: 'Workplace & Position', rel_c5: 'Home Address',
+                    empty: 'No data provided',
+                },
+                ru: {
+                    title: 'ОБЪЕКТИВКА',
+                    name_lbl: 'Ф.И.О.',
+                    bdate: 'Год, число и месяц рождения',
+                    bplace: 'Место рождения',
+                    nation: 'Национальность',
+                    party: 'Партийность',
+                    edu: 'Образование',
+                    grad: 'Окончил(а)',
+                    spec: 'Специальность',
+                    degree: 'Учёная степень',
+                    title_l: 'Учёное звание',
+                    langs: 'Знание иностранных языков',
+                    military: 'Воинское звание',
+                    awards: 'Государственные награды',
+                    deputy: 'Статус депутата',
+                    phone: 'Телефон',
+                    addr: 'Место жительства',
+                    exp_title: 'ТРУДОВАЯ ДЕЯТЕЛЬНОСТЬ',
+                    exp_col1: 'Годы',
+                    exp_col2: 'Место работы и должность',
+                    rel_suffix: 'СВЕДЕНИЯ О БЛИЗКИХ РОДСТВЕННИКАХ',
+                    rel_c1: 'Степень родства', rel_c2: 'Ф.И.О.',
+                    rel_c3: 'Год и место рождения',
+                    rel_c4: 'Место работы и должность', rel_c5: 'Место жительства',
+                    empty: 'Нет данных',
+                },
+            };
+            const L = _L[lang] || _L['uz_lat'];
 
             const expHtml = data.exp.length
-                ? `<table class="exp-table"><thead><tr><th>Yillari</th><th>Ish joyi va egallagan lavozimlari</th></tr></thead>
+                ? `<table class="exp-table"><thead><tr><th>${L.exp_col1}</th><th>${L.exp_col2}</th></tr></thead>
                    <tbody>${data.exp.map(e => `<tr><td>${e.years}</td><td>${e.desc}</td></tr>`).join('')}</tbody></table>`
-                : `<div class="empty-state">Ma'lumot yo'q</div>`;
+                : `<div class="empty-state">${L.empty}</div>`;
 
             const relHtml = data.rel.length
                 ? `<table class="rel-table"><thead><tr>
-                        <th style="width:12%">Qarindoshligi</th>
-                        <th style="width:22%">F.I.SH.</th>
-                        <th style="width:18%">Tug'ilgan yili va joyi</th>
-                        <th style="width:26%">Ish joyi va lavozimi</th>
-                        <th style="width:22%">Yashash manzili</th>
+                        <th style="width:12%">${L.rel_c1}</th>
+                        <th style="width:22%">${L.rel_c2}</th>
+                        <th style="width:18%">${L.rel_c3}</th>
+                        <th style="width:26%">${L.rel_c4}</th>
+                        <th style="width:22%">${L.rel_c5}</th>
                     </tr></thead>
                     <tbody>${data.rel.map(r => `<tr><td>${r.role}</td><td>${r.name}</td><td>${r.birth}</td><td>${r.work}</td><td>${r.addr}</td></tr>`).join('')}</tbody></table>`
-                : `<div class="empty-state">Ma'lumot yo'q</div>`;
+                : `<div class="empty-state">${L.empty}</div>`;
 
             let imgHtml = avatarUrl
                 ? `<img src="${avatarUrl}" class="avatar" alt="Foto">`
                 : `<div class="photo-placeholder">3×4</div>`;
 
+            // Relatives section title: Uzbek includes first name, Russian doesn't
+            const firstName = data.name.split(' ')[0];
+            const relTitle = (lang === 'ru') ? L.rel_suffix : `${firstName} ${L.rel_suffix}`;
+
             box.innerHTML = `
                 <div class="accent-bar"></div>
-                <div class="title">MA'LUMOTNOMA</div>
+                <div class="title">${L.title}</div>
                 <div class="title-line"></div>
 
                 <table class="header-table">
                     <tr>
                         <td class="col-main">
                             <div class="name-block">
-                                <span class="name-label">F.I.SH.</span>
+                                <span class="name-label">${L.name_lbl}</span>
                                 <div class="name">${data.name}</div>
                             </div>
                         </td>
@@ -917,45 +1045,45 @@
 
                 <table class="info-table">
                     <tr>
-                        <td><span class="info-lbl">Tug'ilgan yili, kuni va oyi</span><span class="info-val">${data.birth}</span></td>
-                        <td><span class="info-lbl">Tug'ilgan joyi</span><span class="info-val">${data.place}</span></td>
+                        <td><span class="info-lbl">${L.bdate}</span><span class="info-val">${data.birth}</span></td>
+                        <td><span class="info-lbl">${L.bplace}</span><span class="info-val">${data.place}</span></td>
                     </tr>
                     <tr>
-                        <td><span class="info-lbl">Millati</span><span class="info-val">${data.nation}</span></td>
-                        <td><span class="info-lbl">Partiyaviyligi</span><span class="info-val">${data.party}</span></td>
+                        <td><span class="info-lbl">${L.nation}</span><span class="info-val">${data.nation}</span></td>
+                        <td><span class="info-lbl">${L.party}</span><span class="info-val">${data.party}</span></td>
                     </tr>
                     <tr>
-                        <td><span class="info-lbl">Ma'lumoti</span><span class="info-val">${data.edu}</span></td>
-                        <td><span class="info-lbl">Tamomlagan</span><span class="info-val">${data.grad}</span></td>
+                        <td><span class="info-lbl">${L.edu}</span><span class="info-val">${data.edu}</span></td>
+                        <td><span class="info-lbl">${L.grad}</span><span class="info-val">${data.grad}</span></td>
                     </tr>
                     <tr>
-                        <td><span class="info-lbl">Mutaxassisligi</span><span class="info-val">${data.spec}</span></td>
-                        <td><span class="info-lbl">Ilmiy darajasi</span><span class="info-val">${data.degree}</span></td>
+                        <td><span class="info-lbl">${L.spec}</span><span class="info-val">${data.spec}</span></td>
+                        <td><span class="info-lbl">${L.degree}</span><span class="info-val">${data.degree}</span></td>
                     </tr>
                     <tr>
-                        <td><span class="info-lbl">Ilmiy unvoni</span><span class="info-val">${data.title}</span></td>
-                        <td><span class="info-lbl">Chet tillarni bilishi</span><span class="info-val">${data.langs}</span></td>
+                        <td><span class="info-lbl">${L.title_l}</span><span class="info-val">${data.title}</span></td>
+                        <td><span class="info-lbl">${L.langs}</span><span class="info-val">${data.langs}</span></td>
                     </tr>
                     <tr>
-                        <td><span class="info-lbl">Harbiy/maxsus unvoni</span><span class="info-val">${data.military}</span></td>
-                        <td><span class="info-lbl">Davlat mukofotlari</span><span class="info-val">${data.awards}</span></td>
+                        <td><span class="info-lbl">${L.military}</span><span class="info-val">${data.military}</span></td>
+                        <td><span class="info-lbl">${L.awards}</span><span class="info-val">${data.awards}</span></td>
                     </tr>
                     <tr>
-                        <td><span class="info-lbl">Deputatlik statusi</span><span class="info-val">${data.deputy}</span></td>
-                        <td><span class="info-lbl">Telefon</span><span class="info-val">${data.phone}</span></td>
+                        <td><span class="info-lbl">${L.deputy}</span><span class="info-val">${data.deputy}</span></td>
+                        <td><span class="info-lbl">${L.phone}</span><span class="info-val">${data.phone}</span></td>
                     </tr>
                     <tr>
-                        <td colspan="2"><span class="info-lbl">Yashash manzili</span><span class="info-val">${data.addr}</span></td>
+                        <td colspan="2"><span class="info-lbl">${L.addr}</span><span class="info-val">${data.addr}</span></td>
                     </tr>
                 </table>
 
                 <div class="section-header">
-                    <div class="sect-title">MEHNAT FAOLIYATI</div>
+                    <div class="sect-title">${L.exp_title}</div>
                 </div>
                 ${expHtml}
 
                 <div class="section-header">
-                    <div class="sect-title">${data.name.split(' ')[0]} YAQIN QARINDOSHLARI HAQIDA MA'LUMOT</div>
+                    <div class="sect-title">${relTitle}</div>
                 </div>
                 ${relHtml}
 
@@ -1003,51 +1131,91 @@
         // ═══════════════════════════════════════════════════════════
 
         async function exportWord() {
-            const btn = document.getElementById('btnWord');
-            const originalHtml = btn.innerHTML;
-            btn.innerHTML = '<svg class="animate-spin h-4 w-4" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg> Yuklanmoqda...';
-            btn.disabled = true;
-
-            const safeName = (v('f_name') || 'Obyektivka').replace(/\s+/g, '_');
-            const filename = `DASTYOR_Obyektivka_${safeName}.doc`;
-
-            try {
-                const rawHtml = document.getElementById('cv-box').outerHTML;
-                const styles = document.querySelector('style').innerHTML;
-                const docHTML = `<html xmlns:o='urn:schemas-microsoft-com:office:office'
-                    xmlns:w='urn:schemas-microsoft-com:office:word'
-                    xmlns='http://www.w3.org/TR/REC-html40'>
-                    <head><meta charset='utf-8'><title>${filename}</title>
-                    <style>@page WordSection1{size:210mm 297mm;margin:15mm;}div.WordSection1{page:WordSection1;}${styles}</style>
-                    </head><body><div class="WordSection1">${rawHtml}</div></body></html>`;
-                const blob = new Blob(['\ufeff', docHTML], { type: 'application/msword' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = filename;
-                document.body.appendChild(a);
-                a.click();
-                setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 2000);
-                showToast('✅ Word muvaffaqiyatli saqlandi!');
-            } catch (err) {
-                console.error('Export error:', err);
-                showToast('❌ Xatolik yuz berdi', 'error');
+            if (!tg || !tg.sendData) {
+                showToast("Faqat Telegram bot ichida ishlaydi!", "error");
+                return;
             }
 
-            btn.innerHTML = originalHtml;
-            btn.disabled = false;
+            const btn = document.getElementById('btnWord');
+            const originalHtml = btn.innerHTML;
+            btn.innerHTML = '<svg class="animate-spin h-4 w-4 mr-2" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg> Yuklanmoqda...';
+            btn.disabled = true;
+
+            const payload = {
+                action: "generate_obyektivka",
+                format: "word",
+                lang: I18n.getLang(),
+                fullname: v('f_name'),
+                bdate: getBirthDate(),
+                bplace: v('f_place'),
+                nation: v('f_nation'),
+                party: v('f_party'),
+                edu: v('f_edu'),
+                grad: v('f_grad'),
+                spec: v('f_spec'),
+                deg: v('f_degree'),
+                ttl: v('f_title'),
+                langs: v('f_langs'),
+                mil: v('f_military'),
+                award: v('f_awards'),
+                dep: v('f_deputy'),
+                works: experiences.map(e => ({
+                    f: e.startYear || '',
+                    t: e.endYear || '',
+                    d: e.desc || ''
+                })),
+                rels: relatives.map(r => ({
+                    type: r.role || '',
+                    name: r.name || '',
+                    birth: r.birth || '',
+                    job: r.work || '',
+                    addr: r.addr || ''
+                }))
+            };
+
+            try {
+                tg.sendData(JSON.stringify(payload));
+                // tg.sendData yopiladi
+            } catch (err) {
+                console.error("tg.sendData xatolik:", err);
+                showToast("Xatolik yuz berdi", "error");
+                btn.innerHTML = originalHtml;
+                btn.disabled = false;
+            }
         }
+
+        // ═══════════════════════════════════════════════════════════
+        // LANGUAGE CHANGE HANDLER
+        // ═══════════════════════════════════════════════════════════
+
+        function changeLang(lang) {
+            I18n.setLang(lang);
+            // I18n.setLang fires 'i18n:change' which calls updateCV below
+        }
+
+        window.addEventListener('i18n:change', () => {
+            updateCV();
+            I18n.apply(); // re-apply data-i18n labels on editor
+        });
 
         // ═══════════════════════════════════════════════════════════
         // INIT
         // ═══════════════════════════════════════════════════════════
 
+        // Sync language selector dropdown with saved language
+        (function syncLangDropdown() {
+            const saved = I18n.getLang();
+            const sel = document.getElementById('langSelect');
+            if (sel) sel.value = saved;
+        })();
+
         populateDateDropdowns();
         renderExp();
         renderRel();
-        
+
         setTimeout(() => {
             updateCV();
+            I18n.apply();
         }, 100);
     </script>
 </body>

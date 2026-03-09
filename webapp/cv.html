@@ -12,6 +12,7 @@
   <!-- Telegram SDK -->
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <script src="i18n.js"></script>
 
   <!-- Tailwind -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -988,6 +989,15 @@
       </div>
     </div>
     <div class="flex items-center gap-3">
+      <!-- Language Selector -->
+      <select id="langSelect" onchange="changeLang(this.value)"
+        class="input-premium text-xs py-2 px-3 rounded-xl cursor-pointer"
+        style="min-height:unset; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.12); color:#fff; font-size:12px; padding:6px 12px; padding-right:24px !important;">
+        <option value="uz_lat">🇺🇿 UZ Lotin</option>
+        <option value="uz_cyr">🇺🇿 UZ Kirill</option>
+        <option value="en">🇬🇧 English</option>
+        <option value="ru">🇷🇺 Русский</option>
+      </select>
       <!-- Mobile Toggle -->
       <button id="mobileViewToggle" onclick="toggleMobileView()"
         class="md:hidden px-4 py-2.5 glass-light rounded-xl font-semibold text-sm hover:bg-white/10 transition-all"
@@ -1321,22 +1331,23 @@
   <script>
     const tg = window.Telegram?.WebApp;
 
-    // Simple I18n fallback
-    const I18n = {
-      t: (key) => {
-        const translations = {
-          cv_about: 'Haqida',
-          cv_experience: 'Ish Tajribasi',
-          cv_education: "Ta'lim",
-          cv_contact: 'Aloqa',
-          cv_btn_edit: '✍️ Tahrirlash',
-          cv_btn_preview: '👁️ Ko\'rish',
-          status_processing: '⏳ Kutmoqda...',
-        };
-        return translations[key] || key;
-      },
-      getLang: () => 'uz'
-    };
+    // Language Change
+    function changeLang(lang) {
+      if (typeof I18n !== 'undefined') {
+          I18n.setLang(lang);
+      }
+    }
+    
+    document.addEventListener('i18n:change', updateCV);
+
+    document.addEventListener('DOMContentLoaded', () => {
+        if (typeof I18n !== 'undefined') {
+            const lang = I18n.getLang();
+            const sel = document.getElementById('langSelect');
+            if (sel) sel.value = lang;
+            I18n.apply();
+        }
+    });
 
     // DastyorAI fallback
     const DastyorAI = {
