@@ -514,20 +514,27 @@ async def api_pdf_direct(
 ):
     try:
         import time, asyncio
+        logger.info(f"[PDF API] Boshlandi. telegram_id={telegram_id}, files_count={len(files)}")
         os.makedirs("temp", exist_ok=True)
         
         # Save uploaded files with unique names
         img_paths = []
         ts = int(time.time())
-        for i, file in enumerate(files):
-            ext = os.path.splitext(file.filename)[1] or ".jpg"
-            path = f"temp/pdf_req_{ts}_{i}{ext}"
-            content = await file.read()
-            with open(path, "wb") as f:
-                f.write(content)
-            img_paths.append(path)
+        try:
+            for i, file in enumerate(files):
+                ext = os.path.splitext(file.filename)[1] or ".jpg"
+                path = f"temp/pdf_req_{ts}_{i}{ext}"
+                content = await file.read()
+                with open(path, "wb") as f:
+                    f.write(content)
+                img_paths.append(path)
+            logger.info(f"[PDF API] Barcha {len(img_paths)} rasm serverga yuklandi va vaqtinchalik papkaga saqlandi: {img_paths}")
+        except Exception as e:
+            logger.error(f"[PDF API] Rasm yuklashda yoki saqlashda xatolik: {e}", exc_info=True)
+            raise HTTPException(status_code=500, detail=f"Rasm yuklash xatosi: {e}")
         
         if not img_paths:
+            logger.warning("[PDF API] Hech qanday rasm topilmadi. img_paths bo'sh.")
             raise HTTPException(status_code=400, detail="Fayl yuklanmadi")
         
         pdf_path = f"temp/merged_{ts}.pdf"
@@ -535,15 +542,18 @@ async def api_pdf_direct(
         # CPU-bound PDF creation
         try:
             from bot.services.pdf_service import images_to_pdf
+            logger.info(f"[PDF API] PDF generatsiya funksiyasi ishga tushmoqda... output: {pdf_path}")
             await asyncio.get_event_loop().run_in_executor(
                 None, images_to_pdf, img_paths, pdf_path
             )
+            logger.info(f"[PDF API] PDF yaratish yakunlandi: {pdf_path}")
         except Exception as build_err:
-            logger.error(f"PDF creation error: {build_err}", exc_info=True)
+            logger.error(f"[PDF API] PDF yaralishda (images_to_pdf) xato: {build_err}", exc_info=True)
             _cleanup(*img_paths)
             raise HTTPException(status_code=500, detail=f"PDF yaratishda xato: {build_err}")
             
         if not os.path.exists(pdf_path):
+            logger.error(f"[PDF API] PDF fayl yaratilmadi, file yo'q: {pdf_path}")
             _cleanup(*img_paths)
             raise HTTPException(status_code=500, detail="PDF fayl yaratilmadi")
             
@@ -553,12 +563,14 @@ async def api_pdf_direct(
             
         # Cleanup ALL temp files now that we have bytes
         _cleanup(pdf_path, *img_paths)
+        logger.info(f"[PDF API] Temp fayllar tozalandi. PDF xotiraga yuklandi, size: {len(pdf_bytes)} bytes")
         
         # Optional: Send to Telegram in background
         if telegram_id and telegram_id.strip().isdigit():
             chat_id = int(telegram_id)
             async def send_pdf_to_telegram():
                 try:
+                    logger.info(f"[PDF API Background] Telegram ga jo'natish (chat_id={chat_id}) boshlandi.")
                     buf = io.BytesIO(pdf_bytes)
                     buf.name = f"DASTYOR_AI_Rasmlar_{ts}_@DastyorAiBot.pdf"
                     await application.bot.send_document(
@@ -567,14 +579,18 @@ async def api_pdf_direct(
                         caption=f"✅ **PDF tayyor!**\n📄 {len(img_paths)} ta rasm birlashtirildi.",
                         parse_mode="Markdown"
                     )
-                    logger.info(f"PDF sent to {chat_id} successfully")
+                    logger.info(f"[PDF API Background] PDF Telegram {chat_id} -ga muvaffaqiyatli jo'natildi.")
                 except Exception as tg_err:
-                    logger.warning(f"Telegram send failed (non-fatal): {tg_err}")
+                    logger.error(f"[PDF API Background] Telegram'ga jo'natish xatosi: {tg_err}", exc_info=True)
                     
             asyncio.create_task(send_pdf_to_telegram())
+        else:
+            logger.info("[PDF API] telegram_id yo'q yoki invalid, background jo'natish bajarilmaydi.")
             
         # Stream back to browser
         filename = f"DASTYOR_AI_Rasmlar_{ts}_@DastyorAiBot.pdf"
+        logger.info(f"[PDF API] Frontend ga {filename} nomli streaming javob qaytarilmoqda.")
+        
         return StreamingResponse(
             io.BytesIO(pdf_bytes),
             media_type="application/pdf",
@@ -582,9 +598,10 @@ async def api_pdf_direct(
         )
         
     except HTTPException:
+        logger.warning("[PDF API] HTTPException ko'tarildi")
         raise
     except Exception as e:
-        logger.error(f"Upload PDF API error: {e}", exc_info=True)
+        logger.error(f"[PDF API] Umumiy / Kutilmagan Xatolik: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
 

@@ -186,8 +186,12 @@
                     <div class="text-xs font-medium text-black/50 dark:text-white/50 mb-8" id="resultSub">PDF
                         muvaffaqiyatli saqlandi.</div>
                     <div class="w-full flex flex-col gap-3">
+                        <a id="downloadLinkBtn" href="#" download="DASTYOR_AI_Rasmlar.pdf"
+                            class="w-full py-4 rounded-xl bg-apple-green hover:bg-green-600 active:scale-[0.98] text-white font-bold transition-all shadow-[0_8px_30px_rgba(48,209,88,0.25)] flex items-center justify-center gap-2">
+                            ⬇️ Yuklab Olish (Download)
+                        </a>
                         <button onclick="startNew()"
-                            class="w-full py-4 rounded-xl bg-apple-blue hover:bg-blue-600 active:scale-[0.98] text-white font-bold transition-all shadow-[0_8px_30px_rgba(10,132,255,0.25)]">🔄
+                            class="w-full py-4 rounded-xl bg-apple-blue/10 text-apple-blue hover:bg-apple-blue/20 active:scale-[0.98] font-bold transition-all">🔄
                             Yangi PDF yaratish</button>
                     </div>
                 </div>
@@ -263,6 +267,14 @@
             // Reset the file input so selecting the same file again triggers onChange
             if (input.value !== undefined) input.value = '';
             refreshThumbsOnly();
+            
+            // Auto start PDF generation as requested: "Barcha rasmlar yuklangandan keyin PDF generator avtomatik ishga tushsin."
+            if (selectedFiles.length > 0) {
+                // Short delay so thumbnails render first
+                setTimeout(() => {
+                    startImgToPdf();
+                }, 500);
+            }
         }
 
         function refreshThumbsOnly() {
@@ -372,18 +384,28 @@
 
                 const blob = await res.blob();
                 const url = window.URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.style.display = 'none';
-                a.href = url;
-                a.download = `DASTYOR_AI_Rasmlar_${new Date().getTime()}_@DastyorAiBot.pdf`;
-                document.body.appendChild(a);
-                a.click();
-                window.URL.revokeObjectURL(url);
+                const downloadName = `DASTYOR_AI_Rasmlar_${new Date().getTime()}_@DastyorAiBot.pdf`;
+                
+                // Set explicit download link for users since Telegram WebApp can block auto-downloads
+                const dlBtn = document.getElementById('downloadLinkBtn');
+                dlBtn.href = url;
+                dlBtn.download = downloadName;
+
+                // Attempt auto-download
+                try {
+                    const a = document.createElement('a');
+                    a.style.display = 'none';
+                    a.href = url;
+                    a.download = downloadName;
+                    document.body.appendChild(a);
+                    a.click();
+                    setTimeout(() => { a.remove(); }, 2000);
+                } catch(e) {}
 
                 if (tid && tg) {
-                    document.getElementById('resultSub').textContent = "Qurilmangizga yuklandi va botga yuborildi!";
+                    document.getElementById('resultSub').textContent = "PDF tayyor! Bot orqali ham yuborildi. Yoki quyidagi tugma orqali yuklab oling.";
                 } else {
-                    document.getElementById('resultSub').textContent = "PDF yuklab olindi!";
+                    document.getElementById('resultSub').textContent = "PDF tayyor! Quyidagi tugma orqali yuklab oling.";
                 }
 
                 document.getElementById('resultCard').classList.remove('hidden');

@@ -215,11 +215,11 @@
 
             <!-- Upload Zone -->
             <div class="flex-1 min-h-[280px] glass-card rounded-3xl overflow-hidden relative animate-slide-up" style="animation-delay: 0.1s;">
-                <input type="file" id="imgInput" class="hidden" accept="image/*" multiple onchange="handleFiles(this.files)" />
+                <input type="file" id="imgInput" style="display: none;" accept="image/*, image/jpeg, image/png, image/webp" multiple onchange="handleFiles(this.files)" />
                 
                 <!-- Empty State - Upload Zone -->
-                <label for="imgInput" id="uploadZone" class="upload-zone absolute inset-4 rounded-2xl flex flex-col items-center justify-center cursor-pointer"
-                    ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onDrop(event)">
+                <div id="uploadZone" class="upload-zone absolute inset-4 rounded-2xl flex flex-col items-center justify-center cursor-pointer"
+                    onclick="document.getElementById('imgInput').click()" ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onDrop(event)">
                     <div class="w-20 h-20 mb-5 rounded-2xl bg-gradient-to-br from-accent-purple/20 to-accent-purple/5 flex items-center justify-center">
                         <svg class="text-accent-purple" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
                             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
@@ -228,8 +228,8 @@
                         </svg>
                     </div>
                     <h2 class="font-display font-bold text-xl text-accent-purple mb-2">Rasmlarni yuklang</h2>
-                    <p class="text-sm text-white/40">Yoki bu yerga sudrab tashlang</p>
-                </label>
+                    <p class="text-sm text-white/40">Yoki bu yerga bosing / sudrab tashlang</p>
+                </div>
 
                 <!-- Queue List -->
                 <div id="queueWrap" class="hidden absolute inset-0 flex flex-col p-4">
@@ -323,7 +323,8 @@
         // ═══════════════════════════════════════════════════════════
 
         function handleFiles(fileList) {
-            const newFiles = Array.from(fileList).filter(f => f.type.startsWith('image/'));
+            const newFiles = Array.from(fileList).filter(f => f.type.startsWith('image/') || /\.(jpg|jpeg|png|heic|webp)$/i.test(f.name));
+            let addedCount = 0;
             for (const f of newFiles) {
                 if (fileQueue.some(x => x.file.name === f.name && x.file.size === f.size)) continue;
                 fileQueue.push({ 
@@ -332,10 +333,16 @@
                     url: URL.createObjectURL(f),
                     status: 'pending' // pending, processing, done, error
                 });
+                addedCount++;
             }
             renderQueue();
             document.getElementById('imgInput').value = '';
             haptic('light');
+
+            // Rasm yuklangandan keyin OCR avtomatik ishga tushsin
+            if (addedCount > 0 && !isProcessing) {
+                startOCR();
+            }
         }
 
         function removeImg(id) {
@@ -528,21 +535,28 @@
             hideResult();
 
             let successCount = 0;
-            const total = fileQueue.length;
+            const pendingCount = fileQueue.filter(x => x.status === 'pending').length;
+            if (pendingCount === 0) {
+                isProcessing = false;
+                return;
+            }
+            let processedIdx = 0;
 
             for (let i = 0; i < fileQueue.length; i++) {
                 const item = fileQueue[i];
+                if (item.status !== 'pending') continue;
+                processedIdx++;
                 
                 // Update status
                 item.status = 'processing';
                 renderQueue();
 
-                const pctBase = Math.round((i / total) * 100);
-                setProgress(pctBase, `${i + 1}/${total}: ${item.file.name}`, 'AI rasmni o'qimoqda...');
+                const pctBase = Math.round(((processedIdx - 1) / pendingCount) * 100);
+                setProgress(pctBase, `${processedIdx}/${pendingCount}: ${item.file.name}`, 'AI rasmni o\'qimoqda...');
 
                 try {
                     // Small delay between requests to prevent overload
-                    if (i > 0) {
+                    if (processedIdx > 1) {
                         await sleep(500);
                     }
 
@@ -554,7 +568,7 @@
                     const controller = new AbortController();
                     const timeoutId = setTimeout(() => controller.abort(), 45000); // 45 seconds
 
-                    setProgress(pctBase + 5, `${i + 1}/${total}: Serverga yuborilmoqda...`, '');
+                    setProgress(pctBase + 5, `${processedIdx}/${pendingCount}: Serverga yuborilmoqda...`, '');
 
                     const res = await fetch(apiBase + '/api/ocr_direct', {
                         method: 'POST',
@@ -573,7 +587,7 @@
                         throw new Error(detail);
                     }
 
-                    setProgress(pctBase + 10, `${i + 1}/${total}: Word tayyorlanmoqda...`, '');
+                    setProgress(pctBase + 10, `${processedIdx}/${pendingCount}: Word tayyorlanmoqda...`, '');
 
                     const blob = await res.blob();
                     const filename = `OCR_${item.file.name.replace(/\.[^.]+$/, '')}.docx`;
