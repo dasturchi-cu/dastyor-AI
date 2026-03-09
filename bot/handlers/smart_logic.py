@@ -251,7 +251,8 @@ async def smart_callback_handler(update: Update, context: ContextTypes.DEFAULT_T
                     )
             except Exception as trl_err:
                 logger.error(f"Smart translate error: {trl_err}", exc_info=True)
-                await query.message.edit_text(f"❌ Xatolik: {str(trl_err)[:120]}")
+                err_msg = str(trl_err)
+                await query.message.edit_text(f"❌ Xatolik: {err_msg[:120]}")
             finally:
                 for p in [temp_path, translated_path]:
                     if p and os.path.exists(p):

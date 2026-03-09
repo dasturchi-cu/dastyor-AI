@@ -448,20 +448,20 @@ async def check_spelling_pptx(file_path: str) -> tuple[str, int, int]:
 
         # Process in batches
         chunk_size = 10
-        tasks = []
+        tasks: list[asyncio.Task[int] | typing.Coroutine[typing.Any, typing.Any, int]] = []
         for i in range(0, len(runs_to_check), chunk_size):
             chunk = runs_to_check[i:i+chunk_size]
             tasks.append(process_chunk(chunk))
 
             if len(tasks) >= 2:
                 results = await asyncio.gather(*tasks)
-                errors_fixed += sum(results)
+                errors_fixed += sum(int(r) for r in results if r is not None)
                 tasks = []
                 await asyncio.sleep(2)
 
         if tasks:
             results = await asyncio.gather(*tasks)
-            errors_fixed += sum(results)
+            errors_fixed += sum(int(r) for r in results if r is not None)
 
         output_path = file_path.replace(".pptx", "_checked.pptx")
         await loop.run_in_executor(None, prs.save, output_path)
