@@ -24,7 +24,6 @@ def _load_profiles():
         return {}
 
 def _save_profiles():
-    global profiles_cache
     try:
         with open(PROFILES_FILE, "w", encoding="utf-8") as f:
             json.dump(profiles_cache, f, ensure_ascii=False, indent=2)

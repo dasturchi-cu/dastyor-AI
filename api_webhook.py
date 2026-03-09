@@ -952,6 +952,7 @@ async def api_export_cv(req: ExportCVRequest):
                     try: os.remove(p)
                     except: pass
             else:
+                logger.error("All PDF generation methods failed inside api_webhook.py")
                 raise HTTPException(status_code=500, detail="PDF yaratishda xato")
         file_bytes = pdf_bytes
         media_type = "application/pdf"

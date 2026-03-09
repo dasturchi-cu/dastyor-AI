@@ -295,7 +295,6 @@ async def check_spelling_gemini(file_path: str) -> tuple[str, int, int]:
         
         # Async chunk processor
         async def process_chunk(chunk):
-            nonlocal errors_found, errors_fixed
             
             numbered_text = ""
             for idx, para in enumerate(chunk):
@@ -408,7 +407,6 @@ async def check_spelling_pptx(file_path: str) -> tuple[str, int, int]:
         errors_fixed = 0
 
         async def process_chunk(chunk_runs):
-            nonlocal errors_fixed
             numbered_text = ""
             for idx, run in enumerate(chunk_runs):
                 numbered_text += f"[{idx}] {run.text}\n"
