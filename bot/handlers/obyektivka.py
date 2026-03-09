@@ -53,11 +53,13 @@ async def process_obyektivka_from_audio_path(context, audio_path, chat_id, user_
         )
         
         await update_progress(context, progress_msg, 80, "Web-shaklga bog'lanmoqda...")
-        
-        # 3. Save to JSON and generate Link
+
+        # 3. Save data — persistent (user_profiles) + temp file fallback
+        from bot.services.user_service import save_pending_oby_data
+        save_pending_oby_data(user_id, extracted_data)
+
         os.makedirs("temp", exist_ok=True)
         json_path = f"temp/oby_data_{user_id}.json"
-        
         try:
             with open(json_path, "w", encoding="utf-8") as f:
                 json.dump(extracted_data, f, ensure_ascii=False)

@@ -736,6 +736,13 @@ async def api_get_oby_data(
     if not uid:
         raise HTTPException(status_code=401, detail="Foydalanuvchi aniqlanmadi")
     
+    # 1. Try persistent user_profiles storage (survives server restarts)
+    from bot.services.user_service import get_pending_oby_data
+    data = get_pending_oby_data(uid)
+    if data:
+        return {"ok": True, "data": data}
+
+    # 2. Fallback: temp file (legacy / same-session)
     path = f"temp/oby_data_{uid}.json"
     if os.path.exists(path):
         import json

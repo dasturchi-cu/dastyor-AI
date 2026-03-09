@@ -949,19 +949,27 @@
                     .then(res => {
                         if (res.ok && res.data) {
                             const d = res.data;
-                            document.getElementById('f_name').value = d.fullname || '';
-                            document.getElementById('f_birth').value = d.birthdate || '';
-                            document.getElementById('f_place').value = d.birthplace || '';
-                            document.getElementById('f_nation').value = d.nation || '';
-                            document.getElementById('f_party').value = d.party || '';
-                            document.getElementById('f_edu').value = d.education || '';
-                            document.getElementById('f_grad').value = d.graduated || '';
-                            document.getElementById('f_spec').value = d.specialty || '';
-                            document.getElementById('f_degree').value = d.degree || '';
-                            document.getElementById('f_title').value = d.scientific_title || '';
-                            document.getElementById('f_langs').value = d.languages || '';
-                            document.getElementById('f_awards').value = d.awards || '';
-                            document.getElementById('f_deputy').value = d.deputy || '';
+                            const _set = (id, val) => {
+                                const el = document.getElementById(id);
+                                if (!el) return;
+                                el.value = val || '';
+                                el.dispatchEvent(new Event('input', { bubbles: true }));
+                            };
+                            _set('f_name',   d.fullname);
+                            _set('f_birth',  d.birthdate);
+                            _set('f_place',  d.birthplace);
+                            _set('f_nation', d.nation);
+                            _set('f_party',  d.party);
+                            _set('f_edu',    d.education);
+                            _set('f_grad',   d.graduated);
+                            _set('f_spec',   d.specialty);
+                            _set('f_degree', d.degree);
+                            _set('f_title',  d.scientific_title);
+                            _set('f_langs',  d.languages);
+                            _set('f_awards', d.awards);
+                            _set('f_deputy', d.deputy);
+                            _set('f_phone',  d.phone);
+                            _set('f_addr',   d.address);
 
                             if (d.work_experience && Array.isArray(d.work_experience) && d.work_experience.length > 0) {
                                 experiences = d.work_experience.map((e, i) => ({

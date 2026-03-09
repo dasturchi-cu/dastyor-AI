@@ -30,7 +30,6 @@ async def get_model():
     """Get async Gemini model instance — tries models in order"""
     if not GOOGLE_API_KEY:
         return None
-    # Try preferred model first, fall back if unavailable
     for model_name in GEMINI_MODELS:
         try:
             model = genai.GenerativeModel(model_name)
@@ -40,6 +39,27 @@ async def get_model():
             logger.warning(f"Model {model_name} unavailable: {e}")
     logger.error("All Gemini models unavailable!")
     return None
+
+
+GEMINI_TIMEOUT = 90  # seconds per API call
+
+async def _gcall(coro, timeout: int = GEMINI_TIMEOUT):
+    """Wrap generate_content_async with a hard timeout so the bot never hangs."""
+    try:
+        return await asyncio.wait_for(coro, timeout=timeout)
+    except asyncio.TimeoutError:
+        logger.error(f"Gemini API call timed out after {timeout}s")
+        return None
+
+
+def _set_para_text(para, text: str):
+    """Set a Word paragraph's text safely (python-docx Paragraph has no .text setter)."""
+    for run in para.runs:
+        run.text = ''
+    if para.runs:
+        para.runs[0].text = text
+    else:
+        para.add_run(text)
 
 
 async def transcribe_audio(audio_file_path: str) -> str:
@@ -82,21 +102,21 @@ async def transcribe_audio(audio_file_path: str) -> str:
         model = await get_model()
         if not model: return "AI model xatosi."
         
-        result = await model.generate_content_async(
+        result = await _gcall(model.generate_content_async(
             [myfile, "Transcribe the speech in this audio to text accurately. Do not add any description, just the transcript."]
-        )
-        
-        # Cleanup
+        ))
+
+        # Cleanup (non-blocking)
         async def cleanup():
             try: genai.delete_file(myfile.name)
             except: pass
         asyncio.create_task(cleanup())
-        
+
         if not result or not result.candidates:
             return "Audio tanilmadi."
-            
+
         return result.text if result.text else "Bo'sh javob."
-        
+
     except Exception as e:
         logger.error(f"Gemini Async Transcription error: {e}", exc_info=True)
         return "Audio transkripsiya xatoligi."
@@ -151,28 +171,25 @@ async def translate_document_gemini(file_path: str, target_language: str = "uz")
             text = "\n\n".join([p.text for p in chunk])
             prompt = f"Translate to {target_lang_name}. Return ONLY text. Keep structure.\n\n{text}"
             try:
-                resp = await model.generate_content_async(prompt)
-                return resp.text, chunk
+                resp = await _gcall(model.generate_content_async(prompt))
+                return (resp.text if resp else None), chunk
             except Exception as e:
                 logger.error(f"Chunk translation error: {e}")
                 return None, chunk
 
-        # Process in batches of 5 to respect rate limits
+        # Process in batches of 5
         for i in range(0, len(full_text_chunks), 5):
             batch = full_text_chunks[i:i+5]
-            batch_tasks = [translate_chunk(c) for c in batch]
-            results = await asyncio.gather(*batch_tasks)
-            
-            # Apply results
+            results = await asyncio.gather(*[translate_chunk(c) for c in batch])
+
+            # Apply results — use _set_para_text (Paragraph.text has no setter in python-docx)
             for translated_text, original_paras in results:
-                if translated_text:
-                    if original_paras:
-                        original_paras[0].text = translated_text
-                        for p in original_paras[1:]:
-                            p.text = ""
-            
-            # Rate limit pause
-            await asyncio.sleep(2)
+                if translated_text and original_paras:
+                    _set_para_text(original_paras[0], translated_text)
+                    for p in original_paras[1:]:
+                        _set_para_text(p, "")
+
+            await asyncio.sleep(0.5)  # light pause to avoid rate limit
 
         # Save
         output_path = file_path.replace(".docx", f"_translated_{target_language}.docx")
@@ -208,8 +225,10 @@ async def translate_text(text: str, direction: str = "uz_en") -> str:
         f"{text}"
     )
     try:
-        resp = await model.generate_content_async(prompt)
-        return resp.text.strip() if resp and resp.text else "Natija bo'sh."
+        resp = await _gcall(model.generate_content_async(prompt))
+        if resp is None:
+            return "Tarjima vaqti o'tdi. Iltimos, qayta urinib ko'ring."
+        return resp.text.strip() if resp.text else "Natija bo'sh."
     except Exception as e:
         logger.error(f"translate_text error: {e}")
         return f"Tarjimada xato: {e}"
@@ -247,14 +266,16 @@ async def extract_obyektivka_data(text: str) -> dict:
     """
     
     try:
-        response = await model.generate_content_async(prompt)
+        response = await _gcall(model.generate_content_async(prompt))
+        if not response or not response.text:
+            return {}
         cleaned = response.text.replace('```json', '').replace('```', '').strip()
         start = cleaned.find('{')
         end = cleaned.rfind('}') + 1
         if start != -1 and end != -1:
             cleaned = cleaned[start:end]
         return json.loads(cleaned)
-    
+
     except Exception as e:
         logger.error(f"Async Data extraction error: {e}")
         return {}
@@ -312,50 +333,42 @@ async def check_spelling_gemini(file_path: str) -> tuple[str, int, int]:
             """
             
             try:
-                resp = await model.generate_content_async(prompt)
+                resp = await _gcall(model.generate_content_async(prompt))
+                if not resp or not resp.text:
+                    return 0
                 corrected_text = resp.text.strip()
-                
+
                 chunk_fixes = 0
-                lines = corrected_text.split('\n')
-                for line in lines:
+                for line in corrected_text.split('\n'):
                     line = line.strip()
                     if line.startswith('[') and ']' in line:
                         bracket_end = line.index(']')
                         try:
                             idx = int(line[1:bracket_end])
                             new_text = line[bracket_end+1:].strip()
-                            
                             if idx < len(chunk):
                                 original_para = chunk[idx]
                                 if original_para.text.strip() != new_text:
                                     chunk_fixes += 1
-                                    if len(original_para.runs) == 1:
-                                        original_para.runs[0].text = new_text
-                                    else:
-                                        original_para.text = new_text
-                        except: pass
+                                    _set_para_text(original_para, new_text)
+                        except Exception:
+                            pass
                 return chunk_fixes
             except Exception as e:
                 logger.error(f"Spell check chunk error: {e}")
                 return 0
 
-        # Process in batches
+        # Process in batches of 2 chunks at a time
         chunk_size = 10
         tasks = []
-        
         for i in range(0, len(paragraphs_to_check), chunk_size):
-            chunk = paragraphs_to_check[i:i+chunk_size]
-            tasks.append(process_chunk(chunk))
-            
+            tasks.append(process_chunk(paragraphs_to_check[i:i+chunk_size]))
             if len(tasks) >= 2:
-                results = await asyncio.gather(*tasks)
-                errors_fixed += sum(results)
+                errors_fixed += sum(await asyncio.gather(*tasks))
                 tasks = []
-                await asyncio.sleep(2)
-        
+                await asyncio.sleep(0.5)
         if tasks:
-            results = await asyncio.gather(*tasks)
-            errors_fixed += sum(results)
+            errors_fixed += sum(await asyncio.gather(*tasks))
 
         errors_found = errors_fixed
         
@@ -413,26 +426,24 @@ async def check_spelling_pptx(file_path: str) -> tuple[str, int, int]:
             prompt = f"Toshkent davlat o'zbek tili lug'atiga asoslanib xatolarni to'g'irla. Asil ma'noni va qo'shimchalarni o'zgacha qilib yuborma.\n\n{text}"
             try:
                 if model:
-                    resp = await model.generate_content_async(prompt)
-                    corrected_text = resp.text
-                    lines = corrected_text.split('\n')
-                    for line in lines:
-                        line = line.strip()
-                        if line.startswith('[') and ']' in line:
-                            bracket_end = line.index(']')
-                            try:
-                                idx = int(line[1:bracket_end])
-                                new_text = line[bracket_end+1:].strip()
-                                if idx < len(chunk):
-                                    if chunk[idx].text.strip() != new_text:
+                    resp = await _gcall(model.generate_content_async(prompt))
+                    if resp and resp.text:
+                        for line in resp.text.split('\n'):
+                            line = line.strip()
+                            if line.startswith('[') and ']' in line:
+                                bracket_end = line.index(']')
+                                try:
+                                    idx = int(line[1:bracket_end])
+                                    new_text = line[bracket_end+2:].strip()
+                                    if idx < len(chunk) and chunk[idx].text.strip() != new_text:
                                         errors_fixed += 1
-                                        chunk[idx].text = new_text
-                            except Exception:
-                                pass
+                                        chunk[idx].text = new_text  # pptx Run.text has a setter
+                                except Exception:
+                                    pass
             except Exception as e:
                 logger.error(f"PPTX spell check chunk error: {e}")
-            
-            await asyncio.sleep(1)
+
+            await asyncio.sleep(0.5)
 
         output_path = file_path.replace(".pptx", "_checked.pptx")
         await loop.run_in_executor(None, prs.save, output_path)

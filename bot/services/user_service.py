@@ -185,6 +185,28 @@ def log_premium_transaction(user_id, days, admin_id="Admin"):
         data[uid]["premium_history"].append(entry)
         _save_profiles()
 
+def save_pending_oby_data(user_id, data: dict):
+    """Save AI-extracted obyektivka data to user profile (persistent storage)."""
+    profiles = _load_profiles()
+    uid = str(user_id)
+    if uid not in profiles:
+        profiles[uid] = {}
+    profiles[uid]['pending_oby_data'] = data
+    _save_profiles()
+
+def get_pending_oby_data(user_id) -> dict:
+    """Return saved pending obyektivka data or None."""
+    profiles = _load_profiles()
+    return profiles.get(str(user_id), {}).get('pending_oby_data')
+
+def clear_pending_oby_data(user_id):
+    """Remove pending obyektivka data after use."""
+    profiles = _load_profiles()
+    uid = str(user_id)
+    if uid in profiles and 'pending_oby_data' in profiles[uid]:
+        del profiles[uid]['pending_oby_data']
+        _save_profiles()
+
 def get_daily_crm_stats():
     """Get advanced daily stats"""
     data = _load_profiles()

@@ -631,6 +631,18 @@
 
     btn.addEventListener('click', open);
     overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
+
+    // Sync when value is set programmatically (e.g., autoload from API)
+    input.addEventListener('input', () => {
+      if (!input.value) {
+        selected = [];
+      } else if (multi) {
+        selected = input.value.split(',').map(s => s.trim()).filter(Boolean);
+      } else {
+        selected = [input.value.trim()];
+      }
+      updateBtn();
+    });
   }
 
   // ── MAIN INIT ─────────────────────────────────────────────────────────────
