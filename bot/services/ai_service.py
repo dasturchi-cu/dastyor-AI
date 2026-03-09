@@ -405,63 +405,34 @@ async def check_spelling_pptx(file_path: str) -> tuple[str, int, int]:
                                         runs_to_check.append(run)
 
         errors_fixed = 0
-
-        async def process_chunk(chunk_runs):
-            numbered_text = ""
-            for idx, run in enumerate(chunk_runs):
-                numbered_text += f"[{idx}] {run.text}\n"
-
-            prompt = f"""
-            Proofread for Spelling errors (Uzbek/Russian).
-            RULES:
-            1. Return ONLY corrected lines in format '[N] Text'.
-            2. If line is correct, return SAME line.
-            3. Fix typos, casing, spaces. Do NOT change meaning.
-            
-            Text:
-            {numbered_text}
-            """
-
-            try:
-                resp = await model.generate_content_async(prompt)
-                corrected_text = resp.text.strip()
-
-                chunk_fixes = 0
-                lines = corrected_text.split('\n')
-                for line in lines:
-                    line = line.strip()
-                    if line.startswith('[') and ']' in line:
-                        bracket_end = line.index(']')
-                        try:
-                            idx = int(line[1:bracket_end])
-                            new_text = line[bracket_end+1:].strip()
-                            if idx < len(chunk_runs):
-                                if chunk_runs[idx].text.strip() != new_text:
-                                    chunk_fixes += 1
-                                    chunk_runs[idx].text = new_text
-                        except:
-                            pass
-                return chunk_fixes
-            except Exception as e:
-                logger.error(f"PPTX spell check chunk error: {e}")
-                return 0
-
         # Process in batches
         chunk_size = 10
-        tasks: list[asyncio.Task[int] | typing.Coroutine[typing.Any, typing.Any, int]] = []
         for i in range(0, len(runs_to_check), chunk_size):
             chunk = runs_to_check[i:i+chunk_size]
-            tasks.append(process_chunk(chunk))
-
-            if len(tasks) >= 2:
-                results = await asyncio.gather(*tasks)
-                errors_fixed += sum(int(r) for r in results if r is not None)
-                tasks = []
-                await asyncio.sleep(2)
-
-        if tasks:
-            results = await asyncio.gather(*tasks)
-            errors_fixed += sum(int(r) for r in results if r is not None)
+            text = "\n".join([f"[{i}]: {run.text}" for i, run in enumerate(chunk)])
+            prompt = f"Toshkent davlat o'zbek tili lug'atiga asoslanib xatolarni to'g'irla. Asil ma'noni va qo'shimchalarni o'zgacha qilib yuborma.\n\n{text}"
+            try:
+                if model:
+                    resp = await model.generate_content_async(prompt)
+                    corrected_text = resp.text
+                    lines = corrected_text.split('\n')
+                    for line in lines:
+                        line = line.strip()
+                        if line.startswith('[') and ']' in line:
+                            bracket_end = line.index(']')
+                            try:
+                                idx = int(line[1:bracket_end])
+                                new_text = line[bracket_end+1:].strip()
+                                if idx < len(chunk):
+                                    if chunk[idx].text.strip() != new_text:
+                                        errors_fixed += 1
+                                        chunk[idx].text = new_text
+                            except Exception:
+                                pass
+            except Exception as e:
+                logger.error(f"PPTX spell check chunk error: {e}")
+            
+            await asyncio.sleep(1)
 
         output_path = file_path.replace(".pptx", "_checked.pptx")
         await loop.run_in_executor(None, prs.save, output_path)
