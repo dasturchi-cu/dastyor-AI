@@ -1175,7 +1175,8 @@
             };
 
             try {
-                const res = await fetch('/api/generate_obyektivka', {
+                const apiBase = location.protocol === 'file:' ? 'https://dastyor-ai.onrender.com' : location.origin;
+                const res = await fetch(`${apiBase}/api/generate_obyektivka`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
