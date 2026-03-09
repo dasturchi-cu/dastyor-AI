@@ -368,3 +368,108 @@ async def check_spelling_gemini(file_path: str) -> tuple[str, int, int]:
     except Exception as e:
         logger.error(f"Async Spell check failed: {e}", exc_info=True)
         return "", 0, 0
+
+
+async def check_spelling_pptx(file_path: str) -> tuple[str, int, int]:
+    """
+    Checks spelling in a PPTX file using Gemini asynchronously.
+    Iterates slides → shapes → text frames → paragraphs → runs.
+    Returns: (output_path, errors_found, errors_fixed)
+    """
+    if not GOOGLE_API_KEY:
+        return "", 0, 0
+
+    try:
+        from pptx import Presentation
+        import asyncio
+
+        loop = asyncio.get_running_loop()
+        prs = await loop.run_in_executor(None, Presentation, file_path)
+
+        model = await get_model()
+
+        # Collect all runs with text > 3 chars
+        runs_to_check = []
+        for slide in prs.slides:
+            for shape in slide.shapes:
+                if shape.has_text_frame:
+                    for para in shape.text_frame.paragraphs:
+                        for run in para.runs:
+                            if run.text and len(run.text.strip()) > 3:
+                                runs_to_check.append(run)
+                if shape.has_table:
+                    for row in shape.table.rows:
+                        for cell in row.cells:
+                            for para in cell.text_frame.paragraphs:
+                                for run in para.runs:
+                                    if run.text and len(run.text.strip()) > 3:
+                                        runs_to_check.append(run)
+
+        errors_fixed = 0
+
+        async def process_chunk(chunk_runs):
+            nonlocal errors_fixed
+            numbered_text = ""
+            for idx, run in enumerate(chunk_runs):
+                numbered_text += f"[{idx}] {run.text}\n"
+
+            prompt = f"""
+            Proofread for Spelling errors (Uzbek/Russian).
+            RULES:
+            1. Return ONLY corrected lines in format '[N] Text'.
+            2. If line is correct, return SAME line.
+            3. Fix typos, casing, spaces. Do NOT change meaning.
+            
+            Text:
+            {numbered_text}
+            """
+
+            try:
+                resp = await model.generate_content_async(prompt)
+                corrected_text = resp.text.strip()
+
+                chunk_fixes = 0
+                lines = corrected_text.split('\n')
+                for line in lines:
+                    line = line.strip()
+                    if line.startswith('[') and ']' in line:
+                        bracket_end = line.index(']')
+                        try:
+                            idx = int(line[1:bracket_end])
+                            new_text = line[bracket_end+1:].strip()
+                            if idx < len(chunk_runs):
+                                if chunk_runs[idx].text.strip() != new_text:
+                                    chunk_fixes += 1
+                                    chunk_runs[idx].text = new_text
+                        except:
+                            pass
+                return chunk_fixes
+            except Exception as e:
+                logger.error(f"PPTX spell check chunk error: {e}")
+                return 0
+
+        # Process in batches
+        chunk_size = 10
+        tasks = []
+        for i in range(0, len(runs_to_check), chunk_size):
+            chunk = runs_to_check[i:i+chunk_size]
+            tasks.append(process_chunk(chunk))
+
+            if len(tasks) >= 2:
+                results = await asyncio.gather(*tasks)
+                errors_fixed += sum(results)
+                tasks = []
+                await asyncio.sleep(2)
+
+        if tasks:
+            results = await asyncio.gather(*tasks)
+            errors_fixed += sum(results)
+
+        output_path = file_path.replace(".pptx", "_checked.pptx")
+        await loop.run_in_executor(None, prs.save, output_path)
+
+        return output_path, errors_fixed, errors_fixed
+
+    except Exception as e:
+        logger.error(f"PPTX Spell check failed: {e}", exc_info=True)
+        return "", 0, 0

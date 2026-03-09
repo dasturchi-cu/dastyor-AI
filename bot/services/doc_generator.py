@@ -48,9 +48,10 @@ FONT_NAME   = 14.0   # pt  person name
 FONT_EXP    = 10.0   # pt  table body
 FONT_REL    = 9.0    # pt  relatives table body
 
-MARGIN_CM   = 2.0    # top/bottom
+MARGIN_CM   = 1.5    # top
+MARGIN_B_CM = 1.0    # bottom
 MARGIN_L_CM = 2.0    # left
-MARGIN_R_CM = 1.6    # right
+MARGIN_R_CM = 1.0    # right
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -60,7 +61,7 @@ MARGIN_R_CM = 1.6    # right
 def _set_margins(doc: Document) -> None:
     for section in doc.sections:
         section.top_margin    = Cm(MARGIN_CM)
-        section.bottom_margin = Cm(MARGIN_CM)
+        section.bottom_margin = Cm(MARGIN_B_CM)
         section.left_margin   = Cm(MARGIN_L_CM)
         section.right_margin  = Cm(MARGIN_R_CM)
 

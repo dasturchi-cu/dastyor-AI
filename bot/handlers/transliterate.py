@@ -83,9 +83,10 @@ async def process_transliteration(update: Update, context: ContextTypes.DEFAULT_
     # ── Document input ───────────────────────────────────────────────────────
     if msg.document:
         file_name = msg.document.file_name or "document.docx"
-        if not file_name.lower().endswith(".docx"):
+        ext = os.path.splitext(file_name)[1].lower()
+        if ext not in (".docx", ".pptx"):
             await msg.reply_text(
-                "❌ Faqat *.DOCX* fayl qabul qilinadi.",
+                "❌ Faqat *.DOCX* yoki *.PPTX* fayl qabul qilinadi.",
                 parse_mode="Markdown",
                 reply_markup=get_back_button(),
             )
@@ -158,33 +159,54 @@ async def translit_direction_callback(update: Update, context: ContextTypes.DEFA
 
         temp_path   = None
         output_path = None
+        ext = os.path.splitext(file_name)[1].lower()
         try:
-            from docx import Document
-
             file_obj  = await context.bot.get_file(file_id)
-            temp_path = f"temp_translit_{uid}_{int(time.time())}.docx"
+            temp_path = f"temp_translit_{uid}_{int(time.time())}{ext}"
             await file_obj.download_to_drive(temp_path)
 
-            doc = Document(temp_path)
+            dir_label = "lotin" if direction == "krill_to_lotin" else "krill"
 
-            # Paragraphs
-            for para in doc.paragraphs:
-                for run in para.runs:
-                    if run.text:
-                        run.text = transliterate(run.text, direction)
+            if ext == ".pptx":
+                # ── PPTX processing ─────────────────────────────────────────
+                from pptx import Presentation
+                prs = Presentation(temp_path)
+                for slide in prs.slides:
+                    for shape in slide.shapes:
+                        if shape.has_text_frame:
+                            for para in shape.text_frame.paragraphs:
+                                for run in para.runs:
+                                    if run.text:
+                                        run.text = transliterate(run.text, direction)
+                        if shape.has_table:
+                            for row in shape.table.rows:
+                                for cell in row.cells:
+                                    for para in cell.text_frame.paragraphs:
+                                        for run in para.runs:
+                                            if run.text:
+                                                run.text = transliterate(run.text, direction)
+                output_path = f"Translit_{dir_label}_{file_name}"
+                prs.save(output_path)
+            else:
+                # ── DOCX processing ─────────────────────────────────────────
+                from docx import Document
+                doc = Document(temp_path)
 
-            # Tables
-            for table in doc.tables:
-                for row in table.rows:
-                    for cell in row.cells:
-                        for para in cell.paragraphs:
-                            for run in para.runs:
-                                if run.text:
-                                    run.text = transliterate(run.text, direction)
+                for para in doc.paragraphs:
+                    for run in para.runs:
+                        if run.text:
+                            run.text = transliterate(run.text, direction)
 
-            dir_label   = "lotin" if direction == "krill_to_lotin" else "krill"
-            output_path = f"Translit_{dir_label}_{file_name}"
-            doc.save(output_path)
+                for table in doc.tables:
+                    for row in table.rows:
+                        for cell in row.cells:
+                            for para in cell.paragraphs:
+                                for run in para.runs:
+                                    if run.text:
+                                        run.text = transliterate(run.text, direction)
+
+                output_path = f"Translit_{dir_label}_{file_name}"
+                doc.save(output_path)
 
             with open(output_path, "rb") as f:
                 await context.bot.send_document(
@@ -193,11 +215,11 @@ async def translit_direction_callback(update: Update, context: ContextTypes.DEFA
                     caption=f"✅ Tayyor!",
                     reply_markup=get_back_button(lang),
                 )
-            increment_file_count(uid, "Transliterate Doc")
+            increment_file_count(uid, f"Transliterate {ext.upper()}")
             await status_msg.delete()
 
         except Exception as e:
-            logger.error(f"Translit DOCX error: {e}", exc_info=True)
+            logger.error(f"Translit {ext} error: {e}", exc_info=True)
             await status_msg.edit_text(f"❌ Xatolik: {e}")
         finally:
             for p in [temp_path, output_path]:
