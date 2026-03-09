@@ -5,16 +5,12 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>Real-time CV Builder | DASTYOR AI</title>
-  <!-- 1. Theme init FIRST — prevents flash of wrong theme -->
-  <script src="theme-init.js"></script>
-  <!-- 2. Fonts -->
-  <link
-    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@400;600;700;800&display=swap"
-    rel="stylesheet" />
-  <!-- 3. Telegram SDK -->
+  
+  <!-- Fonts - Premium Typography -->
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Sora:wght@400;600;700;800&display=swap" rel="stylesheet" />
+  
+  <!-- Telegram SDK -->
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  <!-- 4. Global theme tokens -->
-  <link rel="stylesheet" href="theme.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
   <!-- Tailwind -->
@@ -25,34 +21,314 @@
       theme: {
         extend: {
           fontFamily: {
-            sans: ['Inter', 'sans-serif'],
-            display: ['Outfit', 'sans-serif'],
+            sans: ['Plus Jakarta Sans', 'sans-serif'],
+            display: ['Sora', 'sans-serif'],
           },
           colors: {
-            apple: {
-              blue: '#0A84FF',
-              green: '#30D158',
-              orange: '#FF9F0A',
-              purple: '#BF5AF2',
+            brand: {
+              50: '#f0f4ff',
+              100: '#e0e9ff',
+              200: '#c7d6fe',
+              300: '#a5b9fc',
+              400: '#8193f8',
+              500: '#636cf1',
+              600: '#4f46e5',
+              700: '#4338ca',
+              800: '#3730a3',
+              900: '#312e81',
+            },
+            accent: {
+              emerald: '#10b981',
+              amber: '#f59e0b',
+              rose: '#f43f5e',
+              cyan: '#06b6d4',
             }
-          }
+          },
+          animation: {
+            'float': 'float 6s ease-in-out infinite',
+            'glow': 'glow 2s ease-in-out infinite alternate',
+            'slide-up': 'slideUp 0.5s ease-out',
+            'fade-in': 'fadeIn 0.3s ease-out',
+            'pulse-soft': 'pulseSoft 2s ease-in-out infinite',
+          },
+          keyframes: {
+            float: {
+              '0%, 100%': { transform: 'translateY(0px)' },
+              '50%': { transform: 'translateY(-10px)' },
+            },
+            glow: {
+              '0%': { boxShadow: '0 0 20px rgba(99, 108, 241, 0.3)' },
+              '100%': { boxShadow: '0 0 40px rgba(99, 108, 241, 0.6)' },
+            },
+            slideUp: {
+              '0%': { opacity: '0', transform: 'translateY(20px)' },
+              '100%': { opacity: '1', transform: 'translateY(0)' },
+            },
+            fadeIn: {
+              '0%': { opacity: '0' },
+              '100%': { opacity: '1' },
+            },
+            pulseSoft: {
+              '0%, 100%': { opacity: '1' },
+              '50%': { opacity: '0.7' },
+            },
+          },
         }
       }
     }
   </script>
 
   <style>
+    * {
+      -webkit-tap-highlight-color: transparent;
+    }
+    
     body {
       overscroll-behavior-y: none;
+      background: linear-gradient(135deg, #0c0c1d 0%, #1a1a2e 50%, #16213e 100%);
     }
 
+    /* Custom Scrollbar */
     .scroller::-webkit-scrollbar {
-      width: 5px;
+      width: 6px;
+    }
+    .scroller::-webkit-scrollbar-track {
+      background: rgba(255, 255, 255, 0.02);
+    }
+    .scroller::-webkit-scrollbar-thumb {
+      background: linear-gradient(180deg, rgba(99, 108, 241, 0.5), rgba(79, 70, 229, 0.3));
+      border-radius: 10px;
+    }
+    .scroller::-webkit-scrollbar-thumb:hover {
+      background: linear-gradient(180deg, rgba(99, 108, 241, 0.7), rgba(79, 70, 229, 0.5));
     }
 
-    .scroller::-webkit-scrollbar-thumb {
-      background: rgba(150, 150, 150, 0.3);
-      border-radius: 4px;
+    /* Glassmorphism */
+    .glass {
+      background: rgba(255, 255, 255, 0.03);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    
+    .glass-light {
+      background: rgba(255, 255, 255, 0.05);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    /* Premium Input Styling */
+    .input-premium {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .input-premium:focus {
+      background: rgba(255, 255, 255, 0.06);
+      border-color: rgba(99, 108, 241, 0.5);
+      box-shadow: 0 0 0 3px rgba(99, 108, 241, 0.1), 0 4px 20px rgba(99, 108, 241, 0.15);
+    }
+    .input-premium::placeholder {
+      color: rgba(255, 255, 255, 0.3);
+    }
+
+    /* Template Cards */
+    .tpl-card {
+      position: relative;
+      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+      overflow: hidden;
+    }
+    .tpl-card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, rgba(99, 108, 241, 0.1), transparent);
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+    .tpl-card:hover::before {
+      opacity: 1;
+    }
+    .tpl-card:hover {
+      transform: translateY(-4px) scale(1.02);
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+    }
+    .tpl-card.active {
+      border-color: rgba(99, 108, 241, 0.8) !important;
+      box-shadow: 0 0 30px rgba(99, 108, 241, 0.3);
+    }
+    .tpl-card.active::after {
+      content: '✓';
+      position: absolute;
+      top: 6px;
+      right: 6px;
+      width: 18px;
+      height: 18px;
+      background: linear-gradient(135deg, #636cf1, #4f46e5);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      color: white;
+      font-weight: bold;
+      z-index: 20;
+    }
+
+    /* Action Buttons */
+    .btn-primary {
+      background: linear-gradient(135deg, #636cf1 0%, #4f46e5 50%, #4338ca 100%);
+      box-shadow: 0 4px 15px rgba(99, 108, 241, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(99, 108, 241, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    }
+    .btn-primary:active {
+      transform: translateY(0);
+    }
+
+    .btn-accent {
+      background: linear-gradient(135deg, #f43f5e 0%, #e11d48 100%);
+      box-shadow: 0 4px 15px rgba(244, 63, 94, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    }
+    .btn-accent:hover {
+      box-shadow: 0 8px 25px rgba(244, 63, 94, 0.5);
+      transform: translateY(-2px);
+    }
+
+    /* Section Headers */
+    .section-header {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .section-header::after {
+      content: '';
+      position: absolute;
+      bottom: -4px;
+      left: 0;
+      width: 40px;
+      height: 2px;
+      background: linear-gradient(90deg, #636cf1, transparent);
+      border-radius: 2px;
+    }
+
+    /* Add Button Style */
+    .btn-add {
+      position: relative;
+      overflow: hidden;
+      transition: all 0.3s ease;
+    }
+    .btn-add::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 0;
+      height: 0;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+      transition: width 0.5s ease, height 0.5s ease;
+    }
+    .btn-add:hover::before {
+      width: 300px;
+      height: 300px;
+    }
+
+    /* Skill/Tool Badges */
+    .badge-skill {
+      background: linear-gradient(135deg, rgba(99, 108, 241, 0.15), rgba(79, 70, 229, 0.1));
+      border: 1px solid rgba(99, 108, 241, 0.3);
+      transition: all 0.3s ease;
+    }
+    .badge-skill:hover {
+      background: linear-gradient(135deg, rgba(99, 108, 241, 0.25), rgba(79, 70, 229, 0.15));
+      transform: scale(1.05);
+    }
+
+    /* Entry Cards */
+    .entry-card {
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      transition: all 0.3s ease;
+    }
+    .entry-card:hover {
+      background: rgba(255, 255, 255, 0.04);
+      border-color: rgba(99, 108, 241, 0.2);
+    }
+
+    /* Remove Button */
+    .btn-remove {
+      opacity: 0;
+      transform: scale(0.8);
+      transition: all 0.2s ease;
+    }
+    .entry-card:hover .btn-remove {
+      opacity: 1;
+      transform: scale(1);
+    }
+
+    /* Photo Upload */
+    .photo-upload {
+      position: relative;
+      transition: all 0.3s ease;
+    }
+    .photo-upload::before {
+      content: '';
+      position: absolute;
+      inset: -3px;
+      background: linear-gradient(135deg, #636cf1, #4f46e5, #10b981, #636cf1);
+      border-radius: 50%;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+      z-index: -1;
+      animation: spin 3s linear infinite;
+    }
+    .photo-upload:hover::before {
+      opacity: 1;
+    }
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    /* Floating Orbs Background */
+    .orb {
+      position: fixed;
+      border-radius: 50%;
+      filter: blur(80px);
+      opacity: 0.15;
+      pointer-events: none;
+      z-index: 0;
+    }
+    .orb-1 {
+      width: 400px;
+      height: 400px;
+      background: #636cf1;
+      top: -100px;
+      right: -100px;
+      animation: float 8s ease-in-out infinite;
+    }
+    .orb-2 {
+      width: 300px;
+      height: 300px;
+      background: #10b981;
+      bottom: 10%;
+      left: -50px;
+      animation: float 10s ease-in-out infinite reverse;
+    }
+    .orb-3 {
+      width: 250px;
+      height: 250px;
+      background: #f43f5e;
+      top: 50%;
+      right: 30%;
+      animation: float 12s ease-in-out infinite;
     }
 
     /* ─── CV OUTPUT CANVAS ─── */
@@ -66,10 +342,10 @@
       width: 210mm;
       min-height: 297mm;
       background: #fff;
-      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+      box-shadow: 0 25px 80px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.1);
       margin-bottom: 30px;
       overflow: hidden;
-      font-family: 'Inter', sans-serif;
+      font-family: 'Plus Jakarta Sans', sans-serif;
     }
 
     /* TPL 1: MINIMAL */
@@ -645,38 +921,87 @@
         margin: 0;
       }
     }
-  </style>
 
-  <!-- DASTYOR AI SDK (must load before page script) -->
-  <script src="i18n.js"></script>
-  <script src="app.js"></script>
+    /* Select Dropdown Styling */
+    select {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='rgba(255,255,255,0.5)' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 8px center;
+      padding-right: 28px !important;
+      min-height: 40px;
+      min-width: 75px;
+    }
+    select:focus {
+      background-color: rgba(255, 255, 255, 0.08);
+    }
+    select option {
+      background: #1a1a2e;
+      color: white;
+      padding: 10px;
+      font-size: 14px;
+    }
+
+    /* Toast Notification */
+    .toast {
+      position: fixed;
+      bottom: 100px;
+      left: 50%;
+      transform: translateX(-50%) translateY(100px);
+      background: linear-gradient(135deg, #10b981, #059669);
+      color: white;
+      font-weight: 700;
+      font-size: 14px;
+      padding: 14px 28px;
+      border-radius: 100px;
+      box-shadow: 0 10px 40px rgba(16, 185, 129, 0.4);
+      z-index: 9999;
+      opacity: 0;
+      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+  </style>
 </head>
 
-<body
-  class="text-neutral-900 dark:text-neutral-100 flex flex-col h-screen overflow-hidden antialiased selection:bg-apple-purple selection:text-white">
+<body class="text-white flex flex-col h-screen overflow-hidden antialiased selection:bg-brand-500 selection:text-white">
+
+  <!-- Background Orbs -->
+  <div class="orb orb-1"></div>
+  <div class="orb orb-2"></div>
+  <div class="orb orb-3"></div>
 
   <!-- Global Header -->
-  <header class="builder-header h-16 flex-shrink-0 flex items-center justify-between px-4 z-50">
-    <div class="flex items-center gap-3">
+  <header class="glass h-16 flex-shrink-0 flex items-center justify-between px-5 z-50 border-b border-white/5">
+    <div class="flex items-center gap-4">
       <a href="index.html"
-        class="w-10 h-10 rounded-xl bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 transition-colors flex items-center justify-center">
+        class="w-10 h-10 rounded-xl glass-light hover:bg-white/10 transition-all duration-300 flex items-center justify-center group">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
-          stroke-linecap="round" stroke-linejoin="round">
+          stroke-linecap="round" stroke-linejoin="round" class="opacity-60 group-hover:opacity-100 transition-opacity">
           <path d="m15 18-6-6 6-6" />
         </svg>
       </a>
-      <h1 class="font-display font-bold text-lg tracking-tight">CV Builder</h1>
+      <div>
+        <h1 class="font-display font-bold text-lg tracking-tight bg-gradient-to-r from-white to-white/60 bg-clip-text text-transparent">CV Builder</h1>
+        <p class="text-[10px] text-white/40 tracking-wide">DASTYOR AI</p>
+      </div>
     </div>
-    <div class="flex items-center gap-2">
+    <div class="flex items-center gap-3">
       <!-- Mobile Toggle -->
       <button id="mobileViewToggle" onclick="toggleMobileView()"
-        class="md:hidden px-4 py-2 bg-black/5 dark:bg-white/10 rounded-xl font-semibold text-sm"
+        class="md:hidden px-4 py-2.5 glass-light rounded-xl font-semibold text-sm hover:bg-white/10 transition-all"
         data-i18n="cv_btn_preview">
-        👁️ Preview
+        👁️ Ko'rish
       </button>
       <button onclick="exportPDF()" id="btnPdf"
-        class="flex items-center gap-2 px-4 py-2 bg-gradient-to-br from-[#ef4444] to-[#dc2626] hover:opacity-90 active:scale-95 text-white rounded-xl font-bold text-sm transition-all shadow-md">
-        📥 PDF yuklab olish
+        class="btn-accent flex items-center gap-2 px-5 py-2.5 text-white rounded-xl font-bold text-sm transition-all">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+          <polyline points="7 10 12 15 17 10"/>
+          <line x1="12" y1="15" x2="12" y2="3"/>
+        </svg>
+        PDF yuklab olish
       </button>
     </div>
   </header>
@@ -685,238 +1010,293 @@
 
     <!-- EDITOR PANE -->
     <div id="editorPane"
-      class="w-full md:w-[45%] md:max-w-md h-full scroller overflow-y-auto bg-white dark:bg-[#0a0a0c] border-r border-black/5 dark:border-white/5 pb-20">
+      class="w-full md:w-[420px] lg:w-[460px] h-full scroller overflow-y-auto glass border-r border-white/5 pb-24">
 
       <!-- TEMPLATE SETTINGS -->
       <div class="p-6">
-        <div class="flex items-center gap-2 mb-4">
-          <div class="w-8 h-8 rounded-lg bg-apple-purple/10 flex items-center justify-center text-apple-purple">🎨</div>
-          <h2 class="font-display font-bold text-sm uppercase tracking-widest text-black/50 dark:text-white/50"
-            data-i18n="cv_tpl_title">Dizayn Shablon</h2>
+        <div class="section-header mb-5">
+          <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-brand-500/20 to-brand-600/10 flex items-center justify-center">
+            <span class="text-lg">🎨</span>
+          </div>
+          <h2 class="font-display font-bold text-sm uppercase tracking-[0.2em] text-white/50">Dizayn Shablon</h2>
         </div>
 
-        <div class="grid grid-cols-4 md:grid-cols-4 gap-2">
+        <div class="grid grid-cols-4 gap-3">
           <!-- 1 Minimal -->
-          <div
-            class="tpl-card border-2 border-apple-purple rounded-xl aspect-[1/1.4] cursor-pointer hover:border-apple-purple/80 bg-black/5 dark:bg-white/5 relative overflow-hidden group"
+          <div class="tpl-card active border-2 border-brand-500/60 rounded-2xl aspect-[1/1.3] cursor-pointer glass-light relative overflow-hidden group"
             onclick="setTpl('minimal')" id="tpl-minimal">
-            <div
-              class="absolute inset-x-0 bottom-0 bg-black/60 text-white text-[9px] text-center font-bold py-1 backdrop-blur transition-transform z-10">
+            <div class="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent text-white text-[10px] text-center font-semibold py-2 backdrop-blur-sm z-10">
               Minimal</div>
-            <div class="absolute inset-0 flex flex-col p-1.5 opacity-80">
-              <div class="w-1/2 h-[2px] bg-black/20 dark:bg-white/20 mb-0.5 rounded"></div>
-              <div class="w-1/3 h-[1px] bg-black/10 dark:bg-white/10 mb-1 rounded"></div>
-              <div class="w-full h-[1px] bg-black/10 dark:bg-white/10 mb-1 rounded"></div>
-              <div class="w-3/4 h-2 bg-black/10 dark:bg-white/10 rounded"></div>
+            <div class="absolute inset-0 flex flex-col p-2 opacity-70">
+              <div class="w-1/2 h-[3px] bg-white/30 mb-1 rounded"></div>
+              <div class="w-1/3 h-[2px] bg-white/20 mb-2 rounded"></div>
+              <div class="w-full h-[2px] bg-white/15 mb-1 rounded"></div>
+              <div class="w-3/4 h-3 bg-white/10 rounded"></div>
             </div>
           </div>
 
           <!-- 2 Split -->
-          <div
-            class="tpl-card border-2 border-transparent hover:border-apple-purple/50 rounded-xl aspect-[1/1.4] cursor-pointer bg-black/5 dark:bg-white/5 relative overflow-hidden flex group"
+          <div class="tpl-card border-2 border-white/10 hover:border-brand-500/40 rounded-2xl aspect-[1/1.3] cursor-pointer glass-light relative overflow-hidden flex group"
             onclick="setTpl('split')" id="tpl-split">
-            <div
-              class="absolute inset-x-0 bottom-0 bg-black/60 text-white text-[9px] text-center font-bold py-1 backdrop-blur transition-transform z-10 hidden group-hover:block">
+            <div class="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent text-white text-[10px] text-center font-semibold py-2 backdrop-blur-sm z-10 opacity-0 group-hover:opacity-100 transition-opacity">
               Split</div>
-            <div class="w-1/3 h-full bg-black/30 dark:bg-white/30"></div>
-            <div class="w-2/3 h-full p-1.5 flex flex-col gap-0.5 opacity-80">
-              <div class="w-3/4 h-[2px] bg-black/20 dark:bg-white/20 rounded"></div>
-              <div class="w-full h-2 mt-1 bg-black/10 dark:bg-white/10 rounded"></div>
+            <div class="w-1/3 h-full bg-white/20 rounded-l-xl"></div>
+            <div class="w-2/3 h-full p-2 flex flex-col gap-1 opacity-70">
+              <div class="w-3/4 h-[3px] bg-white/30 rounded"></div>
+              <div class="w-full h-3 mt-1 bg-white/10 rounded"></div>
             </div>
           </div>
 
           <!-- 3 Modern -->
-          <div
-            class="tpl-card border-2 border-transparent hover:border-apple-purple/50 rounded-xl aspect-[1/1.4] cursor-pointer bg-black/5 dark:bg-white/5 relative overflow-hidden flex flex-col group"
+          <div class="tpl-card border-2 border-white/10 hover:border-brand-500/40 rounded-2xl aspect-[1/1.3] cursor-pointer glass-light relative overflow-hidden flex flex-col group"
             onclick="setTpl('modern')" id="tpl-modern">
-            <div
-              class="absolute inset-x-0 bottom-0 bg-black/60 text-white text-[9px] text-center font-bold py-1 backdrop-blur transition-transform z-10 hidden group-hover:block">
+            <div class="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent text-white text-[10px] text-center font-semibold py-2 backdrop-blur-sm z-10 opacity-0 group-hover:opacity-100 transition-opacity">
               Modern</div>
-            <div class="h-1/3 w-full bg-black/30 dark:bg-white/30 mb-0.5"></div>
-            <div class="flex-1 px-1 flex gap-1 opacity-80">
-              <div class="w-2/3 h-full bg-black/10 dark:bg-white/10 rounded"></div>
-              <div class="w-1/3 h-full bg-black/10 dark:bg-white/10 rounded"></div>
+            <div class="h-1/3 w-full bg-white/20 rounded-t-xl mb-1"></div>
+            <div class="flex-1 px-1 flex gap-1 opacity-70">
+              <div class="w-2/3 h-full bg-white/10 rounded"></div>
+              <div class="w-1/3 h-full bg-white/10 rounded"></div>
             </div>
           </div>
 
           <!-- 4 ATS Safe -->
-          <div
-            class="tpl-card border-2 border-transparent hover:border-apple-purple/50 rounded-xl aspect-[1/1.4] cursor-pointer bg-black/5 dark:bg-white/5 relative overflow-hidden group"
+          <div class="tpl-card border-2 border-white/10 hover:border-brand-500/40 rounded-2xl aspect-[1/1.3] cursor-pointer glass-light relative overflow-hidden group"
             onclick="setTpl('ats')" id="tpl-ats">
-            <div
-              class="absolute inset-x-0 bottom-0 bg-black/60 text-white text-[9px] text-center font-bold py-1 backdrop-blur transition-transform z-10 hidden group-hover:block">
+            <div class="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent text-white text-[10px] text-center font-semibold py-2 backdrop-blur-sm z-10 opacity-0 group-hover:opacity-100 transition-opacity">
               ATS Safe</div>
-            <div class="absolute inset-0 flex flex-col p-1.5 opacity-80 items-center">
-              <div class="w-3/4 h-[2px] bg-black/30 dark:bg-white/30 mb-1 rounded text-center"></div>
-              <div class="w-full h-[1px] bg-black/10 dark:bg-white/10 mb-1 rounded"></div>
-              <div class="w-full flex-1 bg-black/5 dark:bg-white/5 rounded"></div>
+            <div class="absolute inset-0 flex flex-col p-2 opacity-70 items-center">
+              <div class="w-3/4 h-[3px] bg-white/30 mb-2 rounded text-center"></div>
+              <div class="w-full h-[2px] bg-white/15 mb-2 rounded"></div>
+              <div class="w-full flex-1 bg-white/5 rounded"></div>
             </div>
           </div>
 
           <!-- 5 Elegant -->
-          <div
-            class="tpl-card border-2 border-transparent hover:border-apple-purple/50 rounded-xl aspect-[1/1.4] cursor-pointer bg-black/5 dark:bg-white/5 relative overflow-hidden group"
+          <div class="tpl-card border-2 border-white/10 hover:border-brand-500/40 rounded-2xl aspect-[1/1.3] cursor-pointer glass-light relative overflow-hidden group"
             onclick="setTpl('elegant')" id="tpl-elegant">
-            <div
-              class="absolute inset-x-0 bottom-0 bg-black/60 text-white text-[9px] text-center font-bold py-1 backdrop-blur transition-transform z-10 hidden group-hover:block">
+            <div class="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent text-white text-[10px] text-center font-semibold py-2 backdrop-blur-sm z-10 opacity-0 group-hover:opacity-100 transition-opacity">
               Elegant</div>
-            <div class="absolute inset-0 flex flex-col p-1.5 opacity-80 items-center">
-              <div class="w-1/2 h-[3px] bg-black/30 dark:bg-white/30 mb-0.5 rounded text-center"></div>
-              <div class="w-1/3 h-[1px] bg-black/20 dark:bg-white/20 mb-1.5 rounded"></div>
+            <div class="absolute inset-0 flex flex-col p-2 opacity-70 items-center">
+              <div class="w-1/2 h-[4px] bg-white/30 mb-1 rounded text-center"></div>
+              <div class="w-1/3 h-[2px] bg-white/20 mb-2 rounded"></div>
               <div class="w-full flex gap-1 h-full">
-                <div class="w-2/3 bg-black/5 dark:bg-white/5 rounded"></div>
-                <div class="w-1/3 bg-black/10 border-l border-black/20 dark:border-white/20 rounded"></div>
+                <div class="w-2/3 bg-white/5 rounded"></div>
+                <div class="w-1/3 bg-white/10 border-l border-white/20 rounded"></div>
               </div>
             </div>
           </div>
 
           <!-- 6 Corporate -->
-          <div
-            class="tpl-card border-2 border-transparent hover:border-apple-purple/50 rounded-xl aspect-[1/1.4] cursor-pointer bg-[#eff6ff] dark:bg-[#1e3a8a]/20 relative overflow-hidden flex flex-col group"
+          <div class="tpl-card border-2 border-white/10 hover:border-brand-500/40 rounded-2xl aspect-[1/1.3] cursor-pointer relative overflow-hidden flex flex-col group"
+            style="background: linear-gradient(135deg, rgba(37, 99, 235, 0.2), rgba(30, 58, 138, 0.1));"
             onclick="setTpl('corporate')" id="tpl-corporate">
-            <div
-              class="absolute inset-x-0 bottom-0 bg-black/60 text-white text-[9px] text-center font-bold py-1 backdrop-blur transition-transform z-10 hidden group-hover:block">
+            <div class="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent text-white text-[10px] text-center font-semibold py-2 backdrop-blur-sm z-10 opacity-0 group-hover:opacity-100 transition-opacity">
               Corporate</div>
-            <div class="h-[25%] w-full bg-[#2563eb] mb-1"></div>
-            <div class="flex-1 px-1 flex gap-1 opacity-80">
-              <div class="w-3/4 h-full bg-black/5 dark:bg-white/5 rounded border-t-2 border-[#bfdbfe]"></div>
-              <div class="w-1/4 h-full bg-black/10 dark:bg-white/10 rounded"></div>
+            <div class="h-[25%] w-full bg-blue-500/50 rounded-t-xl mb-1"></div>
+            <div class="flex-1 px-1 flex gap-1 opacity-70">
+              <div class="w-3/4 h-full bg-white/5 rounded border-t-2 border-blue-300/30"></div>
+              <div class="w-1/4 h-full bg-white/10 rounded"></div>
             </div>
           </div>
 
           <!-- 7 Creative -->
-          <div
-            class="tpl-card border-2 border-transparent hover:border-apple-purple/50 rounded-xl aspect-[1/1.4] cursor-pointer bg-black/5 dark:bg-white/5 relative overflow-hidden flex group"
+          <div class="tpl-card border-2 border-white/10 hover:border-brand-500/40 rounded-2xl aspect-[1/1.3] cursor-pointer relative overflow-hidden flex group"
+            style="background: linear-gradient(135deg, rgba(219, 39, 119, 0.15), rgba(131, 24, 67, 0.1));"
             onclick="setTpl('creative')" id="tpl-creative">
-            <div
-              class="absolute inset-x-0 bottom-0 bg-black/60 text-white text-[9px] text-center font-bold py-1 backdrop-blur transition-transform z-10 hidden group-hover:block">
+            <div class="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent text-white text-[10px] text-center font-semibold py-2 backdrop-blur-sm z-10 opacity-0 group-hover:opacity-100 transition-opacity">
               Creative</div>
-            <div
-              class="w-[35%] h-full bg-[#fdf2f8] dark:bg-[#831843] border-r border-[#f9a8d4] flex flex-col items-center pt-2">
-              <div class="w-6 h-6 rounded-full bg-[#db2777] border border-[#f9a8d4]"></div>
+            <div class="w-[35%] h-full bg-pink-500/20 border-r border-pink-300/30 flex flex-col items-center pt-3">
+              <div class="w-6 h-6 rounded-full bg-pink-500/50 border border-pink-300/50"></div>
             </div>
-            <div class="flex-1 h-full p-1.5 flex flex-col gap-0.5 opacity-80">
-              <div class="w-full h-[2px] bg-black/20 dark:bg-white/20 rounded"></div>
-              <div class="w-3/4 h-2 mt-1 bg-black/5 dark:bg-white/5 rounded"></div>
+            <div class="flex-1 h-full p-2 flex flex-col gap-1 opacity-70">
+              <div class="w-full h-[3px] bg-white/30 rounded"></div>
+              <div class="w-3/4 h-3 mt-1 bg-white/5 rounded"></div>
             </div>
           </div>
 
           <!-- 8 Professional -->
-          <div
-            class="tpl-card border-2 border-transparent hover:border-apple-purple/50 rounded-xl aspect-[1/1.4] cursor-pointer bg-black/5 dark:bg-white/5 relative overflow-hidden flex group"
+          <div class="tpl-card border-2 border-white/10 hover:border-brand-500/40 rounded-2xl aspect-[1/1.3] cursor-pointer glass-light relative overflow-hidden flex group"
             onclick="setTpl('prof')" id="tpl-prof">
-            <div
-              class="absolute inset-x-0 bottom-0 bg-black/60 text-white text-[9px] text-center font-bold py-1 backdrop-blur transition-transform z-10 hidden group-hover:block">
+            <div class="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent text-white text-[10px] text-center font-semibold py-2 backdrop-blur-sm z-10 opacity-0 group-hover:opacity-100 transition-opacity">
               Prof.</div>
-            <div class="w-[10%] h-full bg-black"></div>
-            <div class="flex-1 h-full p-2 flex flex-col opacity-80">
-              <div class="w-3/4 h-[3px] bg-black/30 dark:bg-white/30 rounded mb-1"></div>
-              <div class="w-full h-[1px] bg-black/10 dark:bg-white/10 rounded mb-1"></div>
-              <div class="w-full h-full bg-black/5 rounded"></div>
+            <div class="w-[12%] h-full bg-white/30 rounded-l-xl"></div>
+            <div class="flex-1 h-full p-2 flex flex-col opacity-70">
+              <div class="w-3/4 h-[4px] bg-white/30 rounded mb-2"></div>
+              <div class="w-full h-[2px] bg-white/15 rounded mb-2"></div>
+              <div class="w-full h-full bg-white/5 rounded"></div>
             </div>
           </div>
-
         </div>
       </div>
 
-      <div class="h-px bg-black/5 dark:bg-white/5 mx-6"></div>
+      <div class="h-px bg-gradient-to-r from-transparent via-white/10 to-transparent mx-6"></div>
 
       <!-- PERSONAL INFO -->
       <div class="p-6">
+        <div class="section-header mb-5">
+          <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-accent-emerald/20 to-accent-emerald/5 flex items-center justify-center">
+            <span class="text-lg">👤</span>
+          </div>
+          <h2 class="font-display font-bold text-sm uppercase tracking-[0.2em] text-white/50">Shaxsiy Ma'lumot</h2>
+        </div>
+
         <!-- Profile Image -->
-        <div class="flex items-center gap-4 mb-6">
+        <div class="flex items-center gap-5 mb-6">
           <div id="photoPrev"
-            class="w-16 h-16 rounded-full bg-black/5 dark:bg-white/10 border border-black/10 dark:border-white/10 flex flex-shrink-0 items-center justify-center overflow-hidden cursor-pointer"
+            class="photo-upload w-20 h-20 rounded-full glass-light border-2 border-white/10 flex flex-shrink-0 items-center justify-center overflow-hidden cursor-pointer hover:border-brand-500/50 transition-all duration-300"
             onclick="document.getElementById('imgInput').click()">
-            <span class="text-2xl opacity-50">📷</span>
+            <span class="text-3xl opacity-40">📷</span>
           </div>
           <div>
             <input type="file" id="imgInput" accept="image/*" class="hidden" onchange="handleImage(this)">
             <button
-              class="px-3 py-1.5 bg-apple-blue/10 text-apple-blue font-semibold text-xs rounded-full hover:bg-apple-blue/20 transition-colors"
-              onclick="document.getElementById('imgInput').click()" data-i18n="cv_upload_img">Rasm yuklash</button>
-            <p class="text-[10px] text-black/40 dark:text-white/40 mt-1" data-i18n="cv_rec_img">Professional tasvir
-              tavsiya etiladi</p>
+              class="px-4 py-2 bg-gradient-to-r from-brand-500/20 to-brand-600/10 text-brand-400 font-semibold text-xs rounded-xl hover:from-brand-500/30 hover:to-brand-600/20 transition-all duration-300 border border-brand-500/20"
+              onclick="document.getElementById('imgInput').click()">
+              📤 Rasm yuklash
+            </button>
+            <p class="text-[11px] text-white/30 mt-2">Professional tasvir tavsiya etiladi</p>
           </div>
         </div>
 
         <div class="space-y-4">
           <div>
+            <label class="text-[11px] text-white/40 mb-1.5 block font-medium">Ism Familiya</label>
             <input type="text" id="f_name"
-              class="w-full bg-black/5 dark:bg-white/5 border border-transparent focus:border-apple-purple/50 rounded-xl px-4 py-3 text-sm outline-none transition-all"
-              placeholder="Ism Familiya (Masalan: Alisherov M.)" data-i18n="ph_cv_name" data-i18n-attr="placeholder"
-              value="" oninput="updateCV()">
+              class="input-premium w-full rounded-xl px-4 py-3.5 text-sm outline-none text-white"
+              placeholder="masalan: ali valiyev" value="" oninput="formatName(this)">
           </div>
           <div>
+            <label class="text-[11px] text-white/40 mb-1.5 block font-medium">Kasb / Lavozim</label>
             <input type="text" id="f_role"
-              class="w-full bg-black/5 dark:bg-white/5 border border-transparent focus:border-apple-purple/50 rounded-xl px-4 py-3 text-sm outline-none transition-all text-apple-blue font-medium"
-              placeholder="Kasb (Masalan: UI/UX Designer)" data-i18n="ph_cv_role" data-i18n-attr="placeholder" value=""
-              oninput="updateCV()">
+              class="input-premium w-full rounded-xl px-4 py-3.5 text-sm outline-none text-brand-400 font-medium"
+              placeholder="masalan: senior dasturchi" value="" oninput="formatRole(this)">
           </div>
           <div class="flex gap-3">
-            <input type="text" id="f_phone"
-              class="w-1/2 bg-black/5 dark:bg-white/5 border border-transparent focus:border-apple-purple/50 rounded-xl px-4 py-3 text-sm outline-none transition-all"
-              placeholder="Telefon (+998...)" data-i18n="ph_cv_phone" data-i18n-attr="placeholder" value=""
-              oninput="updateCV()">
-            <input type="email" id="f_email"
-              class="w-1/2 bg-black/5 dark:bg-white/5 border border-transparent focus:border-apple-purple/50 rounded-xl px-4 py-3 text-sm outline-none transition-all"
-              placeholder="Email" data-i18n="ph_email" data-i18n-attr="placeholder" value="" oninput="updateCV()">
+            <div class="w-1/2">
+              <label class="text-[11px] text-white/40 mb-1.5 block font-medium">Telefon</label>
+              <input type="tel" id="f_phone"
+                class="input-premium w-full rounded-xl px-4 py-3.5 text-sm outline-none text-white"
+                placeholder="90 123 45 67" value="" oninput="formatPhone(this)" maxlength="17">
+            </div>
+            <div class="w-1/2">
+              <label class="text-[11px] text-white/40 mb-1.5 block font-medium">Email</label>
+              <input type="email" id="f_email"
+                class="input-premium w-full rounded-xl px-4 py-3.5 text-sm outline-none text-white lowercase"
+                placeholder="email@example.com" value="" oninput="formatEmail(this)">
+            </div>
           </div>
           <div>
+            <label class="text-[11px] text-white/40 mb-1.5 block font-medium">Manzil</label>
             <input type="text" id="f_loc"
-              class="w-full bg-black/5 dark:bg-white/5 border border-transparent focus:border-apple-purple/50 rounded-xl px-4 py-3 text-sm outline-none transition-all"
-              placeholder="Manzil (Masalan: Toshkent Shahri)" data-i18n="ph_cv_loc" data-i18n-attr="placeholder"
-              value="" oninput="updateCV()">
+              class="input-premium w-full rounded-xl px-4 py-3.5 text-sm outline-none text-white"
+              placeholder="masalan: toshkent shahri" value="" oninput="formatLocation(this)">
           </div>
           <div>
+            <label class="text-[11px] text-white/40 mb-1.5 block font-medium">Qisqacha o'zingiz haqingizda</label>
             <textarea id="f_about"
-              class="w-full h-24 bg-black/5 dark:bg-white/5 border border-transparent focus:border-apple-purple/50 rounded-xl px-4 py-3 text-sm outline-none transition-all resize-none"
-              placeholder="Haqingizda qisqacha ma'lumot (Summary)" data-i18n="ph_cv_about" data-i18n-attr="placeholder"
+              class="input-premium w-full h-28 rounded-xl px-4 py-3.5 text-sm outline-none resize-none text-white"
+              placeholder="Masalan: 5+ yillik tajribaga ega dasturchi. Loyihalar tezligini 30% ga oshirgan..."
               oninput="updateCV()"></textarea>
           </div>
         </div>
       </div>
 
-      <div class="h-px bg-black/5 dark:bg-white/5 mx-6"></div>
+      <div class="h-px bg-gradient-to-r from-transparent via-white/10 to-transparent mx-6"></div>
 
       <!-- EXPERIENCE -->
       <div class="p-6">
-        <div class="flex items-center justify-between mb-4">
-          <h2 class="font-display font-bold text-sm uppercase tracking-widest text-black/50 dark:text-white/50"
-            data-i18n="cv_experience">Ish Tajribasi</h2>
+        <div class="section-header mb-5">
+          <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-brand-500/20 to-brand-600/10 flex items-center justify-center">
+            <span class="text-lg">💼</span>
+          </div>
+          <h2 class="font-display font-bold text-sm uppercase tracking-[0.2em] text-white/50">Ish Tajribasi</h2>
         </div>
-        <div id="expList" class="space-y-3 mb-3"></div>
+        <div id="expList" class="space-y-3 mb-4"></div>
         <button onclick="addExp()"
-          class="w-full py-2 border border-dashed border-apple-purple/50 text-apple-purple bg-apple-purple/5 rounded-xl font-bold text-sm hover:bg-apple-purple/10 transition-colors"
-          data-i18n="cv_add_exp">+ Tajriba qo'shish</button>
+          class="btn-add w-full py-3 border-2 border-dashed border-brand-500/30 text-brand-400 bg-brand-500/5 rounded-xl font-bold text-sm hover:border-brand-500/50 hover:bg-brand-500/10 transition-all duration-300">
+          + Tajriba qo'shish
+        </button>
       </div>
 
-      <div class="h-px bg-black/5 dark:bg-white/5 mx-6"></div>
+      <div class="h-px bg-gradient-to-r from-transparent via-white/10 to-transparent mx-6"></div>
+
+      <!-- ACHIEVEMENTS -->
+      <div class="p-6">
+        <div class="section-header mb-5">
+          <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-accent-amber/20 to-accent-amber/5 flex items-center justify-center">
+            <span class="text-lg">🏆</span>
+          </div>
+          <h2 class="font-display font-bold text-sm uppercase tracking-[0.2em] text-white/50">Asosiy Yutuqlar</h2>
+        </div>
+        <div id="achList" class="space-y-3 mb-4"></div>
+        <button onclick="addAch()"
+          class="btn-add w-full py-3 border-2 border-dashed border-accent-amber/30 text-accent-amber bg-accent-amber/5 rounded-xl font-bold text-sm hover:border-accent-amber/50 hover:bg-accent-amber/10 transition-all duration-300">
+          + Yutuq qo'shish
+        </button>
+      </div>
+
+      <div class="h-px bg-gradient-to-r from-transparent via-white/10 to-transparent mx-6"></div>
 
       <!-- EDUCATION -->
       <div class="p-6">
-        <div class="flex items-center justify-between mb-4">
-          <h2 class="font-display font-bold text-sm uppercase tracking-widest text-black/50 dark:text-white/50"
-            data-i18n="cv_education">Ta'lim</h2>
+        <div class="section-header mb-5">
+          <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-accent-cyan/20 to-accent-cyan/5 flex items-center justify-center">
+            <span class="text-lg">🎓</span>
+          </div>
+          <h2 class="font-display font-bold text-sm uppercase tracking-[0.2em] text-white/50">Ta'lim</h2>
         </div>
-        <div id="eduList" class="space-y-3 mb-3"></div>
+        <div id="eduList" class="space-y-3 mb-4"></div>
         <button onclick="addEdu()"
-          class="w-full py-2 border border-dashed border-apple-blue/50 text-apple-blue bg-apple-blue/5 rounded-xl font-bold text-sm hover:bg-apple-blue/10 transition-colors"
-          data-i18n="cv_add_edu">+ Ta'lim qo'shish</button>
+          class="btn-add w-full py-3 border-2 border-dashed border-accent-cyan/30 text-accent-cyan bg-accent-cyan/5 rounded-xl font-bold text-sm hover:border-accent-cyan/50 hover:bg-accent-cyan/10 transition-all duration-300">
+          + Ta'lim qo'shish
+        </button>
       </div>
 
-      <div class="h-px bg-black/5 dark:bg-white/5 mx-6"></div>
+      <div class="h-px bg-gradient-to-r from-transparent via-white/10 to-transparent mx-6"></div>
 
       <!-- SKILLS -->
-      <div class="p-6 pb-12">
-        <h2 class="font-display font-bold text-sm uppercase tracking-widest text-black/50 dark:text-white/50 mb-4"
-          data-i18n="cv_skills">Ko'nikmalar</h2>
-        <div class="bg-black/5 dark:bg-white/5 p-4 rounded-xl">
-          <input type="text" id="skillInput"
-            class="w-full bg-transparent border-b border-black/10 dark:border-white/10 px-0 py-2 text-sm outline-none focus:border-apple-purple mb-3"
-            placeholder="Ko'nikma yozib ENTER bosing..." data-i18n="ph_skill" data-i18n-attr="placeholder"
-            onkeydown="handleSkillAdd(event)">
-          <div id="skillsWrap" class="flex flex-wrap gap-2"></div>
+      <div class="p-6">
+        <div class="section-header mb-5">
+          <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-accent-emerald/20 to-accent-emerald/5 flex items-center justify-center">
+            <span class="text-lg">⚡</span>
+          </div>
+          <h2 class="font-display font-bold text-sm uppercase tracking-[0.2em] text-white/50">Core Skills</h2>
+        </div>
+        <div class="glass-light p-5 rounded-2xl">
+          <label class="text-[10px] text-white/40 mb-2 block">Qo'shish uchun yozing va vergul (,) nuqta (.) yoki Enter bosing</label>
+          <div class="flex gap-2 mb-3">
+            <input type="text" id="skillInput"
+              class="flex-1 bg-transparent border-b border-white/10 px-0 py-3 text-sm outline-none focus:border-brand-500 text-white placeholder:text-white/30 transition-colors"
+              placeholder="liderlik, kommunikatsiya, analitika..."
+              oninput="handleSkillInput(event)"
+              onkeydown="handleSkillKey(event)">
+            <button onclick="addSkillFromInput()" class="px-4 py-2 bg-brand-500/20 hover:bg-brand-500/30 text-brand-400 rounded-xl text-sm font-bold transition-all" title="Qo'shish">+</button>
+          </div>
+          <div id="skillsWrap" class="flex flex-wrap gap-2 min-h-[32px]"></div>
+        </div>
+      </div>
+
+      <div class="h-px bg-gradient-to-r from-transparent via-white/10 to-transparent mx-6"></div>
+
+      <!-- TOOLS -->
+      <div class="p-6 pb-16">
+        <div class="section-header mb-5">
+          <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-accent-rose/20 to-accent-rose/5 flex items-center justify-center">
+            <span class="text-lg">🛠️</span>
+          </div>
+          <h2 class="font-display font-bold text-sm uppercase tracking-[0.2em] text-white/50">Tools & Tech</h2>
+        </div>
+        <div class="glass-light p-5 rounded-2xl">
+          <label class="text-[10px] text-white/40 mb-2 block">Qo'shish uchun yozing va vergul (,) nuqta (.) yoki Enter bosing</label>
+          <div class="flex gap-2 mb-3">
+            <input type="text" id="toolInput"
+              class="flex-1 bg-transparent border-b border-white/10 px-0 py-3 text-sm outline-none focus:border-accent-cyan text-white placeholder:text-white/30 transition-colors"
+              placeholder="figma, photoshop, excel, python..."
+              oninput="handleToolInput(event)"
+              onkeydown="handleToolKey(event)">
+            <button onclick="addToolFromInput()" class="px-4 py-2 bg-accent-cyan/20 hover:bg-accent-cyan/30 text-accent-cyan rounded-xl text-sm font-bold transition-all" title="Qo'shish">+</button>
+          </div>
+          <div id="toolsWrap" class="flex flex-wrap gap-2 min-h-[32px]"></div>
         </div>
       </div>
 
@@ -924,7 +1304,8 @@
 
     <!-- PREVIEW PANE -->
     <div id="previewPane"
-      class="hidden md:flex flex-1 h-full bg-[#1c1c1e] items-start justify-center p-8 scroller overflow-y-auto">
+      class="hidden md:flex flex-1 h-full items-start justify-center p-10 scroller overflow-y-auto"
+      style="background: linear-gradient(135deg, #0f0f1a 0%, #1a1a2e 100%);">
       <div class="cv-canvas-wrapper" id="previewScaleWrapper">
         <div class="cv-canvas tpl-minimal" id="cv-box">
           <!-- HTML generated live here -->
@@ -934,16 +1315,45 @@
 
   </div>
 
+  <!-- Toast -->
+  <div id="_tg_toast" class="toast"></div>
+
   <script>
     const tg = window.Telegram?.WebApp;
 
-    let avatarUrl = 'data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs='; // empty transparent image
+    // Simple I18n fallback
+    const I18n = {
+      t: (key) => {
+        const translations = {
+          cv_about: 'Haqida',
+          cv_experience: 'Ish Tajribasi',
+          cv_education: "Ta'lim",
+          cv_contact: 'Aloqa',
+          cv_btn_edit: '✍️ Tahrirlash',
+          cv_btn_preview: '👁️ Ko\'rish',
+          status_processing: '⏳ Kutmoqda...',
+        };
+        return translations[key] || key;
+      },
+      getLang: () => 'uz'
+    };
+
+    // DastyorAI fallback
+    const DastyorAI = {
+      BASE: '',
+      getTelegramId: () => tg?.initDataUnsafe?.user?.id || null,
+      getToken: () => null
+    };
+
+    let avatarUrl = 'data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=';
     let activeTpl = 'minimal';
 
     // Data states
     let experiences = [];
+    let achievements = [];
     let education = [];
     let skills = [];
+    let tools = [];
 
     // Mobile preview toggle
     let mobilePreview = false;
@@ -956,22 +1366,27 @@
       if (mobilePreview) {
         ed.classList.add('hidden');
         pv.classList.remove('hidden');
-        pv.classList.add('w-full', 'px-2', 'py-4');
-        btn.innerHTML = I18n.t('cv_btn_edit') || '✍️ Tahrirlash';
+        pv.classList.add('w-full', 'px-3', 'py-6');
+        btn.innerHTML = I18n.t('cv_btn_edit');
         setTimeout(autoScale, 50);
       } else {
         ed.classList.remove('hidden');
         pv.classList.add('hidden');
-        pv.classList.remove('w-full', 'px-2', 'py-4');
-        btn.innerHTML = I18n.t('cv_btn_preview') || '👁️ Preview';
+        pv.classList.remove('w-full', 'px-3', 'py-6');
+        btn.innerHTML = I18n.t('cv_btn_preview');
       }
     }
 
     // Templates
     function setTpl(t) {
       activeTpl = t;
-      document.querySelectorAll('.tpl-card').forEach(el => el.classList.replace('border-apple-purple', 'border-transparent'));
-      document.getElementById(`tpl-${t}`).classList.replace('border-transparent', 'border-apple-purple');
+      document.querySelectorAll('.tpl-card').forEach(el => {
+        el.classList.remove('active');
+        el.classList.replace('border-brand-500/60', 'border-white/10');
+      });
+      const selected = document.getElementById(`tpl-${t}`);
+      selected.classList.add('active');
+      selected.classList.replace('border-white/10', 'border-brand-500/60');
       updateCV();
       tg?.HapticFeedback?.impactOccurred('light');
     }
@@ -989,64 +1404,331 @@
       }
     }
 
-    // Skills
-    function renderSkillsInput() {
-      document.getElementById('skillsWrap').innerHTML = skills.map((s, i) => `
-                <div class="px-3 py-1 bg-white dark:bg-black rounded-lg text-xs font-semibold flex items-center gap-2 border border-black/5 dark:border-white/5">
-                    ${s} <span class="text-red-500 cursor-pointer text-[10px]" onclick="removeSkill(${i})">✖</span>
-                </div>
-            `).join('');
+    // ═══════════════════════════════════════════════════════════
+    // AUTO-FORMAT FUNCTIONS
+    // ═══════════════════════════════════════════════════════════
+
+    // Capitalize helper - har bir so'zning birinchi harfini katta qilish
+    function capitalize(str) {
+      return str.toLowerCase().replace(/(?:^|\s)\S/g, a => a.toUpperCase());
     }
-    function handleSkillAdd(e) {
-      if (e.key === 'Enter' && e.target.value.trim() !== '') {
-        skills.push(e.target.value.trim());
+
+    // ISM - avtomatik katta harf
+    function formatName(input) {
+      const cursorPos = input.selectionStart;
+      const oldLen = input.value.length;
+      input.value = capitalize(input.value);
+      const newLen = input.value.length;
+      input.setSelectionRange(cursorPos + (newLen - oldLen), cursorPos + (newLen - oldLen));
+      updateCV();
+    }
+
+    // KASB/LAVOZIM - avtomatik katta harf
+    function formatRole(input) {
+      const cursorPos = input.selectionStart;
+      const oldLen = input.value.length;
+      input.value = capitalize(input.value);
+      const newLen = input.value.length;
+      input.setSelectionRange(cursorPos + (newLen - oldLen), cursorPos + (newLen - oldLen));
+      updateCV();
+    }
+
+    // EMAIL - avtomatik kichik harf
+    function formatEmail(input) {
+      input.value = input.value.toLowerCase().trim();
+      updateCV();
+    }
+
+    // MANZIL - avtomatik katta harf
+    function formatLocation(input) {
+      const cursorPos = input.selectionStart;
+      const oldLen = input.value.length;
+      input.value = capitalize(input.value);
+      const newLen = input.value.length;
+      input.setSelectionRange(cursorPos + (newLen - oldLen), cursorPos + (newLen - oldLen));
+      updateCV();
+    }
+
+    // TELEFON - avtomatik +998 va format
+    function formatPhone(input) {
+      let value = input.value.replace(/\D/g, ''); // faqat raqamlar
+      
+      // Agar bo'sh bo'lsa
+      if (value.length === 0) {
+        input.value = '';
+        updateCV();
+        return;
+      }
+      
+      // 998 bilan boshlanmasa, qo'shish
+      if (!value.startsWith('998')) {
+        // 8 yoki 9 bilan boshlansa (90, 91, 93, 94, 95, 97, 99, 88, 33, 71...)
+        if (value.length >= 1) {
+          value = '998' + value;
+        }
+      }
+      
+      // 12 raqamdan oshmasin
+      value = value.substring(0, 12);
+      
+      // Format: +998 XX XXX XX XX
+      let formatted = '+998';
+      if (value.length > 3) {
+        formatted += ' ' + value.substring(3, 5); // XX
+      }
+      if (value.length > 5) {
+        formatted += ' ' + value.substring(5, 8); // XXX
+      }
+      if (value.length > 8) {
+        formatted += ' ' + value.substring(8, 10); // XX
+      }
+      if (value.length > 10) {
+        formatted += ' ' + value.substring(10, 12); // XX
+      }
+      
+      input.value = formatted;
+      updateCV();
+    }
+
+    // Skills - oson qo'shish
+    function handleSkillInput(e) {
+      const val = e.target.value;
+      const lastChar = val.slice(-1);
+      
+      // Vergul, nuqta yoki ikki probel bilan ajratish
+      if (lastChar === ',' || lastChar === '.' || val.endsWith('  ')) {
+        let skill = val.replace(/[,.\s]+$/, '').trim();
+        skill = capitalize(skill); // Katta harf
+        if (skill && !skills.includes(skill)) {
+          skills.push(skill);
+          renderSkillsInput();
+          updateCV();
+        }
         e.target.value = '';
+      }
+    }
+    
+    function handleSkillKey(e) {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        addSkillFromInput();
+      }
+    }
+    
+    function addSkillFromInput() {
+      const input = document.getElementById('skillInput');
+      let skill = input.value.replace(/[,.\s]+$/, '').trim();
+      skill = capitalize(skill); // Katta harf
+      if (skill && !skills.includes(skill)) {
+        skills.push(skill);
         renderSkillsInput();
         updateCV();
       }
+      input.value = '';
+      input.focus();
+    }
+
+    // Skills render
+    function renderSkillsInput() {
+      document.getElementById('skillsWrap').innerHTML = skills.map((s, i) => `
+        <div class="badge-skill px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-2 text-white/90 cursor-default animate-fade-in">
+          ${s}
+          <span class="text-accent-rose/80 hover:text-accent-rose cursor-pointer text-[10px] transition-colors" onclick="removeSkill(${i})">✕</span>
+        </div>
+      `).join('');
     }
     function removeSkill(i) { skills.splice(i, 1); renderSkillsInput(); updateCV(); }
 
-    // Expanders (Exp/Edu)
+    // Experience
+    function getYearOptions(selected, placeholder, includeNow = false) {
+      const currentYear = new Date().getFullYear();
+      let options = `<option value="" disabled ${!selected ? 'selected' : ''}>${placeholder}</option>`;
+      
+      // Hozir opsiyasi
+      if (includeNow) {
+        options += `<option value="Hozir" ${selected === 'Hozir' ? 'selected' : ''}>Hozir</option>`;
+      }
+      
+      // Yillar (hozirgi yildan 50 yil oldin gacha)
+      for (let y = currentYear; y >= currentYear - 50; y--) {
+        options += `<option value="${y}" ${selected == y ? 'selected' : ''}>${y}</option>`;
+      }
+      return options;
+    }
+    
     function renderExp() {
-      document.getElementById('expList').innerHTML = experiences.map((ex, i) => `
-                <div class="bg-black/5 dark:bg-white/5 p-4 rounded-2xl relative group">
-                    <button class="absolute top-2 right-2 w-6 h-6 bg-red-500/10 text-red-500 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity" onclick="removeExp(${ex.id})">×</button>
-                    <input type="text" class="w-full bg-transparent border-b border-black/10 dark:border-white/10 px-0 py-2 text-sm font-bold outline-none mb-1 focus:border-apple-purple" placeholder="Lavozim" value="${ex.title}" oninput="experiences[${i}].title=this.value; updateCV()">
-                    <div class="flex gap-2 mb-2">
-                        <input type="text" class="w-1/2 bg-transparent border-b border-black/10 dark:border-white/10 px-0 py-2 text-xs outline-none focus:border-apple-purple" placeholder="Kompaniya" value="${ex.company}" oninput="experiences[${i}].company=this.value; updateCV()">
-                        <input type="text" class="w-1/2 bg-transparent border-b border-black/10 dark:border-white/10 px-0 py-2 text-xs outline-none focus:border-apple-purple" placeholder="Yillar" value="${ex.date}" oninput="experiences[${i}].date=this.value; updateCV()">
-                    </div>
-                    <textarea class="w-full bg-transparent border-b border-black/10 dark:border-white/10 px-0 py-2 text-xs outline-none focus:border-apple-purple resize-none h-14" placeholder="Faoliyat haqida..." oninput="experiences[${i}].desc=this.value; updateCV()">${ex.desc}</textarea>
-                </div>
-            `).join('');
-      if (window.SmartAutoFill) SmartAutoFill.initDynamic();
+      document.getElementById('expList').innerHTML = experiences.map((ex, i) => {
+        // Yillarni ajratish
+        let startYear = '';
+        let endYear = '';
+        if (ex.date) {
+          const parts = ex.date.split('-').map(p => p.trim());
+          startYear = parts[0] || '';
+          endYear = parts[1] || '';
+        }
+        
+        return `
+        <div class="entry-card p-5 rounded-2xl relative group animate-fade-in">
+          <button class="btn-remove absolute top-3 right-3 w-7 h-7 bg-accent-rose/10 text-accent-rose rounded-lg flex items-center justify-center hover:bg-accent-rose/20 transition-all" onclick="removeExp(${ex.id})">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg>
+          </button>
+          <label class="text-[10px] text-white/30 mb-1 block">Lavozim</label>
+          <input type="text" class="w-full bg-transparent border-b border-white/10 px-0 py-2 text-sm font-bold outline-none mb-3 focus:border-brand-500 text-white placeholder:text-white/30 transition-colors" placeholder="masalan: senior dasturchi" value="${ex.title}" oninput="this.value=capitalize(this.value); experiences[${i}].title=this.value; updateCV()">
+          <div class="flex gap-3 mb-3">
+            <div class="flex-1">
+              <label class="text-[10px] text-white/30 mb-1 block">Kompaniya</label>
+              <input type="text" class="w-full bg-transparent border-b border-white/10 px-0 py-2 text-xs outline-none focus:border-brand-500 text-white/80 placeholder:text-white/30 transition-colors" placeholder="masalan: google" value="${ex.company}" oninput="this.value=capitalize(this.value); experiences[${i}].company=this.value; updateCV()">
+            </div>
+            <div class="w-[180px]">
+              <label class="text-[10px] text-white/30 mb-1 block">Yillar</label>
+              <div class="flex items-center gap-2">
+                <select id="exp_start_${i}" onchange="updateExpDate(${i})" class="flex-1 bg-white/5 border border-white/10 rounded-lg px-2 py-2 text-xs outline-none focus:border-brand-500 text-white/80 cursor-pointer appearance-none text-center" style="min-width:70px;">
+                  ${getYearOptions(startYear, 'Dan')}
+                </select>
+                <span class="text-white/30 text-xs">—</span>
+                <select id="exp_end_${i}" onchange="updateExpDate(${i})" class="flex-1 bg-white/5 border border-white/10 rounded-lg px-2 py-2 text-xs outline-none focus:border-brand-500 text-white/80 cursor-pointer appearance-none text-center" style="min-width:70px;">
+                  ${getYearOptions(endYear, 'Gacha', true)}
+                </select>
+              </div>
+            </div>
+          </div>
+          <label class="text-[10px] text-white/30 mb-1 block">Vazifalar va yutuqlar</label>
+          <textarea class="w-full bg-transparent border-b border-white/10 px-0 py-2 text-xs outline-none focus:border-brand-500 resize-none h-16 text-white/70 placeholder:text-white/30 transition-colors" placeholder="Masalan: Savdoni 20% ga oshirdim, 10 nafar jamoa boshqardim..." oninput="experiences[${i}].desc=this.value; updateCV()">${ex.desc}</textarea>
+        </div>
+      `}).join('');
+    }
+    
+    function updateExpDate(i) {
+      const start = document.getElementById(`exp_start_${i}`).value;
+      const end = document.getElementById(`exp_end_${i}`).value;
+      experiences[i].date = start && end ? `${start} - ${end}` : (start || end);
+      updateCV();
     }
     function addExp() { experiences.push({ id: Date.now(), title: '', company: '', date: '', desc: '' }); renderExp(); updateCV(); }
     function removeExp(id) { experiences = experiences.filter(x => x.id !== id); renderExp(); updateCV(); }
 
+    // Achievements
+    function renderAch() {
+      document.getElementById('achList').innerHTML = achievements.map((a, i) => `
+        <div class="entry-card p-5 rounded-2xl relative group animate-fade-in">
+          <button class="btn-remove absolute top-3 right-3 w-7 h-7 bg-accent-rose/10 text-accent-rose rounded-lg flex items-center justify-center hover:bg-accent-rose/20 transition-all" onclick="removeAch(${a.id})">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg>
+          </button>
+          <label class="text-[10px] text-white/30 mb-1 block">Yutuq #${i + 1}</label>
+          <textarea class="w-full bg-transparent border-b border-white/10 px-0 py-2 text-sm font-medium outline-none focus:border-accent-amber resize-none h-14 text-white/80 placeholder:text-white/30 transition-colors" placeholder="Masalan: 2023-yilda yilning eng yaxshi xodimi, Savdoni 150% ga oshirdim..." oninput="achievements[${i}].desc=this.value; updateCV()">${a.desc}</textarea>
+        </div>
+      `).join('');
+    }
+    function addAch() { achievements.push({ id: Date.now(), desc: '' }); renderAch(); updateCV(); }
+    function removeAch(id) { achievements = achievements.filter(x => x.id !== id); renderAch(); updateCV(); }
+
+    // Education
     function renderEdu() {
-      document.getElementById('eduList').innerHTML = education.map((ed, i) => `
-                <div class="bg-black/5 dark:bg-white/5 p-4 rounded-2xl relative group">
-                    <button class="absolute top-2 right-2 w-6 h-6 bg-red-500/10 text-red-500 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity" onclick="removeEdu(${ed.id})">×</button>
-                    <input type="text" class="w-full bg-transparent border-b border-black/10 dark:border-white/10 px-0 py-2 text-sm font-bold outline-none mb-1 focus:border-apple-blue" placeholder="Daraja yoki Kurs" value="${ed.title}" oninput="education[${i}].title=this.value; updateCV()">
-                    <div class="flex gap-2 mb-2">
-                        <input type="text" class="w-1/2 bg-transparent border-b border-black/10 dark:border-white/10 px-0 py-2 text-xs outline-none focus:border-apple-blue" placeholder="Oliygoh" value="${ed.company}" oninput="education[${i}].company=this.value; updateCV()">
-                        <input type="text" class="w-1/2 bg-transparent border-b border-black/10 dark:border-white/10 px-0 py-2 text-xs outline-none focus:border-apple-blue" placeholder="Yillar" value="${ed.date}" oninput="education[${i}].date=this.value; updateCV()">
-                    </div>
-                    <textarea class="w-full bg-transparent border-b border-black/10 dark:border-white/10 px-0 py-2 text-xs outline-none focus:border-apple-blue resize-none h-10" placeholder="Ma'lumotlar..." oninput="education[${i}].desc=this.value; updateCV()">${ed.desc}</textarea>
-                </div>
-            `).join('');
-      if (window.SmartAutoFill) SmartAutoFill.initDynamic();
+      document.getElementById('eduList').innerHTML = education.map((ed, i) => {
+        // Yillarni ajratish
+        let startYear = '';
+        let endYear = '';
+        if (ed.date) {
+          const parts = ed.date.split('-').map(p => p.trim());
+          startYear = parts[0] || '';
+          endYear = parts[1] || '';
+        }
+        
+        return `
+        <div class="entry-card p-5 rounded-2xl relative group animate-fade-in">
+          <button class="btn-remove absolute top-3 right-3 w-7 h-7 bg-accent-rose/10 text-accent-rose rounded-lg flex items-center justify-center hover:bg-accent-rose/20 transition-all" onclick="removeEdu(${ed.id})">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg>
+          </button>
+          <label class="text-[10px] text-white/30 mb-1 block">Daraja / Mutaxassislik</label>
+          <input type="text" class="w-full bg-transparent border-b border-white/10 px-0 py-2 text-sm font-bold outline-none mb-3 focus:border-accent-cyan text-white placeholder:text-white/30 transition-colors" placeholder="masalan: bakalavr, kompyuter fanlari" value="${ed.title}" oninput="this.value=capitalize(this.value); education[${i}].title=this.value; updateCV()">
+          <div class="flex gap-3 mb-3">
+            <div class="flex-1">
+              <label class="text-[10px] text-white/30 mb-1 block">Universitet / Maktab</label>
+              <input type="text" class="w-full bg-transparent border-b border-white/10 px-0 py-2 text-xs outline-none focus:border-accent-cyan text-white/80 placeholder:text-white/30 transition-colors" placeholder="masalan: tatu" value="${ed.company}" oninput="this.value=capitalize(this.value); education[${i}].company=this.value; updateCV()">
+            </div>
+            <div class="w-[180px]">
+              <label class="text-[10px] text-white/30 mb-1 block">Yillar</label>
+              <div class="flex items-center gap-2">
+                <select id="edu_start_${i}" onchange="updateEduDate(${i})" class="flex-1 bg-white/5 border border-white/10 rounded-lg px-2 py-2 text-xs outline-none focus:border-accent-cyan text-white/80 cursor-pointer appearance-none text-center" style="min-width:70px;">
+                  ${getYearOptions(startYear, 'Dan')}
+                </select>
+                <span class="text-white/30 text-xs">—</span>
+                <select id="edu_end_${i}" onchange="updateEduDate(${i})" class="flex-1 bg-white/5 border border-white/10 rounded-lg px-2 py-2 text-xs outline-none focus:border-accent-cyan text-white/80 cursor-pointer appearance-none text-center" style="min-width:70px;">
+                  ${getYearOptions(endYear, 'Gacha', true)}
+                </select>
+              </div>
+            </div>
+          </div>
+          <label class="text-[10px] text-white/30 mb-1 block">Qo'shimcha ma'lumot (ixtiyoriy)</label>
+          <textarea class="w-full bg-transparent border-b border-white/10 px-0 py-2 text-xs outline-none focus:border-accent-cyan resize-none h-12 text-white/70 placeholder:text-white/30 transition-colors" placeholder="GPA, mukofotlar, faoliyatlar..." oninput="education[${i}].desc=this.value; updateCV()">${ed.desc}</textarea>
+        </div>
+      `}).join('');
+    }
+    
+    function updateEduDate(i) {
+      const start = document.getElementById(`edu_start_${i}`).value;
+      const end = document.getElementById(`edu_end_${i}`).value;
+      education[i].date = start && end ? `${start} - ${end}` : (start || end);
+      updateCV();
     }
     function addEdu() { education.push({ id: Date.now(), title: '', company: '', date: '', desc: '' }); renderEdu(); updateCV(); }
     function removeEdu(id) { education = education.filter(x => x.id !== id); renderEdu(); updateCV(); }
 
+    // Tools - oson qo'shish
+    function handleToolInput(e) {
+      const val = e.target.value;
+      const lastChar = val.slice(-1);
+      
+      // Vergul, nuqta yoki ikki probel bilan ajratish
+      if (lastChar === ',' || lastChar === '.' || val.endsWith('  ')) {
+        let tool = val.replace(/[,.\s]+$/, '').trim();
+        tool = capitalize(tool); // Katta harf
+        if (tool && !tools.includes(tool)) {
+          tools.push(tool);
+          renderToolsInput();
+          updateCV();
+        }
+        e.target.value = '';
+      }
+    }
+    
+    function handleToolKey(e) {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        addToolFromInput();
+      }
+    }
+    
+    function addToolFromInput() {
+      const input = document.getElementById('toolInput');
+      let tool = input.value.replace(/[,.\s]+$/, '').trim();
+      tool = capitalize(tool); // Katta harf
+      if (tool && !tools.includes(tool)) {
+        tools.push(tool);
+        renderToolsInput();
+        updateCV();
+      }
+      input.value = '';
+      input.focus();
+    }
+
+    // Tools render
+    function renderToolsInput() {
+      document.getElementById('toolsWrap').innerHTML = tools.map((t, i) => `
+        <div class="px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-2 cursor-default animate-fade-in" style="background: linear-gradient(135deg, rgba(6, 182, 212, 0.15), rgba(6, 182, 212, 0.05)); border: 1px solid rgba(6, 182, 212, 0.3); color: #67e8f9;">
+          ${t}
+          <span class="text-accent-rose/80 hover:text-accent-rose cursor-pointer text-[10px] transition-colors" onclick="removeTool(${i})">✕</span>
+        </div>
+      `).join('');
+    }
+    function removeTool(i) { tools.splice(i, 1); renderToolsInput(); updateCV(); }
+
     // Initialize lists
-    document.getElementById('userAvatarBox') && (document.getElementById('userAvatarBox').innerHTML = `<img src="${avatarUrl}" class="w-full h-full object-cover">`);
     renderExp();
+    renderAch();
     renderEdu();
     renderSkillsInput();
+    renderToolsInput();
 
     function v(id) { return (document.getElementById(id).value || '').trim(); }
 
@@ -1063,223 +1745,250 @@
       };
 
       const expHtml = experiences.map(e => `
-                <div class="item-row">
-                    <div class="item-head">
-                        <span class="item-title">${e.title}</span>
-                        <span class="item-date">${e.date}</span>
-                    </div>
-                    ${e.company ? `<div class="item-sub">${e.company}</div>` : ''}
-                    ${e.desc ? `<div class="item-desc">${e.desc}</div>` : ''}
-                </div>
-            `).join('');
+        <div class="item-row">
+          <div class="item-head">
+            <span class="item-title">${e.title}</span>
+            <span class="item-date">${e.date}</span>
+          </div>
+          ${e.company ? `<div class="item-sub">${e.company}</div>` : ''}
+          ${e.desc ? `<div class="item-desc">${e.desc}</div>` : ''}
+        </div>
+      `).join('');
 
       const eduHtml = education.map(e => `
-                <div class="item-row">
-                    <div class="item-head">
-                        <span class="item-title">${e.title}</span>
-                        <span class="item-date">${e.date}</span>
-                    </div>
-                    ${e.company ? `<div class="item-sub">${e.company}</div>` : ''}
-                    ${e.desc ? `<div class="item-desc">${e.desc}</div>` : ''}
-                </div>
-            `).join('');
+        <div class="item-row">
+          <div class="item-head">
+            <span class="item-title">${e.title}</span>
+            <span class="item-date">${e.date}</span>
+          </div>
+          ${e.company ? `<div class="item-sub">${e.company}</div>` : ''}
+          ${e.desc ? `<div class="item-desc">${e.desc}</div>` : ''}
+        </div>
+      `).join('');
+
+      const achHtml = achievements.map(a => `
+        <div class="item-desc" style="margin-bottom:8px; display:flex; gap:6px;">
+          <span style="color:#0f172a; font-weight:800;">&bull;</span>
+          <span>${a.desc}</span>
+        </div>
+      `).join('');
 
       const skillsHtml = skills.map(s => `<span class="badge">${s}</span>`).join('');
+      const toolsHtml = tools.map(t => `<span class="badge" style="background:#e0e7ff; color:#3730a3;">${t}</span>`).join('');
+      
       const box = document.getElementById('cv-box');
 
       if (activeTpl === 'minimal') {
         box.className = 'cv-canvas tpl-minimal';
         box.innerHTML = `
-                    <div class="header">
-                        <img src="${data.img}" class="avatar">
-                        <div>
-                            <div class="name">${data.name}</div>
-                            <div class="role">${data.role}</div>
-                            <div class="contact-wrap">
-                                ${data.phone ? `<span>📞 ${data.phone}</span>` : ''}
-                                ${data.email ? `<span>| &nbsp; 📧 ${data.email}</span>` : ''}
-                                ${data.loc ? `<span>| &nbsp; 📍 ${data.loc}</span>` : ''}
-                            </div>
-                        </div>
-                    </div>
-                    
-                    ${data.about ? `<div class="section"><div class="sec-title">${I18n.t('cv_about')}</div><div class="text">${data.about}</div></div>` : ''}
-                    
-                    ${experiences.length ? `<div class="section"><div class="sec-title">${I18n.t('cv_experience')}</div>${expHtml}</div>` : ''}
-                    
-                    ${education.length ? `<div class="section"><div class="sec-title">${I18n.t('cv_education')}</div>${eduHtml}</div>` : ''}
-                    
-                    ${skills.length ? `<div class="section"><div class="sec-title">${I18n.t('cv_skills')}</div><div class="badges-wrap">${skillsHtml}</div></div>` : ''}
-                `;
+          <div class="header">
+            <img src="${data.img}" class="avatar">
+            <div>
+              <div class="name">${data.name}</div>
+              <div class="role">${data.role}</div>
+              <div class="contact-wrap">
+                ${data.phone ? `<span>📞 ${data.phone}</span>` : ''}
+                ${data.email ? `<span>| &nbsp; 📧 ${data.email}</span>` : ''}
+                ${data.loc ? `<span>| &nbsp; 📍 ${data.loc}</span>` : ''}
+              </div>
+            </div>
+          </div>
+          
+          ${data.about ? `<div class="section"><div class="sec-title">${I18n.t('cv_about')}</div><div class="text">${data.about}</div></div>` : ''}
+          
+          ${skills.length ? `<div class="section"><div class="sec-title">Core Skills</div><div class="badges-wrap">${skillsHtml}</div></div>` : ''}
+          
+          ${experiences.length ? `<div class="section"><div class="sec-title">${I18n.t('cv_experience')}</div>${expHtml}</div>` : ''}
+          
+          ${achievements.length ? `<div class="section"><div class="sec-title">Key Achievements</div><div>${achHtml}</div></div>` : ''}
+          
+          ${education.length ? `<div class="section"><div class="sec-title">${I18n.t('cv_education')}</div>${eduHtml}</div>` : ''}
+          
+          ${tools.length ? `<div class="section"><div class="sec-title">Tools & Technologies</div><div class="badges-wrap">${toolsHtml}</div></div>` : ''}
+        `;
       } else if (activeTpl === 'split') {
         box.className = 'cv-canvas tpl-split';
         box.innerHTML = `
-                    <div class="sidebar">
-                        <img src="${data.img}" class="avatar">
-                        
-                        <div class="section">
-                            <div class="sec-title-side">${I18n.t('cv_contact')}</div>
-                            ${data.phone ? `<div class="contact-item">📞 ${data.phone}</div>` : ''}
-                            ${data.email ? `<div class="contact-item">📧 ${data.email}</div>` : ''}
-                            ${data.loc ? `<div class="contact-item">📍 ${data.loc}</div>` : ''}
-                        </div>
-                        
-                        ${skills.length ? `<div class="section"><div class="sec-title-side">${I18n.t('cv_skills')}</div><div class="badges-wrap" style="color:#000">${skillsHtml}</div></div>` : ''}
-                    </div>
-                    <div class="main">
-                        <div class="name">${data.name}</div>
-                        <div class="role">${data.role}</div>
+          <div class="sidebar">
+            <img src="${data.img}" class="avatar">
+            
+            <div class="section">
+              <div class="sec-title-side">${I18n.t('cv_contact')}</div>
+              ${data.phone ? `<div class="contact-item">📞 ${data.phone}</div>` : ''}
+              ${data.email ? `<div class="contact-item">📧 ${data.email}</div>` : ''}
+              ${data.loc ? `<div class="contact-item">📍 ${data.loc}</div>` : ''}
+            </div>
+            
+            ${skills.length ? `<div class="section"><div class="sec-title-side">Core Skills</div><div class="badges-wrap" style="color:#000">${skillsHtml}</div></div>` : ''}
+            ${tools.length ? `<div class="section"><div class="sec-title-side">Tools & Tech</div><div class="badges-wrap" style="color:#000">${toolsHtml}</div></div>` : ''}
+          </div>
+          <div class="main">
+            <div class="name">${data.name}</div>
+            <div class="role">${data.role}</div>
 
-                        ${data.about ? `<div class="section"><div class="sec-title-main">${I18n.t('cv_about')}</div><div class="text">${data.about}</div></div>` : ''}
-                        ${experiences.length ? `<div class="section"><div class="sec-title-main">${I18n.t('cv_experience')}</div>${expHtml}</div>` : ''}
-                        ${education.length ? `<div class="section"><div class="sec-title-main">${I18n.t('cv_education')}</div>${eduHtml}</div>` : ''}
-                    </div>
-                `;
+            ${data.about ? `<div class="section"><div class="sec-title-main">${I18n.t('cv_about')}</div><div class="text">${data.about}</div></div>` : ''}
+            ${experiences.length ? `<div class="section"><div class="sec-title-main">${I18n.t('cv_experience')}</div>${expHtml}</div>` : ''}
+            ${achievements.length ? `<div class="section"><div class="sec-title-main">Key Achievements</div><div>${achHtml}</div></div>` : ''}
+            ${education.length ? `<div class="section"><div class="sec-title-main">${I18n.t('cv_education')}</div>${eduHtml}</div>` : ''}
+          </div>
+        `;
       } else if (activeTpl === 'modern') {
         box.className = 'cv-canvas tpl-modern';
         box.innerHTML = `
-                    <div class="header">
-                        <img src="${data.img}" class="avatar">
-                        <div class="header-info">
-                            <div class="name">${data.name}</div>
-                            <div class="role">${data.role}</div>
-                            <div class="contact">
-                                <div>📞 ${data.phone} &nbsp; | &nbsp; 📧 ${data.email}</div>
-                                <div>📍 ${data.loc}</div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="body">
-                        <div class="col-main">
-                            ${data.about ? `<div class="section"><div class="sec-title">${I18n.t('cv_about')}</div><div class="text">${data.about}</div></div>` : ''}
-                            ${experiences.length ? `<div class="section"><div class="sec-title">${I18n.t('cv_experience')}</div>${expHtml}</div>` : ''}
-                        </div>
-                        <div class="col-side">
-                            ${education.length ? `<div class="section"><div class="sec-title">${I18n.t('cv_education')}</div>${eduHtml}</div>` : ''}
-                            ${skills.length ? `<div class="section"><div class="sec-title">${I18n.t('cv_skills')}</div><div class="badges-wrap">${skillsHtml}</div></div>` : ''}
-                        </div>
-                    </div>
-                `;
+          <div class="header">
+            <img src="${data.img}" class="avatar">
+            <div class="header-info">
+              <div class="name">${data.name}</div>
+              <div class="role">${data.role}</div>
+              <div class="contact">
+                <div>📞 ${data.phone} &nbsp; | &nbsp; 📧 ${data.email}</div>
+                <div>📍 ${data.loc}</div>
+              </div>
+            </div>
+          </div>
+          <div class="body">
+            <div class="col-main">
+              ${data.about ? `<div class="section"><div class="sec-title">${I18n.t('cv_about')}</div><div class="text">${data.about}</div></div>` : ''}
+              ${experiences.length ? `<div class="section"><div class="sec-title">${I18n.t('cv_experience')}</div>${expHtml}</div>` : ''}
+              ${achievements.length ? `<div class="section"><div class="sec-title">Key Achievements</div><div>${achHtml}</div></div>` : ''}
+            </div>
+            <div class="col-side">
+              ${skills.length ? `<div class="section"><div class="sec-title">Core Skills</div><div class="badges-wrap">${skillsHtml}</div></div>` : ''}
+              ${education.length ? `<div class="section"><div class="sec-title">${I18n.t('cv_education')}</div>${eduHtml}</div>` : ''}
+              ${tools.length ? `<div class="section"><div class="sec-title">Tools</div><div class="badges-wrap">${toolsHtml}</div></div>` : ''}
+            </div>
+          </div>
+        `;
       } else if (activeTpl === 'ats') {
         box.className = 'cv-canvas tpl-ats';
         box.innerHTML = `
-            <div class="header">
-                <div class="name">${data.name}</div>
-                <div class="role">${data.role}</div>
-                <div class="contact-wrap">
-                    ${data.phone ? `<span>📞 ${data.phone}</span>` : ''}
-                    ${data.email ? `<span>📧 ${data.email}</span>` : ''}
-                    ${data.loc ? `<span>📍 ${data.loc}</span>` : ''}
-                </div>
+          <div class="header">
+            <div class="name">${data.name}</div>
+            <div class="role">${data.role}</div>
+            <div class="contact-wrap">
+              ${data.phone ? `<span>📞 ${data.phone}</span>` : ''}
+              ${data.email ? `<span>📧 ${data.email}</span>` : ''}
+              ${data.loc ? `<span>📍 ${data.loc}</span>` : ''}
             </div>
-            ${data.about ? `<div class="section"><div class="sec-title">${I18n.t('cv_about')}</div><div class="text">${data.about}</div></div>` : ''}
-            ${experiences.length ? `<div class="section"><div class="sec-title">${I18n.t('cv_experience')}</div>${expHtml}</div>` : ''}
-            ${education.length ? `<div class="section"><div class="sec-title">${I18n.t('cv_education')}</div>${eduHtml}</div>` : ''}
-            ${skills.length ? `<div class="section"><div class="sec-title">${I18n.t('cv_skills')}</div><div style="font-size:10pt;">${skills.map(s => s).join(', ')}</div></div>` : ''}
+          </div>
+          ${data.about ? `<div class="section"><div class="sec-title">${I18n.t('cv_about')}</div><div class="text">${data.about}</div></div>` : ''}
+          ${skills.length ? `<div class="section"><div class="sec-title">Core Skills</div><div style="font-size:10pt;">${skills.join(', ')}</div></div>` : ''}
+          ${experiences.length ? `<div class="section"><div class="sec-title">${I18n.t('cv_experience')}</div>${expHtml}</div>` : ''}
+          ${achievements.length ? `<div class="section"><div class="sec-title">Key Achievements</div><div>${achHtml}</div></div>` : ''}
+          ${education.length ? `<div class="section"><div class="sec-title">${I18n.t('cv_education')}</div>${eduHtml}</div>` : ''}
+          ${tools.length ? `<div class="section"><div class="sec-title">Tools & Technologies</div><div style="font-size:10pt;">${tools.join(', ')}</div></div>` : ''}
         `;
       } else if (activeTpl === 'elegant') {
         box.className = 'cv-canvas tpl-elegant';
         box.innerHTML = `
-            <div class="header">
-                <div class="name">${data.name}</div>
-                <div class="role">${data.role}</div>
-                <div class="contact-wrap">
-                    ${data.phone ? `<span>${data.phone}</span> ` : ''}
-                    ${data.email ? `<span> | ${data.email}</span> ` : ''}
-                    ${data.loc ? `<span> | ${data.loc}</span>` : ''}
-                </div>
+          <div class="header">
+            <div class="name">${data.name}</div>
+            <div class="role">${data.role}</div>
+            <div class="contact-wrap">
+              ${data.phone ? `<span>${data.phone}</span> ` : ''}
+              ${data.email ? `<span> | ${data.email}</span> ` : ''}
+              ${data.loc ? `<span> | ${data.loc}</span>` : ''}
             </div>
-            <div class="body-cols">
-                <div class="col-main">
-                    ${data.about ? `<div class="section"><div class="sec-title">${I18n.t('cv_about')}</div><div class="text">${data.about}</div></div>` : ''}
-                    ${experiences.length ? `<div class="section"><div class="sec-title">${I18n.t('cv_experience')}</div>${expHtml}</div>` : ''}
-                </div>
-                <div class="col-side">
-                    ${education.length ? `<div class="section"><div class="sec-title">${I18n.t('cv_education')}</div>${eduHtml}</div>` : ''}
-                    ${skills.length ? `<div class="section"><div class="sec-title">${I18n.t('cv_skills')}</div><div class="badges-wrap">${skillsHtml}</div></div>` : ''}
-                </div>
+          </div>
+          <div class="body-cols">
+            <div class="col-main">
+              ${data.about ? `<div class="section"><div class="sec-title">${I18n.t('cv_about')}</div><div class="text">${data.about}</div></div>` : ''}
+              ${experiences.length ? `<div class="section"><div class="sec-title">${I18n.t('cv_experience')}</div>${expHtml}</div>` : ''}
+              ${achievements.length ? `<div class="section"><div class="sec-title">Key Achievements</div><div>${achHtml}</div></div>` : ''}
             </div>
+            <div class="col-side">
+              ${skills.length ? `<div class="section"><div class="sec-title">Core Skills</div><div class="badges-wrap">${skillsHtml}</div></div>` : ''}
+              ${education.length ? `<div class="section"><div class="sec-title">${I18n.t('cv_education')}</div>${eduHtml}</div>` : ''}
+              ${tools.length ? `<div class="section"><div class="sec-title">Tools</div><div class="badges-wrap">${toolsHtml}</div></div>` : ''}
+            </div>
+          </div>
         `;
       } else if (activeTpl === 'corporate') {
         box.className = 'cv-canvas tpl-corporate';
         box.innerHTML = `
-            <div class="header">
-                <div>
-                   <div class="name">${data.name}</div>
-                   <div class="role">${data.role}</div>
-                </div>
-                <div class="contact-wrap">
-                   ${data.phone ? `<div>${data.phone}</div>` : ''}
-                   ${data.email ? `<div>${data.email}</div>` : ''}
-                   ${data.loc ? `<div>${data.loc}</div>` : ''}
-                </div>
+          <div class="header">
+            <div>
+               <div class="name">${data.name}</div>
+               <div class="role">${data.role}</div>
             </div>
-            <div class="body-cols">
-                <div class="col-main">
-                    ${data.about ? `<div class="section"><div class="sec-title">${I18n.t('cv_about')}</div><div class="text">${data.about}</div></div>` : ''}
-                    ${experiences.length ? `<div class="section"><div class="sec-title">${I18n.t('cv_experience')}</div>${expHtml}</div>` : ''}
-                </div>
-                <div class="col-side">
-                    ${education.length ? `<div class="section"><div class="sec-title">${I18n.t('cv_education')}</div>${eduHtml}</div>` : ''}
-                    ${skills.length ? `<div class="section"><div class="sec-title">${I18n.t('cv_skills')}</div><div class="badges-wrap" style="color:#000">${skillsHtml}</div></div>` : ''}
-                </div>
+            <div class="contact-wrap">
+               ${data.phone ? `<div>${data.phone}</div>` : ''}
+               ${data.email ? `<div>${data.email}</div>` : ''}
+               ${data.loc ? `<div>${data.loc}</div>` : ''}
             </div>
+          </div>
+          <div class="body-cols">
+            <div class="col-main">
+              ${data.about ? `<div class="section"><div class="sec-title">${I18n.t('cv_about')}</div><div class="text">${data.about}</div></div>` : ''}
+              ${experiences.length ? `<div class="section"><div class="sec-title">${I18n.t('cv_experience')}</div>${expHtml}</div>` : ''}
+              ${achievements.length ? `<div class="section"><div class="sec-title">Key Achievements</div><div>${achHtml}</div></div>` : ''}
+            </div>
+            <div class="col-side">
+              ${skills.length ? `<div class="section"><div class="sec-title">Core Skills</div><div class="badges-wrap" style="color:#000">${skillsHtml}</div></div>` : ''}
+              ${education.length ? `<div class="section"><div class="sec-title">${I18n.t('cv_education')}</div>${eduHtml}</div>` : ''}
+              ${tools.length ? `<div class="section"><div class="sec-title">Tools</div><div class="badges-wrap" style="color:#000">${toolsHtml}</div></div>` : ''}
+            </div>
+          </div>
         `;
       } else if (activeTpl === 'creative') {
         box.className = 'cv-canvas tpl-creative';
         box.innerHTML = `
-            <div class="left">
-                <img src="${data.img}" class="avatar">
-                <div class="name">${data.name}</div>
-                <div class="role">${data.role}</div>
-                
-                <div class="section">
-                    <div class="sec-title sec-title-left">${I18n.t('cv_contact')}</div>
-                    ${data.phone ? `<div class="contact-item">📞 ${data.phone}</div>` : ''}
-                    ${data.email ? `<div class="contact-item">📧 ${data.email}</div>` : ''}
-                    ${data.loc ? `<div class="contact-item">📍 ${data.loc}</div>` : ''}
-                </div>
-                
-                ${skills.length ? `<div class="section"><div class="sec-title sec-title-left">${I18n.t('cv_skills')}</div><div class="badges-wrap" style="color:#000">${skillsHtml}</div></div>` : ''}
+          <div class="left">
+            <img src="${data.img}" class="avatar">
+            <div class="name">${data.name}</div>
+            <div class="role">${data.role}</div>
+            
+            <div class="section">
+              <div class="sec-title sec-title-left">${I18n.t('cv_contact')}</div>
+              ${data.phone ? `<div class="contact-item">📞 ${data.phone}</div>` : ''}
+              ${data.email ? `<div class="contact-item">📧 ${data.email}</div>` : ''}
+              ${data.loc ? `<div class="contact-item">📍 ${data.loc}</div>` : ''}
             </div>
-            <div class="right">
-                ${data.about ? `<div class="section"><div class="sec-title">${I18n.t('cv_about')}</div><div class="text">${data.about}</div></div>` : ''}
-                ${experiences.length ? `<div class="section"><div class="sec-title">${I18n.t('cv_experience')}</div>${expHtml}</div>` : ''}
-                ${education.length ? `<div class="section"><div class="sec-title">${I18n.t('cv_education')}</div>${eduHtml}</div>` : ''}
-            </div>
+            
+            ${skills.length ? `<div class="section"><div class="sec-title sec-title-left">Core Skills</div><div class="badges-wrap" style="color:#000">${skillsHtml}</div></div>` : ''}
+            ${tools.length ? `<div class="section"><div class="sec-title sec-title-left">Tools & Tech</div><div class="badges-wrap" style="color:#000">${toolsHtml}</div></div>` : ''}
+          </div>
+          <div class="right">
+            ${data.about ? `<div class="section"><div class="sec-title">${I18n.t('cv_about')}</div><div class="text">${data.about}</div></div>` : ''}
+            ${experiences.length ? `<div class="section"><div class="sec-title">${I18n.t('cv_experience')}</div>${expHtml}</div>` : ''}
+            ${achievements.length ? `<div class="section"><div class="sec-title">Key Achievements</div><div>${achHtml}</div></div>` : ''}
+            ${education.length ? `<div class="section"><div class="sec-title">${I18n.t('cv_education')}</div>${eduHtml}</div>` : ''}
+          </div>
         `;
       } else if (activeTpl === 'prof') {
         box.className = 'cv-canvas tpl-prof';
         const [firstName, ...lastName] = data.name.split(' ');
         const nameHtml = lastName.length ? `<strong>${firstName}</strong> ${lastName.join(' ')}` : `<strong>${firstName}</strong>`;
         box.innerHTML = `
-            <div class="left-strip"></div>
-            <div class="content">
-                <div class="header">
-                    <img src="${data.img}" class="avatar" style="width: 35mm; height: 35mm; border-radius: 5px; object-fit: cover;">
-                    <div>
-                        <div class="name">${nameHtml}</div>
-                        <div class="role">${data.role}</div>
-                        <div class="contact-wrap">
-                            ${data.phone ? `<span>${data.phone}</span>` : ''}
-                            ${data.email ? `<span>&bull; ${data.email}</span>` : ''}
-                            ${data.loc ? `<span>&bull; ${data.loc}</span>` : ''}
-                        </div>
-                    </div>
+          <div class="left-strip"></div>
+          <div class="content">
+            <div class="header">
+              <img src="${data.img}" class="avatar" style="width: 35mm; height: 35mm; border-radius: 5px; object-fit: cover;">
+              <div>
+                <div class="name">${nameHtml}</div>
+                <div class="role">${data.role}</div>
+                <div class="contact-wrap">
+                  ${data.phone ? `<span>${data.phone}</span>` : ''}
+                  ${data.email ? `<span>&bull; ${data.email}</span>` : ''}
+                  ${data.loc ? `<span>&bull; ${data.loc}</span>` : ''}
                 </div>
-                
-                ${data.about ? `<div class="section"><div class="sec-title">${I18n.t('cv_about')}</div><div class="text">${data.about}</div></div>` : ''}
-                
-                <div style="display:flex; gap: 30px;">
-                    <div style="flex:2">
-                        ${experiences.length ? `<div class="section"><div class="sec-title">${I18n.t('cv_experience')}</div>${expHtml}</div>` : ''}
-                    </div>
-                    <div style="flex:1">
-                        ${education.length ? `<div class="section"><div class="sec-title">${I18n.t('cv_education')}</div>${eduHtml}</div>` : ''}
-                        ${skills.length ? `<div class="section"><div class="sec-title">${I18n.t('cv_skills')}</div><div class="badges-wrap">${skillsHtml}</div></div>` : ''}
-                    </div>
-                </div>
+              </div>
             </div>
+            
+            ${data.about ? `<div class="section"><div class="sec-title">${I18n.t('cv_about')}</div><div class="text">${data.about}</div></div>` : ''}
+            
+            <div style="display:flex; gap: 30px;">
+              <div style="flex:2">
+                ${experiences.length ? `<div class="section"><div class="sec-title">${I18n.t('cv_experience')}</div>${expHtml}</div>` : ''}
+                ${achievements.length ? `<div class="section"><div class="sec-title">Key Achievements</div><div>${achHtml}</div></div>` : ''}
+              </div>
+              <div style="flex:1">
+                ${skills.length ? `<div class="section"><div class="sec-title">Core Skills</div><div class="badges-wrap">${skillsHtml}</div></div>` : ''}
+                ${education.length ? `<div class="section"><div class="sec-title">${I18n.t('cv_education')}</div>${eduHtml}</div>` : ''}
+                ${tools.length ? `<div class="section"><div class="sec-title">Tools</div><div class="badges-wrap">${toolsHtml}</div></div>` : ''}
+              </div>
+            </div>
+          </div>
         `;
       }
       autoScale();
@@ -1291,7 +2000,7 @@
       if (pane.classList.contains('hidden')) return;
 
       let pw = pane.clientWidth;
-      if (!mobilePreview) pw -= 64;
+      if (!mobilePreview) pw -= 80;
 
       const natW = 793;
       const scale = Math.min(pw / natW, 1.2);
@@ -1309,216 +2018,50 @@
       updateCV();
     }, 100);
 
-    window.addEventListener('i18n:change', updateCV);
-
-    // ── Telegram upload helper ─────────────────────────────────────────
-    function uploadToTelegram(blob, filename) {
-      const tgId = DastyorAI.getTelegramId();
-      if (!tgId) return;
-      const formData = new FormData();
-      formData.append('file', blob, filename);
-      formData.append('telegram_id', tgId);
-      if (DastyorAI.getToken()) formData.append('token', DastyorAI.getToken());
-      fetch(DastyorAI.BASE + '/api/upload_to_telegram', { method: 'POST', body: formData })
-        .catch(err => console.error("Tg upload err:", err));
-    }
-
-    // ── Telegram delivery toast ────────────────────────────────────────
-    function _showTelegramToast(msg) {
-      let t = document.getElementById('_tg_toast');
-      if (!t) {
-        t = document.createElement('div');
-        t.id = '_tg_toast';
-        t.style.cssText = 'position:fixed;bottom:88px;left:50%;transform:translateX(-50%);'
-          + 'background:#30D158;color:#fff;font-weight:700;font-size:13px;padding:10px 20px;'
-          + 'border-radius:999px;box-shadow:0 8px 24px rgba(0,0,0,.25);z-index:9999;'
-          + 'white-space:nowrap;transition:opacity .4s ease';
-        document.body.appendChild(t);
-      }
+    // Toast
+    function showToast(msg, type = 'success') {
+      const t = document.getElementById('_tg_toast');
       t.textContent = msg;
-      t.style.opacity = '1';
-      clearTimeout(t._hideTimer);
-      t._hideTimer = setTimeout(() => { t.style.opacity = '0'; }, 4000);
+      t.style.background = type === 'success' 
+        ? 'linear-gradient(135deg, #10b981, #059669)' 
+        : 'linear-gradient(135deg, #f43f5e, #e11d48)';
+      t.classList.add('show');
+      setTimeout(() => t.classList.remove('show'), 3500);
     }
 
-    // ── _collectCVData() — forma ma'lumotlarini to'playdi ────────────
-    function _collectCVData(format) {
-      const get = id => (document.getElementById(id)?.value || '').trim();
-      // Build works array from JS state (already has {title, company, date, desc})
-      const worksArr = experiences.map(e => ({
-        title: e.title, company: e.company, date: e.date, desc: e.desc
-      }));
-      const eduArr = education.map(e => ({
-        title: e.title, company: e.company, date: e.date, desc: e.desc
-      }));
-      return {
-        format: format,
-        lang: I18n.getLang(),
-        telegram_id: DastyorAI.getTelegramId() ? parseInt(DastyorAI.getTelegramId()) : null,
-        token: DastyorAI.getToken() || null,
-        name: get('f_name'),
-        // 'role' field in form is f_role; backend expects 'spec' as role alias
-        spec: get('f_role'),
-        role: get('f_role'),
-        phone: get('f_phone'),
-        email: get('f_email'),
-        loc: get('f_loc'),
-        about: get('f_about'),
-        template: activeTpl || 'minimal',
-        skills: skills.join('\n'),
-        works: worksArr,
-        education_list: eduArr,
-        img: avatarUrl || '',
-      };
-    }
-
-    // ── Detect Telegram Mini App environment ──────────────────────────
-    function _isTgWebApp() {
-      return !!(window.Telegram?.WebApp?.initData);
-    }
-
-    // ── exportPDF() — Server-side, pixel-perfect PDF ───────────────────
+    // Export PDF (client-side fallback)
     async function exportPDF() {
       const btn = document.getElementById('btnPdf');
       const originalHtml = btn.innerHTML;
-      btn.innerHTML = I18n.t('status_processing') || '⏳ Kutmoqda...';
+      btn.innerHTML = '<svg class="animate-spin h-4 w-4 mr-2" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg> Yuklanmoqda...';
       btn.disabled = true;
 
-      const inTelegram = _isTgWebApp();
-      const safeName = (_collectCVData('pdf').name || 'CV').replace(/\s+/g, '_');
-      const filename = `DASTYOR_CV_${safeName}_@DastyorAiBot.pdf`;
+      const safeName = (v('f_name') || 'CV').replace(/\s+/g, '_');
+      const filename = `DASTYOR_CV_${safeName}.pdf`;
 
       try {
-        const res = await fetch(DastyorAI.BASE + '/api/export_cv', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(_collectCVData('pdf')),
-        });
-
-        if (!res.ok) throw new Error('Server xatosi: ' + res.status);
-
-        if (inTelegram) {
-          // Inside Telegram Mini App: backend already sends via bot — skip browser download.
-          // Just consume the response body to not block the connection.
-          await res.arrayBuffer();
-          _showTelegramToast('✅ PDF Telegram chatga yuborildi!');
-        } else {
-          // Normal browser: trigger download.
-          const blob = await res.blob();
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = filename;
-          document.body.appendChild(a);
-          a.click();
-          setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 2000);
-          _showTelegramToast('✅ PDF saqlandi!');
-        }
+        const el = document.getElementById('cv-box');
+        document.getElementById('previewScaleWrapper').style.transform = 'none';
+        
+        await html2pdf().set({
+          margin: 0,
+          filename,
+          image: { type: 'jpeg', quality: 1.0 },
+          html2canvas: { scale: 3, useCORS: true },
+          jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        }).from(el).save();
+        
+        showToast('✅ PDF muvaffaqiyatli saqlandi!');
       } catch (err) {
-        console.error('exportPDF server error:', err);
-        if (!inTelegram) {
-          // Fallback only makes sense outside Telegram (html2pdf.js needs DOM render)
-          _exportPDFClientSide(filename, btn, originalHtml);
-          return;
-        } else {
-          _showTelegramToast('❌ Xatolik yuz berdi. Qayta urinib ko\'ring.');
-        }
+        console.error('PDF export error:', err);
+        showToast('❌ Xatolik yuz berdi', 'error');
       }
 
       autoScale();
       btn.innerHTML = originalHtml;
       btn.disabled = false;
     }
-
-    // Fallback: old client-side export using html2pdf.js
-    function _exportPDFClientSide(filename, btn, originalHtml) {
-      const el = document.getElementById('cv-box');
-      document.getElementById('previewScaleWrapper').style.transform = 'none';
-      html2pdf().set({
-        margin: 0, filename,
-        image: { type: 'jpeg', quality: 1.0 },
-        html2canvas: { scale: 3, useCORS: true },
-        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-      }).from(el).outputPdf('blob').then(blob => {
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url; a.download = filename;
-        document.body.appendChild(a); a.click();
-        setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 2000);
-        uploadToTelegram(blob, filename);
-        autoScale();
-        btn.innerHTML = originalHtml;
-        btn.disabled = false;
-      }).catch(err => {
-        console.error(err);
-        btn.innerHTML = originalHtml;
-        btn.disabled = false;
-      });
-    }
-
-    // ── exportWord() — Server-side, pixel-perfect Word ─────────────────
-    async function exportWord() {
-      const inTelegram = _isTgWebApp();
-      const btn = document.querySelector('button[onclick="exportWord()"]');
-      if (btn) { btn.disabled = true; btn.innerHTML = I18n.t('status_processing') || '⏳ Kutmoqda...'; }
-
-      const safeName = (_collectCVData('word').name || 'CV').replace(/\s+/g, '_');
-      const filename = `DASTYOR_CV_${safeName}_@DastyorAiBot.doc`;
-
-      try {
-        const res = await fetch(DastyorAI.BASE + '/api/export_cv', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(_collectCVData('word')),
-        });
-
-        if (!res.ok) throw new Error('Server xatosi: ' + res.status);
-
-        if (inTelegram) {
-          await res.arrayBuffer();
-          _showTelegramToast('✅ Word fayl Telegram chatga yuborildi!');
-        } else {
-          const blob = await res.blob();
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = filename;
-          document.body.appendChild(a);
-          a.click();
-          setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 2000);
-          _showTelegramToast('✅ Word saqlandi!');
-        }
-      } catch (err) {
-        console.error('exportWord server error:', err);
-        if (!inTelegram) _exportWordClientSide(filename);
-        else _showTelegramToast('❌ Xatolik yuz berdi. Qayta urinib ko\'ring.');
-      }
-
-      if (btn) { btn.disabled = false; btn.innerHTML = '📄 Word'; }
-    }
-
-    // Fallback: old client-side Word blob export
-    function _exportWordClientSide(filename) {
-      const rawHtml = document.getElementById('cv-box').outerHTML;
-      const styles = document.querySelector('style').innerHTML;
-      const docHTML = `<html xmlns:o='urn:schemas-microsoft-com:office:office'
-        xmlns:w='urn:schemas-microsoft-com:office:word'
-        xmlns='http://www.w3.org/TR/REC-html40'>
-        <head><meta charset='utf-8'><title>${filename}</title>
-        <style>@page WordSection1{size:210mm 297mm;margin:15mm;}div.WordSection1{page:WordSection1;}${styles}</style>
-        </head><body><div class="WordSection1">${rawHtml}</div></body></html>`;
-      const blob = new Blob(['\ufeff', docHTML], { type: 'application/msword' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url; a.download = filename;
-      document.body.appendChild(a); a.click();
-      setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 2000);
-      uploadToTelegram(blob, filename);
-    }
-
   </script>
-  <!-- Smart Auto-Fill System -->
-  <script src="smart-autofill.js"></script>
 </body>
 
 </html>

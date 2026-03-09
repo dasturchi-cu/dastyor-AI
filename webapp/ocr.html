@@ -5,18 +5,13 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>Rasm → Word | DASTYOR AI</title>
-    <!-- 1. Theme init FIRST — prevents flash of wrong theme -->
-    <script src="theme-init.js"></script>
-    <!-- 2. Telegram SDK -->
+    
+    <!-- Premium Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Sora:wght@400;600;700;800&display=swap" rel="stylesheet" />
+    
+    <!-- Telegram SDK -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <!-- 3. i18n — til saqlanishi uchun -->
-    <script src="i18n.js"></script>
-    <!-- 4. Global theme tokens -->
-    <link rel="stylesheet" href="theme.css">
-    <link
-        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Outfit:wght@500;600;700;800&display=swap"
-        rel="stylesheet" />
-
+    
     <!-- Tailwind -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -25,24 +20,18 @@
             theme: {
                 extend: {
                     fontFamily: {
-                        sans: ['Inter', 'sans-serif'],
-                        display: ['Outfit', 'sans-serif'],
+                        sans: ['Plus Jakarta Sans', 'sans-serif'],
+                        display: ['Sora', 'sans-serif'],
                     },
                     colors: {
-                        apple: {
+                        brand: { 400: '#818cf8', 500: '#636cf1', 600: '#4f46e5' },
+                        accent: {
                             blue: '#0A84FF',
-                            green: '#30D158',
-                            orange: '#FF9F0A',
-                            purple: '#BF5AF2',
-                        }
-                    },
-                    animation: {
-                        'slide-up': 'slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards',
-                    },
-                    keyframes: {
-                        slideUp: {
-                            '0%': { opacity: '0', transform: 'translateY(16px)' },
-                            '100%': { opacity: '1', transform: 'translateY(0)' },
+                            green: '#10b981',
+                            orange: '#f59e0b',
+                            purple: '#a855f7',
+                            cyan: '#06b6d4',
+                            rose: '#f43f5e',
                         }
                     }
                 }
@@ -51,166 +40,250 @@
     </script>
 
     <style>
-        html,
+        * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
+        
         body {
-            -webkit-tap-highlight-color: transparent;
+            font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+            background: linear-gradient(135deg, #0c0c1d 0%, #1a1a2e 50%, #16213e 100%);
+            min-height: 100vh;
+            -webkit-font-smoothing: antialiased;
             overscroll-behavior-y: none;
         }
 
-
-        .scroller::-webkit-scrollbar {
-            width: 0px;
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb {
+            background: linear-gradient(180deg, rgba(168, 85, 247, 0.4), rgba(168, 85, 247, 0.2));
+            border-radius: 10px;
         }
 
-        /* Drag active UI styling */
-        .drag-active {
-            border-color: #BF5AF2 !important;
-            background-color: rgba(191, 90, 242, 0.1) !important;
-            transform: scale(1.02);
-            transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+        /* Floating Orbs */
+        .orb {
+            position: fixed;
+            border-radius: 50%;
+            filter: blur(80px);
+            opacity: 0.12;
+            pointer-events: none;
+            z-index: 0;
+        }
+        .orb-1 { width: 400px; height: 400px; background: #a855f7; top: -100px; right: -50px; animation: float 8s ease-in-out infinite; }
+        .orb-2 { width: 300px; height: 300px; background: #10b981; bottom: 20%; left: -80px; animation: float 10s ease-in-out infinite reverse; }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-25px); }
+        }
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
         }
 
-        .spin {
-            width: 18px;
-            height: 18px;
+        .animate-slide-up {
+            animation: slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+            opacity: 0;
+        }
+
+        /* Glassmorphism */
+        .glass {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.04);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            transition: all 0.3s ease;
+        }
+
+        /* Upload Zone */
+        .upload-zone {
+            border: 2px dashed rgba(168, 85, 247, 0.3);
+            background: rgba(168, 85, 247, 0.05);
+            transition: all 0.3s ease;
+        }
+        .upload-zone:hover, .upload-zone.drag-active {
+            border-color: rgba(168, 85, 247, 0.6);
+            background: rgba(168, 85, 247, 0.1);
+            transform: scale(1.01);
+        }
+
+        /* Image Item */
+        .img-item {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            transition: all 0.3s ease;
+        }
+        .img-item:hover {
+            background: rgba(255, 255, 255, 0.06);
+            border-color: rgba(255, 255, 255, 0.15);
+        }
+        .img-item.processing {
+            border-color: rgba(168, 85, 247, 0.5);
+            box-shadow: 0 0 20px rgba(168, 85, 247, 0.2);
+        }
+        .img-item.done {
+            border-color: rgba(16, 185, 129, 0.5);
+        }
+        .img-item.error {
+            border-color: rgba(244, 63, 94, 0.5);
+        }
+
+        /* Progress Bar */
+        .progress-bar {
+            background: linear-gradient(90deg, #a855f7, #7c3aed);
+            transition: width 0.3s ease;
+        }
+
+        /* Buttons */
+        .btn-primary {
+            background: linear-gradient(135deg, #a855f7 0%, #7c3aed 100%);
+            box-shadow: 0 8px 30px rgba(168, 85, 247, 0.4);
+            transition: all 0.3s ease;
+        }
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 40px rgba(168, 85, 247, 0.5);
+        }
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Spinner */
+        .spinner {
+            width: 20px;
+            height: 20px;
             border: 2px solid rgba(255, 255, 255, 0.3);
-            border-top-color: #fff;
+            border-top-color: white;
             border-radius: 50%;
             animation: spin 0.7s linear infinite;
         }
 
-        @keyframes spin {
-            to {
-                transform: rotate(360deg)
-            }
-        }
-
-        /* Progress Bar Base */
-        .progress-bar {
-            transition: width 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-        }
+        /* Status Badge */
+        .status-processing { color: #a855f7; background: rgba(168, 85, 247, 0.1); }
+        .status-done { color: #10b981; background: rgba(16, 185, 129, 0.1); }
+        .status-error { color: #f43f5e; background: rgba(244, 63, 94, 0.1); }
     </style>
 </head>
 
-<body class="antialiased selection:bg-apple-purple selection:text-white flex flex-col h-screen overflow-hidden">
+<body class="antialiased text-white flex flex-col h-screen overflow-hidden">
 
-    <!-- Global Header -->
-    <header
-        class="h-16 flex-shrink-0 border-b border-black/5 dark:border-white/5 bg-white/80 dark:bg-[#0a0a0c]/80 backdrop-blur-xl flex items-center px-4 z-50">
-        <a href="more.html"
-            class="w-10 h-10 rounded-xl bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 transition-colors flex items-center justify-center shrink-0"
-            id="backBtn">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
-                stroke-linecap="round" stroke-linejoin="round">
+    <!-- Background Orbs -->
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+
+    <!-- Header -->
+    <header class="glass h-16 flex-shrink-0 flex items-center px-5 z-50 border-b border-white/5">
+        <a href="more.html" id="backBtn" class="w-10 h-10 rounded-xl glass hover:bg-white/10 transition-all flex items-center justify-center">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="opacity-60">
                 <path d="m15 18-6-6 6-6" />
             </svg>
         </a>
         <div class="ml-4 flex-1">
-            <h1 class="font-display font-bold text-lg tracking-tight leading-tight">Rasm → Word</h1>
-            <p class="text-[10px] font-semibold text-black/40 dark:text-white/40 uppercase tracking-widest"><span
-                    id="tgStatusBadge" class="text-apple-green">Telegram ulangan</span></p>
+            <h1 class="font-display font-bold text-lg tracking-tight bg-gradient-to-r from-white to-white/60 bg-clip-text text-transparent">Rasm → Word</h1>
+            <p class="text-[10px] font-semibold uppercase tracking-widest">
+                <span id="tgStatusBadge" class="text-accent-green">✓ Telegram ulangan</span>
+            </p>
         </div>
+        <div id="headerStatus" class="hidden px-3 py-1.5 rounded-full text-xs font-bold"></div>
     </header>
 
-    <main class="flex-1 overflow-y-auto scroller relative flex flex-col">
-        <div class="max-w-xl w-full mx-auto p-4 md:p-6 flex flex-col h-full gap-5">
+    <main class="flex-1 overflow-y-auto relative flex flex-col p-5">
+        <div class="max-w-lg w-full mx-auto flex flex-col h-full gap-5">
 
-            <!-- Connection Label -->
-            <div
-                class="flex items-center gap-3 bg-white dark:bg-[#151518] border border-black/5 dark:border-white/5 rounded-2xl p-3 animate-slide-up shadow-sm">
-                <div class="w-10 h-10 rounded-xl bg-apple-purple/10 flex items-center justify-center shrink-0">
-                    <span class="text-apple-purple font-bold text-lg">🤖</span>
+            <!-- Info Card -->
+            <div class="glass-card rounded-2xl p-4 flex items-center gap-4 animate-slide-up">
+                <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-accent-purple/20 to-accent-purple/5 flex items-center justify-center text-2xl flex-shrink-0">
+                    🤖
                 </div>
                 <div>
-                    <h3 class="font-bold text-sm" id="tgLabelTitle">Obyektivka AI</h3>
-                    <p class="text-[11px] font-medium text-black/50 dark:text-white/50" id="tgLabelSub">Natijalar Word
-                        holida ham yuklanadi, ham bot orqali jo'natiladi.</p>
+                    <h3 class="font-bold text-sm" id="tgLabelTitle">AI OCR</h3>
+                    <p class="text-[11px] text-white/50" id="tgLabelSub">Rasmlarni Word faylga aylantiriladi va bot orqali yuboriladi</p>
                 </div>
             </div>
 
             <!-- Upload Zone -->
-            <div class="flex-1 min-h-[200px] bg-white dark:bg-[#151518] border border-black/5 dark:border-white/5 rounded-[24px] overflow-hidden shadow-sm animate-slide-up relative"
-                style="animation-delay: 0.1s;">
-                <input type="file" id="imgInput" class="hidden" accept="image/*" multiple
-                    onchange="handleFiles(this.files)" />
-                <label for="imgInput" id="uploadZone"
-                    class="absolute inset-0 m-4 rounded-[18px] border-2 border-dashed border-apple-purple/30 bg-apple-purple/5 hover:bg-apple-purple/10 transition-colors flex flex-col items-center justify-center cursor-pointer select-none"
+            <div class="flex-1 min-h-[280px] glass-card rounded-3xl overflow-hidden relative animate-slide-up" style="animation-delay: 0.1s;">
+                <input type="file" id="imgInput" class="hidden" accept="image/*" multiple onchange="handleFiles(this.files)" />
+                
+                <!-- Empty State - Upload Zone -->
+                <label for="imgInput" id="uploadZone" class="upload-zone absolute inset-4 rounded-2xl flex flex-col items-center justify-center cursor-pointer"
                     ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onDrop(event)">
-
-                    <div
-                        class="w-20 h-20 mb-4 bg-white dark:bg-black rounded-[22px] shadow-sm flex items-center justify-center relative overflow-hidden">
-                        <svg class="text-apple-purple" width="36" height="36" viewBox="0 0 24 24" fill="none"
-                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <div class="w-20 h-20 mb-5 rounded-2xl bg-gradient-to-br from-accent-purple/20 to-accent-purple/5 flex items-center justify-center">
+                        <svg class="text-accent-purple" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
                             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
                             <polyline points="17 8 12 3 7 8" />
                             <line x1="12" x2="12" y1="3" y2="15" />
                         </svg>
                     </div>
-
-                    <h2 class="font-display font-bold text-lg text-apple-purple mb-1">Rasmni yuklang</h2>
-                    <p class="text-xs font-semibold text-black/40 dark:text-white/40">Yoki bu yerga sudrab tashlang</p>
+                    <h2 class="font-display font-bold text-xl text-accent-purple mb-2">Rasmlarni yuklang</h2>
+                    <p class="text-sm text-white/40">Yoki bu yerga sudrab tashlang</p>
                 </label>
 
-                <!-- Queue Wrapper (hidden initially) -->
-                <div id="queueWrap" class="hidden absolute inset-0 bg-white dark:bg-[#151518] z-10 flex flex-col p-4">
-                    <div class="flex items-center justify-between mb-4 mt-2 px-2">
-                        <span class="text-[11px] font-bold text-apple-purple uppercase tracking-widest"
-                            id="queueTitle">0 ta rasm</span>
-                        <button onclick="clearAll()"
-                            class="text-[11px] font-bold text-red-500 bg-red-500/10 px-3 py-1.5 rounded-lg hover:bg-red-500/20 transition-colors uppercase tracking-wider">Barchasini
-                            tozalash</button>
+                <!-- Queue List -->
+                <div id="queueWrap" class="hidden absolute inset-0 flex flex-col p-4">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex items-center gap-3">
+                            <span class="text-sm font-bold text-accent-purple" id="queueTitle">0 ta rasm</span>
+                            <button onclick="document.getElementById('imgInput').click()" class="text-xs font-bold text-white/50 hover:text-white transition-colors">+ Qo'shish</button>
+                        </div>
+                        <button onclick="clearAll()" class="text-xs font-bold text-accent-rose hover:bg-accent-rose/10 px-3 py-1.5 rounded-lg transition-colors">
+                            Tozalash
+                        </button>
                     </div>
-
-                    <div class="flex-1 overflow-y-auto scroller px-2 pb-4 flex flex-col gap-3" id="imgList">
-                        <!-- Loaded dynamically -->
-                    </div>
+                    <div class="flex-1 overflow-y-auto space-y-3 pb-2" id="imgList"></div>
                 </div>
 
-                <!-- Result Card overlay -->
-                <div id="resultCard"
-                    class="hidden absolute inset-0 bg-white/90 dark:bg-[#151518]/95 backdrop-blur-md z-20 flex-col items-center justify-center p-6 text-center shadow-lg">
-                    <div
-                        class="w-16 h-16 rounded-[22px] bg-apple-green/20 text-apple-green flex items-center justify-center text-3xl mb-4">
-                        ✅</div>
-                    <div class="font-display font-bold text-xl mb-2">Word tayyor!</div>
-                    <div class="text-xs font-medium text-black/50 dark:text-white/50 mb-8" id="resultSub">Yuklab olish
-                        boshlandi...</div>
+                <!-- Result Overlay -->
+                <div id="resultCard" class="hidden absolute inset-0 bg-[#0c0c1d]/95 backdrop-blur-md z-20 flex-col items-center justify-center p-6 text-center">
+                    <div class="w-20 h-20 rounded-2xl bg-accent-green/20 flex items-center justify-center text-4xl mb-5">✅</div>
+                    <h2 class="font-display font-bold text-2xl mb-2">Tayyor!</h2>
+                    <p class="text-sm text-white/50 mb-8" id="resultSub">Fayllar yuklandi</p>
                     <div class="w-full flex flex-col gap-3">
-                        <button onclick="reDownload()"
-                            class="w-full py-4 rounded-xl bg-black/5 dark:bg-white/10 hover:bg-black/10 dark:hover:bg-white/20 font-bold transition-colors">⬇️
-                            Qayta yuklab olish</button>
-                        <button onclick="startNew()"
-                            class="w-full py-4 rounded-xl bg-apple-purple hover:bg-purple-600 active:scale-[0.98] text-white font-bold transition-all shadow-[0_8px_30px_rgba(139,92,246,0.25)]">🔄
-                            Yangi rasm yuklash</button>
+                        <button onclick="reDownload()" class="w-full py-4 rounded-xl glass hover:bg-white/10 font-bold transition-all">
+                            ⬇️ Qayta yuklab olish
+                        </button>
+                        <button onclick="startNew()" class="w-full py-4 rounded-xl btn-primary text-white font-bold">
+                            🔄 Yangi rasm yuklash
+                        </button>
                     </div>
                 </div>
             </div>
 
-            <!-- Progress Block -->
-            <div id="progressWrap" class="hidden flex-col gap-2 mt-2 animate-slide-up" style="animation-delay: 0.15s;">
-                <div class="flex justify-between items-end mb-1">
-                    <span class="text-xs font-bold text-apple-purple tracking-tight" id="progressLabel">Rasm
-                        yuklanmoqda...</span>
-                    <span class="text-xs font-bold text-black/40 dark:text-white/40" id="progressPct">0%</span>
+            <!-- Progress Section -->
+            <div id="progressWrap" class="hidden flex-col gap-3 animate-slide-up">
+                <div class="flex justify-between items-center">
+                    <span class="text-sm font-bold text-accent-purple" id="progressLabel">Tayyorlanmoqda...</span>
+                    <span class="text-sm font-bold text-white/40" id="progressPct">0%</span>
                 </div>
-                <div class="h-2 w-full bg-black/5 dark:bg-white/5 rounded-full overflow-hidden">
-                    <div class="h-full bg-apple-purple progress-bar rounded-full" id="progressFill" style="width:0%;">
-                    </div>
+                <div class="h-2 w-full bg-white/5 rounded-full overflow-hidden">
+                    <div class="h-full progress-bar rounded-full" id="progressFill" style="width:0%;"></div>
                 </div>
+                <p class="text-xs text-white/30 text-center" id="progressHint">AI rasmni o'qimoqda, biroz kuting...</p>
             </div>
 
-            <!-- STATUS AND ACTION -->
-            <div class="mt-auto pt-2 pb-4 animate-slide-up flex flex-col gap-3" style="animation-delay: 0.2s;">
-                <div id="statusBanner"
-                    class="hidden items-center gap-2 p-3 rounded-xl text-sm font-semibold max-w-full leading-tight">
-                    <span id="statusIcon">⚠️</span>
-                    <span id="statusMsg"></span>
-                </div>
+            <!-- Status Banner -->
+            <div id="statusBanner" class="hidden items-center gap-3 p-4 rounded-xl text-sm font-semibold glass-card">
+                <span id="statusIcon" class="text-xl">⚠️</span>
+                <span id="statusMsg" class="flex-1"></span>
+            </div>
 
-                <button
-                    class="w-full py-4 rounded-2xl bg-apple-purple hover:bg-purple-600 active:scale-[0.98] disabled:opacity-50 disabled:active:scale-100 disabled:shadow-none text-white font-bold text-lg shadow-[0_8px_30px_rgba(139,92,246,0.3)] transition-all flex justify-center items-center gap-2"
-                    id="convBtn" onclick="startOCR()" disabled>
-                    ⚡ Word faylga aylantirish
+            <!-- Action Button -->
+            <div class="mt-auto pt-2 pb-4 animate-slide-up" style="animation-delay: 0.2s;">
+                <button class="w-full py-4 rounded-2xl btn-primary text-white font-bold text-lg flex justify-center items-center gap-3" id="convBtn" onclick="startOCR()" disabled>
+                    <span id="btnIcon">⚡</span>
+                    <span id="btnText">Word faylga aylantirish</span>
                 </button>
             </div>
 
@@ -219,85 +292,122 @@
 
     <script>
         const tg = window.Telegram?.WebApp;
+        
+        // Telegram ID
+        const tid = new URLSearchParams(location.search).get('telegram_id') 
+            || sessionStorage.getItem('telegram_id') 
+            || tg?.initDataUnsafe?.user?.id?.toString() 
+            || '';
+        
+        if (tid) {
+            sessionStorage.setItem('telegram_id', tid);
+        } else {
+            document.getElementById('tgLabelTitle').textContent = "Avtonom rejim";
+            document.getElementById('tgLabelSub').textContent = "Faqat yuklab olish mumkin, Telegram'ga yuborilmaydi";
+            document.getElementById('tgStatusBadge').textContent = "Oflayn";
+            document.getElementById('tgStatusBadge').className = "text-white/40";
+        }
 
-        // Theme is already applied by theme-init.js — no duplicate logic needed
-        const tid = new URLSearchParams(location.search).get('telegram_id') || sessionStorage.getItem('telegram_id') || tg?.initDataUnsafe?.user?.id?.toString() || '';
         document.getElementById('backBtn').onclick = (e) => {
             e.preventDefault();
             location.href = 'more.html' + (tid ? '?telegram_id=' + tid : '');
         };
 
-        if (tid) {
-            sessionStorage.setItem('telegram_id', tid);
-        } else {
-            document.getElementById('tgLabelTitle').textContent = "Avtonom rejim";
-            document.getElementById('tgLabelSub').textContent = "Siz bot orqali kirmaganingiz uchun Telegram ga jo'natilmaydi, faqatgina yuklab olish mumkin.";
-            const badge = document.getElementById('tgStatusBadge');
-            badge.textContent = "Oflayn";
-            badge.className = "text-black/40 dark:text-white/40";
-        }
-
         let fileQueue = [];
         let lastDocxBlob = null;
         let lastFilename = '';
+        let isProcessing = false;
+
+        // ═══════════════════════════════════════════════════════════
+        // FILE HANDLING
+        // ═══════════════════════════════════════════════════════════
 
         function handleFiles(fileList) {
-            const newFiles = Array.from(fileList);
+            const newFiles = Array.from(fileList).filter(f => f.type.startsWith('image/'));
             for (const f of newFiles) {
                 if (fileQueue.some(x => x.file.name === f.name && x.file.size === f.size)) continue;
-                fileQueue.push({ file: f, url: URL.createObjectURL(f) });
+                fileQueue.push({ 
+                    id: Date.now() + Math.random(),
+                    file: f, 
+                    url: URL.createObjectURL(f),
+                    status: 'pending' // pending, processing, done, error
+                });
             }
             renderQueue();
             document.getElementById('imgInput').value = '';
+            haptic('light');
         }
 
-        function removeImg(idx) {
-            URL.revokeObjectURL(fileQueue[idx].url);
-            fileQueue.splice(idx, 1);
-            renderQueue();
+        function removeImg(id) {
+            const idx = fileQueue.findIndex(x => x.id === id);
+            if (idx > -1) {
+                URL.revokeObjectURL(fileQueue[idx].url);
+                fileQueue.splice(idx, 1);
+                renderQueue();
+            }
         }
 
         function clearAll() {
+            if (isProcessing) return;
             fileQueue.forEach(x => URL.revokeObjectURL(x.url));
             fileQueue = [];
             renderQueue();
             hideStatus();
-            document.getElementById('resultCard').classList.remove('flex');
-            document.getElementById('resultCard').classList.add('hidden');
+            hideResult();
+            haptic('light');
         }
 
         function renderQueue() {
             const listEl = document.getElementById('imgList');
             const wrapEl = document.getElementById('queueWrap');
+            const uploadZone = document.getElementById('uploadZone');
             const titleEl = document.getElementById('queueTitle');
             const convBtn = document.getElementById('convBtn');
 
             if (fileQueue.length === 0) {
-                wrapEl.classList.remove('flex');
                 wrapEl.classList.add('hidden');
+                uploadZone.classList.remove('hidden');
                 convBtn.disabled = true;
                 return;
             }
 
             wrapEl.classList.remove('hidden');
-            wrapEl.classList.add('flex');
+            uploadZone.classList.add('hidden');
             titleEl.textContent = `${fileQueue.length} ta rasm`;
 
-            listEl.innerHTML = fileQueue.map((item, i) => `
-                <div class="flex items-center gap-3 bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/5 rounded-xl p-2.5 overflow-hidden slide-up" style="animation-delay: ${0.05 * i}s;">
-                    <img class="w-12 h-12 rounded-[10px] object-cover shrink-0" src="${item.url}" alt="${item.file.name}" />
-                    <div class="flex-1 min-w-0">
-                        <div class="font-bold text-sm truncate max-w-[200px]">${item.file.name}</div>
-                        <div class="text-[10px] font-semibold text-black/40 dark:text-white/40">${formatSize(item.file.size)}</div>
-                    </div>
-                    <button class="w-8 h-8 rounded-lg bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 text-black/50 dark:text-white/50 flex items-center justify-center transition-colors" onclick="removeImg(${i})">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
-                    </button>
-                </div>
-            `).join('');
+            listEl.innerHTML = fileQueue.map((item, i) => {
+                let statusClass = '';
+                let statusBadge = '';
+                
+                if (item.status === 'processing') {
+                    statusClass = 'processing';
+                    statusBadge = '<span class="status-processing px-2 py-1 rounded-lg text-[10px] font-bold">⏳ Jarayonda</span>';
+                } else if (item.status === 'done') {
+                    statusClass = 'done';
+                    statusBadge = '<span class="status-done px-2 py-1 rounded-lg text-[10px] font-bold">✓ Tayyor</span>';
+                } else if (item.status === 'error') {
+                    statusClass = 'error';
+                    statusBadge = '<span class="status-error px-2 py-1 rounded-lg text-[10px] font-bold">✗ Xato</span>';
+                }
 
-            convBtn.disabled = false;
-            tg?.HapticFeedback?.impactOccurred('light');
+                return `
+                    <div class="img-item ${statusClass} rounded-xl p-3 flex items-center gap-3" style="animation: slideUp 0.3s ease forwards; animation-delay: ${i * 0.05}s;">
+                        <img class="w-14 h-14 rounded-lg object-cover flex-shrink-0" src="${item.url}" alt="">
+                        <div class="flex-1 min-w-0">
+                            <div class="font-semibold text-sm truncate">${item.file.name}</div>
+                            <div class="text-[11px] text-white/40">${formatSize(item.file.size)}</div>
+                        </div>
+                        ${statusBadge}
+                        ${!isProcessing ? `
+                            <button onclick="removeImg(${item.id})" class="w-8 h-8 rounded-lg hover:bg-white/10 flex items-center justify-center text-white/30 hover:text-accent-rose transition-all">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                            </button>
+                        ` : ''}
+                    </div>
+                `;
+            }).join('');
+
+            convBtn.disabled = isProcessing || fileQueue.length === 0;
         }
 
         function formatSize(bytes) {
@@ -306,135 +416,225 @@
             return (bytes / 1024 / 1024).toFixed(1) + ' MB';
         }
 
-        function onDragOver(e) { e.preventDefault(); document.getElementById('uploadZone').classList.add('drag-active'); }
-        function onDragLeave(e) { document.getElementById('uploadZone').classList.remove('drag-active'); }
+        // ═══════════════════════════════════════════════════════════
+        // DRAG & DROP
+        // ═══════════════════════════════════════════════════════════
+
+        function onDragOver(e) {
+            e.preventDefault();
+            document.getElementById('uploadZone').classList.add('drag-active');
+        }
+        function onDragLeave(e) {
+            document.getElementById('uploadZone').classList.remove('drag-active');
+        }
         function onDrop(e) {
             e.preventDefault();
             document.getElementById('uploadZone').classList.remove('drag-active');
             handleFiles(e.dataTransfer.files);
         }
 
-        function setProgress(pct, label) {
+        // ═══════════════════════════════════════════════════════════
+        // PROGRESS & STATUS
+        // ═══════════════════════════════════════════════════════════
+
+        function setProgress(pct, label, hint = '') {
             const p = document.getElementById('progressWrap');
-            p.classList.remove('hidden'); p.classList.add('flex');
-            if (label) document.getElementById('progressLabel').textContent = label;
+            p.classList.remove('hidden');
+            p.classList.add('flex');
+            document.getElementById('progressLabel').textContent = label;
             document.getElementById('progressPct').textContent = pct + '%';
             document.getElementById('progressFill').style.width = pct + '%';
+            document.getElementById('progressHint').textContent = hint;
         }
+
         function hideProgress() {
-            const p = document.getElementById('progressWrap');
-            p.classList.remove('flex'); p.classList.add('hidden');
+            document.getElementById('progressWrap').classList.add('hidden');
         }
 
         function showStatus(type, icon, msg) {
             const b = document.getElementById('statusBanner');
-            b.classList.remove('hidden', 'bg-red-500/10', 'text-red-500', 'bg-apple-green/10', 'text-apple-green', 'bg-apple-purple/10', 'text-apple-purple');
+            b.classList.remove('hidden');
             b.classList.add('flex');
-            if (type === 'error') b.classList.add('bg-red-500/10', 'text-red-500', 'border', 'border-red-500/20');
-            else if (type === 'success') b.classList.add('bg-apple-green/10', 'text-apple-green', 'border', 'border-apple-green/20');
-            else b.classList.add('bg-apple-purple/10', 'text-apple-purple', 'border', 'border-apple-purple/20');
+            b.className = `flex items-center gap-3 p-4 rounded-xl text-sm font-semibold glass-card border ${
+                type === 'error' ? 'border-accent-rose/30' : 
+                type === 'success' ? 'border-accent-green/30' : 'border-accent-purple/30'
+            }`;
             document.getElementById('statusIcon').textContent = icon;
             document.getElementById('statusMsg').textContent = msg;
         }
-        function hideStatus() { document.getElementById('statusBanner').classList.add('hidden'); }
+
+        function hideStatus() {
+            document.getElementById('statusBanner').classList.add('hidden');
+        }
+
+        function showResult(successCount) {
+            const card = document.getElementById('resultCard');
+            card.classList.remove('hidden');
+            card.classList.add('flex');
+            document.getElementById('resultSub').textContent = 
+                `${successCount} ta fayl yuklandi` + (tid ? ` va Telegram'ga yuborildi` : '');
+        }
+
+        function hideResult() {
+            const card = document.getElementById('resultCard');
+            card.classList.remove('flex');
+            card.classList.add('hidden');
+        }
+
+        // ═══════════════════════════════════════════════════════════
+        // DOWNLOAD
+        // ═══════════════════════════════════════════════════════════
 
         function triggerDownload(blob, filename) {
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
-            a.href = url; a.download = filename;
-            document.body.appendChild(a); a.click(); document.body.removeChild(a);
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
             setTimeout(() => URL.revokeObjectURL(url), 10000);
         }
 
         function reDownload() {
-            if (!lastDocxBlob) return;
-            triggerDownload(lastDocxBlob, lastFilename);
+            if (lastDocxBlob) {
+                triggerDownload(lastDocxBlob, lastFilename);
+                haptic('success');
+            }
         }
 
         function startNew() {
             clearAll();
-            document.getElementById('resultCard').classList.remove('flex');
-            document.getElementById('resultCard').classList.add('hidden');
-            hideStatus();
-            lastDocxBlob = null;
+            hideResult();
         }
 
-        async function startOCR() {
-            if (fileQueue.length === 0) return;
+        // ═══════════════════════════════════════════════════════════
+        // OCR PROCESSING - FIXED ASYNC
+        // ═══════════════════════════════════════════════════════════
 
-            let apiBase = location.protocol === 'file:' ? 'https://dastyor-ai.onrender.com' : location.origin;
+        async function startOCR() {
+            if (fileQueue.length === 0 || isProcessing) return;
+
+            isProcessing = true;
+            const apiBase = location.protocol === 'file:' ? 'https://dastyor-ai.onrender.com' : location.origin;
+            
+            // Update button
             const convBtn = document.getElementById('convBtn');
-            convBtn.innerHTML = '<div class="spin"></div> Jarayon...';
+            document.getElementById('btnIcon').innerHTML = '<div class="spinner"></div>';
+            document.getElementById('btnText').textContent = 'Jarayonda...';
             convBtn.disabled = true;
-            convBtn.classList.add('opacity-70');
+            
             hideStatus();
-            document.getElementById('resultCard').classList.remove('flex');
-            document.getElementById('resultCard').classList.add('hidden');
+            hideResult();
 
             let successCount = 0;
+            const total = fileQueue.length;
 
             for (let i = 0; i < fileQueue.length; i++) {
                 const item = fileQueue[i];
-                const pct_start = Math.round((i / fileQueue.length) * 80);
+                
+                // Update status
+                item.status = 'processing';
+                renderQueue();
 
-                setProgress(pct_start, `${i + 1}/${fileQueue.length}: ${item.file.name} yuklanmoqda...`);
-
-                const fd = new FormData();
-                fd.append('file', item.file);
-                if (tid) fd.append('telegram_id', tid);
+                const pctBase = Math.round((i / total) * 100);
+                setProgress(pctBase, `${i + 1}/${total}: ${item.file.name}`, 'AI rasmni o'qimoqda...');
 
                 try {
-                    if (i > 0) await new Promise(r => setTimeout(r, 800));
-                    setProgress(pct_start + 10, `${i + 1}/${fileQueue.length}: AI O'qimoqda (biroz kuting)...`);
+                    // Small delay between requests to prevent overload
+                    if (i > 0) {
+                        await sleep(500);
+                    }
 
-                    const ctrl = new AbortController();
-                    const timeout = setTimeout(() => ctrl.abort(), 90000);
+                    const fd = new FormData();
+                    fd.append('file', item.file);
+                    if (tid) fd.append('telegram_id', tid);
+
+                    // Use AbortController with shorter timeout
+                    const controller = new AbortController();
+                    const timeoutId = setTimeout(() => controller.abort(), 45000); // 45 seconds
+
+                    setProgress(pctBase + 5, `${i + 1}/${total}: Serverga yuborilmoqda...`, '');
 
                     const res = await fetch(apiBase + '/api/ocr_direct', {
-                        method: 'POST', body: fd, signal: ctrl.signal,
+                        method: 'POST',
+                        body: fd,
+                        signal: controller.signal
                     });
-                    clearTimeout(timeout);
+
+                    clearTimeout(timeoutId);
 
                     if (!res.ok) {
                         let detail = `Server xatosi (${res.status})`;
                         try {
                             const err = await res.json();
                             detail = err.detail || err.error || detail;
-                        } catch (_) { }
-                        showStatus('error', '❌', `${item.file.name}: ${detail}`);
-                        continue;
+                        } catch (_) {}
+                        throw new Error(detail);
                     }
 
-                    setProgress(pct_start + 15, `${i + 1}/${fileQueue.length}: Word tayyorlanmoqda...`);
-                    const blob = await res.blob();
-                    const filename = `Rasm_OCR_${item.file.name.replace(/\.[^.]+$/, '')}.docx`;
+                    setProgress(pctBase + 10, `${i + 1}/${total}: Word tayyorlanmoqda...`, '');
 
-                    lastDocxBlob = blob; lastFilename = filename;
+                    const blob = await res.blob();
+                    const filename = `OCR_${item.file.name.replace(/\.[^.]+$/, '')}.docx`;
+
+                    lastDocxBlob = blob;
+                    lastFilename = filename;
                     triggerDownload(blob, filename);
+
+                    item.status = 'done';
                     successCount++;
+                    haptic('success');
 
                 } catch (err) {
-                    if (err.name === 'AbortError') showStatus('error', '⏱️', `${item.file.name}: AI server javob bermadi.`);
-                    else showStatus('error', '❌', `${item.file.name}: Tarmoq xatosi: ${err.message}`);
+                    item.status = 'error';
+                    
+                    if (err.name === 'AbortError') {
+                        showStatus('error', '⏱️', `${item.file.name}: Vaqt tugadi, qayta urinib ko'ring`);
+                    } else {
+                        showStatus('error', '❌', `${item.file.name}: ${err.message}`);
+                    }
+                    
+                    haptic('error');
                 }
+
+                renderQueue();
+                
+                // Allow UI to update
+                await sleep(100);
             }
 
-            setProgress(100, 'Tugadi!');
-            setTimeout(() => hideProgress(), 1500);
+            // Finish
+            setProgress(100, 'Tugadi!', '');
+            setTimeout(hideProgress, 1500);
 
-            convBtn.innerHTML = '⚡ Word faylga aylantirish';
-            convBtn.classList.remove('opacity-70');
-            convBtn.disabled = fileQueue.length === 0;
+            // Reset button
+            document.getElementById('btnIcon').textContent = '⚡';
+            document.getElementById('btnText').textContent = 'Word faylga aylantirish';
+            convBtn.disabled = false;
+            isProcessing = false;
 
             if (successCount > 0) {
-                document.getElementById('resultCard').classList.remove('hidden');
-                document.getElementById('resultCard').classList.add('flex');
-                document.getElementById('resultSub').textContent =
-                    `${successCount} ta jami fayl(lar) olinganlarga tushdi` +
-                    (tid ? ` va o'z botingizga ham jo'natildi.` : `.`);
-                tg?.HapticFeedback?.notificationOccurred('success');
-            } else {
-                tg?.HapticFeedback?.notificationOccurred('error');
+                showResult(successCount);
+                haptic('success');
+            }
+
+            renderQueue();
+        }
+
+        // ═══════════════════════════════════════════════════════════
+        // UTILS
+        // ═══════════════════════════════════════════════════════════
+
+        function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        function haptic(type) {
+            if (tg?.HapticFeedback) {
+                if (type === 'success') tg.HapticFeedback.notificationOccurred('success');
+                else if (type === 'error') tg.HapticFeedback.notificationOccurred('error');
+                else tg.HapticFeedback.impactOccurred('light');
             }
         }
     </script>

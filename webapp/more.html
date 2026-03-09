@@ -5,19 +5,13 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>Xizmatlar | DASTYOR AI</title>
-    <!-- 1. Theme init FIRST — prevents flash of wrong theme -->
-    <script src="theme-init.js"></script>
-    <!-- 2. Global theme tokens -->
-    <link rel="stylesheet" href="theme.css">
-    <!-- 3. Telegram SDK -->
+    
+    <!-- Premium Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Sora:wght@400;600;700;800&display=swap" rel="stylesheet" />
+    
+    <!-- Telegram SDK -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <!-- 4. i18n (before DOM renders) -->
-    <script src="i18n.js"></script>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link
-        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Outfit:wght@500;600;700;800&display=swap"
-        rel="stylesheet" />
-
+    
     <!-- Tailwind -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -26,29 +20,18 @@
             theme: {
                 extend: {
                     fontFamily: {
-                        sans: ['Inter', 'sans-serif'],
-                        display: ['Outfit', 'sans-serif'],
+                        sans: ['Plus Jakarta Sans', 'sans-serif'],
+                        display: ['Sora', 'sans-serif'],
                     },
                     colors: {
-                        neutral: {
-                            850: '#1f1f22',
-                            900: '#151518',
-                            950: '#0a0a0c',
-                        },
-                        apple: {
+                        brand: { 400: '#818cf8', 500: '#636cf1', 600: '#4f46e5' },
+                        accent: {
                             blue: '#0A84FF',
-                            green: '#30D158',
-                            orange: '#FF9F0A',
-                            purple: '#BF5AF2',
-                        }
-                    },
-                    animation: {
-                        'slide-up': 'slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards',
-                    },
-                    keyframes: {
-                        slideUp: {
-                            '0%': { opacity: '0', transform: 'translateY(16px)' },
-                            '100%': { opacity: '1', transform: 'translateY(0)' },
+                            green: '#10b981',
+                            orange: '#f59e0b',
+                            purple: '#a855f7',
+                            cyan: '#06b6d4',
+                            rose: '#f43f5e',
                         }
                     }
                 }
@@ -57,170 +40,262 @@
     </script>
 
     <style>
-        html,
+        * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
+        
         body {
-            -webkit-tap-highlight-color: transparent;
+            font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+            background: linear-gradient(135deg, #0c0c1d 0%, #1a1a2e 50%, #16213e 100%);
+            min-height: 100vh;
+            -webkit-font-smoothing: antialiased;
             overscroll-behavior-y: none;
         }
 
-        ::-webkit-scrollbar {
-            display: none;
+        /* Scrollbar */
+        ::-webkit-scrollbar { display: none; }
+
+        /* Floating Orbs */
+        .orb {
+            position: fixed;
+            border-radius: 50%;
+            filter: blur(80px);
+            opacity: 0.12;
+            pointer-events: none;
+            z-index: 0;
         }
+        .orb-1 { width: 450px; height: 450px; background: #10b981; top: -120px; left: -100px; animation: float 9s ease-in-out infinite; }
+        .orb-2 { width: 350px; height: 350px; background: #f59e0b; bottom: 10%; right: -80px; animation: float 11s ease-in-out infinite reverse; }
+        .orb-3 { width: 250px; height: 250px; background: #a855f7; top: 40%; left: 10%; animation: float 8s ease-in-out infinite; }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0) scale(1); }
+            50% { transform: translateY(-25px) scale(1.03); }
+        }
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(25px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .animate-slide-up {
+            animation: slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+            opacity: 0;
+        }
+
+        /* Glassmorphism */
+        .glass {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.04);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .glass-card:hover {
+            background: rgba(255, 255, 255, 0.07);
+            border-color: rgba(255, 255, 255, 0.15);
+            transform: translateY(-4px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        /* Service Cards */
+        .service-card {
+            position: relative;
+            overflow: hidden;
+        }
+        .service-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+        }
+        .service-card .icon-box {
+            position: relative;
+            overflow: hidden;
+        }
+        .service-card .icon-box::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, rgba(255,255,255,0.15) 0%, transparent 50%);
+            border-radius: inherit;
+        }
+
+        /* Bottom Nav */
+        .bottom-nav {
+            background: rgba(20, 20, 35, 0.8);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        /* Section Header */
+        .section-header::after {
+            content: '';
+            position: absolute;
+            bottom: -4px;
+            left: 0;
+            width: 30px;
+            height: 2px;
+            border-radius: 2px;
+        }
+        .section-header.green::after { background: linear-gradient(90deg, #10b981, transparent); }
+        .section-header.purple::after { background: linear-gradient(90deg, #a855f7, transparent); }
     </style>
 </head>
 
-<body class="antialiased selection:bg-apple-blue selection:text-white pb-32">
+<body class="antialiased text-white pb-32 relative z-10">
 
-    <main class="max-w-md mx-auto pt-8 px-5">
+    <!-- Background Orbs -->
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="orb orb-3"></div>
 
-        <header class="mb-8 animate-slide-up">
-            <h1 class="font-display font-extrabold text-4xl mb-1 text-black dark:text-white" id="txt_title"
-                data-i18n="more_title">Xizmatlar</h1>
-            <p class="text-sm font-medium text-black/50 dark:text-white/50" id="txt_sub" data-i18n="more_sub">Barcha
-                aqlli vositalar markazi</p>
+    <main class="max-w-md mx-auto pt-10 px-6 relative z-10">
+
+        <!-- Header -->
+        <header class="mb-10 animate-slide-up">
+            <div class="flex items-center gap-3 mb-2">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-brand-500/20 to-brand-600/10 flex items-center justify-center">
+                    <span class="text-xl">🧰</span>
+                </div>
+                <h1 class="font-display font-extrabold text-4xl bg-gradient-to-r from-white to-white/60 bg-clip-text text-transparent" data-i18n="more_title">Xizmatlar</h1>
+            </div>
+            <p class="text-sm font-medium text-white/40 ml-[52px]" data-i18n="more_sub">Barcha aqlli vositalar markazi</p>
         </header>
 
-        <div class="mb-4 animate-slide-up" style="animation-delay: 0.1s;">
-            <h2 class="text-xs font-bold text-black/40 dark:text-white/40 uppercase tracking-widest pl-2" id="txt_sec1"
-                data-i18n="more_sec1">Til va Matn</h2>
+        <!-- Section 1: Til va Matn -->
+        <div class="mb-5 animate-slide-up" style="animation-delay: 0.1s;">
+            <div class="section-header green relative inline-flex items-center gap-3 mb-4">
+                <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-accent-green/20 to-accent-green/5 flex items-center justify-center">
+                    <span class="text-sm">💬</span>
+                </div>
+                <h2 class="text-xs font-bold text-white/40 uppercase tracking-[0.2em]" data-i18n="more_sec1">Til va Matn</h2>
+            </div>
         </div>
 
-        <div class="flex flex-col gap-3 mb-8">
-            <a href="translate.html"
-                class="flex items-center p-4 rounded-3xl bg-white dark:bg-neutral-900 border border-black/5 dark:border-white/5 shadow-sm transform transition-all active:scale-[0.98] group animate-slide-up"
-                style="animation-delay: 0.15s;">
-                <div
-                    class="w-12 h-12 rounded-[18px] bg-apple-green/10 flex items-center justify-center text-xl shrink-0 text-apple-green">
+        <div class="flex flex-col gap-4 mb-10">
+            <!-- Tarjima AI -->
+            <a href="translate.html" class="service-card group glass-card rounded-3xl p-5 flex items-center animate-slide-up" style="animation-delay: 0.15s;">
+                <div class="icon-box w-14 h-14 rounded-2xl bg-gradient-to-br from-accent-green/20 to-accent-green/5 flex items-center justify-center text-2xl flex-shrink-0 group-hover:scale-110 transition-transform">
                     🌐
                 </div>
                 <div class="ml-4 flex-1">
-                    <h3 class="font-display font-bold text-[17px] mb-0.5 text-black dark:text-white" id="txt_s1_t"
-                        data-i18n="svc_translate">Tarjima AI</h3>
-                    <p class="text-xs font-medium text-black/50 dark:text-white/50 leading-snug" id="txt_s1_d"
-                        data-i18n="svc_translate_d">Matn va hujjatlarni 100+ tillarga ravon tarjima qilish</p>
+                    <h3 class="font-display font-bold text-[17px] mb-1 text-white group-hover:text-accent-green transition-colors" data-i18n="svc_translate">Tarjima AI</h3>
+                    <p class="text-xs font-medium text-white/40 leading-relaxed" data-i18n="svc_translate_d">Matn va hujjatlarni 100+ tillarga ravon tarjima qilish</p>
                 </div>
-                <svg class="text-black/20 dark:text-white/20 group-hover:text-apple-green group-hover:translate-x-1 transition-all"
-                    width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
-                    stroke-linecap="round" stroke-linejoin="round">
-                    <path d="m9 18 6-6-6-6" />
-                </svg>
+                <div class="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-white/30 group-hover:bg-accent-green/20 group-hover:text-accent-green transition-all">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="m9 18 6-6-6-6" />
+                    </svg>
+                </div>
             </a>
 
-            <a href="translit.html"
-                class="flex items-center p-4 rounded-3xl bg-white dark:bg-neutral-900 border border-black/5 dark:border-white/5 shadow-sm transform transition-all active:scale-[0.98] group animate-slide-up"
-                style="animation-delay: 0.2s;">
-                <div
-                    class="w-12 h-12 rounded-[18px] bg-apple-orange/10 flex items-center justify-center text-xl shrink-0 text-apple-orange">
+            <!-- Krill / Lotin -->
+            <a href="translit.html" class="service-card group glass-card rounded-3xl p-5 flex items-center animate-slide-up" style="animation-delay: 0.2s;">
+                <div class="icon-box w-14 h-14 rounded-2xl bg-gradient-to-br from-accent-orange/20 to-accent-orange/5 flex items-center justify-center text-2xl flex-shrink-0 group-hover:scale-110 transition-transform">
                     🔤
                 </div>
                 <div class="ml-4 flex-1">
-                    <h3 class="font-display font-bold text-[17px] mb-0.5 text-black dark:text-white" id="txt_s2_t"
-                        data-i18n="svc_translit">Krill / Lotin</h3>
-                    <p class="text-xs font-medium text-black/50 dark:text-white/50 leading-snug" id="txt_s2_d"
-                        data-i18n="svc_translit_d">O'zbek alifbosini bir zumda bexato o'giting</p>
+                    <h3 class="font-display font-bold text-[17px] mb-1 text-white group-hover:text-accent-orange transition-colors" data-i18n="svc_translit">Krill / Lotin</h3>
+                    <p class="text-xs font-medium text-white/40 leading-relaxed" data-i18n="svc_translit_d">O'zbek alifbosini bir zumda bexato o'girish</p>
                 </div>
-                <svg class="text-black/20 dark:text-white/20 group-hover:text-apple-orange group-hover:translate-x-1 transition-all"
-                    width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
-                    stroke-linecap="round" stroke-linejoin="round">
-                    <path d="m9 18 6-6-6-6" />
-                </svg>
+                <div class="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-white/30 group-hover:bg-accent-orange/20 group-hover:text-accent-orange transition-all">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="m9 18 6-6-6-6" />
+                    </svg>
+                </div>
             </a>
         </div>
 
-
-        <div class="mb-4 animate-slide-up" style="animation-delay: 0.25s;">
-            <h2 class="text-xs font-bold text-black/40 dark:text-white/40 uppercase tracking-widest pl-2" id="txt_sec2"
-                data-i18n="more_sec2">Fayl Vositalari</h2>
+        <!-- Section 2: Fayl Vositalari -->
+        <div class="mb-5 animate-slide-up" style="animation-delay: 0.25s;">
+            <div class="section-header purple relative inline-flex items-center gap-3 mb-4">
+                <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-accent-purple/20 to-accent-purple/5 flex items-center justify-center">
+                    <span class="text-sm">📁</span>
+                </div>
+                <h2 class="text-xs font-bold text-white/40 uppercase tracking-[0.2em]" data-i18n="more_sec2">Fayl Vositalari</h2>
+            </div>
         </div>
 
-        <div class="flex flex-col gap-3">
-            <a href="ocr.html"
-                class="flex items-center p-4 rounded-3xl bg-white dark:bg-neutral-900 border border-black/5 dark:border-white/5 shadow-sm transform transition-all active:scale-[0.98] group animate-slide-up"
-                style="animation-delay: 0.3s;">
-                <div
-                    class="w-12 h-12 rounded-[18px] bg-apple-purple/10 flex items-center justify-center text-xl shrink-0 text-apple-purple">
+        <div class="flex flex-col gap-4">
+            <!-- Rasm → Word -->
+            <a href="ocr.html" class="service-card group glass-card rounded-3xl p-5 flex items-center animate-slide-up" style="animation-delay: 0.3s;">
+                <div class="icon-box w-14 h-14 rounded-2xl bg-gradient-to-br from-accent-purple/20 to-accent-purple/5 flex items-center justify-center text-2xl flex-shrink-0 group-hover:scale-110 transition-transform">
                     🖼️
                 </div>
                 <div class="ml-4 flex-1">
-                    <h3 class="font-display font-bold text-[17px] mb-0.5 text-black dark:text-white" id="txt_s3_t"
-                        data-i18n="svc_ocr">Rasm → Word</h3>
-                    <p class="text-xs font-medium text-black/50 dark:text-white/50 leading-snug" id="txt_s3_d"
-                        data-i18n="svc_ocr_d">Rasm yoki skanerdan matnni Word (.docx) formatiga aylanitirish</p>
+                    <h3 class="font-display font-bold text-[17px] mb-1 text-white group-hover:text-accent-purple transition-colors" data-i18n="svc_ocr">Rasm → Word</h3>
+                    <p class="text-xs font-medium text-white/40 leading-relaxed" data-i18n="svc_ocr_d">Rasm yoki skanerdan matnni Word formatiga aylantirish</p>
                 </div>
-                <svg class="text-black/20 dark:text-white/20 group-hover:text-apple-purple group-hover:translate-x-1 transition-all"
-                    width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
-                    stroke-linecap="round" stroke-linejoin="round">
-                    <path d="m9 18 6-6-6-6" />
-                </svg>
+                <div class="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-white/30 group-hover:bg-accent-purple/20 group-hover:text-accent-purple transition-all">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="m9 18 6-6-6-6" />
+                    </svg>
+                </div>
             </a>
 
-            <a href="img2pdf.html"
-                class="flex items-center p-4 rounded-3xl bg-white dark:bg-neutral-900 border border-black/5 dark:border-white/5 shadow-sm transform transition-all active:scale-[0.98] group animate-slide-up"
-                style="animation-delay: 0.35s;">
-                <div
-                    class="w-12 h-12 rounded-[18px] bg-apple-blue/10 flex items-center justify-center text-xl shrink-0 text-apple-blue">
+            <!-- Rasm → PDF -->
+            <a href="img2pdf.html" class="service-card group glass-card rounded-3xl p-5 flex items-center animate-slide-up" style="animation-delay: 0.35s;">
+                <div class="icon-box w-14 h-14 rounded-2xl bg-gradient-to-br from-accent-blue/20 to-accent-blue/5 flex items-center justify-center text-2xl flex-shrink-0 group-hover:scale-110 transition-transform">
                     📎
                 </div>
                 <div class="ml-4 flex-1">
-                    <h3 class="font-display font-bold text-[17px] mb-0.5 text-black dark:text-white" id="txt_s4_t"
-                        data-i18n="svc_pdf">Rasm → PDF</h3>
-                    <p class="text-xs font-medium text-black/50 dark:text-white/50 leading-snug" id="txt_s4_d"
-                        data-i18n="svc_pdf_d">Ko'plab rasmlarni bitta tartibli PDF hujjatga yig'ish</p>
+                    <h3 class="font-display font-bold text-[17px] mb-1 text-white group-hover:text-accent-blue transition-colors" data-i18n="svc_pdf">Rasm → PDF</h3>
+                    <p class="text-xs font-medium text-white/40 leading-relaxed" data-i18n="svc_pdf_d">Ko'plab rasmlarni bitta tartibli PDF hujjatga yig'ish</p>
                 </div>
-                <svg class="text-black/20 dark:text-white/20 group-hover:text-apple-blue group-hover:translate-x-1 transition-all"
-                    width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
-                    stroke-linecap="round" stroke-linejoin="round">
-                    <path d="m9 18 6-6-6-6" />
-                </svg>
+                <div class="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-white/30 group-hover:bg-accent-blue/20 group-hover:text-accent-blue transition-all">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="m9 18 6-6-6-6" />
+                    </svg>
+                </div>
             </a>
         </div>
 
     </main>
 
-    <!-- Bottom Nav matching index.html aesthetics -->
-    <div class="fixed bottom-0 left-0 right-0 z-50 flex justify-center pb-6 pointer-events-none">
-        <nav
-            class="pointer-events-auto bg-white/70 dark:bg-neutral-900/70 backdrop-blur-2xl border border-black/5 dark:border-white/10 shadow-[0_20px_40px_rgba(0,0,0,0.1)] dark:shadow-[0_20px_40px_rgba(0,0,0,0.5)] rounded-full px-2 py-2 flex items-center gap-1">
+    <!-- Bottom Navigation -->
+    <div class="fixed bottom-0 left-0 right-0 z-50 flex justify-center pb-8 pointer-events-none">
+        <nav class="pointer-events-auto bottom-nav rounded-full px-3 py-3 flex items-center gap-2 shadow-2xl shadow-black/50">
 
-            <a href="index.html"
-                class="px-6 py-3 rounded-full flex flex-col items-center justify-center gap-1 transition-all text-black/40 dark:text-white/40 hover:text-black dark:hover:text-white">
-                <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"
-                    stroke-linecap="round" stroke-linejoin="round">
+            <a href="index.html" class="w-14 h-14 rounded-full flex items-center justify-center transition-all text-white/30 hover:text-white hover:bg-white/10">
+                <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                     <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
                     <polyline points="9 22 9 12 15 12 15 22" />
                 </svg>
             </a>
 
-            <button
-                class="px-6 py-3 rounded-full flex flex-col items-center justify-center gap-1 transition-all bg-black dark:bg-white text-white dark:text-black">
-                <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"
-                    stroke-linecap="round" stroke-linejoin="round">
+            <button class="w-14 h-14 rounded-full flex items-center justify-center transition-all bg-gradient-to-br from-brand-500 to-brand-600 text-white shadow-lg shadow-brand-500/30">
+                <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20" />
                 </svg>
             </button>
 
-            <a href="index.html" onclick="sessionStorage.setItem('openSettings', 'true')"
-                class="px-6 py-3 rounded-full flex flex-col items-center justify-center gap-1 transition-all text-black/40 dark:text-white/40 hover:text-black dark:hover:text-white">
-                <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"
-                    stroke-linecap="round" stroke-linejoin="round">
+            <a href="index.html" onclick="sessionStorage.setItem('openSettings', 'true')" class="w-14 h-14 rounded-full flex items-center justify-center transition-all text-white/30 hover:text-white hover:bg-white/10">
+                <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                     <circle cx="12" cy="12" r="3" />
-                    <path
-                        d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
+                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
                 </svg>
             </a>
 
         </nav>
     </div>
 
-    <!-- app.js provides the boot setup -->
-    <script src="app.js"></script>
     <script>
         const tg = window.Telegram?.WebApp;
-        // Theme and i18n applied automatically by index boot logic and DastyorAI.initUI
-
-        DastyorAI.initUI({
-            autoNavLinks: true
+        
+        // Haptic feedback on card tap
+        document.querySelectorAll('.service-card').forEach(card => {
+            card.addEventListener('click', () => {
+                tg?.HapticFeedback?.impactOccurred('light');
+            });
         });
-</body >
+    </script>
+</body>
 
-</html >
+</html>

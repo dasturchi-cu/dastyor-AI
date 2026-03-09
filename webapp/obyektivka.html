@@ -5,22 +5,34 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>Obyektivka Builder | DASTYOR AI</title>
-    <script src="theme-init.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+    
+    <!-- Premium Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Sora:wght@400;600;700;800&display=swap" rel="stylesheet" />
+    
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <link rel="stylesheet" href="theme.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
+    
     <script>
         tailwind.config = {
             darkMode: 'class',
             theme: {
                 extend: {
-                    fontFamily: { sans: ['Inter', 'sans-serif'] },
+                    fontFamily: {
+                        sans: ['Plus Jakarta Sans', 'sans-serif'],
+                        display: ['Sora', 'sans-serif'],
+                    },
                     colors: {
-                        apple: {
-                            blue: '#0A84FF', green: '#30D158',
-                            orange: '#FF9F0A', purple: '#BF5AF2',
+                        brand: {
+                            400: '#818cf8',
+                            500: '#636cf1',
+                            600: '#4f46e5',
+                        },
+                        accent: {
+                            emerald: '#10b981',
+                            amber: '#f59e0b',
+                            rose: '#f43f5e',
+                            cyan: '#06b6d4',
                         }
                     }
                 }
@@ -29,353 +41,252 @@
     </script>
 
     <style>
-        /* ── Reset & Base ── */
-        *, *::before, *::after { box-sizing: border-box; }
+        * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
+        
         body {
-            font-family: 'Inter', system-ui, sans-serif;
+            font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
             overscroll-behavior-y: none;
             -webkit-font-smoothing: antialiased;
+            background: linear-gradient(135deg, #0c0c1d 0%, #1a1a2e 50%, #16213e 100%);
         }
 
-        /* ── Scrollbar ── */
-        .scroller::-webkit-scrollbar { width: 4px; }
-        .scroller::-webkit-scrollbar-thumb { background: rgba(120,120,120,.2); border-radius: 4px; }
+        /* Scrollbar */
+        .scroller::-webkit-scrollbar { width: 6px; }
+        .scroller::-webkit-scrollbar-track { background: rgba(255, 255, 255, 0.02); }
+        .scroller::-webkit-scrollbar-thumb {
+            background: linear-gradient(180deg, rgba(99, 108, 241, 0.5), rgba(79, 70, 229, 0.3));
+            border-radius: 10px;
+        }
 
-        /* ── Header ── */
-        .app-header {
-            height: 52px;
-            display: flex;
+        /* Glassmorphism */
+        .glass {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .glass-light {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        /* Floating Orbs */
+        .orb {
+            position: fixed;
+            border-radius: 50%;
+            filter: blur(80px);
+            opacity: 0.12;
+            pointer-events: none;
+            z-index: 0;
+        }
+        .orb-1 { width: 400px; height: 400px; background: #636cf1; top: -100px; right: -100px; animation: float 8s ease-in-out infinite; }
+        .orb-2 { width: 300px; height: 300px; background: #10b981; bottom: 10%; left: -50px; animation: float 10s ease-in-out infinite reverse; }
+        .orb-3 { width: 200px; height: 200px; background: #f59e0b; top: 40%; right: 20%; animation: float 12s ease-in-out infinite; }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-20px); }
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in { animation: fadeIn 0.3s ease-out; }
+
+        /* Section Header */
+        .section-header {
+            position: relative;
+            display: inline-flex;
             align-items: center;
-            justify-content: space-between;
-            padding: 0 16px;
-            border-bottom: 1px solid rgba(0,0,0,.06);
-            background: #fff;
-            flex-shrink: 0;
-            z-index: 50;
+            gap: 12px;
         }
-        .dark .app-header {
-            background: #111;
-            border-bottom-color: rgba(255,255,255,.06);
-        }
-        .app-header-left { display: flex; align-items: center; gap: 12px; }
-        .back-btn {
-            width: 36px; height: 36px;
-            border-radius: 8px;
-            border: 1px solid rgba(0,0,0,.08);
-            display: flex; align-items: center; justify-content: center;
-            color: #666;
-            background: transparent;
-            cursor: pointer;
-            transition: background .15s, border-color .15s;
-            text-decoration: none;
-        }
-        .dark .back-btn { border-color: rgba(255,255,255,.08); color: #888; }
-        .back-btn:hover { background: rgba(0,0,0,.04); }
-        .dark .back-btn:hover { background: rgba(255,255,255,.06); }
-        .app-title {
-            font-size: 15px;
-            font-weight: 700;
-            letter-spacing: -0.03em;
-            color: #111;
-        }
-        .dark .app-title { color: #f5f5f5; }
-        .app-title span { color: #aaa; font-weight: 400; }
-
-        /* ── Buttons ── */
-        .btn-word {
-            display: flex; align-items: center; gap: 6px;
-            padding: 7px 16px;
-            background: #111;
-            color: #fff;
-            border: none;
-            border-radius: 8px;
-            font-size: 13px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: opacity .15s;
-            letter-spacing: -0.01em;
-        }
-        .dark .btn-word { background: #fff; color: #111; }
-        .btn-word:hover { opacity: .85; }
-        .btn-word:disabled { opacity: .5; }
-        .btn-toggle-mobile {
-            display: none;
-            padding: 7px 14px;
-            background: transparent;
-            border: 1px solid rgba(0,0,0,.12);
-            border-radius: 8px;
-            font-size: 13px; font-weight: 500;
-            color: #444; cursor: pointer;
-            transition: background .15s;
-        }
-        .dark .btn-toggle-mobile { border-color: rgba(255,255,255,.12); color: #bbb; }
-        .btn-toggle-mobile:hover { background: rgba(0,0,0,.04); }
-        @media (max-width: 767px) { .btn-toggle-mobile { display: flex; align-items: center; gap: 6px; } }
-
-        /* ── Editor Pane ── */
-        .editor-pane {
-            width: 100%;
-            max-width: 420px;
-            height: 100%;
-            overflow-y: auto;
-            background: #fafafa;
-            border-right: 1px solid rgba(0,0,0,.06);
-            flex-shrink: 0;
-        }
-        .dark .editor-pane {
-            background: #0d0d0f;
-            border-right-color: rgba(255,255,255,.06);
-        }
-        @media (min-width: 768px) { .editor-pane { width: 380px; } }
-
-        /* ── Section Header inside Editor ── */
-        .editor-section {
-            padding: 20px 20px 0;
-        }
-        .section-label {
-            font-size: 10px;
-            font-weight: 700;
-            letter-spacing: 0.12em;
-            text-transform: uppercase;
-            color: #999;
-            margin-bottom: 16px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        .section-label::after {
+        .section-header::after {
             content: '';
-            flex: 1;
-            height: 1px;
-            background: rgba(0,0,0,.06);
+            position: absolute;
+            bottom: -4px;
+            left: 0;
+            width: 40px;
+            height: 2px;
+            background: linear-gradient(90deg, #636cf1, transparent);
+            border-radius: 2px;
         }
-        .dark .section-label { color: #555; }
-        .dark .section-label::after { background: rgba(255,255,255,.06); }
 
-        /* ── Photo Upload ── */
-        .photo-upload-area {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            padding: 20px 16px;
-            border: 1.5px dashed rgba(0,0,0,.1);
+        /* Input Styling */
+        .input-premium {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.08);
             border-radius: 12px;
-            margin-bottom: 20px;
+            padding: 12px 16px;
+            font-size: 14px;
+            color: #fff;
+            outline: none;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .input-premium:focus {
+            background: rgba(255, 255, 255, 0.06);
+            border-color: rgba(99, 108, 241, 0.5);
+            box-shadow: 0 0 0 3px rgba(99, 108, 241, 0.1), 0 4px 20px rgba(99, 108, 241, 0.15);
+        }
+        .input-premium::placeholder { color: rgba(255, 255, 255, 0.3); }
+        .input-premium.bold { font-weight: 700; font-size: 16px; }
+
+        /* Select Dropdown */
+        select.input-premium {
             cursor: pointer;
-            transition: background .15s, border-color .15s;
-            background: transparent;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='rgba(255,255,255,0.5)' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 10px center;
+            padding-right: 30px;
+            min-height: 48px;
+            font-size: 14px;
         }
-        .dark .photo-upload-area {
-            border-color: rgba(255,255,255,.1);
+        select.input-premium option {
+            background: #1a1a2e;
+            color: white;
+            padding: 12px;
+            font-size: 14px;
         }
-        .photo-upload-area:hover {
-            background: rgba(0,0,0,.02);
-            border-color: rgba(0,0,0,.2);
+        select.input-premium:focus {
+            background-color: rgba(255, 255, 255, 0.06);
+            border-color: rgba(99, 108, 241, 0.5);
         }
-        .dark .photo-upload-area:hover {
-            background: rgba(255,255,255,.03);
-            border-color: rgba(255,255,255,.2);
+
+        /* Entry Cards */
+        .entry-card {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 12px;
+            position: relative;
+            transition: all 0.3s ease;
         }
-        .photo-preview-box {
-            width: 72px; height: 96px;
-            background: rgba(0,0,0,.05);
-            border-radius: 6px;
-            overflow: hidden;
+        .entry-card:hover {
+            background: rgba(255, 255, 255, 0.04);
+            border-color: rgba(99, 108, 241, 0.2);
+        }
+
+        /* Remove Button */
+        .btn-remove {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            width: 28px;
+            height: 28px;
+            border-radius: 8px;
+            background: rgba(244, 63, 94, 0.1);
+            border: none;
             display: flex;
             align-items: center;
             justify-content: center;
-            margin-bottom: 10px;
-            border: 1px solid rgba(0,0,0,.08);
+            color: #f43f5e;
+            cursor: pointer;
+            opacity: 0;
+            transform: scale(0.8);
+            transition: all 0.2s ease;
         }
-        .dark .photo-preview-box {
-            background: rgba(255,255,255,.06);
-            border-color: rgba(255,255,255,.08);
+        .entry-card:hover .btn-remove {
+            opacity: 1;
+            transform: scale(1);
         }
-        .photo-icon {
-            color: rgba(0,0,0,.2);
+        .btn-remove:hover {
+            background: rgba(244, 63, 94, 0.2);
         }
-        .dark .photo-icon { color: rgba(255,255,255,.2); }
-        .upload-btn-label {
-            font-size: 12px; font-weight: 600;
-            color: #444;
-            letter-spacing: -0.01em;
-        }
-        .dark .upload-btn-label { color: #aaa; }
-        .upload-sub {
-            font-size: 11px; color: #bbb;
-            margin-top: 3px;
-        }
-        .dark .upload-sub { color: #555; }
 
-        /* ── Form Fields ── */
-        .field-group {
-            margin-bottom: 14px;
-        }
-        .field-label {
-            display: block;
-            font-size: 11px;
-            font-weight: 600;
-            letter-spacing: 0.04em;
-            text-transform: uppercase;
-            color: #888;
-            margin-bottom: 6px;
-        }
-        .dark .field-label { color: #555; }
-        .field-input {
+        /* Add Button */
+        .btn-add {
             width: 100%;
-            background: #fff;
-            border: 1px solid rgba(0,0,0,.1);
-            border-radius: 8px;
-            padding: 10px 14px;
-            font-family: 'Inter', sans-serif;
-            font-size: 14px;
-            color: #111;
-            outline: none;
-            transition: border-color .15s;
-        }
-        .dark .field-input {
-            background: #1a1a1e;
-            border-color: rgba(255,255,255,.08);
-            color: #f0f0f0;
-        }
-        .field-input:focus {
-            border-color: #111;
-        }
-        .dark .field-input:focus { border-color: rgba(255,255,255,.3); }
-        .field-input::placeholder { color: #ccc; }
-        .dark .field-input::placeholder { color: #444; }
-        .field-input.bold { font-weight: 600; font-size: 15px; }
-        .two-col { display: flex; gap: 10px; }
-        .two-col .field-group { flex: 1; min-width: 0; }
-
-        /* ── Repeater Card ── */
-        .repeater-card {
-            background: #fff;
-            border: 1px solid rgba(0,0,0,.08);
-            border-radius: 10px;
             padding: 14px;
-            margin-bottom: 10px;
-            position: relative;
-        }
-        .dark .repeater-card {
-            background: #1a1a1e;
-            border-color: rgba(255,255,255,.08);
-        }
-        .remove-btn {
-            position: absolute;
-            top: 10px; right: 10px;
-            width: 24px; height: 24px;
-            border-radius: 6px;
-            background: rgba(0,0,0,.05);
-            border: none;
-            display: flex; align-items: center; justify-content: center;
-            font-size: 14px; color: #999;
-            cursor: pointer;
-            transition: background .15s, color .15s;
-        }
-        .dark .remove-btn { background: rgba(255,255,255,.06); color: #666; }
-        .remove-btn:hover { background: rgba(220,50,50,.1); color: #e53e3e; }
-        .repeater-input {
-            width: 100%;
-            background: rgba(0,0,0,.03);
-            border: 1px solid rgba(0,0,0,.07);
-            border-radius: 7px;
-            padding: 9px 12px;
-            font-family: 'Inter', sans-serif;
-            font-size: 13px;
-            color: #111;
-            outline: none;
-            margin-bottom: 8px;
-            transition: border-color .15s;
-        }
-        .dark .repeater-input {
-            background: rgba(255,255,255,.04);
-            border-color: rgba(255,255,255,.07);
-            color: #f0f0f0;
-        }
-        .repeater-input:focus { border-color: #111; }
-        .dark .repeater-input:focus { border-color: rgba(255,255,255,.25); }
-        .repeater-input::placeholder { color: #ccc; }
-        .dark .repeater-input::placeholder { color: #444; }
-        .repeater-textarea {
-            width: 100%;
-            background: rgba(0,0,0,.03);
-            border: 1px solid rgba(0,0,0,.07);
-            border-radius: 7px;
-            padding: 9px 12px;
-            font-family: 'Inter', sans-serif;
-            font-size: 13px;
-            color: #111;
-            outline: none;
-            resize: none;
-            height: 80px;
-            transition: border-color .15s;
-        }
-        .dark .repeater-textarea {
-            background: rgba(255,255,255,.04);
-            border-color: rgba(255,255,255,.07);
-            color: #f0f0f0;
-        }
-        .repeater-textarea:focus { border-color: #111; }
-        .dark .repeater-textarea:focus { border-color: rgba(255,255,255,.25); }
-        .repeater-textarea::placeholder { color: #ccc; }
-        .dark .repeater-textarea::placeholder { color: #444; }
-
-        /* ── Add Button ── */
-        .add-btn {
-            width: 100%;
-            padding: 10px;
-            border: 1.5px dashed rgba(0,0,0,.12);
-            border-radius: 8px;
-            background: transparent;
-            font-family: 'Inter', sans-serif;
-            font-size: 13px;
+            border: 2px dashed rgba(99, 108, 241, 0.3);
+            border-radius: 12px;
+            background: rgba(99, 108, 241, 0.05);
+            font-size: 14px;
             font-weight: 600;
-            color: #888;
+            color: #818cf8;
             cursor: pointer;
-            transition: background .15s, border-color .15s, color .15s;
-            letter-spacing: -0.01em;
+            transition: all 0.3s ease;
         }
-        .dark .add-btn { border-color: rgba(255,255,255,.12); color: #555; }
-        .add-btn:hover { background: rgba(0,0,0,.03); border-color: rgba(0,0,0,.25); color: #333; }
-        .dark .add-btn:hover { background: rgba(255,255,255,.05); border-color: rgba(255,255,255,.25); color: #ccc; }
-
-        /* ── Divider ── */
-        .editor-divider {
-            height: 1px;
-            background: rgba(0,0,0,.05);
-            margin: 24px 20px;
+        .btn-add:hover {
+            border-color: rgba(99, 108, 241, 0.5);
+            background: rgba(99, 108, 241, 0.1);
         }
-        .dark .editor-divider { background: rgba(255,255,255,.05); }
 
-        /* ── Editor bottom padding ── */
-        .editor-bottom { height: 80px; }
+        /* Photo Upload */
+        .photo-upload {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 24px;
+            border: 2px dashed rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 24px;
+        }
+        .photo-upload:hover {
+            background: rgba(255, 255, 255, 0.03);
+            border-color: rgba(99, 108, 241, 0.4);
+        }
+        .photo-box {
+            width: 80px;
+            height: 100px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 12px;
+            overflow: hidden;
+        }
 
-        /* ── Preview Pane ── */
+        /* Buttons */
+        .btn-primary {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 20px;
+            background: linear-gradient(135deg, #636cf1 0%, #4f46e5 100%);
+            color: #fff;
+            border: none;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(99, 108, 241, 0.4);
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(99, 108, 241, 0.5);
+        }
+        .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        /* Preview Pane */
         .preview-pane {
             flex: 1;
             height: 100%;
             overflow-y: auto;
-            background: #e8e8e8;
+            background: linear-gradient(135deg, #0f0f1a 0%, #1a1a2e 100%);
             display: flex;
             align-items: flex-start;
             justify-content: center;
-            padding: 32px 24px;
+            padding: 40px 24px;
         }
-        .dark .preview-pane { background: #1c1c1e; }
 
-        /* ── A4 Canvas ── */
+        /* A4 Document */
         .cv-canvas-wrapper {
             transform-origin: top center;
             transition: transform 0.1s ease;
         }
-
-        /* ── A4 Document Template ── */
         .tpl-oby {
             width: 210mm;
             min-height: 297mm;
             background: #ffffff;
-            box-shadow: 0 20px 60px rgba(0,0,0,.25);
+            box-shadow: 0 25px 80px rgba(0,0,0,.5);
             color: #1a1a2e;
             padding: 18mm 16mm 20mm 20mm;
             font-family: 'Times New Roman', Times, serif;
@@ -383,190 +294,93 @@
             font-size: 10.5pt;
             margin-bottom: 24px;
         }
-        .tpl-oby .accent-bar {
-            width: 100%; height: 4px;
-            background: #1a3a6b;
-            margin-bottom: 14px;
-        }
+        .tpl-oby .accent-bar { width: 100%; height: 4px; background: #1a3a6b; margin-bottom: 14px; }
         .tpl-oby .title {
-            text-align: center;
-            font-size: 15pt;
-            font-weight: bold;
-            letter-spacing: 4px;
-            color: #1a3a6b;
-            margin-bottom: 12px;
-            text-transform: uppercase;
+            text-align: center; font-size: 15pt; font-weight: bold;
+            letter-spacing: 4px; color: #1a3a6b; margin-bottom: 12px; text-transform: uppercase;
         }
-        .tpl-oby .title-line {
-            width: 60mm; height: 1px;
-            background: #1a3a6b;
-            margin: 0 auto 16px;
-            opacity: 0.35;
-        }
-        .tpl-oby .header-table {
-            width: 100%; margin-bottom: 16px;
-            border-collapse: collapse;
-        }
+        .tpl-oby .title-line { width: 60mm; height: 1px; background: #1a3a6b; margin: 0 auto 16px; opacity: 0.35; }
+        .tpl-oby .header-table { width: 100%; margin-bottom: 16px; border-collapse: collapse; }
         .tpl-oby .header-table td { vertical-align: middle; }
         .tpl-oby .col-main { vertical-align: middle; padding-right: 10mm; }
-        .tpl-oby .name-block {
-            background: #f0f4fb;
-            border-left: 4px solid #1a3a6b;
-            padding: 10px 14px;
-            display: block; width: 100%;
-        }
-        .tpl-oby .name-label {
-            display: block; font-size: 8pt;
-            color: #6b7a99; font-weight: normal;
-            letter-spacing: 1.5px; text-transform: uppercase;
-            margin-bottom: 5px;
-        }
-        .tpl-oby .name {
-            font-size: 14pt; font-weight: bold;
-            text-transform: uppercase;
-            color: #1a1a2e; line-height: 1.35;
-            letter-spacing: 0.5px;
-        }
-        .tpl-oby .col-img {
-            width: 36mm; text-align: center;
-            vertical-align: middle;
-        }
-        .tpl-oby .photo-frame {
-            display: inline-block;
-            border: 2px solid #1a3a6b;
-            padding: 2px; background: #fff;
-        }
-        .tpl-oby .avatar {
-            width: 30mm; height: 40mm;
-            object-fit: cover; display: block;
-        }
-        .tpl-oby .photo-placeholder {
-            width: 30mm; height: 40mm;
-            background: #f0f4fb;
-            display: flex; align-items: center;
-            justify-content: center;
-            font-size: 9pt; color: #9ba8c4;
-            letter-spacing: 1px; text-align: center;
-        }
-        .tpl-oby .info-table {
-            width: 100%; border-collapse: collapse;
-            margin-bottom: 18px;
-        }
+        .tpl-oby .name-block { background: #f0f4fb; border-left: 4px solid #1a3a6b; padding: 10px 14px; display: block; width: 100%; }
+        .tpl-oby .name-label { display: block; font-size: 8pt; color: #6b7a99; font-weight: normal; letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 5px; }
+        .tpl-oby .name { font-size: 14pt; font-weight: bold; text-transform: uppercase; color: #1a1a2e; line-height: 1.35; letter-spacing: 0.5px; }
+        .tpl-oby .col-img { width: 36mm; text-align: center; vertical-align: middle; }
+        .tpl-oby .photo-frame { display: inline-block; border: 2px solid #1a3a6b; padding: 2px; background: #fff; }
+        .tpl-oby .avatar { width: 30mm; height: 40mm; object-fit: cover; display: block; }
+        .tpl-oby .photo-placeholder { width: 30mm; height: 40mm; background: #f0f4fb; display: flex; align-items: center; justify-content: center; font-size: 9pt; color: #9ba8c4; }
+        .tpl-oby .info-table { width: 100%; border-collapse: collapse; margin-bottom: 18px; }
         .tpl-oby .info-table tr:nth-child(even) td { background: #f8f9fc; }
-        .tpl-oby .info-table td {
-            vertical-align: top;
-            padding: 6px 10px 6px 8px;
-            font-size: 10pt;
-            border-bottom: 1px solid #e8ecf4;
-            width: 50%;
-        }
+        .tpl-oby .info-table td { vertical-align: top; padding: 6px 10px; font-size: 10pt; border-bottom: 1px solid #e8ecf4; width: 50%; }
         .tpl-oby .info-table td:first-child { border-right: 1px solid #e8ecf4; }
-        .tpl-oby .info-lbl {
-            display: block; font-weight: bold;
-            font-size: 8.5pt; color: #4a5a80;
-            margin-bottom: 2px;
-            letter-spacing: 0.3px;
-            text-transform: uppercase;
-        }
-        .tpl-oby .info-val {
-            display: block; font-size: 10.5pt; color: #1a1a2e;
-        }
-        .tpl-oby .section-header {
-            margin-top: 18px; margin-bottom: 10px;
-        }
-        .tpl-oby .sect-title {
-            font-size: 10.5pt; font-weight: bold;
-            text-transform: uppercase; letter-spacing: 2px;
-            color: #1a3a6b; text-align: center;
-            padding: 6px 0 5px;
-            border-top: 2px solid #1a3a6b;
-            border-bottom: 1px solid #c5d0e4;
-            background: #f0f4fb;
-        }
-        .tpl-oby .exp-table {
-            width: 100%; border-collapse: collapse;
-            margin-bottom: 14px; font-size: 10.5pt;
-        }
-        .tpl-oby .exp-table thead th {
-            background: #1a3a6b; color: #ffffff;
-            font-weight: bold; text-align: center;
-            padding: 7px 10px; font-size: 9.5pt;
-            letter-spacing: 0.5px;
-            border: 1px solid #1a3a6b;
-        }
+        .tpl-oby .info-lbl { display: block; font-weight: bold; font-size: 8.5pt; color: #4a5a80; margin-bottom: 2px; letter-spacing: 0.3px; text-transform: uppercase; }
+        .tpl-oby .info-val { display: block; font-size: 10.5pt; color: #1a1a2e; }
+        .tpl-oby .section-header { margin-top: 18px; margin-bottom: 10px; }
+        .tpl-oby .sect-title { font-size: 10.5pt; font-weight: bold; text-transform: uppercase; letter-spacing: 2px; color: #1a3a6b; text-align: center; padding: 6px 0; border-top: 2px solid #1a3a6b; border-bottom: 1px solid #c5d0e4; background: #f0f4fb; }
+        .tpl-oby .exp-table { width: 100%; border-collapse: collapse; margin-bottom: 14px; font-size: 10.5pt; }
+        .tpl-oby .exp-table thead th { background: #1a3a6b; color: #fff; font-weight: bold; text-align: center; padding: 7px 10px; font-size: 9.5pt; border: 1px solid #1a3a6b; }
         .tpl-oby .exp-table tbody tr:nth-child(even) td { background: #f8f9fc; }
-        .tpl-oby .exp-table tbody tr:nth-child(odd) td { background: #ffffff; }
-        .tpl-oby .exp-table td {
-            padding: 7px 10px; vertical-align: top;
-            border: 1px solid #c5d0e4; font-size: 10pt;
-        }
-        .tpl-oby .exp-table td:first-child {
-            width: 26%; font-weight: bold; color: #1a3a6b;
-        }
-        .tpl-oby .rel-table {
-            width: 100%; border-collapse: collapse;
-            font-size: 9pt; text-align: center;
-        }
-        .tpl-oby .rel-table thead th {
-            background: #1a3a6b; color: #ffffff;
-            font-weight: bold; padding: 6px 4px;
-            font-size: 8.5pt;
-            border: 1px solid #1a3a6b;
-            vertical-align: middle;
-        }
+        .tpl-oby .exp-table td { padding: 7px 10px; vertical-align: top; border: 1px solid #c5d0e4; font-size: 10pt; }
+        .tpl-oby .exp-table td:first-child { width: 26%; font-weight: bold; color: #1a3a6b; }
+        .tpl-oby .rel-table { width: 100%; border-collapse: collapse; font-size: 9pt; text-align: center; }
+        .tpl-oby .rel-table thead th { background: #1a3a6b; color: #fff; font-weight: bold; padding: 6px 4px; font-size: 8.5pt; border: 1px solid #1a3a6b; }
         .tpl-oby .rel-table tbody tr:nth-child(even) td { background: #f8f9fc; }
-        .tpl-oby .rel-table tbody tr:nth-child(odd) td { background: #ffffff; }
-        .tpl-oby .rel-table td {
-            border: 1px solid #c5d0e4;
-            padding: 5px 4px; vertical-align: middle;
-            font-size: 9pt;
+        .tpl-oby .rel-table td { border: 1px solid #c5d0e4; padding: 5px 4px; font-size: 9pt; }
+        .tpl-oby .empty-state { text-align: center; font-style: italic; padding: 10px 0; font-size: 9.5pt; color: #8a96b0; }
+        .tpl-oby .footer-bar { width: 100%; height: 3px; background: #1a3a6b; margin-top: 20px; opacity: 0.15; }
+
+        /* Toast */
+        .toast {
+            position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%) translateY(100px);
+            background: linear-gradient(135deg, #10b981, #059669); color: white;
+            font-weight: 700; font-size: 14px; padding: 14px 28px; border-radius: 100px;
+            box-shadow: 0 10px 40px rgba(16, 185, 129, 0.4); z-index: 9999;
+            opacity: 0; transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
         }
-        .tpl-oby .empty-state {
-            text-align: center; font-style: italic;
-            padding: 10px 0; font-size: 9.5pt; color: #8a96b0;
-        }
-        .tpl-oby .footer-bar {
-            width: 100%; height: 3px;
-            background: #1a3a6b;
-            margin-top: 20px; opacity: 0.15;
-        }
+        .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
         @media print {
             body * { visibility: hidden; }
             #cv-box, #cv-box * { visibility: visible; }
-            #cv-box {
-                position: absolute; left: 0; top: 0;
-                width: 210mm; min-height: 297mm;
-                transform: none !important;
-                box-shadow: none !important;
-                margin: 0; padding: 0;
-            }
+            #cv-box { position: absolute; left: 0; top: 0; width: 210mm; min-height: 297mm; transform: none !important; box-shadow: none !important; margin: 0; }
+        }
+
+        @media (max-width: 767px) {
+            .btn-toggle-mobile { display: flex !important; }
         }
     </style>
-
-    <script src="i18n.js"></script>
-    <script src="app.js"></script>
 </head>
 
-<body class="text-neutral-900 dark:text-neutral-100 flex flex-col h-screen overflow-hidden antialiased">
+<body class="text-white flex flex-col h-screen overflow-hidden antialiased">
+
+    <!-- Background Orbs -->
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="orb orb-3"></div>
 
     <!-- Header -->
-    <header class="app-header">
-        <div class="app-header-left">
-            <a href="index.html" class="back-btn">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+    <header class="glass h-16 flex-shrink-0 flex items-center justify-between px-5 z-50 border-b border-white/5">
+        <div class="flex items-center gap-4">
+            <a href="index.html" class="w-10 h-10 rounded-xl glass-light hover:bg-white/10 transition-all flex items-center justify-center group">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="opacity-60 group-hover:opacity-100">
                     <path d="m15 18-6-6 6-6"/>
                 </svg>
             </a>
-            <div class="app-title">Obyektivka <span>Builder</span></div>
+            <div>
+                <h1 class="font-display font-bold text-lg tracking-tight bg-gradient-to-r from-white to-white/60 bg-clip-text text-transparent">Obyektivka</h1>
+                <p class="text-[10px] text-white/40 tracking-wide">DASTYOR AI</p>
+            </div>
         </div>
-        <div style="display:flex; align-items:center; gap:8px;">
-            <button id="mobileViewToggle" class="btn-toggle-mobile" onclick="toggleMobileView()">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-                Preview
+        <div class="flex items-center gap-3">
+            <button id="mobileViewToggle" onclick="toggleMobileView()" class="hidden md:hidden px-4 py-2.5 glass-light rounded-xl font-semibold text-sm hover:bg-white/10 transition-all btn-toggle-mobile">
+                👁️ Ko'rish
             </button>
-            <button onclick="exportWord()" class="btn-word" id="btnWord">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            <button onclick="exportWord()" class="btn-primary" id="btnWord">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                    <polyline points="14 2 14 8 20 8"/>
+                </svg>
                 Word yuklab olish
             </button>
         </div>
@@ -576,177 +390,170 @@
     <div class="flex flex-1 overflow-hidden relative">
 
         <!-- EDITOR PANE -->
-        <div id="editorPane" class="editor-pane scroller">
+        <div id="editorPane" class="w-full md:w-[420px] lg:w-[460px] h-full scroller overflow-y-auto glass border-r border-white/5 pb-24">
 
             <!-- SHAXSIY MA'LUMOTLAR -->
-            <div class="editor-section" style="padding-top:20px;">
-                <div class="section-label" data-i18n="obv_section_personal">Shaxsiy ma'lumotlar</div>
+            <div class="p-6">
+                <div class="section-header mb-5">
+                    <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-brand-500/20 to-brand-600/10 flex items-center justify-center">
+                        <span class="text-lg">👤</span>
+                    </div>
+                    <h2 class="font-display font-bold text-sm uppercase tracking-[0.2em] text-white/50">Shaxsiy Ma'lumotlar</h2>
+                </div>
 
                 <!-- Photo Upload -->
-                <div class="photo-upload-area" onclick="document.getElementById('imgInput').click()">
-                    <div id="photoPrev" class="photo-preview-box">
-                        <svg class="photo-icon" width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                <div class="photo-upload" onclick="document.getElementById('imgInput').click()">
+                    <div id="photoPrev" class="photo-box">
+                        <svg width="28" height="28" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" class="text-white/20">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z"/>
                         </svg>
                     </div>
                     <input type="file" id="imgInput" accept="image/*" class="hidden" onchange="handleImage(this)">
-                    <span class="upload-btn-label" data-i18n="cv_upload_img">Rasm yuklash</span>
-                    <span class="upload-sub" data-i18n="cv_rec_img">3×4 rasmiy tasvir</span>
+                    <span class="text-sm font-semibold text-white/70">📤 Rasm yuklash</span>
+                    <span class="text-[11px] text-white/30 mt-1">3×4 rasmiy tasvir</span>
                 </div>
 
                 <!-- F.I.Sh -->
-                <div class="field-group">
-                    <label class="field-label" data-i18n="obv_fullname">F.I.Sh.</label>
-                    <input type="text" id="f_name" class="field-input bold"
-                        placeholder="Alisherov Yusuf Muratovich"
-                        data-i18n="ph_obv_name" data-i18n-attr="placeholder"
-                        oninput="updateCV()">
+                <div class="mb-4">
+                    <label class="text-[11px] text-white/40 mb-1.5 block font-medium">F.I.SH. (Familiya Ism Sharif)</label>
+                    <input type="text" id="f_name" class="input-premium bold" placeholder="masalan: alisherov yusuf muratovich" oninput="formatName(this)">
                 </div>
 
                 <!-- Tug'ilgan sana + joy -->
-                <div class="two-col">
-                    <div class="field-group">
-                        <label class="field-label" data-i18n="obv_birth">Tug'ilgan sana</label>
-                        <input type="text" id="f_birth" class="field-input"
-                            placeholder="01.01.1990"
-                            data-i18n="ph_obv_birth" data-i18n-attr="placeholder"
-                            oninput="updateCV()">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <label class="text-[11px] text-white/40 mb-2 block font-medium">Tug'ilgan sana</label>
+                        <div class="grid grid-cols-3 gap-2">
+                            <select id="f_birth_day" class="input-premium text-center text-sm py-3" onchange="updateCV()">
+                                <option value="" disabled selected>Kun</option>
+                            </select>
+                            <select id="f_birth_month" class="input-premium text-sm py-3" onchange="updateCV()">
+                                <option value="" disabled selected>Oy</option>
+                            </select>
+                            <select id="f_birth_year" class="input-premium text-center text-sm py-3" onchange="updateCV()">
+                                <option value="" disabled selected>Yil</option>
+                            </select>
+                        </div>
                     </div>
-                    <div class="field-group">
-                        <label class="field-label" data-i18n="obv_birthplace">Tug'ilgan joyi</label>
-                        <input type="text" id="f_place" class="field-input"
-                            placeholder="Toshkent viloyati"
-                            data-i18n="ph_obv_place" data-i18n-attr="placeholder"
-                            oninput="updateCV()">
+                    <div>
+                        <label class="text-[11px] text-white/40 mb-2 block font-medium">Tug'ilgan joyi</label>
+                        <input type="text" id="f_place" class="input-premium" placeholder="masalan: toshkent viloyati" oninput="formatCapitalize(this)">
                     </div>
                 </div>
 
                 <!-- Millat + Partiya -->
-                <div class="two-col">
-                    <div class="field-group">
-                        <label class="field-label" data-i18n="obv_nation">Millati</label>
-                        <input type="text" id="f_nation" class="field-input"
-                            placeholder="o'zbek"
-                            data-i18n="ph_obv_nation" data-i18n-attr="placeholder"
-                            oninput="updateCV()">
+                <div class="grid grid-cols-2 gap-3 mb-4">
+                    <div>
+                        <label class="text-[11px] text-white/40 mb-1.5 block font-medium">Millati</label>
+                        <input type="text" id="f_nation" class="input-premium" placeholder="masalan: o'zbek" oninput="formatCapitalize(this)">
                     </div>
-                    <div class="field-group">
-                        <label class="field-label" data-i18n="obv_party">Partiyaviyligi</label>
-                        <input type="text" id="f_party" class="field-input"
-                            placeholder="yo'q"
-                            data-i18n="ph_obv_party" data-i18n-attr="placeholder"
-                            oninput="updateCV()">
+                    <div>
+                        <label class="text-[11px] text-white/40 mb-1.5 block font-medium">Partiyaviyligi</label>
+                        <input type="text" id="f_party" class="input-premium" placeholder="masalan: yo'q" oninput="formatCapitalize(this)">
                     </div>
                 </div>
 
                 <!-- Ta'lim + Tamomlagan -->
-                <div class="two-col">
-                    <div class="field-group">
-                        <label class="field-label" data-i18n="obv_education">Ma'lumoti</label>
-                        <input type="text" id="f_edu" class="field-input"
-                            placeholder="oliy"
-                            data-i18n="ph_obv_edu" data-i18n-attr="placeholder"
-                            oninput="updateCV()">
+                <div class="grid grid-cols-2 gap-3 mb-4">
+                    <div>
+                        <label class="text-[11px] text-white/40 mb-1.5 block font-medium">Ma'lumoti</label>
+                        <select id="f_edu" class="input-premium" onchange="updateCV()">
+                            <option value="" disabled selected>Tanlang</option>
+                            <option value="Oliy">Oliy</option>
+                            <option value="O'rta maxsus">O'rta maxsus</option>
+                            <option value="O'rta">O'rta</option>
+                            <option value="Tugallanmagan oliy">Tugallanmagan oliy</option>
+                        </select>
                     </div>
-                    <div class="field-group">
-                        <label class="field-label" data-i18n="obv_graduated">Tamomlagan</label>
-                        <input type="text" id="f_grad" class="field-input"
-                            placeholder="2015, TDYU"
-                            data-i18n="ph_obv_grad" data-i18n-attr="placeholder"
-                            oninput="updateCV()">
+                    <div>
+                        <label class="text-[11px] text-white/40 mb-1.5 block font-medium">Tamomlagan (yil, OTM)</label>
+                        <input type="text" id="f_grad" class="input-premium" placeholder="2015, TDYU" oninput="formatCapitalize(this)">
                     </div>
                 </div>
 
                 <!-- Mutaxassislik -->
-                <div class="field-group">
-                    <label class="field-label" data-i18n="obv_specialty">Mutaxassisligi</label>
-                    <input type="text" id="f_spec" class="field-input"
-                        placeholder="huquqshunos"
-                        data-i18n="ph_obv_spec" data-i18n-attr="placeholder"
-                        oninput="updateCV()">
+                <div class="mb-4">
+                    <label class="text-[11px] text-white/40 mb-1.5 block font-medium">Mutaxassisligi</label>
+                    <input type="text" id="f_spec" class="input-premium" placeholder="masalan: huquqshunos" oninput="formatCapitalize(this)">
                 </div>
 
                 <!-- Ilmiy daraja + unvon -->
-                <div class="two-col">
-                    <div class="field-group">
-                        <label class="field-label" data-i18n="obv_degree">Ilmiy darajasi</label>
-                        <input type="text" id="f_degree" class="field-input"
-                            placeholder="yo'q"
-                            data-i18n="ph_obv_degree" data-i18n-attr="placeholder"
-                            oninput="updateCV()">
+                <div class="grid grid-cols-2 gap-3 mb-4">
+                    <div>
+                        <label class="text-[11px] text-white/40 mb-1.5 block font-medium">Ilmiy darajasi</label>
+                        <input type="text" id="f_degree" class="input-premium" placeholder="masalan: yo'q" oninput="formatCapitalize(this)">
                     </div>
-                    <div class="field-group">
-                        <label class="field-label" data-i18n="obv_title">Ilmiy unvoni</label>
-                        <input type="text" id="f_title" class="field-input"
-                            placeholder="yo'q"
-                            data-i18n="ph_obv_title" data-i18n-attr="placeholder"
-                            oninput="updateCV()">
+                    <div>
+                        <label class="text-[11px] text-white/40 mb-1.5 block font-medium">Ilmiy unvoni</label>
+                        <input type="text" id="f_title" class="input-premium" placeholder="masalan: yo'q" oninput="formatCapitalize(this)">
                     </div>
                 </div>
 
                 <!-- Tillar -->
-                <div class="field-group">
-                    <label class="field-label" data-i18n="obv_languages">Tillar</label>
-                    <input type="text" id="f_langs" class="field-input"
-                        placeholder="rus va ingliz tillari"
-                        data-i18n="ph_obv_langs" data-i18n-attr="placeholder"
-                        oninput="updateCV()">
+                <div class="mb-4">
+                    <label class="text-[11px] text-white/40 mb-1.5 block font-medium">Qaysi chet tillarini biladi</label>
+                    <input type="text" id="f_langs" class="input-premium" placeholder="masalan: rus va ingliz tillari" oninput="formatCapitalize(this)">
+                </div>
+
+                <!-- Harbiy unvon -->
+                <div class="mb-4">
+                    <label class="text-[11px] text-white/40 mb-1.5 block font-medium">Harbiy yoki maxsus unvoni</label>
+                    <input type="text" id="f_military" class="input-premium" placeholder="masalan: yo'q" oninput="formatCapitalize(this)">
                 </div>
 
                 <!-- Mukofotlar -->
-                <div class="field-group">
-                    <label class="field-label" data-i18n="obv_awards">Mukofotlar</label>
-                    <input type="text" id="f_awards" class="field-input"
-                        placeholder="yo'q"
-                        data-i18n="ph_obv_awards" data-i18n-attr="placeholder"
-                        oninput="updateCV()">
+                <div class="mb-4">
+                    <label class="text-[11px] text-white/40 mb-1.5 block font-medium">Davlat mukofotlari</label>
+                    <input type="text" id="f_awards" class="input-premium" placeholder="masalan: yo'q" oninput="formatCapitalize(this)">
                 </div>
 
-                <!-- Deputatlik statusi -->
-                <div class="field-group">
-                    <label class="field-label" data-i18n="obv_deputy">Deputatlik statusi</label>
-                    <input type="text" id="f_deputy" class="field-input"
-                        placeholder="yo'q"
-                        data-i18n="ph_obv_deputy" data-i18n-attr="placeholder"
-                        oninput="updateCV()">
+                <!-- Deputat -->
+                <div class="mb-4">
+                    <label class="text-[11px] text-white/40 mb-1.5 block font-medium">Deputatlik statusi</label>
+                    <input type="text" id="f_deputy" class="input-premium" placeholder="masalan: yo'q" oninput="formatCapitalize(this)">
                 </div>
 
                 <!-- Telefon -->
-                <div class="field-group">
-                    <label class="field-label">Telefon raqami</label>
-                    <input type="text" id="f_phone" class="field-input"
-                        placeholder="+998 90 123-45-67"
-                        oninput="updateCV()">
+                <div class="mb-4">
+                    <label class="text-[11px] text-white/40 mb-1.5 block font-medium">Telefon raqami</label>
+                    <input type="tel" id="f_phone" class="input-premium" placeholder="90 123 45 67" oninput="formatPhone(this)" maxlength="17">
                 </div>
 
                 <!-- Manzil -->
-                <div class="field-group">
-                    <label class="field-label">Yashash manzili</label>
-                    <input type="text" id="f_addr" class="field-input"
-                        placeholder="Toshkent sh., Yunusobod tumani..."
-                        oninput="updateCV()">
+                <div class="mb-4">
+                    <label class="text-[11px] text-white/40 mb-1.5 block font-medium">Yashash manzili</label>
+                    <input type="text" id="f_addr" class="input-premium" placeholder="masalan: toshkent shahri, yunusobod tumani..." oninput="formatCapitalize(this)">
                 </div>
             </div>
 
-            <div class="editor-divider"></div>
+            <div class="h-px bg-gradient-to-r from-transparent via-white/10 to-transparent mx-6"></div>
 
             <!-- MEHNAT FAOLIYATI -->
-            <div class="editor-section">
-                <div class="section-label" data-i18n="obv_work">Mehnat Faoliyati</div>
-                <div id="expList" style="margin-bottom:10px;"></div>
-                <button onclick="addExp()" class="add-btn" data-i18n="obv_add_work">+ Ish joyi qo'shish</button>
+            <div class="p-6">
+                <div class="section-header mb-5">
+                    <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-accent-emerald/20 to-accent-emerald/5 flex items-center justify-center">
+                        <span class="text-lg">💼</span>
+                    </div>
+                    <h2 class="font-display font-bold text-sm uppercase tracking-[0.2em] text-white/50">Mehnat Faoliyati</h2>
+                </div>
+                <div id="expList"></div>
+                <button onclick="addExp()" class="btn-add">+ Ish joyi qo'shish</button>
             </div>
 
-            <div class="editor-divider"></div>
+            <div class="h-px bg-gradient-to-r from-transparent via-white/10 to-transparent mx-6"></div>
 
             <!-- QARINDOSHLAR -->
-            <div class="editor-section">
-                <div class="section-label" data-i18n="obv_relatives">Yaqin Qarindoshlari</div>
-                <div id="relList" style="margin-bottom:10px;"></div>
-                <button onclick="addRel()" class="add-btn" data-i18n="obv_add_rel">+ Qarindosh qo'shish</button>
+            <div class="p-6 pb-16">
+                <div class="section-header mb-5">
+                    <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-accent-amber/20 to-accent-amber/5 flex items-center justify-center">
+                        <span class="text-lg">👨‍👩‍👧‍👦</span>
+                    </div>
+                    <h2 class="font-display font-bold text-sm uppercase tracking-[0.2em] text-white/50">Yaqin Qarindoshlari</h2>
+                </div>
+                <div id="relList"></div>
+                <button onclick="addRel()" class="btn-add">+ Qarindosh qo'shish</button>
             </div>
 
-            <div class="editor-bottom"></div>
         </div>
 
         <!-- PREVIEW PANE -->
@@ -758,12 +565,138 @@
 
     </div>
 
+    <!-- Toast -->
+    <div id="_tg_toast" class="toast"></div>
+
     <script>
         const tg = window.Telegram?.WebApp;
 
+        // Simple I18n fallback
+        const I18n = {
+            t: (key) => {
+                const translations = {
+                    obv_main_title: "MA'LUMOTNOMA",
+                    obv_ph_namelabel: 'F.I.SH.',
+                    obv_exp_title: 'MEHNAT FAOLIYATI',
+                    obv_rel_title: "YAQIN QARINDOSHLARI HAQIDA MA'LUMOT",
+                    obv_no_data: "Ma'lumot yo'q",
+                };
+                return translations[key] || key;
+            },
+            getLang: () => 'uz'
+        };
+
+        // DastyorAI fallback
+        const DastyorAI = {
+            BASE: '',
+            getTelegramId: () => tg?.initDataUnsafe?.user?.id || null,
+            getToken: () => null
+        };
+
         let avatarUrl = '';
-        let experiences = [{ id: 1, years: '2015-2020 yy.', desc: "Toshkent shahri Yunusobod tumani hokimi o'rinbosari" }];
-        let relatives = [{ id: 1, role: 'Otasi', name: 'Alisherov Muratjon', birth: '1965 yil, Toshkent viloyati', work: "Nafaqada", addr: "Toshkent shahri, Yunusobod tumani, 3-kvartal, 12-uy" }];
+        let experiences = [];
+        let relatives = [];
+
+        // ═══════════════════════════════════════════════════════════
+        // POPULATE DROPDOWNS
+        // ═══════════════════════════════════════════════════════════
+        
+        function populateDateDropdowns() {
+            const daySelect = document.getElementById('f_birth_day');
+            const monthSelect = document.getElementById('f_birth_month');
+            const yearSelect = document.getElementById('f_birth_year');
+            
+            // Days
+            for (let d = 1; d <= 31; d++) {
+                const opt = document.createElement('option');
+                opt.value = d.toString().padStart(2, '0');
+                opt.textContent = d.toString().padStart(2, '0');
+                daySelect.appendChild(opt);
+            }
+            
+            // Months - qisqa nom
+            const months = [
+                {val: '01', name: 'Yan'},
+                {val: '02', name: 'Fev'},
+                {val: '03', name: 'Mar'},
+                {val: '04', name: 'Apr'},
+                {val: '05', name: 'May'},
+                {val: '06', name: 'Iyn'},
+                {val: '07', name: 'Iyl'},
+                {val: '08', name: 'Avg'},
+                {val: '09', name: 'Sen'},
+                {val: '10', name: 'Okt'},
+                {val: '11', name: 'Noy'},
+                {val: '12', name: 'Dek'}
+            ];
+            months.forEach(m => {
+                const opt = document.createElement('option');
+                opt.value = m.val;
+                opt.textContent = m.name;
+                monthSelect.appendChild(opt);
+            });
+            
+            // Years
+            const currentYear = new Date().getFullYear();
+            for (let y = currentYear; y >= currentYear - 80; y--) {
+                const opt = document.createElement('option');
+                opt.value = y;
+                opt.textContent = y;
+                yearSelect.appendChild(opt);
+            }
+        }
+        
+        function getYearOptions(selected, placeholder, includeNow = false) {
+            const currentYear = new Date().getFullYear();
+            let options = `<option value="" disabled ${!selected ? 'selected' : ''}>${placeholder}</option>`;
+            if (includeNow) {
+                options += `<option value="h.v." ${selected === 'h.v.' ? 'selected' : ''}>Hozir</option>`;
+            }
+            for (let y = currentYear; y >= currentYear - 60; y--) {
+                options += `<option value="${y}" ${selected == y ? 'selected' : ''}>${y}</option>`;
+            }
+            return options;
+        }
+
+        // ═══════════════════════════════════════════════════════════
+        // AUTO-FORMAT FUNCTIONS
+        // ═══════════════════════════════════════════════════════════
+
+        function capitalize(str) {
+            return str.toLowerCase().replace(/(?:^|\s)\S/g, a => a.toUpperCase());
+        }
+
+        function formatName(input) {
+            const cursorPos = input.selectionStart;
+            input.value = capitalize(input.value);
+            input.setSelectionRange(cursorPos, cursorPos);
+            updateCV();
+        }
+
+        function formatCapitalize(input) {
+            const cursorPos = input.selectionStart;
+            input.value = capitalize(input.value);
+            input.setSelectionRange(cursorPos, cursorPos);
+            updateCV();
+        }
+
+        function formatPhone(input) {
+            let value = input.value.replace(/\D/g, '');
+            if (value.length === 0) { input.value = ''; updateCV(); return; }
+            if (!value.startsWith('998')) { value = '998' + value; }
+            value = value.substring(0, 12);
+            let formatted = '+998';
+            if (value.length > 3) formatted += ' ' + value.substring(3, 5);
+            if (value.length > 5) formatted += ' ' + value.substring(5, 8);
+            if (value.length > 8) formatted += ' ' + value.substring(8, 10);
+            if (value.length > 10) formatted += ' ' + value.substring(10, 12);
+            input.value = formatted;
+            updateCV();
+        }
+
+        // ═══════════════════════════════════════════════════════════
+        // MOBILE VIEW TOGGLE
+        // ═══════════════════════════════════════════════════════════
 
         let mobilePreview = false;
         function toggleMobileView() {
@@ -776,153 +709,203 @@
                 ed.classList.add('hidden');
                 pv.classList.remove('hidden');
                 pv.classList.add('flex', 'w-full');
-                btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg> Tahrirlash`;
+                btn.innerHTML = '✍️ Tahrirlash';
                 setTimeout(autoScale, 50);
             } else {
                 ed.classList.remove('hidden');
                 pv.classList.add('hidden');
                 pv.classList.remove('flex', 'w-full');
-                btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg> Preview`;
+                btn.innerHTML = '👁️ Ko\'rish';
             }
         }
 
-        window.addEventListener('i18n:change', () => { renderExp(); renderRel(); updateCV(); });
+        // ═══════════════════════════════════════════════════════════
+        // IMAGE HANDLER
+        // ═══════════════════════════════════════════════════════════
 
         function handleImage(input) {
             if (input.files && input.files[0]) {
                 const reader = new FileReader();
-                reader.onload = function (e) {
+                reader.onload = function(e) {
                     avatarUrl = e.target.result;
-                    document.getElementById('photoPrev').innerHTML = `<img src="${avatarUrl}" style="width:100%;height:100%;object-fit:cover;">`;
+                    document.getElementById('photoPrev').innerHTML = `<img src="${avatarUrl}" style="width:100%;height:100%;object-fit:cover;border-radius:6px;">`;
                     updateCV();
                 }
                 reader.readAsDataURL(input.files[0]);
             }
         }
 
-        function addExp() { experiences.push({ id: Date.now(), years: '', desc: '' }); renderExp(); updateCV(); }
-        function removeExp(id) { experiences = experiences.filter(x => x.id !== id); renderExp(); updateCV(); }
+        // ═══════════════════════════════════════════════════════════
+        // EXPERIENCE
+        // ═══════════════════════════════════════════════════════════
+
+        function addExp() {
+            experiences.push({ id: Date.now(), startYear: '', endYear: '', desc: '' });
+            renderExp();
+            updateCV();
+        }
+        
+        function removeExp(id) {
+            experiences = experiences.filter(x => x.id !== id);
+            renderExp();
+            updateCV();
+        }
+        
         function renderExp() {
-            const ph_years = (I18n.t('ph_obv_years') || "Yillar (2018-2023 yy.)").replace(/<br>/g, ' ');
-            const ph_work = (I18n.t('ph_obv_workdesc') || "Ish joyi va lavozimi").replace(/<br>/g, ' ');
-
             document.getElementById('expList').innerHTML = experiences.map((ex, i) => `
-                <div class="repeater-card">
-                    <button class="remove-btn" onclick="removeExp(${ex.id})">×</button>
-                    <input type="text" class="repeater-input" style="margin-top:0; padding-right:32px;"
-                        placeholder="${ph_years}" value="${ex.years}"
-                        oninput="experiences[${i}].years=this.value; updateCV()">
-                    <textarea class="repeater-textarea"
-                        placeholder="${ph_work}"
-                        oninput="experiences[${i}].desc=this.value; updateCV()">${ex.desc}</textarea>
-                </div>
-            `).join('');
-        }
-
-        function addRel() { relatives.push({ id: Date.now(), role: '', name: '', birth: '', work: '', addr: '' }); renderRel(); updateCV(); }
-        function removeRel(id) { relatives = relatives.filter(x => x.id !== id); renderRel(); updateCV(); }
-        function renderRel() {
-            const ph_role = (I18n.t('obv_rel_role') || "Qarindoshligi").replace(/<br>/g, ' ');
-            const ph_name = (I18n.t('obv_rel_name') || "F.I.SH").replace(/<br>/g, ' ');
-            const ph_birth = (I18n.t('obv_rel_birth') || "Tug'ilgan yili/joyi").replace(/<br>/g, ' ');
-            const ph_work = (I18n.t('obv_rel_work') || "Ish joyi va lavozimi").replace(/<br>/g, ' ');
-            const ph_addr = (I18n.t('obv_rel_addr') || "Yashash manzili").replace(/<br>/g, ' ');
-
-            document.getElementById('relList').innerHTML = relatives.map((r, i) => `
-                <div class="repeater-card">
-                    <button class="remove-btn" onclick="removeRel(${r.id})">×</button>
-                    <div style="display:flex; gap:8px; margin-bottom:0;">
-                        <input type="text" class="repeater-input" style="width:35%; padding-right:8px;"
-                            placeholder="${ph_role}" value="${r.role}"
-                            oninput="relatives[${i}].role=this.value; updateCV()">
-                        <input type="text" class="repeater-input" style="flex:1; padding-right:36px;"
-                            placeholder="${ph_name}" value="${r.name}"
-                            oninput="relatives[${i}].name=this.value; updateCV()">
+                <div class="entry-card animate-fade-in">
+                    <button class="btn-remove" onclick="removeExp(${ex.id})">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                    </button>
+                    <label class="text-[10px] text-white/30 mb-2 block">Yillar</label>
+                    <div class="flex items-center gap-3 mb-4">
+                        <select class="input-premium text-center flex-1" style="min-width:90px;" onchange="experiences[${i}].startYear=this.value; updateCV()">
+                            ${getYearOptions(ex.startYear, 'Dan')}
+                        </select>
+                        <span class="text-white/40 font-bold">—</span>
+                        <select class="input-premium text-center flex-1" style="min-width:90px;" onchange="experiences[${i}].endYear=this.value; updateCV()">
+                            ${getYearOptions(ex.endYear, 'Gacha', true)}
+                        </select>
                     </div>
-                    <input type="text" class="repeater-input"
-                        placeholder="${ph_birth}" value="${r.birth}"
-                        oninput="relatives[${i}].birth=this.value; updateCV()">
-                    <input type="text" class="repeater-input"
-                        placeholder="${ph_work}" value="${r.work}"
-                        oninput="relatives[${i}].work=this.value; updateCV()">
-                    <input type="text" class="repeater-input" style="margin-bottom:0;"
-                        placeholder="${ph_addr}" value="${r.addr}"
-                        oninput="relatives[${i}].addr=this.value; updateCV()">
+                    <label class="text-[10px] text-white/30 mb-2 block">Ish joyi va lavozimi</label>
+                    <textarea class="input-premium resize-none h-20" placeholder="Masalan: Toshkent shahri Yunusobod tumani hokimi o'rinbosari" oninput="experiences[${i}].desc=this.value; updateCV()">${ex.desc}</textarea>
                 </div>
             `).join('');
         }
 
-        renderExp();
-        renderRel();
+        // ═══════════════════════════════════════════════════════════
+        // RELATIVES
+        // ═══════════════════════════════════════════════════════════
 
-        function v(id) { return document.getElementById(id).value.trim(); }
+        function addRel() {
+            relatives.push({ id: Date.now(), role: '', name: '', birth: '', work: '', addr: '' });
+            renderRel();
+            updateCV();
+        }
+        
+        function removeRel(id) {
+            relatives = relatives.filter(x => x.id !== id);
+            renderRel();
+            updateCV();
+        }
+        
+        function renderRel() {
+            document.getElementById('relList').innerHTML = relatives.map((r, i) => `
+                <div class="entry-card animate-fade-in">
+                    <button class="btn-remove" onclick="removeRel(${r.id})">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                    </button>
+                    <div class="grid grid-cols-3 gap-2 mb-3">
+                        <div>
+                            <label class="text-[10px] text-white/30 mb-1 block">Qarindoshligi</label>
+                            <select class="input-premium" onchange="relatives[${i}].role=this.value; updateCV()">
+                                <option value="" disabled ${!r.role ? 'selected' : ''}>Tanlang</option>
+                                <option value="Otasi" ${r.role === 'Otasi' ? 'selected' : ''}>Otasi</option>
+                                <option value="Onasi" ${r.role === 'Onasi' ? 'selected' : ''}>Onasi</option>
+                                <option value="Turmush o'rtog'i" ${r.role === "Turmush o'rtog'i" ? 'selected' : ''}>Turmush o'rtog'i</option>
+                                <option value="O'g'li" ${r.role === "O'g'li" ? 'selected' : ''}>O'g'li</option>
+                                <option value="Qizi" ${r.role === 'Qizi' ? 'selected' : ''}>Qizi</option>
+                                <option value="Akasi" ${r.role === 'Akasi' ? 'selected' : ''}>Akasi</option>
+                                <option value="Ukasi" ${r.role === 'Ukasi' ? 'selected' : ''}>Ukasi</option>
+                                <option value="Opasi" ${r.role === 'Opasi' ? 'selected' : ''}>Opasi</option>
+                                <option value="Singlisi" ${r.role === 'Singlisi' ? 'selected' : ''}>Singlisi</option>
+                            </select>
+                        </div>
+                        <div class="col-span-2">
+                            <label class="text-[10px] text-white/30 mb-1 block">F.I.SH.</label>
+                            <input type="text" class="input-premium" placeholder="Familiya Ism Sharif" value="${r.name}" oninput="this.value=capitalize(this.value); relatives[${i}].name=this.value; updateCV()">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="text-[10px] text-white/30 mb-1 block">Tug'ilgan yili va joyi</label>
+                        <input type="text" class="input-premium" placeholder="Masalan: 1965 yil, Toshkent viloyati" value="${r.birth}" oninput="relatives[${i}].birth=this.value; updateCV()">
+                    </div>
+                    <div class="mb-3">
+                        <label class="text-[10px] text-white/30 mb-1 block">Ish joyi va lavozimi</label>
+                        <input type="text" class="input-premium" placeholder="Masalan: Nafaqada yoki ish joyi" value="${r.work}" oninput="this.value=capitalize(this.value); relatives[${i}].work=this.value; updateCV()">
+                    </div>
+                    <div>
+                        <label class="text-[10px] text-white/30 mb-1 block">Yashash manzili</label>
+                        <input type="text" class="input-premium" placeholder="To'liq manzil" value="${r.addr}" oninput="this.value=capitalize(this.value); relatives[${i}].addr=this.value; updateCV()">
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // ═══════════════════════════════════════════════════════════
+        // UPDATE CV
+        // ═══════════════════════════════════════════════════════════
+
+        function v(id) { return (document.getElementById(id)?.value || '').trim(); }
+
+        function getBirthDate() {
+            const day = v('f_birth_day');
+            const month = v('f_birth_month');
+            const year = v('f_birth_year');
+            if (day && month && year) {
+                const monthNames = ['yanvar', 'fevral', 'mart', 'aprel', 'may', 'iyun', 'iyul', 'avgust', 'sentabr', 'oktabr', 'noyabr', 'dekabr'];
+                return `${year} yil ${parseInt(day)} ${monthNames[parseInt(month) - 1]}`;
+            }
+            return '';
+        }
 
         function updateCV() {
-            const vT = (id, key) => v(id) || (I18n.t(key) || '').split(' (')[0];
-            const vR = (id, def) => v(id) || def;
-
-            const defaultName = vR('f_name', I18n.t('ph_obv_name') || 'ALISHEROV YUSUF MURATOVICH').split(' (')[0];
-            const notData = I18n.t('ph_obv_party') || "yo'q";
-
             const data = {
-                name: defaultName,
-                birth: vT('f_birth', 'ph_obv_birth'),
-                place: vT('f_place', 'ph_obv_place'),
-                nation: vT('f_nation', 'ph_obv_nation'),
-                party: vR('f_party', notData),
-                edu: vT('f_edu', 'ph_obv_edu'),
-                grad: vT('f_grad', 'ph_obv_grad'),
-                spec: vT('f_spec', 'ph_obv_spec'),
-                degree: vR('f_degree', notData),
-                title: vR('f_title', notData),
-                langs: vT('f_langs', 'ph_obv_langs'),
-                awards: vR('f_awards', notData),
-                deputy: vR('f_deputy', notData),
-                exp: experiences.filter(e => e.years || e.desc),
-                rel: relatives.filter(e => e.role || e.name)
+                name: v('f_name') || 'FAMILIYA ISM SHARIF',
+                birth: getBirthDate(),
+                place: v('f_place'),
+                nation: v('f_nation'),
+                party: v('f_party'),
+                edu: v('f_edu'),
+                grad: v('f_grad'),
+                spec: v('f_spec'),
+                degree: v('f_degree'),
+                title: v('f_title'),
+                langs: v('f_langs'),
+                military: v('f_military'),
+                awards: v('f_awards'),
+                deputy: v('f_deputy'),
+                phone: v('f_phone'),
+                addr: v('f_addr'),
+                exp: experiences.map(e => ({
+                    years: e.startYear && e.endYear ? `${e.startYear}-${e.endYear} yy.` : '',
+                    desc: e.desc
+                })).filter(e => e.years || e.desc),
+                rel: relatives.filter(r => r.name || r.role)
             };
 
             const box = document.getElementById('cv-box');
 
-            const expHtml = data.exp.length > 0
-                ? `<table class="exp-table">
-                    <thead><tr>
-                        <th style="width:26%">${I18n.t('obv_yillar') || 'Yillar'}</th>
-                        <th>${I18n.t('obv_lavozim') || 'Ish joyi va lavozimi'}</th>
-                    </tr></thead>
-                    <tbody>${data.exp.map(e => `<tr><td>${e.years}</td><td>${e.desc}</td></tr>`).join('')}</tbody>
-                   </table>`
-                : `<div class="empty-state">${I18n.t('obv_no_data') || "Ma'lumot yo'q"}</div>`;
+            const expHtml = data.exp.length
+                ? `<table class="exp-table"><thead><tr><th>Yillari</th><th>Ish joyi va egallagan lavozimlari</th></tr></thead>
+                   <tbody>${data.exp.map(e => `<tr><td>${e.years}</td><td>${e.desc}</td></tr>`).join('')}</tbody></table>`
+                : `<div class="empty-state">Ma'lumot yo'q</div>`;
 
-            const relHtml = data.rel.length > 0
-                ? `<table class="rel-table">
-                    <thead><tr>
-                        <th style="width:13%">${I18n.t('obv_rel_role') || 'Qarindoshligi'}</th>
-                        <th style="width:20%">${I18n.t('obv_rel_name') || 'F.I.SH.'}</th>
-                        <th style="width:17%">${I18n.t('obv_rel_birth') || "Tug'ilgan yili va joyi"}</th>
-                        <th style="width:28%">${I18n.t('obv_rel_work') || 'Ish joyi va lavozimi'}</th>
-                        <th style="width:22%">${I18n.t('obv_rel_addr') || 'Yashash manzili'}</th>
+            const relHtml = data.rel.length
+                ? `<table class="rel-table"><thead><tr>
+                        <th style="width:12%">Qarindoshligi</th>
+                        <th style="width:22%">F.I.SH.</th>
+                        <th style="width:18%">Tug'ilgan yili va joyi</th>
+                        <th style="width:26%">Ish joyi va lavozimi</th>
+                        <th style="width:22%">Yashash manzili</th>
                     </tr></thead>
-                    <tbody>${data.rel.map(r => `<tr><td>${r.role}</td><td>${r.name}</td><td>${r.birth}</td><td>${r.work}</td><td>${r.addr}</td></tr>`).join('')}</tbody>
-                   </table>`
-                : `<div class="empty-state">${I18n.t('obv_no_data') || "Ma'lumot yo'q"}</div>`;
+                    <tbody>${data.rel.map(r => `<tr><td>${r.role}</td><td>${r.name}</td><td>${r.birth}</td><td>${r.work}</td><td>${r.addr}</td></tr>`).join('')}</tbody></table>`
+                : `<div class="empty-state">Ma'lumot yo'q</div>`;
 
             let imgHtml = avatarUrl
                 ? `<img src="${avatarUrl}" class="avatar" alt="Foto">`
-                : `<div class="photo-placeholder">4×6</div>`;
-
-            const lbl = (key, fallback) => I18n.t(key) || fallback;
+                : `<div class="photo-placeholder">3×4</div>`;
 
             box.innerHTML = `
                 <div class="accent-bar"></div>
-                <div class="title">${lbl('obv_main_title', "MA'LUMOTNOMA")}</div>
+                <div class="title">MA'LUMOTNOMA</div>
                 <div class="title-line"></div>
 
                 <table class="header-table">
                     <tr>
                         <td class="col-main">
                             <div class="name-block">
-                                <span class="name-label">${lbl('obv_ph_namelabel', 'F.I.SH.')}</span>
+                                <span class="name-label">F.I.SH.</span>
                                 <div class="name">${data.name}</div>
                             </div>
                         </td>
@@ -934,38 +917,45 @@
 
                 <table class="info-table">
                     <tr>
-                        <td><span class="info-lbl">${lbl('obv_info_birth', "Tug'ilgan yili, kuni va oyi")}</span><span class="info-val">${data.birth}</span></td>
-                        <td><span class="info-lbl">${lbl('obv_info_place', "Tug'ilgan joyi")}</span><span class="info-val">${data.place}</span></td>
+                        <td><span class="info-lbl">Tug'ilgan yili, kuni va oyi</span><span class="info-val">${data.birth}</span></td>
+                        <td><span class="info-lbl">Tug'ilgan joyi</span><span class="info-val">${data.place}</span></td>
                     </tr>
                     <tr>
-                        <td><span class="info-lbl">${lbl('obv_info_nation', 'Millati')}</span><span class="info-val">${data.nation}</span></td>
-                        <td><span class="info-lbl">${lbl('obv_info_party', 'Partiyaviyligi')}</span><span class="info-val">${data.party}</span></td>
+                        <td><span class="info-lbl">Millati</span><span class="info-val">${data.nation}</span></td>
+                        <td><span class="info-lbl">Partiyaviyligi</span><span class="info-val">${data.party}</span></td>
                     </tr>
                     <tr>
-                        <td><span class="info-lbl">${lbl('obv_info_edu', "Ma'lumoti")}</span><span class="info-val">${data.edu}</span></td>
-                        <td><span class="info-lbl">${lbl('obv_info_grad', 'Tamomlagan')}</span><span class="info-val">${data.grad}</span></td>
+                        <td><span class="info-lbl">Ma'lumoti</span><span class="info-val">${data.edu}</span></td>
+                        <td><span class="info-lbl">Tamomlagan</span><span class="info-val">${data.grad}</span></td>
                     </tr>
                     <tr>
-                        <td><span class="info-lbl">${lbl('obv_info_spec', 'Mutaxassisligi')}</span><span class="info-val">${data.spec}</span></td>
-                        <td><span class="info-lbl">${lbl('obv_info_degree', 'Ilmiy darajasi')}</span><span class="info-val">${data.degree}</span></td>
+                        <td><span class="info-lbl">Mutaxassisligi</span><span class="info-val">${data.spec}</span></td>
+                        <td><span class="info-lbl">Ilmiy darajasi</span><span class="info-val">${data.degree}</span></td>
                     </tr>
                     <tr>
-                        <td><span class="info-lbl">${lbl('obv_info_title', 'Ilmiy unvoni')}</span><span class="info-val">${data.title}</span></td>
-                        <td><span class="info-lbl">${lbl('obv_info_langs', 'Tillar')}</span><span class="info-val">${data.langs}</span></td>
+                        <td><span class="info-lbl">Ilmiy unvoni</span><span class="info-val">${data.title}</span></td>
+                        <td><span class="info-lbl">Chet tillarni bilishi</span><span class="info-val">${data.langs}</span></td>
                     </tr>
                     <tr>
-                        <td><span class="info-lbl">${lbl('obv_info_awards', 'Mukofotlar')}</span><span class="info-val">${data.awards}</span></td>
-                        <td><span class="info-lbl">${lbl('obv_info_deputy', 'Deputatlik statusi')}</span><span class="info-val">${data.deputy}</span></td>
+                        <td><span class="info-lbl">Harbiy/maxsus unvoni</span><span class="info-val">${data.military}</span></td>
+                        <td><span class="info-lbl">Davlat mukofotlari</span><span class="info-val">${data.awards}</span></td>
+                    </tr>
+                    <tr>
+                        <td><span class="info-lbl">Deputatlik statusi</span><span class="info-val">${data.deputy}</span></td>
+                        <td><span class="info-lbl">Telefon</span><span class="info-val">${data.phone}</span></td>
+                    </tr>
+                    <tr>
+                        <td colspan="2"><span class="info-lbl">Yashash manzili</span><span class="info-val">${data.addr}</span></td>
                     </tr>
                 </table>
 
                 <div class="section-header">
-                    <div class="sect-title">${lbl('obv_exp_title', 'MEHNAT FAOLIYATI')}</div>
+                    <div class="sect-title">MEHNAT FAOLIYATI</div>
                 </div>
                 ${expHtml}
 
                 <div class="section-header">
-                    <div class="sect-title">${data.name.split(' ')[0]} ${lbl('obv_rel_title', "YAQIN QARINDOSHLARI HAQIDA MA'LUMOT")}</div>
+                    <div class="sect-title">${data.name.split(' ')[0]} YAQIN QARINDOSHLARI HAQIDA MA'LUMOT</div>
                 </div>
                 ${relHtml}
 
@@ -975,259 +965,91 @@
             autoScale();
         }
 
+        // ═══════════════════════════════════════════════════════════
+        // AUTO SCALE
+        // ═══════════════════════════════════════════════════════════
+
         function autoScale() {
             const wrap = document.getElementById('previewScaleWrapper');
             const pane = document.getElementById('previewPane');
             if (pane.classList.contains('hidden')) return;
 
             let pw = pane.clientWidth;
-            if (!mobilePreview) pw -= 64;
+            if (!mobilePreview) pw -= 80;
 
             const natW = 793;
             const scale = Math.min(pw / natW, 1.2);
             wrap.style.transform = `scale(${scale})`;
-
-            if (mobilePreview) {
-                wrap.style.marginBottom = `-${(1 - scale) * 1122}px`;
-            } else {
-                wrap.style.marginBottom = '0';
-            }
+            wrap.style.marginBottom = mobilePreview ? `-${(1 - scale) * 1122}px` : '0';
         }
         window.addEventListener('resize', autoScale);
 
-        setTimeout(() => {
-            if (document.documentElement.classList.contains('dark')) {
-                if (tg?.setHeaderColor) tg.setHeaderColor('#111111');
-            }
+        // ═══════════════════════════════════════════════════════════
+        // TOAST
+        // ═══════════════════════════════════════════════════════════
 
-            const tid = DastyorAI.getTelegramId();
-            const isAutoload = new URLSearchParams(location.search).get('autoload');
-
-            if (tid && isAutoload) {
-                fetch(DastyorAI.BASE + '/api/get_oby_data?telegram_id=' + tid)
-                    .then(r => r.json())
-                    .then(res => {
-                        if (res.ok && res.data) {
-                            const d = res.data;
-                            const _set = (id, val) => {
-                                const el = document.getElementById(id);
-                                if (!el) return;
-                                el.value = val || '';
-                                el.dispatchEvent(new Event('input', { bubbles: true }));
-                            };
-                            _set('f_name',   d.fullname);
-                            _set('f_birth',  d.birthdate);
-                            _set('f_place',  d.birthplace);
-                            _set('f_nation', d.nation);
-                            _set('f_party',  d.party);
-                            _set('f_edu',    d.education);
-                            _set('f_grad',   d.graduated);
-                            _set('f_spec',   d.specialty);
-                            _set('f_degree', d.degree);
-                            _set('f_title',  d.scientific_title);
-                            _set('f_langs',  d.languages);
-                            _set('f_awards', d.awards);
-                            _set('f_deputy', d.deputy);
-                            _set('f_phone',  d.phone);
-                            _set('f_addr',   d.address);
-
-                            if (d.work_experience && Array.isArray(d.work_experience) && d.work_experience.length > 0) {
-                                experiences = d.work_experience.map((e, i) => ({ id: Date.now() + i, years: e.year || '', desc: e.position || '' }));
-                            } else { experiences = []; }
-                            renderExp();
-
-                            if (d.relatives && Array.isArray(d.relatives) && d.relatives.length > 0) {
-                                relatives = d.relatives.map((r, i) => ({ id: Date.now() + i, role: r.degree || '', name: r.fullname || '', birth: r.birth_year_place || '', work: r.work_place || '', addr: r.address || '' }));
-                            } else { relatives = []; }
-                            renderRel();
-
-                            updateCV();
-                            if (tg?.showAlert) tg.showAlert("Ma'lumotlar AI orqali kiritildi!");
-                        } else { updateCV(); }
-                    }).catch(() => updateCV());
-            } else { updateCV(); }
-        }, 100);
-
-        function uploadToTelegram(blob, filename) {
-            const tgId = DastyorAI.getTelegramId();
-            if (!tgId) return;
-            const formData = new FormData();
-            formData.append('file', blob, filename);
-            formData.append('telegram_id', tgId);
-            if (DastyorAI.getToken()) formData.append('token', DastyorAI.getToken());
-            fetch(DastyorAI.BASE + '/api/upload_to_telegram', { method: 'POST', body: formData })
-                .catch(err => console.error("Tg upload err:", err));
-        }
-
-        function _showTelegramToast(msg) {
-            let t = document.getElementById('_tg_toast');
-            if (!t) {
-                t = document.createElement('div');
-                t.id = '_tg_toast';
-                t.style.cssText = 'position:fixed;bottom:88px;left:50%;transform:translateX(-50%);'
-                    + 'background:#111;color:#fff;font-weight:600;font-size:13px;padding:10px 20px;'
-                    + 'border-radius:8px;box-shadow:0 8px 32px rgba(0,0,0,.3);z-index:9999;'
-                    + 'white-space:nowrap;transition:opacity .3s ease;letter-spacing:-0.01em;';
-                document.body.appendChild(t);
-            }
+        function showToast(msg, type = 'success') {
+            const t = document.getElementById('_tg_toast');
             t.textContent = msg;
-            t.style.opacity = '1';
-            clearTimeout(t._hideTimer);
-            t._hideTimer = setTimeout(() => { t.style.opacity = '0'; }, 4000);
+            t.style.background = type === 'success' 
+                ? 'linear-gradient(135deg, #10b981, #059669)' 
+                : 'linear-gradient(135deg, #f43f5e, #e11d48)';
+            t.classList.add('show');
+            setTimeout(() => t.classList.remove('show'), 3500);
         }
 
-        function _collectObyData(format) {
-            const get = id => (document.getElementById(id)?.value || '').trim();
-            return {
-                format: format,
-                lang: I18n.getLang(),
-                telegram_id: DastyorAI.getTelegramId() ? parseInt(DastyorAI.getTelegramId()) : null,
-                token: DastyorAI.getToken() || null,
-                fullname: get('f_name'),
-                birthdate: get('f_birth'),
-                birthplace: get('f_place'),
-                nation: get('f_nation'),
-                party: get('f_party'),
-                education: get('f_edu'),
-                graduated: get('f_grad'),
-                specialty: get('f_spec'),
-                degree: get('f_degree'),
-                scientific_title: get('f_title'),
-                languages: get('f_langs'),
-                military_rank: get('f_military') || '',
-                awards: get('f_awards'),
-                deputy: get('f_deputy'),
-                address: get('f_addr') || '',
-                phone: get('f_phone') || '',
-                work_experience: experiences.map(e => ({ year: e.years, position: e.desc })),
-                relatives: relatives.map(r => ({ degree: r.role, fullname: r.name, birth_year_place: r.birth, work_place: r.work, address: r.addr })),
-            };
-        }
-
-        function _isTgWebApp() { return !!(window.Telegram?.WebApp?.initData); }
-
-        async function exportPDF() {
-            const inTelegram = _isTgWebApp();
-            const btn = document.getElementById('btnPdf');
-            const originalHtml = btn.innerHTML;
-            btn.innerHTML = 'Kutib turing...';
-            btn.disabled = true;
-
-            const safeName = (_collectObyData('pdf').fullname || 'Obyektivka').replace(/\s+/g, '_');
-            const filename = `DASTYOR_Obyektivka_${safeName}_@DastyorAiBot.pdf`;
-
-            try {
-                const res = await fetch(DastyorAI.BASE + '/api/export_obyektivka', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(_collectObyData('pdf')),
-                });
-                if (!res.ok) throw new Error('Server xatosi: ' + res.status);
-
-                if (inTelegram) {
-                    await res.arrayBuffer();
-                    _showTelegramToast('PDF Telegram chatga yuborildi');
-                } else {
-                    const blob = await res.blob();
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url; a.download = filename;
-                    document.body.appendChild(a); a.click();
-                    setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 2000);
-                    _showTelegramToast('PDF saqlandi');
-                }
-            } catch (err) {
-                console.error('exportPDF server error:', err);
-                if (!inTelegram) { _exportPDFClientSide(filename, btn, originalHtml); return; }
-                else { _showTelegramToast('Xatolik yuz berdi. Qayta urinib ko\'ring.'); }
-            }
-
-            autoScale();
-            btn.innerHTML = originalHtml;
-            btn.disabled = false;
-        }
-
-        function _exportPDFClientSide(filename, btn, originalHtml) {
-            const el = document.getElementById('cv-box');
-            const wrap = document.getElementById('previewScaleWrapper');
-            wrap.style.transform = 'none';
-            html2pdf().set({
-                margin: 0, filename,
-                image: { type: 'jpeg', quality: 1.0 },
-                html2canvas: { scale: 3, useCORS: true },
-                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-            }).from(el).outputPdf('blob').then(blob => {
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url; a.download = filename;
-                document.body.appendChild(a); a.click();
-                setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 2000);
-                uploadToTelegram(blob, filename);
-                autoScale();
-                btn.innerHTML = originalHtml;
-                btn.disabled = false;
-            }).catch(err => { console.error(err); btn.innerHTML = originalHtml; btn.disabled = false; });
-        }
+        // ═══════════════════════════════════════════════════════════
+        // EXPORT
+        // ═══════════════════════════════════════════════════════════
 
         async function exportWord() {
-            const inTelegram = _isTgWebApp();
-            const btnEl = document.querySelector('button[onclick="exportWord()"]');
-            if (btnEl) { btnEl.disabled = true; btnEl.innerHTML = 'Kuting...'; }
+            const btn = document.getElementById('btnWord');
+            const originalHtml = btn.innerHTML;
+            btn.innerHTML = '<svg class="animate-spin h-4 w-4" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg> Yuklanmoqda...';
+            btn.disabled = true;
 
-            const safeName = (_collectObyData('word').fullname || 'Obyektivka').replace(/\s+/g, '_');
-            const filename = `DASTYOR_Obyektivka_${safeName}_@DastyorAiBot.docx`;
+            const safeName = (v('f_name') || 'Obyektivka').replace(/\s+/g, '_');
+            const filename = `DASTYOR_Obyektivka_${safeName}.doc`;
 
             try {
-                const res = await fetch(DastyorAI.BASE + '/api/export_obyektivka', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(_collectObyData('word')),
-                });
-                if (!res.ok) throw new Error('Server xatosi: ' + res.status);
-
-                if (inTelegram) {
-                    await res.arrayBuffer();
-                    _showTelegramToast('Word fayl Telegram chatga yuborildi');
-                } else {
-                    const blob = await res.blob();
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url; a.download = filename;
-                    document.body.appendChild(a); a.click();
-                    setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 2000);
-                    _showTelegramToast('Word saqlandi');
-                }
-            } catch (err) {
-                console.error('exportWord server error:', err);
-                if (!inTelegram) _exportWordClientSide(filename);
-                else _showTelegramToast('Xatolik yuz berdi. Qayta urinib ko\'ring.');
-            }
-
-            if (btnEl) {
-                btnEl.disabled = false;
-                btnEl.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg> Word yuklab olish`;
-            }
-        }
-
-        function _exportWordClientSide(filename) {
-            const rawHtml = document.getElementById('cv-box').outerHTML;
-            const styles = document.querySelector('style').innerHTML;
-            const docHTML = `<html xmlns:o='urn:schemas-microsoft-com:office:office'
+                const rawHtml = document.getElementById('cv-box').outerHTML;
+                const styles = document.querySelector('style').innerHTML;
+                const docHTML = `<html xmlns:o='urn:schemas-microsoft-com:office:office'
                     xmlns:w='urn:schemas-microsoft-com:office:word'
                     xmlns='http://www.w3.org/TR/REC-html40'>
                     <head><meta charset='utf-8'><title>${filename}</title>
                     <style>@page WordSection1{size:210mm 297mm;margin:15mm;}div.WordSection1{page:WordSection1;}${styles}</style>
                     </head><body><div class="WordSection1">${rawHtml}</div></body></html>`;
-            const blob = new Blob(['\ufeff', docHTML], { type: 'application/msword' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url; a.download = filename;
-            document.body.appendChild(a); a.click();
-            setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 2000);
-            uploadToTelegram(blob, filename);
+                const blob = new Blob(['\ufeff', docHTML], { type: 'application/msword' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 2000);
+                showToast('✅ Word muvaffaqiyatli saqlandi!');
+            } catch (err) {
+                console.error('Export error:', err);
+                showToast('❌ Xatolik yuz berdi', 'error');
+            }
+
+            btn.innerHTML = originalHtml;
+            btn.disabled = false;
         }
+
+        // ═══════════════════════════════════════════════════════════
+        // INIT
+        // ═══════════════════════════════════════════════════════════
+
+        populateDateDropdowns();
+        renderExp();
+        renderRel();
+        
+        setTimeout(() => {
+            updateCV();
+        }, 100);
     </script>
-    <script src="smart-autofill.js"></script>
 </body>
 
 </html>
