@@ -34,6 +34,8 @@ _OBY_LBL = {
         "rel_c3":    "Tug'ilgan yili va joyi",
         "rel_c4":    "Ish joyi va lavozimi",
         "rel_c5":    "Yashash manzili",
+        "phone":     "Telefon raqami",
+        "addr":      "Yashash manzili",
         "photo":     "4x6",
         "empty":     "—",
     },
@@ -62,6 +64,8 @@ _OBY_LBL = {
         "rel_c3":    "Туғилган йили ва жойи",
         "rel_c4":    "Иш жойи ва лавозими",
         "rel_c5":    "Яшаш манзили",
+        "phone":     "Телефон рақами",
+        "addr":      "Яшаш манзили",
         "photo":     "4x6",
         "empty":     "—",
     },
@@ -90,6 +94,8 @@ _OBY_LBL = {
         "rel_c3":    "Year & Place of Birth",
         "rel_c4":    "Workplace & Position",
         "rel_c5":    "Home Address",
+        "phone":     "Phone Number",
+        "addr":      "Home Address",
         "photo":     "4x6",
         "empty":     "—",
     },
@@ -118,6 +124,8 @@ _OBY_LBL = {
         "rel_c3":    "Год и место рождения",
         "rel_c4":    "Место работы и должность",
         "rel_c5":    "Место жительства",
+        "phone":     "Номер телефона",
+        "addr":      "Домашний адрес",
         "photo":     "4x6",
         "empty":     "—",
     },
@@ -142,10 +150,10 @@ def _set_margins(doc: Document) -> None:
     for section in doc.sections:
         section.page_width = Mm(210)
         section.page_height = Mm(297)
-        section.top_margin = Mm(18)
-        section.right_margin = Mm(16)
-        section.bottom_margin = Mm(20)
-        section.left_margin = Mm(20)
+        section.top_margin = Cm(2.0)
+        section.right_margin = Cm(2.0)
+        section.bottom_margin = Cm(2.0)
+        section.left_margin = Cm(2.0)
 
 def _get_page_width_emu(doc: Document) -> int:
     sec = doc.sections[0]
@@ -212,7 +220,9 @@ def _para_spacing(para, before_pt=0, after_pt=0, line_rule=None):
     spacing.set(qn("w:after"),  str(int(after_pt  * 20)))
     if line_rule:
         spacing.set(qn("w:line"), str(int(line_rule * 240)))
-        spacing.set(qn("w:lineRule"), "auto")
+    else:
+        spacing.set(qn("w:line"), str(int(1.15 * 240)))
+    spacing.set(qn("w:lineRule"), "auto")
     pPr.append(spacing)
 
 def _run(para, text: str, bold=False, italic=False, size_pt: float=10.5, color: RGBColor=None, spacing_pt=None):
@@ -317,10 +327,12 @@ def generate_obyektivka_docx(user_data: dict, photo_path: str, output_filepath: 
         (lb['edu'],     user_data.get('education', ''),      lb['grad'],     user_data.get('graduated', '')),
         (lb['spec'],    user_data.get('specialty', ''),      lb['degree'],   user_data.get('degree', '')),
         (lb['stitle'],  user_data.get('scientific_title',''),lb['langs'],    user_data.get('languages', '')),
-        (lb['awards'],  user_data.get('awards', ''),         lb['deputy'],   user_data.get('deputy', '')),
+        (lb['military'],user_data.get('military_rank','') or user_data.get('military', ''), lb['awards'], user_data.get('awards', '')),
+        (lb['deputy'],  user_data.get('deputy', ''),         lb['phone'],    user_data.get('phone', '')),
     ]
 
-    info_tbl = doc.add_table(rows=len(info_rows), cols=2)
+    # Add extra row count for address (spans two columns)
+    info_tbl = doc.add_table(rows=len(info_rows) + 1, cols=2)
     _remove_table_borders(info_tbl)
     info_tbl.autofit = False
     _set_col_widths(info_tbl, pw, [50, 50])
@@ -334,15 +346,32 @@ def generate_obyektivka_docx(user_data: dict, photo_path: str, output_filepath: 
 
             pL = cell.paragraphs[0]
             _para_spacing(pL, before_pt=10, after_pt=2)
-            pL.paragraph_format.left_indent = Cm(0.4)
+            pL.paragraph_format.left_indent = Cm(0.0)
             pL.paragraph_format.right_indent = Cm(0.4)
             _run(pL, lbl.upper(), bold=True, size_pt=10.0, color=RGBColor(0x37, 0x41, 0x51), spacing_pt=1.0)
             
             pV = cell.add_paragraph()
             _para_spacing(pV, before_pt=2, after_pt=10)
-            pV.paragraph_format.left_indent = Cm(0.4)
+            pV.paragraph_format.left_indent = Cm(0.0)
             pV.paragraph_format.right_indent = Cm(0.4)
             _run(pV, val, bold=False, size_pt=12.0, color=RGBColor(0,0,0))
+
+    # Add Address row (colspan = 2)
+    addr_row_idx = len(info_rows)
+    addr_cell = info_tbl.cell(addr_row_idx, 0)
+    addr_cell.merge(info_tbl.cell(addr_row_idx, 1))
+    _cell_shading(addr_cell, "FFFFFF")
+    _set_cell_borders(addr_cell, color_hex="E5E5E5", sz_val="4", top=False, bottom=True, left=False, right=False)
+    
+    pLa = addr_cell.paragraphs[0]
+    _para_spacing(pLa, before_pt=10, after_pt=2)
+    pLa.paragraph_format.left_indent = Cm(0.0)
+    _run(pLa, lb['addr'].upper(), bold=True, size_pt=10.0, color=RGBColor(0x37, 0x41, 0x51), spacing_pt=1.0)
+    
+    pVa = addr_cell.add_paragraph()
+    _para_spacing(pVa, before_pt=2, after_pt=10)
+    pVa.paragraph_format.left_indent = Cm(0.0)
+    _run(pVa, user_data.get('address', '') or user_data.get('addr', ''), bold=False, size_pt=12.0, color=RGBColor(0,0,0))
 
     doc.add_paragraph()
 
@@ -387,7 +416,7 @@ def generate_obyektivka_docx(user_data: dict, photo_path: str, output_filepath: 
                 _set_cell_borders(cell, color_hex="CCCCCC", sz_val="4", top=False, bottom=True, left=False, right=False)
                 cp = cell.paragraphs[0]
                 _para_spacing(cp, before_pt=9, after_pt=9)
-                cp.paragraph_format.left_indent = Cm(0.4)
+                cp.paragraph_format.left_indent = Cm(0.0)
                 cp.paragraph_format.right_indent = Cm(0.4)
                 _run(cp, val, bold=bold, size_pt=11.5, color=RGBColor(0,0,0))
     else:
