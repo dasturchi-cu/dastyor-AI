@@ -257,12 +257,14 @@ def _info_row_2(doc,pw,lbl1,val1,lbl2,val2):
         c=t.cell(0,j)
         _shading(c,WHITE_HEX)
         _bdr_none(c)
-        _pad(c,top=90,bottom=70,left=0,right=240 if j==0 else 0)
+        # Slightly tighter vertical padding, more like HTML preview
+        _pad(c,top=70,bottom=70,left=0,right=240 if j==0 else 0)
         p_lbl=c.paragraphs[0]
         _spc(p_lbl,before=0,after=0,line=1.0)
         _run(p_lbl,lbl,size=9.0,color=GREY_TXT,lspc=1.0)
         p_val=c.add_paragraph()
-        _spc(p_val,before=2,after=0,line=1.15)
+        # Values with a bit more line height to resemble 1.5 HTML line-height
+        _spc(p_val,before=2,after=2,line=1.5)
         _run(p_val,val or "",size=12.0,color=BLACK)
 
 def _info_row_1(doc,pw,lbl,val):
@@ -272,12 +274,12 @@ def _info_row_1(doc,pw,lbl,val):
     c=t.cell(0,0)
     _shading(c,WHITE_HEX)
     _bdr_none(c)
-    _pad(c,top=90,bottom=70,left=0,right=0)
+    _pad(c,top=70,bottom=70,left=0,right=0)
     p_lbl=c.paragraphs[0]
     _spc(p_lbl,before=0,after=0,line=1.0)
     _run(p_lbl,lbl,size=9.0,color=GREY_TXT,lspc=1.0)
     p_val=c.add_paragraph()
-    _spc(p_val,before=2,after=0,line=1.15)
+    _spc(p_val,before=2,after=2,line=1.5)
     _run(p_val,val or "",size=12.0,color=BLACK)
 
 def _bdr_top_bottom(cell,col="000000",sz="8"):
