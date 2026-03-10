@@ -1,6 +1,7 @@
 """
 User Service (CRM) - Advanced
-Tracks full user lifecycle, bans, and granular stats.
+Tracks full user lifecycle, bans, granular stats.
+Uses Supabase when SUPABASE_URL is set, else JSON file.
 """
 import json
 import os
@@ -20,20 +21,35 @@ def _load_profiles():
         with open(PROFILES_FILE, "r", encoding="utf-8") as f:
             profiles_cache = json.load(f)
             return profiles_cache
-    except:
+    except Exception:
         return {}
 
 def _save_profiles():
     try:
         with open(PROFILES_FILE, "w", encoding="utf-8") as f:
             json.dump(profiles_cache, f, ensure_ascii=False, indent=2)
-    except: pass
+    except Exception:
+        pass
 
 def get_user_profile(user_id):
+    try:
+        from bot.services.supabase_db import has_db, db_get_user
+        if has_db():
+            p = db_get_user(user_id)
+            if p:
+                return p
+    except Exception as e:
+        logger.debug(f"Supabase get_user_profile fallback: {e}")
     data = _load_profiles()
     return data.get(str(user_id))
 
 def get_all_profiles():
+    try:
+        from bot.services.supabase_db import has_db, db_get_all_users
+        if has_db():
+            return db_get_all_users()
+    except Exception as e:
+        logger.debug(f"Supabase get_all_profiles fallback: {e}")
     return _load_profiles()
 
 def track_user_activity(user, command=None):
@@ -41,15 +57,25 @@ def track_user_activity(user, command=None):
     Called on every update to track activity.
     Also handles initial registration.
     """
-    if not user: return
-    
+    if not user:
+        return
+    try:
+        from bot.services.supabase_db import has_db, db_upsert_user
+        if has_db():
+            db_upsert_user(
+                user.id,
+                first_name=user.first_name or "",
+                username=user.username,
+                chat_id=user.id,
+                command=command
+            )
+            return
+    except Exception as e:
+        logger.debug(f"Supabase track_user_activity fallback: {e}")
+
     uid = str(user.id)
     data = _load_profiles()
     now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-
-    # If blocked, do not update activity (optional logic)
-    # But usually we still want to track they tried to use it
-    
     if uid not in data:
         # Register New User
         data[uid] = {
@@ -85,6 +111,13 @@ def track_user_activity(user, command=None):
 
 def set_user_blocked_bot(user_id, blocked=True):
     """Track if user blocked the bot"""
+    try:
+        from bot.services.supabase_db import has_db, db_update_user_field
+        if has_db():
+            db_update_user_field(int(user_id), blocked_bot=blocked)
+            return
+    except Exception as e:
+        logger.debug(f"Supabase set_user_blocked_bot fallback: {e}")
     data = _load_profiles()
     uid = str(user_id)
     if uid in data:
@@ -93,6 +126,13 @@ def set_user_blocked_bot(user_id, blocked=True):
 
 def increment_file_count(user_id, service_name=None):
     """Increment file processed count"""
+    try:
+        from bot.services.supabase_db import has_db, db_increment_files
+        if has_db():
+            db_increment_files(int(user_id), service_name)
+            return
+    except Exception as e:
+        logger.debug(f"Supabase increment_file_count fallback: {e}")
     data = _load_profiles()
     uid = str(user_id)
     if uid in data:
@@ -102,6 +142,22 @@ def increment_file_count(user_id, service_name=None):
 
 def set_ban_status(user_id, is_banned=True, reason=None):
     """Ban or Unban user (Admin action)"""
+    try:
+        from bot.services.supabase_db import has_db, db_update_user_field, db_get_user
+        if has_db():
+            p = db_get_user(user_id)
+            if p:
+                from datetime import datetime as dt
+                db_update_user_field(
+                    int(user_id),
+                    is_banned=is_banned,
+                    ban_reason=reason,
+                    ban_date=dt.utcnow().isoformat() if is_banned else None
+                )
+                return True
+            return False
+    except Exception as e:
+        logger.debug(f"Supabase set_ban_status fallback: {e}")
     data = _load_profiles()
     uid = str(user_id)
     if uid in data:
@@ -121,8 +177,19 @@ def save_chat_id(user_id, chat_id):
     """
     Update (or set) the Telegram chat_id for a user.
     Called from /start handler and /api/auth endpoint.
-    For private chats user_id == chat_id, but we store it explicitly.
     """
+    try:
+        from bot.services.supabase_db import has_db, db_upsert_user, db_get_user
+        if has_db():
+            p = db_get_user(user_id)
+            if p:
+                from bot.services.supabase_db import db_update_user_field
+                db_update_user_field(int(user_id), chat_id=int(chat_id))
+            else:
+                db_upsert_user(int(user_id), first_name="", chat_id=int(chat_id))
+            return
+    except Exception as e:
+        logger.debug(f"Supabase save_chat_id fallback: {e}")
     data = _load_profiles()
     uid = str(user_id)
     if uid in data:
@@ -151,25 +218,23 @@ def save_chat_id(user_id, chat_id):
         _save_profiles()
 
 def get_user_lang(user_id) -> str:
-    data = _load_profiles()
-    uid = str(user_id)
-    profile = data.get(uid, {})
-    return profile.get("lang", "uz_lat")
+    p = get_user_profile(user_id)
+    return (p or {}).get("lang", "uz_lat")
 
 def get_chat_id(user_id) -> int | None:
     """
     Return the Telegram chat_id for a user_id.
     Falls back to user_id itself (valid for private chats).
     """
-    data = _load_profiles()
-    uid = str(user_id)
-    profile = data.get(uid, {})
-    return profile.get("chat_id") or (int(user_id) if str(user_id).isdigit() else None)
+    p = get_user_profile(user_id)
+    if p:
+        return p.get("chat_id") or (int(user_id) if str(user_id).isdigit() else None)
+    return int(user_id) if str(user_id).isdigit() else None
 
 def is_user_banned(user_id):
     """Check if banned by admin"""
-    data = _load_profiles()
-    return data.get(str(user_id), {}).get("is_banned", False)
+    p = get_user_profile(user_id)
+    return (p or {}).get("is_banned", False)
 
 def log_premium_transaction(user_id, days, admin_id="Admin"):
     """Log premium purchase"""

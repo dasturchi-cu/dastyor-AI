@@ -36,23 +36,33 @@ def get_today() -> str:
 
 def get_user_usage(user_id: int) -> int:
     """Get today's usage count for a user"""
+    try:
+        from bot.services.supabase_db import has_db, db_get_usage
+        if has_db():
+            return db_get_usage(user_id)
+    except Exception as e:
+        logger.debug(f"Supabase get_user_usage fallback: {e}")
     data = _load_usage()
     uid = str(user_id)
     today = get_today()
-    
     if uid in data and data[uid].get("date") == today:
         return data[uid].get("count", 0)
     return 0
 
 def increment_usage(user_id: int) -> int:
     """Increment usage and return new count"""
+    try:
+        from bot.services.supabase_db import has_db, db_increment_usage, db_get_usage
+        if has_db():
+            db_increment_usage(user_id)
+            return db_get_usage(user_id)
+    except Exception as e:
+        logger.debug(f"Supabase increment_usage fallback: {e}")
     data = _load_usage()
     uid = str(user_id)
     today = get_today()
-    
     if uid not in data or data[uid].get("date") != today:
         data[uid] = {"date": today, "count": 0}
-    
     data[uid]["count"] += 1
     _save_usage(data)
     return data[uid]["count"]

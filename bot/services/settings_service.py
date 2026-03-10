@@ -108,6 +108,12 @@ def remove_premium(user_id):
 
 def is_premium(user_id):
     """Check if user has ACTIVE premium"""
+    try:
+        from bot.services.supabase_db import has_db, db_is_premium
+        if has_db():
+            return db_is_premium(int(user_id))
+    except Exception as e:
+        logger.debug(f"Supabase is_premium fallback: {e}")
     data = _load_settings()
     uid = str(user_id)
     
@@ -127,6 +133,14 @@ def is_premium(user_id):
 
 # === CONFIG ===
 def get_daily_limit():
+    try:
+        from bot.services.supabase_db import has_db, db_get_daily_limit
+        if has_db():
+            limit = db_get_daily_limit()
+            if limit is not None:
+                return limit
+    except Exception as e:
+        logger.debug(f"Supabase get_daily_limit fallback: {e}")
     return _load_settings().get("daily_limit", 10)
 
 def set_daily_limit(limit):
