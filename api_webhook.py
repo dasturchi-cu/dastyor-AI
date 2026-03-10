@@ -800,6 +800,8 @@ class ObyektivkaRequest(BaseModel):
     military_rank: str = ""
     awards      : str = ""
     deputy      : str = ""
+    address     : str = ""
+    phone       : str = ""
     work_experience: list = []
     relatives   : list = []
 
@@ -834,6 +836,8 @@ async def api_generate_obyektivka(req: ObyektivkaRequest):
         "military_rank"   : req.military_rank,
         "awards"          : req.awards,
         "deputy"          : req.deputy,
+        "address"         : req.address,
+        "phone"           : req.phone,
         "work_experience" : req.work_experience,
         "relatives"       : req.relatives,
     }

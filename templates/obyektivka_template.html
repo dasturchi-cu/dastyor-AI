@@ -297,12 +297,16 @@
     }
 
     /* ─── Section Title ─── */
-    .section-header {
-      margin: 18px 0 0 0;
-      display: flex;
-      align-items: stretch;
-    }
-
+    /* Hujjat ichida section-header ni reset qilish */
+    .tpl-oby .section-header { 
+    display: block !important; 
+    margin-top: 32px; 
+    margin-bottom: 12px; 
+}
+.tpl-oby .section-header::after { display: none !important; }
+.tpl-oby .info-lbl { font-weight: 600 !important; font-size: 9pt !important; color: #555 !important; }
+.tpl-oby .info-table td { padding: 8px 6px !important; }
+.tpl-oby .info-table td:first-child { padding-left: 0 !important; }
     .sect-marker {
       width: 4px;
       background: var(--gold);
@@ -544,7 +548,7 @@
     'work_title': "MEHNAT FAOLIYATI",
     'yillar': "Yillar",
     'lavozim': "Ish joyi va lavozimi",
-    'rel_title': "YAQIN QARINDOSHLARI HAQIDA MA'LUMOT",
+    'rel_title': "FAMILIYA YAQIN QARINDOSHLARI HAQIDA MA'LUMOT",
     'qarindoshlik': "Qarindoshligi",
     'fish': "F.I.SH.",
     'tjoyi': "Tug'ilgan yili va joyi",

@@ -330,11 +330,16 @@
         .tpl-oby .avatar { width: 30mm; height: 40mm; object-fit: cover; display: block; }
         .tpl-oby .photo-placeholder { width: 30mm; height: 40mm; background: #f9f9f9; border: 1px dashed #ccc; display: flex; align-items: center; justify-content: center; font-size: 9pt; color: #999; }
         .tpl-oby .info-table { border-collapse: collapse; width: 100%; margin-bottom: 24px; }
-        .tpl-oby .info-table td { vertical-align: top; padding: 14px 16px; font-size: 12pt; width: 50%; color: #000; border-bottom: 1px solid #e5e7eb; border-top: none; border-left: none; border-right: none; }
-        .tpl-oby .info-table tr:last-child td { border-bottom: none; }
+        .tpl-oby .info-table td { 
+    padding: 10px 8px;  /* 14px 16px emas */
+}        .tpl-oby .info-table tr:last-child td { border-bottom: none; }
         .tpl-oby .info-table tr:nth-child(even) td { background: transparent; }
         .tpl-oby .info-table td:first-child { padding-left: 0; padding-right: 24px; }
-        .tpl-oby .info-lbl { display: block; font-weight: 800; font-size: 10pt; color: #374151; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 1px; }
+        .tpl-oby .info-lbl { 
+    font-weight: 600;   /* 800 emas */
+    font-size: 9pt;     /* 10pt emas - kichikroq */
+    color: #666;        /* #374151 emas - kulrang */
+}   
         .tpl-oby .info-val { display: block; font-size: 12pt; color: #000; font-weight: 500;}
         .tpl-oby .section-header { margin-top: 40px; margin-bottom: 24px; }
         .tpl-oby .sect-title { font-size: 14pt; font-weight: bold; text-transform: uppercase; letter-spacing: 3px; color: #000; text-align: left; padding-bottom: 8px; border-bottom: 2px solid #000; background: transparent; display: block; }
@@ -940,7 +945,7 @@
                     exp_title: 'MEHNAT FAOLIYATI',
                     exp_col1: 'Yillari',
                     exp_col2: 'Ish joyi va egallagan lavozimlari',
-                    rel_suffix: "YAQIN QARINDOSHLARI HAQIDA MA'LUMOT",
+                    rel_suffix: "FAMILIYA YAQIN QARINDOSHLARI HAQIDA MA'LUMOT",
                     rel_c1: 'Qarindoshligi', rel_c2: 'F.I.SH.',
                     rel_c3: "Tug'ilgan yili va joyi",
                     rel_c4: 'Ish joyi va lavozimi', rel_c5: 'Yashash manzili',
@@ -1187,6 +1192,8 @@
                 military_rank: v('f_military'),
                 awards: v('f_awards'),
                 deputy: v('f_deputy'),
+                address: v('f_addr'),
+                phone: v('f_phone'),
                 work_experience: experiences.map(e => ({
                     year: (e.startYear && e.endYear ? `${e.startYear}-${e.endYear}` : e.startYear || e.endYear || ''),
                     position: e.desc || ''

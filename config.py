@@ -17,6 +17,10 @@ BOT_TOKEN = os.getenv("BOT_TOKEN")
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
 ADMIN_USER_ID = os.getenv("ADMIN_USER_ID")
 
+# === SUPABASE ===
+SUPABASE_URL = os.getenv("SUPABASE_URL")
+SUPABASE_ANON_KEY = os.getenv("SUPABASE_ANON_KEY")
+
 # === BUSINESS CONFIG ===
 # Daily free usage limit per user (0 = unlimited)
 DAILY_FREE_LIMIT = int(os.getenv("DAILY_FREE_LIMIT", "10"))
