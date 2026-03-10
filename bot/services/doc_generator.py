@@ -193,6 +193,16 @@ def _bdr_none(cell):
         b=OxmlElement(f"w:{s}");b.set(qn("w:val"),"none");tb.append(b)
     tcPr.append(tb)
 
+def _bdr_bottom_only(cell,color="CCCCCC",sz="4"):
+    tcPr=cell._tc.get_or_add_tcPr()
+    tb=OxmlElement("w:tcBorders")
+    for s in ("top","left","right"):
+        b=OxmlElement(f"w:{s}");b.set(qn("w:val"),"none");tb.append(b)
+    bot=OxmlElement("w:bottom")
+    bot.set(qn("w:val"),"single");bot.set(qn("w:sz"),sz)
+    bot.set(qn("w:space"),"0");bot.set(qn("w:color"),color.lstrip("#") if hasattr(color,"lstrip") else color)
+    tb.append(bot);tcPr.append(tb)
+
 def _bdr_bottom(cell,color=LGT,sz="4"):
     tcPr=cell._tc.get_or_add_tcPr()
     tb=OxmlElement("w:tcBorders")
@@ -231,13 +241,13 @@ def _para_bdr_bot(p,color=BLK,sz="8"):
     bot.set(qn("w:space"),"6");bot.set(qn("w:color"),color.lstrip("#"))
     pBdr.append(bot);pPr.append(pBdr)
 
-# ── Components (1:1 preview) ───────────────────────────────────────────────────
+# ── Components (1:1 preview: sect-title 14pt, letter-spacing 3px) ───────────────
 def _sect_title(doc,text):
     p=doc.add_paragraph()
     p.alignment=WD_ALIGN_PARAGRAPH.LEFT
-    _spc(p,before=0,after=11,line=1.0)
+    _spc(p,before=0,after=10,line=1.0)
     _para_bdr_bot(p,BLK,"8")
-    _run(p,text,bold=True,size=12.0,color=BLACK,lspc=2.5)
+    _run(p,text,bold=True,size=14.0,color=BLACK,lspc=3.0)
 
 def _info_row_2(doc,pw,lbl1,val1,lbl2,val2):
     t=doc.add_table(rows=1,cols=2)
@@ -246,14 +256,14 @@ def _info_row_2(doc,pw,lbl1,val1,lbl2,val2):
     for j,(lbl,val) in enumerate([(lbl1,val1),(lbl2,val2)]):
         c=t.cell(0,j)
         _shading(c,WHITE_HEX)
-        _bdr_bottom(c,"E0E0E0","4")
+        _bdr_none(c)
         _pad(c,top=90,bottom=70,left=0,right=240 if j==0 else 0)
         p_lbl=c.paragraphs[0]
         _spc(p_lbl,before=0,after=0,line=1.0)
-        _run(p_lbl,lbl,size=7.5,color=GREY_TXT,lspc=1.5)
+        _run(p_lbl,lbl,size=9.0,color=GREY_TXT,lspc=1.0)
         p_val=c.add_paragraph()
         _spc(p_val,before=2,after=0,line=1.15)
-        _run(p_val,val or "",size=11.0,color=DARK)
+        _run(p_val,val or "",size=12.0,color=BLACK)
 
 def _info_row_1(doc,pw,lbl,val):
     t=doc.add_table(rows=1,cols=1)
@@ -261,64 +271,76 @@ def _info_row_1(doc,pw,lbl,val):
     _col_w(t,pw,[100])
     c=t.cell(0,0)
     _shading(c,WHITE_HEX)
-    _bdr_bottom(c,"E0E0E0","4")
+    _bdr_none(c)
     _pad(c,top=90,bottom=70,left=0,right=0)
     p_lbl=c.paragraphs[0]
     _spc(p_lbl,before=0,after=0,line=1.0)
-    _run(p_lbl,lbl,size=7.5,color=GREY_TXT,lspc=1.5)
+    _run(p_lbl,lbl,size=9.0,color=GREY_TXT,lspc=1.0)
     p_val=c.add_paragraph()
     _spc(p_val,before=2,after=0,line=1.15)
-    _run(p_val,val or "",size=11.0,color=DARK)
+    _run(p_val,val or "",size=12.0,color=BLACK)
+
+def _bdr_top_bottom(cell,col="000000",sz="8"):
+    tcPr=cell._tc.get_or_add_tcPr()
+    tb=OxmlElement("w:tcBorders")
+    for s in ("top","bottom"):
+        b=OxmlElement(f"w:{s}")
+        b.set(qn("w:val"),"single");b.set(qn("w:sz"),sz)
+        b.set(qn("w:space"),"0");b.set(qn("w:color"),col.lstrip("#") if isinstance(col,str) else "000000")
+        tb.append(b)
+    for s in ("left","right"):
+        b=OxmlElement(f"w:{s}");b.set(qn("w:val"),"none");tb.append(b)
+    tcPr.append(tb)
+
+def _empty_state(doc,text):
+    p=doc.add_paragraph()
+    p.alignment=WD_ALIGN_PARAGRAPH.CENTER
+    _spc(p,before=12,after=12,line=1.0)
+    _run(p,text,italic=True,size=11.0,color=RGBColor(0x88,0x88,0x88))
 
 def _work_table(doc,pw,lb,works):
-    rows=1+max(len(works),1)
-    t=doc.add_table(rows=rows,cols=2)
+    if not works:
+        return _empty_state(doc,lb["no_data"])
+    t=doc.add_table(rows=1+len(works),cols=2)
     _no_tbl_bdr(t);t.autofit=False
-    _col_w(t,pw,[24,76])
+    _col_w(t,pw,[26,74])
     for j,txt in enumerate([lb["yillar"],lb["lavozim"]]):
         c=t.cell(0,j)
-        _shading(c,"F2F2F2")
-        _bdr_all(c,"999999","4")
-        _pad(c,top=80,bottom=80,left=80 if j==0 else 100,right=60)
+        _shading(c,WHITE_HEX)
+        _bdr_top_bottom(c,"000000","8")
+        _pad(c,top=100,bottom=100,left=100 if j==0 else 120,right=80)
         p=c.paragraphs[0]
         _spc(p,before=0,after=0,line=1.0)
-        _run(p,txt,bold=True,size=9.0,color=BLACK,lspc=0.8)
-    if not works:
-        for j in range(2):
-            c=t.cell(1,j);_bdr_all(c,"CCCCCC","4")
-            _pad(c,top=100,bottom=100,left=80 if j==0 else 100,right=60)
-    else:
+        _run(p,txt,bold=True,size=11.0,color=BLACK,lspc=1.0)
+    if works:
         for i,w in enumerate(works):
             year=w.get("year","") or w.get("years","") or w.get("f","") or ""
             pos=w.get("position","") or w.get("pos","") or w.get("d","") or ""
             for j,(c,val) in enumerate([(t.cell(1+i,0),year),(t.cell(1+i,1),pos)]):
-                _bdr_all(c,"CCCCCC","4")
-                _pad(c,top=90,bottom=90,left=80 if j==0 else 100,right=60)
+                _bdr_bottom_only(c,"CCCCCC","4")
+                _pad(c,top=96,bottom=96,left=100 if j==0 else 120,right=80)
                 p=c.paragraphs[0]
                 _spc(p,before=0,after=0,line=1.15)
-                r=_run(p,val,size=11.0,color=DARK)
+                r=_run(p,val,size=11.5,color=BLACK)
                 if j==0: r.bold=True
 
 def _rel_table(doc,pw,lb,rels):
-    rows=1+max(len(rels),1)
-    t=doc.add_table(rows=rows,cols=5)
+    if not rels:
+        return _empty_state(doc,lb["no_data"])
+    t=doc.add_table(rows=1+len(rels),cols=5)
     _no_tbl_bdr(t);t.autofit=False
-    _col_w(t,pw,[12,20,18,28,22])
+    _col_w(t,pw,[12,22,18,26,22])
     hdrs=[lb["rel_kin"],lb["rel_fish"],lb["rel_birth"],lb["rel_work"],lb["rel_addr"]]
     for j,txt in enumerate(hdrs):
         c=t.cell(0,j)
-        _shading(c,"F2F2F2")
-        _bdr_all(c,"999999","4")
+        _shading(c,"EFEFEF")
+        _bdr_all(c,"000000","4")
         _pad(c,top=70,bottom=70,left=60,right=60)
         p=c.paragraphs[0]
         p.alignment=WD_ALIGN_PARAGRAPH.CENTER
         _spc(p,before=0,after=0,line=1.1)
-        _run(p,txt,bold=True,size=8.0,color=BLACK,lspc=0.5)
-    if not rels:
-        for j in range(5):
-            c=t.cell(1,j);_bdr_all(c,"CCCCCC","4")
-            _pad(c,top=80,bottom=80,left=60,right=60)
-    else:
+        _run(p,txt,bold=True,size=10.0,color=BLACK,lspc=0.5)
+    if rels:
         for i,rel in enumerate(rels):
             vals=[
                 rel.get("degree","") or rel.get("kin",""),
@@ -328,12 +350,12 @@ def _rel_table(doc,pw,lb,rels):
                 rel.get("address","") or rel.get("addr",""),
             ]
             for j,val in enumerate(vals):
-                c=t.cell(1+i,j);_bdr_all(c,"CCCCCC","4")
+                c=t.cell(1+i,j);_bdr_all(c,"000000","4")
                 _pad(c,top=80,bottom=80,left=60,right=60)
                 p=c.paragraphs[0]
                 p.alignment=WD_ALIGN_PARAGRAPH.CENTER
                 _spc(p,before=0,after=0,line=1.1)
-                _run(p,val or "",size=9.5,color=DARK)
+                _run(p,val or "",size=10.0,color=BLACK)
 
 # ── MAIN FUNCTIONS ────────────────────────────────────────────────────────────
 def generate_obyektivka_docx(data:dict, photo_path:str|None=None,
@@ -354,11 +376,11 @@ def generate_obyektivka_docx(data:dict, photo_path:str|None=None,
     ns.paragraph_format.space_after=Pt(0)
     pw=_pw(doc)
 
-    # 1. Sarlavha (1:1 preview — 18pt bold center)
+    # 1. Sarlavha (preview: 20pt, margin-bottom 36px)
     p_t=doc.add_paragraph()
     p_t.alignment=WD_ALIGN_PARAGRAPH.CENTER
-    _spc(p_t,before=0,after=20,line=1.0)
-    _run(p_t,lb["title"],bold=True,size=18.0,color=BLACK,lspc=5.0)
+    _spc(p_t,before=0,after=24,line=1.0)
+    _run(p_t,lb["title"],bold=True,size=20.0,color=BLACK,lspc=4.0)
 
     # 2. Ism | Foto  (3cm x 4cm — aniq o'lcham)
     hdr = doc.add_table(rows=1, cols=2)
@@ -373,10 +395,10 @@ def generate_obyektivka_docx(data:dict, photo_path:str|None=None,
     _pad(nc, top=0, bottom=0, left=0, right=120)
     p_lbl = nc.paragraphs[0]
     _spc(p_lbl, before=0, after=3, line=1.0)
-    _run(p_lbl, lb["name_label"], size=8.0, color=GREY_TXT, lspc=1.5)
+    _run(p_lbl, lb["name_label"], size=10.0, color=GREY_TXT, lspc=1.0)
     p_nm = nc.add_paragraph()
-    _spc(p_nm, before=2, after=0, line=1.3)
-    _run(p_nm, (g("fullname","") or "").upper(), bold=True, size=16.0, color=BLACK)
+    _spc(p_nm, before=2, after=0, line=1.35)
+    _run(p_nm, (g("fullname","") or "").upper(), bold=True, size=17.0, color=BLACK)
 
     # Foto katagi (o'ng) — 3cm x 4cm
     pc = hdr.cell(0, 1)
@@ -386,7 +408,7 @@ def generate_obyektivka_docx(data:dict, photo_path:str|None=None,
     if has_photo:
         _bdr_none(pc)
     else:
-        _bdr_dashed(pc, "BBBBBB", "6")
+        _bdr_dashed(pc, "CCCCCC", "6")
     _pad(pc, top=0, bottom=0, left=0, right=0)
     _vcenter(pc)
     p_ph = pc.paragraphs[0]
@@ -396,7 +418,7 @@ def generate_obyektivka_docx(data:dict, photo_path:str|None=None,
         r = p_ph.add_run()
         r.add_picture(photo_path, width=Cm(3), height=Cm(4))
     else:
-        _run(p_ph, lb["photo"], size=9.0, color=MUTED)
+        _run(p_ph, lb["photo"], size=9.0, color=RGBColor(0x99,0x99,0x99))
 
     sp1=doc.add_paragraph();_spc(sp1,before=0,after=20)
 
@@ -414,13 +436,13 @@ def generate_obyektivka_docx(data:dict, photo_path:str|None=None,
         _info_row_2(doc,pw,lbl1,val1,lbl2,val2)
     _info_row_1(doc,pw,lb["addr"],g("address","") or g("addr",""))
 
-    # 4. Mehnat faoliyati (preview margin-top 22px)
-    sp2=doc.add_paragraph();_spc(sp2,before=0,after=18)
+    # 4. Mehnat faoliyati (preview section-header margin-top 40px)
+    sp2=doc.add_paragraph();_spc(sp2,before=0,after=28)
     _sect_title(doc,lb["work_title"])
     _work_table(doc,pw,lb,g("work_experience",[]) or [])
 
-    # 5. Qarindoshlar (preview margin-top 22px)
-    sp3=doc.add_paragraph();_spc(sp3,before=0,after=18)
+    # 5. Qarindoshlar (preview margin-top 40px)
+    sp3=doc.add_paragraph();_spc(sp3,before=0,after=28)
     fname=(g("fullname","") or "").split()[0].upper() if g("fullname","") else ""
     rel_h=lb["rel_title"] if lang=="ru" else (f"{fname} {lb['rel_title']}" if fname else lb["rel_title"])
     _sect_title(doc,rel_h)
