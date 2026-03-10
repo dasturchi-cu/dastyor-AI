@@ -1331,22 +1331,126 @@
   <script>
     const tg = window.Telegram?.WebApp;
 
-    // Language Change
-    function changeLang(lang) {
-      if (typeof I18n !== 'undefined') {
-          I18n.setLang(lang);
+    // ═══════════════════════════════════════════════════════════
+    // TRANSLITERATION ENGINE  (same tables as translit.html)
+    // ═══════════════════════════════════════════════════════════
+
+    const _CYR_TO_LAT = {
+      'а':'a','б':'b','в':'v','г':'g','д':'d','е':'e','ё':'yo','ж':'j','з':'z','и':'i',
+      'й':'y','к':'k','л':'l','м':'m','н':'n','о':'o','п':'p','р':'r','с':'s','т':'t',
+      'у':'u','ф':'f','х':'x','ц':'ts','ч':'ch','ш':'sh','щ':'sh','ъ":"'",'\u044b':'i','\u044c':'',
+      'э':'e','ю':'yu','я':'ya','қ':'q','ғ':"g'",'ҳ':'h','ў':"o'",'ҷ':'j',
+      'А':'A','Б':'B','В':'V','Г':'G','Д':'D','Е':'E','Ё':'Yo','Ж':'J','З':'Z','И':'I',
+      'Й':'Y','К':'K','Л':'L','М':'M','Н':'N','О':'O','П':'P','Р':'R','С':'S','Т':'T',
+      'У':'U','Ф':'F','Х':'X','Ц':'Ts','Ч':'Ch','Ш':'Sh','Щ':'Sh','Ъ":"'",'\u042b':'I','\u042c':'',
+      'Э':'E','Ю':'Yu','Я':'Ya','Қ':'Q','Ғ':"G'",'Ҳ':'H','Ў':"O'",'Ҷ':'J',
+    };
+
+    const _LAT_TO_CYR_3 = {};
+    const _LAT_TO_CYR_2 = {};
+    const _LAT_TO_CYR_1 = {};
+    (function buildL2C() {
+      const APOS = ["'",'\u2019','\u02BB','`'];
+      for (const ap of APOS) {
+        _LAT_TO_CYR_3['o'+ap] = '\u045E'; _LAT_TO_CYR_3['O'+ap] = '\u040E';
+        _LAT_TO_CYR_3['g'+ap] = '\u0493'; _LAT_TO_CYR_3['G'+ap] = '\u0492';
+      }
+      const DG2 = [
+        ['sh','\u0448'],['Sh','\u0428'],['SH','\u0428'],
+        ['ch','\u0447'],['Ch','\u0427'],['CH','\u0427'],
+        ['ng','\u043d\u0433'],['Ng','\u041d\u0433'],['NG','\u041d\u0413'],
+        ['yo','\u0451'],['Yo','\u0401'],['YO','\u0401'],
+        ['ya','\u044f'],['Ya','\u042f'],['YA','\u042f'],
+        ['yu','\u044e'],['Yu','\u042e'],['YU','\u042e'],
+        ['ts','\u0446'],['Ts','\u0426'],['TS','\u0426'],
+        ['zh','\u0436'],['Zh','\u0416'],['ZH','\u0416'],
+        ['kh','\u0445'],['Kh','\u0425'],['KH','\u0425'],
+      ];
+      for (const [l,c] of DG2) _LAT_TO_CYR_2[l] = c;
+      const SG = [
+        ['a','\u0430'],['b','\u0431'],['d','\u0434'],['e','\u0435'],['f','\u0444'],['g','\u0433'],['h','\u04b3'],['i','\u0438'],
+        ['j','\u0436'],['k','\u043a'],['l','\u043b'],['m','\u043c'],['n','\u043d'],['o','\u043e'],['p','\u043f'],['q','\u049b'],
+        ['r','\u0440'],['s','\u0441'],['t','\u0442'],['u','\u0443'],['v','\u0432'],['w','\u0432'],['x','\u0445'],['y','\u0439'],['z','\u0437'],
+        ['A','\u0410'],['B','\u0411'],['D','\u0414'],['E','\u0415'],['F','\u0424'],['G','\u0413'],['H','\u04b2'],['I','\u0418'],
+        ['J','\u0416'],['K','\u041a'],['L','\u041b'],['M','\u041c'],['N','\u041d'],['O','\u041e'],['P','\u041f'],['Q','\u049a'],
+        ['R','\u0420'],['S','\u0421'],['T','\u0422'],['U','\u0423'],['V','\u0412'],['W','\u0412'],['X','\u0425'],['Y','\u0419'],['Z','\u0417'],
+      ];
+      for (const [l,c] of SG) _LAT_TO_CYR_1[l] = c;
+    })();
+
+    function _cyrToLat(text) {
+      return [...text].map(ch => _CYR_TO_LAT[ch] !== undefined ? _CYR_TO_LAT[ch] : ch).join('');
+    }
+
+    function _latToCyr(text) {
+      const out = []; const len = text.length; let i = 0;
+      while (i < len) {
+        if (i+2 < len && _LAT_TO_CYR_3[text[i]+text[i+1]+text[i+2]] !== undefined) { out.push(_LAT_TO_CYR_3[text[i]+text[i+1]+text[i+2]]); i+=3; continue; }
+        if (i+1 < len && _LAT_TO_CYR_2[text[i]+text[i+1]] !== undefined) { out.push(_LAT_TO_CYR_2[text[i]+text[i+1]]); i+=2; continue; }
+        const ch = text[i]; out.push(_LAT_TO_CYR_1[ch] !== undefined ? _LAT_TO_CYR_1[ch] : ch); i++;
+      }
+      return out.join('');
+    }
+
+    function _detectScript(text) {
+      let cyr=0,lat=0;
+      for (const ch of text) {
+        const c = ch.charCodeAt(0);
+        if (c>=0x0400&&c<=0x04FF) cyr++;
+        else if ((c>=0x41&&c<=0x5A)||(c>=0x61&&c<=0x7A)) lat++;
+      }
+      if (cyr===0&&lat===0) return null;
+      return cyr>=lat ? 'cyr' : 'lat';
+    }
+
+    /**
+     * transliterateName(name, targetLang)
+     * Converts a person's name to the target language script:
+     *   uz_lat  → keep original Latin (or convert from Cyrillic)
+     *   uz_cyr  → convert to Uzbek Cyrillic
+     *   ru      → convert to Russian Cyrillic (same mapping for names)
+     *   en      → keep original Latin (or convert Cyr → Lat)
+     */
+    function transliterateName(name, targetLang) {
+      if (!name) return name;
+      const script = _detectScript(name);
+      if (targetLang === 'uz_cyr' || targetLang === 'ru') {
+        // Need Cyrillic output
+        if (script === 'lat') return _latToCyr(name);
+        return name; // already Cyrillic
+      } else {
+        // Need Latin output (uz_lat or en)
+        if (script === 'cyr') return _cyrToLat(name);
+        return name; // already Latin
       }
     }
-    
-    document.addEventListener('i18n:change', updateCV);
+
+    // ═══════════════════════════════════════════════════════════
+    // LANGUAGE CHANGE HANDLER
+    // ═══════════════════════════════════════════════════════════
+
+    function changeLang(lang) {
+      if (typeof I18n !== 'undefined') {
+        I18n.setLang(lang);
+      }
+    }
+
+    // CRITICAL FIX: must listen on window (I18n dispatches on window)
+    window.addEventListener('i18n:change', () => {
+      updateCV();
+      I18n.apply(); // re-apply data-i18n labels on editor
+      // Sync dropdown
+      const sel = document.getElementById('langSelect');
+      if (sel) sel.value = I18n.getLang();
+    });
 
     document.addEventListener('DOMContentLoaded', () => {
-        if (typeof I18n !== 'undefined') {
-            const lang = I18n.getLang();
-            const sel = document.getElementById('langSelect');
-            if (sel) sel.value = lang;
-            I18n.apply();
-        }
+      if (typeof I18n !== 'undefined') {
+        const lang = I18n.getLang();
+        const sel = document.getElementById('langSelect');
+        if (sel) sel.value = lang;
+        I18n.apply();
+      }
     });
 
         const DastyorAI = {
@@ -1749,8 +1853,10 @@
 
     // ── LIVE ENGINE ──
     function updateCV() {
+      const lang = I18n.getLang();
+      const rawName = v('f_name') || 'Ism Familiya';
       const data = {
-        name: v('f_name') || 'Ism Familiya',
+        name: transliterateName(rawName, lang),
         role: v('f_role'),
         phone: v('f_phone'),
         email: v('f_email'),
@@ -1811,15 +1917,15 @@
           
           ${data.about ? `<div class="section"><div class="sec-title">${I18n.t('cv_about')}</div><div class="text">${data.about}</div></div>` : ''}
           
-          ${skills.length ? `<div class="section"><div class="sec-title">Core Skills</div><div class="badges-wrap">${skillsHtml}</div></div>` : ''}
+          ${skills.length ? `<div class="section"><div class="sec-title">${I18n.t('cv_skills_label')}</div><div class="badges-wrap">${skillsHtml}</div></div>` : ''}
           
           ${experiences.length ? `<div class="section"><div class="sec-title">${I18n.t('cv_experience')}</div>${expHtml}</div>` : ''}
           
-          ${achievements.length ? `<div class="section"><div class="sec-title">Key Achievements</div><div>${achHtml}</div></div>` : ''}
+          ${achievements.length ? `<div class="section"><div class="sec-title">${I18n.t('cv_achievements')}</div><div>${achHtml}</div></div>` : ''}
           
           ${education.length ? `<div class="section"><div class="sec-title">${I18n.t('cv_education')}</div>${eduHtml}</div>` : ''}
           
-          ${tools.length ? `<div class="section"><div class="sec-title">Tools & Technologies</div><div class="badges-wrap">${toolsHtml}</div></div>` : ''}
+          ${tools.length ? `<div class="section"><div class="sec-title">${I18n.t('cv_tools_tech')}</div><div class="badges-wrap">${toolsHtml}</div></div>` : ''}
         `;
       } else if (activeTpl === 'split') {
         box.className = 'cv-canvas tpl-split';
@@ -1834,8 +1940,8 @@
               ${data.loc ? `<div class="contact-item">📍 ${data.loc}</div>` : ''}
             </div>
             
-            ${skills.length ? `<div class="section"><div class="sec-title-side">Core Skills</div><div class="badges-wrap" style="color:#000">${skillsHtml}</div></div>` : ''}
-            ${tools.length ? `<div class="section"><div class="sec-title-side">Tools & Tech</div><div class="badges-wrap" style="color:#000">${toolsHtml}</div></div>` : ''}
+            ${skills.length ? `<div class="section"><div class="sec-title-side">${I18n.t('cv_skills_label')}</div><div class="badges-wrap" style="color:#000">${skillsHtml}</div></div>` : ''}
+            ${tools.length ? `<div class="section"><div class="sec-title-side">${I18n.t('cv_tools_label')}</div><div class="badges-wrap" style="color:#000">${toolsHtml}</div></div>` : ''}
           </div>
           <div class="main">
             <div class="name">${data.name}</div>
@@ -1843,7 +1949,7 @@
 
             ${data.about ? `<div class="section"><div class="sec-title-main">${I18n.t('cv_about')}</div><div class="text">${data.about}</div></div>` : ''}
             ${experiences.length ? `<div class="section"><div class="sec-title-main">${I18n.t('cv_experience')}</div>${expHtml}</div>` : ''}
-            ${achievements.length ? `<div class="section"><div class="sec-title-main">Key Achievements</div><div>${achHtml}</div></div>` : ''}
+            ${achievements.length ? `<div class="section"><div class="sec-title-main">${I18n.t('cv_achievements')}</div><div>${achHtml}</div></div>` : ''}
             ${education.length ? `<div class="section"><div class="sec-title-main">${I18n.t('cv_education')}</div>${eduHtml}</div>` : ''}
           </div>
         `;
@@ -1865,12 +1971,12 @@
             <div class="col-main">
               ${data.about ? `<div class="section"><div class="sec-title">${I18n.t('cv_about')}</div><div class="text">${data.about}</div></div>` : ''}
               ${experiences.length ? `<div class="section"><div class="sec-title">${I18n.t('cv_experience')}</div>${expHtml}</div>` : ''}
-              ${achievements.length ? `<div class="section"><div class="sec-title">Key Achievements</div><div>${achHtml}</div></div>` : ''}
+              ${achievements.length ? `<div class="section"><div class="sec-title">${I18n.t('cv_achievements')}</div><div>${achHtml}</div></div>` : ''}
             </div>
             <div class="col-side">
-              ${skills.length ? `<div class="section"><div class="sec-title">Core Skills</div><div class="badges-wrap">${skillsHtml}</div></div>` : ''}
+              ${skills.length ? `<div class="section"><div class="sec-title">${I18n.t('cv_skills_label')}</div><div class="badges-wrap">${skillsHtml}</div></div>` : ''}
               ${education.length ? `<div class="section"><div class="sec-title">${I18n.t('cv_education')}</div>${eduHtml}</div>` : ''}
-              ${tools.length ? `<div class="section"><div class="sec-title">Tools</div><div class="badges-wrap">${toolsHtml}</div></div>` : ''}
+              ${tools.length ? `<div class="section"><div class="sec-title">${I18n.t('cv_tools_label')}</div><div class="badges-wrap">${toolsHtml}</div></div>` : ''}
             </div>
           </div>
         `;
@@ -1887,11 +1993,11 @@
             </div>
           </div>
           ${data.about ? `<div class="section"><div class="sec-title">${I18n.t('cv_about')}</div><div class="text">${data.about}</div></div>` : ''}
-          ${skills.length ? `<div class="section"><div class="sec-title">Core Skills</div><div style="font-size:10pt;">${skills.join(', ')}</div></div>` : ''}
+          ${skills.length ? `<div class="section"><div class="sec-title">${I18n.t('cv_skills_label')}</div><div style="font-size:10pt;">${skills.join(', ')}</div></div>` : ''}
           ${experiences.length ? `<div class="section"><div class="sec-title">${I18n.t('cv_experience')}</div>${expHtml}</div>` : ''}
-          ${achievements.length ? `<div class="section"><div class="sec-title">Key Achievements</div><div>${achHtml}</div></div>` : ''}
+          ${achievements.length ? `<div class="section"><div class="sec-title">${I18n.t('cv_achievements')}</div><div>${achHtml}</div></div>` : ''}
           ${education.length ? `<div class="section"><div class="sec-title">${I18n.t('cv_education')}</div>${eduHtml}</div>` : ''}
-          ${tools.length ? `<div class="section"><div class="sec-title">Tools & Technologies</div><div style="font-size:10pt;">${tools.join(', ')}</div></div>` : ''}
+          ${tools.length ? `<div class="section"><div class="sec-title">${I18n.t('cv_tools_tech')}</div><div style="font-size:10pt;">${tools.join(', ')}</div></div>` : ''}
         `;
       } else if (activeTpl === 'elegant') {
         box.className = 'cv-canvas tpl-elegant';
@@ -1909,12 +2015,12 @@
             <div class="col-main">
               ${data.about ? `<div class="section"><div class="sec-title">${I18n.t('cv_about')}</div><div class="text">${data.about}</div></div>` : ''}
               ${experiences.length ? `<div class="section"><div class="sec-title">${I18n.t('cv_experience')}</div>${expHtml}</div>` : ''}
-              ${achievements.length ? `<div class="section"><div class="sec-title">Key Achievements</div><div>${achHtml}</div></div>` : ''}
+              ${achievements.length ? `<div class="section"><div class="sec-title">${I18n.t('cv_achievements')}</div><div>${achHtml}</div></div>` : ''}
             </div>
             <div class="col-side">
-              ${skills.length ? `<div class="section"><div class="sec-title">Core Skills</div><div class="badges-wrap">${skillsHtml}</div></div>` : ''}
+              ${skills.length ? `<div class="section"><div class="sec-title">${I18n.t('cv_skills_label')}</div><div class="badges-wrap">${skillsHtml}</div></div>` : ''}
               ${education.length ? `<div class="section"><div class="sec-title">${I18n.t('cv_education')}</div>${eduHtml}</div>` : ''}
-              ${tools.length ? `<div class="section"><div class="sec-title">Tools</div><div class="badges-wrap">${toolsHtml}</div></div>` : ''}
+              ${tools.length ? `<div class="section"><div class="sec-title">${I18n.t('cv_tools_label')}</div><div class="badges-wrap">${toolsHtml}</div></div>` : ''}
             </div>
           </div>
         `;
@@ -1936,12 +2042,12 @@
             <div class="col-main">
               ${data.about ? `<div class="section"><div class="sec-title">${I18n.t('cv_about')}</div><div class="text">${data.about}</div></div>` : ''}
               ${experiences.length ? `<div class="section"><div class="sec-title">${I18n.t('cv_experience')}</div>${expHtml}</div>` : ''}
-              ${achievements.length ? `<div class="section"><div class="sec-title">Key Achievements</div><div>${achHtml}</div></div>` : ''}
+              ${achievements.length ? `<div class="section"><div class="sec-title">${I18n.t('cv_achievements')}</div><div>${achHtml}</div></div>` : ''}
             </div>
             <div class="col-side">
-              ${skills.length ? `<div class="section"><div class="sec-title">Core Skills</div><div class="badges-wrap" style="color:#000">${skillsHtml}</div></div>` : ''}
+              ${skills.length ? `<div class="section"><div class="sec-title">${I18n.t('cv_skills_label')}</div><div class="badges-wrap" style="color:#000">${skillsHtml}</div></div>` : ''}
               ${education.length ? `<div class="section"><div class="sec-title">${I18n.t('cv_education')}</div>${eduHtml}</div>` : ''}
-              ${tools.length ? `<div class="section"><div class="sec-title">Tools</div><div class="badges-wrap" style="color:#000">${toolsHtml}</div></div>` : ''}
+              ${tools.length ? `<div class="section"><div class="sec-title">${I18n.t('cv_tools_label')}</div><div class="badges-wrap" style="color:#000">${toolsHtml}</div></div>` : ''}
             </div>
           </div>
         `;
@@ -1960,13 +2066,13 @@
               ${data.loc ? `<div class="contact-item">📍 ${data.loc}</div>` : ''}
             </div>
             
-            ${skills.length ? `<div class="section"><div class="sec-title sec-title-left">Core Skills</div><div class="badges-wrap" style="color:#000">${skillsHtml}</div></div>` : ''}
-            ${tools.length ? `<div class="section"><div class="sec-title sec-title-left">Tools & Tech</div><div class="badges-wrap" style="color:#000">${toolsHtml}</div></div>` : ''}
+            ${skills.length ? `<div class="section"><div class="sec-title sec-title-left">${I18n.t('cv_skills_label')}</div><div class="badges-wrap" style="color:#000">${skillsHtml}</div></div>` : ''}
+            ${tools.length ? `<div class="section"><div class="sec-title sec-title-left">${I18n.t('cv_tools_label')}</div><div class="badges-wrap" style="color:#000">${toolsHtml}</div></div>` : ''}
           </div>
           <div class="right">
             ${data.about ? `<div class="section"><div class="sec-title">${I18n.t('cv_about')}</div><div class="text">${data.about}</div></div>` : ''}
             ${experiences.length ? `<div class="section"><div class="sec-title">${I18n.t('cv_experience')}</div>${expHtml}</div>` : ''}
-            ${achievements.length ? `<div class="section"><div class="sec-title">Key Achievements</div><div>${achHtml}</div></div>` : ''}
+            ${achievements.length ? `<div class="section"><div class="sec-title">${I18n.t('cv_achievements')}</div><div>${achHtml}</div></div>` : ''}
             ${education.length ? `<div class="section"><div class="sec-title">${I18n.t('cv_education')}</div>${eduHtml}</div>` : ''}
           </div>
         `;
@@ -1995,12 +2101,12 @@
             <div style="display:flex; gap: 30px;">
               <div style="flex:2">
                 ${experiences.length ? `<div class="section"><div class="sec-title">${I18n.t('cv_experience')}</div>${expHtml}</div>` : ''}
-                ${achievements.length ? `<div class="section"><div class="sec-title">Key Achievements</div><div>${achHtml}</div></div>` : ''}
+                ${achievements.length ? `<div class="section"><div class="sec-title">${I18n.t('cv_achievements')}</div><div>${achHtml}</div></div>` : ''}
               </div>
               <div style="flex:1">
-                ${skills.length ? `<div class="section"><div class="sec-title">Core Skills</div><div class="badges-wrap">${skillsHtml}</div></div>` : ''}
+                ${skills.length ? `<div class="section"><div class="sec-title">${I18n.t('cv_skills_label')}</div><div class="badges-wrap">${skillsHtml}</div></div>` : ''}
                 ${education.length ? `<div class="section"><div class="sec-title">${I18n.t('cv_education')}</div>${eduHtml}</div>` : ''}
-                ${tools.length ? `<div class="section"><div class="sec-title">Tools</div><div class="badges-wrap">${toolsHtml}</div></div>` : ''}
+                ${tools.length ? `<div class="section"><div class="sec-title">${I18n.t('cv_tools_label')}</div><div class="badges-wrap">${toolsHtml}</div></div>` : ''}
               </div>
             </div>
           </div>
