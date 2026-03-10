@@ -61,17 +61,18 @@ async def extract_text_from_image(image_path: str) -> str:
             logger.error("No Gemini model available for OCR.")
             return ""
 
-        prompt = """You are an expert OCR AI and Document Digitizer.
-Convert the provided image into a structured HTML document that EXACTLY matches the original layout, formatting, and text.
+        prompt = """You are an advanced OCR AI specialized in EXTREME 1:1 Document Replication.
+Your task is to convert the provided image into a structured HTML document that EXACTLY matches the original layout, formatting, and text, no matter how blurry, faded, or complex the image is.
 
-CRITICAL RULES:
-1. **Typography**: Use <b>/<strong> for bold, <i>/<em> for italics, <u> for underlines.
-2. **Alignment**: Use <p align="center">, <p align="right">, <p align="justify">, or <h1 align="center">. Avoid <div> if possible. Use standard html alignment attributes or inline styles like style="text-align: center" for any content that is centered, right-aligned, or justified.
-3. **Tables**: If you see ANY tabular data, grids, columns, or form fields side-by-side, ALWAYS use HTML <table>. Ensure accurate number of rows and columns. Never use tabs or spaces for spacing. Set approximate column widths on the first row: <td width="30%">.
-4. **Structure**: Use <h1>, <h2>, <h3> for titles and headings. Use <p> for regular text paragraphs. Use <ul>, <ol>, <li> for lists.
-5. **Spacing**: Use <br> to preserve exact vertical line breaks within blocks. Use empty paragraphs <p></p> or multiple <br> for large vertical gaps.
-6. **Completeness**: Do NOT summarize or skip any text. Extract every single word and punctuation mark you see. The final user sees ONLY this output and requires a 1:1 match.
-7. **Clean Output**: Return ONLY valid HTML code. No markdown formatting blocks (like ```html), no conversational text, no explanations."""
+CRITICAL RULES FOR 1:1 REPLICATION:
+1. **Absolute Text Accuracy**: DO NOT hallucinate, summarize, or fix grammar. Extract every single word, number, punctuation mark, and character exactly as it appears. If text is blurry or hard to read, make your absolute best logical guess based on context, but NEVER skip it. Keep the original language.
+2. **Typography & Styling**: Use <b>/<strong> for bold, <i>/<em> for italics, <u> for underlines. If text is entirely uppercase in the image, output it in uppercase.
+3. **Alignment & Positioning**: Use <p align="center">, <p align="right">, <p align="justify">, or <h1 align="center">. Use standard html alignment attributes or inline styles like style="text-align: right" for any content that is centered, right-aligned, or justified.
+4. **Tables & Grids**: If you see ANY tabular data, grids, columns, side-by-side text, or form fields, ALWAYS use HTML <table>. Ensure the exact number of rows and columns. Never use tabs or spaces for spacing. Set approximate column widths on the first row: <td width="30%">. Empty cells must remain empty (<td></td>).
+5. **Structure**: Use <h1>, <h2>, <h3> for titles and headings based on their visual size. Use <p> for regular text paragraphs. Use <ul>, <ol>, <li> for lists.
+6. **Spacing & Gaps**: Use <br> to preserve exact vertical line breaks within blocks. Use empty paragraphs <p></p> or multiple <br> for large vertical gaps to match the exact vertical distances in the original image.
+7. **Signatures & Stamps**: If there is a signature, handwritten text, stamp, or seal, represent it with italicized text in brackets, e.g., <p><i>[Imzo]</i></p> or <p><i>[Muhr]</i></p>.
+8. **Clean Output**: Return ONLY valid HTML code. No markdown HTML blocks (like ```html), no conversational text, no explanations. Just the HTML elements."""
 
         # Run the heavy multimodal generation in a thread so the event loop is never blocked
         def _run_generation():
