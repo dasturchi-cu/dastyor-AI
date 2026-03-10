@@ -113,25 +113,39 @@
             border-radius: 2px;
         }
 
+        /* 30-Year Expert UI Typography */
+        label {
+            font-size: 10px !important;
+            text-transform: uppercase !important;
+            letter-spacing: 0.12em !important;
+            color: #818cf8 !important; /* brand-400 */
+            font-weight: 800 !important;
+            margin-bottom: 8px !important;
+            display: block !important;
+            opacity: 0.9;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+        }
+
         /* Input Styling */
         .input-premium {
             width: 100%;
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid rgba(255, 255, 255, 0.08);
+            background: rgba(0, 0, 0, 0.25) !important;
+            border: 1px solid rgba(255, 255, 255, 0.05) !important;
             border-radius: 12px;
-            padding: 12px 16px;
-            font-size: 14px;
-            color: #fff;
+            padding: 14px 16px;
+            font-size: 15px !important;
+            font-weight: 500 !important;
+            color: #fff !important;
             outline: none;
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
         .input-premium:focus {
-            background: rgba(255, 255, 255, 0.06);
-            border-color: rgba(99, 108, 241, 0.5);
-            box-shadow: 0 0 0 3px rgba(99, 108, 241, 0.1), 0 4px 20px rgba(99, 108, 241, 0.15);
+            background: rgba(0, 0, 0, 0.4) !important;
+            border-color: #636cf1 !important;
+            box-shadow: 0 0 0 4px rgba(99, 108, 241, 0.15), inset 0 2px 4px rgba(0, 0, 0, 0.3) !important;
         }
-        .input-premium::placeholder { color: rgba(255, 255, 255, 0.3); }
-        .input-premium.bold { font-weight: 700; font-size: 16px; }
+        .input-premium::placeholder { color: rgba(255, 255, 255, 0.2) !important; font-weight: 400; }
 
         /* Select Dropdown */
         select.input-premium {
@@ -157,17 +171,21 @@
 
         /* Entry Cards */
         .entry-card {
-            background: rgba(255, 255, 255, 0.02);
+            background: linear-gradient(145deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.01) 100%);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
             border: 1px solid rgba(255, 255, 255, 0.06);
-            border-radius: 16px;
-            padding: 20px;
-            margin-bottom: 12px;
+            border-top: 1px solid rgba(255, 255, 255, 0.12);
+            box-shadow: 0 16px 40px -8px rgba(0, 0, 0, 0.5);
+            border-radius: 20px;
+            padding: 24px;
+            margin-bottom: 20px;
             position: relative;
-            transition: all 0.3s ease;
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
         }
         .entry-card:hover {
-            background: rgba(255, 255, 255, 0.04);
-            border-color: rgba(99, 108, 241, 0.2);
+            border-color: rgba(99, 108, 241, 0.3);
+            box-shadow: 0 20px 48px -8px rgba(99, 108, 241, 0.15);
         }
 
         /* Remove Button */
@@ -297,40 +315,38 @@
         }
         .tpl-oby .accent-bar { display: none; }
         .tpl-oby .title {
-            text-align: center; font-size: 16pt; font-weight: bold;
-            letter-spacing: 3px; color: #000; margin-bottom: 24px; text-transform: uppercase;
+            text-align: center; font-size: 20pt; font-weight: 900;
+            letter-spacing: 4px; color: #000; margin-bottom: 36px; text-transform: uppercase;
         }
         .tpl-oby .title-line { display: none; }
-        .tpl-oby .header-table { width: 100%; margin-bottom: 32px; border-collapse: collapse; }
+        .tpl-oby .header-table { width: 100%; margin-bottom: 40px; border-collapse: collapse; }
         .tpl-oby .header-table td { vertical-align: middle; }
         .tpl-oby .col-main { vertical-align: middle; padding-right: 10mm; }
         .tpl-oby .name-block { background: transparent; padding: 0; display: block; width: 100%; }
-        .tpl-oby .name-label { display: block; font-size: 9pt; color: #555; font-weight: normal; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 4px; }
-        .tpl-oby .name { font-size: 16pt; font-weight: bold; text-transform: uppercase; color: #000; line-height: 1.35; letter-spacing: 0.5px; }
+        .tpl-oby .name-label { display: block; font-size: 10pt; color: #555; font-weight: normal; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 4px; }
+        .tpl-oby .name { font-size: 17pt; font-weight: bold; text-transform: uppercase; color: #000; line-height: 1.35; letter-spacing: 0.5px; }
         .tpl-oby .col-img { width: 40mm; text-align: center; vertical-align: middle; }
         .tpl-oby .photo-frame { display: inline-block; padding: 0; background: transparent; }
         .tpl-oby .avatar { width: 30mm; height: 40mm; object-fit: cover; display: block; }
         .tpl-oby .photo-placeholder { width: 30mm; height: 40mm; background: #f9f9f9; border: 1px dashed #ccc; display: flex; align-items: center; justify-content: center; font-size: 9pt; color: #999; }
-        .tpl-oby .info-table { width: 100%; border-collapse: collapse; margin-bottom: 32px; }
-        .tpl-oby .info-table tr td { background: transparent; }
-        .tpl-oby .info-table td { vertical-align: top; padding: 10px 12px; font-size: 11pt; width: 50%; color: #000; }
-        .tpl-oby .info-table tr:nth-child(even) td { background: #fafafa; }
-        .tpl-oby .info-table td:first-child { padding-left: 0; }
-        .tpl-oby .info-lbl { display: block; font-weight: bold; font-size: 9pt; color: #444; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
-        .tpl-oby .info-val { display: block; font-size: 10.5pt; color: #000; font-weight: 500;}
-        .tpl-oby .section-header { margin-top: 32px; margin-bottom: 16px; }
-        .tpl-oby .sect-title { font-size: 12pt; font-weight: bold; text-transform: uppercase; letter-spacing: 2px; color: #000; text-align: center; padding: 0; background: transparent; }
-        .tpl-oby .exp-table { width: 100%; border-collapse: collapse; margin-bottom: 16px; font-size: 10.5pt; }
-        .tpl-oby .exp-table thead th { background: #000; color: #fff; font-weight: bold; text-align: center; padding: 10px 12px; font-size: 10pt; text-transform: uppercase; letter-spacing: 1px; }
-        .tpl-oby .exp-table tbody tr td { background: transparent; }
-        .tpl-oby .exp-table tr:nth-child(even) td { background: #fafafa; }
-        .tpl-oby .exp-table td { padding: 12px 14px; vertical-align: top; font-size: 10.5pt; color: #000; }
+        .tpl-oby .info-table td { vertical-align: top; padding: 14px 16px; font-size: 12pt; width: 50%; color: #000; border-bottom: 1px solid #e5e7eb; }
+        .tpl-oby .info-table tr:last-child td { border-bottom: none; }
+        .tpl-oby .info-table tr:nth-child(even) td { background: transparent; }
+        .tpl-oby .info-table td:first-child { padding-left: 0; padding-right: 24px; }
+        .tpl-oby .info-lbl { display: block; font-weight: 800; font-size: 10pt; color: #374151; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 1px; }
+        .tpl-oby .info-val { display: block; font-size: 12pt; color: #000; font-weight: 500;}
+        .tpl-oby .section-header { margin-top: 40px; margin-bottom: 24px; }
+        .tpl-oby .sect-title { font-size: 14pt; font-weight: bold; text-transform: uppercase; letter-spacing: 3px; color: #000; text-align: center; padding-bottom: 8px; border-bottom: 2px solid #000; background: transparent; }
+        .tpl-oby .exp-table { width: 100%; border-collapse: collapse; margin-bottom: 24px; font-size: 11.5pt; }
+        .tpl-oby .exp-table thead th { background: transparent; color: #000; font-weight: bold; text-align: center; padding: 10px 12px; font-size: 11pt; text-transform: uppercase; letter-spacing: 1px; border-top: 2px solid #000; border-bottom: 2px solid #000; }
+        .tpl-oby .exp-table tbody tr td { background: transparent; border-bottom: 1px solid #ccc; }
+        .tpl-oby .exp-table td { padding: 12px 14px; vertical-align: top; font-size: 11.5pt; color: #000; }
         .tpl-oby .exp-table td:first-child { width: 26%; font-weight: bold; }
-        .tpl-oby .rel-table { width: 100%; border-collapse: collapse; font-size: 9.5pt; text-align: center; margin-top: 10px; }
-        .tpl-oby .rel-table thead th { background: #000; color: #fff; font-weight: bold; padding: 8px; font-size: 9pt; border: 1px solid #000; text-transform: uppercase; }
+        .tpl-oby .rel-table { width: 100%; border-collapse: collapse; font-size: 10pt; text-align: center; margin-top: 10px; font-family: 'Times New Roman', Times, serif; }
+        .tpl-oby .rel-table thead th { background: #EFEFEF; color: #000; font-weight: bold; padding: 10px 8px; font-size: 10pt; border: 1px solid #000; text-transform: uppercase; letter-spacing: 0.5px; }
         .tpl-oby .rel-table tbody tr td { background: transparent; }
-        .tpl-oby .rel-table td { border: 1px solid #000; padding: 8px; font-size: 9.5pt; color: #000; }
-        .tpl-oby .empty-state { text-align: center; font-style: italic; padding: 10px 0; font-size: 10pt; color: #666; }
+        .tpl-oby .rel-table td { border: 1px solid #000; padding: 8px 10px; font-size: 10pt; color: #000; vertical-align: middle; }
+        .tpl-oby .empty-state { text-align: center; font-style: italic; padding: 12px 0; font-size: 11pt; color: #888; }
         .tpl-oby .footer-bar { display: none; }
 
         /* Toast */
@@ -1186,7 +1202,7 @@
             };
 
             try {
-                const apiBase = location.protocol === 'file:' ? 'https://dastyor-ai.onrender.com' : location.origin;
+                const apiBase = location.protocol === 'file:' ? 'http://localhost:8000' : location.origin;
                 const res = await fetch(`${apiBase}/api/generate_obyektivka`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },

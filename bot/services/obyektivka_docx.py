@@ -132,7 +132,7 @@ LIGHT_BLUE_HEX = "FFFFFF"
 STRIPE_HEX     = "FFFFFF"
 BORDER_HEX     = "000000"
 LABEL_CLR      = RGBColor(0x00, 0x00, 0x00)  # #000000
-DARK_TEXT      = RGBColor(0x00, 0x00, 0x00)  # #000000
+DARK_TEXT      = RGBColor(0x1F, 0x1F, 0x1F)  # #1F1F1F (Oddiy to'q kulrang)
 
 FONT_BODY = "Times New Roman"
 
@@ -266,32 +266,11 @@ def generate_obyektivka_docx(user_data: dict, photo_path: str, output_filepath: 
     
     pw = _get_page_width_emu(doc)
 
-    # 1. Top Accent Bar
-    bar_tbl = doc.add_table(rows=1, cols=1)
-    _remove_table_borders(bar_tbl)
-    bar_cell = bar_tbl.cell(0, 0)
-    _cell_shading(bar_cell, NAVY_HEX)
-    bar_p = bar_cell.paragraphs[0]
-    bar_p.paragraph_format.space_after = Pt(0)
-    trHeight = OxmlElement("w:trHeight")
-    trHeight.set(qn("w:val"), "80") # 4pt
-    trHeight.set(qn("w:hRule"), "exact")
-    bar_tbl.rows[0]._tr.get_or_add_trPr().append(trHeight)
-    
-    doc.add_paragraph()
-    
-    # 2. Document Title
+    # 1. Document Title
     title_p = doc.add_paragraph()
     title_p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    _para_spacing(title_p, before_pt=4, after_pt=6)
-    _run(title_p, lb['title'], bold=True, size_pt=15.0, color=NAVY_CLR, spacing_pt=4)
-    # Title line
-    title_line_p = doc.add_paragraph()
-    title_line_p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    _para_spacing(title_line_p, after_pt=12)
-    # create a thin line (using fake text or border). Let's use a 60mm horizontal line image or border rule.
-    # We will use paragraph border for now. Wait, HR takes full width. 
-    # Let's just use text underscore hack or precise bottom border. Since it's centered 60mm width:
+    _para_spacing(title_p, before_pt=16, after_pt=24)
+    _run(title_p, lb['title'], bold=True, size_pt=20.0, color=NAVY_CLR, spacing_pt=4)
     
     
     # 3. Header Table (Name & Photo)
@@ -306,12 +285,12 @@ def generate_obyektivka_docx(user_data: dict, photo_path: str, output_filepath: 
     np_lbl = cell_name.paragraphs[0]
     _para_spacing(np_lbl, before_pt=6, after_pt=2)
     np_lbl.paragraph_format.left_indent = Cm(0.3)
-    _run(np_lbl, lb['name_lbl'], bold=False, size_pt=8.0, color=LABEL_CLR, spacing_pt=1.5)
+    _run(np_lbl, lb['name_lbl'], bold=False, size_pt=9.0, color=LABEL_CLR, spacing_pt=1.5)
     
     np_val = cell_name.add_paragraph()
     _para_spacing(np_val, before_pt=2, after_pt=6, line_rule=1.1)
     np_val.paragraph_format.left_indent = Cm(0.3)
-    _run(np_val, user_data.get('fullname', '').upper(), bold=True, size_pt=14.0, color=DARK_TEXT, spacing_pt=0.5)
+    _run(np_val, user_data.get('fullname', '').upper(), bold=True, size_pt=17.0, color=DARK_TEXT, spacing_pt=0.5)
 
     cell_photo = hdr_tbl.cell(0, 1)
     _cell_shading(cell_photo, "FFFFFF") # It's white in original, or let's strictly check: it says col-img is transparent but photo-frame is inline-block border 2px #1a3a6b
@@ -348,37 +327,40 @@ def generate_obyektivka_docx(user_data: dict, photo_path: str, output_filepath: 
 
     for i, row_data in enumerate(info_rows):
         lbl1, val1, lbl2, val2 = row_data
-        bg_hex = STRIPE_HEX if (i % 2 == 1) else "FFFFFF"
-
         for j, (lbl, val) in enumerate([(lbl1, val1), (lbl2, val2)]):
             cell = info_tbl.cell(i, j)
-            _cell_shading(cell, bg_hex)
-            
+            _cell_shading(cell, "FFFFFF")
+            _set_cell_borders(cell, color_hex="E5E5E5", sz_val="4", top=False, bottom=True, left=False, right=False)
+
             pL = cell.paragraphs[0]
             _para_spacing(pL, before_pt=4, after_pt=1)
             pL.paragraph_format.left_indent = Cm(0.2)
             pL.paragraph_format.right_indent = Cm(0.2)
-            _run(pL, lbl.upper(), bold=True, size_pt=8.5, color=LABEL_CLR, spacing_pt=0.3)
+            _run(pL, lbl.upper(), bold=True, size_pt=10.0, color=RGBColor(0,0,0), spacing_pt=0.5)
             
             pV = cell.add_paragraph()
-            _para_spacing(pV, before_pt=1, after_pt=4)
+            _para_spacing(pV, before_pt=1, after_pt=6)
             pV.paragraph_format.left_indent = Cm(0.2)
             pV.paragraph_format.right_indent = Cm(0.2)
-            _run(pV, val, bold=False, size_pt=10.5, color=DARK_TEXT)
+            _run(pV, val, bold=False, size_pt=12.0, color=DARK_TEXT)
 
     doc.add_paragraph()
 
     # 5. Work Experience Section Header
-    sect_tbl = doc.add_table(rows=1, cols=1)
-    _remove_table_borders(sect_tbl)
-    sect_cell = sect_tbl.cell(0, 0)
-    _cell_shading(sect_cell, "FFFFFF")
-    sp = sect_cell.paragraphs[0]
+    sp = doc.add_paragraph()
     sp.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    _para_spacing(sp, before_pt=10, after_pt=4)
-    _run(sp, lb['exp_title'], bold=True, size_pt=10.5, color=NAVY_CLR, spacing_pt=2)
-    
-    doc.add_paragraph()
+    _para_spacing(sp, before_pt=24, after_pt=16)
+
+    pBdr = OxmlElement("w:pBdr")
+    bottom = OxmlElement("w:bottom")
+    bottom.set(qn("w:val"), "single")
+    bottom.set(qn("w:sz"), "12") # 1.5pt
+    bottom.set(qn("w:space"), "6")
+    bottom.set(qn("w:color"), "000000")
+    pBdr.append(bottom)
+    sp._p.get_or_add_pPr().append(pBdr)
+
+    _run(sp, lb['exp_title'], bold=True, size_pt=14.0, color=NAVY_CLR, spacing_pt=2)
 
     # Work Table
     works = user_data.get("work_experience", [])
@@ -390,22 +372,23 @@ def generate_obyektivka_docx(user_data: dict, photo_path: str, output_filepath: 
         h_years = wtbl.cell(0, 0)
         h_pos = wtbl.cell(0, 1)
         for hcell, ht in [(h_years, lb['exp_col1']), (h_pos, lb['exp_col2'])]:
-            _cell_shading(hcell, NAVY_HEX)
+            _cell_shading(hcell, "FFFFFF")
+            _set_cell_borders(hcell, color_hex=BORDER_HEX, sz_val="12", top=True, bottom=True, left=False, right=False)
             hp = hcell.paragraphs[0]
             hp.alignment = WD_ALIGN_PARAGRAPH.CENTER
             _para_spacing(hp, before_pt=4, after_pt=4)
-            _run(hp, ht, bold=True, size_pt=9.5, color=RGBColor(255, 255, 255), spacing_pt=0.5)
+            _run(hp, ht, bold=True, size_pt=11.0, color=RGBColor(0, 0, 0), spacing_pt=0.5)
 
         for i, work in enumerate(works):
-            bg = STRIPE_HEX if (i % 2 == 1) else "FFFFFF"
             y_cell = wtbl.cell(1+i, 0)
             p_cell = wtbl.cell(1+i, 1)
             for cell, val, bold in [(y_cell, work.get('year', ''), True), (p_cell, work.get('position', ''), False)]:
-                _cell_shading(cell, bg)
+                _cell_shading(cell, "FFFFFF")
+                _set_cell_borders(cell, color_hex="CCCCCC", sz_val="4", top=False, bottom=True, left=False, right=False)
                 cp = cell.paragraphs[0]
                 _para_spacing(cp, before_pt=5, after_pt=5)
                 cp.paragraph_format.left_indent = Cm(0.2)
-                _run(cp, val, bold=bold, size_pt=10.0, color=(NAVY_CLR if bold else DARK_TEXT))
+                _run(cp, val, bold=bold, size_pt=11.5, color=(RGBColor(0,0,0) if bold else DARK_TEXT))
     else:
         ep = doc.add_paragraph()
         ep.alignment = WD_ALIGN_PARAGRAPH.CENTER
@@ -417,16 +400,20 @@ def generate_obyektivka_docx(user_data: dict, photo_path: str, output_filepath: 
     fname = (user_data.get('fullname', '') or '').split(" ")[0].upper()
     rel_title = lb['rel_suffix'] if lang == 'ru' else f"{fname} {lb['rel_suffix']}"
 
-    sect_rel = doc.add_table(rows=1, cols=1)
-    _remove_table_borders(sect_rel)
-    r_cell = sect_rel.cell(0, 0)
-    _cell_shading(r_cell, "FFFFFF")
-    rp = r_cell.paragraphs[0]
+    rp = doc.add_paragraph()
     rp.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    _para_spacing(rp, before_pt=10, after_pt=4)
-    _run(rp, rel_title, bold=True, size_pt=10.5, color=NAVY_CLR, spacing_pt=2)
+    _para_spacing(rp, before_pt=24, after_pt=16)
 
-    doc.add_paragraph()
+    pBdr_r = OxmlElement("w:pBdr")
+    bottom_r = OxmlElement("w:bottom")
+    bottom_r.set(qn("w:val"), "single")
+    bottom_r.set(qn("w:sz"), "12") # 1.5pt
+    bottom_r.set(qn("w:space"), "6")
+    bottom_r.set(qn("w:color"), "000000")
+    pBdr_r.append(bottom_r)
+    rp._p.get_or_add_pPr().append(pBdr_r)
+
+    _run(rp, rel_title, bold=True, size_pt=14.0, color=NAVY_CLR, spacing_pt=2)
 
     # Relatives Table
     rels = user_data.get("relatives", [])
@@ -437,12 +424,12 @@ def generate_obyektivka_docx(user_data: dict, photo_path: str, output_filepath: 
         headers = [lb['rel_c1'], lb['rel_c2'], lb['rel_c3'], lb['rel_c4'], lb['rel_c5']]
         for j, h in enumerate(headers):
             hc = rtbl.cell(0, j)
-            _cell_shading(hc, NAVY_HEX)
-            _set_cell_borders(hc, NAVY_HEX, "4")
+            _cell_shading(hc, "EFEFEF")
+            _set_cell_borders(hc, BORDER_HEX, "4")
             hcp = hc.paragraphs[0]
             hcp.alignment = WD_ALIGN_PARAGRAPH.CENTER
             _para_spacing(hcp, before_pt=4, after_pt=4)
-            _run(hcp, h, bold=True, size_pt=8.5, color=RGBColor(255, 255, 255))
+            _run(hcp, h, bold=True, size_pt=10.0, color=RGBColor(0, 0, 0))
         
         for i, rel in enumerate(rels):
             bg = STRIPE_HEX if (i % 2 == 1) else "FFFFFF"
@@ -454,7 +441,7 @@ def generate_obyektivka_docx(user_data: dict, photo_path: str, output_filepath: 
                 rcp = rc.paragraphs[0]
                 rcp.alignment = WD_ALIGN_PARAGRAPH.CENTER
                 _para_spacing(rcp, before_pt=4, after_pt=4)
-                _run(rcp, val, size_pt=9.0, color=DARK_TEXT)
+                _run(rcp, val, size_pt=10.0, color=DARK_TEXT)
     else:
         ep = doc.add_paragraph()
         ep.alignment = WD_ALIGN_PARAGRAPH.CENTER
