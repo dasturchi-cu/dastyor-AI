@@ -301,9 +301,7 @@ def generate_obyektivka_docx(user_data: dict, photo_path: str, output_filepath: 
     _set_col_widths(hdr_tbl, pw, [72, 28])
     
     cell_name = hdr_tbl.cell(0, 0)
-    _cell_shading(cell_name, LIGHT_BLUE_HEX)
-    _set_cell_borders(cell_name, BORDER_HEX, "4", top=True, bottom=True, right=True, left=False)
-    _set_cell_borders(cell_name, NAVY_HEX, "24", left=True, top=False, bottom=False, right=False) # 3pt left line
+    _cell_shading(cell_name, "FFFFFF")
 
     np_lbl = cell_name.paragraphs[0]
     _para_spacing(np_lbl, before_pt=6, after_pt=2)
@@ -327,10 +325,9 @@ def generate_obyektivka_docx(user_data: dict, photo_path: str, output_filepath: 
         # Adding blue border around picture programmatically via Word is tricky, but doable via inline shape xml if strictly required.
     else:
         # Fallback to placeholder if missing
-        _cell_shading(cell_photo, LIGHT_BLUE_HEX)
+        _cell_shading(cell_photo, "FFFFFF")
         _para_spacing(photo_p, before_pt=40, after_pt=40)
         _run(photo_p, "4x6", size_pt=9.0, color=LABEL_CLR)
-        _set_cell_borders(cell_photo, NAVY_HEX, "12")
 
     doc.add_paragraph() # spacer
 
@@ -356,7 +353,6 @@ def generate_obyektivka_docx(user_data: dict, photo_path: str, output_filepath: 
         for j, (lbl, val) in enumerate([(lbl1, val1), (lbl2, val2)]):
             cell = info_tbl.cell(i, j)
             _cell_shading(cell, bg_hex)
-            _set_cell_borders(cell, BORDER_HEX, "4")
             
             pL = cell.paragraphs[0]
             _para_spacing(pL, before_pt=4, after_pt=1)
@@ -376,12 +372,10 @@ def generate_obyektivka_docx(user_data: dict, photo_path: str, output_filepath: 
     sect_tbl = doc.add_table(rows=1, cols=1)
     _remove_table_borders(sect_tbl)
     sect_cell = sect_tbl.cell(0, 0)
-    _cell_shading(sect_cell, LIGHT_BLUE_HEX)
-    _set_cell_borders(sect_cell, NAVY_HEX, "12", top=True, bottom=False, left=False, right=False)
-    _set_cell_borders(sect_cell, BORDER_HEX, "4", top=False, bottom=True, left=False, right=False)
+    _cell_shading(sect_cell, "FFFFFF")
     sp = sect_cell.paragraphs[0]
     sp.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    _para_spacing(sp, before_pt=4, after_pt=4)
+    _para_spacing(sp, before_pt=10, after_pt=4)
     _run(sp, lb['exp_title'], bold=True, size_pt=10.5, color=NAVY_CLR, spacing_pt=2)
     
     doc.add_paragraph()
@@ -397,7 +391,6 @@ def generate_obyektivka_docx(user_data: dict, photo_path: str, output_filepath: 
         h_pos = wtbl.cell(0, 1)
         for hcell, ht in [(h_years, lb['exp_col1']), (h_pos, lb['exp_col2'])]:
             _cell_shading(hcell, NAVY_HEX)
-            _set_cell_borders(hcell, NAVY_HEX, "4")
             hp = hcell.paragraphs[0]
             hp.alignment = WD_ALIGN_PARAGRAPH.CENTER
             _para_spacing(hp, before_pt=4, after_pt=4)
@@ -409,7 +402,6 @@ def generate_obyektivka_docx(user_data: dict, photo_path: str, output_filepath: 
             p_cell = wtbl.cell(1+i, 1)
             for cell, val, bold in [(y_cell, work.get('year', ''), True), (p_cell, work.get('position', ''), False)]:
                 _cell_shading(cell, bg)
-                _set_cell_borders(cell, BORDER_HEX, "4")
                 cp = cell.paragraphs[0]
                 _para_spacing(cp, before_pt=5, after_pt=5)
                 cp.paragraph_format.left_indent = Cm(0.2)
@@ -428,12 +420,10 @@ def generate_obyektivka_docx(user_data: dict, photo_path: str, output_filepath: 
     sect_rel = doc.add_table(rows=1, cols=1)
     _remove_table_borders(sect_rel)
     r_cell = sect_rel.cell(0, 0)
-    _cell_shading(r_cell, LIGHT_BLUE_HEX)
-    _set_cell_borders(r_cell, NAVY_HEX, "12", top=True, bottom=False, left=False, right=False)
-    _set_cell_borders(r_cell, BORDER_HEX, "4", top=False, bottom=True, left=False, right=False)
+    _cell_shading(r_cell, "FFFFFF")
     rp = r_cell.paragraphs[0]
     rp.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    _para_spacing(rp, before_pt=4, after_pt=4)
+    _para_spacing(rp, before_pt=10, after_pt=4)
     _run(rp, rel_title, bold=True, size_pt=10.5, color=NAVY_CLR, spacing_pt=2)
 
     doc.add_paragraph()
