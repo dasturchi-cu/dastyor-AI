@@ -627,16 +627,22 @@ async def api_upload_to_telegram(
     try:
         content = await file.read()
         logger.info(f"Sending frontend-generated file {file.filename} to UID {uid}")
+        
+        from telegram import InputFile
+        import io
+        buf = io.BytesIO(content)
+        buf.name = file.filename
+        
         await application.bot.send_document(
-            chat_id=uid,
-            document=content,
-            filename=file.filename,
+            chat_id=int(uid),
+            document=InputFile(buf, filename=file.filename),
             caption=caption or "✅ Faylingiz tayyorlandi!"
         )
         return {"ok": True}
     except Exception as e:
         logger.error(f"Error sending file via /api/upload_to_telegram: {e}", exc_info=True)
         return {"ok": False, "error": str(e)}
+
 
 # ═══════════════════════════════════════════════════════════════════════════
 # /api/generate_cv — CV DOCX generator (Website → Server → Browser + Telegram)

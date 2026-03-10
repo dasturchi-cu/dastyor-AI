@@ -564,9 +564,9 @@
                     fd.append('file', item.file);
                     if (tid) fd.append('telegram_id', tid);
 
-                    // Use AbortController with shorter timeout
+                    // Use AbortController with longer timeout
                     const controller = new AbortController();
-                    const timeoutId = setTimeout(() => controller.abort(), 45000); // 45 seconds
+                    const timeoutId = setTimeout(() => controller.abort(), 120000); // 120 seconds
 
                     setProgress(pctBase + 5, `${processedIdx}/${pendingCount}: Serverga yuborilmoqda...`, '');
 
