@@ -347,8 +347,16 @@
             #cv-box { position: absolute; left: 0; top: 0; width: 210mm; min-height: 297mm; transform: none !important; box-shadow: none !important; margin: 0; }
         }
 
-        @media (max-width: 767px) {
+        #btnWord .lbl-long { display: inline; }
+        #btnWord .lbl-short { display: none; }
+
+        @media (max-width: 640px) {
+            header.glass { padding: 0 8px; height: 52px; }
             .btn-toggle-mobile { display: flex !important; }
+            #btnWord .lbl-long { display: none; }
+            #btnWord .lbl-short { display: inline; }
+            #btnWord { padding: 7px 10px !important; font-size: 11px !important; }
+            #langSelect { font-size: 10px !important; }
         }
     </style>
 </head>
@@ -392,7 +400,7 @@
                     <polyline points="14 2 14 8 20 8"/>
                 </svg>
                 <span class="lbl-long" data-i18n="btn_export_word">Word yuklab olish</span>
-                <span class="lbl-short hidden" data-i18n="cv_btn_pdf_short">Word</span>
+                <span class="lbl-short" data-i18n="cv_btn_pdf_short">Word</span>
             </button>
         </div>
     </header>
