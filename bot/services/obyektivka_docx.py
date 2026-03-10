@@ -10,6 +10,7 @@ from docx.oxml import OxmlElement
 # ─────────────────────────────────────────────────────────────────────────────
 _OBY_LBL = {
     "uz_lat": {
+        "title":     "MA'LUMOTNOMA",
         "name_lbl":  "F.I.SH.",
         "bdate":     "TUG'ILGAN YILI, KUNI VA OYI",
         "bplace":    "TUG'ILGAN JOYI",
@@ -36,9 +37,10 @@ _OBY_LBL = {
         "rel_c4":    "ISH JOYI VA LAVOZIMI",
         "rel_c5":    "YASHASH MANZILI",
         "photo":     "3x4",
-        "empty":     "—",
+        "no_data":   "Ma'lumot yo'q",
     },
     "uz_cyr": {
+        "title":     "МАЪЛУМОТНОМА",
         "name_lbl":  "Ф.И.Ш.",
         "bdate":     "ТУҒИЛГАН ЙИЛИ, КУНИ ВА ОЙИ",
         "bplace":    "ТУҒИЛГАН ЖОЙИ",
@@ -65,9 +67,10 @@ _OBY_LBL = {
         "rel_c4":    "ИШ ЖОЙИ ВА ЛАВОЗИМИ",
         "rel_c5":    "ЯШАШ МАНЗИЛИ",
         "photo":     "3x4",
-        "empty":     "—",
+        "no_data":   "Маълумот йўқ",
     },
     "en": {
+        "title":     "CURRICULUM VITAE",
         "name_lbl":  "Full Name",
         "bdate":     "DATE OF BIRTH",
         "bplace":    "PLACE OF BIRTH",
@@ -94,9 +97,10 @@ _OBY_LBL = {
         "rel_c4":    "WORKPLACE & POSITION",
         "rel_c5":    "HOME ADDRESS",
         "photo":     "3x4",
-        "empty":     "—",
+        "no_data":   "No data",
     },
     "ru": {
+        "title":     "ОБЪЕКТИВКА",
         "name_lbl":  "Ф.И.О.",
         "bdate":     "ГОД, ЧИСЛО И МЕСЯЦ РОЖДЕНИЯ",
         "bplace":    "МЕСТО РОЖДЕНИЯ",
@@ -123,24 +127,24 @@ _OBY_LBL = {
         "rel_c4":    "МЕСТО РАБОТЫ И ДОЛЖНОСТЬ",
         "rel_c5":    "МЕСТО ЖИТЕЛЬСТВА",
         "photo":     "3x4",
-        "empty":     "—",
+        "no_data":   "Нет данных",
     },
 }
 
-FONT       = "Times New Roman"
-BLACK      = RGBColor(0x00, 0x00, 0x00)
-DARK       = RGBColor(0x1A, 0x1A, 0x1A)
-LABEL_CLR  = RGBColor(0x22, 0x22, 0x22)
-MUTED      = RGBColor(0x88, 0x88, 0x88)
-WHITE_HEX  = "FFFFFF"
-GREY_HEX   = "F2F2F2"
-LINE_CLR   = "AAAAAA"   # ingichka separator
-BOLD_LINE  = "111111"   # bo'lim sarlavhasi ostidagi qalin chiziq
-DASH_CLR   = "BBBBBB"   # foto punktir
+FONT      = "Times New Roman"
+BLACK     = RGBColor(0x00, 0x00, 0x00)
+DARK      = RGBColor(0x1A, 0x1A, 0x1A)
+# Label va chiziqlar PREVIEW dagidek to'liq qora ko'rinsin
+LABEL_CLR = BLACK
+MUTED     = RGBColor(0x99, 0x99, 0x99)   # foto placeholder
+ITALIC_C  = RGBColor(0x66, 0x66, 0x66)   # "Ma'lumot yo'q" kursiv
+NAVY_HEX  = "000000"                      # bo'lim sarlavhasi ost chiziq rangi
+LINE_HEX  = "000000"                      # info qator ost chiziq
+WHITE_HEX = "FFFFFF"
+GREY_HEX  = "F5F5F5"
 
-# ─────────────────────────────────────────────────────────────────────────────
-# XML HELPERS
-# ─────────────────────────────────────────────────────────────────────────────
+
+# ─── XML helpers ─────────────────────────────────────────────────────────────
 
 def _set_margins(doc):
     for s in doc.sections:
@@ -157,8 +161,9 @@ def _pw(doc):
 
 def _no_borders(table):
     tbl   = table._tbl
-    tblPr = tbl.find(qn("w:tblPr")) or OxmlElement("w:tblPr")
-    if tbl.find(qn("w:tblPr")) is None:
+    tblPr = tbl.find(qn("w:tblPr"))
+    if tblPr is None:
+        tblPr = OxmlElement("w:tblPr")
         tbl.insert(0, tblPr)
     tb = OxmlElement("w:tblBorders")
     for side in ("top","left","bottom","right","insideH","insideV"):
@@ -173,15 +178,19 @@ def _col_w(table, pw, pcts):
         w = int(pw * pct / 100)
         for cell in table.columns[ci].cells:
             tcPr = cell._tc.get_or_add_tcPr()
-            tcW  = tcPr.find(qn("w:tcW")) or OxmlElement("w:tcW")
-            if tcPr.find(qn("w:tcW")) is None:
-                tcPr.append(tcW)
-            tcW.set(qn("w:w"), str(w)); tcW.set(qn("w:type"), "dxa")
+            old  = tcPr.find(qn("w:tcW"))
+            if old is not None:
+                tcPr.remove(old)
+            tcW = OxmlElement("w:tcW")
+            tcW.set(qn("w:w"), str(w))
+            tcW.set(qn("w:type"), "dxa")
+            tcPr.append(tcW)
 
 def _shading(cell, hex_fill):
     tcPr = cell._tc.get_or_add_tcPr()
     shd  = OxmlElement("w:shd")
-    shd.set(qn("w:val"),"clear"); shd.set(qn("w:color"),"auto")
+    shd.set(qn("w:val"),"clear")
+    shd.set(qn("w:color"),"auto")
     shd.set(qn("w:fill"), hex_fill.lstrip("#"))
     tcPr.append(shd)
 
@@ -194,7 +203,7 @@ def _cell_pad(cell, top=80, bottom=80, left=0, right=0):
         tcMar.append(m)
     tcPr.append(tcMar)
 
-def _cell_bottom_border(cell, color=LINE_CLR, sz="4"):
+def _cell_bottom_only(cell, color=LINE_HEX, sz="4"):
     tcPr = cell._tc.get_or_add_tcPr()
     tb   = OxmlElement("w:tcBorders")
     for s in ("top","left","right"):
@@ -204,17 +213,7 @@ def _cell_bottom_border(cell, color=LINE_CLR, sz="4"):
     bot.set(qn("w:space"),"0");    bot.set(qn("w:color"),color.lstrip("#"))
     tb.append(bot); tcPr.append(tb)
 
-def _cell_top_border(cell, color=BOLD_LINE, sz="8"):
-    tcPr = cell._tc.get_or_add_tcPr()
-    tb   = OxmlElement("w:tcBorders")
-    for s in ("bottom","left","right"):
-        b = OxmlElement(f"w:{s}"); b.set(qn("w:val"),"none"); tb.append(b)
-    top = OxmlElement("w:top")
-    top.set(qn("w:val"),"single"); top.set(qn("w:sz"),sz)
-    top.set(qn("w:space"),"0");    top.set(qn("w:color"),color.lstrip("#"))
-    tb.append(top); tcPr.append(tb)
-
-def _cell_all_borders(cell, color=LINE_CLR, sz="4"):
+def _cell_all_borders(cell, color=LINE_HEX, sz="4"):
     tcPr = cell._tc.get_or_add_tcPr()
     tb   = OxmlElement("w:tcBorders")
     for s in ("top","left","bottom","right"):
@@ -224,7 +223,7 @@ def _cell_all_borders(cell, color=LINE_CLR, sz="4"):
         tb.append(b)
     tcPr.append(tb)
 
-def _cell_dashed_all(cell, color=DASH_CLR, sz="6"):
+def _cell_dashed_all(cell, color="BBBBBB", sz="6"):
     tcPr = cell._tc.get_or_add_tcPr()
     tb   = OxmlElement("w:tcBorders")
     for s in ("top","left","bottom","right"):
@@ -243,58 +242,44 @@ def _spc(para, before=0, after=0, line=1.15):
     sp.set(qn("w:lineRule"),"auto")
     pPr.append(sp)
 
-def _run(para, text, bold=False, italic=False, size=11.0,
-         color=None, lspc=None):
+def _run(para, text, bold=False, italic=False,
+         size=11.0, color=None, lspc=None):
     r = para.add_run(text)
     r.bold = bold; r.italic = italic
     r.font.name = FONT; r.font.size = Pt(size)
-    if color: r.font.color.rgb = color
+    if color:
+        r.font.color.rgb = color
     if lspc is not None:
         rPr = r._r.get_or_add_rPr()
         sc  = OxmlElement("w:spacing")
         sc.set(qn("w:val"), str(int(lspc*20)))
         rPr.append(sc)
+    return r
 
-def _sect_title_para(doc, text):
-    """Bo'lim sarlavhasi: katta harf + letter-spacing + ostida qalin chiziq."""
-    p = doc.add_paragraph()
-    p.alignment = WD_ALIGN_PARAGRAPH.LEFT
-    _spc(p, before=0, after=6, line=1.0)
-    # bottom border
-    pPr  = p._p.get_or_add_pPr()
+def _para_bdr_bottom(para, color=NAVY_HEX, sz="8"):
+    """Paragraph ostida chiziq (bo'lim sarlavhasi uchun)."""
+    pPr  = para._p.get_or_add_pPr()
     pBdr = OxmlElement("w:pBdr")
     bot  = OxmlElement("w:bottom")
-    bot.set(qn("w:val"),"single"); bot.set(qn("w:sz"),"10")
-    bot.set(qn("w:space"),"5");    bot.set(qn("w:color"),BOLD_LINE)
-    pBdr.append(bot); pPr.append(pBdr)
-    _run(p, text, bold=True, size=12.0, color=BLACK, lspc=2.5)
-    return p
+    bot.set(qn("w:val"),   "single")
+    bot.set(qn("w:sz"),    sz)
+    bot.set(qn("w:space"), "6")
+    bot.set(qn("w:color"), color.lstrip("#"))
+    pBdr.append(bot)
+    pPr.append(pBdr)
 
-def _info_row(doc, pw, label, value):
-    """
-    Rasmdagi info qatori: to'liq kenglik jadval (1 ustun),
-    label kichik harf yuqorida, value pastida, ost chiziq.
-    """
-    t = doc.add_table(rows=1, cols=1)
-    _no_borders(t); t.autofit = False
-    _col_w(t, pw, [100])
-    cell = t.cell(0, 0)
-    _shading(cell, WHITE_HEX)
-    _cell_bottom_border(cell, color=LINE_CLR, sz="4")
-    _cell_pad(cell, top=60, bottom=60, left=0, right=0)
+def _vcenter(cell):
+    """Hujayra matnini vertikal markazlash."""
+    tcPr = cell._tc.get_or_add_tcPr()
+    vAlign = OxmlElement("w:vAlign")
+    vAlign.set(qn("w:val"), "center")
+    tcPr.append(vAlign)
 
-    p_lbl = cell.paragraphs[0]
-    _spc(p_lbl, before=0, after=1, line=1.0)
-    _run(p_lbl, label, bold=False, size=7.5, color=LABEL_CLR, lspc=1.5)
 
-    p_val = cell.add_paragraph()
-    _spc(p_val, before=0, after=0, line=1.1)
-    _run(p_val, value or "", bold=False, size=11.0, color=DARK)
-
-def _info_row_2col(doc, pw, lbl1, val1, lbl2, val2):
-    """
-    Ikki ustunli info qatori (rasmdagi yon-yon juft qatorlar uchun).
-    """
+# ─────────────────────────────────────────────────────────────────────────────
+# COMPONENT: ikki ustunli info qator (jadval orqali)
+# ─────────────────────────────────────────────────────────────────────────────
+def _info_2col(doc, pw, lbl1, val1, lbl2, val2):
     t = doc.add_table(rows=1, cols=2)
     _no_borders(t); t.autofit = False
     _col_w(t, pw, [50, 50])
@@ -302,17 +287,43 @@ def _info_row_2col(doc, pw, lbl1, val1, lbl2, val2):
     for j, (lbl, val) in enumerate([(lbl1, val1), (lbl2, val2)]):
         cell = t.cell(0, j)
         _shading(cell, WHITE_HEX)
-        _cell_bottom_border(cell, LINE_CLR, "4")
-        _cell_pad(cell, top=60, bottom=60,
-                  left=0, right=200 if j == 0 else 0)
+        _cell_bottom_only(cell, LINE_HEX, "4")
+        # PREVIEW dagidek balandroq satr oralig'i
+        _cell_pad(cell, top=120, bottom=80,
+                  left=0, right=300 if j == 0 else 0)
 
+        # Label
         p_lbl = cell.paragraphs[0]
-        _spc(p_lbl, before=0, after=1, line=1.0)
-        _run(p_lbl, lbl, bold=False, size=7.5, color=LABEL_CLR, lspc=1.5)
+        _spc(p_lbl, before=0, after=3, line=1.0)
+        # Labellar PREVIEW dagidek kattaroq va to'liq qora
+        _run(p_lbl, lbl, bold=False, size=10.0,
+             color=LABEL_CLR, lspc=1.5)
 
+        # Value
         p_val = cell.add_paragraph()
-        _spc(p_val, before=0, after=0, line=1.1)
-        _run(p_val, val or "", bold=False, size=11.0, color=DARK)
+        _spc(p_val, before=0, after=0, line=1.15)
+        # Asosiy qiymatlar biroz kattaroq
+        _run(p_val, val or "", bold=False, size=12.0, color=DARK)
+
+
+def _info_1col(doc, pw, lbl, val):
+    """To'liq kenglik info qator."""
+    t = doc.add_table(rows=1, cols=1)
+    _no_borders(t); t.autofit = False
+    _col_w(t, pw, [100])
+    cell = t.cell(0, 0)
+    _shading(cell, WHITE_HEX)
+    _cell_bottom_only(cell, LINE_HEX, "4")
+    _cell_pad(cell, top=120, bottom=80, left=0, right=0)
+
+    p_lbl = cell.paragraphs[0]
+    _spc(p_lbl, before=0, after=3, line=1.0)
+    _run(p_lbl, lbl, bold=False, size=10.0, color=LABEL_CLR, lspc=1.5)
+
+    p_val = cell.add_paragraph()
+    _spc(p_val, before=0, after=0, line=1.15)
+    _run(p_val, val or "", bold=False, size=12.0, color=DARK)
+
 
 # ─────────────────────────────────────────────────────────────────────────────
 # MAIN GENERATOR
@@ -320,45 +331,58 @@ def _info_row_2col(doc, pw, lbl1, val1, lbl2, val2):
 
 def generate_obyektivka_docx(user_data: dict, photo_path: str,
                               output_filepath: str) -> str:
-    lang = user_data.get("lang","uz_lat") or "uz_lat"
+    lang = user_data.get("lang", "uz_lat") or "uz_lat"
     lb   = _OBY_LBL.get(lang, _OBY_LBL["uz_lat"])
 
     doc = Document()
     _set_margins(doc)
     ns = doc.styles["Normal"]
-    ns.font.name = FONT; ns.font.size = Pt(11)
+    ns.font.name = FONT
+    ns.font.size = Pt(11)
     ns.paragraph_format.space_before = Pt(0)
     ns.paragraph_format.space_after  = Pt(0)
 
     pw = _pw(doc)
 
     # ═══════════════════════════════════════════════════════
-    # 1. HEADER: F.I.SH + ism (chap) | 3x4 foto (o'ng)
+    # 1.  SARLAVHA — markazda, katta harf, qalin
+    # ═══════════════════════════════════════════════════════
+    p_title = doc.add_paragraph()
+    p_title.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    _spc(p_title, before=0, after=18, line=1.0)
+    _run(p_title, lb["title"], bold=True, size=16.0,
+         color=BLACK, lspc=4.0)
+
+    # ═══════════════════════════════════════════════════════
+    # 2.  NAME BLOK (chap) | FOTO (o'ng)
     # ═══════════════════════════════════════════════════════
     hdr = doc.add_table(rows=1, cols=2)
     _no_borders(hdr); hdr.autofit = False
-    _col_w(hdr, pw, [68, 32])
+    _col_w(hdr, pw, [65, 35])
 
-    # Chap: name block
+    # Chap: F.I.SH label + ism
     nc = hdr.cell(0, 0)
     _shading(nc, WHITE_HEX)
-    _cell_pad(nc, top=0, bottom=120, left=0, right=300)
+    _cell_pad(nc, top=0, bottom=0, left=0, right=200)
 
     p_lbl = nc.paragraphs[0]
     _spc(p_lbl, before=0, after=4, line=1.0)
-    _run(p_lbl, lb["name_lbl"], bold=False, size=8.0,
+    # F.I.SH labelini ham kattaroq va to'liq qora qilamiz
+    _run(p_lbl, lb["name_lbl"], bold=False, size=10.0,
          color=LABEL_CLR, lspc=1.5)
 
     p_nm = nc.add_paragraph()
-    _spc(p_nm, before=2, after=0, line=1.15)
-    fullname = (user_data.get("fullname","") or "").upper()
+    _spc(p_nm, before=3, after=0, line=1.2)
+    fullname = (user_data.get("fullname", "") or "").upper()
     _run(p_nm, fullname, bold=True, size=15.0, color=BLACK)
 
-    # O'ng: foto — punktir chegara, markazda
+    # O'ng: foto — punktir chegara
     pc = hdr.cell(0, 1)
     _shading(pc, WHITE_HEX)
-    _cell_dashed_all(pc, DASH_CLR, "6")
-    _cell_pad(pc, top=100, bottom=100, left=80, right=80)
+    # Foto ramka — aniq 3x4 tortburchak (qattiq chiziq)
+    _cell_all_borders(pc, LINE_HEX, "4")
+    _cell_pad(pc, top=40, bottom=40, left=40, right=40)
+    _vcenter(pc)
 
     p_ph = pc.paragraphs[0]
     p_ph.alignment = WD_ALIGN_PARAGRAPH.CENTER
@@ -366,135 +390,155 @@ def generate_obyektivka_docx(user_data: dict, photo_path: str,
 
     if photo_path and os.path.exists(photo_path):
         r = p_ph.add_run()
-        r.add_picture(photo_path, width=Mm(25), height=Mm(33))
+        # 3x4 sm -> 30x40 mm
+        r.add_picture(photo_path, width=Mm(30), height=Mm(40))
     else:
         _run(p_ph, lb["photo"], bold=False, size=9.0, color=MUTED)
 
     # Spacer
-    sp = doc.add_paragraph(); _spc(sp, before=0, after=18)
+    sp = doc.add_paragraph()
+    _spc(sp, before=0, after=16)
 
     # ═══════════════════════════════════════════════════════
-    # 2. INFO QATORLARI
-    #    Rasmdagi tartib: har bir qator to'liq kenglik,
-    #    label kichik yuqorida, qiymat pastida, ostida chiziq.
-    #    Juft maydonlar yon-yon (2 ustun).
+    # 3.  INFO QATORLARI — 2 ustunli juft, so'ngra manzil
     # ═══════════════════════════════════════════════════════
-
-    # Juft qatorlar (2 ustun)
+    g = user_data.get
     pairs = [
-        (lb["bdate"],   user_data.get("birthdate","")   or user_data.get("bdate",""),
-         lb["bplace"],  user_data.get("birthplace","")  or user_data.get("bplace","")),
-        (lb["nation"],  user_data.get("nation",""),
-         lb["party"],   user_data.get("party","")),
-        (lb["edu"],     user_data.get("education","")   or user_data.get("edu",""),
-         lb["grad"],    user_data.get("graduated","")   or user_data.get("grad","")),
-        (lb["spec"],    user_data.get("specialty","")   or user_data.get("spec",""),
-         lb["degree"],  user_data.get("degree","")),
-        (lb["stitle"],  user_data.get("scientific_title","") or user_data.get("stitle",""),
-         lb["langs"],   user_data.get("languages","")   or user_data.get("langs","")),
-        (lb["military"],user_data.get("military_rank","") or user_data.get("military",""),
-         lb["awards"],  user_data.get("awards","")),
-        (lb["deputy"],  user_data.get("deputy",""),
-         lb["phone"],   user_data.get("phone","")),
+        (lb["bdate"],   g("birthdate","")   or g("bdate",""),
+         lb["bplace"],  g("birthplace","")  or g("bplace","")),
+        (lb["nation"],  g("nation",""),
+         lb["party"],   g("party","")),
+        (lb["edu"],     g("education","")   or g("edu",""),
+         lb["grad"],    g("graduated","")   or g("grad","")),
+        (lb["spec"],    g("specialty","")   or g("spec",""),
+         lb["degree"],  g("degree","")),
+        (lb["stitle"],  g("scientific_title","") or g("stitle",""),
+         lb["langs"],   g("languages","")   or g("langs","")),
+        (lb["military"],g("military_rank","") or g("military",""),
+         lb["awards"],  g("awards","")),
+        (lb["deputy"],  g("deputy",""),
+         lb["phone"],   g("phone","")),
     ]
 
     for lbl1, val1, lbl2, val2 in pairs:
-        _info_row_2col(doc, pw, lbl1, val1, lbl2, val2)
+        _info_2col(doc, pw, lbl1, val1, lbl2, val2)
 
-    # To'liq kenglik: manzil
-    _info_row(doc, pw, lb["addr"],
-              user_data.get("address","") or user_data.get("addr",""))
-
-    # Spacer
-    sp2 = doc.add_paragraph(); _spc(sp2, before=0, after=18)
-
-    # ═══════════════════════════════════════════════════════
-    # 3. MEHNAT FAOLIYATI
-    # ═══════════════════════════════════════════════════════
-    _sect_title_para(doc, lb["exp_title"])
-
-    works = user_data.get("work_experience",[]) or []
-    wtbl  = doc.add_table(rows=1 + max(1, len(works)), cols=2)
-    _no_borders(wtbl); wtbl.autofit = False
-    _col_w(wtbl, pw, [25, 75])
-
-    # Header qator — kulrang fon, kichik label uslubi
-    for j, ht in enumerate([lb["exp_col1"], lb["exp_col2"]]):
-        hc = wtbl.cell(0, j)
-        _shading(hc, GREY_HEX)
-        _cell_top_border(hc, BOLD_LINE, "8")
-        _cell_bottom_border(hc, BOLD_LINE, "8")
-        _cell_pad(hc, top=80, bottom=80,
-                  left=0 if j==0 else 120, right=0)
-        hp = hc.paragraphs[0]
-        hp.alignment = WD_ALIGN_PARAGRAPH.LEFT
-        _spc(hp, before=0, after=0, line=1.0)
-        _run(hp, ht, bold=False, size=8.0, color=LABEL_CLR, lspc=1.0)
-
-    # Ma'lumot qatorlari
-    for i, work in enumerate(works if works else [{"year":"","position":""}]):
-        year = work.get("year","") or work.get("years","") or ""
-        pos  = work.get("position","") or work.get("pos","") or ""
-        for j, (cell, val) in enumerate([
-            (wtbl.cell(1+i, 0), year),
-            (wtbl.cell(1+i, 1), pos),
-        ]):
-            _shading(cell, WHITE_HEX)
-            _cell_bottom_border(cell, LINE_CLR, "4")
-            _cell_pad(cell, top=80, bottom=80,
-                      left=0 if j==0 else 120, right=0)
-            cp = cell.paragraphs[0]
-            _spc(cp, before=0, after=0, line=1.15)
-            _run(cp, val, bold=False, size=11.0, color=DARK)
+    # Manzil — to'liq kenglik
+    _info_1col(doc, pw, lb["addr"],
+               g("address","") or g("addr",""))
 
     # Spacer
-    sp3 = doc.add_paragraph(); _spc(sp3, before=0, after=18)
+    sp2 = doc.add_paragraph()
+    _spc(sp2, before=0, after=18)
 
     # ═══════════════════════════════════════════════════════
-    # 4. YAQIN QARINDOSHLARI
+    # 4.  MEHNAT FAOLIYATI
     # ═══════════════════════════════════════════════════════
-    fname = (user_data.get("fullname","") or "").split()[0].upper() if user_data.get("fullname") else ""
-    if lang == "ru":
-        rel_title = lb["rel_suffix"]
+    p_s1 = doc.add_paragraph()
+    p_s1.alignment = WD_ALIGN_PARAGRAPH.LEFT
+    _spc(p_s1, before=0, after=8, line=1.0)
+    _para_bdr_bottom(p_s1, NAVY_HEX, "8")
+    _run(p_s1, lb["exp_title"], bold=True, size=12.0,
+         color=BLACK, lspc=2.5)
+
+    works = user_data.get("work_experience", []) or []
+
+    if not works:
+        p_empty = doc.add_paragraph()
+        p_empty.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        _spc(p_empty, before=6, after=6, line=1.0)
+        _run(p_empty, lb["no_data"], italic=True, size=10.5, color=ITALIC_C)
     else:
-        rel_title = f"{fname} {lb['rel_suffix']}" if fname else lb["rel_suffix"]
+        wtbl = doc.add_table(rows=1 + len(works), cols=2)
+        _no_borders(wtbl); wtbl.autofit = False
+        _col_w(wtbl, pw, [25, 75])
 
-    _sect_title_para(doc, rel_title)
+        # Header
+        for j, ht in enumerate([lb["exp_col1"], lb["exp_col2"]]):
+            hc = wtbl.cell(0, j)
+            _shading(hc, GREY_HEX)
+            _cell_bottom_only(hc, "888888", "6")
+            _cell_pad(hc, top=80, bottom=80,
+                      left=0 if j == 0 else 120, right=0)
+            hp = hc.paragraphs[0]
+            _spc(hp, before=0, after=0, line=1.0)
+            _run(hp, ht, bold=False, size=8.0, color=LABEL_CLR, lspc=1.0)
 
-    rels = user_data.get("relatives",[]) or []
-    rtbl = doc.add_table(rows=1 + max(1, len(rels)), cols=5)
-    _no_borders(rtbl); rtbl.autofit = False
-    _col_w(rtbl, pw, [13, 19, 18, 28, 22])
+        # Qatorlar
+        for i, work in enumerate(works):
+            year = work.get("year","") or work.get("years","") or ""
+            pos  = work.get("position","") or work.get("pos","") or ""
+            for j, (cell, val) in enumerate([
+                (wtbl.cell(1+i, 0), year),
+                (wtbl.cell(1+i, 1), pos),
+            ]):
+                _shading(cell, WHITE_HEX)
+                _cell_bottom_only(cell, LINE_HEX, "4")
+                _cell_pad(cell, top=90, bottom=90,
+                          left=0 if j == 0 else 120, right=0)
+                cp = cell.paragraphs[0]
+                _spc(cp, before=0, after=0, line=1.15)
+                _run(cp, val, size=11.0, color=DARK)
 
-    # Header
-    for j, h in enumerate([lb["rel_c1"],lb["rel_c2"],lb["rel_c3"],lb["rel_c4"],lb["rel_c5"]]):
-        hc = rtbl.cell(0, j)
-        _shading(hc, GREY_HEX)
-        _cell_all_borders(hc, LINE_CLR, "4")
-        _cell_pad(hc, top=80, bottom=80, left=80, right=80)
-        hcp = hc.paragraphs[0]
-        hcp.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        _spc(hcp, before=0, after=0, line=1.1)
-        _run(hcp, h, bold=False, size=7.5, color=LABEL_CLR, lspc=0.5)
+    # Spacer
+    sp3 = doc.add_paragraph()
+    _spc(sp3, before=0, after=18)
 
-    # Data
-    for i, rel in enumerate(rels if rels else [{}]):
-        vals = [
-            rel.get("degree","")          or rel.get("kin",""),
-            rel.get("fullname","")         or rel.get("fish",""),
-            rel.get("birth_year_place","") or rel.get("birth",""),
-            rel.get("work_place","")       or rel.get("work",""),
-            rel.get("address","")          or rel.get("addr",""),
-        ]
-        for j, val in enumerate(vals):
-            rc = rtbl.cell(1+i, j)
-            _shading(rc, WHITE_HEX)
-            _cell_all_borders(rc, LINE_CLR, "4")
-            _cell_pad(rc, top=70, bottom=70, left=80, right=80)
-            rcp = rc.paragraphs[0]
-            rcp.alignment = WD_ALIGN_PARAGRAPH.CENTER
-            _spc(rcp, before=0, after=0, line=1.1)
-            _run(rcp, val or "", size=10.0, color=DARK)
+    # ═══════════════════════════════════════════════════════
+    # 5.  YAQIN QARINDOSHLARI
+    # ═══════════════════════════════════════════════════════
+    # PREVIEW dagi kabi — sarlavhada faqat umumiy matn, ism qo‘shilmaydi
+    rel_title = lb["rel_suffix"]
+
+    p_s2 = doc.add_paragraph()
+    p_s2.alignment = WD_ALIGN_PARAGRAPH.LEFT
+    _spc(p_s2, before=0, after=8, line=1.0)
+    _para_bdr_bottom(p_s2, NAVY_HEX, "8")
+    _run(p_s2, rel_title, bold=True, size=12.0,
+         color=BLACK, lspc=2.5)
+
+    rels = user_data.get("relatives", []) or []
+
+    if not rels:
+        p_empty2 = doc.add_paragraph()
+        p_empty2.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        _spc(p_empty2, before=6, after=6, line=1.0)
+        _run(p_empty2, lb["no_data"], italic=True, size=10.5, color=ITALIC_C)
+    else:
+        rtbl = doc.add_table(rows=1 + len(rels), cols=5)
+        _no_borders(rtbl); rtbl.autofit = False
+        _col_w(rtbl, pw, [13, 19, 18, 28, 22])
+
+        # Header
+        for j, h in enumerate([lb["rel_c1"],lb["rel_c2"],lb["rel_c3"],
+                                lb["rel_c4"],lb["rel_c5"]]):
+            hc = rtbl.cell(0, j)
+            _shading(hc, GREY_HEX)
+            _cell_all_borders(hc, "888888", "4")
+            _cell_pad(hc, top=80, bottom=80, left=80, right=80)
+            hcp = hc.paragraphs[0]
+            hcp.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            _spc(hcp, before=0, after=0, line=1.1)
+            _run(hcp, h, bold=False, size=7.5, color=LABEL_CLR, lspc=0.5)
+
+        # Qatorlar
+        for i, rel in enumerate(rels):
+            vals = [
+                rel.get("degree","")           or rel.get("kin",""),
+                rel.get("fullname","")          or rel.get("fish",""),
+                rel.get("birth_year_place","")  or rel.get("birth",""),
+                rel.get("work_place","")        or rel.get("work",""),
+                rel.get("address","")           or rel.get("addr",""),
+            ]
+            for j, val in enumerate(vals):
+                rc = rtbl.cell(1+i, j)
+                _shading(rc, WHITE_HEX)
+                _cell_all_borders(rc, LINE_HEX, "4")
+                _cell_pad(rc, top=70, bottom=70, left=80, right=80)
+                rcp = rc.paragraphs[0]
+                rcp.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                _spc(rcp, before=0, after=0, line=1.1)
+                _run(rcp, val or "", size=10.0, color=DARK)
 
     doc.save(output_filepath)
     return output_filepath
@@ -504,31 +548,52 @@ def generate_obyektivka_docx(user_data: dict, photo_path: str,
 # TEST
 # ─────────────────────────────────────────────────────────────────────────────
 if __name__ == "__main__":
-    sample = {
+    # Bo'sh ma'lumot bilan test (rasmga mos)
+    sample_empty = {
         "lang": "uz_lat",
         "fullname": "Familiya Ism Sharif",
-        "birthdate": "",
-        "birthplace": "",
-        "nation": "",
-        "party": "Dasds",
-        "education": "",
-        "graduated": "",
-        "specialty": "",
-        "degree": "",
-        "scientific_title": "",
-        "languages": "",
-        "military": "",
-        "awards": "",
-        "deputy": "",
-        "phone": "",
-        "address": "",
+        "work_experience": [],
+        "relatives": [],
+    }
+    out = generate_obyektivka_docx(
+        sample_empty, "",
+        "/home/claude/test_v5_empty.docx"
+    )
+    print(f"✓ Bo'sh: {out}")
+
+    # To'liq ma'lumot bilan test
+    sample_full = {
+        "lang": "uz_lat",
+        "fullname": "Karimov Jasur Abdullayevich",
+        "birthdate": "15.03.1985",
+        "birthplace": "Toshkent shahri",
+        "nation": "O'zbek",
+        "party": "Yo'q",
+        "education": "Oliy",
+        "graduated": "TDTU",
+        "specialty": "Muhandis",
+        "degree": "PhD",
+        "scientific_title": "Dotsent",
+        "languages": "Ingliz, Rus",
+        "military": "Leytenant",
+        "awards": "Mehnat shuhrati",
+        "deputy": "Yo'q",
+        "phone": "+998 90 123 45 67",
+        "address": "Toshkent sh., Yunusobod tumani, 14-mavze, 22-uy",
         "work_experience": [
-            {"year": "", "position": "dasds"},
+            {"year": "2005–2010", "position": "TDTU — Muhandis"},
+            {"year": "2010–2015", "position": "Texnopark MChJ — Bosh muhandis"},
+            {"year": "2015–hozir","position": "O'zbekiston FA — Laboratoriya mudiri"},
         ],
         "relatives": [
-            {"degree": "", "fullname": "Dasd",
-             "birth_year_place": "", "work_place": "", "address": ""},
+            {"degree": "Xotini", "fullname": "Karimova Dilnoza",
+             "birth_year_place": "1987, Toshkent",
+             "work_place": "1-maktab, o'qituvchi",
+             "address": "Toshkent, Yunusobod"},
         ],
     }
-    out = generate_obyektivka_docx(sample, "", "/home/claude/test_v4.docx")
-    print(f"✓ Saved: {out}")
+    out2 = generate_obyektivka_docx(
+        sample_full, "",
+        "/home/claude/test_v5_full.docx"
+    )
+    print(f"✓ To'liq: {out2}")
