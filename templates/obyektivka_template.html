@@ -4,295 +4,506 @@
 <head>
   <meta charset="UTF-8">
   <title>Ma'lumotnoma — {{ data.fullname }}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Cormorant+Garamond:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
-    * {
+    *, *::before, *::after {
       box-sizing: border-box;
       margin: 0;
       padding: 0;
     }
 
+    :root {
+      --navy:        #0f2545;
+      --navy-mid:    #1a3a6b;
+      --navy-light:  #2c5fa8;
+      --navy-pale:   #e8eef8;
+      --navy-ghost:  #f2f5fb;
+      --gold:        #b8973a;
+      --gold-light:  #d4b55a;
+      --gold-pale:   #fdf8ec;
+      --ink:         #0d0d1a;
+      --ink-mid:     #2a2a3e;
+      --ink-soft:    #4a5270;
+      --ink-muted:   #7a86a8;
+      --border:      #cdd5e8;
+      --border-soft: #e4e9f3;
+      --white:       #ffffff;
+      --stripe:      #f5f7fc;
+    }
+
     body {
-      background: #fff;
+      background: #dde3ed;
       -webkit-print-color-adjust: exact;
       print-color-adjust: exact;
+      display: flex;
+      justify-content: center;
+      padding: 20px 0;
     }
 
     /* ─── A4 Canvas ─── */
     .tpl-oby {
       width: 210mm;
       min-height: 297mm;
-      background: #ffffff;
-      color: #1a1a2e;
-      padding: 15mm 10mm 10mm 20mm;
-      font-family: 'Times New Roman', Times, serif;
+      background: var(--white);
+      color: var(--ink);
+      padding: 0;
+      font-family: 'EB Garamond', 'Times New Roman', Times, serif;
       font-size: 10.5pt;
-      line-height: 1.45;
-      margin: 0;
+      line-height: 1.5;
+      box-shadow:
+        0 4px 6px rgba(0,0,0,0.07),
+        0 20px 60px rgba(0,0,0,0.15),
+        0 1px 3px rgba(0,0,0,0.1);
+      position: relative;
+      overflow: hidden;
     }
 
-    /* ─── Header accent bar ─── */
-    .tpl-oby .accent-bar {
-      width: 100%;
-      height: 4px;
-      background: #1a3a6b;
-      margin-bottom: 14px;
-    }
-
-    /* ─── Document Title ─── */
-    .tpl-oby .title {
-      text-align: center;
-      font-size: 15pt;
-      font-weight: bold;
-      letter-spacing: 4px;
-      color: #1a3a6b;
-      margin-bottom: 16px;
-      text-transform: uppercase;
-    }
-
-    /* ─── Thin separator line under title ─── */
-    .tpl-oby .title-line {
-      width: 60mm;
-      height: 1px;
-      background: #1a3a6b;
-      margin: 0 auto 18px auto;
+    /* ─── Decorative corner marks ─── */
+    .tpl-oby::before,
+    .tpl-oby::after {
+      content: '';
+      position: absolute;
+      width: 18mm;
+      height: 18mm;
+      border-color: var(--gold);
+      border-style: solid;
       opacity: 0.35;
+      pointer-events: none;
+      z-index: 10;
+    }
+    .tpl-oby::before {
+      top: 6mm;
+      left: 6mm;
+      border-width: 1.5px 0 0 1.5px;
+    }
+    .tpl-oby::after {
+      top: 6mm;
+      right: 6mm;
+      border-width: 1.5px 1.5px 0 0;
     }
 
-    /* ─── Header table: name left, photo right ─── */
-    .tpl-oby .header-table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-bottom: 16px;
+    /* ─── Document inner wrapper ─── */
+    .doc-inner {
+      padding: 14mm 12mm 12mm 18mm;
+      position: relative;
     }
 
-    .tpl-oby .header-table td {
-      vertical-align: middle;
+    /* ─── Left margin accent stripe ─── */
+    .margin-stripe {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 5mm;
+      height: 100%;
+      background: linear-gradient(180deg, var(--navy) 0%, var(--navy-mid) 60%, var(--navy-light) 100%);
     }
 
-    .tpl-oby .col-main {
-      vertical-align: middle;
-      padding-right: 10mm;
+    /* ─── TOP HEADER BLOCK ─── */
+    .doc-head {
+      background: var(--navy);
+      margin: 0 0 0 0;
+      padding: 8mm 12mm 7mm 13mm;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8mm;
     }
 
-    /* Name card style */
-    .tpl-oby .name-block {
-      background: #f0f4fb;
-      border-left: 4px solid #1a3a6b;
-      padding: 10px 14px;
-      display: inline-block;
-      width: 100%;
+    /* Subtle diagonal texture on header */
+    .doc-head::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: repeating-linear-gradient(
+        -45deg,
+        transparent,
+        transparent 8px,
+        rgba(255,255,255,0.015) 8px,
+        rgba(255,255,255,0.015) 10px
+      );
+      pointer-events: none;
     }
 
-    .tpl-oby .name-label {
-      font-size: 8pt;
-      color: #6b7a99;
-      font-weight: normal;
-      letter-spacing: 1.5px;
+    /* Gold bottom border on header */
+    .doc-head::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 2.5px;
+      background: linear-gradient(90deg, transparent, var(--gold), var(--gold-light), var(--gold), transparent);
+    }
+
+    .head-left {
+      flex: 1;
+    }
+
+    .doc-title-sub {
+      font-family: 'Cormorant Garamond', 'Times New Roman', serif;
+      font-size: 7pt;
+      font-weight: 500;
+      letter-spacing: 4px;
       text-transform: uppercase;
-      margin-bottom: 5px;
+      color: var(--gold-light);
+      opacity: 0.85;
+      margin-bottom: 4px;
       display: block;
     }
 
-    .tpl-oby .name {
-      font-size: 14pt;
-      font-weight: bold;
+    .doc-title {
+      font-family: 'Cormorant Garamond', 'Times New Roman', serif;
+      font-size: 22pt;
+      font-weight: 700;
+      letter-spacing: 5px;
+      color: var(--white);
       text-transform: uppercase;
-      color: #1a1a2e;
-      line-height: 1.35;
-      letter-spacing: 0.5px;
+      line-height: 1.1;
     }
 
-    /* Photo frame */
-    .tpl-oby .col-img {
-      width: 36mm;
-      text-align: center;
-      vertical-align: middle;
+    .doc-title-line {
+      margin-top: 6px;
+      width: 40mm;
+      height: 1px;
+      background: linear-gradient(90deg, var(--gold), transparent);
     }
 
-    .tpl-oby .photo-frame {
-      display: inline-block;
-      border: 2px solid #1a3a6b;
+    /* ─── Photo in header ─── */
+    .head-photo {
+      flex-shrink: 0;
+    }
+
+    .photo-frame {
+      border: 1.5px solid var(--gold);
       padding: 2px;
-      background: #fff;
+      background: rgba(255,255,255,0.06);
+      box-shadow: 0 2px 12px rgba(0,0,0,0.4);
     }
 
-    .tpl-oby .avatar {
-      width: 30mm;
-      height: 40mm;
+    .avatar {
+      width: 28mm;
+      height: 37mm;
       object-fit: cover;
       display: block;
     }
 
-    .tpl-oby .photo-placeholder {
-      width: 30mm;
-      height: 40mm;
-      background: #f0f4fb;
+    .photo-placeholder {
+      width: 28mm;
+      height: 37mm;
+      background: rgba(255,255,255,0.06);
       display: flex;
+      flex-direction: column;
       align-items: center;
       justify-content: center;
-      font-size: 8pt;
-      color: #9ba8c4;
+      gap: 5px;
+    }
+
+    .photo-placeholder svg {
+      opacity: 0.3;
+    }
+
+    .photo-placeholder span {
+      font-size: 7pt;
+      color: var(--gold-light);
+      letter-spacing: 2px;
+      opacity: 0.6;
+    }
+
+    /* ─── Name block (below header) ─── */
+    .name-band {
+      background: var(--navy-pale);
+      border-left: 4px solid var(--gold);
+      padding: 8px 14px 8px 16px;
+      margin: 0;
+      display: flex;
+      align-items: baseline;
+      gap: 10px;
+    }
+
+    .name-label {
+      font-size: 7.5pt;
+      font-weight: 600;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--ink-soft);
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .name-value {
+      font-family: 'Cormorant Garamond', 'Times New Roman', serif;
+      font-size: 15pt;
+      font-weight: 700;
+      color: var(--navy);
       letter-spacing: 1px;
-      text-align: center;
-      line-height: 40mm;
+      text-transform: uppercase;
+      line-height: 1.2;
     }
 
     /* ─── Info Table ─── */
-    .tpl-oby .info-table {
+    .info-table {
       width: 100%;
       border-collapse: collapse;
-      margin-bottom: 18px;
+      margin: 14px 0 0 0;
     }
 
-    .tpl-oby .info-table tr:nth-child(even) td {
-      background: #f8f9fc;
-    }
-
-    .tpl-oby .info-table td {
+    .info-table tr td {
       vertical-align: top;
-      padding: 6px 10px 6px 8px;
-      font-size: 10pt;
-      border-bottom: 1px solid #e8ecf4;
+      padding: 5.5px 10px 5.5px 8px;
+      border-bottom: 1px solid var(--border-soft);
       width: 50%;
     }
 
-    .tpl-oby .info-table td:first-child {
-      border-right: 1px solid #e8ecf4;
+    .info-table tr:nth-child(odd) td {
+      background: var(--stripe);
+    }
+    .info-table tr:nth-child(even) td {
+      background: var(--white);
     }
 
-    .tpl-oby .info-table td.full-width {
+    .info-table td.full-col {
       width: 100%;
+      border-right: none;
     }
 
-    .tpl-oby .info-lbl {
+    .info-table td:first-child {
+      border-right: 1px solid var(--border-soft);
+    }
+
+    .info-lbl {
       display: block;
-      font-weight: bold;
-      font-size: 8.5pt;
-      color: #4a5a80;
-      margin-bottom: 2px;
-      letter-spacing: 0.3px;
+      font-size: 7.5pt;
+      font-weight: 600;
+      color: var(--navy-mid);
+      letter-spacing: 0.8px;
       text-transform: uppercase;
+      margin-bottom: 2px;
+      opacity: 0.85;
     }
 
-    .tpl-oby .info-val {
+    .info-val {
       display: block;
       font-size: 10.5pt;
-      color: #1a1a2e;
-      font-weight: normal;
+      color: var(--ink);
+      font-weight: 400;
+      line-height: 1.35;
+    }
+
+    .info-val.empty {
+      color: var(--ink-muted);
+      font-style: italic;
     }
 
     /* ─── Section Title ─── */
-    .tpl-oby .section-header {
-      margin-top: 18px;
-      margin-bottom: 10px;
+    .section-header {
+      margin: 18px 0 0 0;
+      display: flex;
+      align-items: stretch;
     }
 
-    .tpl-oby .section-header .sect-title {
+    .sect-marker {
+      width: 4px;
+      background: var(--gold);
+      flex-shrink: 0;
+    }
+
+    .sect-title-block {
+      flex: 1;
+      background: var(--navy);
+      padding: 7px 14px 7px 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .sect-title {
+      font-family: 'Cormorant Garamond', 'Times New Roman', serif;
       font-size: 11pt;
-      font-weight: bold;
+      font-weight: 700;
+      color: var(--white);
+      letter-spacing: 2.5px;
       text-transform: uppercase;
-      letter-spacing: 2px;
-      color: #1a3a6b;
-      text-align: center;
-      padding: 6px 0 5px 0;
-      border-top: 2px solid #1a3a6b;
-      border-bottom: 1px solid #c5d0e4;
-      background: #f0f4fb;
+    }
+
+    .sect-ornament {
+      color: var(--gold-light);
+      font-size: 9pt;
+      opacity: 0.6;
+      letter-spacing: 3px;
     }
 
     /* ─── Work Experience Table ─── */
-    .tpl-oby .exp-table {
+    .exp-table {
       width: 100%;
       border-collapse: collapse;
-      margin-bottom: 14px;
-      font-size: 10.5pt;
-    }
-
-    .tpl-oby .exp-table thead th {
-      background: #1a3a6b;
-      color: #ffffff;
-      font-weight: bold;
-      text-align: center;
-      padding: 7px 10px;
-      font-size: 9.5pt;
-      letter-spacing: 0.5px;
-      border: 1px solid #1a3a6b;
-    }
-
-    .tpl-oby .exp-table tbody tr:nth-child(even) td {
-      background: #f8f9fc;
-    }
-
-    .tpl-oby .exp-table tbody tr:nth-child(odd) td {
-      background: #ffffff;
-    }
-
-    .tpl-oby .exp-table td {
-      padding: 7px 10px;
-      vertical-align: top;
-      border: 1px solid #c5d0e4;
+      margin-top: 1px;
       font-size: 10pt;
     }
 
-    .tpl-oby .exp-table td:first-child {
+    .exp-table thead th {
+      background: var(--navy-ghost);
+      color: var(--navy);
+      font-weight: 600;
+      font-size: 8.5pt;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      padding: 7px 10px;
+      border-bottom: 2px solid var(--navy-mid);
+      text-align: left;
+    }
+
+    .exp-table thead th:first-child {
+      border-right: 1px solid var(--border);
       width: 26%;
-      font-weight: bold;
-      color: #1a3a6b;
+    }
+
+    .exp-table tbody tr:nth-child(odd) td {
+      background: var(--white);
+    }
+
+    .exp-table tbody tr:nth-child(even) td {
+      background: var(--stripe);
+    }
+
+    .exp-table tbody tr:hover td {
+      background: var(--navy-ghost);
+    }
+
+    .exp-table td {
+      padding: 8px 10px;
+      vertical-align: top;
+      border-bottom: 1px solid var(--border-soft);
+      font-size: 10pt;
+      color: var(--ink);
+    }
+
+    .exp-table td:first-child {
+      font-weight: 600;
+      color: var(--navy-mid);
+      border-right: 1px solid var(--border-soft);
       white-space: nowrap;
+      font-size: 9.5pt;
     }
 
     /* ─── Relatives Table ─── */
-    .tpl-oby .rel-table {
+    .rel-table {
       width: 100%;
       border-collapse: collapse;
+      margin-top: 1px;
       font-size: 9pt;
+    }
+
+    .rel-table thead th {
+      background: var(--navy-ghost);
+      color: var(--navy);
+      font-weight: 600;
+      font-size: 7.5pt;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      padding: 6px 6px;
+      border-bottom: 2px solid var(--navy-mid);
       text-align: center;
-    }
-
-    .tpl-oby .rel-table thead th {
-      background: #1a3a6b;
-      color: #ffffff;
-      font-weight: bold;
-      padding: 6px 4px;
-      font-size: 8.5pt;
-      border: 1px solid #1a3a6b;
       vertical-align: middle;
     }
 
-    .tpl-oby .rel-table tbody tr:nth-child(even) td {
-      background: #f8f9fc;
+    .rel-table thead th:not(:last-child) {
+      border-right: 1px solid var(--border);
     }
 
-    .tpl-oby .rel-table tbody tr:nth-child(odd) td {
-      background: #ffffff;
+    .rel-table tbody tr:nth-child(odd) td {
+      background: var(--white);
     }
 
-    .tpl-oby .rel-table td {
-      border: 1px solid #c5d0e4;
-      padding: 5px 4px;
+    .rel-table tbody tr:nth-child(even) td {
+      background: var(--stripe);
+    }
+
+    .rel-table td {
+      padding: 6px 6px;
+      border-bottom: 1px solid var(--border-soft);
+      text-align: center;
       vertical-align: middle;
+      color: var(--ink-mid);
       font-size: 9pt;
+    }
+
+    .rel-table td:not(:last-child) {
+      border-right: 1px solid var(--border-soft);
     }
 
     /* ─── Empty state ─── */
-    .tpl-oby .empty-state {
+    .empty-state {
       text-align: center;
       font-style: italic;
-      padding: 10px 0;
+      padding: 12px 0;
       font-size: 9.5pt;
-      color: #8a96b0;
+      color: var(--ink-muted);
+      background: var(--stripe);
+      letter-spacing: 0.5px;
     }
 
-    /* ─── Footer line ─── */
-    .tpl-oby .footer-bar {
-      width: 100%;
-      height: 3px;
-      background: #1a3a6b;
+    /* ─── Footer ─── */
+    .doc-footer {
+      position: relative;
       margin-top: 20px;
-      opacity: 0.15;
+      display: flex;
+      align-items: center;
+      gap: 10px;
     }
 
-    /* ─── Print settings ─── */
+    .footer-line {
+      flex: 1;
+      height: 1px;
+      background: linear-gradient(90deg, var(--navy-mid), var(--gold), transparent);
+      opacity: 0.4;
+    }
+
+    .footer-mark {
+      font-size: 7pt;
+      color: var(--ink-muted);
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      opacity: 0.5;
+    }
+
+    /* ─── Corner marks bottom ─── */
+    .corner-bl, .corner-br {
+      position: fixed;
+      width: 18mm;
+      height: 18mm;
+      border-color: var(--gold);
+      border-style: solid;
+      opacity: 0.25;
+      pointer-events: none;
+    }
+
+    /* Bottom corners on the page element */
+    .page-corner-bl {
+      position: absolute;
+      bottom: 6mm;
+      left: 6mm;
+      width: 14mm;
+      height: 14mm;
+      border-left: 1.5px solid var(--gold);
+      border-bottom: 1.5px solid var(--gold);
+      opacity: 0.3;
+      pointer-events: none;
+    }
+    .page-corner-br {
+      position: absolute;
+      bottom: 6mm;
+      right: 6mm;
+      width: 14mm;
+      height: 14mm;
+      border-right: 1.5px solid var(--gold);
+      border-bottom: 1.5px solid var(--gold);
+      opacity: 0.3;
+      pointer-events: none;
+    }
+
+    /* ─── Print ─── */
     @page {
       size: A4;
       margin: 0;
@@ -300,9 +511,9 @@
 
     @media print {
       body {
-        margin: 0;
+        background: none;
+        padding: 0;
       }
-
       .tpl-oby {
         box-shadow: none;
       }
@@ -314,295 +525,320 @@
   {%- set d = data -%}
   {%- set _lbl = {
   'uz_lat': {
-  'title': "MA'LUMOTNOMA",
-  'name_label': "F.I.SH.",
-  'fullname': "Familiya, ismi, sharifi",
-  'bdate': "Tug'ilgan yili, kuni va oyi",
-  'bplace': "Tug'ilgan joyi",
-  'nation': "Millati",
-  'party': "Partiyaviyligi",
-  'edu': "Ma'lumoti",
-  'grad': "Qaysi oliy maktabni tamomlagan",
-  'spec': "Mutaxassisligi",
-  'degree': "Ilmiy darajasi",
-  'stitle': "Ilmiy unvoni",
-  'langs': "Qaysi chet tillarini biladi",
-  'military': "Harbiy unvoni",
-  'awards': "Davlat mukofotlari",
-  'deputy': "Deputatmi yoki boshqa saylanadigan organlar a'zosimi",
-  'work_title': "MEHNAT FAOLIYATI",
-  'yillar': "Yillar",
-  'lavozim': "Ish joyi va lavozimi",
-  'rel_title': "YAQIN QARINDOSHLARI HAQIDA MA'LUMOT",
-  'qarindoshlik': "Qarindoshligi",
-  'fish': "F.I.SH.",
-  'tjoyi': "Tug'ilgan yili va joyi",
-  'ishjoyi': "Ish joyi va lavozimi",
-  'manzil': "Yashash manzili",
-  'empty': "Ma'lumot kiritilmagan",
-  'none': "—",
-  'photo': "4×6"
+    'title': "MA'LUMOTNOMA",
+    'sub':   "O'ZBEKISTON RESPUBLIKASI",
+    'name_label': "F.I.SH.",
+    'bdate': "Tug'ilgan yili, kuni va oyi",
+    'bplace': "Tug'ilgan joyi",
+    'nation': "Millati",
+    'party': "Partiyaviyligi",
+    'edu': "Ma'lumoti",
+    'grad': "Qaysi oliy maktabni tamomlagan",
+    'spec': "Mutaxassisligi",
+    'degree': "Ilmiy darajasi",
+    'stitle': "Ilmiy unvoni",
+    'langs': "Qaysi chet tillarini biladi",
+    'military': "Harbiy unvoni",
+    'awards': "Davlat mukofotlari",
+    'deputy': "Deputatmi yoki boshqa saylanadigan organlar a'zosimi",
+    'work_title': "MEHNAT FAOLIYATI",
+    'yillar': "Yillar",
+    'lavozim': "Ish joyi va lavozimi",
+    'rel_title': "YAQIN QARINDOSHLARI HAQIDA MA'LUMOT",
+    'qarindoshlik': "Qarindoshligi",
+    'fish': "F.I.SH.",
+    'tjoyi': "Tug'ilgan yili va joyi",
+    'ishjoyi': "Ish joyi va lavozimi",
+    'manzil': "Yashash manzili",
+    'empty': "Ma'lumot kiritilmagan",
+    'none': "—",
+    'photo': "4×6"
   },
   'uz_cyr': {
-  'title': "МАЪЛУМОТНОМА",
-  'name_label': "Ф.И.Ш.",
-  'fullname': "Фамилия, исми, шарифи",
-  'bdate': "Туғилган йили, куни ва ойи",
-  'bplace': "Туғилган жойи",
-  'nation': "Миллати",
-  'party': "Партиявийлиги",
-  'edu': "Маълумоти",
-  'grad': "Қайси олий мактабни тамомлаган",
-  'spec': "Мутахассислиги",
-  'degree': "Илмий даражаси",
-  'stitle': "Илмий унвони",
-  'langs': "Қайси чет тилларини билади",
-  'military': "Ҳарбий унвони",
-  'awards': "Давлат мукофотлари",
-  'deputy': "Депутатми ёки бошқа сайланадиган органлар аъзосими",
-  'work_title': "МЕҲНАТ ФАОЛИЯТИ",
-  'yillar': "Йиллар",
-  'lavozim': "Иш жойи ва лавозими",
-  'rel_title': "ЯҚИН ҚАРИНДОШЛАРИ ҲАҚИДА МАЪЛУМОТ",
-  'qarindoshlik': "Қариндошлиги",
-  'fish': "Ф.И.Ш.",
-  'tjoyi': "Туғилган йили ва жойи",
-  'ishjoyi': "Иш жойи ва лавозими",
-  'manzil': "Яшаш манзили",
-  'empty': "Маълумот киритилмаган",
-  'none': "—",
-  'photo': "4×6"
+    'title': "МАЪЛУМОТНОМА",
+    'sub':   "ЎЗБЕКИСТОН РЕСПУБЛИКАСИ",
+    'name_label': "Ф.И.Ш.",
+    'bdate': "Туғилган йили, куни ва ойи",
+    'bplace': "Туғилган жойи",
+    'nation': "Миллати",
+    'party': "Партиявийлиги",
+    'edu': "Маълумоти",
+    'grad': "Қайси олий мактабни тамомлаган",
+    'spec': "Мутахассислиги",
+    'degree': "Илмий даражаси",
+    'stitle': "Илмий унвони",
+    'langs': "Қайси чет тилларини билади",
+    'military': "Ҳарбий унвони",
+    'awards': "Давлат мукофотлари",
+    'deputy': "Депутатми ёки бошқа сайланадиган органлар аъзосими",
+    'work_title': "МЕҲНАТ ФАОЛИЯТИ",
+    'yillar': "Йиллар",
+    'lavozim': "Иш жойи ва лавозими",
+    'rel_title': "ЯҚИН ҚАРИНДОШЛАРИ ҲАҚИДА МАЪЛУМОТ",
+    'qarindoshlik': "Қариндошлиги",
+    'fish': "Ф.И.Ш.",
+    'tjoyi': "Туғилган йили ва жойи",
+    'ishjoyi': "Иш жойи ва лавозими",
+    'manzil': "Яшаш манзили",
+    'empty': "Маълумот киритилмаган",
+    'none': "—",
+    'photo': "4×6"
   },
   'en': {
-  'title': "CURRICULUM VITAE",
-  'name_label': "Full Name",
-  'fullname': "Full name",
-  'bdate': "Date of birth",
-  'bplace': "Place of birth",
-  'nation': "Nationality",
-  'party': "Party membership",
-  'edu': "Education",
-  'grad': "University graduated from",
-  'spec': "Specialty",
-  'degree': "Academic degree",
-  'stitle': "Academic title",
-  'langs': "Foreign languages",
-  'military': "Military rank",
-  'awards': "State awards",
-  'deputy': "Is a deputy or member of other elected bodies",
-  'work_title': "WORK EXPERIENCE",
-  'yillar': "Period",
-  'lavozim': "Position & Workplace",
-  'rel_title': "CLOSE RELATIVES INFORMATION",
-  'qarindoshlik': "Relationship",
-  'fish': "Full Name",
-  'tjoyi': "Year and place of birth",
-  'ishjoyi': "Workplace and position",
-  'manzil': "Residential address",
-  'empty': "No data entered",
-  'none': "—",
-  'photo': "4×6"
+    'title': "CURRICULUM VITAE",
+    'sub':   "REPUBLIC OF UZBEKISTAN",
+    'name_label': "Full Name",
+    'bdate': "Date of birth",
+    'bplace': "Place of birth",
+    'nation': "Nationality",
+    'party': "Party membership",
+    'edu': "Education",
+    'grad': "University graduated from",
+    'spec': "Specialty",
+    'degree': "Academic degree",
+    'stitle': "Academic title",
+    'langs': "Foreign languages",
+    'military': "Military rank",
+    'awards': "State awards",
+    'deputy': "Is a deputy or member of elected bodies",
+    'work_title': "WORK EXPERIENCE",
+    'yillar': "Period",
+    'lavozim': "Position & Workplace",
+    'rel_title': "CLOSE RELATIVES INFORMATION",
+    'qarindoshlik': "Relationship",
+    'fish': "Full Name",
+    'tjoyi': "Year and place of birth",
+    'ishjoyi': "Workplace and position",
+    'manzil': "Residential address",
+    'empty': "No data entered",
+    'none': "—",
+    'photo': "4×6"
   },
   'ru': {
-  'title': "ОБЪЕКТИВКА",
-  'name_label': "Ф.И.О.",
-  'fullname': "Фамилия, имя, отчество",
-  'bdate': "Год, число и месяц рождения",
-  'bplace': "Место рождения",
-  'nation': "Национальность",
-  'party': "Партийность",
-  'edu': "Образование",
-  'grad': "Какое высшее учебное заведение окончил(а)",
-  'spec': "Специальность",
-  'degree': "Учёная степень",
-  'stitle': "Учёное звание",
-  'langs': "Какими иностранными языками владеет",
-  'military': "Воинское звание",
-  'awards': "Государственные награды",
-  'deputy': "Является ли депутатом или членом других выборных органов",
-  'work_title': "ТРУДОВАЯ ДЕЯТЕЛЬНОСТЬ",
-  'yillar': "Годы",
-  'lavozim': "Место работы и должность",
-  'rel_title': "СВЕДЕНИЯ О БЛИЗКИХ РОДСТВЕННИКАХ",
-  'qarindoshlik': "Степень родства",
-  'fish': "Ф.И.О.",
-  'tjoyi': "Год и место рождения",
-  'ishjoyi': "Место работы и должность",
-  'manzil': "Место жительства",
-  'empty': "Сведения не введены",
-  'none': "—",
-  'photo': "4×6"
+    'title': "ОБЪЕКТИВКА",
+    'sub':   "РЕСПУБЛИКА УЗБЕКИСТАН",
+    'name_label': "Ф.И.О.",
+    'bdate': "Год, число и месяц рождения",
+    'bplace': "Место рождения",
+    'nation': "Национальность",
+    'party': "Партийность",
+    'edu': "Образование",
+    'grad': "Какое высшее учебное заведение окончил(а)",
+    'spec': "Специальность",
+    'degree': "Учёная степень",
+    'stitle': "Учёное звание",
+    'langs': "Какими иностранными языками владеет",
+    'military': "Воинское звание",
+    'awards': "Государственные награды",
+    'deputy': "Является ли депутатом или членом других выборных органов",
+    'work_title': "ТРУДОВАЯ ДЕЯТЕЛЬНОСТЬ",
+    'yillar': "Годы",
+    'lavozim': "Место работы и должность",
+    'rel_title': "СВЕДЕНИЯ О БЛИЗКИХ РОДСТВЕННИКАХ",
+    'qarindoshlik': "Степень родства",
+    'fish': "Ф.И.О.",
+    'tjoyi': "Год и место рождения",
+    'ishjoyi': "Место работы и должность",
+    'manzil': "Место жительства",
+    'empty': "Сведения не введены",
+    'none': "—",
+    'photo': "4×6"
   }
   } -%}
   {%- set ll = _lbl.get(d.lang or 'uz_lat', _lbl['uz_lat']) -%}
 
   <div class="tpl-oby">
 
-    <!-- TOP ACCENT BAR -->
-    <div class="accent-bar"></div>
-
-    <!-- TITLE -->
-    <div class="title">{{ ll.title }}</div>
-    <div class="title-line"></div>
-
-    <!-- HEADER: Name card + Photo -->
-    <table class="header-table">
-      <tr>
-        <td class="col-main">
-          <div class="name-block">
-            <span class="name-label">{{ ll.name_label }}</span>
-            <div class="name">{{ (d.fullname or ll.none).upper() }}</div>
-          </div>
-        </td>
-        <td class="col-img">
-          <div class="photo-frame">
-            {%- if d.img -%}
+    <!-- NAVY HEADER BLOCK: Title + Photo -->
+    <div class="doc-head">
+      <div class="head-left">
+        <span class="doc-title-sub">{{ ll.sub }}</span>
+        <div class="doc-title">{{ ll.title }}</div>
+        <div class="doc-title-line"></div>
+      </div>
+      <div class="head-photo">
+        <div class="photo-frame">
+          {%- if d.img -%}
             <img src="{{ d.img }}" class="avatar" alt="Fotosurat">
-            {%- else -%}
-            <div class="photo-placeholder">{{ ll.photo }}</div>
-            {%- endif -%}
-          </div>
-        </td>
-      </tr>
-    </table>
-
-    <!-- PERSONAL INFO TABLE -->
-    <table class="info-table">
-      <tr>
-        <td>
-          <span class="info-lbl">{{ ll.bdate }}</span>
-          <span class="info-val">{{ d.birthdate or ll.none }}</span>
-        </td>
-        <td>
-          <span class="info-lbl">{{ ll.bplace }}</span>
-          <span class="info-val">{{ d.birthplace or ll.none }}</span>
-        </td>
-      </tr>
-      <tr>
-        <td>
-          <span class="info-lbl">{{ ll.nation }}</span>
-          <span class="info-val">{{ d.nation or ll.none }}</span>
-        </td>
-        <td>
-          <span class="info-lbl">{{ ll.party }}</span>
-          <span class="info-val">{{ d.party or ll.none }}</span>
-        </td>
-      </tr>
-      <tr>
-        <td>
-          <span class="info-lbl">{{ ll.edu }}</span>
-          <span class="info-val">{{ d.education or ll.none }}</span>
-        </td>
-        <td>
-          <span class="info-lbl">{{ ll.grad }}</span>
-          <span class="info-val">{{ d.graduated or ll.none }}</span>
-        </td>
-      </tr>
-      <tr>
-        <td>
-          <span class="info-lbl">{{ ll.spec }}</span>
-          <span class="info-val">{{ d.specialty or ll.none }}</span>
-        </td>
-        <td>
-          <span class="info-lbl">{{ ll.degree }}</span>
-          <span class="info-val">{{ d.degree or ll.none }}</span>
-        </td>
-      </tr>
-      <tr>
-        <td>
-          <span class="info-lbl">{{ ll.stitle }}</span>
-          <span class="info-val">{{ d.scientific_title or ll.none }}</span>
-        </td>
-        <td>
-          <span class="info-lbl">{{ ll.langs }}</span>
-          <span class="info-val">{{ d.languages or ll.none }}</span>
-        </td>
-      </tr>
-      <tr>
-        <td>
-          <span class="info-lbl">{{ ll.military }}</span>
-          <span class="info-val">{{ d.military_rank or ll.none }}</span>
-        </td>
-        <td>
-          <span class="info-lbl">{{ ll.awards }}</span>
-          <span class="info-val">{{ d.awards or ll.none }}</span>
-        </td>
-      </tr>
-      <tr>
-        <td colspan="2">
-          <span class="info-lbl">{{ ll.deputy }}</span>
-          <span class="info-val">{{ d.deputy or ll.none }}</span>
-        </td>
-      </tr>
-    </table>
-
-    <!-- WORK EXPERIENCE -->
-    <div class="section-header">
-      <div class="sect-title">{{ ll.work_title }}</div>
-    </div>
-    {%- if d.work_experience and d.work_experience | length > 0 -%}
-    <table class="exp-table">
-      <thead>
-        <tr>
-          <th>{{ ll.yillar }}</th>
-          <th>{{ ll.lavozim }}</th>
-        </tr>
-      </thead>
-      <tbody>
-        {%- for e in d.work_experience -%}
-        <tr>
-          <td>{{ e.year or e.years or ll.none }}</td>
-          <td>{{ (e.position or e.desc or ll.none) | replace('\n', '<br>') | safe }}</td>
-        </tr>
-        {%- endfor -%}
-      </tbody>
-    </table>
-    {%- else -%}
-    <div class="empty-state">{{ ll.empty }}</div>
-    {%- endif -%}
-
-    <!-- RELATIVES -->
-    {%- set fn = (d.fullname or '').split(' ')[0] | upper -%}
-    <div class="section-header">
-      <div class="sect-title">
-        {%- if d.lang == 'ru' -%}
-          {{ ll.rel_title }}
-        {%- else -%}
-          {{ fn }} {{ ll.rel_title }}
-        {%- endif -%}
+          {%- else -%}
+            <div class="photo-placeholder">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#b8973a" stroke-width="1.2">
+                <circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
+              </svg>
+              <span>{{ ll.photo }}</span>
+            </div>
+          {%- endif -%}
+        </div>
       </div>
     </div>
-    {%- if d.relatives and d.relatives | length > 0 -%}
-    <table class="rel-table">
-      <thead>
-        <tr>
-          <th style="width:13%">{{ ll.qarindoshlik }}</th>
-          <th style="width:20%">{{ ll.fish }}</th>
-          <th style="width:17%">{{ ll.tjoyi }}</th>
-          <th style="width:28%">{{ ll.ishjoyi }}</th>
-          <th style="width:22%">{{ ll.manzil }}</th>
-        </tr>
-      </thead>
-      <tbody>
-        {%- for r in d.relatives -%}
-        <tr>
-          <td>{{ r.degree or r.role or ll.none }}</td>
-          <td>{{ r.fullname or r.name or ll.none }}</td>
-          <td>{{ r.birth_year_place or r.birth or ll.none }}</td>
-          <td>{{ r.work_place or r.work or ll.none }}</td>
-          <td>{{ r.address or r.addr or ll.none }}</td>
-        </tr>
-        {%- endfor -%}
-      </tbody>
-    </table>
-    {%- else -%}
-    <div class="empty-state">{{ ll.empty }}</div>
-    {%- endif -%}
 
-    <!-- BOTTOM FOOTER BAR -->
-    <div class="footer-bar"></div>
+    <!-- NAME BAND -->
+    <div class="name-band">
+      <span class="name-label">{{ ll.name_label }}</span>
+      <span class="name-value">{{ (d.fullname or ll.none).upper() }}</span>
+    </div>
 
-  </div>
+    <!-- INNER CONTENT -->
+    <div class="doc-inner">
+      <!-- Left margin stripe -->
+      <div class="margin-stripe"></div>
+
+      <!-- PERSONAL INFO TABLE -->
+      <table class="info-table">
+        <tr>
+          <td>
+            <span class="info-lbl">{{ ll.bdate }}</span>
+            <span class="info-val{% if not d.birthdate %} empty{% endif %}">{{ d.birthdate or ll.none }}</span>
+          </td>
+          <td>
+            <span class="info-lbl">{{ ll.bplace }}</span>
+            <span class="info-val{% if not d.birthplace %} empty{% endif %}">{{ d.birthplace or ll.none }}</span>
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <span class="info-lbl">{{ ll.nation }}</span>
+            <span class="info-val{% if not d.nation %} empty{% endif %}">{{ d.nation or ll.none }}</span>
+          </td>
+          <td>
+            <span class="info-lbl">{{ ll.party }}</span>
+            <span class="info-val{% if not d.party %} empty{% endif %}">{{ d.party or ll.none }}</span>
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <span class="info-lbl">{{ ll.edu }}</span>
+            <span class="info-val{% if not d.education %} empty{% endif %}">{{ d.education or ll.none }}</span>
+          </td>
+          <td>
+            <span class="info-lbl">{{ ll.grad }}</span>
+            <span class="info-val{% if not d.graduated %} empty{% endif %}">{{ d.graduated or ll.none }}</span>
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <span class="info-lbl">{{ ll.spec }}</span>
+            <span class="info-val{% if not d.specialty %} empty{% endif %}">{{ d.specialty or ll.none }}</span>
+          </td>
+          <td>
+            <span class="info-lbl">{{ ll.degree }}</span>
+            <span class="info-val{% if not d.degree %} empty{% endif %}">{{ d.degree or ll.none }}</span>
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <span class="info-lbl">{{ ll.stitle }}</span>
+            <span class="info-val{% if not d.scientific_title %} empty{% endif %}">{{ d.scientific_title or ll.none }}</span>
+          </td>
+          <td>
+            <span class="info-lbl">{{ ll.langs }}</span>
+            <span class="info-val{% if not d.languages %} empty{% endif %}">{{ d.languages or ll.none }}</span>
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <span class="info-lbl">{{ ll.military }}</span>
+            <span class="info-val{% if not d.military_rank %} empty{% endif %}">{{ d.military_rank or ll.none }}</span>
+          </td>
+          <td>
+            <span class="info-lbl">{{ ll.awards }}</span>
+            <span class="info-val{% if not d.awards %} empty{% endif %}">{{ d.awards or ll.none }}</span>
+          </td>
+        </tr>
+        <tr>
+          <td colspan="2" class="full-col">
+            <span class="info-lbl">{{ ll.deputy }}</span>
+            <span class="info-val{% if not d.deputy %} empty{% endif %}">{{ d.deputy or ll.none }}</span>
+          </td>
+        </tr>
+      </table>
+
+      <!-- WORK EXPERIENCE -->
+      <div class="section-header">
+        <div class="sect-marker"></div>
+        <div class="sect-title-block">
+          <span class="sect-title">{{ ll.work_title }}</span>
+          <span class="sect-ornament">◆ ◆ ◆</span>
+        </div>
+      </div>
+
+      {%- if d.work_experience and d.work_experience | length > 0 -%}
+      <table class="exp-table">
+        <thead>
+          <tr>
+            <th>{{ ll.yillar }}</th>
+            <th>{{ ll.lavozim }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {%- for e in d.work_experience -%}
+          <tr>
+            <td>{{ e.year or e.years or ll.none }}</td>
+            <td>{{ (e.position or e.desc or ll.none) | replace('\n', '<br>') | safe }}</td>
+          </tr>
+          {%- endfor -%}
+        </tbody>
+      </table>
+      {%- else -%}
+      <div class="empty-state">{{ ll.empty }}</div>
+      {%- endif -%}
+
+      <!-- RELATIVES -->
+      {%- set fn = (d.fullname or '').split(' ')[0] | upper -%}
+      <div class="section-header">
+        <div class="sect-marker"></div>
+        <div class="sect-title-block">
+          <span class="sect-title">
+            {%- if d.lang == 'ru' -%}
+              {{ ll.rel_title }}
+            {%- else -%}
+              {{ fn }} {{ ll.rel_title }}
+            {%- endif -%}
+          </span>
+          <span class="sect-ornament">◆ ◆ ◆</span>
+        </div>
+      </div>
+
+      {%- if d.relatives and d.relatives | length > 0 -%}
+      <table class="rel-table">
+        <thead>
+          <tr>
+            <th style="width:13%">{{ ll.qarindoshlik }}</th>
+            <th style="width:20%">{{ ll.fish }}</th>
+            <th style="width:17%">{{ ll.tjoyi }}</th>
+            <th style="width:28%">{{ ll.ishjoyi }}</th>
+            <th style="width:22%">{{ ll.manzil }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {%- for r in d.relatives -%}
+          <tr>
+            <td>{{ r.degree or r.role or ll.none }}</td>
+            <td>{{ r.fullname or r.name or ll.none }}</td>
+            <td>{{ r.birth_year_place or r.birth or ll.none }}</td>
+            <td>{{ r.work_place or r.work or ll.none }}</td>
+            <td>{{ r.address or r.addr or ll.none }}</td>
+          </tr>
+          {%- endfor -%}
+        </tbody>
+      </table>
+      {%- else -%}
+      <div class="empty-state">{{ ll.empty }}</div>
+      {%- endif -%}
+
+      <!-- FOOTER -->
+      <div class="doc-footer">
+        <div class="footer-line"></div>
+        <div class="footer-mark">✦ DASTYOR AI ✦</div>
+        <div class="footer-line" style="background: linear-gradient(90deg, transparent, var(--gold), var(--navy-mid)); opacity:0.4;"></div>
+      </div>
+
+      <!-- bottom corner marks -->
+      <div class="page-corner-bl"></div>
+      <div class="page-corner-br"></div>
+
+    </div><!-- /.doc-inner -->
+  </div><!-- /.tpl-oby -->
+
 </body>
-
 </html>

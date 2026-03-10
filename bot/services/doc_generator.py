@@ -449,45 +449,22 @@ def _set_cell_shading(cell, fill_hex: str) -> None:
 
 def generate_cv_docx(data: dict, output_dir: str = "temp") -> str:
     """
-    Generate a styled CV DOCX matching one of eight templates.
-    data['lang'] controls section headings language (uz_lat | uz_cyr | en | ru).
+    Generate a beautifully formulated CV DOCX exactly matching the Minimalist preview:
+    - Side-by-side Header block (Photo | Details)
+    - Separator bottom border
+    - Clean left-aligned section headings
+    - Minimalist text styling
     """
     os.makedirs(output_dir, exist_ok=True)
-
     safe_name = data.get("name", "unknown").replace(" ", "_").replace("/", "_")
-    template  = data.get("template", "minimal").lower()
-    filepath  = os.path.join(output_dir, f"cv_{safe_name}_{template}_@DastyorAiBot.docx")
+    template = data.get("template", "minimal").lower()
+    filepath = os.path.join(output_dir, f"cv_{safe_name}_{template}_@DastyorAiBot.docx")
 
     doc = Document()
-    _set_narrow_margins(doc, cm=1.5)
+    _set_narrow_margins(doc, cm=2.0)
     pw = _page_width_narrow(doc)
 
-    FONT = "Calibri"
-
-    def _heading(text: str, level: int = 1, align=WD_ALIGN_PARAGRAPH.LEFT,
-                 underline=False, caps=False):
-        p = doc.add_paragraph()
-        p.alignment = align
-        display = text.upper() if caps else text
-        r = _styled_run(p, display, bold=True,
-                        size_pt=16 if level == 0 else (13 if level == 1 else 11),
-                        font_name=FONT)
-        r.underline = underline
-        return p
-
-    def _para(text: str, size: float = 10.5, italic=False, bold=False,
-              align=WD_ALIGN_PARAGRAPH.LEFT, indent_cm=0):
-        p = doc.add_paragraph()
-        p.alignment = align
-        if indent_cm:
-            p.paragraph_format.left_indent = Cm(indent_cm)
-        _styled_run(p, text, italic=italic, bold=bold, size_pt=size, font_name=FONT)
-        return p
-
-    works      = data.get("works", []) or data.get("work_experience", [])
-    edus       = data.get("education_list", []) or []
-    skills_raw = data.get("skills", "") or ""
-    skills     = [s.strip() for s in skills_raw.replace(",", "\n").splitlines() if s.strip()]
+    FONT = "Times New Roman"
 
     _CV_SEC = {
         "uz_lat": {"about": "Haqida",     "exp": "Ish Tajribasi", "edu": "Ta'lim",       "skills": "Ko'nikmalar"},
@@ -500,36 +477,76 @@ def generate_cv_docx(data: dict, output_dir: str = "temp") -> str:
         lang = "uz_lat"
     _sec = _CV_SEC[lang]
 
-    _heading(data.get("name", ""), level=0,
-             align=WD_ALIGN_PARAGRAPH.CENTER if template != "split" else WD_ALIGN_PARAGRAPH.LEFT)
+    # --- Header Table ---
+    hdr_tbl = doc.add_table(rows=1, cols=2)
+    _remove_table_borders(hdr_tbl)
+    hdr_tbl.autofit = False
+    
+    # 25% for photo, 75% for info
+    _set_col_widths(hdr_tbl, pw, [25, 75])
 
-    spec_p = doc.add_paragraph()
-    spec_p.alignment = WD_ALIGN_PARAGRAPH.CENTER if template != "split" else WD_ALIGN_PARAGRAPH.LEFT
-    _styled_run(spec_p, data.get("spec", "") or data.get("role", ""),
-                italic=True, size_pt=12, font_name=FONT)
+    # Left Cell: Photo
+    cell_photo = hdr_tbl.cell(0, 0)
+    _cell_shading(cell_photo, "FFFFFF")
+    pp = cell_photo.paragraphs[0]
+    pp.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    if data.get("img_path") and os.path.exists(data.get("img_path")):
+        try:
+            r = pp.add_run()
+            r.add_picture(data["img_path"], width=Mm(35), height=Mm(35))
+        except:
+            _styled_run(pp, "[FOTOSURAT]", size_pt=10, font_name=FONT, color=RGBColor(150, 150, 150))
+    else:
+        _para_spacing(pp, before_pt=20, after_pt=20)
+        _styled_run(pp, "4x4", size_pt=9.0, font_name=FONT, color=RGBColor(150, 150, 150))
 
+    # Right Cell: Name, Role, Contacts
+    cell_info = hdr_tbl.cell(0, 1)
+    _cell_shading(cell_info, "FFFFFF")
+    
+    p_name = cell_info.paragraphs[0]
+    _para_spacing(p_name, before_pt=0, after_pt=2)
+    _styled_run(p_name, data.get("name", "").upper(), bold=True, size_pt=24, font_name=FONT, color=RGBColor(15, 23, 42))
+
+    p_role = cell_info.add_paragraph()
+    _para_spacing(p_role, before_pt=2, after_pt=8)
+    _styled_run(p_role, data.get("spec", "") or data.get("role", ""), bold=True, size_pt=14, font_name=FONT, color=RGBColor(59, 130, 246))
+
+    contacts = filter(None, [
+        f"📞 {data['phone']}" if data.get("phone") else "",
+        f"✉️ {data['email']}" if data.get("email") else "",
+        f"📍 {data['loc']}" if data.get("loc") else "",
+    ])
+    p_contact = cell_info.add_paragraph()
+    _para_spacing(p_contact, before_pt=2, after_pt=0)
+    _styled_run(p_contact, "   —   ".join(contacts), size_pt=10, font_name=FONT, color=RGBColor(100, 116, 139))
+
+    # Separator Line
     doc.add_paragraph()
+    _add_hr(doc, color_hex="E2E8F0", size=12, space=24)
 
-    contact_parts = []
-    if data.get("phone"):  contact_parts.append(f"📞 {data['phone']}")
-    if data.get("email"):  contact_parts.append(f"✉️ {data['email']}")
-    if data.get("loc"):    contact_parts.append(f"📍 {data['loc']}")
+    def _sec_title(title: str):
+        p = doc.add_paragraph()
+        _para_spacing(p, before_pt=16, after_pt=12)
+        r = _styled_run(p, title.upper(), bold=True, size_pt=13, font_name=FONT, color=RGBColor(15, 23, 42))
+        rPr = r._r.get_or_add_rPr()
+        sc = OxmlElement("w:spacing")
+        sc.set(qn("w:val"), "20") # minor letter spacing
+        rPr.append(sc)
 
-    if contact_parts:
-        cp = doc.add_paragraph()
-        cp.alignment = WD_ALIGN_PARAGRAPH.CENTER if template == "minimal" else WD_ALIGN_PARAGRAPH.LEFT
-        _styled_run(cp, "  •  ".join(contact_parts), size_pt=9.5, font_name=FONT)
-
-    doc.add_paragraph()
-
+    # About
     about = data.get("about", "")
     if about:
-        _heading(_sec["about"].upper(), level=1, underline=True)
-        _para(about, size=10.5)
-        doc.add_paragraph()
+        _sec_title(_sec["about"])
+        p = doc.add_paragraph()
+        p.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
+        _para_spacing(p, before_pt=0, after_pt=12)
+        _styled_run(p, about, size_pt=11, font_name=FONT, color=RGBColor(30, 41, 59))
 
+    # Experience
+    works = data.get("works", []) or data.get("work_experience", [])
     if works:
-        _heading(_sec["exp"].upper(), level=1, underline=True)
+        _sec_title(_sec["exp"])
         for w in works:
             from_y = w.get("f", "") or w.get("from", "") or w.get("year", "")
             to_y   = w.get("t", "") or w.get("to", "")
@@ -539,47 +556,91 @@ def generate_cv_docx(data: dict, output_dir: str = "temp") -> str:
             period = f"{from_y} – {to_y}" if to_y else from_y
             if not period and w.get("date"):
                 period = w["date"]
-            exp_p = doc.add_paragraph()
-            _styled_run(exp_p, f"{title or period}", bold=True, size_pt=10, font_name=FONT)
-            if company:
-                _styled_run(exp_p, f"\n{company}", italic=True, size_pt=9.5, font_name=FONT)
-            if period and title:
-                _styled_run(exp_p, f"\n{period}", size_pt=9, font_name=FONT)
-            if desc:
-                _styled_run(exp_p, f"\n{desc}", size_pt=10, font_name=FONT)
-        doc.add_paragraph()
 
+            t_tbl = doc.add_table(rows=1, cols=2)
+            _remove_table_borders(t_tbl)
+            _set_col_widths(t_tbl, pw, [75, 25])
+            
+            c_left = t_tbl.cell(0, 0)
+            wp = c_left.paragraphs[0]
+            _para_spacing(wp, before_pt=0, after_pt=2)
+            _styled_run(wp, title or company or period, bold=True, size_pt=11.5, font_name=FONT, color=RGBColor(15, 23, 42))
+
+            c_right = t_tbl.cell(0, 1)
+            rp = c_right.paragraphs[0]
+            rp.alignment = WD_ALIGN_PARAGRAPH.RIGHT
+            _para_spacing(rp, before_pt=0, after_pt=2)
+            _styled_run(rp, period, bold=True, size_pt=10, font_name=FONT, color=RGBColor(100, 116, 139))
+
+            if company:
+                cp = doc.add_paragraph()
+                _para_spacing(cp, before_pt=2, after_pt=4)
+                _styled_run(cp, company, italic=True, bold=True, size_pt=10.5, font_name=FONT, color=RGBColor(59, 130, 246))
+
+            if desc:
+                dp = doc.add_paragraph()
+                dp.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
+                _para_spacing(dp, before_pt=4, after_pt=12)
+                _styled_run(dp, desc, size_pt=10.5, font_name=FONT, color=RGBColor(71, 85, 105))
+
+    # Education
+    edus = data.get("education_list", []) or []
     if edus or data.get("edu") or data.get("grad"):
-        _heading(_sec["edu"].upper(), level=1, underline=True)
+        _sec_title(_sec["edu"])
         if edus:
             for edu in edus:
-                ep = doc.add_paragraph()
-                _styled_run(ep, edu.get("title", "") or edu.get("name", ""),
-                            bold=True, size_pt=10, font_name=FONT)
-                details = []
-                if edu.get("date") or edu.get("year"):
-                    details.append(edu.get("date") or edu.get("year"))
-                if edu.get("company") or edu.get("field"):
-                    details.append(edu.get("company") or edu.get("field"))
-                if details:
-                    _styled_run(ep, f"\n{', '.join(details)}", size_pt=9.5, font_name=FONT)
-        else:
-            edu_text  = data.get("edu", "")
-            grad_text = data.get("grad", "")
-            if edu_text:  _para(f"✓ {edu_text}", size=10.5)
-            if grad_text: _para(f"✓ {grad_text}", size=10.5)
-        doc.add_paragraph()
+                from_y = edu.get("f", "") or edu.get("from", "") or edu.get("year", "")
+                to_y   = edu.get("t", "") or edu.get("to", "")
+                title  = edu.get("title", "") or edu.get("name", "")
+                company= edu.get("company", "") or edu.get("field", "")
+                desc   = edu.get("desc", "") or edu.get("description", "")
+                period = f"{from_y} – {to_y}" if to_y else from_y
+                if not period and edu.get("date"):
+                    period = edu["date"]
 
+                e_tbl = doc.add_table(rows=1, cols=2)
+                _remove_table_borders(e_tbl)
+                _set_col_widths(e_tbl, pw, [75, 25])
+
+                c_left = e_tbl.cell(0, 0)
+                wp = c_left.paragraphs[0]
+                _para_spacing(wp, before_pt=0, after_pt=2)
+                _styled_run(wp, title or company, bold=True, size_pt=11.5, font_name=FONT, color=RGBColor(15, 23, 42))
+
+                c_right = e_tbl.cell(0, 1)
+                rp = c_right.paragraphs[0]
+                rp.alignment = WD_ALIGN_PARAGRAPH.RIGHT
+                _para_spacing(rp, before_pt=0, after_pt=2)
+                _styled_run(rp, period, bold=True, size_pt=10, font_name=FONT, color=RGBColor(100, 116, 139))
+
+                if company:
+                    cp = doc.add_paragraph()
+                    _para_spacing(cp, before_pt=2, after_pt=4)
+                    _styled_run(cp, company, italic=True, bold=True, size_pt=10.5, font_name=FONT, color=RGBColor(59, 130, 246))
+                if desc:
+                    dp = doc.add_paragraph()
+                    dp.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
+                    _para_spacing(dp, before_pt=4, after_pt=12)
+                    _styled_run(dp, desc, size_pt=10.5, font_name=FONT, color=RGBColor(71, 85, 105))
+        else:
+            if data.get("edu"):
+                p = doc.add_paragraph(style="List Bullet")
+                _styled_run(p, data.get("edu", ""), size_pt=11, font_name=FONT)
+            if data.get("grad"):
+                p = doc.add_paragraph(style="List Bullet")
+                _styled_run(p, data.get("grad", ""), size_pt=11, font_name=FONT)
+
+    # Skills
+    skills_raw = data.get("skills", "") or ""
+    skills = [s.strip() for s in skills_raw.replace(",", "\n").splitlines() if s.strip()]
     if skills:
-        _heading(_sec["skills"].upper(), level=1, underline=True)
-        for sk in skills:
-            sp = doc.add_paragraph(style="List Bullet")
-            sp.paragraph_format.left_indent = Cm(0.5)
-            _styled_run(sp, sk, size_pt=10, font_name=FONT)
-        doc.add_paragraph()
+        _sec_title(_sec["skills"])
+        p = doc.add_paragraph()
+        _para_spacing(p, before_pt=4, after_pt=12)
+        _styled_run(p, " • ".join(skills), size_pt=11.0, bold=True, font_name=FONT, color=RGBColor(15, 23, 42))
 
     doc.save(filepath)
-    logger.info(f"CV DOCX saved: {filepath}")
+    logger.info(f"CV DOCX styled correctly and saved: {filepath}")
     return filepath
 
 
