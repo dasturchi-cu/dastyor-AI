@@ -66,11 +66,12 @@ Convert the provided image into a structured HTML document that EXACTLY matches 
 
 CRITICAL RULES:
 1. **Typography**: Use <b>/<strong> for bold, <i>/<em> for italics, <u> for underlines.
-2. **Alignment**: Use <div align="center">, <p align="right">, or <h1 align="center">.
-3. **Tables**: Use HTML <table> for any side-by-side or grid content. Set widths on first row: <td width="30%">.
-4. **Structure**: Use <h1>-<h3> for headings, <ul>/<ol>/<li> for lists, <p> for paragraphs.
-5. **Spacing**: Use <br> to preserve vertical spacing.
-6. **Clean Output**: Return ONLY valid HTML. No markdown, no explanations."""
+2. **Alignment**: Use <p align="center">, <p align="right">, <p align="justify">, or <h1 align="center">. Avoid <div> if possible. Use standard html alignment attributes or inline styles like style="text-align: center" for any content that is centered, right-aligned, or justified.
+3. **Tables**: If you see ANY tabular data, grids, columns, or form fields side-by-side, ALWAYS use HTML <table>. Ensure accurate number of rows and columns. Never use tabs or spaces for spacing. Set approximate column widths on the first row: <td width="30%">.
+4. **Structure**: Use <h1>, <h2>, <h3> for titles and headings. Use <p> for regular text paragraphs. Use <ul>, <ol>, <li> for lists.
+5. **Spacing**: Use <br> to preserve exact vertical line breaks within blocks. Use empty paragraphs <p></p> or multiple <br> for large vertical gaps.
+6. **Completeness**: Do NOT summarize or skip any text. Extract every single word and punctuation mark you see. The final user sees ONLY this output and requires a 1:1 match.
+7. **Clean Output**: Return ONLY valid HTML code. No markdown formatting blocks (like ```html), no conversational text, no explanations."""
 
         # Run the heavy multimodal generation in a thread so the event loop is never blocked
         def _run_generation():

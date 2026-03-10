@@ -31,16 +31,33 @@ def _add_run_with_style(paragraph_obj, element, bold=False, italic=False, underl
     for child in element.children:
         if isinstance(child, NavigableString):
             text = str(child).replace('\n', ' ')
-            if text.strip() or text == ' ':
+            if not text.strip() and text:
+                text = ' '
+            if text:
                 run = paragraph_obj.add_run(text)
                 run.bold = is_bold
                 run.italic = is_italic
                 run.underline = is_underline
         elif isinstance(child, Tag):
-            if child.name == 'br':
+            # If we hit block elements inside text contexts, just add a line break
+            if child.name in ['br', 'p', 'div'] and child.name != 'br':
+                paragraph_obj.add_run().add_break()
+                _add_run_with_style(paragraph_obj, child, is_bold, is_italic, is_underline)
+            elif child.name == 'br':
                 paragraph_obj.add_run().add_break()
             else:
                 _add_run_with_style(paragraph_obj, child, is_bold, is_italic, is_underline)
+
+def get_alignment(element):
+    """Extract alignment from align attribute or inline style."""
+    align_str = element.get('align', '')
+    style_str = element.get('style', '')
+    if not align_str and style_str:
+        style_lower = style_str.lower()
+        if 'text-align: center' in style_lower or 'text-align:center' in style_lower: align_str = 'center'
+        elif 'text-align: right' in style_lower or 'text-align:right' in style_lower: align_str = 'right'
+        elif 'text-align: justify' in style_lower or 'text-align:justify' in style_lower: align_str = 'justify'
+    return align_str
 
 def add_html_to_docx(doc, html_content):
     """Parses HTML and maps it to Word layout (tables, widths, alignment, inline fonts, lists)"""
@@ -112,18 +129,18 @@ def add_html_to_docx(doc, html_content):
                             p = cell.paragraphs[0]
                             p.text = ""
                             
-                            align = col.get('align', '')
+                            align = get_alignment(col)
                             apply_align(p, align)
                             _add_run_with_style(p, col)
         
-        elif element.name in ['p', 'h1', 'h2', 'h3', 'h4', 'div']:
+        elif element.name in ['p', 'h1', 'h2', 'h3', 'h4', 'div', 'center', 'article', 'section', 'main', 'header', 'footer']:
             style = 'Normal'
-            if element.name == 'h1': style = 'Heading 1'
-            elif element.name == 'h2': style = 'Heading 2'
-            elif element.name == 'h3': style = 'Heading 3'
+            if element.name in ['h1', 'h2', 'h3']:
+                style = f"Heading {element.name[-1]}"
             
             p = doc.add_paragraph(style=style)
-            align = element.get('align', '')
+            align = get_alignment(element)
+            if element.name == 'center': align = 'center'
             apply_align(p, align)
             _add_run_with_style(p, element)
             
@@ -135,6 +152,20 @@ def add_html_to_docx(doc, html_content):
                 
         elif element.name == 'br':
             doc.add_paragraph()
+            
+        elif element.name and element.name not in ['html', 'body', 'head', 'style', 'script', 'title', 'meta']:
+            # For unrecognized wrappers, process their children directly
+            for child in element.children:
+                if isinstance(child, NavigableString):
+                    text = str(child).strip()
+                    if text:
+                        doc.add_paragraph(text)
+                elif isinstance(child, Tag):
+                    style = 'Normal'
+                    p = doc.add_paragraph()
+                    align = get_alignment(child)
+                    apply_align(p, align)
+                    _add_run_with_style(p, child)
 
 
 async def perform_ocr_and_send(context, image_path, chat_id, user_id):
@@ -161,12 +192,11 @@ async def perform_ocr_and_send(context, image_path, chat_id, user_id):
         
         def create_and_save_doc(html_text, path):
             doc = Document()
-            doc.add_heading('OCR Natijasi', 0)
             try:
                 add_html_to_docx(doc, html_text)
             except Exception as parse_err:
                 logger.error(f"HTML Parse error: {parse_err}")
-                doc.add_paragraph(html_text)
+                doc.add_paragraph(str(html_text))
             doc.save(path)
 
         await asyncio.to_thread(create_and_save_doc, extracted_text, doc_path)
