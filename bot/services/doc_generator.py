@@ -815,3 +815,55 @@ def generate_obyektivka_pdf(data: Dict[str, Any], lang: str = 'uz_l', is_sample:
     """
     generator = ObyektivkaGenerator(data, lang=lang, is_sample=is_sample)
     return generator.generate_pdf()
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Legacy compatibility shims
+# 
+# Older parts of the codebase (e.g. bot.handlers.webapp_data, api_webhook)
+# import the following helpers from bot.services.doc_generator:
+#   - generate_obyektivka_docx
+#   - generate_cv_docx
+#   - convert_to_pdf_safe
+#
+# The actual, template-accurate DOCX generation logic now lives in
+# bot.keyboards.doc_generator, so we re-export thin wrappers here to
+# avoid breaking those imports.
+# ─────────────────────────────────────────────────────────────────────────────
+
+def generate_obyektivka_docx(data: Dict[str, Any], photo_path: Optional[str] = None, output_dir: str = "temp") -> str:
+    """
+    Backwards-compatible wrapper that forwards to
+    bot.keyboards.doc_generator.generate_obyektivka_docx.
+
+    Note: current implementation in bot.keyboards.doc_generator does not
+    accept/consume photo_path directly; photo handling is done upstream
+    (e.g. via data fields or dedicated generators), so we ignore it here.
+    """
+    from bot.keyboards.doc_generator import generate_obyektivka_docx as _legacy_generate_obyektivka_docx
+
+    os.makedirs(output_dir, exist_ok=True)
+    return _legacy_generate_obyektivka_docx(data, output_dir=output_dir)
+
+
+def generate_cv_docx(data: Dict[str, Any], output_dir: str = "temp") -> str:
+    """
+    Backwards-compatible wrapper delegating to
+    bot.keyboards.doc_generator.generate_cv_docx.
+    """
+    from bot.keyboards.doc_generator import generate_cv_docx as _legacy_generate_cv_docx
+
+    os.makedirs(output_dir, exist_ok=True)
+    return _legacy_generate_cv_docx(data, output_dir=output_dir)
+
+
+def convert_to_pdf_safe(docx_path: str, output_dir: str = "temp") -> Optional[str]:
+    """
+    Backwards-compatible wrapper around
+    bot.keyboards.doc_generator.convert_to_pdf_safe.
+    """
+    from bot.keyboards.doc_generator import convert_to_pdf_safe as _legacy_convert_to_pdf_safe
+
+    os.makedirs(output_dir, exist_ok=True)
+    return _legacy_convert_to_pdf_safe(docx_path, output_dir=output_dir)
+
