@@ -1,750 +1,817 @@
 """
-Document Generator Service — DASTYOR AI
-Pure black & white design. No colors.
+Professional Obyektivka (Resume) Generator
+Generates beautifully formatted Word and PDF documents matching the design template.
 """
-import os, logging
+import base64
+import json
+import logging
+import os
+from io import BytesIO
+from typing import Any, Dict, List, Optional
+
 from docx import Document
-from docx.shared import Pt, Cm, RGBColor, Mm
-from docx.enum.text import WD_ALIGN_PARAGRAPH, WD_TAB_ALIGNMENT
-from docx.oxml import parse_xml
+from docx.enum.text import WD_ALIGN_PARAGRAPH
+from docx.enum.table import WD_ALIGN_VERTICAL
+from docx.shared import Cm, Pt, RGBColor
 from docx.oxml.ns import qn
 from docx.oxml import OxmlElement
 
+from reportlab.lib import colors
+from reportlab.lib.enums import TA_CENTER
+from reportlab.lib.pagesizes import A4
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.units import cm
+from reportlab.platypus import Paragraph, Spacer, Table, TableStyle, PageBreak, Image, SimpleDocTemplate
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
+from PIL import Image as PILImage
+
 logger = logging.getLogger(__name__)
 
-FONT      = "Times New Roman"
-FONT_CV   = "Calibri"
-BLACK     = RGBColor(0x00,0x00,0x00)
-DARK      = RGBColor(0x1A,0x1A,0x1A)
-GREY_TXT  = RGBColor(0x66,0x66,0x66)
-GREY_DARK = RGBColor(0x44,0x44,0x44)
-LABEL_DARK = RGBColor(0x22,0x22,0x22)
-MUTED     = RGBColor(0xAA,0xAA,0xAA)
-ITALIC_C  = RGBColor(0x77,0x77,0x77)
-NAVY      = RGBColor(0x1A,0x3A,0x6B)
-NAVY_HEX  = "1A3A6B"
-NAVY_PALE = "E8EEF7"
-MUTED_CLR = RGBColor(0x5A,0x6A,0x8A)
-DARK_TEXT = RGBColor(0x0D,0x0D,0x1A)
-WHITE_HEX = "FFFFFF"
-BLK       = "000000"
-LGT       = "CCCCCC"
-FONT_SIZE = 10.5
-
-_OBY_LABELS = {
-    "uz_lat": {
-        "title":"MA'LUMOTNOMA","name_label":"F.I.SH.",
-        "bdate":"TUG'ILGAN YILI, KUNI VA OYI","bplace":"TUG'ILGAN JOYI",
-        "nation":"MILLATI","party":"PARTIYAVIYLIGI",
-        "edu":"MA'LUMOTI","grad":"TAMOMLAGAN",
-        "spec":"MUTAXASSISLIGI","degree":"ILMIY DARAJASI",
-        "stitle":"ILMIY UNVONI","langs":"CHET TILLARNI BILISHI",
-        "military":"HARBIY/MAXSUS UNVONI","awards":"DAVLAT MUKOFOTLARI",
-        "deputy":"DEPUTATLIK STATUSI","phone":"TELEFON",
-        "addr":"YASHASH MANZILI",
-        "work_title":"MEHNAT  FAOLIYATI",
-        "yillar":"YILLARI","lavozim":"ISH JOYI VA EGALLAGAN LAVOZIMLARI",
-        "rel_title":"YAQIN QARINDOSHLARI HAQIDA MA'LUMOT",
-        "rel_kin":"QARINDOSHLIGI","rel_fish":"F.I.SH.",
-        "rel_birth":"TUG'ILGAN YILI VA JOYI",
-        "rel_work":"ISH JOYI VA LAVOZIMI","rel_addr":"YASHASH MANZILI",
-        "photo":"3x4","no_data":"Ma'lumot yo'q",
+# Define labels for localization
+LABELS = {
+    'uz_l': {
+        'title': "MA'LUMOTNOMA",
+        'birthdate': "Tug'ilgan yili:",
+        'birthplace': "Tug'ilgan joyi:",
+        'nation': "Millati:",
+        'party': "Partiyaviyligi:",
+        'education': "Ma'lumoti:",
+        'graduated': "Tamomlagan:",
+        'specialty': "Ma'lumoti bo'yicha mutaxassisligi:",
+        'degree': "Ilmiy darajasi:",
+        'scititle': "Ilmiy unvoni:",
+        'langs': "Qaysi chet tillarini biladi:",
+        'military': "Harbiy unvoni:",
+        'awards': "Davlat mukofotlari bilan taqdirlanganmi (qanaqa):",
+        'deputy': "Xalq deputatlari respublika, viloyat, shahar va tuman Kengashi deputatimi yoki boshqa saylanadigan organlarning a'zosimi (to'liq ko'rsatilishi lozim):",
+        'work_title': "MEHNAT FAOLIYATI",
+        'work_empty': "Ish joylari qo'shilmagan",
+        'rel_title_suffix': "ning yaqin qarindoshlari haqida",
+        'rel_subtitle': "MA'LUMOTNOMA",
+        'rel_col1': "Qarindoshligi",
+        'rel_col2': "Familiyasi ismi va\notasining ismi",
+        'rel_col3': "Tug'ilgan yili\nva joyi",
+        'rel_col4': "Ish joyi va\nlavozimi",
+        'rel_col5': "Turar joyi",
+        'rel_empty': "Qarindoshlar qo'shilmagan",
+        'sample_watermark': "NAMUNA"
     },
-    "uz_cyr": {
-        "title":"МАЪЛУМОТНОМА","name_label":"Ф.И.Ш.",
-        "bdate":"ТУҒИЛГАН ЙИЛИ, КУНИ ВА ОЙИ","bplace":"ТУҒИЛГАН ЖОЙИ",
-        "nation":"МИЛЛАТИ","party":"ПАРТИЯВИЙЛИГИ",
-        "edu":"МАЪЛУМОТИ","grad":"ТАМОМЛАГАН",
-        "spec":"МУТАХАССИСЛИГИ","degree":"ИЛМИЙ ДАРАЖАСИ",
-        "stitle":"ИЛМИЙ УНВОНИ","langs":"ЧЕТ ТИЛЛАРНИ БИЛИШИ",
-        "military":"ҲАРБИЙ/МАХСУС УНВОНИ","awards":"ДАВЛАТ МУКОФОТЛАРИ",
-        "deputy":"ДЕПУТАТЛИК СТАТУСИ","phone":"ТЕЛЕФОН",
-        "addr":"ЯШАШ МАНЗИЛИ",
-        "work_title":"МЕҲНАТ  ФАОЛИЯТИ",
-        "yillar":"ЙИЛЛАРИ","lavozim":"ИШ ЖОЙИ ВА ЭГАЛЛАГАН ЛАВОЗИМЛАРИ",
-        "rel_title":"ЯҚИН ҚАРИНДОШЛАРИ ҲАҚИДА МАЪЛУМОТ",
-        "rel_kin":"ҚАРИНДОШЛИГИ","rel_fish":"Ф.И.Ш.",
-        "rel_birth":"ТУҒИЛГАН ЙИЛИ ВА ЖОЙИ",
-        "rel_work":"ИШ ЖОЙИ ВА ЛАВОЗИМИ","rel_addr":"ЯШАШ МАНЗИЛИ",
-        "photo":"3x4","no_data":"Маълумот йўқ",
-    },
-    "en": {
-        "title":"CURRICULUM VITAE","name_label":"Full Name",
-        "bdate":"DATE OF BIRTH","bplace":"PLACE OF BIRTH",
-        "nation":"NATIONALITY","party":"PARTY MEMBERSHIP",
-        "edu":"EDUCATION","grad":"GRADUATED FROM",
-        "spec":"SPECIALTY","degree":"ACADEMIC DEGREE",
-        "stitle":"ACADEMIC TITLE","langs":"FOREIGN LANGUAGES",
-        "military":"MILITARY RANK","awards":"STATE AWARDS",
-        "deputy":"DEPUTY STATUS","phone":"PHONE",
-        "addr":"HOME ADDRESS",
-        "work_title":"WORK  EXPERIENCE",
-        "yillar":"PERIOD","lavozim":"POSITION & WORKPLACE",
-        "rel_title":"CLOSE RELATIVES INFORMATION",
-        "rel_kin":"RELATIONSHIP","rel_fish":"FULL NAME",
-        "rel_birth":"YEAR & PLACE OF BIRTH",
-        "rel_work":"WORKPLACE & POSITION","rel_addr":"HOME ADDRESS",
-        "photo":"3x4","no_data":"No data",
-    },
-    "ru": {
-        "title":"ОБЪЕКТИВКА","name_label":"Ф.И.О.",
-        "bdate":"ГОД, ЧИСЛО И МЕСЯЦ РОЖДЕНИЯ","bplace":"МЕСТО РОЖДЕНИЯ",
-        "nation":"НАЦИОНАЛЬНОСТЬ","party":"ПАРТИЙНОСТЬ",
-        "edu":"ОБРАЗОВАНИЕ","grad":"ОКОНЧИЛ(А)",
-        "spec":"СПЕЦИАЛЬНОСТЬ","degree":"УЧЁНАЯ СТЕПЕНЬ",
-        "stitle":"УЧЁНОЕ ЗВАНИЕ","langs":"ИНОСТРАННЫЕ ЯЗЫКИ",
-        "military":"ВОИНСКОЕ ЗВАНИЕ","awards":"ГОСУДАРСТВЕННЫЕ НАГРАДЫ",
-        "deputy":"СТАТУС ДЕПУТАТА","phone":"ТЕЛЕФОН",
-        "addr":"ДОМАШНИЙ АДРЕС",
-        "work_title":"ТРУДОВАЯ  ДЕЯТЕЛЬНОСТЬ",
-        "yillar":"ГОДЫ","lavozim":"МЕСТО РАБОТЫ И ДОЛЖНОСТЬ",
-        "rel_title":"СВЕДЕНИЯ О БЛИЗКИХ РОДСТВЕННИКАХ",
-        "rel_kin":"СТЕПЕНЬ РОДСТВА","rel_fish":"Ф.И.О.",
-        "rel_birth":"ГОД И МЕСТО РОЖДЕНИЯ",
-        "rel_work":"МЕСТО РАБОТЫ И ДОЛЖНОСТЬ","rel_addr":"МЕСТО ЖИТЕЛЬСТВА",
-        "photo":"3x4","no_data":"Нет данных",
-    },
-}
-
-_CV_SECTIONS = {
-    "uz_lat":{"about":"Haqida","exp":"Ish Tajribasi","edu":"Ta'lim","skills":"Ko'nikmalar"},
-    "uz_cyr":{"about":"Ҳақида","exp":"Иш Тажрибаси","edu":"Таълим","skills":"Кўникмалар"},
-    "en":    {"about":"About","exp":"Experience","edu":"Education","skills":"Skills"},
-    "ru":    {"about":"О себе","exp":"Опыт работы","edu":"Образование","skills":"Навыки"},
-}
-
-# ── XML helpers (1:1 preview: padding 18mm 16mm 20mm 20mm) ─────────────────────
-def _margins(doc,top=1.8,bottom=2.0,left=2.0,right=1.6):
-    for s in doc.sections:
-        s.page_width=Mm(210);s.page_height=Mm(297)
-        s.top_margin=Cm(top);s.bottom_margin=Cm(bottom)
-        s.left_margin=Cm(left);s.right_margin=Cm(right)
-
-def _pw(doc):
-    s=doc.sections[0]
-    return s.page_width-s.left_margin-s.right_margin
-
-def _spc(p,before=0,after=0,line=1.15):
-    pPr=p._p.get_or_add_pPr()
-    sp=OxmlElement("w:spacing")
-    sp.set(qn("w:before"),str(int(before*20)))
-    sp.set(qn("w:after"),str(int(after*20)))
-    sp.set(qn("w:line"),str(int(line*240)))
-    sp.set(qn("w:lineRule"),"auto")
-    pPr.append(sp)
-
-def _run(p,text,bold=False,italic=False,size=11.0,color=None,font=FONT,lspc=None):
-    r=p.add_run(text)
-    r.bold=bold;r.italic=italic
-    r.font.name=font;r.font.size=Pt(size)
-    if color:r.font.color.rgb=color
-    if lspc is not None:
-        rPr=r._r.get_or_add_rPr()
-        sc=OxmlElement("w:spacing")
-        sc.set(qn("w:val"),str(int(lspc*20)))
-        rPr.append(sc)
-    return r
-
-def _no_tbl_bdr(tbl):
-    t=tbl._tbl
-    tblPr=t.find(qn("w:tblPr"))
-    if tblPr is None:
-        tblPr=OxmlElement("w:tblPr");t.insert(0,tblPr)
-    tb=OxmlElement("w:tblBorders")
-    for s in("top","left","bottom","right","insideH","insideV"):
-        b=OxmlElement(f"w:{s}")
-        b.set(qn("w:val"),"none");b.set(qn("w:sz"),"0")
-        b.set(qn("w:space"),"0");b.set(qn("w:color"),"auto")
-        tb.append(b)
-    tblPr.append(tb)
-
-def _col_w(tbl,pw,pcts):
-    for ci,pct in enumerate(pcts):
-        w=int(pw*pct/100)
-        for cell in tbl.columns[ci].cells:
-            tcPr=cell._tc.get_or_add_tcPr()
-            old=tcPr.find(qn("w:tcW"))
-            if old is not None:tcPr.remove(old)
-            tcW=OxmlElement("w:tcW")
-            tcW.set(qn("w:w"),str(w));tcW.set(qn("w:type"),"dxa")
-            tcPr.append(tcW)
-
-def _shading(cell,fill):
-    tcPr=cell._tc.get_or_add_tcPr()
-    shd=OxmlElement("w:shd")
-    shd.set(qn("w:val"),"clear");shd.set(qn("w:color"),"auto")
-    shd.set(qn("w:fill"),fill.lstrip("#"))
-    tcPr.append(shd)
-
-def _pad(cell,top=80,bottom=80,left=80,right=80):
-    tcPr=cell._tc.get_or_add_tcPr()
-    tcMar=OxmlElement("w:tcMar")
-    for s,v in[("top",top),("bottom",bottom),("left",left),("right",right)]:
-        m=OxmlElement(f"w:{s}");m.set(qn("w:w"),str(v));m.set(qn("w:type"),"dxa")
-        tcMar.append(m)
-    tcPr.append(tcMar)
-
-def _vcenter(cell):
-    tcPr=cell._tc.get_or_add_tcPr()
-    va=OxmlElement("w:vAlign");va.set(qn("w:val"),"center")
-    tcPr.append(va)
-
-def _bdr_none(cell):
-    tcPr=cell._tc.get_or_add_tcPr()
-    tb=OxmlElement("w:tcBorders")
-    for s in("top","left","bottom","right"):
-        b=OxmlElement(f"w:{s}");b.set(qn("w:val"),"none");tb.append(b)
-    tcPr.append(tb)
-
-def _bdr_bottom_only(cell,color="CCCCCC",sz="4"):
-    tcPr=cell._tc.get_or_add_tcPr()
-    tb=OxmlElement("w:tcBorders")
-    for s in ("top","left","right"):
-        b=OxmlElement(f"w:{s}");b.set(qn("w:val"),"none");tb.append(b)
-    bot=OxmlElement("w:bottom")
-    bot.set(qn("w:val"),"single");bot.set(qn("w:sz"),sz)
-    bot.set(qn("w:space"),"0");bot.set(qn("w:color"),color.lstrip("#") if hasattr(color,"lstrip") else color)
-    tb.append(bot);tcPr.append(tb)
-
-def _bdr_bottom(cell,color=LGT,sz="4"):
-    tcPr=cell._tc.get_or_add_tcPr()
-    tb=OxmlElement("w:tcBorders")
-    for s in("top","left","right"):
-        b=OxmlElement(f"w:{s}");b.set(qn("w:val"),"none");tb.append(b)
-    bot=OxmlElement("w:bottom")
-    bot.set(qn("w:val"),"single");bot.set(qn("w:sz"),sz)
-    bot.set(qn("w:space"),"0");bot.set(qn("w:color"),color.lstrip("#"))
-    tb.append(bot);tcPr.append(tb)
-
-def _bdr_all(cell,color=BLK,sz="4"):
-    tcPr=cell._tc.get_or_add_tcPr()
-    tb=OxmlElement("w:tcBorders")
-    for s in("top","left","bottom","right"):
-        b=OxmlElement(f"w:{s}")
-        b.set(qn("w:val"),"single");b.set(qn("w:sz"),sz)
-        b.set(qn("w:space"),"0");b.set(qn("w:color"),color.lstrip("#"))
-        tb.append(b)
-    tcPr.append(tb)
-
-def _bdr_dashed(cell,color="AAAAAA",sz="6"):
-    tcPr=cell._tc.get_or_add_tcPr()
-    tb=OxmlElement("w:tcBorders")
-    for s in("top","left","bottom","right"):
-        b=OxmlElement(f"w:{s}")
-        b.set(qn("w:val"),"dashed");b.set(qn("w:sz"),sz)
-        b.set(qn("w:space"),"0");b.set(qn("w:color"),color.lstrip("#"))
-        tb.append(b)
-    tcPr.append(tb)
-
-def _para_bdr_bot(p,color=BLK,sz="8"):
-    pPr=p._p.get_or_add_pPr()
-    pBdr=OxmlElement("w:pBdr")
-    bot=OxmlElement("w:bottom")
-    bot.set(qn("w:val"),"single");bot.set(qn("w:sz"),sz)
-    bot.set(qn("w:space"),"6");bot.set(qn("w:color"),color.lstrip("#"))
-    pBdr.append(bot);pPr.append(pBdr)
-
-# ── Components (1:1 preview: sect-title 14pt, letter-spacing 3px) ───────────────
-def _sect_title(doc,text):
-    p=doc.add_paragraph()
-    p.alignment=WD_ALIGN_PARAGRAPH.LEFT
-    _spc(p,before=0,after=12,line=1.0)
-    _para_bdr_bot(p,BLK,"8")
-    _run(p,text,bold=True,size=14.0,color=BLACK,lspc=3.0)
-
-def _info_row_2(doc,pw,lbl1,val1,lbl2,val2):
-    t=doc.add_table(rows=1,cols=2)
-    _no_tbl_bdr(t);t.autofit=False
-    _col_w(t,pw,[50,50])
-    for j,(lbl,val) in enumerate([(lbl1,val1),(lbl2,val2)]):
-        c=t.cell(0,j)
-        _shading(c,WHITE_HEX)
-        _bdr_none(c)
-        # Match HTML-ish paddings: ~10px vertical, left column has extra right gap (~24px)
-        _pad(c,top=90,bottom=70,left=0,right=360 if j==0 else 0)
-        p_lbl=c.paragraphs[0]
-        _spc(p_lbl,before=0,after=0,line=1.0)
-        _run(p_lbl,lbl,size=9.0,color=GREY_TXT,lspc=1.0)
-        p_val=c.add_paragraph()
-        # Values with a bit more line height to resemble HTML line-height: 1.5
-        _spc(p_val,before=2,after=0,line=1.5)
-        _run(p_val,val or "",size=12.0,color=BLACK)
-
-def _info_row_1(doc,pw,lbl,val):
-    t=doc.add_table(rows=1,cols=1)
-    _no_tbl_bdr(t);t.autofit=False
-    _col_w(t,pw,[100])
-    c=t.cell(0,0)
-    _shading(c,WHITE_HEX)
-    _bdr_none(c)
-    _pad(c,top=90,bottom=70,left=0,right=0)
-    p_lbl=c.paragraphs[0]
-    _spc(p_lbl,before=0,after=0,line=1.0)
-    _run(p_lbl,lbl,size=9.0,color=GREY_TXT,lspc=1.0)
-    p_val=c.add_paragraph()
-    _spc(p_val,before=2,after=0,line=1.5)
-    _run(p_val,val or "",size=12.0,color=BLACK)
-
-def _bdr_top_bottom(cell,col="000000",sz="8"):
-    tcPr=cell._tc.get_or_add_tcPr()
-    tb=OxmlElement("w:tcBorders")
-    for s in ("top","bottom"):
-        b=OxmlElement(f"w:{s}")
-        b.set(qn("w:val"),"single");b.set(qn("w:sz"),sz)
-        b.set(qn("w:space"),"0");b.set(qn("w:color"),col.lstrip("#") if isinstance(col,str) else "000000")
-        tb.append(b)
-    for s in ("left","right"):
-        b=OxmlElement(f"w:{s}");b.set(qn("w:val"),"none");tb.append(b)
-    tcPr.append(tb)
-
-def _empty_state(doc,text):
-    p=doc.add_paragraph()
-    p.alignment=WD_ALIGN_PARAGRAPH.CENTER
-    _spc(p,before=12,after=12,line=1.0)
-    _run(p,text,italic=True,size=11.0,color=RGBColor(0x88,0x88,0x88))
-
-def _set_tabs_2col(p, left_col_w_cm: float):
-    """Create a consistent 2-column layout using a single tab stop."""
-    try:
-        p.paragraph_format.tab_stops.clear_all()
-    except Exception:
-        pass
-    p.paragraph_format.tab_stops.add_tab_stop(Cm(left_col_w_cm), alignment=WD_TAB_ALIGNMENT.LEFT)
-
-def _set_tab_right(p, pos_cm: float):
-    """Right-aligned tab stop (for photo on the right)."""
-    try:
-        p.paragraph_format.tab_stops.clear_all()
-    except Exception:
-        pass
-    p.paragraph_format.tab_stops.add_tab_stop(Cm(pos_cm), alignment=WD_TAB_ALIGNMENT.RIGHT)
-
-def _cm_to_pt(cm: float) -> float:
-    return cm * 28.3464567
-
-def _add_vml_dashed_box(run, width_cm: float, height_cm: float, text: str = "3×4"):
-    """
-    Insert a dashed rectangle placeholder WITHOUT tables.
-    Uses VML so Word renders a real border (not gridlines).
-    """
-    # NOTE: Use cm units directly in VML style.
-    # Some Word viewers mis-handle pt sizing in w:pict, but cm is reliable.
-    # Use v:rect (more stable than v:shape in many Word viewers)
-    xml = f"""
-    <w:pict xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"
-            xmlns:v="urn:schemas-microsoft-com:vml"
-            xmlns:o="urn:schemas-microsoft-com:office:office">
-      <v:rect id="oby_photo_ph"
-              style="width:{width_cm:.2f}cm;height:{height_cm:.2f}cm;v-text-anchor:middle"
-              strokecolor="#CCCCCC" fillcolor="#FFFFFF">
-        <v:stroke dashstyle="dash" endcap="flat"/>
-        <v:textbox inset="0pt,0pt,0pt,0pt" style="mso-fit-shape-to-text:t">
-          <w:txbxContent>
-            <w:p>
-              <w:pPr>
-                <w:jc w:val="center"/>
-              </w:pPr>
-              <w:r>
-                <w:rPr>
-                  <w:rFonts w:ascii="{FONT}" w:hAnsi="{FONT}"/>
-                  <w:sz w:val="18"/>
-                  <w:color w:val="999999"/>
-                </w:rPr>
-                <w:t>{text}</w:t>
-              </w:r>
-            </w:p>
-          </w:txbxContent>
-        </v:textbox>
-      </v:rect>
-    </w:pict>
-    """.strip()
-
-    run._r.append(parse_xml(xml))
-
-def _info_pair_tabs(doc, left_col_w_cm: float, lbl1: str, val1: str, lbl2: str, val2: str):
-    """
-    Tableless 2-col row: label line then value line (preview-like).
-    Avoids Word table gridlines completely.
-    """
-    p_lbl = doc.add_paragraph()
-    _set_tabs_2col(p_lbl, left_col_w_cm)
-    _spc(p_lbl, before=0, after=0, line=1.0)
-    _run(p_lbl, lbl1, bold=True, size=9.5, color=DARK, lspc=0.8)
-    p_lbl.add_run("\t")
-    _run(p_lbl, lbl2, bold=True, size=9.5, color=DARK, lspc=0.8)
-
-    p_val = doc.add_paragraph()
-    _set_tabs_2col(p_val, left_col_w_cm)
-    _spc(p_val, before=2, after=8, line=1.5)
-    _run(p_val, val1 or "", size=12.0, color=BLACK)
-    p_val.add_run("\t")
-    _run(p_val, val2 or "", size=12.0, color=BLACK)
-
-def _info_single_tabs(doc, lbl: str, val: str):
-    p_lbl = doc.add_paragraph()
-    _spc(p_lbl, before=0, after=0, line=1.0)
-    _run(p_lbl, lbl, bold=True, size=9.5, color=DARK, lspc=0.8)
-
-    p_val = doc.add_paragraph()
-    _spc(p_val, before=2, after=8, line=1.5)
-    _run(p_val, val or "", size=12.0, color=BLACK)
-
-def _pick_current_job(work_experience: list) -> tuple[str, str] | None:
-    """
-    Return (position, year) for the 'current' (last / present) job if found.
-    Heuristics:
-    - Prefer entries whose year contains 'h.v' / 'hozir' / 'present' or ends with '-' (open-ended)
-    - Otherwise, fall back to the last non-empty entry.
-    """
-    if not work_experience:
-        return None
-
-    def _norm(s: str) -> str:
-        return (s or "").strip().lower()
-
-    candidates: list[tuple[int, str, str]] = []
-    for i, w in enumerate(work_experience):
-        year = (w.get("year") or w.get("years") or w.get("f") or "").strip()
-        pos  = (w.get("position") or w.get("pos") or w.get("d") or "").strip()
-        if not (year or pos):
-            continue
-        candidates.append((i, pos, year))
-
-    if not candidates:
-        return None
-
-    for _, pos, year in candidates:
-        y = _norm(year)
-        if "h.v" in y or "hozir" in y or "present" in y or y.endswith("-"):
-            return (pos, year)
-
-    # fallback: last provided entry
-    _, pos, year = candidates[-1]
-    return (pos, year)
-
-def _work_table(doc,pw,lb,works):
-    if not works:
-        return _empty_state(doc,lb["no_data"])
-    t=doc.add_table(rows=1+len(works),cols=2)
-    _no_tbl_bdr(t);t.autofit=False
-    _col_w(t,pw,[26,74])
-    for j,txt in enumerate([lb["yillar"],lb["lavozim"]]):
-        c=t.cell(0,j)
-        _shading(c,WHITE_HEX)
-        _bdr_top_bottom(c,"000000","8")
-        _pad(c,top=100,bottom=100,left=100 if j==0 else 120,right=80)
-        p=c.paragraphs[0]
-        _spc(p,before=0,after=0,line=1.0)
-        _run(p,txt,bold=True,size=11.0,color=BLACK,lspc=1.0)
-    if works:
-        for i,w in enumerate(works):
-            year=w.get("year","") or w.get("years","") or w.get("f","") or ""
-            pos=w.get("position","") or w.get("pos","") or w.get("d","") or ""
-            for j,(c,val) in enumerate([(t.cell(1+i,0),year),(t.cell(1+i,1),pos)]):
-                _bdr_bottom_only(c,"CCCCCC","4")
-                _pad(c,top=96,bottom=96,left=100 if j==0 else 120,right=80)
-                p=c.paragraphs[0]
-                _spc(p,before=0,after=0,line=1.15)
-                r=_run(p,val,size=11.5,color=BLACK)
-                if j==0: r.bold=True
-
-def _rel_table(doc,pw,lb,rels):
-    if not rels:
-        return _empty_state(doc,lb["no_data"])
-    t=doc.add_table(rows=1+len(rels),cols=5)
-    _no_tbl_bdr(t);t.autofit=False
-    _col_w(t,pw,[12,22,18,26,22])
-    hdrs=[lb["rel_kin"],lb["rel_fish"],lb["rel_birth"],lb["rel_work"],lb["rel_addr"]]
-    for j,txt in enumerate(hdrs):
-        c=t.cell(0,j)
-        _shading(c,"EFEFEF")
-        _bdr_all(c,"000000","4")
-        _pad(c,top=70,bottom=70,left=60,right=60)
-        p=c.paragraphs[0]
-        p.alignment=WD_ALIGN_PARAGRAPH.CENTER
-        _spc(p,before=0,after=0,line=1.1)
-        _run(p,txt,bold=True,size=10.0,color=BLACK,lspc=0.5)
-    if rels:
-        for i,rel in enumerate(rels):
-            vals=[
-                rel.get("degree","") or rel.get("kin",""),
-                rel.get("fullname","") or rel.get("fish",""),
-                rel.get("birth_year_place","") or rel.get("birth",""),
-                rel.get("work_place","") or rel.get("work",""),
-                rel.get("address","") or rel.get("addr",""),
-            ]
-            for j,val in enumerate(vals):
-                c=t.cell(1+i,j);_bdr_all(c,"000000","4")
-                _pad(c,top=80,bottom=80,left=60,right=60)
-                p=c.paragraphs[0]
-                p.alignment=WD_ALIGN_PARAGRAPH.CENTER
-                _spc(p,before=0,after=0,line=1.1)
-                _run(p,val or "",size=10.0,color=BLACK)
-
-# ── MAIN FUNCTIONS ────────────────────────────────────────────────────────────
-def generate_obyektivka_docx(data:dict, photo_path:str|None=None,
-                              output_filepath:str|None=None,
-                              output_dir:str="temp") -> str:
-    lang=data.get("lang","uz_lat") or "uz_lat"
-    lb=_OBY_LABELS.get(lang,_OBY_LABELS["uz_lat"])
-    g=data.get
-    if output_filepath is None:
-        os.makedirs(output_dir,exist_ok=True)
-        safe=(g("fullname","") or "unknown").replace(" ","_").replace("/","_")
-        output_filepath=os.path.join(output_dir,f"obyektivka_{safe}_@DastyorAiBot.docx")
-    doc=Document()
-    # USER GRID: A4, Top 2.5cm, Bottom 2cm, Left 2.5cm, Right 2.5cm
-    _margins(doc, top=2.5, bottom=2.0, left=2.5, right=2.5)
-    ns=doc.styles["Normal"]
-    ns.font.name=FONT;ns.font.size=Pt(11)
-    ns.paragraph_format.space_before=Pt(0)
-    ns.paragraph_format.space_after=Pt(0)
-    pw=_pw(doc)
-    # Content width: 21cm - 2.5cm - 2.5cm = 16cm
-    # USER GRID: column gap target ~7–8cm ⇒ set right col start at 8cm
-    left_col_w_cm = 8.0
-    right_edge_cm = 16.0
-
-    # 1. Sarlavha (preview: 20pt, margin-bottom 36px)
-    p_t=doc.add_paragraph()
-    p_t.alignment=WD_ALIGN_PARAGRAPH.CENTER
-    # USER GRID: Title top distance 3cm.
-    # With top margin 2.5cm, add ~0.5cm (~14pt) before spacing.
-    _spc(p_t,before=14,after=71,line=1.0)  # after=2.5cm ≈ 71pt to F.I.SH block
-    _run(p_t,lb["title"],bold=True,size=18.0,color=BLACK,lspc=4.0)
-
-    # 2. Ism | Foto (TABLELESS to avoid gridlines)
-    # Left: name label + name, Right: photo (or "3x4") aligned to the right margin.
-    p_hdr = doc.add_paragraph()
-    _set_tab_right(p_hdr, right_edge_cm)
-    _spc(p_hdr, before=0, after=17, line=1.0)  # USER GRID: 0.6cm ≈ 17pt between label and name
-    _run(p_hdr, lb["name_label"], size=10.0, color=DARK, lspc=1.0)
-    p_hdr.add_run("\t")
-    has_photo = bool(photo_path and os.path.exists(photo_path))
-    if has_photo:
-        r = p_hdr.add_run()
-        # USER GRID: 3.5cm x 4.5cm
-        r.add_picture(photo_path, width=Cm(3.5), height=Cm(4.5))
-    else:
-        ph_run = p_hdr.add_run()
-        _add_vml_dashed_box(ph_run, 3.5, 4.5, lb.get("photo", "3×4"))
-
-    p_name = doc.add_paragraph()
-    _set_tab_right(p_name, right_edge_cm)
-    # USER GRID: Name 14pt bold, then 3cm gap before the info grid.
-    # If current job exists, show it under the name (within this 3cm area).
-    _spc(p_name, before=0, after=0, line=1.2)
-    _run(p_name, (g("fullname","") or "").upper(), bold=True, size=14.0, color=BLACK, lspc=0.5)
-    p_name.add_run("\t")
-    p_name.add_run("")  # keep tab stop effective
-
-    # Prefer explicit current_job from frontend (more reliable), else infer from work_experience
-    role = (g("current_job", "") or "").strip()
-    role_year = (g("current_job_year", "") or "").strip()
-    if not role and not role_year:
-        cj = _pick_current_job(g("work_experience", []) or [])
-        if cj:
-            role, role_year = (cj[0] or "").strip(), (cj[1] or "").strip()
-
-    if role or role_year:
-        role_line = role
-        if role_year and role_year not in role_line:
-            role_line = f"{role_line} ({role_year})" if role_line else role_year
-
-        p_role = doc.add_paragraph()
-        _set_tab_right(p_role, right_edge_cm)
-        # Keep overall spacing similar, but slightly tighter than a full blank gap
-        _spc(p_role, before=0, after=85, line=1.15)  # keep 3cm to the info grid
-        _run(p_role, role_line, italic=True, size=11.0, color=DARK, lspc=0.2)
-        p_role.add_run("\t")
-        p_role.add_run("")
-    else:
-        # No role line → keep the 3cm gap here
-        sp_gap = doc.add_paragraph()
-        _spc(sp_gap, before=0, after=85, line=1.0)
-
-    # 3. Info
-    pairs=[
-        (lb["bdate"],g("birthdate","") or g("bdate",""),lb["bplace"],g("birthplace","") or g("bplace","")),
-        (lb["nation"],g("nation",""),lb["party"],g("party","")),
-        (lb["edu"],g("education","") or g("edu",""),lb["grad"],g("graduated","") or g("grad","")),
-        (lb["spec"],g("specialty","") or g("spec",""),lb["degree"],g("degree","")),
-        (lb["stitle"],g("scientific_title","") or g("stitle",""),lb["langs"],g("languages","") or g("langs","")),
-        (lb["military"],g("military_rank","") or g("military",""),lb["awards"],g("awards","")),
-        (lb["deputy"],g("deputy",""),lb["phone"],g("phone","")),
-    ]
-    for lbl1,val1,lbl2,val2 in pairs:
-        _info_pair_tabs(doc,left_col_w_cm,lbl1,val1,lbl2,val2)
-    _info_single_tabs(doc,lb["addr"],g("address","") or g("addr",""))
-
-    # 4. Mehnat faoliyati (preview section-header margin-top 40px)
-    sp2=doc.add_paragraph();_spc(sp2,before=0,after=28)
-    _sect_title(doc,lb["work_title"])
-    _work_table(doc,pw,lb,g("work_experience",[]) or [])
-
-    # 5. Qarindoshlar (preview margin-top 40px)
-    sp3=doc.add_paragraph();_spc(sp3,before=0,after=28)
-    fname=(g("fullname","") or "").split()[0].upper() if g("fullname","") else ""
-    rel_h=lb["rel_title"] if lang=="ru" else (f"{fname} {lb['rel_title']}" if fname else lb["rel_title"])
-    _sect_title(doc,rel_h)
-    _rel_table(doc,pw,lb,g("relatives",[]) or [])
-
-    doc.save(output_filepath)
-    return output_filepath
-
-
-def generate_cv_docx(data:dict, output_dir:str="temp") -> str:
-    os.makedirs(output_dir,exist_ok=True)
-    lang=data.get("lang","uz_lat")
-    if lang not in _CV_SECTIONS:lang="uz_lat"
-    sec=_CV_SECTIONS[lang]
-    safe=(data.get("name","") or "unknown").replace(" ","_").replace("/","_")
-    template=(data.get("template","minimal") or "minimal").lower()
-    filepath=os.path.join(output_dir,f"cv_{safe}_{template}_@DastyorAiBot.docx")
-    doc=Document()
-    _margins(doc,top=1.5,bottom=1.5,left=2.0,right=1.5)
-    pw=_pw(doc)
-
-    def _cv_head(text,level=1,center=False):
-        p=doc.add_paragraph()
-        p.alignment=WD_ALIGN_PARAGRAPH.CENTER if center else WD_ALIGN_PARAGRAPH.LEFT
-        _spc(p,before=0,after=4 if level>0 else 6,line=1.15)
-        sizes={0:20.0,1:12.5,2:11.0}
-        _run(p,text.upper() if level<=1 else text,bold=True,font=FONT_CV,
-             size=sizes.get(level,11.0),
-             color=NAVY if level==1 else DARK_TEXT,
-             lspc=2.5 if level==1 else 0)
-        if level==1:_para_bdr_bot(p,NAVY_HEX,"6")
-
-    def _cv_para(text,size=10.5,italic=False,bold=False,center=False,indent=0.0):
-        p=doc.add_paragraph()
-        p.alignment=WD_ALIGN_PARAGRAPH.CENTER if center else WD_ALIGN_PARAGRAPH.LEFT
-        _spc(p,before=0,after=3,line=1.2)
-        if indent:p.paragraph_format.left_indent=Cm(indent)
-        _run(p,text,italic=italic,bold=bold,size=size,font=FONT_CV,color=DARK_TEXT)
-
-    nt=doc.add_table(rows=1,cols=1)
-    _no_tbl_bdr(nt);_col_w(nt,pw,[100])
-    nc=nt.cell(0,0)
-    _shading(nc,NAVY_PALE)
-    tcPr=nc._tc.get_or_add_tcPr()
-    tb=OxmlElement("w:tcBorders")
-    for s,col,sz in[("top",NAVY_HEX,"20"),("bottom",NAVY_HEX,"20"),("left",NAVY_HEX,"28")]:
-        b=OxmlElement(f"w:{s}")
-        b.set(qn("w:val"),"single");b.set(qn("w:sz"),sz)
-        b.set(qn("w:space"),"0");b.set(qn("w:color"),col)
-        tb.append(b)
-    br=OxmlElement("w:right");br.set(qn("w:val"),"none");tb.append(br)
-    tcPr.append(tb)
-    _pad(nc,top=160,bottom=160,left=200,right=120)
-    np_=nc.paragraphs[0]
-    _spc(np_,before=0,after=4,line=1.1)
-    _run(np_,(data.get("name","") or "").upper(),bold=True,size=18.0,font=FONT_CV,color=NAVY)
-    rp=nc.add_paragraph()
-    _spc(rp,before=2,after=0,line=1.0)
-    _run(rp,data.get("spec","") or data.get("role",""),italic=True,size=11.0,font=FONT_CV,color=MUTED_CLR)
-
-    sp=doc.add_paragraph();_spc(sp,before=0,after=6)
-    parts=[]
-    if data.get("phone"):parts.append(f"📞 {data['phone']}")
-    if data.get("email"):parts.append(f"✉ {data['email']}")
-    if data.get("loc"):parts.append(f"📍 {data['loc']}")
-    if parts:
-        cp=doc.add_paragraph()
-        cp.alignment=WD_ALIGN_PARAGRAPH.CENTER
-        _spc(cp,before=0,after=8,line=1.0)
-        _run(cp,"  •  ".join(parts),size=9.5,font=FONT_CV,color=MUTED_CLR)
-
-    if data.get("about"):
-        _cv_head(sec["about"]);_cv_para(data["about"])
-        sp2=doc.add_paragraph();_spc(sp2,before=0,after=6)
-
-    works=data.get("works",[]) or data.get("work_experience",[]) or []
-    if works:
-        _cv_head(sec["exp"])
-        for w in works:
-            fy=w.get("f","") or w.get("from","") or w.get("year","")
-            ty=w.get("t","") or w.get("to","")
-            period=f"{fy} – {ty}" if ty else fy
-            if not period and w.get("date"):period=w["date"]
-            title_=w.get("title","") or w.get("pos","")
-            co=w.get("company","") or w.get("co","")
-            desc=w.get("d","") or w.get("position","") or w.get("desc","") or ""
-            rp2=doc.add_paragraph();_spc(rp2,before=6,after=1,line=1.1)
-            _run(rp2,title_ or period,bold=True,size=10.5,font=FONT_CV,color=NAVY)
-            if co:_run(rp2,f"  —  {co}",size=10.0,font=FONT_CV,color=MUTED_CLR)
-            if period and title_:
-                sp_=doc.add_paragraph();_spc(sp_,before=0,after=1,line=1.0)
-                _run(sp_,period,italic=True,size=9.0,font=FONT_CV,color=MUTED_CLR)
-            if desc:_cv_para(desc,size=10.0,indent=0.3)
-        sp3=doc.add_paragraph();_spc(sp3,before=0,after=6)
-
-    edus=data.get("education_list",[]) or []
-    if edus or data.get("edu") or data.get("grad"):
-        _cv_head(sec["edu"])
-        if edus:
-            for edu in edus:
-                ep=doc.add_paragraph();_spc(ep,before=5,after=1,line=1.1)
-                _run(ep,edu.get("title","") or edu.get("name",""),bold=True,size=10.5,font=FONT_CV,color=NAVY)
-                det=[x for x in[edu.get("date") or edu.get("year"),edu.get("company") or edu.get("field")]if x]
-                if det:_run(ep,f"  —  {', '.join(det)}",size=9.5,font=FONT_CV,color=MUTED_CLR)
-        else:
-            if data.get("edu"):_cv_para(f"• {data['edu']}")
-            if data.get("grad"):_cv_para(f"• {data['grad']}")
-        sp4=doc.add_paragraph();_spc(sp4,before=0,after=6)
-
-    skills_raw=data.get("skills","") or ""
-    skills=[s.strip() for s in skills_raw.replace(",","\n").splitlines() if s.strip()]
-    if skills:
-        _cv_head(sec["skills"])
-        skp=doc.add_paragraph();_spc(skp,before=3,after=3,line=1.3)
-        _run(skp,"  •  ".join(skills),size=10.0,font=FONT_CV,color=DARK_TEXT)
-
-    doc.save(filepath)
-    return filepath
-
-
-def convert_to_pdf_safe(docx_path:str, output_dir:str="temp") -> str|None:
-    pdf_path=docx_path.replace(".docx",".pdf")
-    os.makedirs(output_dir,exist_ok=True)
-    try:
-        from docx2pdf import convert
-        convert(docx_path,pdf_path)
-        if os.path.exists(pdf_path):return pdf_path
-    except Exception as e:logger.debug(f"docx2pdf:{e}")
-    try:
-        import subprocess
-        subprocess.run(["libreoffice","--headless","--convert-to","pdf",docx_path,"--outdir",output_dir],
-                       check=True,timeout=60,capture_output=True)
-        if os.path.exists(pdf_path):return pdf_path
-    except Exception as e:logger.debug(f"LibreOffice:{e}")
-    return None
-
-
-if __name__=="__main__":
-    sample={
-        "lang":"uz_lat","fullname":"Karimov Jasur Abdullayevich",
-        "birthdate":"15.03.1985","birthplace":"Toshkent shahri",
-        "nation":"O'zbek","party":"Yo'q","education":"Oliy","graduated":"TDTU",
-        "specialty":"Muhandis","degree":"PhD","scientific_title":"Dotsent",
-        "languages":"Ingliz, Rus","military":"Leytenant",
-        "awards":"Mehnat shuhrati","deputy":"Yo'q",
-        "phone":"+998 90 123 45 67","address":"Toshkent sh., 22-uy",
-        "work_experience":[
-            {"year":"2005–2010","position":"TDTU — Muhandis"},
-            {"year":"2010–2015","position":"Texnopark — Bosh muhandis"},
-            {"year":"2015–hozir","position":"O'zbekiston FA — Lab. mudiri"},
-        ],
-        "relatives":[
-            {"degree":"Xotini","fullname":"Karimova Dilnoza",
-             "birth_year_place":"1987, Toshkent","work_place":"1-maktab","address":"Toshkent"},
-            {"degree":"O'g'li","fullname":"Karimov Amir",
-             "birth_year_place":"2010, Toshkent","work_place":"O'quvchi","address":"Toshkent"},
-        ],
+    'uz_k': {
+        'title': "МАЪЛУМОТНОМА",
+        'birthdate': "Туғилган йили:",
+        'birthplace': "Туғилган жойи:",
+        'nation': "Миллати:",
+        'party': "Партиявийлиги:",
+        'education': "Маълумоти:",
+        'graduated': "Тамомлаган:",
+        'specialty': "Маълумоти бўйича мутахассислиги:",
+        'degree': "Илмий даражаси:",
+        'scititle': "Илмий унвони:",
+        'langs': "Қайси чет тилларини билади:",
+        'military': "Ҳарбий унвони:",
+        'awards': "Давлат мукофотлари билан тақдирланганми (қанақа):",
+        'deputy': "Халқ депутатлари республика, вилоят, шаҳар ва туман Кенгаши депутатими ёки бошқа сайланадиган органларнинг аъзосими (тўлиқ кўрсатилиши лозим):",
+        'work_title': "МЕҲНАТ ФАОЛИЯТИ",
+        'work_empty': "Иш жойлари қўшилмаган",
+        'rel_title_suffix': "нинг яқин қариндошлари ҳақида",
+        'rel_subtitle': "МАЪЛУМОТНОМА",
+        'rel_col1': "Қариндошлиги",
+        'rel_col2': "Фамилияси исми ва\nотасининг исми",
+        'rel_col3': "Туғилган йили\nва жойи",
+        'rel_col4': "Иш жойи ва\nлавозими",
+        'rel_col5': "Турар жойи",
+        'rel_empty': "Қариндошлар қўшилмаган",
+        'sample_watermark': "НАМУНА"
     }
-    empty={"lang":"uz_lat","fullname":"Asad","birthplace":"Sad","nation":"Sda",
-           "work_experience":[],"relatives":[]}
-    out1=generate_obyektivka_docx(sample,"","/home/claude/test_new_full.docx")
-    out2=generate_obyektivka_docx(empty,"","/home/claude/test_new_empty.docx")
-    print(f"✓ To'liq: {out1}")
-    print(f"✓ Bo'sh:  {out2}")
+}
+
+# Register Fonts for Cyrillic support
+FONT_NAME_REGULAR = 'Helvetica'
+FONT_NAME_BOLD = 'Helvetica-Bold'
+CYRILLIC_SUPPORTED = False
+
+try:
+    # 1. Try to load local fonts first (user provided)
+    local_font_dir = os.path.join(os.path.dirname(__file__), 'fonts')
+    times_ttf = os.path.join(local_font_dir, 'times.ttf')
+    times_bd_ttf = os.path.join(local_font_dir, 'timesbd.ttf')
+    
+    if os.path.exists(times_ttf) and os.path.exists(times_bd_ttf):
+        pdfmetrics.registerFont(TTFont('Times-Roman', times_ttf))
+        pdfmetrics.registerFont(TTFont('Times-Bold', times_bd_ttf))
+        FONT_NAME_REGULAR = 'Times-Roman'
+        FONT_NAME_BOLD = 'Times-Bold'
+        CYRILLIC_SUPPORTED = True
+    else:
+        # 2. Try Windows system fonts
+        win_times = 'C:\\Windows\\Fonts\\times.ttf'
+        win_times_bd = 'C:\\Windows\\Fonts\\timesbd.ttf'
+        
+        if os.path.exists(win_times) and os.path.exists(win_times_bd):
+            pdfmetrics.registerFont(TTFont('Times-Roman', win_times))
+            pdfmetrics.registerFont(TTFont('Times-Bold', win_times_bd))
+            FONT_NAME_REGULAR = 'Times-Roman'
+            FONT_NAME_BOLD = 'Times-Bold'
+            CYRILLIC_SUPPORTED = True
+        else:
+            # 3. Try Linux system fonts (DejaVu Sans - common on Render/Linux)
+            # List of candidate font paths for Linux
+            linux_fonts = [
+                # Regular, Bold
+                ('/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf', '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf'),
+                ('/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf', '/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf'),
+                ('/usr/share/fonts/truetype/freefont/FreeSans.ttf', '/usr/share/fonts/truetype/freefont/FreeSansBold.ttf'),
+            ]
+            
+            font_found = False
+            for reg_path, bold_path in linux_fonts:
+                if os.path.exists(reg_path) and os.path.exists(bold_path):
+                    # Register as 'CustomFont' to avoid name collision issues
+                    pdfmetrics.registerFont(TTFont('CustomFont', reg_path))
+                    pdfmetrics.registerFont(TTFont('CustomFont-Bold', bold_path))
+                    FONT_NAME_REGULAR = 'CustomFont'
+                    FONT_NAME_BOLD = 'CustomFont-Bold'
+                    CYRILLIC_SUPPORTED = True
+                    font_found = True
+                    logger.info(f"Using Linux font: {reg_path}")
+                    break
+            
+            if not font_found:
+                 logger.warning("No suitable Cyrillic font found. Falling back to Helvetica.")
+
+except Exception as e:
+    logger.warning(f"Could not register system fonts: {e}. Using default fonts (Cyrillic may not display correctly).")
+    # FONT_NAME_REGULAR defaults to Helvetica
+
+
+def latin_to_cyrillic(text: str) -> str:
+    """Simple Latin to Cyrillic converter for Uzbek."""
+    if not text:
+        return ""
+    
+    mapping = {
+        "Ya": "Я", "ya": "я", "Yu": "Ю", "yu": "ю", "Sh": "Ш", "sh": "ш", "Ch": "Ч", "ch": "ч",
+        "O'": "Ў", "o'": "ў", "G'": "Ғ", "g'": "ғ", "Yo": "Ё", "yo": "ё",
+        "A": "А", "a": "а", "B": "Б", "b": "б", "D": "Д", "d": "д", "E": "Е", "e": "е",
+        "F": "Ф", "f": "ф", "G": "Г", "g": "г", "H": "Ҳ", "h": "ҳ", "I": "И", "i": "и",
+        "J": "Ж", "j": "ж", "K": "К", "k": "к", "L": "Л", "l": "л", "M": "М", "m": "м",
+        "N": "Н", "n": "н", "O": "О", "o": "о", "P": "П", "p": "п", "Q": "Қ", "q": "қ",
+        "R": "Р", "r": "р", "S": "С", "s": "с", "T": "Т", "t": "т", "U": "У", "u": "у",
+        "V": "В", "v": "в", "X": "Х", "x": "х", "Y": "Й", "y": "й", "Z": "З", "z": "з",
+        "'": "ъ"
+    }
+    
+    # First handle multi-char sequences (greedy match)
+    for lat, cyr in [
+        ("Ya", "Я"), ("ya", "я"), ("Yu", "Ю"), ("yu", "ю"), ("Sh", "Ш"), ("sh", "ш"), ("Ch", "Ч"), ("ch", "ч"),
+        ("O'", "Ў"), ("o'", "ў"), ("G'", "Ғ"), ("g'", "ғ"), ("Yo", "Ё"), ("yo", "ё")
+    ]:
+        text = text.replace(lat, cyr)
+    
+    # Then single chars
+    result = []
+    for char in text:
+        result.append(mapping.get(char, char))
+    
+    return "".join(result)
+
+
+class ObyektivkaGenerator:
+    """Generator for professional obyektivka documents."""
+    
+    def __init__(self, data: Dict[str, Any], lang: str = 'uz_l', is_sample: bool = False):
+        """
+        Initialize generator with obyektivka data.
+        
+        Args:
+            data: Dictionary containing all obyektivka fields
+            lang: Language code ('uz_l' or 'uz_k')
+            is_sample: If True, adds 'NAMUNA' watermark (only for Word/PDF logic that supports it)
+        """
+        self.data = data
+        self.lang = lang if lang in LABELS else 'uz_l'
+        self.labels = LABELS[self.lang]
+        self.is_sample = is_sample
+        
+        self.fullname = data.get('fullname', '').strip()
+        self.birthdate = data.get('birthdate', '').strip()
+        self.birthplace = data.get('birthplace', '').strip()
+        self.nation = data.get('nation', '').strip()
+        self.education = data.get('education', '').strip()
+        self.specialty = data.get('specialty', '').strip()
+        self.degree = data.get('degree', '').strip()
+        self.languages = data.get('languages', '').strip()
+        self.awards = data.get('awards', '').strip()
+        self.deputy = data.get('deputy', '').strip()
+        self.party = data.get('party', '').strip()
+        self.graduated = data.get('graduated', '').strip()
+        self.scientific_title = data.get('scientific_title', '').strip()
+        self.military_rank = data.get('military_rank', '').strip()
+        self.photo_data = data.get('photo_data', '').strip()
+        
+        # Parse JSON fields
+        self.work_experience = self._parse_json_field(data.get('work_experience', '[]'))
+        self.relatives = self._parse_json_field(data.get('relatives', '[]'))
+    
+    def _parse_json_field(self, field_value: str) -> List[Dict]:
+        """Parse JSON string field to list of dictionaries."""
+        if not field_value:
+            return []
+        try:
+            if isinstance(field_value, str):
+                return json.loads(field_value)
+            elif isinstance(field_value, list):
+                return field_value
+            return []
+        except (json.JSONDecodeError, TypeError) as e:
+            logger.warning(f"Failed to parse JSON field: {e}")
+            return []
+    
+    def _decode_photo(self) -> Optional[BytesIO]:
+        """Decode base64 photo data or download from URL to BytesIO."""
+        if not self.photo_data:
+            return None
+        try:
+            # Check if it is a URL
+            if str(self.photo_data).startswith(('http://', 'https://')):
+                import requests
+                response = requests.get(self.photo_data)
+                response.raise_for_status()
+                return BytesIO(response.content)
+
+            # Remove data URL prefix if present
+            if 'base64,' in self.photo_data:
+                self.photo_data = self.photo_data.split('base64,')[1]
+            
+            photo_bytes = base64.b64decode(self.photo_data)
+            return BytesIO(photo_bytes)
+        except Exception as e:
+            logger.warning(f"Failed to decode/download photo: {e}")
+            return None
+    
+    def _transliterate_if_needed(self, text: str) -> str:
+        """Transliterate text to Cyrillic if language is uz_k."""
+        if not text:
+            return ""
+        if self.lang == 'uz_k':
+            return latin_to_cyrillic(text)
+        return text
+    
+    def generate_pdf(self) -> BytesIO:
+        """
+        Generate PDF document with new layout and localization.
+        """
+        output = BytesIO()
+        
+        # Document setup
+        doc = SimpleDocTemplate(
+            output,
+            pagesize=A4,
+            topMargin=2.0*cm,    # 20mm
+            bottomMargin=2.0*cm, # 20mm
+            leftMargin=2.5*cm,   # 25mm
+            rightMargin=2.5*cm   # 25mm
+        )
+        
+        # Container for PDF elements
+        elements = []
+        
+        # Styles
+        styles = getSampleStyleSheet()
+        
+        # Update styles to use dynamically determined font (Cyrillic support if available)
+        normal_style = ParagraphStyle(
+            'CustomNormal',
+            parent=styles['Normal'],
+            fontSize=12,
+            textColor=colors.black,
+            fontName=FONT_NAME_REGULAR,
+            leading=14
+        )
+        
+        # Title style
+        title_style = ParagraphStyle(
+            'CustomTitle',
+            parent=styles['Heading1'],
+            fontSize=14,
+            textColor=colors.black,
+            spaceAfter=3.5,
+            alignment=TA_CENTER,
+            fontName=FONT_NAME_BOLD
+        )
+        
+        # Name style
+        name_style = ParagraphStyle(
+            'CustomName',
+            parent=styles['Heading1'],
+            fontSize=14,
+            textColor=colors.black,
+            spaceAfter=14,
+            alignment=TA_CENTER,
+            fontName=FONT_NAME_BOLD
+        )
+        
+        # Section title style
+        section_style = ParagraphStyle(
+            'SectionTitle',
+            parent=styles['Heading2'],
+            fontSize=12,
+            textColor=colors.black,
+            spaceAfter=10,
+            spaceBefore=10,
+            alignment=TA_CENTER,
+            fontName=FONT_NAME_BOLD
+        )
+        
+        # Add Header
+        elements.append(Paragraph(self.labels['title'], title_style))
+        elements.append(Paragraph(self.fullname, name_style))
+        
+        # Custom styles for table content
+        label_style = ParagraphStyle(
+            'LabelStyle',
+            parent=normal_style,
+            fontName=FONT_NAME_BOLD,
+            fontSize=11,
+            leading=14
+        )
+        value_style = ParagraphStyle(
+            'ValueStyle',
+            parent=normal_style,
+            fontName=FONT_NAME_REGULAR,
+            fontSize=12,
+            leading=14,
+            spaceAfter=6
+        )
+        
+        # Helper to create cell content
+        def create_field(label, value):
+            return [
+                Paragraph(label, label_style),
+                Paragraph(value, value_style)
+            ]
+
+        # --- DATA PREPARATION ---
+        # Rows using localized labels
+        r1_c1 = create_field(self.labels['birthdate'], self.birthdate)
+        r1_c2 = create_field(self.labels['birthplace'], self.birthplace)
+        
+        photo_cell = []
+        photo_stream = self._decode_photo()
+        if photo_stream:
+            try:
+                img = PILImage.open(photo_stream)
+                img_io = BytesIO()
+                img.save(img_io, format='PNG')
+                img_io.seek(0)
+                photo_img = Image(img_io, width=3*cm, height=4*cm)
+                photo_cell = [photo_img]
+            except Exception:
+                photo_cell = []
+        
+        r2_c1 = create_field(self.labels['nation'], self.nation)
+        r2_c2 = create_field(self.labels['party'], self.party)
+        
+        r3_c1 = create_field(self.labels['education'], self.education)
+        r3_c2 = create_field(self.labels['graduated'], self.graduated)
+        
+        r4_c1 = create_field(self.labels['specialty'], self.specialty)
+        
+        r5_c1 = create_field(self.labels['degree'], self.degree)
+        r5_c2 = create_field(self.labels['scititle'], self.scientific_title)
+        
+        r6_c1 = create_field(self.labels['langs'], self.languages)
+        r6_c2 = create_field(self.labels['military'], self.military_rank)
+        
+        r7_c1 = create_field(self.labels['awards'], self.awards)
+        r8_c1 = create_field(self.labels['deputy'], self.deputy)
+
+        # Build Table Data
+        data = [
+            [r1_c1, r1_c2, photo_cell],
+            [r2_c1, r2_c2, ''],
+            [r3_c1, r3_c2, ''],
+            [r4_c1, '', ''],
+            [r5_c1, r5_c2, ''],
+            [r6_c1, r6_c2, ''],
+            [r7_c1, '', ''],
+            [r8_c1, '', '']
+        ]
+        
+        # Layout style
+        tbl_style = [
+            ('VALIGN', (0,0), (-1,-1), 'TOP'),
+            ('SPAN', (2,0), (2,2)),  # Photo
+            ('SPAN', (0,3), (1,3)),  # Specialty
+            ('SPAN', (0,6), (2,6)),  # Awards
+            ('SPAN', (0,7), (2,7)),  # Deputy
+            ('LEFTPADDING', (0,0), (-1,-1), 0),
+            ('RIGHTPADDING', (0,0), (-1,-1), 3),
+            ('BOTTOMPADDING', (0,0), (-1,-1), 6),
+        ]
+        
+        col_widths = [6.5*cm, 6.5*cm, 4*cm]
+        main_table = Table(data, colWidths=col_widths)
+        main_table.setStyle(TableStyle(tbl_style))
+        
+        elements.append(main_table)
+        elements.append(Spacer(1, 0.5*cm))
+        
+        # Work experience section
+        elements.append(Paragraph(self.labels['work_title'], section_style))
+        
+        if self.work_experience:
+            work_data = []
+            for work in self.work_experience:
+                year = work.get('year', '').strip()
+                # Fix: index.html sends 'position', generator expected 'description'
+                description = work.get('position', work.get('description', '')).strip()
+                if year or description:
+                    year_para = Paragraph(f"<b>{year}</b>", normal_style)
+                    desc_para = Paragraph(f"- {description}", normal_style)
+                    work_data.append([year_para, desc_para])
+            
+            if work_data:
+                # Use a single column to ensure "1 space" constraint and better wrapping
+                # This matches the Word generation logic
+                combined_work_data = []
+                for work in self.work_experience:
+                    year = work.get('year', '').strip()
+                    description = work.get('position', work.get('description', '')).strip()
+                    if year or description:
+                        # Combine year and description with a single space and dash
+                        text = ""
+                        if year:
+                            text += f"<b>{year}</b> - "
+                        text += description
+                        combined_work_data.append([Paragraph(text, normal_style)])
+                
+                work_table = Table(combined_work_data, colWidths=[17*cm])
+                work_table.setStyle(TableStyle([
+                    ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                    ('LEFTPADDING', (0, 0), (-1, -1), 0),
+                    ('RIGHTPADDING', (0, 0), (-1, -1), 0),
+                    ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+                ]))
+                elements.append(work_table)
+        else:
+            elements.append(Paragraph(self.labels['work_empty'], normal_style))
+        
+        # Page break for relatives
+        elements.append(PageBreak())
+        
+        # Relatives section
+        rel_title_text = f"{self.fullname}{self.labels['rel_title_suffix']}<br/>{self.labels['rel_subtitle']}"
+        elements.append(Paragraph(rel_title_text, section_style))
+        elements.append(Spacer(1, 0.3*cm))
+        
+        # Relatives table
+        rel_data = []
+        
+        # Header row
+        headers = [
+            self.labels['rel_col1'],
+            self.labels['rel_col2'],
+            self.labels['rel_col3'],
+            self.labels['rel_col4'],
+            self.labels['rel_col5']
+        ]
+        header_row = [Paragraph(f"<b>{h}</b>", normal_style) for h in headers]
+        rel_data.append(header_row)
+        
+        # Data rows
+        if self.relatives:
+            for relative in self.relatives:
+                rel_type = self._transliterate_if_needed(relative.get('type', ''))
+                row = [
+                    Paragraph(f"<b>{rel_type}</b>", normal_style),
+                    Paragraph(self._transliterate_if_needed(relative.get('name', '')), normal_style),
+                    Paragraph(self._transliterate_if_needed(relative.get('birth', '')), normal_style),
+                    Paragraph(self._transliterate_if_needed(relative.get('job', '')), normal_style),
+                    Paragraph(self._transliterate_if_needed(relative.get('addr', '')), normal_style),
+                ]
+                rel_data.append(row)
+        else:
+            empty_cell = Paragraph(self.labels['rel_empty'], normal_style)
+            rel_data.append([empty_cell, '', '', '', ''])
+        
+        rel_table = Table(rel_data, colWidths=[3*cm, 4*cm, 3.5*cm, 3.5*cm, 3*cm])
+        rel_table.setStyle(TableStyle([
+            ('GRID', (0, 0), (-1, -1), 1, colors.black),
+            ('BACKGROUND', (0, 0), (-1, 0), colors.Color(0.96, 0.96, 0.96)),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ('FONTNAME', (0, 0), (-1, 0), FONT_NAME_BOLD),
+            ('FONTSIZE', (0, 0), (-1, -1), 11),
+            ('LEFTPADDING', (0, 0), (-1, -1), 5),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 5),
+            ('TOPPADDING', (0, 0), (-1, -1), 5),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
+        ]))
+        
+        elements.append(rel_table)
+        
+        # Build PDF with watermark if needed
+        if self.is_sample:
+            # Create watermark function with multiple boxes
+            def add_watermark(canvas, doc):
+                canvas.saveState()
+                
+                # Draw multiple watermark boxes across the page
+                watermark_text = "@Obyektivkaa_bot"
+                
+                # Settings
+                box_width = 5*cm
+                box_height = 1.5*cm
+                font_size = 16
+                
+                # Create diagonal pattern
+                positions = [
+                    (3*cm, 25*cm),
+                    (10*cm, 22*cm),
+                    (3*cm, 18*cm),
+                    (10*cm, 15*cm),
+                    (3*cm, 11*cm),
+                    (10*cm, 8*cm),
+                    (3*cm, 4*cm),
+                ]
+                
+                for x, y in positions:
+                    # Draw semi-transparent black rectangle
+                    canvas.setFillColorRGB(0, 0, 0, 0.6)  # Qora, 60% shaffof
+                    canvas.rect(x, y, box_width, box_height, fill=1, stroke=0)
+                    
+                    # Draw white text inside
+                    canvas.setFillColorRGB(1, 1, 1, 1)  # Oq rang
+                    canvas.setFont('Times-Bold', font_size)
+                    # Center text in box
+                    text_x = x + box_width / 2
+                    text_y = y + box_height / 2 - font_size / 3
+                    canvas.drawCentredString(text_x, text_y, watermark_text)
+                
+                canvas.restoreState()
+            
+            doc.build(elements, onFirstPage=add_watermark, onLaterPages=add_watermark)
+        else:
+            doc.build(elements)
+        
+        output.seek(0)
+        return output
+
+    def generate_word(self) -> BytesIO:
+        """
+        Generate Word document with new layout and localization.
+        """
+        doc = Document()
+        
+        # Margins (Narrower)
+        sections = doc.sections
+        for section in sections:
+            section.top_margin = Cm(1.5)
+            section.bottom_margin = Cm(1.5)
+            section.left_margin = Cm(2)
+            section.right_margin = Cm(1.5)
+        
+        # Default Font
+        style = doc.styles['Normal']
+        font = style.font
+        font.name = 'Times New Roman'
+        font.size = Pt(12)
+
+        # SAMPLE WATERMARK (Text Header)
+        if self.is_sample:
+            p = doc.add_paragraph()
+            p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            run = p.add_run(self.labels.get('sample_watermark', 'NAMUNA (TASDIQLANMAGAN)'))
+            run.bold = True
+            run.font.size = Pt(24)
+            run.font.color.rgb = RGBColor(255, 0, 0)
+        
+        # Helper to add bold label + value
+        def add_item(paragraph, label, value):
+            run = paragraph.add_run(f"{label}\n")
+            run.bold = True
+            paragraph.add_run(f"{value}")
+            paragraph.paragraph_format.space_after = Pt(6)
+
+        # Title
+        title = doc.add_paragraph(self.labels['title'])
+        title.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        title.runs[0].bold = True
+        title.runs[0].font.size = Pt(14)
+        
+        name_para = doc.add_paragraph()
+        name_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        if self.fullname:
+            run = name_para.add_run(self.fullname)
+            run.bold = True
+            run.font.size = Pt(14)
+        name_para.paragraph_format.space_after = Pt(12)
+        
+        # Main Table (3 columns)
+        table = doc.add_table(rows=0, cols=3)
+        table.autofit = False
+        table.allow_autofit = False
+        table.columns[0].width = Cm(7)
+        table.columns[1].width = Cm(7)
+        table.columns[2].width = Cm(3.5)
+        
+        # Row 1
+        row = table.add_row()
+        add_item(row.cells[0].paragraphs[0], self.labels['birthdate'], self.birthdate)
+        add_item(row.cells[1].paragraphs[0], self.labels['birthplace'], self.birthplace)
+        
+        # Row 2
+        row2 = table.add_row()
+        add_item(row2.cells[0].paragraphs[0], self.labels['nation'], self.nation)
+        add_item(row2.cells[1].paragraphs[0], self.labels['party'], self.party)
+        
+        # Row 3
+        row3 = table.add_row()
+        add_item(row3.cells[0].paragraphs[0], self.labels['education'], self.education)
+        add_item(row3.cells[1].paragraphs[0], self.labels['graduated'], self.graduated)
+        
+        # Merge Photo Cells (Row 0, Col 2  TO  Row 2, Col 2)
+        photo_cell = table.cell(0, 2)
+        photo_cell.merge(table.cell(2, 2))
+        
+        photo_stream = self._decode_photo()
+        if photo_stream:
+            try:
+                p = photo_cell.paragraphs[0]
+                p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                run = p.add_run()
+                run.add_picture(photo_stream, width=Cm(3), height=Cm(4))
+            except Exception:
+                pass
+        
+        # Row 4 (Specialty)
+        row4 = table.add_row()
+        add_item(row4.cells[0].paragraphs[0], self.labels['specialty'], self.specialty)
+        row4.cells[0].merge(row4.cells[1])
+        
+        # Row 5
+        row5 = table.add_row()
+        add_item(row5.cells[0].paragraphs[0], self.labels['degree'], self.degree)
+        add_item(row5.cells[1].paragraphs[0], self.labels['scititle'], self.scientific_title)
+        
+        # Row 6
+        row6 = table.add_row()
+        add_item(row6.cells[0].paragraphs[0], self.labels['langs'], self.languages)
+        add_item(row6.cells[1].paragraphs[0], self.labels['military'], self.military_rank)
+        
+        # Row 7 (Awards)
+        row7 = table.add_row()
+        add_item(row7.cells[0].paragraphs[0], self.labels['awards'], self.awards)
+        row7.cells[0].merge(row7.cells[2])
+        
+        # Row 8 (Deputy)
+        row8 = table.add_row()
+        add_item(row8.cells[0].paragraphs[0], self.labels['deputy'], self.deputy)
+        row8.cells[0].merge(row8.cells[2])
+        
+        doc.add_paragraph()
+        
+        # Work Experience
+        work_title = doc.add_paragraph(self.labels['work_title'])
+        work_title.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        work_title.runs[0].bold = True
+        
+        if self.work_experience:
+            # Use 1-column table to ensure "1 space" constraint and proper wrapping
+            work_table = doc.add_table(rows=0, cols=1)
+            work_table.autofit = False
+            work_table.allow_autofit = False
+            work_table.columns[0].width = Cm(17.5)  # Full width
+            
+            for work in self.work_experience:
+                year = work.get('year', '').strip()
+                description = work.get('position', work.get('description', '')).strip()
+                if year or description:
+                    row = work_table.add_row()
+                    cell = row.cells[0]
+                    p = cell.paragraphs[0]
+                    
+                    # Exact format: "2019-2024 йй. - Havs..." (Single space, bold year)
+                    if year:
+                        r_year = p.add_run(year)
+                        r_year.bold = True
+                        p.add_run(" - ")
+                    
+                    p.add_run(description)
+                    p.paragraph_format.space_after = Pt(2)
+
+        doc.add_page_break()
+        
+        # Relatives
+        rel_title = doc.add_paragraph(f"{self.fullname}{self.labels['rel_title_suffix']}")
+        rel_title.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        rel_title.runs[0].bold = True
+        
+        rel_subtitle = doc.add_paragraph(self.labels['rel_subtitle'])
+        rel_subtitle.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        rel_subtitle.runs[0].bold = True
+        
+        # Relatives Table
+        headers = [
+            self.labels['rel_col1'],
+            self.labels['rel_col2'],
+            self.labels['rel_col3'],
+            self.labels['rel_col4'],
+            self.labels['rel_col5']
+        ]
+        rel_table = doc.add_table(rows=1, cols=5)
+        rel_table.style = 'Table Grid'
+        
+        hdr_cells = rel_table.rows[0].cells
+        for i, h in enumerate(headers):
+            hdr_cells[i].text = h
+            hdr_cells[i].paragraphs[0].runs[0].bold = True
+            hdr_cells[i].paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
+            
+        if self.relatives:
+            for relative in self.relatives:
+                row = rel_table.add_row()
+                
+                # Fill data
+                c0 = row.cells[0]
+                c0.text = self._transliterate_if_needed(relative.get('type', ''))
+                # User request: Bold first column (Qarindoshligi)
+                if c0.paragraphs:
+                    if c0.paragraphs[0].runs:
+                        c0.paragraphs[0].runs[0].bold = True
+                    else:
+                        # Sometimes text assign doesn't create runs immediately visible like this? 
+                        # Force bold on the text just assigned
+                        c0.paragraphs[0].runs[0].bold = True
+
+                row.cells[1].text = self._transliterate_if_needed(relative.get('name', ''))
+                row.cells[2].text = self._transliterate_if_needed(relative.get('birth', ''))
+                row.cells[3].text = self._transliterate_if_needed(relative.get('job', ''))
+                row.cells[4].text = self._transliterate_if_needed(relative.get('addr', ''))
+                
+                # Format cells
+                for i, cell in enumerate(row.cells):
+                    # User request: Center all content
+                    cell.vertical_alignment = WD_ALIGN_VERTICAL.CENTER
+                    
+                    for paragraph in cell.paragraphs:
+                        paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                        
+                        # First column bolding (Ensure it persists)
+                        if i == 0:
+                            for run in paragraph.runs:
+                                run.bold = True
+                        
+                        for run in paragraph.runs:
+                            run.font.size = Pt(11)
+                            run.font.name = 'Times New Roman'
+        else:
+            row_cells = rel_table.add_row().cells
+            # Merge all cells
+            merged_cell = row_cells[0].merge(row_cells[4])
+            merged_cell.text = self.labels['rel_empty']
+            for paragraph in merged_cell.paragraphs:
+                paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                for run in paragraph.runs:
+                    run.font.size = Pt(11)
+                    run.font.name = 'Times New Roman'
+        
+        # Save to buffer
+        output = BytesIO()
+        doc.save(output)
+        output.seek(0)
+        return output
+
+
+def generate_obyektivka_word(data: Dict[str, Any], lang: str = 'uz_l', is_sample: bool = False) -> BytesIO:
+    """
+    Generate Word document for obyektivka.
+    
+    Args:
+        data: Dictionary containing obyektivka data
+        lang: Language code
+        is_sample: If True, adds 'NAMUNA' watermark
+    
+    Returns:
+        BytesIO containing the Word document
+    """
+    generator = ObyektivkaGenerator(data, lang=lang, is_sample=is_sample)
+    return generator.generate_word()
+
+
+def generate_obyektivka_pdf(data: Dict[str, Any], lang: str = 'uz_l', is_sample: bool = False) -> BytesIO:
+    """
+    Generate PDF document for obyektivka.
+    
+    Args:
+        data: Dictionary containing obyektivka data
+        lang: Language code
+        is_sample: If True, adds 'NAMUNA' watermark
+    
+    Returns:
+        BytesIO containing the PDF document
+    """
+    generator = ObyektivkaGenerator(data, lang=lang, is_sample=is_sample)
+    return generator.generate_pdf()

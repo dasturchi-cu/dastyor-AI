@@ -55,9 +55,9 @@ async def start_feedback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "Quyidagilarni yuborishingiz mumkin:\n"
         "• 📝 Matn\n"
         "• 🖼 Rasm\n"
-        "• 🎥 Video\n"
         "• 🎤 Ovozli xabar\n"
-        "• 📎 Fayl\n\n"
+        
+        # "• 📎 Fayl\n\n"
         "<i>Yuborilgan barcha ma'lumotlar administratorga yetkaziladi.</i>",
         parse_mode="HTML",
         reply_markup=get_back_button(lang),

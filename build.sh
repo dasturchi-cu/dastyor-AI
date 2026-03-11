@@ -4,6 +4,5 @@
 echo "Installing Python requirements..."
 pip install -r requirements.txt
 
-echo "Installing Playwright Chromium browser and system dependencies..."
+echo "Installing Playwright Chromium browser..."
 playwright install chromium
-playwright install-deps
