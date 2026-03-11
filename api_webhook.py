@@ -1081,6 +1081,8 @@ class ExportObyektivkaRequest(BaseModel):
     phone          : str = ""
     work_experience: list = []
     relatives      : list = []
+    # optional: data URL or public URL of photo
+    photo_data     : Optional[str] = None
 
 @app.post("/api/export_obyektivka")
 async def api_export_obyektivka(req: ExportObyektivkaRequest):
