@@ -607,7 +607,7 @@
         let savedObyektivkaId = null;
         let editingRelIndex = -1; // Tahrirlash uchun index
 
-        // Telegram Web App
+        // Telegram Web App (ixtiyoriy)
         let telegramId = '';
         if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initDataUnsafe && window.Telegram.WebApp.initDataUnsafe.user) {
             telegramId = window.Telegram.WebApp.initDataUnsafe.user.id.toString();
@@ -618,24 +618,11 @@
             if (urlId) telegramId = urlId;
         }
 
-        if (!telegramId) {
-            document.body.innerHTML = `
-                <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; padding: 20px; text-align: center; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
-                    <div style="background: white; padding: 40px; border-radius: 20px; box-shadow: 0 10px 40px rgba(0,0,0,0.2); max-width: 400px;">
-                        <h2 style="color: #667eea; margin-bottom: 20px;">⚠️ Xatolik</h2>
-                        <p style="color: #333; font-size: 16px; line-height: 1.6; margin-bottom: 30px;">
-                            Telegram ID topilmadi.<br><br>
-                            Iltimos, <strong>@Obyektivkaa_bot</strong> orqali kirib keling.
-                        </p>
-                    </div>
-                </div>
-            `;
-            throw new Error('Telegram ID topilmadi');
-        }
-
         const API_URL = window.location.origin.includes('localhost') || window.location.origin.includes('127.0.0.1')
             ? 'https://obyektivka-bot.onrender.com'
             : window.location.origin;
+        // Yangi Dastyor AI backend uchun flag (api_webhook.py ichidagi /api/generate_obyektivka dan foydalanish)
+        const USE_NEW_OBY_API = API_URL.includes('dastyor-ai.onrender.com');
 
         // VILOYATLAR VA TUMANLAR
         const uzbRegions = {
@@ -879,6 +866,91 @@
                 alert('Ma\'lumotlarni saqlashda xatolik: ' + e.message);
                 savedObyektivkaId = null;
             }
+        }
+
+        // Yangi backend (dastyor-ai.onrender.com) uchun obyektivka generatsiya qilish
+        async function generateObyektivkaViaApi(format) {
+            // 1) Rasmni (agar bor bo'lsa) Supabase'ga yuklash va public URL olish
+            let finalPhotoData = photoData;
+            const fileInput = document.getElementById('photoInput');
+            if (fileInput && fileInput.files && fileInput.files[0] && supabaseClient) {
+                const file = fileInput.files[0];
+                const fileExt = file.name.split('.').pop();
+                const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+                const filePath = `${fileName}`;
+                const { data, error } = await supabaseClient.storage.from('telegram bot').upload(filePath, file);
+                if (!error) {
+                    const { data: { publicUrl } } = supabaseClient.storage.from('telegram bot').getPublicUrl(filePath);
+                    if (publicUrl) finalPhotoData = publicUrl;
+                }
+            }
+
+            // 2) Mehnat faoliyati ro'yxatini yig'ish
+            const works = [];
+            document.querySelectorAll('#work-container .form-grid').forEach(row => {
+                const fromVal = row.querySelector('.year-from').value;
+                const toVal = row.querySelector('.year-to').value;
+                const d = row.querySelector('.work-desc')?.value || '';
+
+                let yearStr = "";
+                if (fromVal && toVal) {
+                    if (toVal.toLowerCase() === 'h.v' || toVal.toLowerCase() === 'ҳ.в') {
+                        yearStr = `${fromVal} y. - h.v.`;
+                        if (currentLang === 'uz_k') yearStr = `${fromVal} й. - ҳ.в.`;
+                    } else {
+                        yearStr = `${fromVal}-${toVal} yy.`;
+                        if (currentLang === 'uz_k') yearStr = `${fromVal}-${toVal} йй.`;
+                    }
+                } else if (fromVal && !toVal) {
+                    yearStr = fromVal;
+                }
+
+                if (d && d.trim() !== '') {
+                    works.push({ year: yearStr, position: d });
+                }
+            });
+
+            // 3) Til kodini yangi API uchun moslashtirish
+            const langMap = { uz_l: 'uz_lat', uz_k: 'uz_cyr' };
+            const apiLang = langMap[currentLang] || 'uz_lat';
+
+            // 4) Yangi /api/generate_obyektivka payload
+            const payload = {
+                telegram_id: parseInt(telegramId),
+                format: format === 'pdf' ? 'pdf' : 'word',
+                lang: apiLang,
+                fullname: document.getElementById('fullname').value || '',
+                birthdate: document.getElementById('birthdate').value || '',
+                birthplace: document.getElementById('birthplace').value || '',
+                nation: document.getElementById('nation').value || '',
+                party: document.getElementById('party').value || '',
+                education: document.getElementById('edu').value || '',
+                graduated: document.getElementById('graduated').value || '',
+                specialty: document.getElementById('spec').value || '',
+                degree: document.getElementById('degree').value || '',
+                scientific_title: document.getElementById('scititle').value || '',
+                languages: document.getElementById('langs').value || '',
+                military_rank: document.getElementById('military').value || '',
+                awards: document.getElementById('awards').value || '',
+                deputy: document.getElementById('deputy').value || '',
+                work_experience: works,
+                relatives: relatives,
+                photo_data: finalPhotoData
+            };
+
+            const response = await fetch(`${API_URL}/api/generate_obyektivka`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (!response.ok) {
+                throw new Error(`Server returned ${response.status}`);
+            }
+
+            // Backend faylni Telegram'ga yuboradi; front faqat muvaffaqiyatni ko'rsatadi
+            alert('✅ Fayl botga yuborildi!');
+            if (window.Telegram && window.Telegram.WebApp) window.Telegram.WebApp.close();
         }
 
         const dict = {
@@ -1285,31 +1357,36 @@
 
         // Yuklash funksiyalari (Server)
         async function downloadDoc() {
-            if (!telegramId) { alert('Telegram ID topilmadi.'); return; }
+            // Eski backend uchun Telegram ID majburiy, yangi backend uchun ixtiyoriy
+            if (!telegramId && !USE_NEW_OBY_API) { alert('Telegram ID topilmadi.'); return; }
             document.getElementById('loading-overlay').style.display = 'flex';
             try {
-                await saveObyektivkaData('word');
-                if (!savedObyektivkaId) { alert('Xatolik.'); return; }
-                const fname = document.getElementById('fullname').value || 'Hujjat';
-                const response = await fetch(`${API_URL}/webhook/download-file`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        telegram_id: parseInt(telegramId),
-                        file_name: fname.replace(/[^a-zA-Z0-9А-Яа-яЁёӨөҒғҚқҲҳӮӯ]/g, '_') + '.doc',
-                        file_type: 'word',
-                        price: 10000,
-                        obyektivka_id: savedObyektivkaId,
-                        lang: currentLang
-                    })
-                });
-                if (!response.ok) throw new Error("Server error");
-                const result = await response.json();
-                if (result.status === 'success') {
-                    alert('✅ Fayl botga yuborildi!');
-                    if (window.Telegram && window.Telegram.WebApp) window.Telegram.WebApp.close();
+                if (USE_NEW_OBY_API) {
+                    await generateObyektivkaViaApi('word');
                 } else {
-                    alert('❌ ' + (result.message || 'Xatolik'));
+                    await saveObyektivkaData('word');
+                    if (!savedObyektivkaId) { alert('Xatolik.'); return; }
+                    const fname = document.getElementById('fullname').value || 'Hujjat';
+                    const response = await fetch(`${API_URL}/webhook/download-file`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            telegram_id: parseInt(telegramId),
+                            file_name: fname.replace(/[^a-zA-Z0-9А-Яа-яЁёӨөҒғҚқҲҳӮӯ]/g, '_') + '.doc',
+                            file_type: 'word',
+                            price: 10000,
+                            obyektivka_id: savedObyektivkaId,
+                            lang: currentLang
+                        })
+                    });
+                    if (!response.ok) throw new Error("Server error");
+                    const result = await response.json();
+                    if (result.status === 'success') {
+                        alert('✅ Fayl botga yuborildi!');
+                        if (window.Telegram && window.Telegram.WebApp) window.Telegram.WebApp.close();
+                    } else {
+                        alert('❌ ' + (result.message || 'Xatolik'));
+                    }
                 }
             } catch (error) {
                 alert('❌ Xatolik yuz berdi.');
@@ -1319,31 +1396,35 @@
         }
 
         async function downloadPDF() {
-            if (!telegramId) { alert('Telegram ID topilmadi.'); return; }
+            if (!telegramId && !USE_NEW_OBY_API) { alert('Telegram ID topilmadi.'); return; }
             document.getElementById('loading-overlay').style.display = 'flex';
             try {
-                await saveObyektivkaData('pdf');
-                if (!savedObyektivkaId) { alert('Xatolik.'); return; }
-                const fname = document.getElementById('fullname').value || 'Hujjat';
-                const response = await fetch(`${API_URL}/webhook/download-file`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        telegram_id: parseInt(telegramId),
-                        file_name: fname.replace(/[^a-zA-Z0-9А-Яа-яЁёӨөҒғҚқҲҳӮӯ]/g, '_') + '.pdf',
-                        file_type: 'pdf',
-                        price: 10000,
-                        obyektivka_id: savedObyektivkaId,
-                        lang: currentLang
-                    })
-                });
-                if (!response.ok) throw new Error("Server error");
-                const result = await response.json();
-                if (result.status === 'success') {
-                    alert('✅ Fayl botga yuborildi!');
-                    if (window.Telegram && window.Telegram.WebApp) window.Telegram.WebApp.close();
+                if (USE_NEW_OBY_API) {
+                    await generateObyektivkaViaApi('pdf');
                 } else {
-                    alert('❌ ' + (result.message || 'Xatolik'));
+                    await saveObyektivkaData('pdf');
+                    if (!savedObyektivkaId) { alert('Xatolik.'); return; }
+                    const fname = document.getElementById('fullname').value || 'Hujjat';
+                    const response = await fetch(`${API_URL}/webhook/download-file`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            telegram_id: parseInt(telegramId),
+                            file_name: fname.replace(/[^a-zA-Z0-9А-Яа-яЁёӨөҒғҚқҲҳӮӯ]/g, '_') + '.pdf',
+                            file_type: 'pdf',
+                            price: 10000,
+                            obyektivka_id: savedObyektivkaId,
+                            lang: currentLang
+                        })
+                    });
+                    if (!response.ok) throw new Error("Server error");
+                    const result = await response.json();
+                    if (result.status === 'success') {
+                        alert('✅ Fayl botga yuborildi!');
+                        if (window.Telegram && window.Telegram.WebApp) window.Telegram.WebApp.close();
+                    } else {
+                        alert('❌ ' + (result.message || 'Xatolik'));
+                    }
                 }
             } catch (error) {
                 alert('❌ Xatolik yuz berdi.');
