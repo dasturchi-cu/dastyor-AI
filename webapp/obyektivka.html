@@ -526,51 +526,24 @@
                     <div id="relatives-list-ui"></div>
                     <button type="button" class="btn btn-add" onclick="openRelModal()">+ Qarindosh qo'shish</button>
 
-                    <!-- Ikkinchi sahifa: pastda ikki ustunli layout (chapda tugmalar, o'ngda PREVIEW) -->
-                    <div style="display: grid; grid-template-columns: 1.2fr 1.8fr; gap: 20px; margin-top: 40px;">
-                        <div>
-                            <div class="btn-group-footer"
-                                style="display: flex; flex-direction: column; gap: 12px; align-items: stretch; flex-wrap: wrap;">
-                                <div style="display:flex; gap:10px; flex-wrap:wrap;">
-                                    <button type="button" class="btn btn-outline" onclick="goToStep(1)">&larr; Orqaga
-                                    </button>
+                    <div class="btn-group-footer"
+                        style="display: flex; justify-content: space-between; margin-top: 50px; gap: 15px; flex-wrap: wrap;">
+                        <button type="button" class="btn btn-outline" onclick="goToStep(1)">&larr; Orqaga</button>
 
-                                    <button type="button" class="btn btn-outline"
-                                        style="border-color: var(--danger); color: var(--danger);" onclick="clearForm()">
-                                        🗑 Tozalash
-                                    </button>
-                                </div>
+                        <button type="button" class="btn btn-outline"
+                            style="border-color: var(--danger); color: var(--danger);" onclick="clearForm()">
+                            🗑 Tozalash
+                        </button>
 
-                                <!-- 👁 PREVIEW tugmasi -->
-                                <button type="button" class="btn btn-outline"
-                                    style="margin-top:4px; border-color: var(--primary); color: var(--primary);"
-                                    onclick="toggleObyektivkaPreview()">
-                                    👁 PREVYU
-                                </button>
-
-                                <div style="display: flex; gap: 10px; flex-wrap: wrap; justify-content: flex-start;">
-                                    <button type="button" class="btn btn-primary"
-                                        style="background: var(--success); border:none;" onclick="downloadDoc()">
-                                        WORD YUKLASH
-                                    </button>
-                                    <button type="button" class="btn btn-primary"
-                                        style="background: var(--danger); border:none;" onclick="downloadPDF()">
-                                        PDF YUKLASH
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Real-time PREVIEW (A4 canvas) — dastlab yashirin, ko'z tugmasi bosilganda ochiladi -->
-                        <div id="oby-preview-container" style="display:none;">
-                            <h4 style="margin-bottom:8px; color:var(--secondary); font-size:0.85rem; font-weight:600;">
-                                Onlayn PREVIEW (Word/PDF dizayni bilan bir xil)
-                            </h4>
-                            <div id="oby-preview-wrapper"
-                                style="background:#0f172a; padding:10px; border-radius:14px; overflow:auto; max-height:520px;">
-                                <iframe id="oby-preview-frame"
-                                    style="width:100%; min-height:520px; border:none; border-radius:10px; background:#dde3ed;"></iframe>
-                            </div>
+                        <div style="display: flex; gap: 10px; flex-wrap: wrap; flex: 1; justify-content: flex-end;">
+                            <button type="button" class="btn btn-primary"
+                                style="background: var(--success); border:none;" onclick="downloadDoc()">
+                                WORD YUKLASH
+                            </button>
+                            <button type="button" class="btn btn-primary"
+                                style="background: var(--danger); border:none;" onclick="downloadPDF()">
+                                PDF YUKLASH
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -626,6 +599,9 @@
         // Supabase Init
         const SUPABASE_URL = 'https://iwqzwzdejkuvkbwxtxht.supabase.co';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml3cXp3emRlamt1dmtid3h0eGh0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY0MDUzNzYsImV4cCI6MjA4MTk4MTM3Nn0.upwRgSzbFwiHcUBBix3qZFV691f1YkchUJVkqkVccrM';
+        // Diqqat: Supabase bucket nomida bo'sh joy bo'lmasligi kerak.
+        // Supabase panelida yaratgan bucket nomingizni shu yerga yozing:
+        const SUPABASE_BUCKET = 'telegram-bot';
         const supabaseClient = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY) : null;
 
         let currentLang = 'uz_l';
@@ -734,9 +710,6 @@
             });
 
             localStorage.setItem('obyektivkaData', JSON.stringify(formData));
-
-            // Lokal saqlashdan keyin preview'ni ham yangilaymiz
-            updateObyektivkaPreviewDebounced();
         }
 
         function loadFromLocal() {
@@ -812,15 +785,23 @@
                 // ... (Rasm yuklash qismi o'zgarishsiz qoladi) ...
                 const fileInput = document.getElementById('photoInput');
                 if (fileInput && fileInput.files && fileInput.files[0] && supabaseClient) {
-                    // ... (bu yerga tegmang) ...
-                    const file = fileInput.files[0];
-                    const fileExt = file.name.split('.').pop();
-                    const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
-                    const filePath = `${fileName}`;
-                    const { data, error } = await supabaseClient.storage.from('telegram bot').upload(filePath, file);
-                    if (!error) {
-                        const { data: { publicUrl } } = supabaseClient.storage.from('telegram bot').getPublicUrl(filePath);
-                        if (publicUrl) finalPhotoData = publicUrl;
+                    try {
+                        const file = fileInput.files[0];
+                        const fileExt = file.name.split('.').pop();
+                        const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+                        const filePath = `${fileName}`;
+                        const { data, error } = await supabaseClient
+                            .storage
+                            .from(SUPABASE_BUCKET)
+                            .upload(filePath, file);
+                        if (error) {
+                            console.error('Supabase upload error (saveObyektivkaData):', error);
+                        } else if (data) {
+                            const { data: pub } = supabaseClient.storage.from(SUPABASE_BUCKET).getPublicUrl(filePath);
+                            if (pub && pub.publicUrl) finalPhotoData = pub.publicUrl;
+                        }
+                    } catch (err) {
+                        console.error('Supabase unexpected error (saveObyektivkaData):', err);
                     }
                 }
 
@@ -905,14 +886,23 @@
             let finalPhotoData = photoData;
             const fileInput = document.getElementById('photoInput');
             if (fileInput && fileInput.files && fileInput.files[0] && supabaseClient) {
-                const file = fileInput.files[0];
-                const fileExt = file.name.split('.').pop();
-                const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
-                const filePath = `${fileName}`;
-                const { data, error } = await supabaseClient.storage.from('telegram bot').upload(filePath, file);
-                if (!error) {
-                    const { data: { publicUrl } } = supabaseClient.storage.from('telegram bot').getPublicUrl(filePath);
-                    if (publicUrl) finalPhotoData = publicUrl;
+                try {
+                    const file = fileInput.files[0];
+                    const fileExt = file.name.split('.').pop();
+                    const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+                    const filePath = `${fileName}`;
+                    const { data, error } = await supabaseClient
+                        .storage
+                        .from(SUPABASE_BUCKET)
+                        .upload(filePath, file);
+                    if (error) {
+                        console.error('Supabase upload error (generateObyektivkaViaApi):', error);
+                    } else if (data) {
+                        const { data: pub } = supabaseClient.storage.from(SUPABASE_BUCKET).getPublicUrl(filePath);
+                        if (pub && pub.publicUrl) finalPhotoData = pub.publicUrl;
+                    }
+                } catch (err) {
+                    console.error('Supabase unexpected error (generateObyektivkaViaApi):', err);
                 }
             }
 
@@ -993,94 +983,6 @@
             document.body.appendChild(a);
             a.click();
             setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 2000);
-        }
-
-        // --- REAL-TIME OBYEKTIVKA PREVIEW (A4 Dizayn) ---
-        let previewTimer = null;
-
-        function toggleObyektivkaPreview() {
-            const container = document.getElementById('oby-preview-container');
-            if (!container) return;
-            const isHidden = container.style.display === 'none' || container.style.display === '';
-            if (isHidden) {
-                container.style.display = 'block';
-                updateObyektivkaPreview(); // bir marta darhol yangilash
-            } else {
-                container.style.display = 'none';
-            }
-        }
-
-        function collectObyektivkaPreviewData() {
-            const works = [];
-            document.querySelectorAll('#work-container .form-grid').forEach(row => {
-                const fromVal = row.querySelector('.year-from').value;
-                const toVal = row.querySelector('.year-to').value;
-                const d = row.querySelector('.work-desc')?.value || '';
-
-                let yearStr = "";
-                if (fromVal && toVal) {
-                    if (toVal.toLowerCase() === 'h.v' || toVal.toLowerCase() === 'ҳ.в') {
-                        yearStr = `${fromVal} y. - h.v.`;
-                        if (currentLang === 'uz_k') yearStr = `${fromVal} й. - ҳ.в.`;
-                    } else {
-                        yearStr = `${fromVal}-${toVal} yy.`;
-                        if (currentLang === 'uz_k') yearStr = `${fromVal}-${toVal} йй.`;
-                    }
-                } else if (fromVal && !toVal) {
-                    yearStr = fromVal;
-                }
-
-                if (d && d.trim() !== '') {
-                    works.push({ year: yearStr, position: d });
-                }
-            });
-
-            const langMap = { uz_l: 'uz_lat', uz_k: 'uz_cyr' };
-            const apiLang = langMap[currentLang] || 'uz_lat';
-
-            return {
-                lang: apiLang,
-                fullname: document.getElementById('fullname').value || '',
-                birthdate: document.getElementById('birthdate').value || '',
-                birthplace: document.getElementById('birthplace').value || '',
-                nation: document.getElementById('nation').value || '',
-                party: document.getElementById('party').value || '',
-                education: document.getElementById('edu').value || '',
-                graduated: document.getElementById('graduated').value || '',
-                specialty: document.getElementById('spec').value || '',
-                degree: document.getElementById('degree').value || '',
-                scientific_title: document.getElementById('scititle').value || '',
-                languages: document.getElementById('langs').value || '',
-                military_rank: document.getElementById('military').value || '',
-                awards: document.getElementById('awards').value || '',
-                deputy: document.getElementById('deputy').value || '',
-                work_experience: works,
-                relatives: relatives
-            };
-        }
-
-        async function updateObyektivkaPreview() {
-            try {
-                const frame = document.getElementById('oby-preview-frame');
-                if (!frame) return;
-
-                const payload = collectObyektivkaPreviewData();
-                const res = await fetch(`${API_URL}/api/preview_obyektivka`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-                if (!res.ok) return;
-                const html = await res.text();
-                frame.srcdoc = html;
-            } catch (e) {
-                console.error('Preview error:', e);
-            }
-        }
-
-        function updateObyektivkaPreviewDebounced() {
-            if (previewTimer) clearTimeout(previewTimer);
-            previewTimer = setTimeout(updateObyektivkaPreview, 500);
         }
 
         const dict = {
