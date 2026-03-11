@@ -61,6 +61,7 @@ from fastapi.responses import StreamingResponse, JSONResponse
 from typing import List, Optional, Literal
 from telegram import InputFile
 import asyncio, time, io
+import base64
 
 from bot.services.render_service import (
     generate_cv_pdf, generate_cv_word, build_cv_context, safe_filename,
@@ -804,6 +805,8 @@ class ObyektivkaRequest(BaseModel):
     phone       : str = ""
     work_experience: list = []
     relatives   : list = []
+    # Optional photo: data URL (base64) from webapp (e.g. "data:image/jpeg;base64,...")
+    photo_data  : Optional[str] = None
 
 @app.post("/api/generate_obyektivka")
 async def api_generate_obyektivka(req: ObyektivkaRequest):
@@ -843,10 +846,31 @@ async def api_generate_obyektivka(req: ObyektivkaRequest):
         "relatives"       : req.relatives,
     }
 
+    # ── Optional photo handling (data URL → temp file path) ───────────────
+    photo_path = None
+    try:
+        if req.photo_data and isinstance(req.photo_data, str) and req.photo_data.startswith("data:image/"):
+            header, b64 = req.photo_data.split(",", 1)
+            # header: data:image/png;base64
+            mime = header.split(";")[0].split(":")[1].lower()
+            ext = {
+                "image/png": "png",
+                "image/jpeg": "jpg",
+                "image/jpg": "jpg",
+                "image/webp": "webp",
+            }.get(mime, "png")
+            raw = base64.b64decode(b64)
+            photo_path = os.path.join("temp", f"oby_photo_{ts}.{ext}")
+            with open(photo_path, "wb") as f:
+                f.write(raw)
+    except Exception as e:
+        logger.warning(f"/api/generate_obyektivka photo decode failed: {e}")
+        photo_path = None
+
     try:
         from bot.services.doc_generator import generate_obyektivka_docx, convert_to_pdf_safe
         docx_path = await asyncio.get_event_loop().run_in_executor(
-            None, generate_obyektivka_docx, doc_data
+            None, generate_obyektivka_docx, doc_data, photo_path
         )
     except Exception as e:
         logger.error(f"/api/generate_obyektivka build error: {e}", exc_info=True)
@@ -872,6 +896,8 @@ async def api_generate_obyektivka(req: ObyektivkaRequest):
     _cleanup(docx_path)
     if final_path != docx_path:
         _cleanup(final_path)
+    if photo_path:
+        _cleanup(photo_path)
 
     ext = "pdf" if is_pdf else "docx"
     mime = "application/pdf" if is_pdf else \
