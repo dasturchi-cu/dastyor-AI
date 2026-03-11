@@ -1114,7 +1114,7 @@ async def api_export_obyektivka(req: ExportObyektivkaRequest):
         except Exception:
             pass
     else:
-        # ── PDF export — DOCX ni PDF ga aylantiramiz ──
+        # ── PDF export — avval DOCX ni PDF ga aylantiramiz ──
         filename   = f"DASTYOR_Obyektivka_{safe}_{ts}{bot_suffix}.pdf"
         media_type = "application/pdf"
         pdf_path   = convert_to_pdf_safe(docx_path) if docx_path else None
@@ -1127,12 +1127,17 @@ async def api_export_obyektivka(req: ExportObyektivkaRequest):
                 except Exception:
                     pass
         else:
-            # DOCX bo'lsa ham PDF chiqmasa — umumiy xato
+            # Agar PDF konversiya o'xshamasa, foydalanuvchiga baribir DOCX beramiz (fallback),
+            # aks holda butun servis ishlamay qoladi.
+            logger.warning("PDF conversion failed, falling back to DOCX for /api/export_obyektivka")
+            filename   = f"DASTYOR_Obyektivka_{safe}_{ts}{bot_suffix}.docx"
+            media_type = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+            with open(docx_path, "rb") as fh:
+                file_bytes = fh.read()
             try:
                 os.remove(docx_path)
             except Exception:
                 pass
-            raise HTTPException(status_code=500, detail="PDF yaratishda xato")
 
     if uid_str:
         from bot.services.user_service import increment_file_count

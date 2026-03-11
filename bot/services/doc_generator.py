@@ -609,6 +609,23 @@ class ObyektivkaGenerator:
             run.font.size = Pt(14)
         name_para.paragraph_format.space_after = Pt(12)
         
+        # Helper: remove all borders from a table (visual jadval chiziqlarisiz)
+        def _remove_table_borders_word(table_obj):
+            tbl = table_obj._tbl
+            tblPr = tbl.tblPr
+            if tblPr is None:
+                tblPr = OxmlElement("w:tblPr")
+                tbl.insert(0, tblPr)
+            tblBorders = OxmlElement("w:tblBorders")
+            for side in ("top", "left", "bottom", "right", "insideH", "insideV"):
+                border = OxmlElement(f"w:{side}")
+                border.set(qn("w:val"), "none")
+                border.set(qn("w:sz"), "0")
+                border.set(qn("w:space"), "0")
+                border.set(qn("w:color"), "auto")
+                tblBorders.append(border)
+            tblPr.append(tblBorders)
+
         # Main Table (3 columns)
         table = doc.add_table(rows=0, cols=3)
         table.autofit = False
@@ -670,6 +687,9 @@ class ObyektivkaGenerator:
         row8 = table.add_row()
         add_item(row8.cells[0].paragraphs[0], self.labels['deputy'], self.deputy)
         row8.cells[0].merge(row8.cells[2])
+
+        # Main jadvaldagi barcha chiziqlarni yashirish (faqat layout uchun jadval ishlatiladi)
+        _remove_table_borders_word(table)
         
         doc.add_paragraph()
         
@@ -878,11 +898,51 @@ def generate_cv_docx(data: Dict[str, Any], output_dir: str = "temp") -> str:
 
 def convert_to_pdf_safe(docx_path: str, output_dir: str = "temp") -> Optional[str]:
     """
-    Backwards-compatible wrapper around
-    bot.keyboards.doc_generator.convert_to_pdf_safe.
+    DOCX → PDF konversiyasi uchun xavfsiz helper.
+    Avval docx2pdf, keyin LibreOffice orqali urinadi.
+    Muvaffaqiyatsiz bo'lsa, None qaytaradi.
     """
-    from bot.keyboards.doc_generator import convert_to_pdf_safe as _legacy_convert_to_pdf_safe
+    if not docx_path or not os.path.exists(docx_path):
+        return None
 
+    pdf_path = docx_path.replace(".docx", ".pdf")
     os.makedirs(output_dir, exist_ok=True)
-    return _legacy_convert_to_pdf_safe(docx_path, output_dir=output_dir)
+
+    # 1) docx2pdf orqali urinamiz
+    try:
+        from docx2pdf import convert
+
+        convert(docx_path, pdf_path)
+        if os.path.exists(pdf_path):
+            logger.info(f"PDF via docx2pdf: {pdf_path}")
+            return pdf_path
+    except Exception as e:
+        logger.debug(f"docx2pdf unavailable or failed: {e}")
+
+    # 2) LibreOffice (soffice) orqali urinamiz
+    try:
+        import subprocess
+
+        subprocess.run(
+            [
+                "soffice",
+                "--headless",
+                "--convert-to",
+                "pdf",
+                docx_path,
+                "--outdir",
+                output_dir,
+            ],
+            check=True,
+            timeout=60,
+            capture_output=True,
+        )
+        if os.path.exists(pdf_path):
+            logger.info(f"PDF via LibreOffice: {pdf_path}")
+            return pdf_path
+    except Exception as e:
+        logger.debug(f"LibreOffice unavailable or failed: {e}")
+
+    logger.warning(f"PDF conversion failed for {docx_path}")
+    return None
 
