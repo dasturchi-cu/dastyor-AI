@@ -1199,6 +1199,16 @@
                     year: (e.startYear && e.endYear ? `${e.startYear}-${e.endYear}` : e.startYear || e.endYear || ''),
                     position: e.desc || ''
                 })),
+                // explicit "current job" (shown under name in Word)
+                current_job: (() => {
+                    const cur = experiences.find(x => String(x.endYear || '').toLowerCase().includes('h.v'));
+                    return cur?.desc || '';
+                })(),
+                current_job_year: (() => {
+                    const cur = experiences.find(x => String(x.endYear || '').toLowerCase().includes('h.v'));
+                    if (!cur) return '';
+                    return (cur.startYear && cur.endYear) ? `${cur.startYear}-${cur.endYear}` : (cur.startYear || cur.endYear || '');
+                })(),
                 relatives: relatives.map(r => ({
                     degree: r.role || '',
                     fullname: r.name || '',

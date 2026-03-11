@@ -807,6 +807,9 @@ class ObyektivkaRequest(BaseModel):
     relatives   : list = []
     # Optional photo: data URL (base64) from webapp (e.g. "data:image/jpeg;base64,...")
     photo_data  : Optional[str] = None
+    # Optional: explicitly provided current job (to show under name)
+    current_job : Optional[str] = None
+    current_job_year: Optional[str] = None
 
 @app.post("/api/generate_obyektivka")
 async def api_generate_obyektivka(req: ObyektivkaRequest):
@@ -843,6 +846,8 @@ async def api_generate_obyektivka(req: ObyektivkaRequest):
         "address"         : req.address,
         "phone"           : req.phone,
         "work_experience" : req.work_experience,
+        "current_job"     : req.current_job,
+        "current_job_year": req.current_job_year,
         "relatives"       : req.relatives,
     }
 

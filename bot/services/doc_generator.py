@@ -389,6 +389,39 @@ def _info_single_tabs(doc, lbl: str, val: str):
     _spc(p_val, before=2, after=8, line=1.5)
     _run(p_val, val or "", size=12.0, color=BLACK)
 
+def _pick_current_job(work_experience: list) -> tuple[str, str] | None:
+    """
+    Return (position, year) for the 'current' (last / present) job if found.
+    Heuristics:
+    - Prefer entries whose year contains 'h.v' / 'hozir' / 'present' or ends with '-' (open-ended)
+    - Otherwise, fall back to the last non-empty entry.
+    """
+    if not work_experience:
+        return None
+
+    def _norm(s: str) -> str:
+        return (s or "").strip().lower()
+
+    candidates: list[tuple[int, str, str]] = []
+    for i, w in enumerate(work_experience):
+        year = (w.get("year") or w.get("years") or w.get("f") or "").strip()
+        pos  = (w.get("position") or w.get("pos") or w.get("d") or "").strip()
+        if not (year or pos):
+            continue
+        candidates.append((i, pos, year))
+
+    if not candidates:
+        return None
+
+    for _, pos, year in candidates:
+        y = _norm(year)
+        if "h.v" in y or "hozir" in y or "present" in y or y.endswith("-"):
+            return (pos, year)
+
+    # fallback: last provided entry
+    _, pos, year = candidates[-1]
+    return (pos, year)
+
 def _work_table(doc,pw,lb,works):
     if not works:
         return _empty_state(doc,lb["no_data"])
@@ -499,10 +532,36 @@ def generate_obyektivka_docx(data:dict, photo_path:str|None=None,
     p_name = doc.add_paragraph()
     _set_tab_right(p_name, right_edge_cm)
     # USER GRID: Name 14pt bold, then 3cm gap before the info grid.
-    _spc(p_name, before=0, after=85, line=1.2)  # 3cm ≈ 85pt
+    # If current job exists, show it under the name (within this 3cm area).
+    _spc(p_name, before=0, after=0, line=1.2)
     _run(p_name, (g("fullname","") or "").upper(), bold=True, size=14.0, color=BLACK, lspc=0.5)
     p_name.add_run("\t")
     p_name.add_run("")  # keep tab stop effective
+
+    # Prefer explicit current_job from frontend (more reliable), else infer from work_experience
+    role = (g("current_job", "") or "").strip()
+    role_year = (g("current_job_year", "") or "").strip()
+    if not role and not role_year:
+        cj = _pick_current_job(g("work_experience", []) or [])
+        if cj:
+            role, role_year = (cj[0] or "").strip(), (cj[1] or "").strip()
+
+    if role or role_year:
+        role_line = role
+        if role_year and role_year not in role_line:
+            role_line = f"{role_line} ({role_year})" if role_line else role_year
+
+        p_role = doc.add_paragraph()
+        _set_tab_right(p_role, right_edge_cm)
+        # Keep overall spacing similar, but slightly tighter than a full blank gap
+        _spc(p_role, before=0, after=85, line=1.15)  # keep 3cm to the info grid
+        _run(p_role, role_line, italic=True, size=11.0, color=GREY_DARK, lspc=0.2)
+        p_role.add_run("\t")
+        p_role.add_run("")
+    else:
+        # No role line → keep the 3cm gap here
+        sp_gap = doc.add_paragraph()
+        _spc(sp_gap, before=0, after=85, line=1.0)
 
     # 3. Info
     pairs=[
