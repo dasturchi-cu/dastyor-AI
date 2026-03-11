@@ -570,6 +570,7 @@ class ObyektivkaGenerator:
                         p.add_run(" - ")
                     p.add_run(desc)
                     p.paragraph_format.space_after = Pt(2)
+            _remove_table_borders(work_table)
 
         doc.add_page_break()
 
