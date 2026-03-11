@@ -789,29 +789,8 @@
         // Yangi backend (dastyor-ai.onrender.com) uchun obyektivka generatsiya qilish
         // /api/export_obyektivka dan foydalanamiz (CV Builder dagi /api/export_cv ga o'xshash)
         async function generateObyektivkaViaApi(format) {
-            // 1) Rasmni (agar bor bo'lsa) Supabase'ga yuklash va public URL olish
-            let finalPhotoData = photoData;
-            const fileInput = document.getElementById('photoInput');
-            if (fileInput && fileInput.files && fileInput.files[0] && supabaseClient) {
-                try {
-                    const file = fileInput.files[0];
-                    const fileExt = file.name.split('.').pop();
-                    const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
-                    const filePath = `${fileName}`;
-                    const { data, error } = await supabaseClient
-                        .storage
-                        .from(SUPABASE_BUCKET)
-                        .upload(filePath, file);
-                    if (error) {
-                        console.error('Supabase upload error (generateObyektivkaViaApi):', error);
-                    } else if (data) {
-                        const { data: pub } = supabaseClient.storage.from(SUPABASE_BUCKET).getPublicUrl(filePath);
-                        if (pub && pub.publicUrl) finalPhotoData = pub.publicUrl;
-                    }
-                } catch (err) {
-                    console.error('Supabase unexpected error (generateObyektivkaViaApi):', err);
-                }
-            }
+            // Rasmni endi tashqi servisga yuklamaymiz – faqat lokal dataURL (yoki bo'sh) yuboriladi
+            const finalPhotoData = photoData;
 
             // 2) Mehnat faoliyati ro'yxatini yig'ish
             const works = [];
