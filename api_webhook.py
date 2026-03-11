@@ -57,7 +57,7 @@ async def root():
 
 from pydantic import BaseModel
 from fastapi import File, UploadFile, Form, Header, Query
-from fastapi.responses import StreamingResponse, JSONResponse
+from fastapi.responses import StreamingResponse, JSONResponse, HTMLResponse
 from typing import List, Optional, Literal
 from telegram import InputFile
 import asyncio, time, io
@@ -1154,6 +1154,46 @@ async def api_export_obyektivka(req: ExportObyektivkaRequest):
         media_type=media_type,
         headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# /api/preview_obyektivka — HTML preview for webapp (A4 canvas)
+# Returns rendered obyektivka_template.html so the frontend can show
+# a real-time preview identical to the exported Word/PDF design.
+# ═══════════════════════════════════════════════════════════════════════════
+class PreviewObyektivkaRequest(BaseModel):
+    lang           : str = "uz_lat"
+    fullname       : str = ""
+    birthdate      : str = ""
+    birthplace     : str = ""
+    nation         : str = ""
+    party          : str = ""
+    education      : str = ""
+    graduated      : str = ""
+    specialty      : str = ""
+    degree         : str = ""
+    scientific_title: str = ""
+    languages      : str = ""
+    military_rank  : str = ""
+    awards         : str = ""
+    deputy         : str = ""
+    address        : str = ""
+    phone          : str = ""
+    work_experience: list = []
+    relatives      : list = []
+
+
+@app.post("/api/preview_obyektivka", response_class=HTMLResponse)
+async def api_preview_obyektivka(req: PreviewObyektivkaRequest):
+    """
+    Render obyektivka_template.html with given data and return raw HTML.
+    Used only by the webapp for live A4 preview; does NOT send anything
+    to Telegram and does not persist data.
+    """
+    from bot.services.render_service import render_obyektivka_html
+
+    html = render_obyektivka_html(req.dict())
+    return HTMLResponse(content=html)
 
 
 @app.post("/webhook")
