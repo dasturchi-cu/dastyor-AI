@@ -1094,37 +1094,45 @@ async def api_export_obyektivka(req: ExportObyektivkaRequest):
     safe = safe_filename(req.fullname or "Obyektivka")
     bot_suffix = "_@DastyorAiBot"
 
+    # Word va PDF ikkalasi ham bitta klassik DOCX dizaynidan (ObyektivkaGenerator)
+    # generatsiya qilinsin. PDF uchun DOCX → PDF konversiya qilamiz.
+    from bot.services.doc_generator import generate_obyektivka_docx, convert_to_pdf_safe
+
+    # 1) Har doim DOCX yaratamiz (eski obyektivka dizayni bilan)
+    docx_path = await asyncio.get_event_loop().run_in_executor(None, generate_obyektivka_docx, data)
+    if not docx_path or not os.path.exists(docx_path):
+        raise HTTPException(status_code=500, detail="Word fayl yaratishda xato")
+
     if fmt == "word":
-        # ── Word export — real .docx (python-docx, mobile-compatible) ──
-        filename = f"DASTYOR_Obyektivka_{safe}_{ts}{bot_suffix}.docx"
-        from bot.services.doc_generator import generate_obyektivka_docx
-        docx_path = await asyncio.get_event_loop().run_in_executor(None, generate_obyektivka_docx, data)
-        if not docx_path or not os.path.exists(docx_path):
-            raise HTTPException(status_code=500, detail="Word fayl yaratishda xato")
+        # ── Word export — tayyor DOCX ni jo'natamiz ──
+        filename   = f"DASTYOR_Obyektivka_{safe}_{ts}{bot_suffix}.docx"
+        media_type = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
         with open(docx_path, "rb") as fh:
             file_bytes = fh.read()
         try:
             os.remove(docx_path)
         except Exception:
             pass
-        media_type = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
     else:
-        filename  = f"DASTYOR_Obyektivka_{safe}_{ts}{bot_suffix}.pdf"
-        pdf_bytes = await generate_obyektivka_pdf(data, base_url=SITE_BASE_URL)
-        if not pdf_bytes:
-            from bot.services.doc_generator import generate_obyektivka_docx, convert_to_pdf_safe
-            docx_path = await asyncio.get_event_loop().run_in_executor(None, generate_obyektivka_docx, data)
-            pdf_path  = convert_to_pdf_safe(docx_path) if docx_path else None
-            if pdf_path and os.path.exists(pdf_path):
-                with open(pdf_path, "rb") as fh:
-                    pdf_bytes = fh.read()
-                for p in [pdf_path, docx_path]:
-                    try: os.remove(p)
-                    except: pass
-            else:
-                raise HTTPException(status_code=500, detail="PDF yaratishda xato")
-        file_bytes = pdf_bytes
+        # ── PDF export — DOCX ni PDF ga aylantiramiz ──
+        filename   = f"DASTYOR_Obyektivka_{safe}_{ts}{bot_suffix}.pdf"
         media_type = "application/pdf"
+        pdf_path   = convert_to_pdf_safe(docx_path) if docx_path else None
+        if pdf_path and os.path.exists(pdf_path):
+            with open(pdf_path, "rb") as fh:
+                file_bytes = fh.read()
+            for p in [pdf_path, docx_path]:
+                try:
+                    os.remove(p)
+                except Exception:
+                    pass
+        else:
+            # DOCX bo'lsa ham PDF chiqmasa — umumiy xato
+            try:
+                os.remove(docx_path)
+            except Exception:
+                pass
+            raise HTTPException(status_code=500, detail="PDF yaratishda xato")
 
     if uid_str:
         from bot.services.user_service import increment_file_count

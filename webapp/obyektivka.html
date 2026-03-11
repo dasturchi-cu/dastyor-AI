@@ -621,11 +621,22 @@
             if (urlId) telegramId = urlId;
         }
 
-        const API_URL = window.location.origin.includes('localhost') || window.location.origin.includes('127.0.0.1')
-            ? 'https://obyektivka-bot.onrender.com'
-            : window.location.origin;
-        // Yangi Dastyor AI backend uchun flag (api_webhook.py ichidagi /api/generate_obyektivka dan foydalanish)
-        const USE_NEW_OBY_API = API_URL.includes('dastyor-ai.onrender.com');
+        // API bazaviy URL
+        // 1) Lokal server: http://localhost:8000
+        // 2) Render prod:  https://dastyor-ai.onrender.com
+        // 3) Agar faylni bevosita (file://) ochgan bo'lsa, majburan prod API ishlatiladi
+        let API_URL;
+        if (window.location.protocol === 'file:') {
+            // HTML'ni oddiy fayl sifatida ochgan holat
+            API_URL = 'https://dastyor-ai.onrender.com';
+        } else if (window.location.origin.includes('localhost') || window.location.origin.includes('127.0.0.1')) {
+            API_URL = 'http://localhost:8000';
+        } else {
+            API_URL = window.location.origin;
+        }
+        // Eski obyektivka-bot backendidan faqat aynan shu URL bo'lsa foydalanamiz,
+        // qolgan barcha hollarda yangi Dastyor backend (api_webhook.py) ishlaydi.
+        const USE_NEW_OBY_API = !API_URL.includes('obyektivka-bot.onrender.com');
 
         // VILOYATLAR VA TUMANLAR
         const uzbRegions = {
@@ -777,107 +788,8 @@
             }
         }
 
-        async function saveObyektivkaData(fileType) {
-            try {
-                if (!telegramId) throw new Error("Telegram ID topilmadi");
-
-                let finalPhotoData = photoData;
-                // ... (Rasm yuklash qismi o'zgarishsiz qoladi) ...
-                const fileInput = document.getElementById('photoInput');
-                if (fileInput && fileInput.files && fileInput.files[0] && supabaseClient) {
-                    try {
-                        const file = fileInput.files[0];
-                        const fileExt = file.name.split('.').pop();
-                        const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
-                        const filePath = `${fileName}`;
-                        const { data, error } = await supabaseClient
-                            .storage
-                            .from(SUPABASE_BUCKET)
-                            .upload(filePath, file);
-                        if (error) {
-                            console.error('Supabase upload error (saveObyektivkaData):', error);
-                        } else if (data) {
-                            const { data: pub } = supabaseClient.storage.from(SUPABASE_BUCKET).getPublicUrl(filePath);
-                            if (pub && pub.publicUrl) finalPhotoData = pub.publicUrl;
-                        }
-                    } catch (err) {
-                        console.error('Supabase unexpected error (saveObyektivkaData):', err);
-                    }
-                }
-
-                // --- O'ZGARGANY JOY: Work Experience ni yig'ib olish ---
-                const works = [];
-                document.querySelectorAll('#work-container .form-grid').forEach(row => {
-                    const fromVal = row.querySelector('.year-from').value;
-                    const toVal = row.querySelector('.year-to').value;
-                    const d = row.querySelector('.work-desc')?.value || '';
-
-                    let yearStr = "";
-                    if (fromVal && toVal) {
-                        if (toVal.toLowerCase() === 'h.v' || toVal.toLowerCase() === 'ҳ.в') {
-                            yearStr = `${fromVal} y. - h.v.`;
-                            if (currentLang === 'uz_k') yearStr = `${fromVal} й. - ҳ.в.`;
-                        } else {
-                            yearStr = `${fromVal}-${toVal} yy.`;
-                            if (currentLang === 'uz_k') yearStr = `${fromVal}-${toVal} йй.`;
-                        }
-                    } else if (fromVal && !toVal) {
-                        yearStr = fromVal;
-                    }
-
-                    // MUHIM: Faqat lavozim (d) yozilgan bo'lsa ro'yxatga qo'shamiz.
-                    // Agar bo'sh bo'lsa, ignor qilamiz.
-                    if (d && d.trim() !== '') {
-                        works.push({ year: yearStr, position: d });
-                    }
-                });
-                // -----------------------------------------------------
-
-                const payload = {
-                    // ... (qolgan kod o'zgarishsiz) ...
-                    telegram_id: parseInt(telegramId),
-                    fullname: document.getElementById('fullname').value || '',
-                    // ... va hokazo ...
-                    birthdate: document.getElementById('birthdate').value || '',
-                    birthplace: document.getElementById('birthplace').value || '',
-                    nation: document.getElementById('nation').value || '',
-                    party: document.getElementById('party').value || '',
-                    education: document.getElementById('edu').value || '',
-                    graduated: document.getElementById('graduated').value || '',
-                    specialty: document.getElementById('spec').value || '',
-                    degree: document.getElementById('degree').value || '',
-                    scientific_title: document.getElementById('scititle').value || '',
-                    languages: document.getElementById('langs').value || '',
-                    military_rank: document.getElementById('military').value || '',
-                    awards: document.getElementById('awards').value || '',
-                    deputy: document.getElementById('deputy').value || '',
-                    work_experience: JSON.stringify(works),
-                    relatives: JSON.stringify(relatives),
-                    photo_data: finalPhotoData,
-                    file_type: fileType
-                };
-
-                // ... (Pastdagi fetch qismi o'zgarishsiz) ...
-                const response = await fetch(`${API_URL}/webhook/save-obyektivka`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-
-                // ... (qolgan kod) ...
-                if (!response.ok) throw new Error(`Server returned ${response.status}`);
-                const res = await response.json();
-                if (res.status === 'success') {
-                    savedObyektivkaId = res.obyektivka_id;
-                } else {
-                    throw new Error(res.message || 'Unknown error');
-                }
-            } catch (e) {
-                console.error('saveObyektivkaData error:', e);
-                alert('Ma\'lumotlarni saqlashda xatolik: ' + e.message);
-                savedObyektivkaId = null;
-            }
-        }
+        // Eski backend uchun yordamchi (zarurat bo'lsa), hozircha ishlatilmaydi
+        async function saveObyektivkaData(fileType) {}
 
         // Yangi backend (dastyor-ai.onrender.com) uchun obyektivka generatsiya qilish
         // /api/export_obyektivka dan foydalanamiz (CV Builder dagi /api/export_cv ga o'xshash)
@@ -1389,77 +1301,24 @@
 
         // Yuklash funksiyalari (Server)
         async function downloadDoc() {
-            // Eski backend uchun Telegram ID majburiy, yangi backend uchun ixtiyoriy
-            if (!telegramId && !USE_NEW_OBY_API) { alert('Telegram ID topilmadi.'); return; }
             document.getElementById('loading-overlay').style.display = 'flex';
             try {
-                if (USE_NEW_OBY_API) {
-                    await generateObyektivkaViaApi('word');
-                } else {
-                    await saveObyektivkaData('word');
-                    if (!savedObyektivkaId) { alert('Xatolik.'); return; }
-                    const fname = document.getElementById('fullname').value || 'Hujjat';
-                    const response = await fetch(`${API_URL}/webhook/download-file`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            telegram_id: parseInt(telegramId),
-                            file_name: fname.replace(/[^a-zA-Z0-9А-Яа-яЁёӨөҒғҚқҲҳӮӯ]/g, '_') + '.doc',
-                            file_type: 'word',
-                            price: 10000,
-                            obyektivka_id: savedObyektivkaId,
-                            lang: currentLang
-                        })
-                    });
-                    if (!response.ok) throw new Error("Server error");
-                    const result = await response.json();
-                    if (result.status === 'success') {
-                        alert('✅ Fayl botga yuborildi!');
-                        if (window.Telegram && window.Telegram.WebApp) window.Telegram.WebApp.close();
-                    } else {
-                        alert('❌ ' + (result.message || 'Xatolik'));
-                    }
-                }
+                await generateObyektivkaViaApi('word');
             } catch (error) {
-                alert('❌ Xatolik yuz berdi.');
+                console.error('WORD download error:', error);
+                alert('❌ Xatolik yuz berdi: ' + (error?.message || 'noma\'lum xato'));
             } finally {
                 document.getElementById('loading-overlay').style.display = 'none';
             }
         }
 
         async function downloadPDF() {
-            if (!telegramId && !USE_NEW_OBY_API) { alert('Telegram ID topilmadi.'); return; }
             document.getElementById('loading-overlay').style.display = 'flex';
             try {
-                if (USE_NEW_OBY_API) {
-                    await generateObyektivkaViaApi('pdf');
-                } else {
-                    await saveObyektivkaData('pdf');
-                    if (!savedObyektivkaId) { alert('Xatolik.'); return; }
-                    const fname = document.getElementById('fullname').value || 'Hujjat';
-                    const response = await fetch(`${API_URL}/webhook/download-file`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            telegram_id: parseInt(telegramId),
-                            file_name: fname.replace(/[^a-zA-Z0-9А-Яа-яЁёӨөҒғҚқҲҳӮӯ]/g, '_') + '.pdf',
-                            file_type: 'pdf',
-                            price: 10000,
-                            obyektivka_id: savedObyektivkaId,
-                            lang: currentLang
-                        })
-                    });
-                    if (!response.ok) throw new Error("Server error");
-                    const result = await response.json();
-                    if (result.status === 'success') {
-                        alert('✅ Fayl botga yuborildi!');
-                        if (window.Telegram && window.Telegram.WebApp) window.Telegram.WebApp.close();
-                    } else {
-                        alert('❌ ' + (result.message || 'Xatolik'));
-                    }
-                }
+                await generateObyektivkaViaApi('pdf');
             } catch (error) {
-                alert('❌ Xatolik yuz berdi.');
+                console.error('PDF download error:', error);
+                alert('❌ Xatolik yuz berdi: ' + (error?.message || 'noma\'lum xato'));
             } finally {
                 document.getElementById('loading-overlay').style.display = 'none';
             }

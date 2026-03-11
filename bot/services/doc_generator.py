@@ -831,19 +831,38 @@ def generate_obyektivka_pdf(data: Dict[str, Any], lang: str = 'uz_l', is_sample:
 # avoid breaking those imports.
 # ─────────────────────────────────────────────────────────────────────────────
 
-def generate_obyektivka_docx(data: Dict[str, Any], photo_path: Optional[str] = None, output_dir: str = "temp") -> str:
+def generate_obyektivka_docx(
+    data: Dict[str, Any],
+    photo_path: Optional[str] = None,
+    output_dir: str = "temp",
+) -> str:
     """
-    Backwards-compatible wrapper that forwards to
-    bot.keyboards.doc_generator.generate_obyektivka_docx.
+    Generate obyektivka DOCX using the classic python-docx layout
+    implemented by ObyektivkaGenerator (same ko'rinish eski Word'dagi kabi).
 
-    Note: current implementation in bot.keyboards.doc_generator does not
-    accept/consume photo_path directly; photo handling is done upstream
-    (e.g. via data fields or dedicated generators), so we ignore it here.
+    This returns a temporary .docx fayl manzili, so existing kod
+    (api_export_obyektivka, webapp_data va boshqalar) o'zgarishsiz ishlaydi.
     """
-    from bot.keyboards.doc_generator import generate_obyektivka_docx as _legacy_generate_obyektivka_docx
-
     os.makedirs(output_dir, exist_ok=True)
-    return _legacy_generate_obyektivka_docx(data, output_dir=output_dir)
+
+    # Map external lang codes (uz_lat / uz_cyr) → generator codes (uz_l / uz_k)
+    raw_lang = str(data.get("lang", "uz_lat") or "uz_lat")
+    if raw_lang in ("uz_lat", "uz_latin"):
+        lang = "uz_l"
+    elif raw_lang in ("uz_cyr", "uz_kirill"):
+        lang = "uz_k"
+    else:
+        lang = "uz_l"
+
+    generator = ObyektivkaGenerator(data, lang=lang, is_sample=False)
+    doc_stream = generator.generate_word()  # BytesIO
+
+    safe_name = (data.get("fullname") or "Obyektivka").replace(" ", "_").replace("/", "_")[:30]
+    filepath = os.path.join(output_dir, f"obyektivka_{safe_name}_@DastyorAiBot.docx")
+    with open(filepath, "wb") as f:
+        f.write(doc_stream.getvalue())
+
+    return filepath
 
 
 def generate_cv_docx(data: Dict[str, Any], output_dir: str = "temp") -> str:
