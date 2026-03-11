@@ -5,7 +5,8 @@ Pure black & white design. No colors.
 import os, logging
 from docx import Document
 from docx.shared import Pt, Cm, RGBColor, Mm
-from docx.enum.text import WD_ALIGN_PARAGRAPH
+from docx.enum.text import WD_ALIGN_PARAGRAPH, WD_TAB_ALIGNMENT
+from docx.oxml import parse_xml
 from docx.oxml.ns import qn
 from docx.oxml import OxmlElement
 
@@ -16,6 +17,8 @@ FONT_CV   = "Calibri"
 BLACK     = RGBColor(0x00,0x00,0x00)
 DARK      = RGBColor(0x1A,0x1A,0x1A)
 GREY_TXT  = RGBColor(0x66,0x66,0x66)
+GREY_DARK = RGBColor(0x44,0x44,0x44)
+LABEL_DARK = RGBColor(0x22,0x22,0x22)
 MUTED     = RGBColor(0xAA,0xAA,0xAA)
 ITALIC_C  = RGBColor(0x77,0x77,0x77)
 NAVY      = RGBColor(0x1A,0x3A,0x6B)
@@ -245,7 +248,7 @@ def _para_bdr_bot(p,color=BLK,sz="8"):
 def _sect_title(doc,text):
     p=doc.add_paragraph()
     p.alignment=WD_ALIGN_PARAGRAPH.LEFT
-    _spc(p,before=0,after=10,line=1.0)
+    _spc(p,before=0,after=12,line=1.0)
     _para_bdr_bot(p,BLK,"8")
     _run(p,text,bold=True,size=14.0,color=BLACK,lspc=3.0)
 
@@ -257,14 +260,14 @@ def _info_row_2(doc,pw,lbl1,val1,lbl2,val2):
         c=t.cell(0,j)
         _shading(c,WHITE_HEX)
         _bdr_none(c)
-        # Slightly tighter vertical padding, more like HTML preview
-        _pad(c,top=70,bottom=70,left=0,right=240 if j==0 else 0)
+        # Match HTML-ish paddings: ~10px vertical, left column has extra right gap (~24px)
+        _pad(c,top=90,bottom=70,left=0,right=360 if j==0 else 0)
         p_lbl=c.paragraphs[0]
         _spc(p_lbl,before=0,after=0,line=1.0)
         _run(p_lbl,lbl,size=9.0,color=GREY_TXT,lspc=1.0)
         p_val=c.add_paragraph()
-        # Values with a bit more line height to resemble 1.5 HTML line-height
-        _spc(p_val,before=2,after=2,line=1.5)
+        # Values with a bit more line height to resemble HTML line-height: 1.5
+        _spc(p_val,before=2,after=0,line=1.5)
         _run(p_val,val or "",size=12.0,color=BLACK)
 
 def _info_row_1(doc,pw,lbl,val):
@@ -274,12 +277,12 @@ def _info_row_1(doc,pw,lbl,val):
     c=t.cell(0,0)
     _shading(c,WHITE_HEX)
     _bdr_none(c)
-    _pad(c,top=70,bottom=70,left=0,right=0)
+    _pad(c,top=90,bottom=70,left=0,right=0)
     p_lbl=c.paragraphs[0]
     _spc(p_lbl,before=0,after=0,line=1.0)
     _run(p_lbl,lbl,size=9.0,color=GREY_TXT,lspc=1.0)
     p_val=c.add_paragraph()
-    _spc(p_val,before=2,after=2,line=1.5)
+    _spc(p_val,before=2,after=0,line=1.5)
     _run(p_val,val or "",size=12.0,color=BLACK)
 
 def _bdr_top_bottom(cell,col="000000",sz="8"):
@@ -299,6 +302,92 @@ def _empty_state(doc,text):
     p.alignment=WD_ALIGN_PARAGRAPH.CENTER
     _spc(p,before=12,after=12,line=1.0)
     _run(p,text,italic=True,size=11.0,color=RGBColor(0x88,0x88,0x88))
+
+def _set_tabs_2col(p, left_col_w_cm: float):
+    """Create a consistent 2-column layout using a single tab stop."""
+    try:
+        p.paragraph_format.tab_stops.clear_all()
+    except Exception:
+        pass
+    p.paragraph_format.tab_stops.add_tab_stop(Cm(left_col_w_cm), alignment=WD_TAB_ALIGNMENT.LEFT)
+
+def _set_tab_right(p, pos_cm: float):
+    """Right-aligned tab stop (for photo on the right)."""
+    try:
+        p.paragraph_format.tab_stops.clear_all()
+    except Exception:
+        pass
+    p.paragraph_format.tab_stops.add_tab_stop(Cm(pos_cm), alignment=WD_TAB_ALIGNMENT.RIGHT)
+
+def _cm_to_pt(cm: float) -> float:
+    return cm * 28.3464567
+
+def _add_vml_dashed_box(run, width_cm: float, height_cm: float, text: str = "3×4"):
+    """
+    Insert a dashed rectangle placeholder WITHOUT tables.
+    Uses VML so Word renders a real border (not gridlines).
+    """
+    # NOTE: Use cm units directly in VML style.
+    # Some Word viewers mis-handle pt sizing in w:pict, but cm is reliable.
+    # Use v:rect (more stable than v:shape in many Word viewers)
+    xml = f"""
+    <w:pict xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"
+            xmlns:v="urn:schemas-microsoft-com:vml"
+            xmlns:o="urn:schemas-microsoft-com:office:office">
+      <v:rect id="oby_photo_ph"
+              style="width:{width_cm:.2f}cm;height:{height_cm:.2f}cm;v-text-anchor:middle"
+              strokecolor="#CCCCCC" fillcolor="#FFFFFF">
+        <v:stroke dashstyle="dash" endcap="flat"/>
+        <v:textbox inset="0pt,0pt,0pt,0pt" style="mso-fit-shape-to-text:t">
+          <w:txbxContent>
+            <w:p>
+              <w:pPr>
+                <w:jc w:val="center"/>
+              </w:pPr>
+              <w:r>
+                <w:rPr>
+                  <w:rFonts w:ascii="{FONT}" w:hAnsi="{FONT}"/>
+                  <w:sz w:val="18"/>
+                  <w:color w:val="999999"/>
+                </w:rPr>
+                <w:t>{text}</w:t>
+              </w:r>
+            </w:p>
+          </w:txbxContent>
+        </v:textbox>
+      </v:rect>
+    </w:pict>
+    """.strip()
+
+    run._r.append(parse_xml(xml))
+
+def _info_pair_tabs(doc, left_col_w_cm: float, lbl1: str, val1: str, lbl2: str, val2: str):
+    """
+    Tableless 2-col row: label line then value line (preview-like).
+    Avoids Word table gridlines completely.
+    """
+    p_lbl = doc.add_paragraph()
+    _set_tabs_2col(p_lbl, left_col_w_cm)
+    _spc(p_lbl, before=0, after=0, line=1.0)
+    _run(p_lbl, lbl1, bold=True, size=9.5, color=LABEL_DARK, lspc=0.8)
+    p_lbl.add_run("\t")
+    _run(p_lbl, lbl2, bold=True, size=9.5, color=LABEL_DARK, lspc=0.8)
+
+    p_val = doc.add_paragraph()
+    _set_tabs_2col(p_val, left_col_w_cm)
+    _spc(p_val, before=2, after=8, line=1.5)
+    _run(p_val, val1 or "", size=12.0, color=BLACK)
+    p_val.add_run("\t")
+    _run(p_val, val2 or "", size=12.0, color=BLACK)
+
+def _info_single_tabs(doc, lbl: str, val: str):
+    p_lbl = doc.add_paragraph()
+    _spc(p_lbl, before=0, after=0, line=1.0)
+    _run(p_lbl, lbl, bold=True, size=9.5, color=LABEL_DARK, lspc=0.8)
+
+    p_val = doc.add_paragraph()
+    _spc(p_val, before=2, after=8, line=1.5)
+    _run(p_val, val or "", size=12.0, color=BLACK)
 
 def _work_table(doc,pw,lb,works):
     if not works:
@@ -371,58 +460,49 @@ def generate_obyektivka_docx(data:dict, photo_path:str|None=None,
         safe=(g("fullname","") or "unknown").replace(" ","_").replace("/","_")
         output_filepath=os.path.join(output_dir,f"obyektivka_{safe}_@DastyorAiBot.docx")
     doc=Document()
-    _margins(doc)
+    # USER GRID: A4, Top 2.5cm, Bottom 2cm, Left 2.5cm, Right 2.5cm
+    _margins(doc, top=2.5, bottom=2.0, left=2.5, right=2.5)
     ns=doc.styles["Normal"]
     ns.font.name=FONT;ns.font.size=Pt(11)
     ns.paragraph_format.space_before=Pt(0)
     ns.paragraph_format.space_after=Pt(0)
     pw=_pw(doc)
+    # Content width: 21cm - 2.5cm - 2.5cm = 16cm
+    # USER GRID: column gap target ~7–8cm ⇒ set right col start at 8cm
+    left_col_w_cm = 8.0
+    right_edge_cm = 16.0
 
     # 1. Sarlavha (preview: 20pt, margin-bottom 36px)
     p_t=doc.add_paragraph()
     p_t.alignment=WD_ALIGN_PARAGRAPH.CENTER
-    _spc(p_t,before=0,after=24,line=1.0)
-    _run(p_t,lb["title"],bold=True,size=20.0,color=BLACK,lspc=4.0)
+    # USER GRID: Title top distance 3cm.
+    # With top margin 2.5cm, add ~0.5cm (~14pt) before spacing.
+    _spc(p_t,before=14,after=71,line=1.0)  # after=2.5cm ≈ 71pt to F.I.SH block
+    _run(p_t,lb["title"],bold=True,size=18.0,color=BLACK,lspc=4.0)
 
-    # 2. Ism | Foto  (3cm x 4cm — aniq o'lcham)
-    hdr = doc.add_table(rows=1, cols=2)
-    _no_tbl_bdr(hdr)
-    hdr.autofit = False
-    hdr.rows[0].height = Cm(4)
-
-    # Ism katagi (chap)
-    nc = hdr.cell(0, 0)
-    nc.width = pw - Cm(3)
-    _shading(nc, WHITE_HEX); _bdr_none(nc)
-    _pad(nc, top=0, bottom=0, left=0, right=120)
-    p_lbl = nc.paragraphs[0]
-    _spc(p_lbl, before=0, after=3, line=1.0)
-    _run(p_lbl, lb["name_label"], size=10.0, color=GREY_TXT, lspc=1.0)
-    p_nm = nc.add_paragraph()
-    _spc(p_nm, before=2, after=0, line=1.35)
-    _run(p_nm, (g("fullname","") or "").upper(), bold=True, size=17.0, color=BLACK)
-
-    # Foto katagi (o'ng) — 3cm x 4cm
-    pc = hdr.cell(0, 1)
-    pc.width = Cm(3)
-    _shading(pc, WHITE_HEX)
+    # 2. Ism | Foto (TABLELESS to avoid gridlines)
+    # Left: name label + name, Right: photo (or "3x4") aligned to the right margin.
+    p_hdr = doc.add_paragraph()
+    _set_tab_right(p_hdr, right_edge_cm)
+    _spc(p_hdr, before=0, after=17, line=1.0)  # USER GRID: 0.6cm ≈ 17pt between label and name
+    _run(p_hdr, lb["name_label"], size=10.0, color=GREY_DARK, lspc=1.0)
+    p_hdr.add_run("\t")
     has_photo = bool(photo_path and os.path.exists(photo_path))
     if has_photo:
-        _bdr_none(pc)
+        r = p_hdr.add_run()
+        # USER GRID: 3.5cm x 4.5cm
+        r.add_picture(photo_path, width=Cm(3.5), height=Cm(4.5))
     else:
-        _bdr_dashed(pc, "CCCCCC", "6")
-    _pad(pc, top=0, bottom=0, left=0, right=0)
-    _vcenter(pc)
-    p_ph = pc.paragraphs[0]
-    p_ph.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    _spc(p_ph, before=0, after=0, line=1.0)
-    if has_photo:
-        r = p_ph.add_run()
-        r.add_picture(photo_path, width=Cm(3), height=Cm(4))
-    else:
-        _run(p_ph, lb["photo"], size=9.0, color=RGBColor(0x99,0x99,0x99))
+        ph_run = p_hdr.add_run()
+        _add_vml_dashed_box(ph_run, 3.5, 4.5, lb.get("photo", "3×4"))
 
-    sp1=doc.add_paragraph();_spc(sp1,before=0,after=20)
+    p_name = doc.add_paragraph()
+    _set_tab_right(p_name, right_edge_cm)
+    # USER GRID: Name 14pt bold, then 3cm gap before the info grid.
+    _spc(p_name, before=0, after=85, line=1.2)  # 3cm ≈ 85pt
+    _run(p_name, (g("fullname","") or "").upper(), bold=True, size=14.0, color=BLACK, lspc=0.5)
+    p_name.add_run("\t")
+    p_name.add_run("")  # keep tab stop effective
 
     # 3. Info
     pairs=[
@@ -435,8 +515,8 @@ def generate_obyektivka_docx(data:dict, photo_path:str|None=None,
         (lb["deputy"],g("deputy",""),lb["phone"],g("phone","")),
     ]
     for lbl1,val1,lbl2,val2 in pairs:
-        _info_row_2(doc,pw,lbl1,val1,lbl2,val2)
-    _info_row_1(doc,pw,lb["addr"],g("address","") or g("addr",""))
+        _info_pair_tabs(doc,left_col_w_cm,lbl1,val1,lbl2,val2)
+    _info_single_tabs(doc,lb["addr"],g("address","") or g("addr",""))
 
     # 4. Mehnat faoliyati (preview section-header margin-top 40px)
     sp2=doc.add_paragraph();_spc(sp2,before=0,after=28)

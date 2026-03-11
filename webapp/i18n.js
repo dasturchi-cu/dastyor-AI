@@ -106,6 +106,7 @@ const I18n = (() => {
         btn_remove:        { uz_lat: "O'chirish",         uz_cyr: "Ўчириш",              en: 'Remove',               ru: 'Удалить'              },
         btn_new:           { uz_lat: "Yangi",             uz_cyr: "Янги",                en: 'New',                  ru: 'Новый'                },
         btn_export_word:   { uz_lat: "Word yuklash",      uz_cyr: "Word юклаш",          en: 'Download Word',        ru: 'Скачать Word'         },
+        btn_export_word_short:{ uz_lat: "Word",           uz_cyr: "Word",                en: 'Word',                 ru: 'Word'                 },
         btn_export_pdf:    { uz_lat: "PDF yuklash",       uz_cyr: "PDF юклаш",           en: 'Download PDF',         ru: 'Скачать PDF'          },
         btn_preview:       { uz_lat: "Ko'rish",           uz_cyr: "Кўриш",               en: 'Preview',              ru: 'Просмотр'             },
 

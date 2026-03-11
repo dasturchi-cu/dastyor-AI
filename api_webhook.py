@@ -822,7 +822,8 @@ async def api_generate_obyektivka(req: ObyektivkaRequest):
 
     doc_data = {
         "lang"            : req.lang,
-        "fullname"        : req.fullname,
+        # Keep Word output visually consistent with HTML preview placeholders
+        "fullname"        : req.fullname or "FAMILIYA ISM SHARIF",
         "birthdate"       : req.birthdate,
         "birthplace"      : req.birthplace,
         "nation"          : req.nation,
