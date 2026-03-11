@@ -369,9 +369,9 @@ def _info_pair_tabs(doc, left_col_w_cm: float, lbl1: str, val1: str, lbl2: str, 
     p_lbl = doc.add_paragraph()
     _set_tabs_2col(p_lbl, left_col_w_cm)
     _spc(p_lbl, before=0, after=0, line=1.0)
-    _run(p_lbl, lbl1, bold=True, size=9.5, color=LABEL_DARK, lspc=0.8)
+    _run(p_lbl, lbl1, bold=True, size=9.5, color=DARK, lspc=0.8)
     p_lbl.add_run("\t")
-    _run(p_lbl, lbl2, bold=True, size=9.5, color=LABEL_DARK, lspc=0.8)
+    _run(p_lbl, lbl2, bold=True, size=9.5, color=DARK, lspc=0.8)
 
     p_val = doc.add_paragraph()
     _set_tabs_2col(p_val, left_col_w_cm)
@@ -383,7 +383,7 @@ def _info_pair_tabs(doc, left_col_w_cm: float, lbl1: str, val1: str, lbl2: str, 
 def _info_single_tabs(doc, lbl: str, val: str):
     p_lbl = doc.add_paragraph()
     _spc(p_lbl, before=0, after=0, line=1.0)
-    _run(p_lbl, lbl, bold=True, size=9.5, color=LABEL_DARK, lspc=0.8)
+    _run(p_lbl, lbl, bold=True, size=9.5, color=DARK, lspc=0.8)
 
     p_val = doc.add_paragraph()
     _spc(p_val, before=2, after=8, line=1.5)
@@ -518,7 +518,7 @@ def generate_obyektivka_docx(data:dict, photo_path:str|None=None,
     p_hdr = doc.add_paragraph()
     _set_tab_right(p_hdr, right_edge_cm)
     _spc(p_hdr, before=0, after=17, line=1.0)  # USER GRID: 0.6cm ≈ 17pt between label and name
-    _run(p_hdr, lb["name_label"], size=10.0, color=GREY_DARK, lspc=1.0)
+    _run(p_hdr, lb["name_label"], size=10.0, color=DARK, lspc=1.0)
     p_hdr.add_run("\t")
     has_photo = bool(photo_path and os.path.exists(photo_path))
     if has_photo:
@@ -555,7 +555,7 @@ def generate_obyektivka_docx(data:dict, photo_path:str|None=None,
         _set_tab_right(p_role, right_edge_cm)
         # Keep overall spacing similar, but slightly tighter than a full blank gap
         _spc(p_role, before=0, after=85, line=1.15)  # keep 3cm to the info grid
-        _run(p_role, role_line, italic=True, size=11.0, color=GREY_DARK, lspc=0.2)
+        _run(p_role, role_line, italic=True, size=11.0, color=DARK, lspc=0.2)
         p_role.add_run("\t")
         p_role.add_run("")
     else:

@@ -1059,6 +1059,16 @@
             const firstName = data.name.split(' ')[0];
             const relTitle = (lang === 'ru') ? L.rel_suffix : `${firstName} ${L.rel_suffix}`;
 
+            // Current job (endYear = h.v.) shown under the name (matches Word)
+            const currentExp = experiences.find(x => String(x.endYear || '').toLowerCase().includes('h.v'));
+            const currentYears = currentExp
+                ? (currentExp.startYear && currentExp.endYear ? `${currentExp.startYear}-${currentExp.endYear} yy.` : (currentExp.startYear || currentExp.endYear || ''))
+                : '';
+            const currentRole = currentExp?.desc ? currentExp.desc.trim() : '';
+            const currentLine = (currentRole || currentYears)
+                ? `<div style="margin-top:6px;font-size:11pt;font-style:italic;color:#555;">${currentRole}${currentYears && currentRole ? ` (${currentYears.replace(' yy.','')})` : (currentYears ? ` (${currentYears.replace(' yy.','')})` : '')}</div>`
+                : '';
+
             box.innerHTML = `
                 <div class="accent-bar"></div>
                 <div class="title">${L.title}</div>
@@ -1070,6 +1080,7 @@
                             <div class="name-block">
                                 <span class="name-label">${L.name_lbl}</span>
                                 <div class="name">${data.name}</div>
+                                ${currentLine}
                             </div>
                         </td>
                         <td class="col-img">
