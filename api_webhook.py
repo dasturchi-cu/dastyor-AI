@@ -779,12 +779,13 @@ async def api_get_oby_data(
     return {"ok": False}
 
 # ═══════════════════════════════════════════════════════════════════════════
-# /api/generate_obyektivka— Obyektivka DOCX generator
+# /api/generate_obyektivka — Obyektivka DOCX generator (WORD ONLY)
 # ═══════════════════════════════════════════════════════════════════════════
 class ObyektivkaRequest(BaseModel):
     telegram_id : Optional[int] = None
     token       : Optional[str] = None
-    format      : str = "word"      # "word" | "pdf"
+    # format field kept for backward‑compat but ignored (WORD only now)
+    format      : str = "word"
     lang        : str = "uz_lat"    # uz_lat | uz_cyr | en | ru
     # personal info
     fullname    : str = ""
@@ -814,9 +815,10 @@ class ObyektivkaRequest(BaseModel):
 @app.post("/api/generate_obyektivka")
 async def api_generate_obyektivka(req: ObyektivkaRequest):
     """
-    Generate an Obyektivka (Ma’lumotnoma) DOCX/PDF from website form data.
+    Generate an Obyektivka (Ma’lumotnoma) DOCX from website form data.
     • Returns the file as a streaming download for the browser.
     • Sends the same file to the user’s Telegram chat in the background.
+    NOTE: PDF format is no longer supported; all outputs are DOCX.
     """
     ts = int(time.time())
     os.makedirs("temp", exist_ok=True)
@@ -873,7 +875,7 @@ async def api_generate_obyektivka(req: ObyektivkaRequest):
         photo_path = None
 
     try:
-        from bot.services.doc_generator import generate_obyektivka_docx, convert_to_pdf_safe
+        from bot.services.doc_generator import generate_obyektivka_docx
         docx_path = await asyncio.get_event_loop().run_in_executor(
             None, generate_obyektivka_docx, doc_data, photo_path
         )
@@ -884,29 +886,14 @@ async def api_generate_obyektivka(req: ObyektivkaRequest):
     if not docx_path or not os.path.exists(docx_path):
         raise HTTPException(status_code=500, detail="Obyektivka fayl yaratilmadi")
 
-    final_path = docx_path
-    is_pdf = req.format.lower() == "pdf"
-
-    if is_pdf:
-        pdf_path = await asyncio.get_event_loop().run_in_executor(
-            None, convert_to_pdf_safe, docx_path
-        )
-        if pdf_path and os.path.exists(pdf_path):
-            final_path = pdf_path
-        else:
-            is_pdf = False  # fallback to DOCX
-
-    with open(final_path, "rb") as fh:
+    with open(docx_path, "rb") as fh:
         file_bytes = fh.read()
     _cleanup(docx_path)
-    if final_path != docx_path:
-        _cleanup(final_path)
     if photo_path:
         _cleanup(photo_path)
 
-    ext = "pdf" if is_pdf else "docx"
-    mime = "application/pdf" if is_pdf else \
-           "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    ext = "docx"
+    mime = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
 
     # ── Background Telegram delivery ────────────────────────────────────
     if uid_str:
@@ -1056,12 +1043,13 @@ async def api_export_cv(req: ExportCVRequest):
 
 
 # ═══════════════════════════════════════════════════════════════════════════
-# /api/export_obyektivka  — Server-side Obyektivka export
+# /api/export_obyektivka  — Server-side Obyektivka export (WORD ONLY)
 # ═══════════════════════════════════════════════════════════════════════════
 class ExportObyektivkaRequest(BaseModel):
     telegram_id    : Optional[int] = None
     token          : Optional[str] = None
-    format         : str           = "pdf"  # "pdf" | "word"
+    # format field kept for compatibility but ignored; always DOCX
+    format         : str           = "word"
     lang           : str           = "uz_lat"
     fullname       : str = ""
     birthdate      : str = ""
@@ -1087,63 +1075,34 @@ class ExportObyektivkaRequest(BaseModel):
 @app.post("/api/export_obyektivka")
 async def api_export_obyektivka(req: ExportObyektivkaRequest):
     """
-    Server-side Obyektivka export — same template as browser preview.
+    Server-side Obyektivka export — WORD (DOCX) only.
+    PDF export/conversion has been removed.
     """
     ts  = int(time.time())
     uid_str = _resolve_uid(str(req.telegram_id) if req.telegram_id else None, req.token)
-    fmt  = req.format.lower()
     data = req.dict(exclude={"telegram_id", "token", "format"})
     safe = safe_filename(req.fullname or "Obyektivka")
     bot_suffix = "_@DastyorAiBot"
 
-    # Word va PDF ikkalasi ham bitta klassik DOCX dizaynidan (ObyektivkaGenerator)
-    # generatsiya qilinsin. PDF uchun DOCX → PDF konversiya qilamiz.
-    from bot.services.doc_generator import generate_obyektivka_docx, convert_to_pdf_safe
+    # Har doim DOCX yaratamiz (rassmiy minimal layout bilan)
+    from bot.services.doc_generator import generate_obyektivka_docx
 
-    # 1) Har doim DOCX yaratamiz (eski obyektivka dizayni bilan)
     docx_path = await asyncio.get_event_loop().run_in_executor(None, generate_obyektivka_docx, data)
     if not docx_path or not os.path.exists(docx_path):
         raise HTTPException(status_code=500, detail="Word fayl yaratishda xato")
 
-    if fmt == "word":
-        # ── Word export — tayyor DOCX ni jo'natamiz ──
-        filename   = f"DASTYOR_Obyektivka_{safe}_{ts}{bot_suffix}.docx"
-        media_type = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-        with open(docx_path, "rb") as fh:
-            file_bytes = fh.read()
-        try:
-            os.remove(docx_path)
-        except Exception:
-            pass
-    else:
-        # ── PDF export — avval DOCX ni PDF ga aylantiramiz ──
-        filename   = f"DASTYOR_Obyektivka_{safe}_{ts}{bot_suffix}.pdf"
-        media_type = "application/pdf"
-        pdf_path   = convert_to_pdf_safe(docx_path) if docx_path else None
-        if pdf_path and os.path.exists(pdf_path):
-            with open(pdf_path, "rb") as fh:
-                file_bytes = fh.read()
-            for p in [pdf_path, docx_path]:
-                try:
-                    os.remove(p)
-                except Exception:
-                    pass
-        else:
-            # Agar PDF konversiya o'xshamasa, foydalanuvchiga baribir DOCX beramiz (fallback),
-            # aks holda butun servis ishlamay qoladi.
-            logger.warning("PDF conversion failed, falling back to DOCX for /api/export_obyektivka")
-            filename   = f"DASTYOR_Obyektivka_{safe}_{ts}{bot_suffix}.docx"
-            media_type = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-            with open(docx_path, "rb") as fh:
-                file_bytes = fh.read()
-            try:
-                os.remove(docx_path)
-            except Exception:
-                pass
+    filename   = f"DASTYOR_Obyektivka_{safe}_{ts}{bot_suffix}.docx"
+    media_type = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    with open(docx_path, "rb") as fh:
+        file_bytes = fh.read()
+    try:
+        os.remove(docx_path)
+    except Exception:
+        pass
 
     if uid_str:
         from bot.services.user_service import increment_file_count
-        increment_file_count(int(uid_str), f"Obyektivka Export {fmt.upper()}")
+        increment_file_count(int(uid_str), "Obyektivka Export WORD")
 
         async def _send_oby():
             try:

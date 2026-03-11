@@ -6,7 +6,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ma'lumotnoma Tayyorlash Xizmati</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         :root {
@@ -540,10 +539,6 @@
                                 style="background: var(--success); border:none;" onclick="downloadDoc()">
                                 WORD YUKLASH
                             </button>
-                            <button type="button" class="btn btn-primary"
-                                style="background: var(--danger); border:none;" onclick="downloadPDF()">
-                                PDF YUKLASH
-                            </button>
                         </div>
                     </div>
                 </div>
@@ -850,7 +845,8 @@
             // 4) Yangi /api/export_obyektivka payload
             const payload = {
                 telegram_id: telegramId ? parseInt(telegramId) : null,
-                format: format === 'pdf' ? 'pdf' : 'word',
+                // Backend endi faqat WORD (DOCX) qaytaradi
+                format: 'word',
                 lang: apiLang,
                 fullname: document.getElementById('fullname').value || '',
                 birthdate: document.getElementById('birthdate').value || '',
@@ -884,14 +880,6 @@
             // Server real formatini content-type orqali aniqlaymiz
             const contentType = response.headers.get('content-type') || '';
             let ext = 'docx';
-            if (contentType.includes('pdf')) {
-                ext = 'pdf';
-            } else if (contentType.includes('wordprocessingml')) {
-                ext = 'docx';
-            } else if (format === 'pdf') {
-                // Noma'lum bo'lsa ham PDF tugmasidan bosilgan – xavfsiz tomoni docx deb olamiz
-                ext = 'docx';
-            }
 
             // Brauzer uchun — faylni yuklab olish
             const blob = await response.blob();
@@ -1323,17 +1311,7 @@
             }
         }
 
-        async function downloadPDF() {
-            document.getElementById('loading-overlay').style.display = 'flex';
-            try {
-                await generateObyektivkaViaApi('pdf');
-            } catch (error) {
-                console.error('PDF download error:', error);
-                alert('❌ Xatolik yuz berdi: ' + (error?.message || 'noma\'lum xato'));
-            } finally {
-                document.getElementById('loading-overlay').style.display = 'none';
-            }
-        }
+        // PDF yuklash funksiyasi olib tashlandi — obyektivka faqat WORD formatida yuklanadi.
     </script>
 
 </body>
