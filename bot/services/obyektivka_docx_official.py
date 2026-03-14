@@ -6,6 +6,8 @@ Reference layout: user's sample document style.
 import json
 import logging
 import os
+import re
+import base64
 from typing import Any
 
 from docx import Document
@@ -193,6 +195,28 @@ def generate_obyektivka_docx(
     **kwargs: Any,
 ) -> str:
     data = user_data or kwargs.get("data") or {}
+    temp_photo_from_data = None
+    if (not photo_path or not os.path.exists(photo_path)):
+        photo_data = _to_text(data.get("photo_data"))
+        try:
+            if photo_data.startswith("data:image/") and "," in photo_data:
+                header, b64 = photo_data.split(",", 1)
+                mime = header.split(";")[0].split(":")[1].lower()
+                ext = {
+                    "image/png": "png",
+                    "image/jpeg": "jpg",
+                    "image/jpg": "jpg",
+                    "image/webp": "webp",
+                }.get(mime, "jpg")
+                os.makedirs("temp", exist_ok=True)
+                temp_photo_from_data = os.path.join("temp", f"oby_local_photo_{os.getpid()}.{ext}")
+                with open(temp_photo_from_data, "wb") as f:
+                    f.write(base64.b64decode(b64))
+                photo_path = temp_photo_from_data
+        except Exception as exc:
+            logger.warning("Failed to decode photo_data in generator: %s", exc)
+            photo_path = None
+
     if not isinstance(data, dict):
         raise ValueError("user_data must be a dictionary")
 
@@ -218,30 +242,56 @@ def generate_obyektivka_docx(
     title = doc.add_paragraph()
     title.alignment = WD_ALIGN_PARAGRAPH.CENTER
     title_run = title.add_run("MA'LUMOTNOMA")
-    title_run.bold = True
+    # Oddiy holatda (sarlavha bold emas)
     title_run.font.size = Pt(16)
     title.paragraph_format.space_after = Pt(6)
     title.paragraph_format.line_spacing = 1.3
 
     full_name = _to_text(data.get("fullname")) or "FAMILIYA ISM SHARIF"
+    work_items = _parse_list(data.get("work_experience"))
     name = doc.add_paragraph()
     name.alignment = WD_ALIGN_PARAGRAPH.CENTER
     name_run = name.add_run(full_name)
-    name_run.bold = True
+    # Oddiy holatda
     name_run.font.size = Pt(14)
     name.paragraph_format.space_after = Pt(4)
     name.paragraph_format.line_spacing = 1.3
 
     current_job = _to_text(data.get("current_job"))
     current_job_year = _to_text(data.get("current_job_year"))
+    if not current_job:
+        # Fallback: if frontend confirm was skipped, infer current job
+        # from work rows that end with h.v./hozirgacha variants.
+        for idx, item in enumerate(work_items):
+            year_raw = _to_text(item.get("year") or item.get("from"))
+            year_norm = re.sub(r"[\s.\-_/]", "", year_raw.lower())
+            is_current = any(
+                key in year_norm
+                for key in ("hv", "hvgacha", "hozirgacha", "ҳв", "ҳвгача", "ҳозиргача")
+            )
+            position_raw = _to_text(item.get("position") or item.get("description") or item.get("job"))
+            if is_current and position_raw:
+                current_job = position_raw
+                if not current_job_year:
+                    from_raw = _to_text(item.get("from"))
+                    if from_raw:
+                        current_job_year = from_raw
+                    else:
+                        match = re.search(r"(19|20)\d{2}", year_raw)
+                        if match:
+                            current_job_year = match.group(0)
+                work_items.pop(idx)
+                break
     if current_job:
         current_line = doc.add_paragraph()
         current_line.alignment = WD_ALIGN_PARAGRAPH.CENTER
         if current_job_year:
             year_text = current_job_year.rstrip(".")
-            current_line.add_run(f"{year_text}. yildan hozirgacha {current_job}")
+            current_line.add_run(f"{year_text} yil:")
+            current_line.add_run().add_break()
+            current_line.add_run(current_job)
         else:
-            current_line.add_run(f"Hozirgacha {current_job}")
+            current_line.add_run(current_job)
         current_line.paragraph_format.line_spacing = 1.15
         current_line.paragraph_format.space_after = Pt(14)
     else:
@@ -314,13 +364,11 @@ def generate_obyektivka_docx(
     work_title = doc.add_paragraph()
     work_title.alignment = WD_ALIGN_PARAGRAPH.CENTER
     wr = work_title.add_run("MEHNAT FAOLIYATI")
-    wr.bold = True
+    # Oddiy holatda
     wr.font.size = Pt(14)
     work_title.paragraph_format.space_before = Pt(20)
     work_title.paragraph_format.space_after = Pt(6)
     work_title.paragraph_format.line_spacing = 1.3
-
-    work_items = _parse_list(data.get("work_experience"))
 
     if work_items:
         for item in work_items:
@@ -328,10 +376,17 @@ def generate_obyektivka_docx(
             end = _to_text(item.get("to"))
             if year and end and "yy" not in year.lower():
                 year = f"{year}-{end} yy."
+            year = year.rstrip(".") if year else year  # 2009. -> 2009, keyin : va pastga matn
             position = _to_text(item.get("position") or item.get("description") or item.get("job"))
             if not (year or position):
                 continue
-            p = doc.add_paragraph(f"{year} – {position}" if year and position else (year or position))
+            p = doc.add_paragraph()
+            if year and position:
+                p.add_run(f"{year}:")
+                p.add_run().add_break()
+                p.add_run(position)
+            else:
+                p.add_run(year or position)
             p.paragraph_format.space_after = Pt(6)
             p.paragraph_format.line_spacing = 1.3
     else:
@@ -400,4 +455,9 @@ def generate_obyektivka_docx(
         p.add_run("Yaqin qarindoshlar haqida ma'lumot kiritilmagan.")
 
     doc.save(output_filepath)
+    if temp_photo_from_data and os.path.exists(temp_photo_from_data):
+        try:
+            os.remove(temp_photo_from_data)
+        except Exception:
+            pass
     return output_filepath

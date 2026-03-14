@@ -601,6 +601,7 @@
 
         let currentLang = 'uz_l';
         let photoData = '';
+        let photoReadyPromise = null;
         let relatives = [];
         let savedObyektivkaId = null;
         let editingRelIndex = -1; // Tahrirlash uchun index
@@ -786,6 +787,22 @@
         // Eski backend uchun yordamchi (zarurat bo'lsa), hozircha ishlatilmaydi
         async function saveObyektivkaData(fileType) {}
 
+        async function askMoveCurrentToHeader() {
+            const askTopText = currentLang === 'uz_k'
+                ? "Ҳозирги иш жойини исм-фамилия тагида (сарлавҳа қисмида) чиқарайми?"
+                : "Hozirgi ish joyini ism-familiya tagida (sarlavha qismida) chiqaraymi?";
+            if (window.Telegram && window.Telegram.WebApp && typeof window.Telegram.WebApp.showConfirm === 'function') {
+                try {
+                    return await new Promise(resolve => {
+                        window.Telegram.WebApp.showConfirm(askTopText, ok => resolve(!!ok));
+                    });
+                } catch (e) {
+                    console.warn('Telegram showConfirm unsupported, using browser confirm:', e);
+                }
+            }
+            return window.confirm(askTopText);
+        }
+
         // Yangi backend (dastyor-ai.onrender.com) uchun obyektivka generatsiya qilish
         // /api/export_obyektivka dan foydalanamiz (CV Builder dagi /api/export_cv ga o'xshash)
         async function generateObyektivkaViaApi(format) {
@@ -833,10 +850,7 @@
             let currentJob = "";
             let currentJobYear = "";
             if (currentCandidate) {
-                const askTopText = currentLang === 'uz_k'
-                    ? "Ҳозирги иш жойини исм-фамилия тагида (сарлавҳа қисмида) чиқарайми?"
-                    : "Hozirgi ish joyini ism-familiya tagida (sarlavha qismida) chiqaraymi?";
-                const moveToTop = confirm(askTopText);
+                const moveToTop = await askMoveCurrentToHeader();
                 if (moveToTop) {
                     currentJob = currentCandidate.position;
                     currentJobYear = currentCandidate.from;
@@ -1060,14 +1074,22 @@
                     input.value = '';
                     return;
                 }
-                const reader = new FileReader();
-                reader.onload = e => {
-                    photoData = e.target.result;
-                    document.getElementById('photo-preview').src = photoData;
-                    document.getElementById('photo-preview').classList.remove('hidden');
-                    document.getElementById('ph-txt').classList.add('hidden');
-                };
-                reader.readAsDataURL(file);
+                photoReadyPromise = new Promise(resolve => {
+                    const reader = new FileReader();
+                    reader.onload = e => {
+                        // Keep original uploaded bytes (no recompression) for max clarity.
+                        photoData = e.target.result;
+                        document.getElementById('photo-preview').src = photoData;
+                        document.getElementById('photo-preview').classList.remove('hidden');
+                        document.getElementById('ph-txt').classList.add('hidden');
+                        resolve(true);
+                    };
+                    reader.onerror = () => {
+                        photoData = '';
+                        resolve(false);
+                    };
+                    reader.readAsDataURL(file);
+                });
             }
         }
 
@@ -1317,6 +1339,9 @@
         async function downloadDoc() {
             document.getElementById('loading-overlay').style.display = 'flex';
             try {
+                if (photoReadyPromise) {
+                    await photoReadyPromise;
+                }
                 await generateObyektivkaViaApi('word');
             } catch (error) {
                 console.error('WORD download error:', error);
