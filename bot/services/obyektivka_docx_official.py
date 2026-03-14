@@ -283,17 +283,25 @@ def generate_obyektivka_docx(
                 work_items.pop(idx)
                 break
     if current_job:
-        current_line = doc.add_paragraph()
-        current_line.alignment = WD_ALIGN_PARAGRAPH.CENTER
         if current_job_year:
             year_text = current_job_year.rstrip(".")
-            current_line.add_run(f"{year_text} yil:")
-            current_line.add_run().add_break()
-            current_line.add_run(current_job)
+            current_year_line = doc.add_paragraph()
+            current_year_line.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            current_year_line.add_run(f"{year_text} yil:")
+            current_year_line.paragraph_format.line_spacing = 1.15
+            current_year_line.paragraph_format.space_after = Pt(0)
+
+            current_job_line = doc.add_paragraph()
+            current_job_line.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            current_job_line.add_run(current_job)
+            current_job_line.paragraph_format.line_spacing = 1.15
+            current_job_line.paragraph_format.space_after = Pt(14)
         else:
+            current_line = doc.add_paragraph()
+            current_line.alignment = WD_ALIGN_PARAGRAPH.CENTER
             current_line.add_run(current_job)
-        current_line.paragraph_format.line_spacing = 1.15
-        current_line.paragraph_format.space_after = Pt(14)
+            current_line.paragraph_format.line_spacing = 1.15
+            current_line.paragraph_format.space_after = Pt(14)
     else:
         name.paragraph_format.space_after = Pt(20)
 
