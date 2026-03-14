@@ -916,6 +916,10 @@
             document.body.appendChild(a);
             a.click();
             setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 2000);
+
+            if (telegramId) {
+                alert("✅ Word fayl webapp orqali yuklandi va botga yuborildi.");
+            }
         }
 
         const dict = {

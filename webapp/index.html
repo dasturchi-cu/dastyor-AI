@@ -5,6 +5,8 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>DASTYOR AI</title>
+    <script src="theme-init.js"></script>
+    <link rel="stylesheet" href="theme.css">
     
     <!-- Premium Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -12,6 +14,8 @@
     
     <!-- Telegram SDK -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="i18n.js"></script>
+    <script src="app.js"></script>
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -420,7 +424,7 @@
             </div>
 
             <!-- Support -->
-            <a href="https://t.me/DastyorAiBot" target="_blank" class="w-full flex items-center justify-between p-5 hover:bg-white/5 transition-colors group">
+            <button type="button" onclick="contactAdmin()" class="w-full flex items-center justify-between p-5 hover:bg-white/5 transition-colors group text-left">
                 <div class="flex items-center gap-4">
                     <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-accent-purple/20 to-accent-purple/5 flex items-center justify-center text-xl">💬</div>
                     <div>
@@ -429,7 +433,7 @@
                     </div>
                 </div>
                 <div class="px-4 py-2 rounded-xl bg-accent-blue/10 text-accent-blue font-bold text-sm group-hover:bg-accent-blue group-hover:text-white transition-all" data-i18n="settings_via_bot">Bot orqali</div>
-            </a>
+            </button>
         </div>
 
         <div class="text-center mt-12 animate-slide-up" style="animation-delay:.15s">
@@ -467,43 +471,26 @@
 
     <script>
         const tg = window.Telegram?.WebApp;
-
-        // ═══════════════════════════════════════════════════════════
-        // DastyorAI Fallback (for standalone use)
-        // ═══════════════════════════════════════════════════════════
-        const DastyorAI = {
+        const DA = window.DastyorAI || {
             isDark: () => document.documentElement.classList.contains('dark'),
-            getLang: () => localStorage.getItem('da_lang') || 'uz_lat',
-            setLang: (lang) => localStorage.setItem('da_lang', lang),
-            haptic: (type) => tg?.HapticFeedback?.impactOccurred(type),
-            initUI: (opts) => {
-                // Profile setup
-                if (tg?.initDataUnsafe?.user) {
-                    const user = tg.initDataUnsafe.user;
-                    const nameEl = document.getElementById(opts.profileEl?.nameId);
-                    const initialsEl = document.getElementById(opts.profileEl?.initialsId);
-                    const avatarEl = document.getElementById(opts.profileEl?.avatarId);
-                    
-                    if (nameEl) nameEl.textContent = user.first_name || 'User';
-                    if (initialsEl) initialsEl.textContent = (user.first_name || 'U')[0].toUpperCase();
-                    
-                    if (user.photo_url && avatarEl) {
-                        avatarEl.innerHTML = `<img src="${user.photo_url}" class="w-full h-full object-cover" alt="">`;
-                    }
-                    
-                    if (opts.onUser) opts.onUser(user);
-                }
+            getLang: () => localStorage.getItem('lang') || 'uz_lat',
+            setLang: (lang) => localStorage.setItem('lang', lang),
+            setTheme: (mode) => {
+                const dark = mode === 'dark';
+                document.documentElement.classList.toggle('dark', dark);
+                document.documentElement.classList.toggle('light', !dark);
             },
-            stats: () => Promise.resolve({ files_processed: '1,240' })
+            haptic: () => {},
+            initUI: async () => null,
+            getTelegramId: () => new URLSearchParams(location.search).get('telegram_id') || null,
+            getToken: () => null,
         };
 
-        const I18n = {
+        const I18N = window.I18n || {
             setLang: (lang) => {
-                DastyorAI.setLang(lang);
-                _syncLangButtons();
+                DA.setLang(lang);
                 window.dispatchEvent(new CustomEvent('i18n:change'));
-            },
-            apply: () => {}
+            }
         };
 
         // ═══════════════════════════════════════════════════════════
@@ -527,7 +514,7 @@
             document.getElementById(`tab-${viewName}`).className = 
                 'tab-btn w-14 h-14 rounded-full flex items-center justify-center transition-all bg-gradient-to-br from-brand-500 to-brand-600 text-white shadow-lg shadow-brand-500/30';
             
-            DastyorAI.haptic('light');
+            DA.haptic('light');
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
@@ -535,20 +522,9 @@
         // Theme Toggle
         // ═══════════════════════════════════════════════════════════
         function toggleTheme() {
-            const toggle = document.getElementById('themeSwitch');
-            const isDark = toggle.classList.contains('active');
-            
-            if (isDark) {
-                toggle.classList.remove('active');
-                document.documentElement.classList.remove('dark');
-                document.getElementById('themeIcon').textContent = '☀️';
-            } else {
-                toggle.classList.add('active');
-                document.documentElement.classList.add('dark');
-                document.getElementById('themeIcon').textContent = '🌙';
-            }
-            
-            DastyorAI.haptic('light');
+            DA.setTheme(DA.isDark() ? 'light' : 'dark');
+            _syncThemeUI();
+            DA.haptic('light');
         }
 
         // ═══════════════════════════════════════════════════════════
@@ -563,12 +539,12 @@
         const _pillMap = { uz_lat: 'uz', uz_cyr: 'uz', en: 'en', ru: 'ru' };
 
         function pickLang(lang) {
-            I18n.setLang(lang);
-            DastyorAI.haptic('light');
+            I18N.setLang(lang);
+            DA.haptic('light');
         }
 
         function _syncLangButtons() {
-            const lang = DastyorAI.getLang();
+            const lang = DA.getLang();
             const activePill = _pillMap[lang] || 'uz';
             
             ['uz', 'ru', 'en'].forEach(code => {
@@ -588,12 +564,49 @@
             if (ver) ver.textContent = 'Language: ' + lang;
         }
 
+        function _syncThemeUI() {
+            const dark = DA.isDark();
+            const toggle = document.getElementById('themeSwitch');
+            if (toggle) toggle.classList.toggle('active', dark);
+            const icon = document.getElementById('themeIcon');
+            if (icon) icon.textContent = dark ? '🌙' : '☀️';
+        }
+
+        async function contactAdmin() {
+            const msg = window.prompt("Xabaringizni yozing (Admin ga yuboriladi):");
+            if (!msg || !msg.trim()) return;
+            const tgUser = tg?.initDataUnsafe?.user || {};
+            const telegramId = DA.getTelegramId();
+            if (!telegramId) {
+                window.open('https://t.me/DastyorAiBot', '_blank');
+                return;
+            }
+            try {
+                const res = await fetch((DA.BASE || location.origin) + '/api/support', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        telegram_id: parseInt(telegramId, 10),
+                        token: DA.getToken ? DA.getToken() : null,
+                        username: tgUser.username || '',
+                        message: msg.trim(),
+                    }),
+                });
+                if (!res.ok) throw new Error('Support yuborilmadi');
+                alert("Xabar yuborildi. Admin tez orada javob beradi.");
+            } catch (_) {
+                alert("Xabar yuborishda xatolik. Bot orqali yuborib ko'ring.");
+                window.open('https://t.me/DastyorAiBot', '_blank');
+            }
+        }
+
         window.addEventListener('i18n:change', _syncLangButtons);
+        window.addEventListener('da-theme-change', _syncThemeUI);
 
         // ═══════════════════════════════════════════════════════════
         // Init
         // ═══════════════════════════════════════════════════════════
-        DastyorAI.initUI({
+        DA.initUI({
             showLangPicker: true,
             profileEl: { avatarId: 'userAvatarBox', nameId: 'userName', initialsId: 'userInitials' },
             onUser(user) {
@@ -607,6 +620,7 @@
         });
 
         _syncLangButtons();
+        _syncThemeUI();
     </script>
 </body>
 

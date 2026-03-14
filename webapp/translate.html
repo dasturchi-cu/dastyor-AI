@@ -11,6 +11,7 @@
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <!-- 3. i18n — til saqlanishi uchun -->
     <script src="i18n.js"></script>
+    <script src="app.js"></script>
     <!-- 4. Global theme tokens -->
     <link rel="stylesheet" href="theme.css">
     <link
@@ -221,9 +222,15 @@
 
     <script>
         const tg = window.Telegram?.WebApp;
+        const DA = window.DastyorAI;
+        DA?.initUI?.({ showLangPicker: false, autoNavLinks: false });
         // Theme already applied by theme-init.js
 
-        const tid = new URLSearchParams(location.search).get('telegram_id') || sessionStorage.getItem('telegram_id') || tg?.initDataUnsafe?.user?.id?.toString() || '';
+        const tid = (DA?.getTelegramId && DA.getTelegramId())
+            || new URLSearchParams(location.search).get('telegram_id')
+            || sessionStorage.getItem('tg_id')
+            || tg?.initDataUnsafe?.user?.id?.toString()
+            || '';
         document.getElementById('backBtn').onclick = (e) => {
             e.preventDefault();
             location.href = 'more.html' + (tid ? '?telegram_id=' + tid : '');

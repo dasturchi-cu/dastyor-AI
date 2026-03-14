@@ -282,6 +282,12 @@ class NotifyRequest(BaseModel):
     message     : str
     token       : Optional[str] = None
 
+class SupportRequest(BaseModel):
+    telegram_id : int
+    username    : Optional[str] = ""
+    message     : str
+    token       : Optional[str] = None
+
 @app.post("/api/notify")
 async def api_notify(req: NotifyRequest):
     """Send a plain-text notification to the user's Telegram chat."""
@@ -305,6 +311,62 @@ async def api_notify(req: NotifyRequest):
     except Exception as e:
         logger.warning(f"/api/notify failed for {uid}: {e}")
         raise HTTPException(status_code=502, detail=f"Telegram xatosi: {str(e)[:200]}")
+
+@app.post("/api/support")
+async def api_support(req: SupportRequest):
+    """
+    Forward support/contact message from webapp to admin chat(s).
+    """
+    uid = _resolve_uid(str(req.telegram_id), req.token)
+    if not uid:
+        raise HTTPException(status_code=401, detail="Foydalanuvchi aniqlanmadi")
+
+    msg = (req.message or "").strip()
+    if not msg:
+        raise HTTPException(status_code=400, detail="Xabar bo'sh")
+    if len(msg) > 4000:
+        raise HTTPException(status_code=400, detail="Xabar 4000 belgidan oshmasligi kerak")
+
+    admin_ids = []
+    raw_admin = (os.getenv("ADMIN_USER_ID") or "").strip()
+    if raw_admin:
+        admin_ids.extend(
+            int(x.strip()) for x in raw_admin.split(",")
+            if x.strip().lstrip("-").isdigit()
+        )
+    support_group = os.getenv("SUPPORT_GROUP_ID", "").strip()
+    if support_group and support_group.lstrip("-").isdigit():
+        admin_ids.append(int(support_group))
+
+    # Safe fallback to existing feedback group if no env values were configured
+    if not admin_ids:
+        admin_ids.append(-1003457224552)
+
+    username = (req.username or "").strip()
+    username_text = f"@{username}" if username else "yo'q"
+    text = (
+        "📩 <b>WebApp support so'rovi</b>\n\n"
+        f"🆔 User ID: <code>{uid}</code>\n"
+        f"👤 Username: {username_text}\n\n"
+        f"💬 Xabar:\n{msg}"
+    )
+
+    sent = 0
+    for chat_id in dict.fromkeys(admin_ids):
+        try:
+            await application.bot.send_message(
+                chat_id=chat_id,
+                text=text,
+                parse_mode="HTML",
+            )
+            sent += 1
+        except Exception as e:
+            logger.warning(f"/api/support forward failed to {chat_id}: {e}")
+
+    if sent == 0:
+        raise HTTPException(status_code=502, detail="Support xabarini yuborib bo'lmadi")
+
+    return {"ok": True, "forwarded_to": sent}
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -529,7 +591,7 @@ async def api_pdf_direct(
     telegram_id: Optional[str] = Form(None)
 ):
     try:
-        import time, asyncio
+        import time
         logger.info(f"[PDF API] Boshlandi. telegram_id={telegram_id}, files_count={len(files)}")
         os.makedirs("temp", exist_ok=True)
         
@@ -538,9 +600,15 @@ async def api_pdf_direct(
         ts = int(time.time())
         try:
             for i, file in enumerate(files):
+                if not file.filename:
+                    raise HTTPException(status_code=400, detail="Noto'g'ri fayl nomi")
                 ext = os.path.splitext(file.filename)[1] or ".jpg"
                 path = f"temp/pdf_req_{ts}_{i}{ext}"
                 content = await file.read()
+                if not content:
+                    raise HTTPException(status_code=400, detail=f"Bo'sh fayl: {file.filename}")
+                if len(content) > 15 * 1024 * 1024:
+                    raise HTTPException(status_code=400, detail=f"Fayl juda katta: {file.filename}")
                 with open(path, "wb") as f:
                     f.write(content)
                 img_paths.append(path)
@@ -559,7 +627,8 @@ async def api_pdf_direct(
         try:
             from bot.services.pdf_service import images_to_pdf
             logger.info(f"[PDF API] PDF generatsiya funksiyasi ishga tushmoqda... output: {pdf_path}")
-            await asyncio.get_event_loop().run_in_executor(
+            loop = asyncio.get_running_loop()
+            await loop.run_in_executor(
                 None, images_to_pdf, img_paths, pdf_path
             )
             logger.info(f"[PDF API] PDF yaratish yakunlandi: {pdf_path}")

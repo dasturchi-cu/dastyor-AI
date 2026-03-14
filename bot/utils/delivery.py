@@ -10,6 +10,7 @@ async def send_docx_with_confirmation(
     caption: str | None = None,
     parse_mode: str | None = None,
     reply_markup=None,
+    send_confirmation: bool = False,
 ) -> bool:
     """
     Send a DOCX file and then send a confirmation message only on success.
@@ -23,7 +24,8 @@ async def send_docx_with_confirmation(
             parse_mode=parse_mode,
             reply_markup=reply_markup,
         )
-        await bot.send_message(chat_id=chat_id, text="✅ Word fayl yuborildi.")
+        if send_confirmation:
+            await bot.send_message(chat_id=chat_id, text="✅ Word fayl yuborildi.")
         return True
     except Exception:
         try:

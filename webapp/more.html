@@ -5,12 +5,16 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>Xizmatlar | DASTYOR AI</title>
+    <script src="theme-init.js"></script>
+    <link rel="stylesheet" href="theme.css">
     
     <!-- Premium Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Sora:wght@400;600;700;800&display=swap" rel="stylesheet" />
     
     <!-- Telegram SDK -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="i18n.js"></script>
+    <script src="app.js"></script>
     
     <!-- Tailwind -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -288,6 +292,8 @@
 
     <script>
         const tg = window.Telegram?.WebApp;
+        const DA = window.DastyorAI;
+        DA?.initUI?.({ showLangPicker: false });
         
         // Haptic feedback on card tap
         document.querySelectorAll('.service-card').forEach(card => {
