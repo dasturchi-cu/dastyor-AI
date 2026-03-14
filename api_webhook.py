@@ -344,8 +344,22 @@ async def api_support(req: SupportRequest):
 
     username = (req.username or "").strip()
     username_text = f"@{username}" if username else "yo'q"
+    support_item = None
+    try:
+        from bot.services.support_service import create_support_request
+        support_item = create_support_request(
+            user_id=int(uid),
+            username=username,
+            message=msg,
+            source="webapp",
+        )
+    except Exception as e:
+        logger.warning(f"/api/support save failed: {e}")
+
+    ticket_line = f"🎫 Request ID: <b>#{support_item['id']}</b>\n" if support_item else ""
     text = (
         "📩 <b>WebApp support so'rovi</b>\n\n"
+        f"{ticket_line}"
         f"🆔 User ID: <code>{uid}</code>\n"
         f"👤 Username: {username_text}\n\n"
         f"💬 Xabar:\n{msg}"

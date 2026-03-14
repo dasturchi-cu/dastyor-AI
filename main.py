@@ -20,7 +20,7 @@ from bot.handlers.admin import (
     handle_admin_text, add_channel_command, remove_channel_command,
     add_premium_command, remove_premium_command, set_limit_command,
     user_info_command, top_users_command, ban_user_command, unban_user_command,
-    search_command
+    search_command, support_panel_callback
 )
 
 from bot.handlers.admin_middleware import track_user
@@ -315,6 +315,7 @@ def setup_application():
     
     application.add_handler(CallbackQueryHandler(smart_callback_handler, pattern="^smart_"))
     application.add_handler(CallbackQueryHandler(translit_direction_callback, pattern="^trl_"))
+    application.add_handler(CallbackQueryHandler(support_panel_callback, pattern="^support_"))
     application.add_handler(CallbackQueryHandler(button_callback_handler))
 
     # 4. Text Menu Navigation — Asosiy tugmalar
@@ -323,7 +324,7 @@ def setup_application():
     application.add_handler(MessageHandler(filters.Regex(get_regex_for_key("btn_more")), more_menu_handler))
     application.add_handler(MessageHandler(filters.Regex(get_regex_for_key("btn_cv")), cv_handler))
     
-    admin_buttons = "^(📊 Statistika|📨 Xabar yuborish|📢 Kanallar|💎 Premium Boshqaruv|⚙️ Sozlamalar|👥 Foydalanuvchilar|🚪 Panelni yopish)$"
+    admin_buttons = "^(📊 Statistika|📨 Xabar yuborish|📢 Kanallar|💎 Premium Boshqaruv|⚙️ Sozlamalar|👥 Foydalanuvchilar|🆘 Support so'rovlar|🚪 Panelni yopish)$"
     application.add_handler(MessageHandler(filters.Regex(admin_buttons), handle_admin_text))
 
     application.add_handler(MessageHandler(filters.Regex(get_regex_for_key("btn_ocr")), ocr_handler))

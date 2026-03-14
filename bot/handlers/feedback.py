@@ -89,8 +89,10 @@ async def handle_feedback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     sent = False
 
     try:
+        request_text_for_panel = ""
         # ── Text feedback ───────────────────────────────────────────────
         if message.text:
+            request_text_for_panel = message.text
             await context.bot.send_message(
                 chat_id=FEEDBACK_GROUP_ID,
                 text=f"{header}\n\n💬 <b>Xabar:</b>\n{message.text}",
@@ -101,6 +103,7 @@ async def handle_feedback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         # ── Photo feedback ──────────────────────────────────────────────
         elif message.photo:
             caption_text = message.caption or ""
+            request_text_for_panel = caption_text or "[Photo attachment]"
             await context.bot.send_photo(
                 chat_id=FEEDBACK_GROUP_ID,
                 photo=message.photo[-1].file_id,
@@ -112,6 +115,7 @@ async def handle_feedback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         # ── Video feedback ──────────────────────────────────────────────
         elif message.video:
             caption_text = message.caption or ""
+            request_text_for_panel = caption_text or "[Video attachment]"
             await context.bot.send_video(
                 chat_id=FEEDBACK_GROUP_ID,
                 video=message.video.file_id,
@@ -122,6 +126,7 @@ async def handle_feedback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         # ── Voice feedback ──────────────────────────────────────────────
         elif message.voice:
+            request_text_for_panel = "[Voice message]"
             await context.bot.send_voice(
                 chat_id=FEEDBACK_GROUP_ID,
                 voice=message.voice.file_id,
@@ -132,6 +137,7 @@ async def handle_feedback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         # ── Audio feedback ──────────────────────────────────────────────
         elif message.audio:
+            request_text_for_panel = "[Audio message]"
             await context.bot.send_audio(
                 chat_id=FEEDBACK_GROUP_ID,
                 audio=message.audio.file_id,
@@ -143,6 +149,7 @@ async def handle_feedback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         # ── Document/File feedback ──────────────────────────────────────
         elif message.document:
             caption_text = message.caption or ""
+            request_text_for_panel = caption_text or f"[Document: {message.document.file_name or 'file'}]"
             await context.bot.send_document(
                 chat_id=FEEDBACK_GROUP_ID,
                 document=message.document.file_id,
@@ -153,6 +160,7 @@ async def handle_feedback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         # ── Video note (circular video) ─────────────────────────────────
         elif message.video_note:
+            request_text_for_panel = "[Video note]"
             # Send header first, then video note (no caption support)
             await context.bot.send_message(
                 chat_id=FEEDBACK_GROUP_ID,
@@ -166,6 +174,17 @@ async def handle_feedback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             sent = True
 
         if sent:
+            try:
+                from bot.services.support_service import create_support_request
+                create_support_request(
+                    user_id=user.id,
+                    username=user.username or "",
+                    message=request_text_for_panel or "[Support media message]",
+                    source="bot",
+                )
+            except Exception as panel_err:
+                logger.warning(f"Support panel save failed: {panel_err}")
+
             _increment_feedback_count(user.id)
             await message.reply_text(
                 "✅ Murojaatingiz qabul qilindi!\n"

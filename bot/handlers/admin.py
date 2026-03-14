@@ -13,7 +13,16 @@ from bot.services.settings_service import (
     get_premium_users_full, add_premium, remove_premium, is_premium,
     get_daily_limit, set_daily_limit
 )
+from bot.services.support_service import (
+    list_support_requests, set_support_status, support_stats, get_support_request
+)
 import bot.services.user_service as crm
+
+SUPPORT_REPLY_TEMPLATES = {
+    "accepted": "Qabul qilindi",
+    "more_info": "Qo'shimcha ma'lumot yuboring",
+    "resolved": "Yechildi",
+}
 
 async def is_admin(user_id):
     str_id = str(user_id)
@@ -25,6 +34,7 @@ def get_admin_keyboard():
         [KeyboardButton("📊 Statistika"), KeyboardButton("📨 Xabar yuborish")],
         [KeyboardButton("📢 Kanallar"), KeyboardButton("💎 Premium Boshqaruv")],
         [KeyboardButton("⚙️ Sozlamalar"), KeyboardButton("👥 Foydalanuvchilar")],
+        [KeyboardButton("🆘 Support so'rovlar")],
         [KeyboardButton("🚪 Panelni yopish")]
     ], resize_keyboard=True)
 
@@ -207,6 +217,9 @@ async def handle_admin_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "Misol: `/search 12345678`"
         )
         await update.message.reply_text(msg, parse_mode="Markdown")
+
+    elif text == "🆘 Support so'rovlar":
+        await show_support_requests_panel(update, context)
 
     elif text == "🚪 Panelni yopish":
         from bot.keyboards.reply_keyboards import get_main_menu
@@ -495,6 +508,8 @@ async def process_admin_state_input(update: Update, context: ContextTypes.DEFAUL
     
     if text == "❌ Bekor qilish":
         context.user_data.pop('admin_state', None)
+        context.user_data.pop('support_reply_user_id', None)
+        context.user_data.pop('support_reply_req_id', None)
         await update.message.reply_text("🚫 Bekor qilindi.", reply_markup=get_admin_keyboard())
         return True
         
@@ -565,4 +580,230 @@ async def process_admin_state_input(update: Update, context: ContextTypes.DEFAUL
             await update.message.reply_text(f"❌ Xato: {e}")
         return True
 
+    elif state == 'support_reply':
+        target_uid = context.user_data.get('support_reply_user_id')
+        req_id = context.user_data.get('support_reply_req_id')
+        reply_text = (text or "").strip()
+        if not target_uid:
+            await update.message.reply_text("❌ Target user topilmadi.", reply_markup=get_admin_keyboard())
+            context.user_data.pop('admin_state', None)
+            return True
+        if not reply_text:
+            await update.message.reply_text("❓ Javob matnini yuboring yoki bekor qiling.")
+            return True
+        try:
+            await context.bot.send_message(
+                chat_id=int(target_uid),
+                text=f"📩 Admin javobi:\n\n{reply_text}",
+            )
+            if req_id:
+                set_support_status(int(req_id), "resolved")
+            await update.message.reply_text(
+                f"✅ Javob foydalanuvchiga yuborildi (ID: <code>{target_uid}</code>).",
+                parse_mode="HTML",
+                reply_markup=get_admin_keyboard()
+            )
+        except Exception as e:
+            await update.message.reply_text(
+                f"❌ Yuborishda xatolik: {e}",
+                reply_markup=get_admin_keyboard()
+            )
+        finally:
+            context.user_data.pop('admin_state', None)
+            context.user_data.pop('support_reply_user_id', None)
+            context.user_data.pop('support_reply_req_id', None)
+        return True
+
     return False
+
+
+async def _send_support_reply_to_user(
+    context: ContextTypes.DEFAULT_TYPE,
+    target_uid: int,
+    reply_text: str,
+    req_id: int | None = None,
+):
+    await context.bot.send_message(
+        chat_id=int(target_uid),
+        text=f"📩 Admin javobi:\n\n{reply_text}",
+    )
+    if req_id:
+        set_support_status(int(req_id), "resolved")
+
+
+def _build_support_panel_payload():
+    stats = support_stats()
+    items = list_support_requests(status="open", limit=10)
+    header = (
+        "🆘 <b>Support so'rovlar paneli</b>\n\n"
+        f"📥 Ochiq: <b>{stats['open']}</b>\n"
+        f"✅ Yopilgan: <b>{stats['resolved']}</b>\n"
+        f"📚 Jami: <b>{stats['total']}</b>\n\n"
+    )
+    if not items:
+        return header + "Hozircha ochiq so'rovlar yo'q.", None
+
+    lines = []
+    keyboard_rows = []
+    for req in items:
+        rid = req.get("id")
+        uid = req.get("user_id")
+        uname = req.get("username") or "yo'q"
+        source = req.get("source") or "unknown"
+        created = req.get("created_at") or "-"
+        msg = (req.get("message") or "").strip().replace("\n", " ")
+        if len(msg) > 120:
+            msg = msg[:117] + "..."
+        lines.append(
+            f"🎫 <b>#{rid}</b> | {created}\n"
+            f"🆔 <code>{uid}</code> | 👤 @{uname}\n"
+            f"🌐 Manba: <b>{source}</b>\n"
+            f"💬 {msg}\n"
+        )
+        keyboard_rows.append([
+            InlineKeyboardButton(f"✉️ Javob #{rid}", callback_data=f"support_reply_{rid}"),
+            InlineKeyboardButton(f"✅ Yopish #{rid}", callback_data=f"support_resolve_{rid}")
+        ])
+
+    keyboard_rows.append([InlineKeyboardButton("🔄 Yangilash", callback_data="support_refresh")])
+    kb = InlineKeyboardMarkup(keyboard_rows) if keyboard_rows else None
+    return header + "\n".join(lines), kb
+
+
+async def show_support_requests_panel(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not await is_admin(update.effective_user.id):
+        return
+    text, kb = _build_support_panel_payload()
+    await update.message.reply_text(
+        text,
+        parse_mode="HTML",
+        reply_markup=kb
+    )
+
+
+async def support_panel_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    if not query:
+        return
+    if not await is_admin(query.from_user.id):
+        await query.answer("Ruxsat yo'q", show_alert=True)
+        return
+
+    data = query.data or ""
+    if data == "support_refresh":
+        await query.answer("Yangilandi")
+        text, kb = _build_support_panel_payload()
+        await query.message.reply_text(text, parse_mode="HTML", reply_markup=kb)
+        return
+
+    if data.startswith("support_reply_"):
+        req_id = data.replace("support_reply_", "", 1)
+        if not req_id.isdigit():
+            await query.answer("Noto'g'ri ID", show_alert=True)
+            return
+        req = get_support_request(int(req_id))
+        if not req:
+            await query.answer("So'rov topilmadi", show_alert=True)
+            return
+        target_uid = req.get("user_id")
+        if not target_uid:
+            await query.answer("Foydalanuvchi ID topilmadi", show_alert=True)
+            return
+
+        template_kb = InlineKeyboardMarkup([
+            [InlineKeyboardButton("Qabul qilindi", callback_data=f"support_tpl_accepted_{req_id}")],
+            [InlineKeyboardButton("Qo'shimcha ma'lumot yuboring", callback_data=f"support_tpl_more_info_{req_id}")],
+            [InlineKeyboardButton("Yechildi", callback_data=f"support_tpl_resolved_{req_id}")],
+            [InlineKeyboardButton("✍️ Qo'lda yozish", callback_data=f"support_manual_{req_id}")],
+        ])
+        await query.answer("Javob turini tanlang", show_alert=False)
+        await query.message.reply_text(
+            "✍️ <b>Support javobi</b>\n\n"
+            f"🎫 So'rov: <b>#{req_id}</b>\n"
+            f"🆔 User ID: <code>{target_uid}</code>\n\n"
+            "Quyidagidan birini tanlang yoki qo'lda javob yozing.",
+            parse_mode="HTML",
+            reply_markup=template_kb
+        )
+        return
+
+    if data.startswith("support_manual_"):
+        req_id = data.replace("support_manual_", "", 1)
+        if not req_id.isdigit():
+            await query.answer("Noto'g'ri ID", show_alert=True)
+            return
+        req = get_support_request(int(req_id))
+        if not req:
+            await query.answer("So'rov topilmadi", show_alert=True)
+            return
+        target_uid = req.get("user_id")
+        if not target_uid:
+            await query.answer("Foydalanuvchi ID topilmadi", show_alert=True)
+            return
+        context.user_data['admin_state'] = 'support_reply'
+        context.user_data['support_reply_user_id'] = int(target_uid)
+        context.user_data['support_reply_req_id'] = int(req_id)
+        await query.answer("Qo'lda javob rejimi yoqildi", show_alert=False)
+        await query.message.reply_text(
+            "✍️ <b>Support javob rejimi</b>\n\n"
+            f"🎫 So'rov: <b>#{req_id}</b>\n"
+            f"🆔 User ID: <code>{target_uid}</code>\n\n"
+            "Foydalanuvchiga yuboriladigan javobni matn sifatida yuboring.",
+            parse_mode="HTML",
+            reply_markup=get_admin_cancel_keyboard()
+        )
+        return
+
+    if data.startswith("support_tpl_"):
+        parts = data.split("_")
+        if len(parts) < 4:
+            await query.answer("Noto'g'ri template callback", show_alert=True)
+            return
+        template_key = "_".join(parts[2:-1])
+        req_id = parts[-1]
+        if not req_id.isdigit():
+            await query.answer("Noto'g'ri request ID", show_alert=True)
+            return
+        req = get_support_request(int(req_id))
+        if not req:
+            await query.answer("So'rov topilmadi", show_alert=True)
+            return
+        target_uid = req.get("user_id")
+        if not target_uid:
+            await query.answer("Foydalanuvchi ID topilmadi", show_alert=True)
+            return
+        template_text = SUPPORT_REPLY_TEMPLATES.get(template_key)
+        if not template_text:
+            await query.answer("Template topilmadi", show_alert=True)
+            return
+        try:
+            await _send_support_reply_to_user(
+                context,
+                int(target_uid),
+                template_text,
+                int(req_id),
+            )
+            await query.answer("Template yuborildi", show_alert=False)
+            await query.message.reply_text(
+                f"✅ Template javob yuborildi (#{req_id}, ID: <code>{target_uid}</code>).",
+                parse_mode="HTML"
+            )
+        except Exception as e:
+            await query.answer("Yuborishda xatolik", show_alert=False)
+            await query.message.reply_text(f"❌ Xato: {e}")
+        return
+
+    if data.startswith("support_resolve_"):
+        req_id = data.replace("support_resolve_", "", 1)
+        ok = False
+        if req_id.isdigit():
+            ok = set_support_status(int(req_id), "resolved")
+        await query.answer("Yopildi" if ok else "Topilmadi", show_alert=False)
+        try:
+            await query.message.edit_reply_markup(reply_markup=None)
+        except Exception:
+            pass
+        await query.message.reply_text(
+            f"✅ So'rov #{req_id} yopildi." if ok else "❌ So'rov topilmadi.",
+            parse_mode="HTML"
+        )
