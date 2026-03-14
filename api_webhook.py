@@ -23,8 +23,8 @@ async def lifespan(app: FastAPI):
     await application.initialize()
     await application.start()
     
-    # Set Webhook automatically on startup
-    webhook_url = "https://dastyor-ai.onrender.com/webhook"
+    # Set webhook automatically on startup (configurable via .env)
+    webhook_url = os.getenv("WEBHOOK_URL", "https://dastyor-ai.onrender.com/webhook").strip()
     logger.info(f"Setting webhook to: {webhook_url}")
     await application.bot.set_webhook(url=webhook_url, drop_pending_updates=True)
     
@@ -66,8 +66,16 @@ import base64
 from bot.services.render_service import (
     generate_cv_pdf, safe_filename,
 )
+from bot.utils.delivery import send_docx_with_confirmation
 
 SITE_BASE_URL = os.getenv("SITE_BASE_URL", "https://dastyor-ai.onrender.com")
+
+
+def _safe_name(name: str, fallback: str) -> str:
+    base = os.path.basename(name or "").strip()
+    if not base:
+        return fallback
+    return "".join(ch for ch in base if ch.isalnum() or ch in ("-", "_", ".", " ")).strip() or fallback
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -197,7 +205,7 @@ async def api_translit(req: TranslitRequest):
 # /api/bot-link — Generate deep-link for a bot command
 # Lets the website open the bot at exactly the right state.
 # ═══════════════════════════════════════════════════════════════════════════
-BOT_USERNAME = os.getenv("                                          ", "DastyorAiBot")
+BOT_USERNAME = os.getenv("BOT_USERNAME", "DastyorAiBot")
 WEBAPP_BASE  = os.getenv("WEBAPP_BASE",  "https://dastyor-ai.onrender.com/webapp")
 WEBAPP_VERSION = os.getenv("WEBAPP_VERSION", "20260311")
 
@@ -352,7 +360,8 @@ async def api_ocr_direct(
     telegram_id: Optional[str] = Form(None),   # optional — works without Telegram
 ):
     ts = int(time.time())
-    img_path  = f"temp/ocr_{ts}_{file.filename or 'img.jpg'}"
+    safe_upload_name = _safe_name(file.filename or "", "img.jpg")
+    img_path  = f"temp/ocr_{ts}_{safe_upload_name}"
     os.makedirs("temp", exist_ok=True)
 
     # ── 1. Save uploaded image to disk ──────────────────────────────
@@ -401,7 +410,8 @@ async def api_ocr_direct(
             buf.seek(0)
             return buf.read()
 
-        docx_bytes = await asyncio.get_event_loop().run_in_executor(None, build_docx)
+        loop = asyncio.get_running_loop()
+        docx_bytes = await loop.run_in_executor(None, build_docx)
     except Exception as e:
         logger.error(f"DOCX build error: {e}", exc_info=True)
         _cleanup(img_path)
@@ -415,12 +425,15 @@ async def api_ocr_direct(
             try:
                 buf = io.BytesIO(docx_bytes)
                 buf.name = f"OCR_Natija_{ts}.docx"
-                await application.bot.send_document(
-                    chat_id=chat_id,
-                    document=InputFile(buf, filename=buf.name),
+                ok = await send_docx_with_confirmation(
+                    application.bot,
+                    chat_id,
+                    buf,
+                    filename=buf.name,
                     caption="✅ Rasm Word ga aylantirildi!\n📎 Fayl tayyor.",
                 )
-                logger.info(f"OCR DOCX sent to Telegram chat {chat_id}")
+                if ok:
+                    logger.info(f"OCR DOCX sent to Telegram chat {chat_id}")
             except Exception as tg_err:
                 logger.warning(f"Telegram send failed (non-fatal): {tg_err}")
 
@@ -487,10 +500,12 @@ async def api_upload_ocr(telegram_id: str = Form(...), files: List[UploadFile] =
                     add_html_to_docx(doc, html_text)
                     doc.save(docx_path)
                     with open(docx_path, "rb") as df:
-                        await application.bot.send_document(
-                            chat_id=chat_id,
-                            document=InputFile(df, filename=f"OCR_{ts2}.docx"),
-                            caption="✅ Word fayl tayyor!"
+                        await send_docx_with_confirmation(
+                            application.bot,
+                            chat_id,
+                            df,
+                            filename=f"OCR_{ts2}.docx",
+                            caption="✅ Word fayl tayyor!",
                         )
                     _cleanup(docx_path)
                 await application.bot.delete_message(chat_id=chat_id, message_id=msg.message_id)
@@ -634,11 +649,22 @@ async def api_upload_to_telegram(
         buf = io.BytesIO(content)
         buf.name = file.filename
         
-        await application.bot.send_document(
-            chat_id=int(uid),
-            document=InputFile(buf, filename=file.filename),
-            caption=caption or "✅ Faylingiz tayyorlandi!"
-        )
+        if (file.filename or "").lower().endswith(".docx"):
+            ok = await send_docx_with_confirmation(
+                application.bot,
+                int(uid),
+                buf,
+                filename=file.filename,
+                caption=caption or "✅ Faylingiz tayyorlandi!",
+            )
+            if not ok:
+                return {"ok": False, "error": "Word fayl yuborilmadi"}
+        else:
+            await application.bot.send_document(
+                chat_id=int(uid),
+                document=InputFile(buf, filename=file.filename),
+                caption=caption or "✅ Faylingiz tayyorlandi!"
+            )
         return {"ok": True}
     except Exception as e:
         logger.error(f"Error sending file via /api/upload_to_telegram: {e}", exc_info=True)
@@ -696,7 +722,8 @@ async def api_generate_cv(req: CVRequest):
     # CPU-bound generation in thread
     try:
         from bot.services.doc_generator import generate_cv_docx
-        docx_path = await asyncio.get_event_loop().run_in_executor(
+        loop = asyncio.get_running_loop()
+        docx_path = await loop.run_in_executor(
             None, generate_cv_docx, payload
         )
     except Exception as e:
@@ -721,9 +748,11 @@ async def api_generate_cv(req: CVRequest):
                 buf = io.BytesIO(docx_bytes)
                 safe = (req.name or "CV").replace(" ", "_")[:30]
                 buf.name = f"DASTYOR_CV_{safe}_{ts}_@DastyorAiBot.docx"
-                await application.bot.send_document(
-                    chat_id=chat_id,
-                    document=InputFile(buf, filename=buf.name),
+                ok = await send_docx_with_confirmation(
+                    application.bot,
+                    chat_id,
+                    buf,
+                    filename=buf.name,
                     caption=(
                         f"✅ <b>CV tayyor!</b>\n"
                         f"📄 <b>{req.name or 'CV'}</b>\n"
@@ -732,7 +761,8 @@ async def api_generate_cv(req: CVRequest):
                     ),
                     parse_mode="HTML",
                 )
-                logger.info(f"CV DOCX sent to Telegram chat {chat_id}")
+                if ok:
+                    logger.info(f"CV DOCX sent to Telegram chat {chat_id}")
             except Exception as tg_err:
                 logger.warning(f"CV Telegram send failed (non-fatal): {tg_err}")
 
@@ -876,7 +906,8 @@ async def api_generate_obyektivka(req: ObyektivkaRequest):
 
     try:
         from bot.services.doc_generator import generate_obyektivka_docx
-        docx_path = await asyncio.get_event_loop().run_in_executor(
+        loop = asyncio.get_running_loop()
+        docx_path = await loop.run_in_executor(
             None, generate_obyektivka_docx, doc_data, photo_path
         )
     except Exception as e:
@@ -906,9 +937,11 @@ async def api_generate_obyektivka(req: ObyektivkaRequest):
                 buf = io.BytesIO(file_bytes)
                 safe = (req.fullname or "Obyektivka").replace(" ", "_")[:30]
                 buf.name = f"DASTYOR_Obyektivka_{safe}_{ts}_@DastyorAiBot.{ext}"
-                await application.bot.send_document(
-                    chat_id=chat_id,
-                    document=InputFile(buf, filename=buf.name),
+                ok = await send_docx_with_confirmation(
+                    application.bot,
+                    chat_id,
+                    buf,
+                    filename=buf.name,
                     caption=(
                         f"✅ <b>Obyektivka tayyor!</b>\n"
                         f"👤 <b>{req.fullname or 'Ma’lumotnoma'}</b>\n"
@@ -917,7 +950,8 @@ async def api_generate_obyektivka(req: ObyektivkaRequest):
                     ),
                     parse_mode="HTML",
                 )
-                logger.info(f"Obyektivka sent to Telegram chat {chat_id}")
+                if ok:
+                    logger.info(f"Obyektivka sent to Telegram chat {chat_id}")
             except Exception as tg_err:
                 logger.error(f"Obyektivka Telegram yuborishda xato (send_document): {tg_err}", exc_info=True)
 
@@ -979,7 +1013,8 @@ async def api_export_cv(req: ExportCVRequest):
         # ── Word export — real .docx (python-docx, mobile-compatible) ──
         filename = f"DASTYOR_CV_{safe}_{ts}{bot_suffix}.docx"
         from bot.services.doc_generator import generate_cv_docx
-        docx_path = await asyncio.get_event_loop().run_in_executor(None, generate_cv_docx, data)
+        loop = asyncio.get_running_loop()
+        docx_path = await loop.run_in_executor(None, generate_cv_docx, data)
         if not docx_path or not os.path.exists(docx_path):
             raise HTTPException(status_code=500, detail="Word fayl yaratishda xato")
         with open(docx_path, "rb") as fh:
@@ -996,7 +1031,8 @@ async def api_export_cv(req: ExportCVRequest):
         if not pdf_bytes:
             # Playwright unavailable → fall back to python-docx PDF
             from bot.services.doc_generator import generate_cv_docx, convert_to_pdf_safe
-            docx_path = await asyncio.get_event_loop().run_in_executor(None, generate_cv_docx, data)
+            loop = asyncio.get_running_loop()
+            docx_path = await loop.run_in_executor(None, generate_cv_docx, data)
             pdf_path = convert_to_pdf_safe(docx_path) if docx_path else None
             if pdf_path and os.path.exists(pdf_path):
                 with open(pdf_path, "rb") as fh:
@@ -1020,16 +1056,30 @@ async def api_export_cv(req: ExportCVRequest):
                 buf = io.BytesIO(file_bytes)
                 buf.name = filename
                 chat_id = int(uid_str)
-                await application.bot.send_document(
-                    chat_id=chat_id,
-                    document=InputFile(buf, filename=filename),
-                    caption=(
-                        f"✅ <b>CV tayyor!</b>\n"
-                        f"👤 <b>{req.name}</b>  · 🎨 {req.template}\n"
-                        f"📎 <code>{filename}</code>"
-                    ),
-                    parse_mode="HTML",
-                )
+                if filename.lower().endswith(".docx"):
+                    await send_docx_with_confirmation(
+                        application.bot,
+                        chat_id,
+                        buf,
+                        filename=filename,
+                        caption=(
+                            f"✅ <b>CV tayyor!</b>\n"
+                            f"👤 <b>{req.name}</b>  · 🎨 {req.template}\n"
+                            f"📎 <code>{filename}</code>"
+                        ),
+                        parse_mode="HTML",
+                    )
+                else:
+                    await application.bot.send_document(
+                        chat_id=chat_id,
+                        document=InputFile(buf, filename=filename),
+                        caption=(
+                            f"✅ <b>CV tayyor!</b>\n"
+                            f"👤 <b>{req.name}</b>  · 🎨 {req.template}\n"
+                            f"📎 <code>{filename}</code>"
+                        ),
+                        parse_mode="HTML",
+                    )
             except Exception as tg_err:
                 logger.warning(f"CV export Telegram send failed: {tg_err}")
 
@@ -1087,7 +1137,8 @@ async def api_export_obyektivka(req: ExportObyektivkaRequest):
     # Har doim DOCX yaratamiz (rassmiy minimal layout bilan)
     from bot.services.doc_generator import generate_obyektivka_docx
 
-    docx_path = await asyncio.get_event_loop().run_in_executor(None, generate_obyektivka_docx, data)
+    loop = asyncio.get_running_loop()
+    docx_path = await loop.run_in_executor(None, generate_obyektivka_docx, data)
     if not docx_path or not os.path.exists(docx_path):
         raise HTTPException(status_code=500, detail="Word fayl yaratishda xato")
 
@@ -1108,9 +1159,11 @@ async def api_export_obyektivka(req: ExportObyektivkaRequest):
             try:
                 buf = io.BytesIO(file_bytes)
                 buf.name = filename
-                await application.bot.send_document(
-                    chat_id=int(uid_str),
-                    document=InputFile(buf, filename=filename),
+                await send_docx_with_confirmation(
+                    application.bot,
+                    int(uid_str),
+                    buf,
+                    filename=filename,
                     caption=(
                         f"✅ <b>Obyektivka tayyor!</b>\n"
                         f"👤 <b>{req.fullname}</b>\n"

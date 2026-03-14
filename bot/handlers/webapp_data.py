@@ -4,6 +4,7 @@ import os
 from telegram import Update, InputFile, ReplyKeyboardMarkup
 from telegram.ext import ContextTypes
 from bot.services.doc_generator import generate_obyektivka_docx, generate_cv_docx, convert_to_pdf_safe
+from bot.utils.delivery import send_docx_with_confirmation
 import asyncio
 
 logger = logging.getLogger(__name__)
@@ -73,7 +74,7 @@ async def web_app_data_handler(update: Update, context: ContextTypes.DEFAULT_TYP
             return
             
         elif action == "start_img2pdf":
-            context.user_data['waiting_for'] = 'img_to_pdf'
+            context.user_data['waiting_for'] = 'pdf_images'
             context.user_data['pdf_images'] = []
             reply_markup = ReplyKeyboardMarkup([["✅ Tayyor", "❌ Bekor qilish"]], resize_keyboard=True)
             await update.message.reply_text("🖼 **Rasm→PDF**: Menga rasmlarni yuboring. Tugatgach, '✅ Tayyor' tugmasini bosing.", parse_mode="Markdown", reply_markup=reply_markup)
@@ -112,12 +113,24 @@ async def web_app_data_handler(update: Update, context: ContextTypes.DEFAULT_TYP
                     await msg.edit_text("⚠️ PDF ga o'girishda xatolik! MS Word formati yuborilmoqda...")
 
             with open(final_file, 'rb') as f:
-                await context.bot.send_document(
-                    chat_id=chat_id,
-                    document=InputFile(f, filename=os.path.basename(final_file)),
-                    caption="✅ **Hujjat tayyor!**\nSiz kiritgan ma'lumotlar asosida yaratildi.",
-                    parse_mode="Markdown"
-                )
+                if final_file.lower().endswith(".docx"):
+                    ok = await send_docx_with_confirmation(
+                        context.bot,
+                        chat_id,
+                        f,
+                        filename=os.path.basename(final_file),
+                        caption="✅ **Hujjat tayyor!**\nSiz kiritgan ma'lumotlar asosida yaratildi.",
+                        parse_mode="Markdown",
+                    )
+                    if not ok:
+                        return
+                else:
+                    await context.bot.send_document(
+                        chat_id=chat_id,
+                        document=InputFile(f, filename=os.path.basename(final_file)),
+                        caption="✅ **Hujjat tayyor!**\nSiz kiritgan ma'lumotlar asosida yaratildi.",
+                        parse_mode="Markdown"
+                    )
             
             await msg.delete()
             # Cleanup

@@ -33,11 +33,45 @@ const DastyorAI = (() => {
     const _SS_KEY_ID    = 'tg_id';
     const _SS_KEY_TOKEN = 'tg_token';
     const _SS_KEY_USER  = 'tg_user';
+    const _LS_SETTINGS  = 'da_settings_v1';
 
     // ── State ────────────────────────────────────────────────────────────
     let _user  = null;   // { telegram_id, first_name, username, photo_url, is_premium, ... }
     let _token = null;   // server session token
     let _tg    = window.Telegram?.WebApp;
+    let _settings = null;
+
+    function _defaultSettings() {
+        return {
+            theme: (localStorage.getItem('da_theme') || localStorage.getItem('theme') || 'light'),
+            lang: (localStorage.getItem('lang') || 'uz_lat'),
+        };
+    }
+
+    function _loadSettings() {
+        if (_settings) return _settings;
+        try {
+            const raw = localStorage.getItem(_LS_SETTINGS);
+            _settings = raw ? { ..._defaultSettings(), ...JSON.parse(raw) } : _defaultSettings();
+        } catch (_) {
+            _settings = _defaultSettings();
+        }
+        return _settings;
+    }
+
+    function _saveSettings(next) {
+        _settings = { ..._loadSettings(), ...next };
+        localStorage.setItem(_LS_SETTINGS, JSON.stringify(_settings));
+        if (_settings.theme) {
+            localStorage.setItem('da_theme', _settings.theme);
+            localStorage.setItem('theme', _settings.theme);
+        }
+        if (_settings.lang) {
+            localStorage.setItem('lang', _settings.lang);
+        }
+        window.dispatchEvent(new CustomEvent('da-settings-change', { detail: { ..._settings } }));
+        return _settings;
+    }
 
     // ── Private: persist ────────────────────────────────────────────────
     function _persist(user, token) {
@@ -336,13 +370,14 @@ const DastyorAI = (() => {
      * setTheme('dark') | setTheme('light')
      */
     function setTheme(mode) {
+        const val = mode === 'dark' ? 'dark' : 'light';
         if (window.DA_THEME) {
-            window.DA_THEME.set(mode);
+            window.DA_THEME.set(val);
         } else {
-            const val = mode === 'dark' ? 'dark' : 'light';
             localStorage.setItem('da_theme', val);
-            localStorage.setItem('theme',    val);
+            localStorage.setItem('theme', val);
         }
+        _saveSettings({ theme: val });
         applyTheme();
     }
 
@@ -359,13 +394,15 @@ const DastyorAI = (() => {
 
     /** Change language and re-render all data-i18n elements. */
     function setLang(lang) {
-        if (window.I18n) window.I18n.setLang(lang);
-        else localStorage.setItem('lang', lang);
+        const nextLang = (lang || 'uz_lat');
+        if (window.I18n) window.I18n.setLang(nextLang);
+        else localStorage.setItem('lang', nextLang);
+        _saveSettings({ lang: nextLang });
     }
 
     /** Current language code. */
     function getLang() {
-        return window.I18n?.getLang() ?? localStorage.getItem('lang') ?? 'uz_lat';
+        return window.I18n?.getLang() ?? _loadSettings().lang ?? 'uz_lat';
     }
 
     /** Shorthand for I18n.t() — translate a key. */
@@ -412,6 +449,7 @@ const DastyorAI = (() => {
             I18n.apply();
             if (showLangPicker) I18n.showPicker();
         }
+        _loadSettings();
 
         // 3. Wire internal navigation links
         if (autoNavLinks) {
@@ -441,6 +479,13 @@ const DastyorAI = (() => {
 
         // 6. Listen for theme changes fired by other tabs / pages
         window.addEventListener('da-theme-change', () => applyTheme());
+        window.addEventListener('storage', (e) => {
+            if (e.key === _LS_SETTINGS || e.key === 'da_theme' || e.key === 'lang') {
+                _settings = null;
+                applyTheme();
+                if (window.I18n) I18n.apply();
+            }
+        });
 
         // 7. Authenticate and populate profile
         const user = await init();
@@ -541,6 +586,8 @@ const DastyorAI = (() => {
         // i18n
         setLang,
         getLang,
+        getSettings: () => ({ ..._loadSettings() }),
+        setSettings: (next) => _saveSettings(next || {}),
         t,
         get tg()   { return _tg; },
         get BASE() { return _BASE; },

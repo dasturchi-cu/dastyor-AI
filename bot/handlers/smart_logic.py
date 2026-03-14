@@ -9,6 +9,7 @@ from bot.keyboards.inline_keyboards import (
 from bot.keyboards.reply_keyboards import get_image_to_pdf_keyboard, get_main_menu
 from bot.handlers.ocr_to_word import perform_ocr_and_send
 from bot.services.ai_service import transcribe_audio
+from bot.utils.delivery import send_docx_with_confirmation
 
 logger = logging.getLogger(__name__)
 
@@ -232,17 +233,34 @@ async def smart_callback_handler(update: Update, context: ContextTypes.DEFAULT_T
                     out_name = f"{base_name}_{target_lang}_@DastyorAiBot{ext}"
                     await query.message.delete()
                     with open(translated_path, "rb") as fp:
-                        await context.bot.send_document(
-                            chat_id=chat_id,
-                            document=InputFile(fp, filename=out_name),
-                            caption=(
-                                f"✅ <b>Tarjima tayyor!</b>\n"
-                                f"📄 Original: <code>{file_name}</code>\n"
-                                f"🔄 {label}\n"
-                                f"📎 <code>{out_name}</code>"
-                            ),
-                            parse_mode="HTML"
-                        )
+                        if out_name.lower().endswith(".docx"):
+                            ok = await send_docx_with_confirmation(
+                                context.bot,
+                                chat_id,
+                                fp,
+                                filename=out_name,
+                                caption=(
+                                    f"✅ <b>Tarjima tayyor!</b>\n"
+                                    f"📄 Original: <code>{file_name}</code>\n"
+                                    f"🔄 {label}\n"
+                                    f"📎 <code>{out_name}</code>"
+                                ),
+                                parse_mode="HTML",
+                            )
+                            if not ok:
+                                return
+                        else:
+                            await context.bot.send_document(
+                                chat_id=chat_id,
+                                document=InputFile(fp, filename=out_name),
+                                caption=(
+                                    f"✅ <b>Tarjima tayyor!</b>\n"
+                                    f"📄 Original: <code>{file_name}</code>\n"
+                                    f"🔄 {label}\n"
+                                    f"📎 <code>{out_name}</code>"
+                                ),
+                                parse_mode="HTML"
+                            )
                 else:
                     await query.message.edit_text(
                         "❌ Tarjima qilishda xatolik yuz berdi.\n"

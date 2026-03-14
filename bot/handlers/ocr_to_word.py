@@ -5,7 +5,7 @@ import os
 import time
 import logging
 import asyncio
-from telegram import Update, InputFile
+from telegram import Update
 from telegram.ext import ContextTypes
 from telegram.constants import ParseMode, ChatAction
 from docx import Document
@@ -14,6 +14,7 @@ from bot.keyboards.reply_keyboards import get_back_button, get_main_menu
 from bot.utils.helpers import is_back_button
 from bot.services.ocr_service import extract_text_from_image
 from bot.utils.progress import send_progress, update_progress
+from bot.utils.delivery import send_docx_with_confirmation
 
 from docx.shared import Cm
 from docx.enum.text import WD_ALIGN_PARAGRAPH
@@ -205,13 +206,17 @@ async def perform_ocr_and_send(context, image_path, chat_id, user_id):
         
         # Send Document
         with open(doc_path, 'rb') as f:
-            await context.bot.send_document(
-                chat_id=chat_id,
-                document=InputFile(f, filename=doc_path),
+            ok = await send_docx_with_confirmation(
+                context.bot,
+                chat_id,
+                f,
+                filename=doc_path,
                 caption="✅ **Marhamat!**\n\nSizning hujjatingiz tayyor.",
                 parse_mode=ParseMode.MARKDOWN,
-                reply_markup=get_main_menu(user_id)
+                reply_markup=get_main_menu(user_id),
             )
+            if not ok:
+                return
             
         await progress_msg.delete()
         

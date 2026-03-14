@@ -20,6 +20,7 @@ from telegram import Update, InputFile, InlineKeyboardMarkup, InlineKeyboardButt
 from telegram.ext import ContextTypes
 from telegram.constants import ChatAction
 from bot.keyboards.reply_keyboards import get_back_button
+from bot.utils.delivery import send_docx_with_confirmation
 from bot.services.transliterate_service import transliterate
 from bot.services.user_service import get_user_lang, increment_file_count
 
@@ -209,12 +210,24 @@ async def translit_direction_callback(update: Update, context: ContextTypes.DEFA
                 doc.save(output_path)
 
             with open(output_path, "rb") as f:
-                await context.bot.send_document(
-                    chat_id=uid,
-                    document=InputFile(f, filename=output_path),
-                    caption="✅ Tayyor!",
-                    reply_markup=get_back_button(lang),
-                )
+                if output_path.lower().endswith(".docx"):
+                    ok = await send_docx_with_confirmation(
+                        context.bot,
+                        uid,
+                        f,
+                        filename=output_path,
+                        caption="✅ Tayyor!",
+                        reply_markup=get_back_button(lang),
+                    )
+                    if not ok:
+                        return
+                else:
+                    await context.bot.send_document(
+                        chat_id=uid,
+                        document=InputFile(f, filename=output_path),
+                        caption="✅ Tayyor!",
+                        reply_markup=get_back_button(lang),
+                    )
             increment_file_count(uid, f"Transliterate {ext.upper()}")
             await status_msg.delete()
 

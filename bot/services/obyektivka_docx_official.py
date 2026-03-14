@@ -8,10 +8,7 @@ import os
 from typing import Any
 
 from docx import Document
-from docx.enum.table import WD_ALIGN_VERTICAL
 from docx.enum.text import WD_ALIGN_PARAGRAPH
-from docx.oxml import OxmlElement
-from docx.oxml.ns import qn
 from docx.shared import Cm, Pt
 
 logger = logging.getLogger(__name__)
@@ -37,15 +34,12 @@ def _parse_list(value: Any) -> list[dict[str, Any]]:
     return []
 
 
-def _remove_table_borders(table) -> None:
-    tbl = table._tbl
-    tbl_pr = tbl.tblPr
-    borders = OxmlElement("w:tblBorders")
-    for side in ("top", "left", "bottom", "right", "insideH", "insideV"):
-        el = OxmlElement(f"w:{side}")
-        el.set(qn("w:val"), "nil")
-        borders.append(el)
-    tbl_pr.append(borders)
+def _add_label_value(paragraph, label: str, value: str) -> None:
+    run_label = paragraph.add_run(f"{label}: ")
+    run_label.bold = True
+    paragraph.add_run(value or "yo'q")
+    paragraph.paragraph_format.space_after = Pt(3)
+    paragraph.paragraph_format.line_spacing = 1.12
 
 
 def generate_obyektivka_docx(
@@ -90,16 +84,21 @@ def generate_obyektivka_docx(
     rn.font.size = Pt(13)
     name.paragraph_format.space_after = Pt(10)
 
-    layout = doc.add_table(rows=1, cols=2)
-    layout.autofit = False
-    _remove_table_borders(layout)
-    layout.columns[0].width = Cm(12.5)
-    layout.columns[1].width = Cm(3.8)
-
-    left_cell = layout.cell(0, 0)
-    right_cell = layout.cell(0, 1)
-    left_cell.vertical_alignment = WD_ALIGN_VERTICAL.TOP
-    right_cell.vertical_alignment = WD_ALIGN_VERTICAL.TOP
+    # Right-aligned photo block (no table in main section).
+    pp = doc.add_paragraph()
+    pp.alignment = WD_ALIGN_PARAGRAPH.RIGHT
+    pp.paragraph_format.right_indent = Cm(0.2)
+    if photo_path and os.path.exists(photo_path):
+        try:
+            rr = pp.add_run()
+            rr.add_picture(photo_path, width=Cm(3), height=Cm(4))
+        except Exception as exc:
+            logger.warning("Failed to insert photo: %s", exc)
+            hold = pp.add_run("[3x4 foto]")
+            hold.italic = True
+    else:
+        hold = pp.add_run("[3x4 foto]")
+        hold.italic = True
 
     rows = [
         ("Tug'ilgan yili", _to_text(data.get("birthdate"))),
@@ -113,32 +112,14 @@ def generate_obyektivka_docx(
         ("Ilmiy unvoni", _to_text(data.get("scientific_title"))),
         ("Qaysi chet tillarini biladi", _to_text(data.get("languages"))),
         ("Harbiy unvoni", _to_text(data.get("military_rank"))),
-        ("Davlat mukofotlari bilan taqdirlanganmi", _to_text(data.get("awards"))),
-        ("Deputatlik yoki saylangan lavozimlar", _to_text(data.get("deputy"))),
+        ("Davlat mukofotlari bilan taqdirlanganmi (qanaqa)", _to_text(data.get("awards"))),
+        ("Xalq deputatlari respublika, viloyat, shahar va tuman Kengashi deputatimi yoki boshqa saylanadigan organlar a'zosimi (to'liq ko'rsatilishi lozim)", _to_text(data.get("deputy"))),
     ]
-    for idx, (label, value) in enumerate(rows):
-        p = left_cell.paragraphs[0] if idx == 0 else left_cell.add_paragraph()
-        rb = p.add_run(f"{label}: ")
-        rb.bold = True
-        p.add_run(value or "-")
-        p.paragraph_format.space_after = Pt(4)
-        p.paragraph_format.line_spacing = 1.15
+    for label, value in rows:
+        p = doc.add_paragraph()
+        _add_label_value(p, label, value)
 
-    pp = right_cell.paragraphs[0]
-    pp.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    if photo_path and os.path.exists(photo_path):
-        try:
-            rr = pp.add_run()
-            rr.add_picture(photo_path, width=Cm(3), height=Cm(4))
-        except Exception as exc:
-            logger.warning("Failed to insert photo: %s", exc)
-            hold = pp.add_run("[3x4 foto]")
-            hold.italic = True
-    else:
-        hold = pp.add_run("[3x4 foto]")
-        hold.italic = True
-
-    doc.add_paragraph().paragraph_format.space_after = Pt(6)
+    doc.add_paragraph().paragraph_format.space_after = Pt(4)
     sec = doc.add_paragraph()
     sec.alignment = WD_ALIGN_PARAGRAPH.CENTER
     rs = sec.add_run("MEHNAT FAOLIYATI")
@@ -166,6 +147,67 @@ def generate_obyektivka_docx(
             ln.paragraph_format.line_spacing = 1.15
     else:
         doc.add_paragraph("-")
+
+    # Second page: relatives table (visible grid, official style).
+    relatives = _parse_list(data.get("relatives"))
+    doc.add_page_break()
+    rel_title = doc.add_paragraph()
+    rel_title.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    rel_title_run = rel_title.add_run(f"{full_name}ning yaqin qarindoshlari haqida")
+    rel_title_run.bold = True
+    rel_title_run.font.size = Pt(12)
+
+    rel_sub = doc.add_paragraph()
+    rel_sub.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    rel_sub_run = rel_sub.add_run("MA'LUMOTNOMA")
+    rel_sub_run.bold = True
+    rel_sub_run.font.size = Pt(12)
+
+    rel_tbl = doc.add_table(rows=1, cols=5)
+    rel_tbl.style = "Table Grid"
+    rel_tbl.autofit = False
+    rel_tbl.columns[0].width = Cm(2.8)
+    rel_tbl.columns[1].width = Cm(4.0)
+    rel_tbl.columns[2].width = Cm(3.2)
+    rel_tbl.columns[3].width = Cm(3.2)
+    rel_tbl.columns[4].width = Cm(3.2)
+
+    headers = [
+        "Qarindoshligi",
+        "Familiyasi ismi va\notasining ismi",
+        "Tug'ilgan yili\nva joyi",
+        "Ish joyi va\nlavozimi",
+        "Turar joyi",
+    ]
+    for i, h in enumerate(headers):
+        hp = rel_tbl.rows[0].cells[i].paragraphs[0]
+        hp.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        hr = hp.add_run(h)
+        hr.bold = True
+        hr.font.size = Pt(10)
+
+    if relatives:
+        for r in relatives:
+            row = rel_tbl.add_row().cells
+            rel_type = _to_text(r.get("degree") or r.get("type"))
+            rel_name = _to_text(r.get("fullname") or r.get("name"))
+            rel_birth = _to_text(r.get("birth_year_place") or r.get("birth"))
+            rel_work = _to_text(r.get("work_place") or r.get("job"))
+            rel_addr = _to_text(r.get("address") or r.get("addr"))
+            vals = [rel_type, rel_name, rel_birth, rel_work, rel_addr]
+            for i, val in enumerate(vals):
+                p = row[i].paragraphs[0]
+                p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                run = p.add_run(val or "yo'q")
+                run.font.size = Pt(10)
+                if i == 0:
+                    run.bold = True
+    else:
+        row = rel_tbl.add_row().cells
+        merged = row[0].merge(row[4])
+        p = merged.paragraphs[0]
+        p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        p.add_run("Yaqin qarindoshlar haqida ma'lumot kiritilmagan.")
 
     doc.save(output_filepath)
     return output_filepath
