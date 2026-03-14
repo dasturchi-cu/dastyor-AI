@@ -93,6 +93,31 @@ def set_support_status(req_id: int, status: str) -> bool:
         return changed
 
 
+def log_support_reply(
+    req_id: int,
+    *,
+    admin_username: str | None,
+    template_used: str,
+    user_id: int,
+) -> bool:
+    with _LOCK:
+        data = _load()
+        for item in data.get("items", []):
+            if int(item.get("id", -1)) != int(req_id):
+                continue
+            if "reply_logs" not in item or not isinstance(item["reply_logs"], list):
+                item["reply_logs"] = []
+            item["reply_logs"].append({
+                "admin_username": (admin_username or "").strip(),
+                "template_used": (template_used or "").strip(),
+                "user_id": int(user_id),
+                "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            })
+            _save(data)
+            return True
+        return False
+
+
 def support_stats() -> dict[str, int]:
     data = _load()
     items = data.get("items", [])

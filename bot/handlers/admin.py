@@ -7,14 +7,19 @@ from telegram import Update, ReplyKeyboardMarkup, KeyboardButton, InlineKeyboard
 from telegram.ext import ContextTypes
 from telegram.error import TelegramError
 
-from config import ADMIN_USER_ID, logger
+from config import logger
 from bot.services.settings_service import (
     get_channels, add_channel, remove_channel,
     get_premium_users_full, add_premium, remove_premium, is_premium,
     get_daily_limit, set_daily_limit
 )
 from bot.services.support_service import (
-    list_support_requests, set_support_status, support_stats, get_support_request
+    list_support_requests, set_support_status, support_stats, get_support_request, log_support_reply
+)
+from bot.services.admin_service import (
+    is_admin as _is_admin_service,
+    add_admin as _add_admin_service,
+    remove_admin as _remove_admin_service,
 )
 import bot.services.user_service as crm
 
@@ -25,15 +30,14 @@ SUPPORT_REPLY_TEMPLATES = {
 }
 
 async def is_admin(user_id):
-    str_id = str(user_id)
-    admin_ids = str(ADMIN_USER_ID).split(',') if ADMIN_USER_ID else []
-    return str_id in admin_ids
+    return _is_admin_service(user_id)
 
 def get_admin_keyboard():
     return ReplyKeyboardMarkup([
         [KeyboardButton("📊 Statistika"), KeyboardButton("📨 Xabar yuborish")],
         [KeyboardButton("📢 Kanallar"), KeyboardButton("💎 Premium Boshqaruv")],
         [KeyboardButton("⚙️ Sozlamalar"), KeyboardButton("👥 Foydalanuvchilar")],
+        [KeyboardButton("➕ Admin qo'shish"), KeyboardButton("❌ Admin o'chirish")],
         [KeyboardButton("🆘 Support so'rovlar")],
         [KeyboardButton("🚪 Panelni yopish")]
     ], resize_keyboard=True)
@@ -53,6 +57,26 @@ async def admin_panel_command(update: Update, context: ContextTypes.DEFAULT_TYPE
     await update.message.reply_text(
         "🕴 **Admin Panel (PRO v3.5)**\n\nBo'limni tanlang:",
         reply_markup=get_admin_keyboard(), parse_mode="Markdown"
+    )
+
+
+async def add_admin_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not await is_admin(update.effective_user.id):
+        return
+    context.user_data['admin_state'] = 'add_admin'
+    await update.message.reply_text(
+        "➕ Admin qo'shish\n\nTelegram user ID yoki @username yuboring:",
+        reply_markup=get_admin_cancel_keyboard()
+    )
+
+
+async def remove_admin_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not await is_admin(update.effective_user.id):
+        return
+    context.user_data['admin_state'] = 'remove_admin'
+    await update.message.reply_text(
+        "❌ Admin o'chirish\n\nTelegram user ID yoki @username yuboring:",
+        reply_markup=get_admin_cancel_keyboard()
     )
 
 async def send_full_stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -220,6 +244,20 @@ async def handle_admin_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     elif text == "🆘 Support so'rovlar":
         await show_support_requests_panel(update, context)
+
+    elif text == "➕ Admin qo'shish":
+        context.user_data['admin_state'] = 'add_admin'
+        await update.message.reply_text(
+            "➕ Admin qo'shish\n\nTelegram user ID yoki @username yuboring:",
+            reply_markup=get_admin_cancel_keyboard()
+        )
+
+    elif text == "❌ Admin o'chirish":
+        context.user_data['admin_state'] = 'remove_admin'
+        await update.message.reply_text(
+            "❌ Admin o'chirish\n\nTelegram user ID yoki @username yuboring:",
+            reply_markup=get_admin_cancel_keyboard()
+        )
 
     elif text == "🚪 Panelni yopish":
         from bot.keyboards.reply_keyboards import get_main_menu
@@ -498,6 +536,31 @@ async def remove_channel_command(update: Update, context: ContextTypes.DEFAULT_T
     else:
         await update.message.reply_text("❌ Kanal topilmadi.")
 
+
+def _resolve_user_input_to_id(raw: str):
+    val = (raw or "").strip()
+    if not val:
+        return None
+    if val.isdigit():
+        return int(val)
+
+    uname = val[1:] if val.startswith("@") else val
+    uname = uname.strip().lower()
+    if not uname:
+        return None
+
+    # Resolve username from CRM cache
+    profiles = crm.get_all_profiles() or {}
+    for p in profiles.values():
+        pu = (p.get("username") or "").strip().lower()
+        if pu == uname:
+            try:
+                return int(p.get("id"))
+            except Exception:
+                return None
+    return None
+
+
 async def process_admin_state_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not await is_admin(update.effective_user.id): return
     
@@ -592,12 +655,14 @@ async def process_admin_state_input(update: Update, context: ContextTypes.DEFAUL
             await update.message.reply_text("❓ Javob matnini yuboring yoki bekor qiling.")
             return True
         try:
-            await context.bot.send_message(
-                chat_id=int(target_uid),
-                text=f"📩 Admin javobi:\n\n{reply_text}",
+            await _send_support_reply_to_user(
+                context,
+                int(target_uid),
+                reply_text,
+                int(req_id) if req_id else None,
+                admin_username=update.effective_user.username if update.effective_user else "",
+                template_used="manual",
             )
-            if req_id:
-                set_support_status(int(req_id), "resolved")
             await update.message.reply_text(
                 f"✅ Javob foydalanuvchiga yuborildi (ID: <code>{target_uid}</code>).",
                 parse_mode="HTML",
@@ -614,6 +679,34 @@ async def process_admin_state_input(update: Update, context: ContextTypes.DEFAUL
             context.user_data.pop('support_reply_req_id', None)
         return True
 
+    elif state == 'add_admin':
+        target_id = _resolve_user_input_to_id(text)
+        if not target_id:
+            await update.message.reply_text("❌ Noto'g'ri user ID/username. Qayta yuboring.")
+            return True
+        ok, msg = _add_admin_service(
+            actor_id=update.effective_user.id,
+            target_user_id=int(target_id),
+            actor_username=update.effective_user.username if update.effective_user else None,
+        )
+        await update.message.reply_text(msg, reply_markup=get_admin_keyboard())
+        context.user_data.pop('admin_state', None)
+        return True
+
+    elif state == 'remove_admin':
+        target_id = _resolve_user_input_to_id(text)
+        if not target_id:
+            await update.message.reply_text("❌ Noto'g'ri user ID/username. Qayta yuboring.")
+            return True
+        ok, msg = _remove_admin_service(
+            actor_id=update.effective_user.id,
+            target_user_id=int(target_id),
+            actor_username=update.effective_user.username if update.effective_user else None,
+        )
+        await update.message.reply_text(msg, reply_markup=get_admin_keyboard())
+        context.user_data.pop('admin_state', None)
+        return True
+
     return False
 
 
@@ -622,12 +715,20 @@ async def _send_support_reply_to_user(
     target_uid: int,
     reply_text: str,
     req_id: int | None = None,
+    admin_username: str | None = None,
+    template_used: str = "manual",
 ):
     await context.bot.send_message(
         chat_id=int(target_uid),
         text=f"📩 Admin javobi:\n\n{reply_text}",
     )
     if req_id:
+        log_support_reply(
+            int(req_id),
+            admin_username=admin_username or "",
+            template_used=template_used,
+            user_id=int(target_uid),
+        )
         set_support_status(int(req_id), "resolved")
 
 
@@ -782,6 +883,8 @@ async def support_panel_callback(update: Update, context: ContextTypes.DEFAULT_T
                 int(target_uid),
                 template_text,
                 int(req_id),
+                admin_username=query.from_user.username if query.from_user else "",
+                template_used=template_text,
             )
             await query.answer("Template yuborildi", show_alert=False)
             await query.message.reply_text(
