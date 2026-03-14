@@ -9,7 +9,7 @@ import os
 from typing import Any
 
 from docx import Document
-from docx.enum.table import WD_ALIGN_VERTICAL
+from docx.enum.table import WD_ALIGN_VERTICAL, WD_ROW_HEIGHT_RULE
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
@@ -38,12 +38,13 @@ def _parse_list(value: Any) -> list[dict[str, Any]]:
     return []
 
 
-def _add_label_value(paragraph, label: str, value: str, *, value_on_new_line: bool = False) -> None:
+def _add_label_value(paragraph, label: str, value: str, *, value_on_new_line: bool = True) -> None:
     label_run = paragraph.add_run(f"{label}: ")
     label_run.bold = True
     if value_on_new_line:
         paragraph.add_run().add_break()
     paragraph.add_run(value or "yo'q")
+    paragraph.paragraph_format.space_before = Pt(0)
     paragraph.paragraph_format.space_after = Pt(6)
     paragraph.paragraph_format.line_spacing = 1.3
 
@@ -96,6 +97,26 @@ def _set_table_no_borders(table) -> None:
     for row in table.rows:
         for cell in row.cells:
             _set_cell_no_borders(cell)
+
+
+def _set_cell_margins(cell, *, top_twips: int = 0, right_twips: int = 36, bottom_twips: int = 0, left_twips: int = 36) -> None:
+    tc_pr = cell._tc.get_or_add_tcPr()
+    tc_mar = tc_pr.find(qn("w:tcMar"))
+    if tc_mar is None:
+        tc_mar = OxmlElement("w:tcMar")
+        tc_pr.append(tc_mar)
+    for side, value in (
+        ("top", top_twips),
+        ("right", right_twips),
+        ("bottom", bottom_twips),
+        ("left", left_twips),
+    ):
+        node = tc_mar.find(qn(f"w:{side}"))
+        if node is None:
+            node = OxmlElement(f"w:{side}")
+            tc_mar.append(node)
+        node.set(qn("w:w"), str(value))
+        node.set(qn("w:type"), "dxa")
 
 
 def _set_table_borders(table, size_pt: float = 1.0) -> None:
@@ -163,6 +184,8 @@ def generate_obyektivka_docx(
     style = doc.styles["Normal"]
     style.font.name = "Times New Roman"
     style.font.size = Pt(12)
+    style.paragraph_format.line_spacing = 1.3
+    style.paragraph_format.space_after = Pt(6)
     for section in doc.sections:
         section.top_margin = Cm(2)
         section.bottom_margin = Cm(2)
@@ -174,7 +197,8 @@ def generate_obyektivka_docx(
     title_run = title.add_run("MA'LUMOTNOMA")
     title_run.bold = True
     title_run.font.size = Pt(16)
-    title.paragraph_format.space_after = Pt(7.5)
+    title.paragraph_format.space_after = Pt(6)
+    title.paragraph_format.line_spacing = 1.3
 
     full_name = _to_text(data.get("fullname")) or "FAMILIYA ISM SHARIF"
     name = doc.add_paragraph()
@@ -182,14 +206,14 @@ def generate_obyektivka_docx(
     name_run = name.add_run(full_name)
     name_run.bold = True
     name_run.font.size = Pt(14)
-    name.paragraph_format.space_after = Pt(15)
+    name.paragraph_format.space_after = Pt(20)
+    name.paragraph_format.line_spacing = 1.3
 
     # Main info block: invisible 3-column table for precise alignment.
     section = doc.sections[0]
     total_width = section.page_width - section.left_margin - section.right_margin
     photo_col_width = Cm(4)
-    info_total = total_width - photo_col_width
-    info_col_width = int(info_total * 0.5)
+    info_col_width = int((total_width - photo_col_width) / 2)
 
     info_tbl = doc.add_table(rows=8, cols=3)
     info_tbl.autofit = False
@@ -197,39 +221,43 @@ def generate_obyektivka_docx(
     info_tbl.columns[1].width = info_col_width
     info_tbl.columns[2].width = photo_col_width
     _set_table_no_borders(info_tbl)
-
     info_rows = [
-        (("Tug'ilgan yili", _to_text(data.get("birthdate"))), ("Tug'ilgan joyi", _to_text(data.get("birthplace")))),
-        (("Millati", _to_text(data.get("nation"))), ("Partiyaviyligi", _to_text(data.get("party")))),
-        (("Ma'lumoti", _to_text(data.get("education"))), ("Tamomlagan", _to_text(data.get("graduated")))),
-        (("Ma'lumoti bo'yicha mutaxassisligi", _to_text(data.get("specialty"))), None),
-        (("Ilmiy darajasi", _to_text(data.get("degree"))), ("Ilmiy unvoni", _to_text(data.get("scientific_title")))),
-        (("Qaysi chet tillarini biladi", _to_text(data.get("languages"))), ("Harbiy unvoni", _to_text(data.get("military_rank")))),
-        (("Davlat mukofotlari bilan taqdirlanganmi (qanaqa)", _to_text(data.get("awards"))), None),
-        (("Deputatlik yoki saylangan lavozimlar", _to_text(data.get("deputy"))), None),
+        (("Tug'ilgan yili", _to_text(data.get("birthdate"))), ("Tug'ilgan joyi", _to_text(data.get("birthplace"))), False),
+        (("Millati", _to_text(data.get("nation"))), ("Partiyaviyligi", _to_text(data.get("party"))), False),
+        (("Ma'lumoti", _to_text(data.get("education"))), ("Tamomlagan", _to_text(data.get("graduated"))), False),
+        (("Ma'lumoti bo'yicha mutaxassisligi", _to_text(data.get("specialty"))), None, False),
+        (("Ilmiy darajasi", _to_text(data.get("degree"))), ("Ilmiy unvoni", _to_text(data.get("scientific_title"))), False),
+        (("Qaysi chet tillarini biladi", _to_text(data.get("languages"))), ("Harbiy unvoni", _to_text(data.get("military_rank"))), False),
+        (("Davlat mukofotlari bilan taqdirlanganmi (qanaqa)", _to_text(data.get("awards"))), None, True),
+        (("Xalq deputatlari respublika, viloyat, shahar va tuman Kengashi deputatimi yoki boshqa saylanadigan organlarning a'zosimi (to'liq ko'rsatish lozim)", _to_text(data.get("deputy"))), None, True),
     ]
 
-    for row_idx, row_data in enumerate(info_rows):
+    for row_idx, (left_data, right_data, merge_row) in enumerate(info_rows):
+        info_tbl.rows[row_idx].height_rule = WD_ROW_HEIGHT_RULE.AT_LEAST
+        info_tbl.rows[row_idx].height = Cm(1.25 if row_idx <= 5 else 1.1)
         left_cell = info_tbl.cell(row_idx, 0)
         right_cell = info_tbl.cell(row_idx, 1)
         left_cell.vertical_alignment = WD_ALIGN_VERTICAL.TOP
         right_cell.vertical_alignment = WD_ALIGN_VERTICAL.TOP
+        _set_cell_margins(left_cell)
+        _set_cell_margins(right_cell)
 
-        _add_label_value(
-            left_cell.paragraphs[0],
-            row_data[0][0],
-            row_data[0][1],
-            value_on_new_line=(row_data[0][0] == "Ma'lumoti bo'yicha mutaxassisligi"),
-        )
-        if row_data[1] is not None:
-            _add_label_value(right_cell.paragraphs[0], row_data[1][0], row_data[1][1])
-        else:
+        _add_label_value(left_cell.paragraphs[0], left_data[0], left_data[1], value_on_new_line=True)
+
+        if right_data is not None:
+            _add_label_value(right_cell.paragraphs[0], right_data[0], right_data[1], value_on_new_line=True)
+        elif merge_row:
             merged = left_cell.merge(right_cell)
             merged.vertical_alignment = WD_ALIGN_VERTICAL.TOP
+            _set_cell_margins(merged)
             _set_cell_no_borders(merged)
+        else:
+            right_cell.paragraphs[0].paragraph_format.space_after = Pt(6)
+            right_cell.paragraphs[0].paragraph_format.line_spacing = 1.3
 
     photo_cell = info_tbl.cell(0, 2).merge(info_tbl.cell(3, 2))
     photo_cell.vertical_alignment = WD_ALIGN_VERTICAL.TOP
+    _set_cell_margins(photo_cell, right_twips=0, left_twips=0)
     _set_cell_no_borders(photo_cell)
     photo_p = photo_cell.paragraphs[0]
     photo_p.alignment = WD_ALIGN_PARAGRAPH.RIGHT
@@ -252,8 +280,9 @@ def generate_obyektivka_docx(
     wr = work_title.add_run("MEHNAT FAOLIYATI")
     wr.bold = True
     wr.font.size = Pt(14)
-    work_title.paragraph_format.space_before = Pt(18)
+    work_title.paragraph_format.space_before = Pt(20)
     work_title.paragraph_format.space_after = Pt(6)
+    work_title.paragraph_format.line_spacing = 1.3
 
     work_items = _parse_list(data.get("work_experience"))
     current_job = _to_text(data.get("current_job"))
