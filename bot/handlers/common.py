@@ -1,6 +1,5 @@
 from telegram import Update
 from telegram.ext import ContextTypes
-from bot.keyboards.reply_keyboards import get_main_menu
 from bot.services.user_service import get_user_profile, get_user_lang
 from bot.services.settings_service import get_daily_limit
 from bot.utils.i18n import t

@@ -3,7 +3,7 @@ import time
 import logging
 from telegram import Update, InputFile
 from telegram.ext import ContextTypes
-from telegram.constants import ParseMode, ChatAction
+from telegram.constants import ChatAction
 from bot.keyboards.reply_keyboards import get_translate_menu, get_back_button
 from bot.services.ai_service import translate_document_gemini, translate_text
 

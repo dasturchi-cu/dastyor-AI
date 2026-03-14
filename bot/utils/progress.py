@@ -1,5 +1,4 @@
 from telegram import Message
-import asyncio
 
 async def send_progress(context, chat_id, text="Jarayon boshlandi..."):
     """Send initial progress message"""

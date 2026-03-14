@@ -7,7 +7,6 @@ import json
 import asyncio
 import google.generativeai as genai
 from config import GOOGLE_API_KEY
-import os
 
 logger = logging.getLogger(__name__)
 

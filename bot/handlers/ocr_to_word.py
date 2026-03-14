@@ -15,7 +15,7 @@ from bot.utils.helpers import is_back_button
 from bot.services.ocr_service import extract_text_from_image
 from bot.utils.progress import send_progress, update_progress
 
-from docx.shared import Inches, Cm
+from docx.shared import Cm
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 
 logger = logging.getLogger(__name__)
@@ -280,10 +280,8 @@ async def handle_ocr_image(update: Update, context: ContextTypes.DEFAULT_TYPE):
         # Get file object
         if message.document:
              file_obj = await message.document.get_file()
-             file_name = message.document.file_name or "image.jpg"
         else:
              file_obj = await message.photo[-1].get_file()
-             file_name = f"image_{message.id}.jpg"
 
         # Download file
         temp_image_path = f"temp_ocr_{update.effective_user.id}_{int(time.time())}.jpg"

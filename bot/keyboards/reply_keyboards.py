@@ -1,4 +1,4 @@
-from telegram import ReplyKeyboardMarkup, KeyboardButton, WebAppInfo
+from telegram import ReplyKeyboardMarkup, KeyboardButton
 from bot.utils.i18n import t
 
 

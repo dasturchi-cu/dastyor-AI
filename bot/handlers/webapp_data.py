@@ -115,7 +115,7 @@ async def web_app_data_handler(update: Update, context: ContextTypes.DEFAULT_TYP
                 await context.bot.send_document(
                     chat_id=chat_id,
                     document=InputFile(f, filename=os.path.basename(final_file)),
-                    caption=f"✅ **Hujjat tayyor!**\nSiz kiritgan ma'lumotlar asosida yaratildi.",
+                    caption="✅ **Hujjat tayyor!**\nSiz kiritgan ma'lumotlar asosida yaratildi.",
                     parse_mode="Markdown"
                 )
             

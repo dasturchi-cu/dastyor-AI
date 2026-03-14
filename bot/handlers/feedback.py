@@ -5,10 +5,8 @@ and forwards everything to a Telegram group with user info.
 import logging
 from telegram import Update
 from telegram.ext import ContextTypes
-from telegram.constants import ParseMode, ChatAction
 from bot.keyboards.reply_keyboards import get_back_button, get_main_menu
 from bot.services.user_service import get_user_lang
-from bot.utils.i18n import t
 
 logger = logging.getLogger(__name__)
 
@@ -29,7 +27,7 @@ def _get_feedback_count(user_id: int) -> int:
 def _increment_feedback_count(user_id: int) -> int:
     """Increment and return new feedback count."""
     try:
-        from bot.services.user_service import get_user_profile, _save_profiles, profiles_cache
+        from bot.services.user_service import _save_profiles, profiles_cache
         uid = str(user_id)
         if uid not in profiles_cache:
             return 1

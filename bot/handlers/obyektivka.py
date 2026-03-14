@@ -1,6 +1,6 @@
 from telegram import Update, InputFile, InlineKeyboardMarkup, InlineKeyboardButton, WebAppInfo
 from telegram.ext import ContextTypes
-from bot.keyboards.reply_keyboards import get_back_button, get_main_menu
+from bot.keyboards.reply_keyboards import get_back_button
 import os
 import time
 import logging
@@ -9,6 +9,7 @@ from bot.services.ai_service import transcribe_audio, extract_obyektivka_data
 import json
 
 WEBAPP_BASE = os.getenv("WEBAPP_BASE", "https://dastyor-ai.onrender.com/webapp")
+WEBAPP_VERSION = os.getenv("WEBAPP_VERSION", "20260311")
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 logger = logging.getLogger(__name__)
@@ -19,8 +20,6 @@ async def process_obyektivka_from_audio_path(context, audio_path, chat_id, user_
     """
     # Initial Progress
     progress_msg = await send_progress(context, chat_id, "Audio tahlil qilinmoqda...")
-    temp_docx = None
-    
     try:
         await update_progress(context, progress_msg, 20, "Matn o'qilmoqda (Whisper)...")
         
@@ -71,7 +70,7 @@ async def process_obyektivka_from_audio_path(context, audio_path, chat_id, user_
         # 4. Give webapp link
         kb = [[InlineKeyboardButton(
             "📋 Formani ko'rish / Yuklab olish", 
-            web_app=WebAppInfo(url=f"{WEBAPP_BASE}/obyektivka.html?autoload=1&telegram_id={user_id}")
+            web_app=WebAppInfo(url=f"{WEBAPP_BASE}/obyektivka.html?autoload=1&telegram_id={user_id}&v={WEBAPP_VERSION}")
         )]]
         
         await context.bot.send_message(

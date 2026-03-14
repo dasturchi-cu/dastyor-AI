@@ -6,7 +6,7 @@ Stores data in a simple JSON file (can be migrated to DB later).
 import os
 import json
 import logging
-from datetime import datetime, date
+from datetime import date
 from config import DAILY_FREE_LIMIT
 
 logger = logging.getLogger(__name__)

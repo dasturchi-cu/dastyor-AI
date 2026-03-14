@@ -1,5 +1,5 @@
 from telegram import Update, ChatMember
-from telegram.ext import ContextTypes, ChatMemberHandler
+from telegram.ext import ContextTypes
 import bot.services.user_service as crm
 import logging
 

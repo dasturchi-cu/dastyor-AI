@@ -3,7 +3,7 @@ import time
 from telegram import Update, InputFile
 from telegram.ext import ContextTypes
 from telegram.constants import ParseMode, ChatAction
-from bot.keyboards.reply_keyboards import get_back_button, get_main_menu, get_image_to_pdf_keyboard
+from bot.keyboards.reply_keyboards import get_main_menu, get_image_to_pdf_keyboard
 from bot.services.pdf_service import images_to_pdf
 from bot.utils.helpers import is_back_button, sanitize_filename
 

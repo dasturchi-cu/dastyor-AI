@@ -56,16 +56,15 @@ async def root():
     return RedirectResponse(url="/webapp/index.html")
 
 from pydantic import BaseModel
-from fastapi import File, UploadFile, Form, Header, Query
-from fastapi.responses import StreamingResponse, JSONResponse, HTMLResponse
-from typing import List, Optional, Literal
+from fastapi import File, UploadFile, Form, Query
+from fastapi.responses import StreamingResponse, HTMLResponse
+from typing import List, Optional
 from telegram import InputFile
 import asyncio, time, io
 import base64
 
 from bot.services.render_service import (
-    generate_cv_pdf, generate_cv_word, build_cv_context, safe_filename,
-    generate_obyektivka_pdf, generate_obyektivka_word, build_obyektivka_context,
+    generate_cv_pdf, safe_filename,
 )
 
 SITE_BASE_URL = os.getenv("SITE_BASE_URL", "https://dastyor-ai.onrender.com")
@@ -198,8 +197,9 @@ async def api_translit(req: TranslitRequest):
 # /api/bot-link — Generate deep-link for a bot command
 # Lets the website open the bot at exactly the right state.
 # ═══════════════════════════════════════════════════════════════════════════
-BOT_USERNAME = os.getenv("BOT_USERNAME", "DastyorAiBot")
+BOT_USERNAME = os.getenv("                                          ", "DastyorAiBot")
 WEBAPP_BASE  = os.getenv("WEBAPP_BASE",  "https://dastyor-ai.onrender.com/webapp")
+WEBAPP_VERSION = os.getenv("WEBAPP_VERSION", "20260311")
 
 @app.get("/api/bot-link")
 async def api_bot_link(
@@ -228,7 +228,9 @@ async def api_bot_link(
     bot_link  = f"https://t.me/{BOT_USERNAME}?start={action}"
     # Direct webapp URL (already has telegram_id → user stays logged in)
     tid_param = f"?telegram_id={telegram_id}" if telegram_id else ""
-    webapp_url = f"{WEBAPP_BASE}/{page}{tid_param}"
+    # cache-bust for Telegram mobile WebView
+    v_param = f"{'&' if tid_param else '?'}v={WEBAPP_VERSION}"
+    webapp_url = f"{WEBAPP_BASE}/{page}{tid_param}{v_param}"
 
     return {"ok": True, "bot_link": bot_link, "webapp_url": webapp_url, "action": action}
 
@@ -247,7 +249,6 @@ async def api_stats(
 
     from bot.services.user_service     import get_user_profile
     from bot.services.settings_service import is_premium
-    from bot.services.usage_tracker    import can_use
 
     profile = get_user_profile(uid) or {}
     premium = is_premium(int(uid))
@@ -352,7 +353,6 @@ async def api_ocr_direct(
 ):
     ts = int(time.time())
     img_path  = f"temp/ocr_{ts}_{file.filename or 'img.jpg'}"
-    docx_path = f"temp/ocr_{ts}_result.docx"
     os.makedirs("temp", exist_ok=True)
 
     # ── 1. Save uploaded image to disk ──────────────────────────────

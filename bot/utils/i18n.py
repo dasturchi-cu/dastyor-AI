@@ -1,7 +1,4 @@
-import json
-import os
 import re
-from pathlib import Path
 
 # Bot faqat o'zbek tilida ishlaydi — o'zgartirish mumkin emas
 DEFAULT_LANG = "uz_lat"

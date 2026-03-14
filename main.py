@@ -1,9 +1,6 @@
 """
 Main Bot Entry Point (with Ban Check Middleware)
 """
-import logging
-import os
-import asyncio
 from dotenv import load_dotenv
 from telegram import Update
 from telegram.ext import (
@@ -30,7 +27,7 @@ from bot.handlers.admin_middleware import track_user
 from bot.handlers.premium_callbacks import premium_callback_handler
 from bot.handlers.help import help_command
 from bot.handlers.chat_member import chat_member_updated
-from bot.handlers.common import balance_handler, contact_handler, help_button_handler
+from bot.handlers.common import balance_handler, help_button_handler
 from bot.handlers.feedback import start_feedback, handle_feedback
 
 
@@ -49,9 +46,8 @@ from bot.handlers.smart_logic import (
 from bot.handlers.webapp_data import web_app_data_handler
 
 # Services
-from bot.services.usage_tracker import can_use as check_usage_limit, increment_usage
 from bot.services.settings_service import is_premium
-from bot.services.user_service import increment_file_count, is_user_banned, get_user_lang
+from bot.services.user_service import increment_file_count, get_user_lang
 
 async def back_to_main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data.clear()
@@ -86,21 +82,6 @@ async def premium_info_handler(update: Update, context: ContextTypes.DEFAULT_TYP
         parse_mode="Markdown",
         reply_markup=get_back_button()
     )
-
-async def check_ban_middleware(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Checks if user is banned before ANY interaction"""
-    if update.effective_user:
-        if is_user_banned(update.effective_user.id):
-             # You can notify them or silently ignore
-             # await update.message.reply_text("🚫 Siz bloklangansiz.")
-             # Stop processing
-             raise Exception("User Banned") # A bit harsh, but stops propagation efficiently in py-telegram-bot logic if we wrap it?
-             # Actually, better to just return True/False and use logic in router?
-             # But 'TypeHandler' runs parallel usually. 
-             pass
-
-# Instead of complex middleware blocking, let's add a check at the start of routers.
-# Or better: track_user sets a flag.
 
 async def unified_router_check(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Central check for ban status"""
@@ -241,8 +222,6 @@ async def button_callback_handler(update: Update, context: ContextTypes.DEFAULT_
     await query.answer()
     
     if query.data == "check_subs":
-        from bot.services.settings_service import get_channels
-        channels = get_channels()
         user_id = query.from_user.id
         
         if is_premium(user_id):
@@ -260,9 +239,8 @@ async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> N
 
 async def _webapp_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE, action: str):
     """Generic handler: sends inline button opening the correct webapp page."""
-    from bot.handlers.start import _ACTION_MAP, WEBAPP_BASE, BOT_USERNAME
+    from bot.handlers.start import _ACTION_MAP, WEBAPP_BASE
     from bot.services.user_service import get_user_lang
-    from bot.utils.i18n import t
     uid = update.effective_user.id if update.effective_user else 0
     lang = get_user_lang(uid)
     page_info = _ACTION_MAP.get(action)

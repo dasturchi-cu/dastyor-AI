@@ -3,7 +3,6 @@ import os
 import time
 from telegram import Update
 from telegram.ext import ContextTypes
-from telegram.constants import ParseMode, ChatAction
 from bot.keyboards.inline_keyboards import (
     get_smart_photo_keyboard, get_smart_document_keyboard, get_smart_audio_keyboard
 )

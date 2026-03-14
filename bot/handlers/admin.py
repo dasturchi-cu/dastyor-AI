@@ -2,15 +2,10 @@
 Admin Panel Handlers (Extended with Pro Features)
 - Markdown escaped correctly to prevent errors.
 """
-import os
-import json
-import logging
 import asyncio
-from datetime import datetime
-from telegram import Update, ReplyKeyboardMarkup, KeyboardButton, InputFile, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram import Update, ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
 from telegram.error import TelegramError
-from telegram.helpers import escape_markdown
 
 from config import ADMIN_USER_ID, logger
 from bot.services.settings_service import (
@@ -18,10 +13,7 @@ from bot.services.settings_service import (
     get_premium_users_full, add_premium, remove_premium, is_premium,
     get_daily_limit, set_daily_limit
 )
-from bot.services.usage_tracker import get_today, _load_usage
 import bot.services.user_service as crm
-
-logger = logging.getLogger(__name__)
 
 async def is_admin(user_id):
     str_id = str(user_id)
@@ -509,7 +501,6 @@ async def process_admin_state_input(update: Update, context: ContextTypes.DEFAUL
     if state == 'broadcast':
         msg = update.message
         profiles = crm.get_all_profiles()
-        total = len(profiles)
         success = 0
         blocked = 0
         
