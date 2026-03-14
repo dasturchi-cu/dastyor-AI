@@ -1,6 +1,8 @@
 import json
 import logging
 import os
+import base64
+import time
 from telegram import Update, InputFile, ReplyKeyboardMarkup
 from telegram.ext import ContextTypes
 from bot.services.doc_generator import generate_obyektivka_docx, generate_cv_docx, convert_to_pdf_safe
@@ -23,6 +25,7 @@ async def web_app_data_handler(update: Update, context: ContextTypes.DEFAULT_TYP
         
         if action == "generate_obyektivka":
             msg = await update.message.reply_text(f"⏳ Obyektivka ({fmt.upper()}) tayyorlanmoqda...")
+            os.makedirs("temp", exist_ok=True)
             
             doc_data = {
                 "lang": payload.get("lang", "uz_lat"),
@@ -40,6 +43,8 @@ async def web_app_data_handler(update: Update, context: ContextTypes.DEFAULT_TYP
                 "military_rank": payload.get("mil", ""),
                 "awards": payload.get("award", ""),
                 "deputy": payload.get("dep", ""),
+                "current_job": payload.get("current_job", ""),
+                "current_job_year": payload.get("current_job_year", ""),
                 "work_experience": [
                     {"year": f"{w.get('f', '')}-{w.get('t', '')}", "position": w.get('d', '')}
                     for w in payload.get("works", [])
@@ -55,8 +60,29 @@ async def web_app_data_handler(update: Update, context: ContextTypes.DEFAULT_TYP
                     for r in payload.get("rels", [])
                 ]
             }
-            
-            temp_file = await asyncio.to_thread(generate_obyektivka_docx, doc_data)
+
+            photo_path = None
+            try:
+                photo_data = payload.get("photo_data", "")
+                if isinstance(photo_data, str) and photo_data.startswith("data:image/"):
+                    header, b64 = photo_data.split(",", 1)
+                    mime = header.split(";")[0].split(":")[1].lower()
+                    ext = {
+                        "image/png": "png",
+                        "image/jpeg": "jpg",
+                        "image/jpg": "jpg",
+                        "image/webp": "webp",
+                    }.get(mime, "png")
+                    raw = base64.b64decode(b64)
+                    ts = int(time.time() * 1000)
+                    photo_path = os.path.join("temp", f"oby_webapp_photo_{ts}.{ext}")
+                    with open(photo_path, "wb") as f:
+                        f.write(raw)
+            except Exception as e:
+                logger.warning(f"web_app_data_handler photo decode failed: {e}")
+                photo_path = None
+
+            temp_file = await asyncio.to_thread(generate_obyektivka_docx, doc_data, photo_path)
 
         elif action == "generate_cv":
             msg = await update.message.reply_text(f"⏳ CV rezyume ({fmt.upper()}) tayyorlanmoqda...")
@@ -136,6 +162,12 @@ async def web_app_data_handler(update: Update, context: ContextTypes.DEFAULT_TYP
             # Cleanup
             try: os.remove(temp_file)
             except: pass
+            if action == "generate_obyektivka":
+                try:
+                    if 'photo_path' in locals() and photo_path and os.path.exists(photo_path):
+                        os.remove(photo_path)
+                except:
+                    pass
             if final_file != temp_file:
                 try: os.remove(final_file)
                 except: pass

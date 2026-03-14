@@ -9,7 +9,7 @@ import os
 from typing import Any
 
 from docx import Document
-from docx.enum.table import WD_ALIGN_VERTICAL, WD_ROW_HEIGHT_RULE
+from docx.enum.table import WD_ALIGN_VERTICAL
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
@@ -45,8 +45,8 @@ def _add_label_value(paragraph, label: str, value: str, *, value_on_new_line: bo
         paragraph.add_run().add_break()
     paragraph.add_run(value or "yo'q")
     paragraph.paragraph_format.space_before = Pt(0)
-    paragraph.paragraph_format.space_after = Pt(6)
-    paragraph.paragraph_format.line_spacing = 1.3
+    paragraph.paragraph_format.space_after = Pt(3)
+    paragraph.paragraph_format.line_spacing = 1.15
 
 
 def _set_cell_no_borders(cell) -> None:
@@ -60,7 +60,9 @@ def _set_cell_no_borders(cell) -> None:
         if border is None:
             border = OxmlElement(f"w:{side}")
             tc_borders.append(border)
-        border.set(qn("w:val"), "nil")
+        border.set(qn("w:val"), "none")
+        border.set(qn("w:sz"), "0")
+        border.set(qn("w:space"), "0")
 
 
 def _set_table_no_borders(table) -> None:
@@ -80,7 +82,9 @@ def _set_table_no_borders(table) -> None:
         if border is None:
             border = OxmlElement(f"w:{side}")
             tbl_borders.append(border)
-        border.set(qn("w:val"), "nil")
+        border.set(qn("w:val"), "none")
+        border.set(qn("w:sz"), "0")
+        border.set(qn("w:space"), "0")
 
     # Disable table look flags that may introduce visible styling.
     tbl_look = tbl_pr.find(qn("w:tblLook"))
@@ -97,6 +101,25 @@ def _set_table_no_borders(table) -> None:
     for row in table.rows:
         for cell in row.cells:
             _set_cell_no_borders(cell)
+
+
+def _set_table_no_borders_strict(table) -> None:
+    _set_table_no_borders(table)
+    for row in table.rows:
+        for cell in row.cells:
+            tc_pr = cell._tc.get_or_add_tcPr()
+            tc_borders = tc_pr.find(qn("w:tcBorders"))
+            if tc_borders is None:
+                tc_borders = OxmlElement("w:tcBorders")
+                tc_pr.append(tc_borders)
+            for side in ("top", "left", "bottom", "right"):
+                border = tc_borders.find(qn(f"w:{side}"))
+                if border is None:
+                    border = OxmlElement(f"w:{side}")
+                    tc_borders.append(border)
+                border.set(qn("w:val"), "none")
+                border.set(qn("w:sz"), "0")
+                border.set(qn("w:space"), "0")
 
 
 def _set_cell_margins(cell, *, top_twips: int = 0, right_twips: int = 36, bottom_twips: int = 0, left_twips: int = 36) -> None:
@@ -206,8 +229,23 @@ def generate_obyektivka_docx(
     name_run = name.add_run(full_name)
     name_run.bold = True
     name_run.font.size = Pt(14)
-    name.paragraph_format.space_after = Pt(20)
+    name.paragraph_format.space_after = Pt(4)
     name.paragraph_format.line_spacing = 1.3
+
+    current_job = _to_text(data.get("current_job"))
+    current_job_year = _to_text(data.get("current_job_year"))
+    if current_job:
+        current_line = doc.add_paragraph()
+        current_line.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        if current_job_year:
+            year_text = current_job_year.rstrip(".")
+            current_line.add_run(f"{year_text}. yildan hozirgacha {current_job}")
+        else:
+            current_line.add_run(f"Hozirgacha {current_job}")
+        current_line.paragraph_format.line_spacing = 1.15
+        current_line.paragraph_format.space_after = Pt(14)
+    else:
+        name.paragraph_format.space_after = Pt(20)
 
     # Main info block: invisible 3-column table for precise alignment.
     section = doc.sections[0]
@@ -220,7 +258,7 @@ def generate_obyektivka_docx(
     info_tbl.columns[0].width = info_col_width
     info_tbl.columns[1].width = info_col_width
     info_tbl.columns[2].width = photo_col_width
-    _set_table_no_borders(info_tbl)
+    _set_table_no_borders_strict(info_tbl)
     info_rows = [
         (("Tug'ilgan yili", _to_text(data.get("birthdate"))), ("Tug'ilgan joyi", _to_text(data.get("birthplace"))), False),
         (("Millati", _to_text(data.get("nation"))), ("Partiyaviyligi", _to_text(data.get("party"))), False),
@@ -233,8 +271,6 @@ def generate_obyektivka_docx(
     ]
 
     for row_idx, (left_data, right_data, merge_row) in enumerate(info_rows):
-        info_tbl.rows[row_idx].height_rule = WD_ROW_HEIGHT_RULE.AT_LEAST
-        info_tbl.rows[row_idx].height = Cm(1.25 if row_idx <= 5 else 1.1)
         left_cell = info_tbl.cell(row_idx, 0)
         right_cell = info_tbl.cell(row_idx, 1)
         left_cell.vertical_alignment = WD_ALIGN_VERTICAL.TOP
@@ -285,10 +321,6 @@ def generate_obyektivka_docx(
     work_title.paragraph_format.line_spacing = 1.3
 
     work_items = _parse_list(data.get("work_experience"))
-    current_job = _to_text(data.get("current_job"))
-    current_job_year = _to_text(data.get("current_job_year"))
-    if current_job:
-        work_items = [{"year": current_job_year or "Hozirgi", "position": current_job}] + work_items
 
     if work_items:
         for item in work_items:

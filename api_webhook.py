@@ -1121,6 +1121,9 @@ class ExportObyektivkaRequest(BaseModel):
     relatives      : list = []
     # optional: data URL or public URL of photo
     photo_data     : Optional[str] = None
+    # optional current job line under full name
+    current_job    : Optional[str] = None
+    current_job_year: Optional[str] = None
 
 @app.post("/api/export_obyektivka")
 async def api_export_obyektivka(req: ExportObyektivkaRequest):
@@ -1129,16 +1132,37 @@ async def api_export_obyektivka(req: ExportObyektivkaRequest):
     PDF export/conversion has been removed.
     """
     ts  = int(time.time())
+    os.makedirs("temp", exist_ok=True)
     uid_str = _resolve_uid(str(req.telegram_id) if req.telegram_id else None, req.token)
     data = req.dict(exclude={"telegram_id", "token", "format"})
     safe = safe_filename(req.fullname or "Obyektivka")
     bot_suffix = "_@DastyorAiBot"
 
+    # Optional photo_data (data URL) -> temp image for DOCX insertion.
+    photo_path = None
+    try:
+        if req.photo_data and isinstance(req.photo_data, str) and req.photo_data.startswith("data:image/"):
+            header, b64 = req.photo_data.split(",", 1)
+            mime = header.split(";")[0].split(":")[1].lower()
+            ext = {
+                "image/png": "png",
+                "image/jpeg": "jpg",
+                "image/jpg": "jpg",
+                "image/webp": "webp",
+            }.get(mime, "png")
+            raw = base64.b64decode(b64)
+            photo_path = os.path.join("temp", f"oby_export_photo_{ts}.{ext}")
+            with open(photo_path, "wb") as f:
+                f.write(raw)
+    except Exception as e:
+        logger.warning(f"/api/export_obyektivka photo decode failed: {e}")
+        photo_path = None
+
     # Har doim DOCX yaratamiz (rassmiy minimal layout bilan)
     from bot.services.doc_generator import generate_obyektivka_docx
 
     loop = asyncio.get_running_loop()
-    docx_path = await loop.run_in_executor(None, generate_obyektivka_docx, data)
+    docx_path = await loop.run_in_executor(None, generate_obyektivka_docx, data, photo_path)
     if not docx_path or not os.path.exists(docx_path):
         raise HTTPException(status_code=500, detail="Word fayl yaratishda xato")
 
@@ -1150,6 +1174,11 @@ async def api_export_obyektivka(req: ExportObyektivkaRequest):
         os.remove(docx_path)
     except Exception:
         pass
+    if photo_path:
+        try:
+            os.remove(photo_path)
+        except Exception:
+            pass
 
     if uid_str:
         from bot.services.user_service import increment_file_count

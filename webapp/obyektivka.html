@@ -426,7 +426,7 @@
                             <span id="ph-txt" style="color:var(--secondary); font-size:0.8rem; font-weight:bold;">FOTO
                                 YUKLASH</span>
                             <img id="photo-preview" class="hidden">
-                            <input type="file" id="photoInput" hidden onchange="previewImg(this)">
+                            <input type="file" id="photoInput" accept="image/png,image/jpeg,image/jpg,image/webp" hidden onchange="previewImg(this)">
                         </div>
                     </div>
 
@@ -794,10 +794,16 @@
 
             // 2) Mehnat faoliyati ro'yxatini yig'ish
             const works = [];
+            let currentCandidate = null;
             document.querySelectorAll('#work-container .form-grid').forEach(row => {
-                const fromVal = row.querySelector('.year-from').value;
-                const toVal = row.querySelector('.year-to').value;
+                const fromVal = (row.querySelector('.year-from').value || '').trim();
+                const toVal = (row.querySelector('.year-to').value || '').trim();
                 const d = row.querySelector('.work-desc')?.value || '';
+                const toNorm = toVal.toLowerCase().replace(/[\s.\-_/]/g, '');
+                const isCurrent = [
+                    'hv', 'hvgacha', 'hozirgacha', 'present', 'current',
+                    'ҳв', 'ҳвгача', 'ҳозиргача'
+                ].includes(toNorm);
 
                 let yearStr = "";
                 if (fromVal && toVal) {
@@ -814,8 +820,29 @@
 
                 if (d && d.trim() !== '') {
                     works.push({ year: yearStr, position: d });
+                    if (isCurrent) {
+                        currentCandidate = {
+                            index: works.length - 1,
+                            from: fromVal,
+                            position: d.trim(),
+                        };
+                    }
                 }
             });
+
+            let currentJob = "";
+            let currentJobYear = "";
+            if (currentCandidate) {
+                const askTopText = currentLang === 'uz_k'
+                    ? "Ҳозирги иш жойини исм-фамилия тагида (сарлавҳа қисмида) чиқарайми?"
+                    : "Hozirgi ish joyini ism-familiya tagida (sarlavha qismida) chiqaraymi?";
+                const moveToTop = confirm(askTopText);
+                if (moveToTop) {
+                    currentJob = currentCandidate.position;
+                    currentJobYear = currentCandidate.from;
+                    works.splice(currentCandidate.index, 1);
+                }
+            }
 
             // 3) Til kodini yangi API uchun moslashtirish
             const langMap = { uz_l: 'uz_lat', uz_k: 'uz_cyr' };
@@ -841,6 +868,8 @@
                 military_rank: document.getElementById('military').value || '',
                 awards: document.getElementById('awards').value || '',
                 deputy: document.getElementById('deputy').value || '',
+                current_job: currentJob,
+                current_job_year: currentJobYear,
                 work_experience: works,
                 relatives: relatives,
                 photo_data: finalPhotoData
@@ -1024,6 +1053,13 @@
 
         function previewImg(input) {
             if (input.files && input.files[0]) {
+                const file = input.files[0];
+                const allowed = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp'];
+                if (!allowed.includes((file.type || '').toLowerCase())) {
+                    alert("Faqat JPG, PNG yoki WEBP rasm yuklang.");
+                    input.value = '';
+                    return;
+                }
                 const reader = new FileReader();
                 reader.onload = e => {
                     photoData = e.target.result;
@@ -1031,7 +1067,7 @@
                     document.getElementById('photo-preview').classList.remove('hidden');
                     document.getElementById('ph-txt').classList.add('hidden');
                 };
-                reader.readAsDataURL(input.files[0]);
+                reader.readAsDataURL(file);
             }
         }
 
