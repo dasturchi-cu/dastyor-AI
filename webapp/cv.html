@@ -624,6 +624,91 @@
       font-weight: 600;
     }
 
+    .suggest-chip {
+      border: 1px solid rgba(59, 130, 246, 0.25);
+      background: rgba(59, 130, 246, 0.08);
+      color: #60a5fa;
+      padding: 6px 10px;
+      border-radius: 10px;
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all .2s ease;
+    }
+
+    .suggest-chip:hover {
+      transform: translateY(-1px);
+      background: rgba(59, 130, 246, 0.14);
+    }
+
+    .suggest-chip.active {
+      background: #0A84FF;
+      color: #fff;
+      border-color: #0A84FF;
+      box-shadow: 0 8px 20px rgba(10, 132, 255, .35);
+    }
+
+    .accent-btn {
+      width: 52px;
+      height: 22px;
+      border-radius: 8px;
+      border: 2px solid transparent;
+      cursor: pointer;
+      transition: all .2s ease;
+    }
+
+    .accent-btn.active {
+      transform: translateY(-1px) scale(1.04);
+      border-color: #fff;
+      box-shadow: 0 10px 20px rgba(0, 0, 0, .25);
+    }
+
+    .photo-drop-active {
+      outline: 2px dashed #0A84FF;
+      outline-offset: 3px;
+      box-shadow: 0 12px 30px rgba(10, 132, 255, .3);
+    }
+
+    .clear-btn {
+      background: linear-gradient(135deg, #0f172a, #1e293b);
+      color: #fff;
+      font-weight: 700;
+      border-radius: 12px;
+      padding: 11px 14px;
+      width: 100%;
+      transition: all .2s ease;
+    }
+
+    .clear-btn:hover {
+      opacity: .92;
+      transform: translateY(-1px);
+    }
+
+    .cv-canvas.themable {
+      --cv-accent: #0A84FF;
+    }
+
+    .cv-canvas.themable .role,
+    .cv-canvas.themable .sec-title,
+    .cv-canvas.themable .sec-title-main,
+    .cv-canvas.themable .sec-title-side,
+    .cv-canvas.themable .sec-title-left,
+    .cv-canvas.themable .item-sub {
+      color: var(--cv-accent) !important;
+    }
+
+    .cv-canvas.themable .sec-title,
+    .cv-canvas.themable .sec-title-main,
+    .cv-canvas.themable .sec-title-side,
+    .cv-canvas.themable .sec-title-left {
+      border-color: var(--cv-accent) !important;
+    }
+
+    .cv-canvas.themable .badge {
+      background: var(--cv-accent);
+      color: #ffffff;
+    }
+
     @media print {
       body * {
         visibility: hidden;
@@ -653,7 +738,7 @@
 </head>
 
 <body
-  class="text-neutral-900 dark:text-neutral-100 flex flex-col h-screen overflow-hidden antialiased selection:bg-apple-purple selection:text-white">
+  class="text-neutral-900 dark:text-neutral-100 flex flex-col min-h-screen overflow-y-auto antialiased selection:bg-apple-purple selection:text-white">
 
   <!-- Global Header -->
   <header class="builder-header h-16 flex-shrink-0 flex items-center justify-between px-4 z-50">
@@ -681,11 +766,11 @@
     </div>
   </header>
 
-  <div class="flex flex-1 overflow-hidden relative">
+  <div class="flex flex-col lg:flex-row flex-1 relative overflow-hidden">
 
     <!-- EDITOR PANE -->
     <div id="editorPane"
-      class="w-full md:w-[45%] md:max-w-md h-full scroller overflow-y-auto bg-white dark:bg-[#0a0a0c] border-r border-black/5 dark:border-white/5 pb-20">
+      class="w-full lg:w-[45%] lg:max-w-md h-full scroller overflow-y-auto bg-white dark:bg-[#0a0a0c] border-b lg:border-b-0 lg:border-r border-black/5 dark:border-white/5 pb-8">
 
       <!-- TEMPLATE SETTINGS -->
       <div class="p-6">
@@ -908,7 +993,7 @@
       <div class="h-px bg-black/5 dark:bg-white/5 mx-6"></div>
 
       <!-- SKILLS -->
-      <div class="p-6 pb-12">
+      <div class="p-6 pb-6">
         <h2 class="font-display font-bold text-sm uppercase tracking-widest text-black/50 dark:text-white/50 mb-4"
           data-i18n="cv_skills">Ko'nikmalar</h2>
         <div class="bg-black/5 dark:bg-white/5 p-4 rounded-xl">
@@ -916,18 +1001,46 @@
             class="w-full bg-transparent border-b border-black/10 dark:border-white/10 px-0 py-2 text-sm outline-none focus:border-apple-purple mb-3"
             placeholder="Ko'nikma yozib ENTER bosing..." data-i18n="ph_skill" data-i18n-attr="placeholder"
             onkeydown="handleSkillAdd(event)">
+          <div id="skillSuggestions" class="flex flex-wrap gap-2 mb-3"></div>
           <div id="skillsWrap" class="flex flex-wrap gap-2"></div>
         </div>
+      </div>
+
+      <div class="px-6 pb-6">
+        <h2 class="font-display font-bold text-sm uppercase tracking-widest text-black/50 dark:text-white/50 mb-4">
+          Tools & Tech
+        </h2>
+        <div class="bg-black/5 dark:bg-white/5 p-4 rounded-xl">
+          <input type="text" id="toolInput"
+            class="w-full bg-transparent border-b border-black/10 dark:border-white/10 px-0 py-2 text-sm outline-none focus:border-apple-blue mb-3"
+            placeholder="Tool yozib ENTER bosing..."
+            onkeydown="handleToolAdd(event)">
+          <div id="toolSuggestions" class="flex flex-wrap gap-2 mb-3"></div>
+          <div id="toolsWrap" class="flex flex-wrap gap-2"></div>
+        </div>
+      </div>
+
+      <div class="px-6 pb-10">
+        <button onclick="clearFormData()" class="clear-btn">🧹 Ma'lumotlarni tozalash</button>
       </div>
 
     </div>
 
     <!-- PREVIEW PANE -->
     <div id="previewPane"
-      class="hidden md:flex flex-1 h-full bg-[#1c1c1e] items-start justify-center p-8 scroller overflow-y-auto">
-      <div class="cv-canvas-wrapper" id="previewScaleWrapper">
+      class="flex w-full lg:flex-1 h-full bg-[#1c1c1e] items-start justify-center p-4 md:p-8 scroller overflow-y-auto">
+      <div class="w-full max-w-[980px]">
+        <div class="cv-canvas-wrapper" id="previewScaleWrapper">
         <div class="cv-canvas tpl-minimal" id="cv-box">
           <!-- HTML generated live here -->
+        </div>
+        </div>
+        <div class="mt-4 flex items-center justify-center gap-2" id="accentPalette">
+          <button class="accent-btn active" style="background:#0A84FF" onclick="setAccentColor('#0A84FF', this)"></button>
+          <button class="accent-btn" style="background:#8B5CF6" onclick="setAccentColor('#8B5CF6', this)"></button>
+          <button class="accent-btn" style="background:#10B981" onclick="setAccentColor('#10B981', this)"></button>
+          <button class="accent-btn" style="background:#F97316" onclick="setAccentColor('#F97316', this)"></button>
+          <button class="accent-btn" style="background:#EF4444" onclick="setAccentColor('#EF4444', this)"></button>
         </div>
       </div>
     </div>
@@ -944,27 +1057,28 @@
     let experiences = [];
     let education = [];
     let skills = [];
+    let tools = [];
+    let selectedAccent = '#0A84FF';
+    const CV_DRAFT_KEY = 'cv_builder_draft_v3';
+    const SKILL_SUGGESTIONS = ['Communication', 'Leadership', 'Problem Solving', 'Teamwork', 'Time Management'];
+    const TOOL_SUGGESTIONS = ['Figma', 'Photoshop', 'Excel', 'Notion', 'ChatGPT'];
 
-    // Mobile preview toggle
-    let mobilePreview = false;
+    // Preview quick button now scrolls to preview block (tagma-tag layout)
     function toggleMobileView() {
-      mobilePreview = !mobilePreview;
-      const ed = document.getElementById('editorPane');
       const pv = document.getElementById('previewPane');
       const btn = document.getElementById('mobileViewToggle');
+      pv.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      btn.innerHTML = I18n.t('cv_btn_edit') || '👁️ Preview';
+      setTimeout(autoScale, 120);
+    }
 
-      if (mobilePreview) {
-        ed.classList.add('hidden');
-        pv.classList.remove('hidden');
-        pv.classList.add('w-full', 'px-2', 'py-4');
-        btn.innerHTML = I18n.t('cv_btn_edit') || '✍️ Tahrirlash';
-        setTimeout(autoScale, 50);
-      } else {
-        ed.classList.remove('hidden');
-        pv.classList.add('hidden');
-        pv.classList.remove('w-full', 'px-2', 'py-4');
-        btn.innerHTML = I18n.t('cv_btn_preview') || '👁️ Preview';
-      }
+    function setAccentColor(color, el) {
+      selectedAccent = color;
+      document.querySelectorAll('.accent-btn').forEach(b => b.classList.remove('active'));
+      if (el) el.classList.add('active');
+      const box = document.getElementById('cv-box');
+      box.style.setProperty('--cv-accent', selectedAccent);
+      saveDraft();
     }
 
     // Templates
@@ -977,13 +1091,17 @@
     }
 
     // Image
+    function _setAvatar(dataUrl) {
+      avatarUrl = dataUrl || avatarUrl;
+      document.getElementById('photoPrev').innerHTML = `<img src="${avatarUrl}" class="w-full h-full object-cover">`;
+      updateCV();
+    }
+
     function handleImage(input) {
       if (input.files && input.files[0]) {
         const reader = new FileReader();
         reader.onload = function (e) {
-          avatarUrl = e.target.result;
-          document.getElementById('photoPrev').innerHTML = `<img src="${avatarUrl}" class="w-full h-full object-cover">`;
-          updateCV();
+          _setAvatar(e.target.result);
         }
         reader.readAsDataURL(input.files[0]);
       }
@@ -999,13 +1117,74 @@
     }
     function handleSkillAdd(e) {
       if (e.key === 'Enter' && e.target.value.trim() !== '') {
-        skills.push(e.target.value.trim());
+        const val = e.target.value.trim();
+        if (!skills.includes(val)) skills.push(val);
         e.target.value = '';
         renderSkillsInput();
+        renderSkillSuggestions();
         updateCV();
       }
     }
-    function removeSkill(i) { skills.splice(i, 1); renderSkillsInput(); updateCV(); }
+    function removeSkill(i) { skills.splice(i, 1); renderSkillsInput(); renderSkillSuggestions(); updateCV(); }
+
+    function toggleSkillSuggestion(label) {
+      if (skills.includes(label)) {
+        skills = skills.filter(x => x !== label);
+      } else {
+        skills.push(label);
+      }
+      renderSkillsInput();
+      renderSkillSuggestions();
+      updateCV();
+    }
+
+    function renderSkillSuggestions() {
+      const wrap = document.getElementById('skillSuggestions');
+      if (!wrap) return;
+      wrap.innerHTML = SKILL_SUGGESTIONS.map(s => `
+        <button type="button" class="suggest-chip ${skills.includes(s) ? 'active' : ''}" onclick="toggleSkillSuggestion('${s.replace(/'/g, "\\'")}')">${s}</button>
+      `).join('');
+    }
+
+    function renderToolsInput() {
+      document.getElementById('toolsWrap').innerHTML = tools.map((s, i) => `
+                <div class="px-3 py-1 bg-white dark:bg-black rounded-lg text-xs font-semibold flex items-center gap-2 border border-black/5 dark:border-white/5">
+                    ${s} <span class="text-red-500 cursor-pointer text-[10px]" onclick="removeTool(${i})">✖</span>
+                </div>
+            `).join('');
+    }
+
+    function handleToolAdd(e) {
+      if (e.key === 'Enter' && e.target.value.trim() !== '') {
+        const val = e.target.value.trim();
+        if (!tools.includes(val)) tools.push(val);
+        e.target.value = '';
+        renderToolsInput();
+        renderToolSuggestions();
+        updateCV();
+      }
+    }
+
+    function removeTool(i) { tools.splice(i, 1); renderToolsInput(); renderToolSuggestions(); updateCV(); }
+
+    function toggleToolSuggestion(label) {
+      if (tools.includes(label)) {
+        tools = tools.filter(x => x !== label);
+      } else {
+        tools.push(label);
+      }
+      renderToolsInput();
+      renderToolSuggestions();
+      updateCV();
+    }
+
+    function renderToolSuggestions() {
+      const wrap = document.getElementById('toolSuggestions');
+      if (!wrap) return;
+      wrap.innerHTML = TOOL_SUGGESTIONS.map(s => `
+        <button type="button" class="suggest-chip ${tools.includes(s) ? 'active' : ''}" onclick="toggleToolSuggestion('${s.replace(/'/g, "\\'")}')">${s}</button>
+      `).join('');
+    }
 
     // Expanders (Exp/Edu)
     function renderExp() {
@@ -1042,11 +1221,116 @@
     function addEdu() { education.push({ id: Date.now(), title: '', company: '', date: '', desc: '' }); renderEdu(); updateCV(); }
     function removeEdu(id) { education = education.filter(x => x.id !== id); renderEdu(); updateCV(); }
 
+    function saveDraft() {
+      const draft = {
+        activeTpl,
+        avatarUrl,
+        selectedAccent,
+        experiences,
+        education,
+        skills,
+        tools,
+        fields: {
+          f_name: document.getElementById('f_name')?.value || '',
+          f_role: document.getElementById('f_role')?.value || '',
+          f_phone: document.getElementById('f_phone')?.value || '',
+          f_email: document.getElementById('f_email')?.value || '',
+          f_loc: document.getElementById('f_loc')?.value || '',
+          f_about: document.getElementById('f_about')?.value || '',
+        }
+      };
+      localStorage.setItem(CV_DRAFT_KEY, JSON.stringify(draft));
+    }
+
+    function loadDraft() {
+      const raw = localStorage.getItem(CV_DRAFT_KEY);
+      if (!raw) return;
+      try {
+        const d = JSON.parse(raw);
+        activeTpl = d.activeTpl || activeTpl;
+        avatarUrl = d.avatarUrl || avatarUrl;
+        selectedAccent = d.selectedAccent || selectedAccent;
+        experiences = Array.isArray(d.experiences) ? d.experiences : experiences;
+        education = Array.isArray(d.education) ? d.education : education;
+        skills = Array.isArray(d.skills) ? d.skills : skills;
+        tools = Array.isArray(d.tools) ? d.tools : tools;
+        const f = d.fields || {};
+        ['f_name', 'f_role', 'f_phone', 'f_email', 'f_loc', 'f_about'].forEach(id => {
+          if (document.getElementById(id) && typeof f[id] === 'string') document.getElementById(id).value = f[id];
+        });
+      } catch (_) { }
+    }
+
+    function clearFormData() {
+      if (!confirm("Barcha saqlangan ma'lumotlarni tozalaysizmi?")) return;
+      localStorage.removeItem(CV_DRAFT_KEY);
+      experiences = [];
+      education = [];
+      skills = [];
+      tools = [];
+      activeTpl = 'minimal';
+      selectedAccent = '#0A84FF';
+      avatarUrl = 'data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=';
+      ['f_name', 'f_role', 'f_phone', 'f_email', 'f_loc', 'f_about'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = '';
+      });
+      document.querySelectorAll('.tpl-card').forEach(el => el.classList.replace('border-apple-purple', 'border-transparent'));
+      document.getElementById('tpl-minimal')?.classList.replace('border-transparent', 'border-apple-purple');
+      document.querySelectorAll('.accent-btn').forEach(b => b.classList.remove('active'));
+      document.querySelector('.accent-btn')?.classList.add('active');
+      document.getElementById('photoPrev').innerHTML = `<span class="text-2xl opacity-50">📷</span>`;
+      renderExp();
+      renderEdu();
+      renderSkillsInput();
+      renderToolsInput();
+      renderSkillSuggestions();
+      renderToolSuggestions();
+      updateCV();
+    }
+
+    function initPhotoDrop() {
+      const dropEl = document.getElementById('photoPrev');
+      if (!dropEl) return;
+      ['dragenter', 'dragover'].forEach(evt =>
+        dropEl.addEventListener(evt, (e) => {
+          e.preventDefault();
+          dropEl.classList.add('photo-drop-active');
+        })
+      );
+      ['dragleave', 'drop'].forEach(evt =>
+        dropEl.addEventListener(evt, (e) => {
+          e.preventDefault();
+          dropEl.classList.remove('photo-drop-active');
+        })
+      );
+      dropEl.addEventListener('drop', (e) => {
+        const file = e.dataTransfer?.files?.[0];
+        if (!file || !file.type.startsWith('image/')) return;
+        const reader = new FileReader();
+        reader.onload = ev => _setAvatar(ev.target.result);
+        reader.readAsDataURL(file);
+      });
+    }
+
     // Initialize lists
+    loadDraft();
     document.getElementById('userAvatarBox') && (document.getElementById('userAvatarBox').innerHTML = `<img src="${avatarUrl}" class="w-full h-full object-cover">`);
+    if (avatarUrl && !avatarUrl.includes('R0lGODlhAQABAAD')) {
+      document.getElementById('photoPrev').innerHTML = `<img src="${avatarUrl}" class="w-full h-full object-cover">`;
+    }
     renderExp();
     renderEdu();
     renderSkillsInput();
+    renderToolsInput();
+    renderSkillSuggestions();
+    renderToolSuggestions();
+    initPhotoDrop();
+    const accentBtn = [...document.querySelectorAll('.accent-btn')]
+      .find(btn => (btn.style.background || '').toLowerCase() === selectedAccent.toLowerCase());
+    if (accentBtn) {
+      setAccentColor(selectedAccent, accentBtn);
+    }
 
     function v(id) { return (document.getElementById(id).value || '').trim(); }
 
@@ -1085,10 +1369,17 @@
             `).join('');
 
       const skillsHtml = skills.map(s => `<span class="badge">${s}</span>`).join('');
+      const toolsHtml = tools.map(s => `<span class="badge">${s}</span>`).join('');
+      const skillsSection = skills.length ? `<div class="section"><div class="sec-title">${I18n.t('cv_skills')}</div><div class="badges-wrap">${skillsHtml}</div></div>` : '';
+      const toolsSection = tools.length ? `<div class="section"><div class="sec-title">Tools & Tech</div><div class="badges-wrap">${toolsHtml}</div></div>` : '';
+      const skillsSectionSide = skills.length ? `<div class="section"><div class="sec-title-side">${I18n.t('cv_skills')}</div><div class="badges-wrap" style="color:#000">${skillsHtml}</div></div>` : '';
+      const toolsSectionSide = tools.length ? `<div class="section"><div class="sec-title-side">Tools & Tech</div><div class="badges-wrap" style="color:#000">${toolsHtml}</div></div>` : '';
+      const skillsSectionLeft = skills.length ? `<div class="section"><div class="sec-title sec-title-left">${I18n.t('cv_skills')}</div><div class="badges-wrap" style="color:#000">${skillsHtml}</div></div>` : '';
+      const toolsSectionLeft = tools.length ? `<div class="section"><div class="sec-title sec-title-left">Tools & Tech</div><div class="badges-wrap" style="color:#000">${toolsHtml}</div></div>` : '';
       const box = document.getElementById('cv-box');
 
       if (activeTpl === 'minimal') {
-        box.className = 'cv-canvas tpl-minimal';
+        box.className = 'cv-canvas tpl-minimal themable';
         box.innerHTML = `
                     <div class="header">
                         <img src="${data.img}" class="avatar">
@@ -1109,10 +1400,11 @@
                     
                     ${education.length ? `<div class="section"><div class="sec-title">${I18n.t('cv_education')}</div>${eduHtml}</div>` : ''}
                     
-                    ${skills.length ? `<div class="section"><div class="sec-title">${I18n.t('cv_skills')}</div><div class="badges-wrap">${skillsHtml}</div></div>` : ''}
+                    ${skillsSection}
+                    ${toolsSection}
                 `;
       } else if (activeTpl === 'split') {
-        box.className = 'cv-canvas tpl-split';
+        box.className = 'cv-canvas tpl-split themable';
         box.innerHTML = `
                     <div class="sidebar">
                         <img src="${data.img}" class="avatar">
@@ -1124,7 +1416,8 @@
                             ${data.loc ? `<div class="contact-item">📍 ${data.loc}</div>` : ''}
                         </div>
                         
-                        ${skills.length ? `<div class="section"><div class="sec-title-side">${I18n.t('cv_skills')}</div><div class="badges-wrap" style="color:#000">${skillsHtml}</div></div>` : ''}
+                        ${skillsSectionSide}
+                        ${toolsSectionSide}
                     </div>
                     <div class="main">
                         <div class="name">${data.name}</div>
@@ -1136,7 +1429,7 @@
                     </div>
                 `;
       } else if (activeTpl === 'modern') {
-        box.className = 'cv-canvas tpl-modern';
+        box.className = 'cv-canvas tpl-modern themable';
         box.innerHTML = `
                     <div class="header">
                         <img src="${data.img}" class="avatar">
@@ -1156,12 +1449,13 @@
                         </div>
                         <div class="col-side">
                             ${education.length ? `<div class="section"><div class="sec-title">${I18n.t('cv_education')}</div>${eduHtml}</div>` : ''}
-                            ${skills.length ? `<div class="section"><div class="sec-title">${I18n.t('cv_skills')}</div><div class="badges-wrap">${skillsHtml}</div></div>` : ''}
+                            ${skillsSection}
+                            ${toolsSection}
                         </div>
                     </div>
                 `;
       } else if (activeTpl === 'ats') {
-        box.className = 'cv-canvas tpl-ats';
+        box.className = 'cv-canvas tpl-ats themable';
         box.innerHTML = `
             <div class="header">
                 <div class="name">${data.name}</div>
@@ -1176,9 +1470,10 @@
             ${experiences.length ? `<div class="section"><div class="sec-title">${I18n.t('cv_experience')}</div>${expHtml}</div>` : ''}
             ${education.length ? `<div class="section"><div class="sec-title">${I18n.t('cv_education')}</div>${eduHtml}</div>` : ''}
             ${skills.length ? `<div class="section"><div class="sec-title">${I18n.t('cv_skills')}</div><div style="font-size:10pt;">${skills.map(s => s).join(', ')}</div></div>` : ''}
+            ${tools.length ? `<div class="section"><div class="sec-title">Tools & Tech</div><div style="font-size:10pt;">${tools.map(s => s).join(', ')}</div></div>` : ''}
         `;
       } else if (activeTpl === 'elegant') {
-        box.className = 'cv-canvas tpl-elegant';
+        box.className = 'cv-canvas tpl-elegant themable';
         box.innerHTML = `
             <div class="header">
                 <div class="name">${data.name}</div>
@@ -1196,12 +1491,13 @@
                 </div>
                 <div class="col-side">
                     ${education.length ? `<div class="section"><div class="sec-title">${I18n.t('cv_education')}</div>${eduHtml}</div>` : ''}
-                    ${skills.length ? `<div class="section"><div class="sec-title">${I18n.t('cv_skills')}</div><div class="badges-wrap">${skillsHtml}</div></div>` : ''}
+                    ${skillsSection}
+                    ${toolsSection}
                 </div>
             </div>
         `;
       } else if (activeTpl === 'corporate') {
-        box.className = 'cv-canvas tpl-corporate';
+        box.className = 'cv-canvas tpl-corporate themable';
         box.innerHTML = `
             <div class="header">
                 <div>
@@ -1221,12 +1517,13 @@
                 </div>
                 <div class="col-side">
                     ${education.length ? `<div class="section"><div class="sec-title">${I18n.t('cv_education')}</div>${eduHtml}</div>` : ''}
-                    ${skills.length ? `<div class="section"><div class="sec-title">${I18n.t('cv_skills')}</div><div class="badges-wrap" style="color:#000">${skillsHtml}</div></div>` : ''}
+                    ${skillsSectionSide}
+                    ${toolsSectionSide}
                 </div>
             </div>
         `;
       } else if (activeTpl === 'creative') {
-        box.className = 'cv-canvas tpl-creative';
+        box.className = 'cv-canvas tpl-creative themable';
         box.innerHTML = `
             <div class="left">
                 <img src="${data.img}" class="avatar">
@@ -1240,7 +1537,8 @@
                     ${data.loc ? `<div class="contact-item">📍 ${data.loc}</div>` : ''}
                 </div>
                 
-                ${skills.length ? `<div class="section"><div class="sec-title sec-title-left">${I18n.t('cv_skills')}</div><div class="badges-wrap" style="color:#000">${skillsHtml}</div></div>` : ''}
+                ${skillsSectionLeft}
+                ${toolsSectionLeft}
             </div>
             <div class="right">
                 ${data.about ? `<div class="section"><div class="sec-title">${I18n.t('cv_about')}</div><div class="text">${data.about}</div></div>` : ''}
@@ -1249,7 +1547,7 @@
             </div>
         `;
       } else if (activeTpl === 'prof') {
-        box.className = 'cv-canvas tpl-prof';
+        box.className = 'cv-canvas tpl-prof themable';
         const [firstName, ...lastName] = data.name.split(' ');
         const nameHtml = lastName.length ? `<strong>${firstName}</strong> ${lastName.join(' ')}` : `<strong>${firstName}</strong>`;
         box.innerHTML = `
@@ -1276,32 +1574,29 @@
                     </div>
                     <div style="flex:1">
                         ${education.length ? `<div class="section"><div class="sec-title">${I18n.t('cv_education')}</div>${eduHtml}</div>` : ''}
-                        ${skills.length ? `<div class="section"><div class="sec-title">${I18n.t('cv_skills')}</div><div class="badges-wrap">${skillsHtml}</div></div>` : ''}
+                        ${skillsSection}
+                        ${toolsSection}
                     </div>
                 </div>
             </div>
         `;
       }
+      box.style.setProperty('--cv-accent', selectedAccent);
+      saveDraft();
       autoScale();
     }
 
     function autoScale() {
       const wrap = document.getElementById('previewScaleWrapper');
       const pane = document.getElementById('previewPane');
-      if (pane.classList.contains('hidden')) return;
-
       let pw = pane.clientWidth;
-      if (!mobilePreview) pw -= 64;
+      pw -= (window.innerWidth >= 1024 ? 64 : 24);
 
       const natW = 793;
-      const scale = Math.min(pw / natW, 1.2);
+      const scale = Math.min(pw / natW, 1);
 
       wrap.style.transform = `scale(${scale})`;
-      if (mobilePreview) {
-        wrap.style.marginBottom = `-${(1 - scale) * 1122}px`;
-      } else {
-        wrap.style.marginBottom = '0';
-      }
+      wrap.style.marginBottom = `-${Math.max(0, (1 - scale) * 1122)}px`;
     }
     window.addEventListener('resize', autoScale);
 
@@ -1366,6 +1661,7 @@
         about: get('f_about'),
         template: activeTpl || 'minimal',
         skills: skills.join('\n'),
+        tools: tools.join('\n'),
         works: worksArr,
         education_list: eduArr,
         img: avatarUrl || '',
@@ -1377,7 +1673,7 @@
       return !!(window.Telegram?.WebApp?.initData);
     }
 
-    // ── exportPDF() — Server-side, pixel-perfect PDF ───────────────────
+    // ── exportPDF() — Preview'dan 1:1 client-side PDF ───────────────────
     async function exportPDF() {
       const btn = document.getElementById('btnPdf');
       const originalHtml = btn.innerHTML;
@@ -1389,40 +1685,16 @@
       const filename = `DASTYOR_CV_${safeName}_@DastyorAiBot.pdf`;
 
       try {
-        const res = await fetch(DastyorAI.BASE + '/api/export_cv', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(_collectCVData('pdf')),
-        });
-
-        if (!res.ok) throw new Error('Server xatosi: ' + res.status);
-
+        const blob = await _exportPDFClientSide(filename);
         if (inTelegram) {
-          // Inside Telegram Mini App: backend already sends via bot — skip browser download.
-          // Just consume the response body to not block the connection.
-          await res.arrayBuffer();
-          _showTelegramToast('✅ PDF Telegram chatga yuborildi!');
+          uploadToTelegram(blob, filename);
+          _showTelegramToast("✅ PDF tanlangan ranglar bilan botga yuborildi!");
         } else {
-          // Normal browser: trigger download.
-          const blob = await res.blob();
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = filename;
-          document.body.appendChild(a);
-          a.click();
-          setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 2000);
           _showTelegramToast('✅ PDF saqlandi!');
         }
       } catch (err) {
-        console.error('exportPDF server error:', err);
-        if (!inTelegram) {
-          // Fallback only makes sense outside Telegram (html2pdf.js needs DOM render)
-          _exportPDFClientSide(filename, btn, originalHtml);
-          return;
-        } else {
-          _showTelegramToast('❌ Xatolik yuz berdi. Qayta urinib ko\'ring.');
-        }
+        console.error('exportPDF client-side error:', err);
+        _showTelegramToast('❌ PDF yaratishda xatolik. Qayta urinib ko\'ring.');
       }
 
       autoScale();
@@ -1430,30 +1702,41 @@
       btn.disabled = false;
     }
 
-    // Fallback: old client-side export using html2pdf.js
-    function _exportPDFClientSide(filename, btn, originalHtml) {
+    // Preview'dagi ayni ko'rinishdan PDF yaratish (ranglar ham 1:1)
+    async function _exportPDFClientSide(filename) {
       const el = document.getElementById('cv-box');
-      document.getElementById('previewScaleWrapper').style.transform = 'none';
-      html2pdf().set({
-        margin: 0, filename,
-        image: { type: 'jpeg', quality: 1.0 },
-        html2canvas: { scale: 3, useCORS: true },
-        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-      }).from(el).outputPdf('blob').then(blob => {
+      const scaleWrapper = document.getElementById('previewScaleWrapper');
+      const prevTransform = scaleWrapper.style.transform;
+      const prevMarginBottom = scaleWrapper.style.marginBottom;
+      scaleWrapper.style.transform = 'none';
+      scaleWrapper.style.marginBottom = '0';
+      try {
+        const worker = html2pdf().set({
+          margin: 0,
+          filename,
+          image: { type: 'jpeg', quality: 1.0 },
+          html2canvas: { scale: 2.5, useCORS: true, letterRendering: true },
+          jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        }).from(el);
+
+        let blob = null;
+        try {
+          blob = await worker.outputPdf('blob');
+        } catch (_) {
+          const pdf = await worker.toPdf().get('pdf');
+          blob = pdf.output('blob');
+        }
+
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url; a.download = filename;
         document.body.appendChild(a); a.click();
         setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 2000);
-        uploadToTelegram(blob, filename);
-        autoScale();
-        btn.innerHTML = originalHtml;
-        btn.disabled = false;
-      }).catch(err => {
-        console.error(err);
-        btn.innerHTML = originalHtml;
-        btn.disabled = false;
-      });
+        return blob;
+      } finally {
+        scaleWrapper.style.transform = prevTransform;
+        scaleWrapper.style.marginBottom = prevMarginBottom;
+      }
     }
 
     // ── exportWord() — Server-side, pixel-perfect Word ─────────────────
