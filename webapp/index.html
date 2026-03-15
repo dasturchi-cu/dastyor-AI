@@ -1,646 +1,558 @@
 <!DOCTYPE html>
-<html lang="uz" class="dark">
-
+<html lang="uz" data-theme="light">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <title>DASTYOR AI</title>
-    <script src="theme-init.js"></script>
-    <link rel="stylesheet" href="theme.css">
-    
-    <!-- Premium Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Sora:wght@400;600;700;800&display=swap" rel="stylesheet" />
-    
-    <!-- Telegram SDK -->
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <script src="i18n.js"></script>
-    <script src="app.js"></script>
-    
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    fontFamily: {
-                        sans: ['Plus Jakarta Sans', 'sans-serif'],
-                        display: ['Sora', 'sans-serif'],
-                    },
-                    colors: {
-                        brand: {
-                            400: '#818cf8',
-                            500: '#636cf1',
-                            600: '#4f46e5',
-                        },
-                        accent: {
-                            blue: '#0A84FF',
-                            green: '#10b981',
-                            orange: '#f59e0b',
-                            purple: '#a855f7',
-                            cyan: '#06b6d4',
-                            rose: '#f43f5e',
-                        }
-                    },
-                }
-            }
-        }
-    </script>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no"/>
+<title>DASTYOR AI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<script src="da-core.js"></script>
+<style>
+:root {
+  --bg:           #F5F4F0;
+  --surface:      #FDFCFA;
+  --surface2:     #EBE9E5;
+  --border:       #E0DDD8;
+  --text:         #252320;
+  --text2:        #6B6560;
+  --accent:       #C85A2A;
+  --accent-soft:  #F5E6DE;
+  --accent-text:  #FFFFFF;
+  --green:        #2A9D6E;
+  --green-soft:   #E2F3EB;
+  --blue:        #3D7AC6;
+  --blue-soft:   #E3EEFA;
+  --purple:       #6B4E9E;
+  --purple-soft: #EDE6F4;
+  --shadow:       0 2px 12px rgba(37,35,32,0.06);
+  --shadow-lg:    0 6px 24px rgba(37,35,32,0.08);
+  --radius:       14px;
+  --radius-sm:    10px;
+  --radius-xs:    8px;
+  --font-head:    'Outfit', sans-serif;
+  --font-body:    'DM Sans', sans-serif;
+  --transition:   0.32s cubic-bezier(0.33, 0, 0.2, 1);
+}
+[data-theme="dark"] {
+  --bg:           #161514;
+  --surface:      #1E1D1B;
+  --surface2:     #282624;
+  --border:       #3A3835;
+  --text:         #E6E4E0;
+  --text2:        #9C9892;
+  --accent:       #E07848;
+  --accent-soft:  #3D281C;
+  --shadow:       0 2px 12px rgba(0,0,0,0.25);
+  --shadow-lg:    0 6px 24px rgba(0,0,0,0.35);
+}
 
-    <style>
-        * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
-        
-        html, body {
-            overscroll-behavior-y: none;
-        }
-        
-        body {
-            font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
-            background: var(--da-bg-page);
-            color: var(--da-text-primary);
-            min-height: 100vh;
-            -webkit-font-smoothing: antialiased;
-        }
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-        /* Hide scrollbars */
-        ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb {
-            background: linear-gradient(180deg, rgba(99, 108, 241, 0.4), rgba(79, 70, 229, 0.2));
-            border-radius: 10px;
-        }
+html, body {
+  height: 100%;
+  font-family: var(--font-body);
+  font-size: 15px;
+  background: var(--bg);
+  color: var(--text);
+  transition: background-color 0.4s ease, color 0.35s ease;
+  -webkit-font-smoothing: antialiased;
+}
 
-        /* Floating Orbs */
-        .orb {
-            position: fixed;
-            border-radius: 50%;
-            filter: blur(80px);
-            opacity: 0.15;
-            pointer-events: none;
-            z-index: 0;
-        }
-        .orb-1 { width: 500px; height: 500px; background: #636cf1; top: -150px; right: -100px; animation: float 8s ease-in-out infinite; }
-        .orb-2 { width: 400px; height: 400px; background: #10b981; bottom: 5%; left: -100px; animation: float 10s ease-in-out infinite reverse; }
-        .orb-3 { width: 300px; height: 300px; background: #f59e0b; top: 50%; right: 10%; animation: float 12s ease-in-out infinite; }
-        .orb-4 { width: 200px; height: 200px; background: #a855f7; bottom: 30%; left: 20%; animation: float 9s ease-in-out infinite reverse; }
+.app { max-width: 430px; margin: 0 auto; position: relative; min-height: 100vh; }
 
-        @keyframes float {
-            0%, 100% { transform: translateY(0) scale(1); }
-            50% { transform: translateY(-30px) scale(1.05); }
-        }
+/* ─── SCROLL ─── */
+.view {
+  display: none;
+  padding: 24px 18px 100px;
+  animation: fadeUp 0.3s ease both;
+}
+.view.active { display: block; }
+@keyframes fadeUp {
+  from { opacity:0; transform:translateY(12px); }
+  to   { opacity:1; transform:translateY(0); }
+}
 
-        @keyframes slideUp {
-            from { opacity: 0; transform: translateY(30px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-        }
-        
-        @keyframes glow {
-            0%, 100% { box-shadow: 0 0 20px rgba(99, 108, 241, 0.3); }
-            50% { box-shadow: 0 0 40px rgba(99, 108, 241, 0.5); }
-        }
+/* ─── CARD ─── */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  transition: background var(--transition), border-color var(--transition), box-shadow var(--transition);
+}
 
-        .animate-slide-up {
-            animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-            opacity: 0;
-        }
+/* ─── HEADER ─── */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+}
 
-        /* Glassmorphism */
-        .glass {
-            background: rgba(255, 255, 255, 0.03);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-        }
-        .glass-card {
-            background: rgba(255, 255, 255, 0.04);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        .glass-card:hover {
-            background: rgba(255, 255, 255, 0.07);
-            border-color: rgba(255, 255, 255, 0.15);
-            transform: translateY(-4px);
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
-        }
-        html.light .glass {
-            background: rgba(0, 0, 0, 0.04);
-            border-color: rgba(0, 0, 0, 0.08);
-        }
-        html.light .glass-card {
-            background: rgba(255, 255, 255, 0.9);
-            border-color: rgba(0, 0, 0, 0.08);
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
-        }
-        html.light .glass-card:hover {
-            background: #fff;
-            border-color: rgba(0, 0, 0, 0.12);
-            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.1);
-        }
+.profile { display: flex; align-items: center; gap: 14px; }
 
-        /* App Cards */
-        .app-card {
-            position: relative;
-            overflow: hidden;
-        }
-        .app-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 1px;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
-        }
-        .app-card .icon-box {
-            position: relative;
-            overflow: hidden;
-        }
-        .app-card .icon-box::after {
-            content: '';
-            position: absolute;
-            inset: 0;
-            background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, transparent 50%);
-            border-radius: inherit;
-        }
+.avatar {
+  width: 52px; height: 52px;
+  border-radius: 14px;
+  background: var(--accent);
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-head);
+  font-weight: 700; font-size: 20px;
+  color: #fff;
+  box-shadow: 0 3px 10px rgba(200,90,42,0.28);
+  flex-shrink: 0;
+  transition: box-shadow var(--transition), background var(--transition);
+}
+[data-theme="dark"] .avatar { box-shadow: 0 3px 10px rgba(224,120,72,0.25); }
 
-        /* Stats Card Gradient Border */
-        .stats-card {
-            position: relative;
-            background: linear-gradient(135deg, rgba(99, 108, 241, 0.1) 0%, rgba(16, 185, 129, 0.05) 100%);
-        }
-        .stats-card::before {
-            content: '';
-            position: absolute;
-            inset: 0;
-            border-radius: inherit;
-            padding: 1px;
-            background: linear-gradient(135deg, rgba(99, 108, 241, 0.3), rgba(16, 185, 129, 0.2));
-            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-            -webkit-mask-composite: xor;
-            mask-composite: exclude;
-            pointer-events: none;
-        }
+.greeting { font-size: 12px; color: var(--text2); font-weight: 400; letter-spacing: 0.02em; }
+.username { font-family: var(--font-head); font-size: 20px; font-weight: 700; line-height: 1.2; }
 
-        /* Avatar Glow */
-        .avatar-glow {
-            animation: glow 3s ease-in-out infinite;
-        }
+.badge-pro {
+  display: inline-flex; align-items: center;
+  font-size: 10px; font-weight: 700;
+  background: var(--accent); color: #fff;
+  padding: 2px 7px; border-radius: 20px;
+  margin-left: 6px; vertical-align: middle;
+  letter-spacing: 0.04em;
+}
 
-        /* Bottom Nav */
-        .bottom-nav {
-            background: rgba(20, 20, 35, 0.8);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
+/* ─── KPI ─── */
+.kpi {
+  padding: 20px;
+  margin-bottom: 20px;
+  background: var(--accent);
+  border: none;
+  box-shadow: 0 4px 20px rgba(200,90,42,0.22);
+  border-radius: var(--radius);
+  color: #fff;
+  position: relative;
+  overflow: hidden;
+  transition: background var(--transition), box-shadow var(--transition);
+}
+.kpi::before {
+  content: '';
+  position: absolute;
+  top: -40px; right: -40px;
+  width: 130px; height: 130px;
+  background: rgba(255,255,255,0.06);
+  border-radius: 50%;
+}
+.kpi::after {
+  content: '';
+  position: absolute;
+  bottom: -50px; left: 30px;
+  width: 100px; height: 100px;
+  background: rgba(255,255,255,0.04);
+  border-radius: 50%;
+}
+.kpi-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; opacity: 0.88; }
+.kpi-row { display: flex; align-items: baseline; gap: 8px; margin-top: 10px; }
+.kpi-num { font-family: var(--font-head); font-size: 36px; font-weight: 800; line-height: 1; letter-spacing: -0.02em; }
+.kpi-unit { font-size: 14px; opacity: 0.82; }
+.kpi-badge {
+  margin-top: 12px;
+  display: inline-flex; align-items: center; gap: 5px;
+  background: rgba(255,255,255,0.2);
+  padding: 4px 10px; border-radius: 20px;
+  font-size: 12px; font-weight: 600;
+}
 
-        /* Theme Toggle */
-        .da-theme-toggle {
-            width: 52px;
-            height: 28px;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 100px;
-            padding: 3px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            position: relative;
-        }
-        .da-theme-toggle.active {
-            background: linear-gradient(135deg, #636cf1, #4f46e5);
-        }
-        .da-theme-knob {
-            width: 22px;
-            height: 22px;
-            background: white;
-            border-radius: 50%;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-        }
-        .da-theme-toggle.active .da-theme-knob {
-            transform: translateX(24px);
-        }
+/* ─── SECTION LABEL ─── */
+.section-label {
+  font-size: 11px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.08em;
+  color: var(--text2);
+  margin-bottom: 12px;
+}
 
-        /* Lang Pills */
-        .lang-pill {
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            color: rgba(255, 255, 255, 0.6);
-            transition: all 0.3s ease;
-        }
-        .lang-pill:hover {
-            background: rgba(255, 255, 255, 0.1);
-            border-color: rgba(255, 255, 255, 0.2);
-        }
-        .lang-pill.active {
-            background: linear-gradient(135deg, #636cf1, #4f46e5) !important;
-            border-color: transparent !important;
-            color: white !important;
-        }
+/* ─── APP CARDS ─── */
+.app-grid { display: flex; flex-direction: column; gap: 10px; }
 
-        /* View layers */
-        .view-layer {
-            display: none;
-            position: relative;
-            z-index: 10;
-            padding-bottom: 120px;
-        }
-        .view-layer.active {
-            display: block;
-        }
+.app-card {
+  display: flex; align-items: center; gap: 16px;
+  padding: 16px 18px;
+  text-decoration: none;
+  color: var(--text);
+  border-radius: var(--radius);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+  transition: transform var(--transition), box-shadow var(--transition), background var(--transition), border-color var(--transition);
+  cursor: pointer;
+}
+.app-card:hover { box-shadow: var(--shadow-lg); }
+.app-card:active { transform: scale(0.99); box-shadow: 0 1px 6px rgba(37,35,32,0.06); }
+[data-theme="dark"] .app-card:active { box-shadow: 0 1px 6px rgba(0,0,0,0.2); }
 
-        /* Sparkle effect on hover */
-        .sparkle {
-            position: absolute;
-            width: 4px;
-            height: 4px;
-            background: white;
-            border-radius: 50%;
-            opacity: 0;
-            pointer-events: none;
-        }
-    </style>
+.app-icon {
+  width: 48px; height: 48px; border-radius: 13px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; font-size: 22px;
+}
+.icon-orange { background: var(--accent-soft); }
+.icon-green  { background: var(--green-soft); }
+.icon-blue   { background: var(--blue-soft); }
+.icon-purple { background: var(--purple-soft); }
+
+.app-info { flex: 1; min-width: 0; }
+.app-title { font-family: var(--font-head); font-size: 15px; font-weight: 600; }
+.app-desc  { font-size: 12px; color: var(--text2); margin-top: 2px; }
+
+.app-arrow {
+  width: 28px; height: 28px; border-radius: 50%;
+  background: var(--surface2);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; transition: background var(--transition);
+}
+.app-card:active .app-arrow { background: var(--border); }
+.app-arrow svg { width: 14px; height: 14px; stroke: var(--text2); }
+
+/* ─── SETTINGS ─── */
+.settings-header { margin-bottom: 22px; }
+.settings-header h1 { font-family: var(--font-head); font-size: 26px; font-weight: 700; }
+.settings-header p { font-size: 13px; color: var(--text2); margin-top: 3px; }
+
+.settings-section { margin-bottom: 20px; }
+.settings-section-title {
+  font-size: 11px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.08em;
+  color: var(--text2); margin-bottom: 10px;
+}
+
+.settings-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 18px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  gap: 12px;
+  transition: background var(--transition), border-color var(--transition);
+}
+.settings-row + .settings-row { margin-top: 8px; }
+
+.settings-row-info { flex: 1; min-width: 0; }
+.settings-row-label {
+  font-family: var(--font-head); font-size: 14px; font-weight: 600;
+}
+.settings-row-sub { font-size: 12px; color: var(--text2); margin-top: 2px; }
+
+/* ─── SEGMENTED ─── */
+.segmented {
+  display: flex;
+  background: var(--surface2);
+  border-radius: var(--radius-xs);
+  padding: 3px;
+  gap: 2px;
+  flex-shrink: 0;
+}
+.segmented button {
+  padding: 6px 12px;
+  border: none; background: transparent;
+  border-radius: 6px;
+  font-family: var(--font-body); font-size: 13px; font-weight: 500;
+  color: var(--text2);
+  cursor: pointer;
+  transition: background var(--transition), color var(--transition), box-shadow var(--transition);
+  white-space: nowrap;
+}
+.segmented button.active {
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+}
+[data-theme="dark"] .segmented button.active { box-shadow: 0 1px 4px rgba(0,0,0,0.35); }
+
+/* ─── SUPPORT BTN ─── */
+.btn-support {
+  padding: 8px 16px;
+  border: none;
+  background: var(--accent);
+  color: #fff;
+  border-radius: var(--radius-xs);
+  font-family: var(--font-body); font-size: 13px; font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: opacity var(--transition), transform var(--transition);
+  flex-shrink: 0;
+}
+.btn-support:active { opacity: 0.85; transform: scale(0.97); }
+
+/* ─── BOTTOM NAV ─── */
+.bottom-nav {
+  position: fixed; left: 0; right: 0; bottom: 0;
+  z-index: 100;
+  max-width: 430px; margin: 0 auto;
+  display: flex; justify-content: center; align-items: center;
+  gap: 8px;
+  padding: 12px 24px 20px;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  transition: background var(--transition), border-color var(--transition);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+/* Center the nav properly for full-width */
+@media (max-width: 430px) {
+  .bottom-nav { left: 0; right: 0; }
+}
+
+.tab-btn {
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  width: 72px; height: 52px;
+  border: none; background: transparent;
+  color: var(--text2);
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  transition: color var(--transition), background var(--transition);
+  position: relative;
+}
+.tab-btn svg { width: 22px; height: 22px; stroke: currentColor; }
+.tab-btn span { font-size: 10px; font-weight: 600; letter-spacing: 0.03em; }
+.tab-btn.active { color: var(--accent); }
+.tab-btn.active::before {
+  content: '';
+  position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+  width: 32px; height: 3px;
+  background: var(--accent);
+  border-radius: 0 0 3px 3px;
+}
+
+/* ─── ABOUT CARD ─── */
+.about-card {
+  padding: 18px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  display: flex; align-items: center; gap: 14px;
+}
+.about-logo {
+  width: 44px; height: 44px; border-radius: 12px;
+  background: var(--accent);
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-head); font-size: 14px; font-weight: 800;
+  color: #fff; flex-shrink: 0; letter-spacing: -0.03em;
+}
+.about-name { font-family: var(--font-head); font-size: 15px; font-weight: 700; }
+.about-ver  { font-size: 12px; color: var(--text2); margin-top: 1px; }
+
+/* ─── TOAST ─── */
+.toast {
+  position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%) translateY(12px);
+  background: var(--text); color: var(--bg);
+  padding: 10px 18px; border-radius: 12px;
+  font-size: 13px; font-weight: 500;
+  opacity: 0; pointer-events: none;
+  transition: opacity 0.35s ease, transform 0.35s cubic-bezier(0.33,0,0.2,1);
+  white-space: nowrap; z-index: 200;
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+</style>
 </head>
+<body>
+<div class="app">
 
-<body class="antialiased text-white selection:bg-brand-500 selection:text-white">
+  <!-- ══════ VIEW: HOME ══════ -->
+  <main id="view-home" class="view active">
 
-    <!-- Background Orbs -->
-    <div class="orb orb-1"></div>
-    <div class="orb orb-2"></div>
-    <div class="orb orb-3"></div>
-    <div class="orb orb-4"></div>
-
-    <!-- =============== HOME VIEW =============== -->
-    <main id="view-home" class="view-layer active max-w-md mx-auto min-h-screen">
-
-        <!-- Header Profile -->
-        <header class="pt-10 px-6 flex justify-between items-center animate-slide-up" style="animation-delay: 0.05s;">
-            <div class="flex items-center gap-4">
-                <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-brand-500 to-brand-600 shadow-lg shadow-brand-500/30 flex items-center justify-center overflow-hidden border-2 border-white/10 avatar-glow"
-                    id="userAvatarBox">
-                    <span class="text-white font-display font-bold text-2xl" id="userInitials">U</span>
-                </div>
-                <div class="flex flex-col">
-                    <span class="text-sm font-medium text-white/40" id="lbl_welcome" data-i18n="welcome">Xush kelibsiz,</span>
-                    <span class="text-2xl font-display font-bold tracking-tight text-white leading-tight" id="userName">User</span>
-                </div>
-            </div>
-            <div class="w-12 h-12 rounded-2xl glass flex items-center justify-center text-2xl cursor-pointer hover:bg-white/10 transition-all hover:scale-105">
-                🏆
-            </div>
-        </header>
-
-        <!-- Dynamic Stats Card -->
-        <div class="px-6 mt-8 animate-slide-up" style="animation-delay: 0.1s;">
-            <div class="stats-card glass-card rounded-3xl p-6">
-                <div class="flex justify-between items-center mb-5">
-                    <div class="flex items-center gap-3">
-                        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-accent-green/20 to-accent-green/5 flex items-center justify-center">
-                            <span class="text-lg">📊</span>
-                        </div>
-                        <span class="text-xs font-bold text-white/40 uppercase tracking-[0.2em]" data-i18n="home_activity">Aktivlik</span>
-                    </div>
-                    <div class="flex items-center gap-2 bg-accent-green/10 px-3 py-1.5 rounded-full">
-                        <div class="w-2 h-2 bg-accent-green rounded-full animate-pulse"></div>
-                        <span class="text-xs font-bold text-accent-green uppercase tracking-wide" data-i18n="home_active">Faol</span>
-                    </div>
-                </div>
-                <div class="flex items-end gap-3">
-                    <span class="text-5xl font-display font-extrabold tracking-tighter bg-gradient-to-r from-white to-white/60 bg-clip-text text-transparent">1,240</span>
-                    <span class="text-sm font-medium text-white/40 pb-2" data-i18n="home_requests">so'rovlar</span>
-                </div>
-            </div>
+    <div class="header">
+      <div class="profile">
+        <div class="avatar" id="avatarBox"><span id="userInitials">D</span></div>
+        <div>
+          <div class="greeting" data-i18n="greeting">Xush kelibsiz,</div>
+          <div class="username" id="userName">Dastyor<span id="proBadge" style="display:none" class="badge-pro">PRO</span></div>
         </div>
-
-        <!-- Section Title -->
-        <div class="px-6 mt-10 mb-5 animate-slide-up" style="animation-delay: 0.15s;">
-            <div class="flex items-center gap-3">
-                <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-brand-500/20 to-brand-600/10 flex items-center justify-center">
-                    <span class="text-sm">⚡</span>
-                </div>
-                <h2 class="text-xs font-bold text-white/40 uppercase tracking-[0.2em]" data-i18n="home_apps">Ilovalar tizimi</h2>
-            </div>
-        </div>
-
-        <!-- App Grid / List -->
-        <div class="px-6 flex flex-col gap-4 pb-8">
-
-            <!-- App Card 1: Obyektivka -->
-            <a href="obyektivka.html"
-                class="app-card group glass-card rounded-3xl p-5 flex items-center animate-slide-up"
-                style="animation-delay: 0.2s;">
-                <div class="icon-box w-16 h-16 rounded-2xl bg-gradient-to-br from-accent-blue/20 to-accent-blue/5 flex items-center justify-center text-3xl flex-shrink-0 group-hover:scale-110 transition-transform">
-                    📋
-                </div>
-                <div class="ml-5 flex-1">
-                    <h3 class="font-display font-bold text-lg leading-tight mb-1.5 text-white group-hover:text-accent-blue transition-colors" data-i18n="svc_obyektivka">Obyektivka AI</h3>
-                    <p class="text-xs font-medium text-white/40 pr-4 leading-relaxed" data-i18n="svc_obyektivka_d">Rasmiy, davlat standartlaridagi ma'lumotnoma tuzish</p>
-                </div>
-                <div class="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-white/30 group-hover:bg-accent-blue/20 group-hover:text-accent-blue transition-all">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="m9 18 6-6-6-6" />
-                    </svg>
-                </div>
-            </a>
-
-            <!-- App Card 2: CV Builder -->
-            <a href="cv.html"
-                class="app-card group glass-card rounded-3xl p-5 flex items-center animate-slide-up"
-                style="animation-delay: 0.25s;">
-                <div class="icon-box w-16 h-16 rounded-2xl bg-gradient-to-br from-accent-purple/20 to-accent-purple/5 flex items-center justify-center text-3xl flex-shrink-0 group-hover:scale-110 transition-transform">
-                    🪄
-                </div>
-                <div class="ml-5 flex-1">
-                    <h3 class="font-display font-bold text-lg leading-tight mb-1.5 text-white group-hover:text-accent-purple transition-colors" data-i18n="svc_cv">CV Builder</h3>
-                    <p class="text-xs font-medium text-white/40 pr-4 leading-relaxed" data-i18n="svc_cv_d">Zamonaviy, xalqaro formatdagi rezyume dizayneri</p>
-                </div>
-                <div class="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-white/30 group-hover:bg-accent-purple/20 group-hover:text-accent-purple transition-all">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="m9 18 6-6-6-6" />
-                    </svg>
-                </div>
-            </a>
-
-            <!-- App Card 3: AI Lab -->
-            <a href="more.html"
-                class="app-card group glass-card rounded-3xl p-5 flex items-center animate-slide-up"
-                style="animation-delay: 0.3s;">
-                <div class="icon-box w-16 h-16 rounded-2xl bg-gradient-to-br from-accent-green/20 to-accent-green/5 flex items-center justify-center text-3xl flex-shrink-0 group-hover:scale-110 transition-transform">
-                    🧠
-                </div>
-                <div class="ml-5 flex-1">
-                    <h3 class="font-display font-bold text-lg leading-tight mb-1.5 text-white group-hover:text-accent-green transition-colors" data-i18n="svc_ai_tools">AI Tools</h3>
-                    <p class="text-xs font-medium text-white/40 pr-4 leading-relaxed" data-i18n="svc_ai_tools_d">Tarjimon, rasmda o'qish va harf o'girish uskunalari</p>
-                </div>
-                <div class="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-white/30 group-hover:bg-accent-green/20 group-hover:text-accent-green transition-all">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="m9 18 6-6-6-6" />
-                    </svg>
-                </div>
-            </a>
-
-        </div>
-    </main>
-
-    <!-- =============== SETTINGS VIEW =============== -->
-    <main id="view-settings" class="view-layer max-w-md mx-auto min-h-screen px-6 pt-12">
-        <div class="animate-slide-up">
-            <h1 class="font-display font-extrabold text-4xl mb-2 bg-gradient-to-r from-white to-white/60 bg-clip-text text-transparent" data-i18n="home_settings">Sozlamalar</h1>
-            <p class="text-white/40 mb-8 font-medium" data-i18n="home_customize">Ilovani o'zingizga moslang</p>
-        </div>
-
-        <div class="glass-card rounded-3xl overflow-hidden animate-slide-up" style="animation-delay:.1s">
-
-            <!-- Theme Toggle -->
-            <div class="w-full flex items-center justify-between p-5 border-b border-white/5">
-                <div class="flex items-center gap-4">
-                    <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-accent-orange/20 to-accent-orange/5 flex items-center justify-center text-xl">
-                        <span id="themeIcon">🌙</span>
-                    </div>
-                    <div>
-                        <div class="font-bold text-white" data-i18n="settings_theme">Mavzu Rejimi</div>
-                        <div class="text-xs font-medium text-white/40 mt-0.5" id="themeStatus" data-i18n="settings_dark">Tungi rejim yoqiq</div>
-                    </div>
-                </div>
-                <div class="da-theme-toggle active" role="switch" aria-label="Theme" id="themeSwitch" onclick="toggleTheme()">
-                    <div class="da-theme-knob"></div>
-                </div>
-            </div>
-
-            <!-- Language Switcher -->
-            <div class="w-full flex items-center justify-between p-5 border-b border-white/5">
-                <div class="flex items-center gap-4">
-                    <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-accent-blue/20 to-accent-blue/5 flex items-center justify-center text-xl">
-                        🌐
-                    </div>
-                    <div>
-                        <div class="font-bold text-white" data-i18n="settings_lang">Til</div>
-                        <div class="text-xs font-medium text-white/40 mt-0.5" id="langCurrentLabel">O'zbek (Lotin)</div>
-                    </div>
-                </div>
-                <div class="flex items-center gap-2" id="langPillGroup">
-                    <button onclick="pickLang('uz_lat')" id="langPill-uz" class="lang-pill active flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold">
-                        🇺🇿 UZ
-                    </button>
-                    <button onclick="pickLang('ru')" id="langPill-ru" class="lang-pill flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold">
-                        🇷🇺 RU
-                    </button>
-                    <button onclick="pickLang('en')" id="langPill-en" class="lang-pill flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold">
-                        🇬🇧 EN
-                    </button>
-                </div>
-            </div>
-
-            <!-- Support -->
-            <button type="button" onclick="contactAdmin()" class="w-full flex items-center justify-between p-5 hover:bg-white/5 transition-colors group text-left">
-                <div class="flex items-center gap-4">
-                    <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-accent-purple/20 to-accent-purple/5 flex items-center justify-center text-xl">💬</div>
-                    <div>
-                        <div class="font-bold text-white" data-i18n="settings_support">Yordam & Info</div>
-                        <div class="text-xs font-medium text-white/40 mt-0.5" data-i18n="settings_via_bot">Bot orqali</div>
-                    </div>
-                </div>
-                <div class="px-4 py-2 rounded-xl bg-accent-blue/10 text-accent-blue font-bold text-sm group-hover:bg-accent-blue group-hover:text-white transition-all" data-i18n="settings_via_bot">Bot orqali</div>
-            </button>
-        </div>
-
-        <div class="text-center mt-12 animate-slide-up" style="animation-delay:.15s">
-            <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full glass">
-                <span class="text-lg">✨</span>
-                <span class="text-white/30 text-xs font-bold uppercase tracking-[0.15em]">DASTYOR AI v2.0</span>
-            </div>
-            <div class="text-[10px] text-white/20 mt-3" id="langVersionLabel"></div>
-        </div>
-    </main>
-
-
-    <!-- =============== BOTTOM NAVIGATION =============== -->
-    <div class="fixed bottom-0 left-0 right-0 z-50 flex justify-center pb-8 pointer-events-none">
-        <nav class="pointer-events-auto bottom-nav rounded-full px-3 py-3 flex items-center gap-2 shadow-2xl shadow-black/50">
-
-            <button onclick="switchView('home')" id="tab-home"
-                class="tab-btn w-14 h-14 rounded-full flex items-center justify-center transition-all bg-gradient-to-br from-brand-500 to-brand-600 text-white shadow-lg shadow-brand-500/30">
-                <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
-                    <polyline points="9 22 9 12 15 12 15 22" />
-                </svg>
-            </button>
-
-            <button onclick="switchView('settings')" id="tab-settings"
-                class="tab-btn w-14 h-14 rounded-full flex items-center justify-center transition-all text-white/30 hover:text-white hover:bg-white/10">
-                <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                    <circle cx="12" cy="12" r="3" />
-                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
-                </svg>
-            </button>
-
-        </nav>
+      </div>
     </div>
 
-    <script>
-        const tg = window.Telegram?.WebApp;
-        const DA = window.DastyorAI || {
-            isDark: () => document.documentElement.classList.contains('dark'),
-            getLang: () => localStorage.getItem('lang') || 'uz_lat',
-            setLang: (lang) => localStorage.setItem('lang', lang),
-            setTheme: (mode) => {
-                const dark = mode === 'dark';
-                document.documentElement.classList.toggle('dark', dark);
-                document.documentElement.classList.toggle('light', !dark);
-            },
-            haptic: () => {},
-            initUI: async () => null,
-            getTelegramId: () => new URLSearchParams(location.search).get('telegram_id') || null,
-            getToken: () => null,
-        };
+    <!-- KPI -->
+    <div class="kpi">
+      <div class="kpi-label" data-i18n="activity">Aktivlik</div>
+      <div class="kpi-row">
+        <span class="kpi-num">1,240</span>
+        <span class="kpi-unit" data-i18n="requests">so'rovlar</span>
+      </div>
+      <div class="kpi-badge">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
+        <span data-i18n="trend">+12% bu hafta</span>
+      </div>
+    </div>
 
-        const I18N = window.I18n || {
-            setLang: (lang) => {
-                DA.setLang(lang);
-                window.dispatchEvent(new CustomEvent('i18n:change'));
-            }
-        };
+    <!-- Apps -->
+    <div class="section-label" data-i18n="apps">Ilovalar</div>
+    <div class="app-grid">
 
-        // ═══════════════════════════════════════════════════════════
-        // View Switcher
-        // ═══════════════════════════════════════════════════════════
-        function switchView(viewName) {
-            document.querySelectorAll('.view-layer').forEach(el => el.classList.remove('active'));
-            document.getElementById(`view-${viewName}`).classList.add('active');
-            
-            // Reset animations
-            document.querySelectorAll(`#view-${viewName} .animate-slide-up`).forEach(el => {
-                el.style.animation = 'none';
-                el.offsetHeight;
-                el.style.animation = null;
-            });
+      <a href="obyektivka.html" class="app-card">
+        <div class="app-icon icon-orange">📄</div>
+        <div class="app-info">
+          <div class="app-title" data-i18n="app1t">Obyektivka AI</div>
+          <div class="app-desc"  data-i18n="app1d">Rasmiy ma'lumotnoma tuzish</div>
+        </div>
+        <div class="app-arrow"><svg fill="none" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 18l6-6-6-6"/></svg></div>
+      </a>
 
-            // Update tabs
-            document.querySelectorAll('.tab-btn').forEach(btn => {
-                btn.className = 'tab-btn w-14 h-14 rounded-full flex items-center justify-center transition-all text-white/30 hover:text-white hover:bg-white/10';
-            });
-            document.getElementById(`tab-${viewName}`).className = 
-                'tab-btn w-14 h-14 rounded-full flex items-center justify-center transition-all bg-gradient-to-br from-brand-500 to-brand-600 text-white shadow-lg shadow-brand-500/30';
-            
-            DA.haptic('light');
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-        }
+      <a href="cv.html" class="app-card">
+        <div class="app-icon icon-green">📝</div>
+        <div class="app-info">
+          <div class="app-title" data-i18n="app2t">CV Builder</div>
+          <div class="app-desc"  data-i18n="app2d">Zamonaviy rezyume tuzish</div>
+        </div>
+        <div class="app-arrow"><svg fill="none" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 18l6-6-6-6"/></svg></div>
+      </a>
 
-        // ═══════════════════════════════════════════════════════════
-        // Theme Toggle
-        // ═══════════════════════════════════════════════════════════
-        function toggleTheme() {
-            var D = window.DastyorAI || DA;
-            if (D) {
-                D.setTheme(D.isDark() ? 'light' : 'dark');
-                D.applyTheme && D.applyTheme();
-            }
-            _syncThemeUI();
-            (window.DastyorAI || DA).haptic('light');
-        }
+      <a href="translate.html" class="app-card">
+        <div class="app-icon icon-blue">🌐</div>
+        <div class="app-info">
+          <div class="app-title" data-i18n="app3t">Tarjimon AI</div>
+          <div class="app-desc"  data-i18n="app3d">Smart tarjima va tahlil</div>
+        </div>
+        <div class="app-arrow"><svg fill="none" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 18l6-6-6-6"/></svg></div>
+      </a>
 
-        // ═══════════════════════════════════════════════════════════
-        // Language
-        // ═══════════════════════════════════════════════════════════
-        const _nameMap = {
-            uz_lat: "O'zbek (Lotin)",
-            uz_cyr: "Ўзбек (Кирилл)",
-            en: 'English',
-            ru: 'Русский'
-        };
-        const _pillMap = { uz_lat: 'uz', uz_cyr: 'uz', en: 'en', ru: 'ru' };
+      <a href="more.html" class="app-card">
+        <div class="app-icon icon-purple">🛠</div>
+        <div class="app-info">
+          <div class="app-title" data-i18n="app4t">AI Tools</div>
+          <div class="app-desc"  data-i18n="app4d">Tarjima, OCR va boshqa vositalar</div>
+        </div>
+        <div class="app-arrow"><svg fill="none" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 18l6-6-6-6"/></svg></div>
+      </a>
 
-        function pickLang(lang) {
-            I18N.setLang(lang);
-            DA.haptic('light');
-        }
+    </div>
+  </main>
 
-        function _syncLangButtons() {
-            const lang = DA.getLang();
-            const activePill = _pillMap[lang] || 'uz';
-            
-            ['uz', 'ru', 'en'].forEach(code => {
-                const btn = document.getElementById('langPill-' + code);
-                if (!btn) return;
-                
-                if (code === activePill) {
-                    btn.classList.add('active');
-                } else {
-                    btn.classList.remove('active');
-                }
-            });
-            
-            const label = document.getElementById('langCurrentLabel');
-            const ver = document.getElementById('langVersionLabel');
-            if (label) label.textContent = _nameMap[lang] || lang;
-            if (ver) ver.textContent = 'Language: ' + lang;
-        }
+  <!-- ══════ VIEW: SETTINGS ══════ -->
+  <main id="view-settings" class="view">
 
-        function _syncThemeUI() {
-            const dark = DA.isDark();
-            const toggle = document.getElementById('themeSwitch');
-            if (toggle) toggle.classList.toggle('active', dark);
-            const icon = document.getElementById('themeIcon');
-            if (icon) icon.textContent = dark ? '🌙' : '☀️';
-        }
+    <div class="settings-header">
+      <h1 data-i18n="settingsTitle">Sozlamalar</h1>
+      <p data-i18n="settingsSub">Ilovani o'zingizga moslashtiring</p>
+    </div>
 
-        async function contactAdmin() {
-            const msg = window.prompt("Xabaringizni yozing (Admin ga yuboriladi):");
-            if (!msg || !msg.trim()) return;
-            const tgUser = tg?.initDataUnsafe?.user || {};
-            const telegramId = DA.getTelegramId();
-            if (!telegramId) {
-                window.open('https://t.me/DastyorAiBot', '_blank');
-                return;
-            }
-            try {
-                const res = await fetch((DA.BASE || location.origin) + '/api/support', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        telegram_id: parseInt(telegramId, 10),
-                        token: DA.getToken ? DA.getToken() : null,
-                        username: tgUser.username || '',
-                        message: msg.trim(),
-                    }),
-                });
-                if (!res.ok) throw new Error('Support yuborilmadi');
-                alert("Xabar yuborildi. Admin tez orada javob beradi.");
-            } catch (_) {
-                alert("Xabar yuborishda xatolik. Bot orqali yuborib ko'ring.");
-                window.open('https://t.me/DastyorAiBot', '_blank');
-            }
-        }
+    <!-- Appearance -->
+    <div class="settings-section">
+      <div class="settings-section-title" data-i18n="sectionAppear">Ko'rinish</div>
 
-        window.addEventListener('i18n:change', _syncLangButtons);
-        window.addEventListener('da-theme-change', _syncThemeUI);
+      <div class="settings-row">
+        <div class="settings-row-info">
+          <div class="settings-row-label" data-i18n="theme">Mavzu</div>
+          <div class="settings-row-sub" id="lblThemeSub">Yorug'</div>
+        </div>
+        <div class="segmented">
+          <button id="btnLight" onclick="uiSetTheme('light')">☀️</button>
+          <button id="btnDark"  onclick="uiSetTheme('dark')">🌙</button>
+        </div>
+      </div>
 
-        // ═══════════════════════════════════════════════════════════
-        // Init
-        // ═══════════════════════════════════════════════════════════
-        DA.initUI({
-            showLangPicker: true,
-            profileEl: { avatarId: 'userAvatarBox', nameId: 'userName', initialsId: 'userInitials' },
-            onUser(user) {
-                if (user.is_premium) {
-                    const badge = document.createElement('span');
-                    badge.className = 'ml-2 text-[10px] font-black bg-gradient-to-r from-amber-400 to-orange-500 text-white px-2 py-0.5 rounded-full uppercase tracking-wider';
-                    badge.textContent = 'PRO';
-                    document.getElementById('userName')?.appendChild(badge);
-                }
-            }
-        });
+      <div class="settings-row" style="margin-top:8px">
+        <div class="settings-row-info">
+          <div class="settings-row-label" data-i18n="lang">Til</div>
+          <div class="settings-row-sub" id="lblLangSub">O'zbekcha</div>
+        </div>
+        <div class="segmented">
+          <button id="btnUz" onclick="uiSetLang('uz')">UZ</button>
+          <button id="btnRu" onclick="uiSetLang('ru')">RU</button>
+          <button id="btnEn" onclick="uiSetLang('en')">EN</button>
+        </div>
+      </div>
+    </div>
 
-        _syncLangButtons();
-        _syncThemeUI();
-    </script>
+    <!-- Support -->
+    <div class="settings-section">
+      <div class="settings-section-title" data-i18n="sectionSupport">Yordam</div>
+      <div class="settings-row">
+        <div class="settings-row-info">
+          <div class="settings-row-label" data-i18n="support">Qo'llab-quvvatlash</div>
+          <div class="settings-row-sub" data-i18n="supportSub">Bot orqali xabar yuboring</div>
+        </div>
+        <button class="btn-support" onclick="openSupport()" data-i18n="contact">Aloqa</button>
+      </div>
+    </div>
+
+    <!-- About -->
+    <div class="settings-section">
+      <div class="settings-section-title" data-i18n="sectionAbout">Ilova haqida</div>
+      <div class="about-card">
+        <div class="about-logo">DA</div>
+        <div>
+          <div class="about-name">DASTYOR AI</div>
+          <div class="about-ver" data-i18n="version">Versiya 1.0.0</div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+</div><!-- /app -->
+
+<!-- Bottom Nav -->
+<nav class="bottom-nav">
+  <button class="tab-btn active" id="tabHome" onclick="switchView('home')">
+    <svg fill="none" viewBox="0 0 24 24" stroke-width="2">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H5a1 1 0 01-1-1V9.5z"/>
+      <path stroke-linecap="round" stroke-linejoin="round" d="M9 21V12h6v9"/>
+    </svg>
+    <span data-i18n="tabHome">Bosh sahifa</span>
+  </button>
+  <button class="tab-btn" id="tabSettings" onclick="switchView('settings')">
+    <svg fill="none" viewBox="0 0 24 24" stroke-width="2">
+      <circle cx="12" cy="12" r="3"/>
+      <path stroke-linecap="round" stroke-linejoin="round" d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/>
+    </svg>
+    <span data-i18n="tabSettings">Sozlamalar</span>
+  </button>
+</nav>
+
+<div class="toast" id="toast"></div>
+
+<script>
+function switchView(v) {
+  document.querySelectorAll('.view').forEach(el => el.classList.remove('active'));
+  document.getElementById('view-' + v).classList.add('active');
+  document.getElementById('tabHome').classList.toggle('active', v === 'home');
+  document.getElementById('tabSettings').classList.toggle('active', v === 'settings');
+}
+
+function syncUI() {
+  if (!window.DA) return;
+  const theme = DA.getTheme(), lang = DA.getLang();
+  const btnLight = document.getElementById('btnLight'), btnDark = document.getElementById('btnDark');
+  const btnUz = document.getElementById('btnUz'), btnRu = document.getElementById('btnRu'), btnEn = document.getElementById('btnEn');
+  const lblThemeSub = document.getElementById('lblThemeSub'), lblLangSub = document.getElementById('lblLangSub');
+  if (btnLight) btnLight.classList.toggle('active', theme === 'light');
+  if (btnDark) btnDark.classList.toggle('active', theme === 'dark');
+  if (btnUz) btnUz.classList.toggle('active', lang === 'uz');
+  if (btnRu) btnRu.classList.toggle('active', lang === 'ru');
+  if (btnEn) btnEn.classList.toggle('active', lang === 'en');
+  if (lblThemeSub) lblThemeSub.textContent = DA.t(theme === 'dark' ? 'themeDark' : 'themeLight');
+  if (lblLangSub) lblLangSub.textContent = DA.t('langName');
+}
+
+function uiSetTheme(t) { DA.setTheme(t); syncUI(); showToast(t === 'dark' ? '🌙' : '☀️'); }
+function uiSetLang(l)  { DA.setLang(l); syncUI(); }
+
+function openSupport() {
+  const msg = window.prompt(DA.t('promptMsg'));
+  if (!msg || !msg.trim()) return;
+  showToast(DA.t('toastSent'));
+  setTimeout(() => window.open('https://t.me/DastyorAiBot', '_blank'), 800);
+}
+
+let _tt;
+function showToast(msg) {
+  const el = document.getElementById('toast');
+  if (el) { el.textContent = msg; el.classList.add('show'); }
+  clearTimeout(_tt);
+  _tt = setTimeout(() => el && el.classList.remove('show'), 2200);
+}
+
+window.addEventListener('DOMContentLoaded', syncUI);
+window.addEventListener('da:lang', syncUI);
+window.addEventListener('da:theme', syncUI);
+</script>
 </body>
-
 </html>

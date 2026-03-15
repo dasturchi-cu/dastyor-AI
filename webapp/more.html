@@ -1,327 +1,131 @@
 <!DOCTYPE html>
-<html lang="uz" class="dark">
-
+<html lang="uz" data-theme="light">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <title>Xizmatlar | DASTYOR AI</title>
-    <script src="theme-init.js"></script>
-    <link rel="stylesheet" href="theme.css">
-    
-    <!-- Premium Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Sora:wght@400;600;700;800&display=swap" rel="stylesheet" />
-    
-    <!-- Telegram SDK -->
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <script src="i18n.js"></script>
-    <script src="app.js"></script>
-    
-    <!-- Tailwind -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    fontFamily: {
-                        sans: ['Plus Jakarta Sans', 'sans-serif'],
-                        display: ['Sora', 'sans-serif'],
-                    },
-                    colors: {
-                        brand: { 400: '#818cf8', 500: '#636cf1', 600: '#4f46e5' },
-                        accent: {
-                            blue: '#0A84FF',
-                            green: '#10b981',
-                            orange: '#f59e0b',
-                            purple: '#a855f7',
-                            cyan: '#06b6d4',
-                            rose: '#f43f5e',
-                        }
-                    }
-                }
-            }
-        }
-    </script>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no"/>
+<title>Xizmatlar | DASTYOR AI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<!-- Shared state — theme & language from localStorage -->
+<script src="da-core.js"></script>
+<style>
+:root{--bg:#F5F4F0;--surface:#FDFCFA;--surface2:#EBE9E5;--border:#E0DDD8;--text:#252320;--text2:#6B6560;--accent:#C85A2A;--accent-soft:#F5E6DE;--green-soft:#E2F3EB;--blue-soft:#E3EEFA;--purple-soft:#EDE6F4;--shadow:0 2px 12px rgba(37,35,32,0.06);--radius:14px;--font-head:'Outfit',sans-serif;--font-body:'DM Sans',sans-serif;--tr:0.32s cubic-bezier(0.33,0,0.2,1);}
+[data-theme="dark"]{--bg:#161514;--surface:#1E1D1B;--surface2:#282624;--border:#3A3835;--text:#E6E4E0;--text2:#9C9892;--accent:#E07848;--accent-soft:#3D281C;--green-soft:#1A2E22;--blue-soft:#1A2438;--purple-soft:#2A2240;--shadow:0 2px 12px rgba(0,0,0,0.25);}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+html,body{height:100%;font-family:var(--font-body);font-size:15px;background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased;transition:background-color 0.4s ease,color 0.35s ease;}
+::-webkit-scrollbar{display:none;}
+.page{max-width:430px;margin:0 auto;padding:24px 18px 100px;}
 
-    <style>
-        * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
-        
-        body {
-            font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
-            background: var(--da-bg-page);
-            color: var(--da-text-primary);
-            min-height: 100vh;
-            -webkit-font-smoothing: antialiased;
-            overscroll-behavior-y: none;
-        }
+/* Header */
+.back-header{display:flex;align-items:center;gap:12px;margin-bottom:24px;}
+.back-btn{width:40px;height:40px;border-radius:50%;border:1px solid var(--border);background:var(--surface);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:background var(--tr),border-color var(--tr);text-decoration:none;color:var(--text);}
+.back-btn svg{width:18px;height:18px;stroke:currentColor;}
+.page-title-wrap{flex:1;}
+.page-title{font-family:var(--font-head);font-size:22px;font-weight:700;line-height:1.2;}
+.page-sub{font-size:13px;color:var(--text2);margin-top:2px;}
 
-        /* Scrollbar */
-        ::-webkit-scrollbar { display: none; }
+/* Section label */
+.section-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text2);margin:20px 0 10px;}
+.section-label:first-of-type{margin-top:0;}
 
-        /* Floating Orbs */
-        .orb {
-            position: fixed;
-            border-radius: 50%;
-            filter: blur(80px);
-            opacity: 0.12;
-            pointer-events: none;
-            z-index: 0;
-        }
-        .orb-1 { width: 450px; height: 450px; background: #10b981; top: -120px; left: -100px; animation: float 9s ease-in-out infinite; }
-        .orb-2 { width: 350px; height: 350px; background: #f59e0b; bottom: 10%; right: -80px; animation: float 11s ease-in-out infinite reverse; }
-        .orb-3 { width: 250px; height: 250px; background: #a855f7; top: 40%; left: 10%; animation: float 8s ease-in-out infinite; }
+/* Service cards */
+.svc-list{display:flex;flex-direction:column;gap:10px;margin-bottom:4px;}
+.svc-card{display:flex;align-items:center;gap:16px;padding:16px 18px;text-decoration:none;color:var(--text);border-radius:var(--radius);background:var(--surface);border:1px solid var(--border);box-shadow:var(--shadow);transition:transform var(--tr),box-shadow var(--tr),background var(--tr),border-color var(--tr);}
+.svc-card:active{transform:scale(.99);box-shadow:0 1px 6px rgba(37,35,32,0.06);}
+[data-theme="dark"] .svc-card:active{box-shadow:0 1px 6px rgba(0,0,0,0.2);}
+.svc-icon{width:48px;height:48px;border-radius:13px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:22px;}
+.i-or{background:var(--accent-soft);}
+.i-gr{background:var(--green-soft);}
+.i-bl{background:var(--blue-soft);}
+.i-pu{background:var(--purple-soft);}
+.svc-info{flex:1;min-width:0;}
+.svc-title{font-family:var(--font-head);font-size:15px;font-weight:600;}
+.svc-desc{font-size:12px;color:var(--text2);margin-top:2px;}
+.svc-arrow{width:28px;height:28px;border-radius:50%;background:var(--surface2);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.svc-arrow svg{width:14px;height:14px;stroke:var(--text2);}
 
-        @keyframes float {
-            0%, 100% { transform: translateY(0) scale(1); }
-            50% { transform: translateY(-25px) scale(1.03); }
-        }
-        @keyframes slideUp {
-            from { opacity: 0; transform: translateY(25px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
+/* Bottom nav */
+.bottom-nav{position:fixed;left:0;right:0;bottom:0;z-index:100;max-width:430px;margin:0 auto;display:flex;justify-content:center;align-items:center;gap:8px;padding:12px 24px 20px;background:var(--surface);border-top:1px solid var(--border);transition:background var(--tr),border-color var(--tr);}
+.tab-btn{display:flex;flex-direction:column;align-items:center;gap:4px;width:72px;height:52px;border:none;background:transparent;color:var(--text2);cursor:pointer;border-radius:10px;transition:color var(--tr);position:relative;text-decoration:none;}
+.tab-btn svg{width:22px;height:22px;stroke:currentColor;}
+.tab-btn span{font-size:10px;font-weight:600;letter-spacing:.03em;}
+.tab-btn.active{color:var(--accent);}
+.tab-btn.active::before{content:'';position:absolute;top:0;left:50%;transform:translateX(-50%);width:32px;height:3px;background:var(--accent);border-radius:0 0 3px 3px;}
 
-        .animate-slide-up {
-            animation: slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-            opacity: 0;
-        }
-
-        /* Glassmorphism */
-        .glass {
-            background: rgba(255, 255, 255, 0.03);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-        }
-        .glass-card {
-            background: rgba(255, 255, 255, 0.04);
-            backdrop-filter: blur(16px);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        .glass-card:hover {
-            background: rgba(255, 255, 255, 0.07);
-            border-color: rgba(255, 255, 255, 0.15);
-            transform: translateY(-4px);
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
-        }
-        html.light .glass {
-            background: rgba(0, 0, 0, 0.04);
-            border-color: rgba(0, 0, 0, 0.08);
-        }
-        html.light .glass-card {
-            background: rgba(255, 255, 255, 0.9);
-            border-color: rgba(0, 0, 0, 0.08);
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
-        }
-        html.light .glass-card:hover {
-            background: #fff;
-            border-color: rgba(0, 0, 0, 0.12);
-            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.1);
-        }
-
-        /* Service Cards */
-        .service-card {
-            position: relative;
-            overflow: hidden;
-        }
-        .service-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 1px;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
-        }
-        .service-card .icon-box {
-            position: relative;
-            overflow: hidden;
-        }
-        .service-card .icon-box::after {
-            content: '';
-            position: absolute;
-            inset: 0;
-            background: linear-gradient(135deg, rgba(255,255,255,0.15) 0%, transparent 50%);
-            border-radius: inherit;
-        }
-
-        /* Bottom Nav */
-        .bottom-nav {
-            background: rgba(20, 20, 35, 0.8);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        /* Section Header */
-        .section-header::after {
-            content: '';
-            position: absolute;
-            bottom: -4px;
-            left: 0;
-            width: 30px;
-            height: 2px;
-            border-radius: 2px;
-        }
-        .section-header.green::after { background: linear-gradient(90deg, #10b981, transparent); }
-        .section-header.purple::after { background: linear-gradient(90deg, #a855f7, transparent); }
-    </style>
+/* Slide-in animation */
+@keyframes fadeUp{from{opacity:0;transform:translateY(12px);}to{opacity:1;transform:translateY(0);}}
+.page{animation:fadeUp .3s ease both;}
+</style>
 </head>
+<body>
 
-<body class="antialiased text-white pb-32 relative z-10">
-
-    <!-- Background Orbs -->
-    <div class="orb orb-1"></div>
-    <div class="orb orb-2"></div>
-    <div class="orb orb-3"></div>
-
-    <main class="max-w-md mx-auto pt-10 px-6 relative z-10">
-
-        <!-- Header -->
-        <header class="mb-10 animate-slide-up">
-            <div class="flex items-center gap-3 mb-2">
-                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-brand-500/20 to-brand-600/10 flex items-center justify-center">
-                    <span class="text-xl">🧰</span>
-                </div>
-                <h1 class="font-display font-extrabold text-4xl bg-gradient-to-r from-white to-white/60 bg-clip-text text-transparent" data-i18n="more_title">Xizmatlar</h1>
-            </div>
-            <p class="text-sm font-medium text-white/40 ml-[52px]" data-i18n="more_sub">Barcha aqlli vositalar markazi</p>
-        </header>
-
-        <!-- Section 1: Til va Matn -->
-        <div class="mb-5 animate-slide-up" style="animation-delay: 0.1s;">
-            <div class="section-header green relative inline-flex items-center gap-3 mb-4">
-                <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-accent-green/20 to-accent-green/5 flex items-center justify-center">
-                    <span class="text-sm">💬</span>
-                </div>
-                <h2 class="text-xs font-bold text-white/40 uppercase tracking-[0.2em]" data-i18n="more_sec1">Til va Matn</h2>
-            </div>
-        </div>
-
-        <div class="flex flex-col gap-4 mb-10">
-            <!-- Tarjima AI -->
-            <a href="translate.html" class="service-card group glass-card rounded-3xl p-5 flex items-center animate-slide-up" style="animation-delay: 0.15s;">
-                <div class="icon-box w-14 h-14 rounded-2xl bg-gradient-to-br from-accent-green/20 to-accent-green/5 flex items-center justify-center text-2xl flex-shrink-0 group-hover:scale-110 transition-transform">
-                    🌐
-                </div>
-                <div class="ml-4 flex-1">
-                    <h3 class="font-display font-bold text-[17px] mb-1 text-white group-hover:text-accent-green transition-colors" data-i18n="svc_translate">Tarjima AI</h3>
-                    <p class="text-xs font-medium text-white/40 leading-relaxed" data-i18n="svc_translate_d">Matn va hujjatlarni 100+ tillarga ravon tarjima qilish</p>
-                </div>
-                <div class="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-white/30 group-hover:bg-accent-green/20 group-hover:text-accent-green transition-all">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="m9 18 6-6-6-6" />
-                    </svg>
-                </div>
-            </a>
-
-            <!-- Krill / Lotin -->
-            <a href="translit.html" class="service-card group glass-card rounded-3xl p-5 flex items-center animate-slide-up" style="animation-delay: 0.2s;">
-                <div class="icon-box w-14 h-14 rounded-2xl bg-gradient-to-br from-accent-orange/20 to-accent-orange/5 flex items-center justify-center text-2xl flex-shrink-0 group-hover:scale-110 transition-transform">
-                    🔤
-                </div>
-                <div class="ml-4 flex-1">
-                    <h3 class="font-display font-bold text-[17px] mb-1 text-white group-hover:text-accent-orange transition-colors" data-i18n="svc_translit">Krill / Lotin</h3>
-                    <p class="text-xs font-medium text-white/40 leading-relaxed" data-i18n="svc_translit_d">O'zbek alifbosini bir zumda bexato o'girish</p>
-                </div>
-                <div class="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-white/30 group-hover:bg-accent-orange/20 group-hover:text-accent-orange transition-all">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="m9 18 6-6-6-6" />
-                    </svg>
-                </div>
-            </a>
-        </div>
-
-        <!-- Section 2: Fayl Vositalari -->
-        <div class="mb-5 animate-slide-up" style="animation-delay: 0.25s;">
-            <div class="section-header purple relative inline-flex items-center gap-3 mb-4">
-                <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-accent-purple/20 to-accent-purple/5 flex items-center justify-center">
-                    <span class="text-sm">📁</span>
-                </div>
-                <h2 class="text-xs font-bold text-white/40 uppercase tracking-[0.2em]" data-i18n="more_sec2">Fayl Vositalari</h2>
-            </div>
-        </div>
-
-        <div class="flex flex-col gap-4">
-            <!-- Rasm → Word -->
-            <a href="ocr.html" class="service-card group glass-card rounded-3xl p-5 flex items-center animate-slide-up" style="animation-delay: 0.3s;">
-                <div class="icon-box w-14 h-14 rounded-2xl bg-gradient-to-br from-accent-purple/20 to-accent-purple/5 flex items-center justify-center text-2xl flex-shrink-0 group-hover:scale-110 transition-transform">
-                    🖼️
-                </div>
-                <div class="ml-4 flex-1">
-                    <h3 class="font-display font-bold text-[17px] mb-1 text-white group-hover:text-accent-purple transition-colors" data-i18n="svc_ocr">Rasm → Word</h3>
-                    <p class="text-xs font-medium text-white/40 leading-relaxed" data-i18n="svc_ocr_d">Rasm yoki skanerdan matnni Word formatiga aylantirish</p>
-                </div>
-                <div class="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-white/30 group-hover:bg-accent-purple/20 group-hover:text-accent-purple transition-all">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="m9 18 6-6-6-6" />
-                    </svg>
-                </div>
-            </a>
-
-            <!-- Rasm → PDF -->
-            <a href="img2pdf.html" class="service-card group glass-card rounded-3xl p-5 flex items-center animate-slide-up" style="animation-delay: 0.35s;">
-                <div class="icon-box w-14 h-14 rounded-2xl bg-gradient-to-br from-accent-blue/20 to-accent-blue/5 flex items-center justify-center text-2xl flex-shrink-0 group-hover:scale-110 transition-transform">
-                    📎
-                </div>
-                <div class="ml-4 flex-1">
-                    <h3 class="font-display font-bold text-[17px] mb-1 text-white group-hover:text-accent-blue transition-colors" data-i18n="svc_pdf">Rasm → PDF</h3>
-                    <p class="text-xs font-medium text-white/40 leading-relaxed" data-i18n="svc_pdf_d">Ko'plab rasmlarni bitta tartibli PDF hujjatga yig'ish</p>
-                </div>
-                <div class="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-white/30 group-hover:bg-accent-blue/20 group-hover:text-accent-blue transition-all">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="m9 18 6-6-6-6" />
-                    </svg>
-                </div>
-            </a>
-        </div>
-
-    </main>
-
-    <!-- Bottom Navigation -->
-    <div class="fixed bottom-0 left-0 right-0 z-50 flex justify-center pb-8 pointer-events-none">
-        <nav class="pointer-events-auto bottom-nav rounded-full px-3 py-3 flex items-center gap-2 shadow-2xl shadow-black/50">
-
-            <a href="index.html" class="w-14 h-14 rounded-full flex items-center justify-center transition-all text-white/30 hover:text-white hover:bg-white/10">
-                <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
-                    <polyline points="9 22 9 12 15 12 15 22" />
-                </svg>
-            </a>
-
-            <button class="w-14 h-14 rounded-full flex items-center justify-center transition-all bg-gradient-to-br from-brand-500 to-brand-600 text-white shadow-lg shadow-brand-500/30">
-                <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20" />
-                </svg>
-            </button>
-
-            <a href="index.html" onclick="sessionStorage.setItem('openSettings', 'true')" class="w-14 h-14 rounded-full flex items-center justify-center transition-all text-white/30 hover:text-white hover:bg-white/10">
-                <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                    <circle cx="12" cy="12" r="3" />
-                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
-                </svg>
-            </a>
-
-        </nav>
+<div class="page">
+  <!-- Header with back -->
+  <div class="back-header">
+    <a href="index.html" class="back-btn">
+      <svg fill="none" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
+    </a>
+    <div class="page-title-wrap">
+      <div class="page-title" data-i18n="servicesTitle">Xizmatlar</div>
+      <div class="page-sub"   data-i18n="servicesSub">Barcha vositalar</div>
     </div>
+  </div>
 
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            if (window.DastyorAI) {
-                DastyorAI.applyTheme();
-                if (window.DastyorAI.initUI) DastyorAI.initUI({ showLangPicker: false, autoNavLinks: true, profileEl: {} });
-            }
-            if (window.I18n) I18n.apply();
-        });
-        const tg = window.Telegram?.WebApp;
-        const DA = window.DastyorAI;
-        // Haptic feedback on card tap
-        document.querySelectorAll('.service-card').forEach(card => {
-            card.addEventListener('click', () => {
-                tg?.HapticFeedback?.impactOccurred('light');
-            });
-        });
-    </script>
+  <!-- Til va Matn -->
+  <div class="section-label" data-i18n="secTextLang">Til va Matn</div>
+  <div class="svc-list">
+    <a href="translate.html" class="svc-card">
+      <div class="svc-icon i-bl">🌐</div>
+      <div class="svc-info">
+        <div class="svc-title" data-i18n="svc1t">Tarjima AI</div>
+        <div class="svc-desc"  data-i18n="svc1d">Matn va hujjatlarni tarjima qilish</div>
+      </div>
+      <div class="svc-arrow"><svg fill="none" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 18l6-6-6-6"/></svg></div>
+    </a>
+    <a href="translit.html" class="svc-card">
+      <div class="svc-icon i-pu">🔤</div>
+      <div class="svc-info">
+        <div class="svc-title" data-i18n="svc2t">Krill / Lotin</div>
+        <div class="svc-desc"  data-i18n="svc2d">O'zbek alifbosini o'girish</div>
+      </div>
+      <div class="svc-arrow"><svg fill="none" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 18l6-6-6-6"/></svg></div>
+    </a>
+  </div>
+
+  <!-- Fayl vositalari -->
+  <div class="section-label" data-i18n="secFiles">Fayl vositalari</div>
+  <div class="svc-list">
+    <a href="ocr.html" class="svc-card">
+      <div class="svc-icon i-or">🖼️</div>
+      <div class="svc-info">
+        <div class="svc-title" data-i18n="svc3t">Rasm → Word</div>
+        <div class="svc-desc"  data-i18n="svc3d">Rasmdan matnni Word ga aylantirish</div>
+      </div>
+      <div class="svc-arrow"><svg fill="none" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 18l6-6-6-6"/></svg></div>
+    </a>
+    <a href="img2pdf.html" class="svc-card">
+      <div class="svc-icon i-gr">📎</div>
+      <div class="svc-info">
+        <div class="svc-title" data-i18n="svc4t">Rasm → PDF</div>
+        <div class="svc-desc"  data-i18n="svc4d">Rasmlarni PDF ga birlashtirish</div>
+      </div>
+      <div class="svc-arrow"><svg fill="none" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 18l6-6-6-6"/></svg></div>
+    </a>
+  </div>
+</div>
+
+<!-- Bottom Nav -->
+<nav class="bottom-nav">
+  <a href="index.html" class="tab-btn">
+    <svg fill="none" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H5a1 1 0 01-1-1V9.5z"/><path stroke-linecap="round" stroke-linejoin="round" d="M9 21V12h6v9"/></svg>
+    <span data-i18n="tabHome">Bosh sahifa</span>
+  </a>
+  <a href="more.html" class="tab-btn active">
+    <svg fill="none" viewBox="0 0 24 24" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+    <span data-i18n="tabMore">Xizmatlar</span>
+  </a>
+</nav>
+
 </body>
-
 </html>

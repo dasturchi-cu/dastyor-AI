@@ -1,22 +1,20 @@
 <!DOCTYPE html>
 <html lang="uz">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ma'lumotnoma Tayyorlash Xizmati</title>
-    <script src="theme-init.js"></script>
     <link rel="stylesheet" href="theme.css" />
+    <script src="da-core.js"></script>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <script src="i18n.js"></script>
     <script src="app.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         /* Use global theme tokens only — no page-level overrides */
         body {
             font-family: 'Inter', system-ui, -apple-system, sans-serif;
-            background-color: var(--da-bg-page);
-            color: var(--da-text-primary);
+            background-color: var(--bg-color);
+            color: var(--text-color);
             margin: 0;
             padding: 20px;
             line-height: 1.6;
@@ -26,7 +24,7 @@
         .container {
             max-width: 900px;
             margin: 0 auto;
-            background: var(--da-bg-surface);
+            background: #fff;
             padding: 40px;
             border-radius: 20px;
             box-shadow: var(--da-shadow-md);
@@ -392,7 +390,7 @@
 
         <div class="container">
         <div id="step-lang" class="intro-screen" style="text-align:center; padding: 40px 0;">
-            <h2 style="margin-bottom:30px; color:var(--primary-dark)">Ma'lumotnoma Tayyorlash Xizmati</h2>
+            <h2 style="margin-bottom:30px; color:var(--primary-dark)" data-i18n="obyektivka_form_title">Ma'lumotnoma Tayyorlash Xizmati</h2>
             <p style="margin-bottom:20px; color:var(--da-text-secondary)">Davom etish uchun tilni tanlang:</p>
             <div style="display:flex; justify-content:center; gap:15px; flex-wrap:wrap;">
                 <button class="btn btn-primary" onclick="initApp('uz_l')">O'zbekcha (Lotin)</button>
@@ -528,7 +526,7 @@
 
                         <div style="display: flex; gap: 10px; flex-wrap: wrap; flex: 1; justify-content: flex-end;">
                             <button type="button" class="btn btn-primary"
-                                style="background: var(--success); border:none;" onclick="downloadDoc()">
+                                style="background: var(--da-blue); color: var(--da-text-on-blue); border: 1px solid var(--da-blue);" onclick="downloadDoc()">
                                 WORD YUKLASH
                             </button>
                         </div>
@@ -1351,11 +1349,7 @@
     </script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            if (window.DastyorAI) {
-                DastyorAI.applyTheme();
-                if (window.DastyorAI.initUI) DastyorAI.initUI({ showLangPicker: false, autoNavLinks: true, profileEl: {} });
-            }
-            if (window.I18n) I18n.apply();
+            if (window.DastyorAI && window.DastyorAI.initUI) DastyorAI.initUI({ autoNavLinks: true });
         });
     </script>
 

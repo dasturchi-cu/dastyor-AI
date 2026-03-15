@@ -9,17 +9,9 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
 
-<!-- 1. Theme init FIRST — prevents flash of wrong theme -->
-<script src="theme-init.js"></script>
-
-<!-- 2. Theme CSS (MUST be first stylesheet to avoid FOUC) -->
 <link rel="stylesheet" href="theme.css" />
-
-<!-- 3. Telegram Mini App SDK -->
+<script src="da-core.js"></script>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
-
-<!-- 4. i18n dictionary -->
-<script src="i18n.js"></script>
 
 <!-- 5. Google Fonts -->
 <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -29,57 +21,17 @@
 
 <!--=== BODY BOTTOM: just before </body> ===-->
 
-<!-- 6. Unified SDK (after Telegram SDK, after i18n.js) -->
 <script src="app.js"></script>
-
-<!-- 7. Page boot script (optional). app.js already applies theme + lang from localStorage/da_settings_v1 on DOMContentLoaded. -->
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        if (window.DastyorAI) {
-            DastyorAI.applyTheme();
-            if (window.DastyorAI.initUI) DastyorAI.initUI({ showLangPicker: false, autoNavLinks: true, profileEl: {} });
-        }
-        if (window.I18n) I18n.apply();
-    });
-    // Optional: override in DOMContentLoaded with showLangPicker: true or profileEl: { avatarId, nameId, initialsId }, onUser(user){...}
-
-    // React to theme changes (optional)
-    window.addEventListener('theme:change', ({ detail: { dark } }) => {
-        // e.g. update canvas, chart colours, etc.
-        console.log('theme changed → dark:', dark);
-    });
-
-    // React to language changes (optional)
-    window.addEventListener('i18n:change', ({ detail: { lang } }) => {
-        // Re-render any dynamic content that isn't covered by data-i18n attributes
-        console.log('language changed →', lang);
+        if (window.DastyorAI && window.DastyorAI.initUI) DastyorAI.initUI({ autoNavLinks: true });
     });
 </script>
 
 <!--=== HTML PATTERNS ===-->
 
-<!-- Body: use theme tokens only (no overrides). Settings: { theme, lang } in localStorage da_settings_v1. -->
-<!-- body { background: var(--da-bg-page); color: var(--da-text-primary); min-height: 100vh; } -->
-
-<!-- Translate static text: -->
-<span data-i18n="btn_generate">Yaratish</span>
-
-<!-- Translate placeholder: -->
-<input data-i18n-ph="ph_text" placeholder="Matn kiriting..." />
-
-<!-- Translate tooltip: -->
-<button data-i18n="btn_download" data-i18n-attr="title">⬇</button>
-
-<!-- Theme toggle switch: -->
-<div class="da-theme-toggle" role="switch" aria-label="Toggle theme">
-    <div class="da-theme-knob"></div>
-</div>
-
-<!-- Language picker button: -->
-<button class="da-lang-btn">
-    <span>🇺🇿</span>
-    <span>UZ</span>
-</button>
+<!-- body: white background, dark text -->
+<!-- body { background: #fff; color: #111; min-height: 100vh; } -->
 
 <!-- Upload zone: -->
 <div class="da-upload" id="dropzone">
@@ -111,22 +63,8 @@
         fd.append('file', fileInput.files[0]);
         fetch('/api/ocr_direct', { method: 'POST', body: fd });
     
-        // Notify user via Telegram after file generated:
-        await DastyorAI.notify('✅ ' + DastyorAI.t('ocr_success'));
-    
-        // Toggle theme programmatically:
-        DastyorAI.toggleTheme();
-        // or
-        DastyorAI.setTheme('dark');  // 'dark' | 'light'
-    
-        // Check current theme:
-        if (DastyorAI.isDark()) { ... }
-    
-        // Change language:
-        DastyorAI.setLang('en');    // 'uz_lat' | 'uz_cyr' | 'en' | 'ru'
-    
-        // Translate a key:
-        DastyorAI.t('btn_generate');
+        // Notify user via Telegram:
+        await DastyorAI.notify('✅ Done');
     
         // Haptic feedback:
         DastyorAI.haptic('success');   // 'light' | 'medium' | 'heavy' | 'success' | 'error'

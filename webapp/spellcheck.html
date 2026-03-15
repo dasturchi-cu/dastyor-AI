@@ -5,8 +5,8 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Imlo Tekshirish | DASTYOR AI</title>
-    <script src="theme-init.js"></script>
     <link rel="stylesheet" href="theme.css" />
+    <script src="da-core.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="style.css" />
@@ -22,14 +22,10 @@
             z-index: 1;
         }
 
-        body {
-            background: var(--da-bg-page);
-            color: var(--da-text-primary);
-            min-height: 100vh;
-        }
+        body { background: var(--bg-color); color: var(--text-color); min-height: 100vh; }
         .page-card {
-            background: var(--da-bg-surface);
-            border: 1px solid var(--da-border);
+            background: var(--card-color);
+            border: 1px solid var(--border-color);
             border-radius: 28px;
             padding: 52px;
             max-width: 580px;
@@ -46,12 +42,12 @@
         h1 {
             font-size: 30px;
             font-weight: 800;
-            color: var(--da-text-primary);
+            color: var(--text-color);
             margin-bottom: 12px;
         }
 
         .subtitle {
-            color: var(--da-text-secondary);
+            color: var(--text-muted);
             font-size: 15px;
             margin-bottom: 32px;
         }
@@ -144,14 +140,14 @@
                 </div>
                 <span>DASTYOR <b>AI</b></span>
             </a>
-            <a href="index.html" class="back-link">← Bosh sahifa</a>
+            <a href="index.html" class="back-link" data-i18n="back_home">← Bosh sahifa</a>
         </div>
     </nav>
     <div class="page-wrap">
         <div class="page-card">
             <span class="big-icon">✏️</span>
-            <h1>Imlo Tekshirish</h1>
-            <p class="subtitle">AI yordamida hujjatingizdagi imlo xatolarini aniqlang va tuzating</p>
+            <h1 data-i18n="spellcheck_title">Imlo tekshirish</h1>
+            <p class="subtitle" data-i18n="spellcheck_subtitle">AI yordamida hujjatingizdagi imlo xatolarini aniqlang va tuzating</p>
             <div class="format-tags">
                 <span class="ftag">DOC</span>
                 <span class="ftag">DOCX</span>
@@ -160,8 +156,8 @@
             </div>
             <div class="upload-zone" onclick="startSpellcheck()">
                 <span style="font-size:40px">📱</span>
-                <p style="color:#60a5fa;font-weight:600;margin:12px 0 4px">Telegram orqali jo'natish</p>
-                <p style="color:#64748b;font-size:13px">Hujjatni to'g'ridan-to'g'ri botga yuborish</p>
+                <p style="color:#60a5fa;font-weight:600;margin:12px 0 4px" data-i18n="spellcheck_send_tg">Telegram orqali jo'natish</p>
+                <p style="color:#64748b;font-size:13px" data-i18n="spellcheck_send_tg_sub">Hujjatni to'g'ridan-to'g'ri botga yuborish</p>
             </div>
 
             <button class="tg-btn" style="border:none; cursor:pointer;" onclick="startSpellcheck()">
@@ -169,20 +165,15 @@
                     <path
                         d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.248l-2.04 9.613c-.154.673-.556.836-1.124.52l-3.1-2.285-1.497 1.44c-.165.166-.304.304-.623.304l.222-3.155 5.74-5.185c.25-.222-.054-.345-.386-.123L6.32 14.4l-3.024-.944c-.657-.205-.67-.657.137-.973l11.829-4.563c.547-.198 1.025.133.3.328z" />
                 </svg>
-                Telegram botda texkshirish
+                <span data-i18n="spellcheck_btn">Telegram botda tekshirish</span>
             </button>
         </div>
     </div>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <script src="i18n.js"></script>
     <script src="app.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            if (window.DastyorAI) {
-                DastyorAI.applyTheme();
-                if (window.DastyorAI.initUI) DastyorAI.initUI({ showLangPicker: false, autoNavLinks: true, profileEl: {} });
-            }
-            if (window.I18n) I18n.apply();
+            if (window.DastyorAI && window.DastyorAI.initUI) DastyorAI.initUI({ autoNavLinks: true });
         });
         const tg = window.Telegram?.WebApp;
 
@@ -190,7 +181,7 @@
             if (tg && tg.sendData) {
                 tg.sendData(JSON.stringify({ action: "start_spellcheck" }));
             } else {
-                alert("Faqat Telegram bot orqali ishlaydi!");
+                alert(window.DA?.t('telegram_only_alert') || "Faqat Telegram bot orqali ishlaydi!");
             }
         }
     </script>

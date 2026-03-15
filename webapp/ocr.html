@@ -1,19 +1,12 @@
 <!DOCTYPE html>
-<html lang="uz" class="dark">
-
+<html lang="uz">
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>Rasm → Word | DASTYOR AI</title>
-    <script src="theme-init.js"></script>
-    <link rel="stylesheet" href="theme.css">
-    
-    <!-- Premium Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Sora:wght@400;600;700;800&display=swap" rel="stylesheet" />
-    
-    <!-- Telegram SDK -->
+    <link rel="stylesheet" href="theme.css" />
+    <script src="da-core.js"></script>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <script src="i18n.js"></script>
     <script src="app.js"></script>
     
     <!-- Tailwind -->
@@ -46,14 +39,7 @@
     <style>
         * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
         
-        body {
-            font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
-            background: var(--da-bg-page);
-            color: var(--da-text-primary);
-            min-height: 100vh;
-            -webkit-font-smoothing: antialiased;
-            overscroll-behavior-y: none;
-        }
+        body { background: var(--bg-color); color: var(--text-color); min-height: 100vh; overscroll-behavior-y: none; }
 
         /* Scrollbar */
         ::-webkit-scrollbar { width: 6px; }
@@ -196,7 +182,7 @@
             </svg>
         </a>
         <div class="ml-4 flex-1">
-            <h1 class="font-display font-bold text-lg tracking-tight bg-gradient-to-r from-white to-white/60 bg-clip-text text-transparent">Rasm → Word</h1>
+            <h1 class="font-display font-bold text-lg tracking-tight bg-gradient-to-r from-white to-white/60 bg-clip-text text-transparent" data-i18n="ocr_title">Rasm → Word</h1>
             <p class="text-[10px] font-semibold uppercase tracking-widest">
                 <span id="tgStatusBadge" class="text-accent-green">✓ Telegram ulangan</span>
             </p>
@@ -213,8 +199,8 @@
                     🤖
                 </div>
                 <div>
-                    <h3 class="font-bold text-sm" id="tgLabelTitle">AI skayner</h3>
-                    <p class="text-[11px] text-white/50" id="tgLabelSub">Rasmlarni Word faylga aylantiriladi va bot orqali yuboriladi</p>
+                    <h3 class="font-bold text-sm" id="tgLabelTitle" data-i18n="ocr_ai_scanner">AI skayner</h3>
+                    <p class="text-[11px] text-white/50" id="tgLabelSub" data-i18n="ocr_ai_sub">Rasmlarni Word faylga aylantiriladi va bot orqali yuboriladi</p>
                 </div>
             </div>
 
@@ -232,8 +218,8 @@
                             <line x1="12" x2="12" y1="3" y2="15" />
                         </svg>
                     </div>
-                    <h2 class="font-display font-bold text-xl text-accent-purple mb-2">Rasmlarni yuklang</h2>
-                    <p class="text-sm text-white/40">Yoki bu yerga bosing / sudrab tashlang</p>
+                    <h2 class="font-display font-bold text-xl text-accent-purple mb-2" data-i18n="ocr_upload_title">Rasmlarni yuklang</h2>
+                    <p class="text-sm text-white/40" data-i18n="ocr_upload_sub">Yoki bu yerga bosing / sudrab tashlang</p>
                 </div>
 
                 <!-- Queue List -->
@@ -288,7 +274,7 @@
             <div class="mt-auto pt-2 pb-4 animate-slide-up" style="animation-delay: 0.2s;">
                 <button class="w-full py-4 rounded-2xl btn-primary text-white font-bold text-lg flex justify-center items-center gap-3" id="convBtn" onclick="startOCR()" disabled>
                     <span id="btnIcon">⚡</span>
-                    <span id="btnText">Word faylga aylantirish</span>
+                    <span id="btnText" data-i18n="ocr_btn_convert">Word faylga aylantirish</span>
                 </button>
             </div>
 
@@ -297,11 +283,7 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            if (window.DastyorAI) {
-                DastyorAI.applyTheme();
-                if (window.DastyorAI.initUI) DastyorAI.initUI({ showLangPicker: false, autoNavLinks: true, profileEl: {} });
-            }
-            if (window.I18n) I18n.apply();
+            if (window.DastyorAI && window.DastyorAI.initUI) DastyorAI.initUI({ autoNavLinks: true });
         });
         const tg = window.Telegram?.WebApp;
         const DA = window.DastyorAI;
@@ -637,7 +619,7 @@
 
             // Reset button
             document.getElementById('btnIcon').textContent = '⚡';
-            document.getElementById('btnText').textContent = 'Word faylga aylantirish';
+            document.getElementById('btnText').textContent = window.DA?.t('ocr_btn_convert') || 'Word faylga aylantirish';
             convBtn.disabled = false;
             isProcessing = false;
 

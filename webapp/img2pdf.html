@@ -1,19 +1,13 @@
 <!DOCTYPE html>
-<html lang="uz" class="dark">
-
+<html lang="uz">
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>Rasm → PDF | DASTYOR AI</title>
-    <!-- 1. Theme init FIRST — prevents flash of wrong theme -->
-    <script src="theme-init.js"></script>
-    <!-- 2. Telegram SDK -->
+    <link rel="stylesheet" href="theme.css" />
+    <script src="da-core.js"></script>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <!-- 3. i18n — til saqlanishi uchun -->
-    <script src="i18n.js"></script>
     <script src="app.js"></script>
-    <!-- 4. Global theme tokens -->
-    <link rel="stylesheet" href="theme.css">
     <link
         href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Outfit:wght@500;600;700;800&display=swap"
         rel="stylesheet" />
@@ -57,11 +51,7 @@
             -webkit-tap-highlight-color: transparent;
             overscroll-behavior-y: none;
         }
-        body {
-            background: var(--da-bg-page);
-            color: var(--da-text-primary);
-            min-height: 100vh;
-        }
+        body { background: var(--bg-color); color: var(--text-color); min-height: 100vh; }
 
 
         .scroller::-webkit-scrollbar {
@@ -114,7 +104,7 @@
             </svg>
         </a>
         <div class="ml-4 flex-1">
-            <h1 class="font-display font-bold text-lg tracking-tight leading-tight">Rasm → PDF</h1>
+            <h1 class="font-display font-bold text-lg tracking-tight leading-tight" data-i18n="img2pdf_title">Rasm → PDF</h1>
             <p class="text-[10px] font-semibold text-black/40 dark:text-white/40 uppercase tracking-widest"><span
                     id="tgStatusBadge" class="text-apple-green">Telegram ulangan</span></p>
         </div>
@@ -130,8 +120,8 @@
                     <span class="text-apple-blue font-bold text-lg">📄</span>
                 </div>
                 <div>
-                    <h3 class="font-bold text-sm" id="tgLabelTitle">PDF Generatsiya</h3>
-                    <p class="text-[11px] font-medium text-black/50 dark:text-white/50" id="tgLabelSub">Natijalar
+                    <h3 class="font-bold text-sm" id="tgLabelTitle" data-i18n="img2pdf_label_title">PDF Generatsiya</h3>
+                    <p class="text-[11px] font-medium text-black/50 dark:text-white/50" id="tgLabelSub" data-i18n="img2pdf_label_sub">Natijalar
                         qurilmangizga yuklanadi hamda bot orqali PDF holida jo'natiladi.</p>
                 </div>
             </div>
@@ -156,8 +146,8 @@
                         </svg>
                     </div>
 
-                    <h2 class="font-display font-bold text-lg text-apple-blue mb-1">Rasmlarni tanlang</h2>
-                    <p class="text-[11px] font-semibold text-black/40 dark:text-white/40 max-w-[200px] text-center">Yoki
+                    <h2 class="font-display font-bold text-lg text-apple-blue mb-1" data-i18n="img2pdf_upload_title">Rasmlarni tanlang</h2>
+                    <p class="text-[11px] font-semibold text-black/40 dark:text-white/40 max-w-[200px] text-center" data-i18n="img2pdf_upload_sub">Yoki
                         bu yerga sudrab tashlang. Ko'pi bilan 20 ta rasm.</p>
                 </label>
 
@@ -188,7 +178,7 @@
                     <div
                         class="w-16 h-16 rounded-[22px] bg-apple-green/20 text-apple-green flex items-center justify-center text-3xl mb-4">
                         ✅</div>
-                    <div class="font-display font-bold text-xl mb-2">PDF yaratildi!</div>
+                    <div class="font-display font-bold text-xl mb-2" data-i18n="img2pdf_generated">PDF yaratildi!</div>
                     <div class="text-xs font-medium text-black/50 dark:text-white/50 mb-8" id="resultSub">PDF
                         muvaffaqiyatli saqlandi.</div>
                     <div class="w-full flex flex-col gap-3">
@@ -214,8 +204,8 @@
 
                 <button
                     class="w-full py-4 rounded-2xl bg-apple-blue hover:bg-blue-600 active:scale-[0.98] disabled:opacity-50 disabled:active:scale-100 disabled:shadow-none text-white font-bold text-lg shadow-[0_8px_30px_rgba(10,132,255,0.3)] transition-all flex justify-center items-center gap-2"
-                    id="pdfBtn" onclick="startImgToPdf()" disabled>
-                    ⚡ PDF Yaratish
+                    id="pdfBtn" onclick="startImgToPdf()" data-i18n="img2pdf_btn_create" disabled>
+                    ⚡ PDF yaratish
                 </button>
             </div>
 
@@ -224,11 +214,7 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            if (window.DastyorAI) {
-                DastyorAI.applyTheme();
-                if (window.DastyorAI.initUI) DastyorAI.initUI({ showLangPicker: false, autoNavLinks: true, profileEl: {} });
-            }
-            if (window.I18n) I18n.apply();
+            if (window.DastyorAI && window.DastyorAI.initUI) DastyorAI.initUI({ autoNavLinks: true });
         });
         const tg = window.Telegram?.WebApp;
         const DA = window.DastyorAI;
@@ -392,7 +378,7 @@
                     let errText = "Server xatosi";
                     try { const errData = await res.json(); errText = errData.detail || errData.error || errText; } catch (e) { }
                     showStatus('error', '❌', "Xatolik: " + errText);
-                    btn.innerHTML = '⚡ PDF Yaratish';
+                    btn.innerHTML = window.DA?.t('img2pdf_btn_create') || '⚡ PDF yaratish';
                     btn.classList.remove('opacity-70');
                     btn.disabled = false;
                     tg?.HapticFeedback?.notificationOccurred('error');
@@ -428,7 +414,7 @@
                 document.getElementById('resultCard').classList.remove('hidden');
                 document.getElementById('resultCard').classList.add('flex');
 
-                btn.innerHTML = '⚡ PDF Yaratish';
+                btn.innerHTML = window.DA?.t('img2pdf_btn_create') || '⚡ PDF yaratish';
                 btn.classList.remove('opacity-70');
                 btn.disabled = false;
 
@@ -436,7 +422,7 @@
 
             } catch (e) {
                 showStatus('error', '❌', "Server ulanishda xato: " + e.message);
-                btn.innerHTML = '⚡ PDF Yaratish';
+                btn.innerHTML = window.DA?.t('img2pdf_btn_create') || '⚡ PDF yaratish';
                 btn.classList.remove('opacity-70');
                 btn.disabled = false;
                 tg?.HapticFeedback?.notificationOccurred('error');
