@@ -13,15 +13,15 @@
  */
 
 /* ══════════════════════════════════════════════════════════════
-   LIGHT THEME  (default)
+   LIGHT THEME  (default) — yumshoq, juda oq emas
    ══════════════════════════════════════════════════════════════ */
 :root {
     /* ── Page backgrounds ──────────────────────────────────── */
-    --da-bg-page:        #f5f5f7;   /* outermost page bg        */
-    --da-bg-surface:     #ffffff;   /* cards, panels            */
-    --da-bg-elevated:    #f0f0f3;   /* hover states, inputs     */
-    --da-bg-overlay:     rgba(255,255,255,0.80); /* frosted glass */
-    --da-bg-code:        #f3f4f6;   /* code blocks              */
+    --da-bg-page:        #e5e5e7;   /* yumshoq kulrang, oq emas */
+    --da-bg-surface:     #f2f2f4;   /* kartalar — fon bilan kontrast */
+    --da-bg-elevated:    #e8e8ea;   /* hover, inputlar          */
+    --da-bg-overlay:     rgba(242,242,244,0.95);
+    --da-bg-code:        #e8e8ea;
 
     /* ── Brand colours ─────────────────────────────────────── */
     --da-blue:           #0A84FF;
@@ -39,32 +39,32 @@
     --da-gold-soft:      rgba(255,214,10,0.12);
 
     /* ── Text ──────────────────────────────────────────────── */
-    --da-text-primary:   #1d1d1f;
-    --da-text-secondary: rgba(29,29,31,0.55);
-    --da-text-tertiary:  rgba(29,29,31,0.35);
+    --da-text-primary:   #222222;
+    --da-text-secondary: rgba(34,34,34,0.65);
+    --da-text-tertiary:  rgba(34,34,34,0.45);
     --da-text-inverse:   #ffffff;
     --da-text-on-blue:   #ffffff;
     --da-text-link:      #0A84FF;
 
     /* ── Borders & dividers ────────────────────────────────── */
-    --da-border:         rgba(0,0,0,0.08);
-    --da-border-mid:     rgba(0,0,0,0.14);
-    --da-border-strong:  rgba(0,0,0,0.25);
+    --da-border:         rgba(0,0,0,0.12);
+    --da-border-mid:     rgba(0,0,0,0.18);
+    --da-border-strong:  rgba(0,0,0,0.28);
     --da-border-focus:   #0A84FF;
 
     /* ── Shadows ───────────────────────────────────────────── */
-    --da-shadow-xs:      0 1px 3px rgba(0,0,0,0.06);
-    --da-shadow-sm:      0 4px 12px rgba(0,0,0,0.08);
-    --da-shadow-md:      0 8px 24px rgba(0,0,0,0.10);
-    --da-shadow-lg:      0 16px 48px rgba(0,0,0,0.12);
+    --da-shadow-xs:      0 1px 4px rgba(0,0,0,0.08);
+    --da-shadow-sm:      0 4px 14px rgba(0,0,0,0.12);
+    --da-shadow-md:      0 8px 28px rgba(0,0,0,0.14);
+    --da-shadow-lg:      0 16px 48px rgba(0,0,0,0.16);
     --da-shadow-glow-blue: 0 8px 30px rgba(10,132,255,0.30);
     --da-shadow-glow-green:0 8px 30px rgba(48,209,88,0.30);
 
     /* ── Inputs & Forms ────────────────────────────────────── */
-    --da-input-bg:       #ffffff;
-    --da-input-border:   rgba(0,0,0,0.10);
-    --da-input-text:     #1d1d1f;
-    --da-input-ph:       rgba(29,29,31,0.35);
+    --da-input-bg:       #fafafb;
+    --da-input-border:   rgba(0,0,0,0.14);
+    --da-input-text:     #1a1a1c;
+    --da-input-ph:       rgba(26,26,28,0.45);
     --da-input-focus-bg: #ffffff;
 
     /* ── Scrollbar ─────────────────────────────────────────── */
@@ -72,22 +72,22 @@
     --da-scroll-track:   transparent;
 
     /* ── Telegram header sync ──────────────────────────────── */
-    --da-tg-header:      #f5f5f7;
-    --da-tg-bg:          #f5f5f7;
+    --da-tg-header:      #e5e5e7;
+    --da-tg-bg:          #e5e5e7;
 
     /* ── Ambient / glow overlay ────────────────────────────── */
     --da-ambient-opacity: 0;
 
     /* ── Bottom nav ────────────────────────────────────────── */
-    --da-nav-bg:         rgba(255,255,255,0.72);
-    --da-nav-active-bg:  #000000;
+    --da-nav-bg:         rgba(242,242,244,0.88);
+    --da-nav-active-bg:  #1a1a1c;
     --da-nav-active-fg:  #ffffff;
-    --da-nav-inactive:   rgba(0,0,0,0.35);
+    --da-nav-inactive:   rgba(0,0,0,0.45);
 
     /* ── Preview panel ─────────────────────────────────────── */
-    --da-preview-bg:     #ffffff;
-    --da-preview-border: rgba(0,0,0,0.08);
-    --da-preview-shadow: 0 4px 24px rgba(0,0,0,0.08);
+    --da-preview-bg:     #f2f2f4;
+    --da-preview-border: rgba(0,0,0,0.12);
+    --da-preview-shadow: 0 4px 24px rgba(0,0,0,0.12);
 
     /* ── Upload zone ───────────────────────────────────────── */
     --da-upload-bg:       rgba(10,132,255,0.05);
@@ -111,14 +111,20 @@
 }
 
 /* ══════════════════════════════════════════════════════════════
-   DARK THEME  ( html.dark )
-   NOT a simple color inversion — carefully crafted dark palette.
+   DARK THEME  ( html.dark ) — user-specified palette
    ══════════════════════════════════════════════════════════════ */
 html.dark {
     /* ── Page backgrounds ──────────────────────────────────── */
-    --da-bg-page:        #000000;
-    --da-bg-surface:     #151518;
-    --da-bg-elevated:    #1f1f22;
+    --da-bg-page:        #121212;
+    --da-bg-surface:     #1e1e1e;
+}
+/* Force dark background — nothing can override */
+html.dark body {
+    background: #121212 !important;
+    background-color: #121212 !important;
+}
+html.dark {
+    --da-bg-elevated:    #2a2a2a;
     --da-bg-overlay:     rgba(21,21,24,0.85);
     --da-bg-code:        #1a1a1d;
 
@@ -138,9 +144,9 @@ html.dark {
     --da-gold-soft:      rgba(255,214,10,0.14);
 
     /* ── Text ──────────────────────────────────────────────── */
-    --da-text-primary:   #f5f5f7;
-    --da-text-secondary: rgba(245,245,247,0.55);
-    --da-text-tertiary:  rgba(245,245,247,0.35);
+    --da-text-primary:   #ffffff;
+    --da-text-secondary: rgba(255,255,255,0.75);
+    --da-text-tertiary:  rgba(255,255,255,0.5);
     --da-text-inverse:   #000000;
     --da-text-on-blue:   #ffffff;
     --da-text-link:      #4DA6FF;
@@ -162,17 +168,17 @@ html.dark {
     /* ── Inputs & Forms ────────────────────────────────────── */
     --da-input-bg:       #1f1f22;
     --da-input-border:   rgba(255,255,255,0.08);
-    --da-input-text:     #f5f5f7;
-    --da-input-ph:       rgba(245,245,247,0.35);
-    --da-input-focus-bg: #242428;
+    --da-input-text:     #ffffff;
+    --da-input-ph:       rgba(255,255,255,0.4);
+    --da-input-focus-bg: #2a2a2a;
 
     /* ── Scrollbar ─────────────────────────────────────────── */
     --da-scroll-thumb:   rgba(255,255,255,0.12);
     --da-scroll-track:   transparent;
 
     /* ── Telegram ──────────────────────────────────────────── */
-    --da-tg-header:      #000000;
-    --da-tg-bg:          #000000;
+    --da-tg-header:      #121212;
+    --da-tg-bg:          #121212;
 
     /* ── Ambient glow ──────────────────────────────────────── */
     --da-ambient-opacity: 1;
@@ -184,7 +190,7 @@ html.dark {
     --da-nav-inactive:   rgba(255,255,255,0.35);
 
     /* ── Preview panel ─────────────────────────────────────── */
-    --da-preview-bg:     #151518;
+    --da-preview-bg:     #1e1e1e;
     --da-preview-border: rgba(255,255,255,0.07);
     --da-preview-shadow: 0 4px 24px rgba(0,0,0,0.50);
 
@@ -218,7 +224,7 @@ html {
 }
 
 body {
-    background-color: var(--da-bg-page);
+    background-color: var(--da-bg-page) !important;
     color:            var(--da-text-primary);
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     line-height: 1.6;
@@ -646,14 +652,49 @@ html.no-transitions *::after {
 }
 
 /* ══════════════════════════════════════════════════════════════
+   LIGHT MODE — readable text (no white-on-white)
+   Override Tailwind text-white so light theme is readable everywhere.
+   ══════════════════════════════════════════════════════════════ */
+html.light body,
+html.light body.antialiased {
+    color: var(--da-text-primary) !important;
+}
+html.light .text-white:not([class*="bg-gradient"]):not(.da-btn-primary):not(.da-btn-success):not(.da-btn-danger) {
+    color: var(--da-text-primary) !important;
+}
+/* Light mode: subtitles and secondary text must be clearly visible (not faint gray) */
+html.light [class*="text-white/40"] {
+    color: #5c5c5c !important;
+}
+html.light [class*="text-white/30"],
+html.light [class*="text-white/20"] {
+    color: #6b6b6b !important;
+}
+
+/* Tungi rejim: nomlar va matn har doim oq ko‘rinsin, hech qanday oq fon ustida qora matn qolmasin */
+html.dark body,
+html.dark main,
+html.dark .da-card,
+html.dark [class*="card"],
+html.dark label {
+    color: var(--da-text-primary);
+}
+html.dark input,
+html.dark textarea,
+html.dark select {
+    color: var(--da-input-text);
+    background: var(--da-input-bg);
+}
+
+/* ══════════════════════════════════════════════════════════════
    OS-LEVEL FALLBACK (no-JS or theme-init.js not yet loaded)
    Only active when html has neither .dark nor .light class.
    ══════════════════════════════════════════════════════════════ */
 @media (prefers-color-scheme: dark) {
     html:not(.light):not(.dark) {
-        --da-bg-page:      #000000;
-        --da-bg-surface:   #151518;
-        --da-text-primary: #f5f5f7;
+        --da-bg-page:      #121212;
+        --da-bg-surface:   #1e1e1e;
+        --da-text-primary: #ffffff;
     }
 }
 

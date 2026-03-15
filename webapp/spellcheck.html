@@ -23,12 +23,13 @@
         }
 
         body {
-            background: var(--da-bg-page, #0f172a);
-            color: var(--da-text-primary, #f5f5f7);
+            background: var(--da-bg-page);
+            color: var(--da-text-primary);
+            min-height: 100vh;
         }
         .page-card {
-            background: var(--da-bg-surface, rgba(255, 255, 255, 0.04));
-            border: 1px solid var(--da-border, rgba(255, 255, 255, 0.08));
+            background: var(--da-bg-surface);
+            border: 1px solid var(--da-border);
             border-radius: 28px;
             padding: 52px;
             max-width: 580px;
@@ -45,12 +46,12 @@
         h1 {
             font-size: 30px;
             font-weight: 800;
-            color: var(--da-text-primary, white);
+            color: var(--da-text-primary);
             margin-bottom: 12px;
         }
 
         .subtitle {
-            color: var(--da-text-secondary, #94a3b8);
+            color: var(--da-text-secondary);
             font-size: 15px;
             margin-bottom: 32px;
         }
@@ -176,6 +177,13 @@
     <script src="i18n.js"></script>
     <script src="app.js"></script>
     <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            if (window.DastyorAI) {
+                DastyorAI.applyTheme();
+                if (window.DastyorAI.initUI) DastyorAI.initUI({ showLangPicker: false, autoNavLinks: true, profileEl: {} });
+            }
+            if (window.I18n) I18n.apply();
+        });
         const tg = window.Telegram?.WebApp;
 
         function startSpellcheck() {

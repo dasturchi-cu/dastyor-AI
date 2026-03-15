@@ -15,24 +15,21 @@
 (function() {
     'use strict';
 
-    /* ── 1. Read persisted preference ────────────────────────────────── */
-    // Check storage key, fall back to legacy key used by older app versions
-    var stored = localStorage.getItem('da_theme') || localStorage.getItem('theme');
+    /* ── 1. Read persisted preference (single source: da_theme, then da_settings_v1, then theme) ── */
+    var stored = (localStorage.getItem('da_theme') || localStorage.getItem('theme') || '').toLowerCase();
+    if (!stored) {
+        try {
+            var raw = localStorage.getItem('da_settings_v1');
+            if (raw) {
+                var s = JSON.parse(raw);
+                if (s && s.theme) stored = String(s.theme).toLowerCase();
+            }
+        } catch (e) {}
+    }
 
     /* ── 2. Resolve effective theme ──────────────────────────────────── */
-    // Strategy: explicit pref > OS media query > default dark
-    var prefersDark = (typeof window.matchMedia === 'function')
-        && window.matchMedia('(prefers-color-scheme: dark)').matches;
-
-    var isDark;
-    if (stored === 'light') {
-        isDark = false;
-    } else if (stored === 'dark') {
-        isDark = true;
-    } else {
-        // No stored preference → respect OS, else default to dark (app default)
-        isDark = prefersDark !== false; // true = dark
-    }
+    var isDark = stored === 'dark' || (stored !== 'light' && stored !== '');
+    if (!stored) isDark = true; /* default dark to avoid harsh white */
 
     /* ── 3. Apply to <html> IMMEDIATELY (no RAF, no DOMContentLoaded) ── */
     var html = document.documentElement;
@@ -44,22 +41,29 @@
         html.classList.add('light');
     }
 
-    /* ── 4. Persist canonical key ────────────────────────────────────── */
-    localStorage.setItem('da_theme', isDark ? 'dark' : 'light');
-    // Keep legacy key in sync for older pages that still read 'theme'
-    localStorage.setItem('theme', isDark ? 'dark' : 'light');
+    /* ── 4. Persist canonical keys + da_settings_v1 (barcha sahifalarda bir xil) ─────── */
+    var themeVal = isDark ? 'dark' : 'light';
+    localStorage.setItem('da_theme', themeVal);
+    localStorage.setItem('theme', themeVal);
+    try {
+        var raw = localStorage.getItem('da_settings_v1');
+        var cur = raw ? JSON.parse(raw) : {};
+        cur.theme = themeVal;
+        localStorage.setItem('da_settings_v1', JSON.stringify(cur));
+    } catch (e) {}
 
     /* ── 5. Sync Telegram Mini App header color ──────────────────────── */
     // Called both here (best-effort before SDK ready) and after SDK ready
     function syncTelegramColors() {
         var tg = window.Telegram && window.Telegram.WebApp;
         if (!tg) return;
-        if (isDark) {
-            if (tg.setHeaderColor)     tg.setHeaderColor('#000000');
-            if (tg.setBackgroundColor) tg.setBackgroundColor('#000000');
+        var dark = document.documentElement.classList.contains('dark');
+        if (dark) {
+            if (tg.setHeaderColor)     tg.setHeaderColor('#121212');
+            if (tg.setBackgroundColor) tg.setBackgroundColor('#121212');
         } else {
-            if (tg.setHeaderColor)     tg.setHeaderColor('#f5f5f7');
-            if (tg.setBackgroundColor) tg.setBackgroundColor('#f5f5f7');
+            if (tg.setHeaderColor)     tg.setHeaderColor('#e5e5e7');
+            if (tg.setBackgroundColor) tg.setBackgroundColor('#e5e5e7');
         }
     }
     syncTelegramColors();
@@ -94,15 +98,21 @@
             return document.documentElement.classList.contains('dark') ? 'dark' : 'light';
         },
 
-        /** Set theme explicitly: 'dark' | 'light' */
+        /** Set theme explicitly: 'dark' | 'light' — saqlash barcha sahifalarda ishlashi uchun da_settings_v1 ga yozamiz */
         set: function(theme) {
             var dark = theme === 'dark';
+            var themeVal = dark ? 'dark' : 'light';
             document.documentElement.classList.toggle('dark', dark);
             document.documentElement.classList.toggle('light', !dark);
-            localStorage.setItem('da_theme', dark ? 'dark' : 'light');
-            localStorage.setItem('theme', dark ? 'dark' : 'light');
+            localStorage.setItem('da_theme', themeVal);
+            localStorage.setItem('theme', themeVal);
+            try {
+                var raw = localStorage.getItem('da_settings_v1');
+                var cur = raw ? JSON.parse(raw) : {};
+                cur.theme = themeVal;
+                localStorage.setItem('da_settings_v1', JSON.stringify(cur));
+            } catch (e) {}
             syncTelegramColors();
-            // Notify all listeners
             window.dispatchEvent(new CustomEvent('da-theme-change', { detail: { dark: dark } }));
         },
 

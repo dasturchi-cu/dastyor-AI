@@ -32,31 +32,16 @@
 <!-- 6. Unified SDK (after Telegram SDK, after i18n.js) -->
 <script src="app.js"></script>
 
-<!-- 7. Page boot script -->
+<!-- 7. Page boot script (optional). app.js already applies theme + lang from localStorage/da_settings_v1 on DOMContentLoaded. -->
 <script>
-    // One-liner boot: applies theme + i18n + wires links + authenticates user
-    DastyorAI.initUI({
-        showLangPicker: true,          // show picker if no lang saved yet
-        autoNavLinks: true,          // auto-inject telegram_id on all <a>
-        profileEl: {                   // optional: auto-fill these element IDs
-            avatarId: 'userAvatar',  // <img> container for profile photo
-            nameId: 'userName',    // element showing first_name
-            initialsId: 'userInitials',// element showing first letter
-        },
-        onUser(user) {
-            // Called after auth succeeds.
-            // user: { telegram_id, first_name, username, photo_url, is_premium, files_processed }
-
-            if (user.is_premium) {
-                // Show PRO badge
-            }
-
-            // Example: fetch stats
-            DastyorAI.stats().then(s => {
-                if (s) console.log('files processed:', s.files_processed);
-            });
+    document.addEventListener('DOMContentLoaded', function() {
+        if (window.DastyorAI) {
+            DastyorAI.applyTheme();
+            if (window.DastyorAI.initUI) DastyorAI.initUI({ showLangPicker: false, autoNavLinks: true, profileEl: {} });
         }
+        if (window.I18n) I18n.apply();
     });
+    // Optional: override in DOMContentLoaded with showLangPicker: true or profileEl: { avatarId, nameId, initialsId }, onUser(user){...}
 
     // React to theme changes (optional)
     window.addEventListener('theme:change', ({ detail: { dark } }) => {
@@ -72,6 +57,9 @@
 </script>
 
 <!--=== HTML PATTERNS ===-->
+
+<!-- Body: use theme tokens only (no overrides). Settings: { theme, lang } in localStorage da_settings_v1. -->
+<!-- body { background: var(--da-bg-page); color: var(--da-text-primary); min-height: 100vh; } -->
 
 <!-- Translate static text: -->
 <span data-i18n="btn_generate">Yaratish</span>

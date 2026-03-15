@@ -44,6 +44,8 @@
   <style>
     body {
       overscroll-behavior-y: none;
+      background: var(--da-bg-page);
+      color: var(--da-text-primary);
     }
 
     .scroller::-webkit-scrollbar {
@@ -1799,6 +1801,18 @@
       uploadToTelegram(blob, filename);
     }
 
+  </script>
+  <!-- Bootstrap theme + i18n + nav (no lang picker popup) -->
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      if (window.DastyorAI) {
+        DastyorAI.applyTheme();
+        if (window.DastyorAI.initUI) {
+          DastyorAI.initUI({ showLangPicker: false, autoNavLinks: true, profileEl: {} });
+        }
+      }
+      if (window.I18n) I18n.apply();
+    });
   </script>
   <!-- Smart Auto-Fill System -->
   <script src="smart-autofill.js"></script>

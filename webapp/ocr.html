@@ -48,7 +48,8 @@
         
         body {
             font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
-            background: linear-gradient(135deg, #0c0c1d 0%, #1a1a2e 50%, #16213e 100%);
+            background: var(--da-bg-page);
+            color: var(--da-text-primary);
             min-height: 100vh;
             -webkit-font-smoothing: antialiased;
             overscroll-behavior-y: none;
@@ -295,10 +296,15 @@
     </main>
 
     <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            if (window.DastyorAI) {
+                DastyorAI.applyTheme();
+                if (window.DastyorAI.initUI) DastyorAI.initUI({ showLangPicker: false, autoNavLinks: true, profileEl: {} });
+            }
+            if (window.I18n) I18n.apply();
+        });
         const tg = window.Telegram?.WebApp;
         const DA = window.DastyorAI;
-        DA?.initUI?.({ showLangPicker: false, autoNavLinks: false });
-        
         // Telegram ID
         const tid = (DA?.getTelegramId && DA.getTelegramId())
             || new URLSearchParams(location.search).get('telegram_id')

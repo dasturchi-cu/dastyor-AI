@@ -57,11 +57,11 @@
         
         body {
             font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
-            background: var(--da-bg-page, #0c0c1d);
+            background: var(--da-bg-page);
+            color: var(--da-text-primary);
             min-height: 100vh;
             -webkit-font-smoothing: antialiased;
         }
-        html.light body { background: var(--da-bg-page); }
 
         /* Hide scrollbars */
         ::-webkit-scrollbar { width: 6px; }
@@ -129,6 +129,20 @@
             border-color: rgba(255, 255, 255, 0.15);
             transform: translateY(-4px);
             box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        }
+        html.light .glass {
+            background: rgba(0, 0, 0, 0.04);
+            border-color: rgba(0, 0, 0, 0.08);
+        }
+        html.light .glass-card {
+            background: rgba(255, 255, 255, 0.9);
+            border-color: rgba(0, 0, 0, 0.08);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+        }
+        html.light .glass-card:hover {
+            background: #fff;
+            border-color: rgba(0, 0, 0, 0.12);
+            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.1);
         }
 
         /* App Cards */
@@ -523,9 +537,13 @@
         // Theme Toggle
         // ═══════════════════════════════════════════════════════════
         function toggleTheme() {
-            DA.setTheme(DA.isDark() ? 'light' : 'dark');
+            var D = window.DastyorAI || DA;
+            if (D) {
+                D.setTheme(D.isDark() ? 'light' : 'dark');
+                D.applyTheme && D.applyTheme();
+            }
             _syncThemeUI();
-            DA.haptic('light');
+            (window.DastyorAI || DA).haptic('light');
         }
 
         // ═══════════════════════════════════════════════════════════

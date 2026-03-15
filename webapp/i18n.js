@@ -354,11 +354,20 @@ const I18n = (() => {
         callback(null);
     }
 
-    // Check URL first, then LocalStorage, then fallback
+    // Check URL first, then LocalStorage, then centralized da_settings_v1, then fallback
     const urlParams = new URLSearchParams(window.location.search);
     const urlLang = urlParams.get('lang');
-
-    let _lang = urlLang || localStorage.getItem(LS_KEY) || 'uz_lat';
+    let storedLang = localStorage.getItem(LS_KEY);
+    if (!storedLang) {
+        try {
+            const raw = localStorage.getItem('da_settings_v1');
+            if (raw) {
+                const s = JSON.parse(raw);
+                if (s && s.lang && VALID_LANGS.includes(s.lang)) storedLang = s.lang;
+            }
+        } catch (_) {}
+    }
+    let _lang = urlLang || storedLang || 'uz_lat';
     if (!VALID_LANGS.includes(_lang)) _lang = 'uz_lat';
 
     // Auto-save if it came from URL
@@ -374,16 +383,21 @@ const I18n = (() => {
         return entry[_lang] ?? entry['uz_lat'] ?? key;
     }
 
-    /** Change language, persist to localStorage + CloudStorage, and re-apply to DOM. */
+    /** Change language, persist to localStorage + CloudStorage + da_settings_v1, re-apply to DOM. */
     function setLang(lang) {
         if (!VALID_LANGS.includes(lang)) {
             console.warn(`[I18n] unknown lang: ${lang}`); return;
         }
         _lang = lang;
-        localStorage.setItem(LS_KEY, lang);   // sync, zudlik bilan
-        _csSet(LS_KEY, lang);                  // async, Telegram CloudStorage
+        localStorage.setItem(LS_KEY, lang);
+        _csSet(LS_KEY, lang);
+        try {
+            var raw = localStorage.getItem('da_settings_v1');
+            var cur = raw ? JSON.parse(raw) : {};
+            cur.lang = lang;
+            localStorage.setItem('da_settings_v1', JSON.stringify(cur));
+        } catch (e) {}
         apply();
-        // Dispatch event so pages can react
         window.dispatchEvent(new CustomEvent('i18n:change', { detail: { lang } }));
     }
 
@@ -393,15 +407,25 @@ const I18n = (() => {
     /** All supported locales. */
     function getLangs() { return [...VALID_LANGS]; }
 
+    var _applyTimer = null;
     /**
      * apply() — Scan the DOM for [data-i18n] and [data-i18n-ph] attributes
      * and replace textContent / placeholder with the current translation.
-     *
-     *  <span data-i18n="btn_generate"></span>
-     *  <input data-i18n-ph="ph_text" />
-     *  <button data-i18n="btn_generate" data-i18n-attr="title"></button>  ← sets title=
+     * Debounced to avoid freeze when called many times in a row.
      */
-    function apply(root = document) {
+    function apply(root) {
+        if (root !== document && root !== undefined) {
+            _applyNow(root);
+            return;
+        }
+        if (_applyTimer) clearTimeout(_applyTimer);
+        _applyTimer = setTimeout(function() {
+            _applyTimer = null;
+            _applyNow(document);
+        }, 0);
+    }
+    function _applyNow(root) {
+        root = root || document;
         root.querySelectorAll('[data-i18n]').forEach(el => {
             const key  = el.getAttribute('data-i18n');
             const attr = el.getAttribute('data-i18n-attr');

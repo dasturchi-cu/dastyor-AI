@@ -57,6 +57,11 @@
             -webkit-tap-highlight-color: transparent;
             overscroll-behavior-y: none;
         }
+        body {
+            background: var(--da-bg-page);
+            color: var(--da-text-primary);
+            min-height: 100vh;
+        }
 
 
         .scroller::-webkit-scrollbar {
@@ -218,10 +223,15 @@
     </main>
 
     <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            if (window.DastyorAI) {
+                DastyorAI.applyTheme();
+                if (window.DastyorAI.initUI) DastyorAI.initUI({ showLangPicker: false, autoNavLinks: true, profileEl: {} });
+            }
+            if (window.I18n) I18n.apply();
+        });
         const tg = window.Telegram?.WebApp;
         const DA = window.DastyorAI;
-        DA?.initUI?.({ showLangPicker: false, autoNavLinks: false });
-        // Theme already applied by theme-init.js
         const tid = (DA?.getTelegramId && DA.getTelegramId())
             || new URLSearchParams(location.search).get('telegram_id')
             || sessionStorage.getItem('tg_id')

@@ -48,12 +48,12 @@
         
         body {
             font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
-            background: var(--da-bg-page, #0c0c1d);
+            background: var(--da-bg-page);
+            color: var(--da-text-primary);
             min-height: 100vh;
             -webkit-font-smoothing: antialiased;
             overscroll-behavior-y: none;
         }
-        html.light body { background: var(--da-bg-page); }
 
         /* Scrollbar */
         ::-webkit-scrollbar { display: none; }
@@ -103,6 +103,20 @@
             border-color: rgba(255, 255, 255, 0.15);
             transform: translateY(-4px);
             box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        }
+        html.light .glass {
+            background: rgba(0, 0, 0, 0.04);
+            border-color: rgba(0, 0, 0, 0.08);
+        }
+        html.light .glass-card {
+            background: rgba(255, 255, 255, 0.9);
+            border-color: rgba(0, 0, 0, 0.08);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+        }
+        html.light .glass-card:hover {
+            background: #fff;
+            border-color: rgba(0, 0, 0, 0.12);
+            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.1);
         }
 
         /* Service Cards */
@@ -292,10 +306,15 @@
     </div>
 
     <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            if (window.DastyorAI) {
+                DastyorAI.applyTheme();
+                if (window.DastyorAI.initUI) DastyorAI.initUI({ showLangPicker: false, autoNavLinks: true, profileEl: {} });
+            }
+            if (window.I18n) I18n.apply();
+        });
         const tg = window.Telegram?.WebApp;
         const DA = window.DastyorAI;
-        DA?.initUI?.({ showLangPicker: false });
-        
         // Haptic feedback on card tap
         document.querySelectorAll('.service-card').forEach(card => {
             card.addEventListener('click', () => {

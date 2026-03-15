@@ -62,6 +62,11 @@
             -webkit-tap-highlight-color: transparent;
             overscroll-behavior-y: none;
         }
+        body {
+            background: var(--da-bg-page);
+            color: var(--da-text-primary);
+            min-height: 100vh;
+        }
 
         ::-webkit-scrollbar {
             display: none;
@@ -251,12 +256,14 @@
     <!-- app.js provides the boot setup -->
     <script src="app.js"></script>
     <script>
-        const tg = window.Telegram?.WebApp;
-        // Theme and i18n are handled by universal scripts
-
-        DastyorAI.initUI({
-            autoNavLinks: true
+        document.addEventListener('DOMContentLoaded', function() {
+            if (window.DastyorAI) {
+                DastyorAI.applyTheme();
+                if (window.DastyorAI.initUI) DastyorAI.initUI({ showLangPicker: false, autoNavLinks: true, profileEl: {} });
+            }
+            if (window.I18n) I18n.apply();
         });
+        const tg = window.Telegram?.WebApp;
     </script>
 </body>
 

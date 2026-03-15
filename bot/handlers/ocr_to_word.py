@@ -12,6 +12,7 @@ from docx import Document
 from bs4 import BeautifulSoup
 from bot.keyboards.reply_keyboards import get_back_button, get_main_menu
 from bot.utils.helpers import is_back_button
+from bot.services.user_service import get_user_lang
 from bot.services.ocr_service import extract_text_from_image
 from bot.utils.progress import send_progress, update_progress
 from bot.utils.delivery import send_docx_with_confirmation
@@ -215,7 +216,7 @@ async def perform_ocr_and_send(context, image_path, chat_id, user_id):
                 filename=doc_path,
                 caption="✅ **Marhamat!**\n\nSizning hujjatingiz tayyor.",
                 parse_mode=ParseMode.MARKDOWN,
-                reply_markup=get_main_menu(user_id),
+                reply_markup=get_main_menu(user_id, get_user_lang(user_id)),
             )
             if not ok:
                 return
@@ -356,7 +357,7 @@ async def _perform_ocr_batch_and_send(context, bot, chat_id: int, user_id: int, 
                 filename=doc_path,
                 caption="✅ **Barcha rasmlar bitta Word faylga birlashtirildi.**",
                 parse_mode=ParseMode.MARKDOWN,
-                reply_markup=get_main_menu(user_id),
+                reply_markup=get_main_menu(user_id, get_user_lang(user_id)),
             )
         await progress_msg.delete()
         if getattr(context, "user_data", None):
@@ -429,9 +430,11 @@ async def handle_ocr_image(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if message.text and is_back_button(message.text):
         context.user_data.pop("waiting_for", None)
         context.user_data.pop("ocr_images", None)
+        uid = update.effective_user.id if update.effective_user else None
+        lang = get_user_lang(uid) if uid else "uz_lat"
         await update.message.reply_text(
             "🏠 **Asosiy menyuga qaytildi**",
-            reply_markup=get_main_menu(update.effective_user.id if update.effective_user else None),
+            reply_markup=get_main_menu(uid, lang),
             parse_mode=ParseMode.MARKDOWN
         )
         return

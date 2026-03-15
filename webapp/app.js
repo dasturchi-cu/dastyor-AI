@@ -43,7 +43,7 @@ const DastyorAI = (() => {
 
     function _defaultSettings() {
         return {
-            theme: (localStorage.getItem('da_theme') || localStorage.getItem('theme') || 'light'),
+            theme: (localStorage.getItem('da_theme') || localStorage.getItem('theme') || 'dark'),
             lang: (localStorage.getItem('lang') || 'uz_lat'),
         };
     }
@@ -331,8 +331,8 @@ const DastyorAI = (() => {
         root.classList.toggle('dark',  dark);
         root.classList.toggle('light', !dark);
 
-        // Sync Telegram WebApp chrome colour
-        const bg = dark ? '#000000' : '#f5f5f7';
+        // Sync Telegram WebApp chrome (match theme.css — yorug'da ham juda oq emas)
+        const bg = dark ? '#121212' : '#e5e5e7';
         _tg?.setHeaderColor?.(bg);
         _tg?.setBackgroundColor?.(bg);
 
@@ -523,6 +523,33 @@ const DastyorAI = (() => {
 
     // Global theme listener — ensures theme updates apply on ALL pages (even without initUI)
     window.addEventListener('da-theme-change', () => applyTheme());
+
+    // On every page load: apply theme and language from centralized state (localStorage / da_settings_v1)
+    function applyGlobalSettings() {
+        const settings = _loadSettings();
+        const themeVal = (settings.theme || 'dark').toLowerCase();
+        const dark = themeVal === 'dark';
+        document.documentElement.classList.toggle('dark', dark);
+        document.documentElement.classList.toggle('light', !dark);
+        localStorage.setItem('da_theme', dark ? 'dark' : 'light');
+        localStorage.setItem('theme', dark ? 'dark' : 'light');
+        applyTheme();
+        if (window.I18n) {
+            const lang = settings.lang || localStorage.getItem('lang') || 'uz_lat';
+            if (I18n.getLang() !== lang) {
+                try { I18n.setLang(lang); } catch (_) { I18n.apply(); }
+            } else {
+                I18n.apply();
+            }
+        }
+    }
+    if (typeof document !== 'undefined') {
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', applyGlobalSettings);
+        } else {
+            applyGlobalSettings();
+        }
+    }
     // Global settings listener — language/theme change from any source updates current page
     window.addEventListener('da-settings-change', () => {
         if (window.I18n) I18n.apply();
