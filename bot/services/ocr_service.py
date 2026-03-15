@@ -5,6 +5,7 @@ Uses a dedicated thread pool so OCR never blocks other bot features.
 """
 import logging
 import asyncio
+import time
 from concurrent.futures import ThreadPoolExecutor
 import google.generativeai as genai
 from config import GOOGLE_API_KEY
@@ -20,13 +21,14 @@ OCR_TIMEOUT = 120
 async def extract_text_from_image(image_path: str) -> str:
     """
     Extracts text from an image file using Gemini asynchronously.
-    Forces 1:1 HTML layout preservation.
+    Forces 1:1 HTML layout preservation. Does not block the event loop.
     """
     if not GOOGLE_API_KEY:
         return ""
 
+    t0 = time.perf_counter()
     try:
-        logger.info("Attempting Async OCR with Gemini...")
+        logger.info("OCR extract started path=%s", image_path)
 
         loop = asyncio.get_running_loop()
 
@@ -84,7 +86,7 @@ CRITICAL RULES FOR 1:1 REPLICATION:
                 timeout=OCR_TIMEOUT
             )
         except asyncio.TimeoutError:
-            logger.error(f"OCR Gemini call timed out after {OCR_TIMEOUT}s")
+            logger.error("OCR timeout path=%s after %.1fs (limit=%ss)", image_path, time.perf_counter() - t0, OCR_TIMEOUT)
             return ""
 
         # Cleanup uploaded file in background
@@ -95,10 +97,10 @@ CRITICAL RULES FOR 1:1 REPLICATION:
 
         if result and result.text:
             text = result.text.replace("```html", "").replace("```", "").strip()
-            logger.info("Gemini Async OCR success")
+            logger.info("OCR done in %.1fs path=%s", time.perf_counter() - t0, image_path)
             return text
 
     except Exception as e:
-        logger.error(f"Gemini Async OCR failed: {e}", exc_info=True)
+        logger.error("OCR failed path=%s after %.1fs: %s", image_path, time.perf_counter() - t0, e, exc_info=True)
 
     return ""

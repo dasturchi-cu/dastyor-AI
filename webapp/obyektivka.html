@@ -5,6 +5,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ma'lumotnoma Tayyorlash Xizmati</title>
+    <script src="theme-init.js"></script>
+    <link rel="stylesheet" href="theme.css" />
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
@@ -20,24 +22,30 @@
             --text-dark: #0f172a;
             --input-border: #2563eb;
         }
+        html.dark {
+            --bg: #000000;
+            --card: #151518;
+            --text-dark: #f5f5f7;
+        }
 
         body {
             font-family: 'Inter', system-ui, -apple-system, sans-serif;
-            background-color: var(--bg);
-            color: var(--text-dark);
+            background-color: var(--da-bg-page, var(--bg));
+            color: var(--da-text-primary, var(--text-dark));
             margin: 0;
             padding: 20px;
             line-height: 1.6;
+            transition: background-color 0.25s, color 0.25s;
         }
 
         .container {
             max-width: 900px;
             margin: 0 auto;
-            background: var(--card);
+            background: var(--da-bg-surface, var(--card));
             padding: 40px;
             border-radius: 20px;
             box-shadow: 0 10px 40px rgba(37, 99, 235, 0.1);
-            transition: transform 0.3s ease;
+            transition: transform 0.3s ease, background 0.25s;
         }
 
         /* --- INPUT STYLES --- */

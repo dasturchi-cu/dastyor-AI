@@ -57,10 +57,11 @@
         
         body {
             font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
-            background: linear-gradient(135deg, #0c0c1d 0%, #1a1a2e 50%, #16213e 100%);
+            background: var(--da-bg-page, #0c0c1d);
             min-height: 100vh;
             -webkit-font-smoothing: antialiased;
         }
+        html.light body { background: var(--da-bg-page); }
 
         /* Hide scrollbars */
         ::-webkit-scrollbar { width: 6px; }

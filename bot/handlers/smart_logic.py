@@ -98,20 +98,21 @@ async def smart_callback_handler(update: Update, context: ContextTypes.DEFAULT_T
     temp_path = None
     
     try:
-        # === 1. OCR (Rasm -> Word) ===
+        # === 1. OCR (Rasm -> Word) — run in background so bot stays responsive ===
         if data == "smart_ocr":
             await query.message.edit_text("⏳ Yuklanmoqda...")
-            
-            # Download file
             file_obj = await context.bot.get_file(file_id)
             temp_path = f"smart_ocr_{user_id}_{int(time.time())}.jpg"
             await file_obj.download_to_drive(temp_path)
-            
-            # Delete menu message
             await query.message.delete()
-            
-            # Perform OCR (using shared logic)
-            await perform_ocr_and_send(context, temp_path, chat_id, user_id)
+            # Fire-and-forget: do not block the event loop
+            from bot.handlers.ocr_to_word import _run_ocr_background
+            _run_ocr_background(context.bot, chat_id, user_id, temp_path, context.user_data)
+            await context.bot.send_message(
+                chat_id=chat_id,
+                text="✅ OCR ishlanmoqda. Natija tez orada yuboriladi.",
+                parse_mode="Markdown",
+            )
             return
 
         # === 2. Image -> PDF ===

@@ -1,11 +1,15 @@
 import os
 import time
+import asyncio
+import logging
 from telegram import Update, InputFile
 from telegram.ext import ContextTypes
 from telegram.constants import ParseMode, ChatAction
 from bot.keyboards.reply_keyboards import get_main_menu, get_image_to_pdf_keyboard
 from bot.services.pdf_service import images_to_pdf
 from bot.utils.helpers import is_back_button, sanitize_filename
+
+logger = logging.getLogger(__name__)
 
 
 async def image_to_pdf_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -61,7 +65,7 @@ async def collect_pdf_images(update: Update, context: ContextTypes.DEFAULT_TYPE)
         )
         return
 
-    # Tayyor komandasi
+    # Tayyor — run PDF build in background so bot stays responsive
     if message.text and ("tayyor" in message.text.lower()):
         images = context.user_data.get("pdf_images", [])
 
@@ -74,71 +78,72 @@ async def collect_pdf_images(update: Update, context: ContextTypes.DEFAULT_TYPE)
             return
 
         status_msg = await message.reply_text(
-            f"⏳ {len(images)} ta rasm PDF ga aylantirilmoqda..."
+            f"⏳ {len(images)} ta rasm PDF ga aylantirilmoqda. Kutib turing..."
         )
+        context.user_data.pop("waiting_for", None)
+        context.user_data.pop("pdf_images", None)
 
-        await context.bot.send_chat_action(
-            chat_id=message.chat_id,
-            action=ChatAction.UPLOAD_DOCUMENT
-        )
+        async def _pdf_background():
+            temp_dir = "temp"
+            os.makedirs(temp_dir, exist_ok=True)
+            downloaded_paths = []
+            pdf_path = None
+            try:
+                for idx, file_id in enumerate(images, start=1):
+                    try:
+                        file = await context.bot.get_file(file_id)
+                        img_path = os.path.join(
+                            temp_dir,
+                            sanitize_filename(
+                                f"pdf_{message.from_user.id}_{int(time.time())}_{idx}.jpg"
+                            ),
+                        )
+                        await file.download_to_drive(img_path)
+                        downloaded_paths.append(img_path)
+                        if len(images) > 2 and idx % 3 == 0:
+                            await status_msg.edit_text(
+                                f"⏳ Yuklanmoqda {idx}/{len(images)}..."
+                            )
+                    except Exception as e:
+                        logger.warning("PDF download file %s failed: %s", idx, e)
+                if not downloaded_paths:
+                    await status_msg.edit_text("❌ Hech qanday rasm yuklanmadi.")
+                    return
 
-        temp_dir = "temp"
-        os.makedirs(temp_dir, exist_ok=True)
-
-        downloaded_paths = []
-        pdf_path = None
-
-        try:
-            # Rasmlarni yuklab olish
-            for idx, file_id in enumerate(images, start=1):
-                file = await context.bot.get_file(file_id)
-                img_path = os.path.join(
-                    temp_dir,
-                    sanitize_filename(
-                        f"pdf_{message.from_user.id}_{int(time.time())}_{idx}.jpg"
-                    ),
+                await status_msg.edit_text(
+                    f"⏳ {len(downloaded_paths)} ta rasm PDF ga birlashtirilmoqda..."
                 )
-                await file.download_to_drive(img_path)
-                downloaded_paths.append(img_path)
-
-            # PDF yaratish
-            pdf_filename = sanitize_filename(
-                f"Rasmlar_{message.from_user.id}_{int(time.time())}.pdf"
-            )
-            pdf_path = os.path.join(temp_dir, pdf_filename)
-
-            import asyncio
-            await asyncio.to_thread(images_to_pdf, downloaded_paths, pdf_path)
-
-            # Foydalanuvchiga yuborish
-            with open(pdf_path, "rb") as f:
-                await message.reply_document(
-                    document=InputFile(f, filename=pdf_filename),
-                    caption="✅ PDF tayyor!\n\nBarcha rasmlar bitta faylga birlashtirildi.",
-                    reply_markup=get_image_to_pdf_keyboard(),
-                    parse_mode=ParseMode.MARKDOWN
+                pdf_filename = sanitize_filename(
+                    f"Rasmlar_{message.from_user.id}_{int(time.time())}.pdf"
                 )
+                pdf_path = os.path.join(temp_dir, pdf_filename)
+                await asyncio.to_thread(images_to_pdf, downloaded_paths, pdf_path)
 
-            await status_msg.delete()
-
-        except Exception as e:
-            await status_msg.edit_text(f"❌ PDF yaratishda xatolik yuz berdi: {e}")
-
-        finally:
-            # Temp fayllarni tozalash
-            for path in downloaded_paths:
-                try:
-                    if os.path.exists(path):
-                        os.remove(path)
-                except Exception:
-                    pass
-
-            if pdf_path is not None:
-                try:
-                    if os.path.exists(pdf_path):
+                with open(pdf_path, "rb") as f:
+                    await context.bot.send_document(
+                        chat_id=message.chat_id,
+                        document=InputFile(f, filename=pdf_filename),
+                        caption="✅ PDF tayyor!\n\nBarcha rasmlar bitta faylga birlashtirildi.",
+                        reply_markup=get_image_to_pdf_keyboard(),
+                        parse_mode=ParseMode.MARKDOWN,
+                    )
+                await status_msg.delete()
+                logger.info("PDF created for user_id=%s images=%s", message.from_user.id, len(downloaded_paths))
+            except Exception as e:
+                logger.error("PDF build error: %s", e, exc_info=True)
+                await status_msg.edit_text(f"❌ PDF yaratishda xatolik: {e}")
+            finally:
+                for path in downloaded_paths:
+                    try:
+                        if os.path.exists(path):
+                            os.remove(path)
+                    except Exception:
+                        pass
+                if pdf_path and os.path.exists(pdf_path):
+                    try:
                         os.remove(pdf_path)
-                except Exception:
-                    pass
+                    except Exception:
+                        pass
 
-            context.user_data.pop("waiting_for", None)
-            context.user_data.pop("pdf_images", None)
+        asyncio.create_task(_pdf_background())
+        return

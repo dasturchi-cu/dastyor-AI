@@ -455,11 +455,13 @@ async def api_ocr_direct(
         raise HTTPException(status_code=500, detail=f"Fayl saqlashda xato: {e}")
 
     # ── 2. OCR: extract text from image using Gemini ─────────────────
+    ocr_start = time.perf_counter()
     try:
         from bot.services.ocr_service import extract_text_from_image
         html_text = await extract_text_from_image(img_path)
+        logger.info("api_ocr_direct OCR done in %.1fs path=%s", time.perf_counter() - ocr_start, img_path)
     except Exception as e:
-        logger.error(f"OCR extract error: {e}", exc_info=True)
+        logger.error("api_ocr_direct OCR error after %.1fs: %s", time.perf_counter() - ocr_start, e, exc_info=True)
         _cleanup(img_path)
         raise HTTPException(status_code=502, detail=f"OCR xatosi: {str(e)[:200]}")
 

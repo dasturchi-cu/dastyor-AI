@@ -31,7 +31,11 @@ from bot.handlers.common import balance_handler, help_button_handler
 from bot.handlers.feedback import start_feedback, handle_feedback
 
 
-from bot.handlers.ocr_to_word import ocr_to_word_handler as ocr_handler, handle_ocr_image as process_ocr_image
+from bot.handlers.ocr_to_word import (
+    ocr_to_word_handler as ocr_handler,
+    handle_ocr_image as process_ocr_image,
+    process_ocr_tayyor,
+)
 from bot.handlers.obyektivka import obyektivka_handler, handle_obyektivka_audio as process_obyektivka_audio
 from bot.handlers.transliterate import transliterate_handler, process_transliteration as process_transliterate, krill_to_lotin_handler, lotin_to_krill_handler, translit_direction_callback
 from bot.handlers.translate import translate_handler, process_translation as process_translate_doc, set_translation_direction
@@ -97,15 +101,23 @@ async def handle_router_text(update: Update, context: ContextTypes.DEFAULT_TYPE)
     if await process_admin_state_input(update, context): return
     
     state = context.user_data.get('waiting_for')
-    text = update.message.text.lower()
+    text = (update.message.text or "").strip().lower()
     
     # 1. State-based routing
+    if state == 'ocr_image' and text and 'tayyor' in text:
+        if await process_ocr_tayyor(update, context):
+            return
+        await update.message.reply_text("❌ Hech qanday rasm yuklanmagan. Avval rasmlar yuboring.")
+        return
     if state in ['transliterate_text', 'translit_content'] or context.user_data.get('transliterate_direction'):
          await process_transliterate(update, context)
          return
     elif state == 'translate_input' or context.user_data.get('translate_direction'):
          await process_translate_doc(update, context)
          return
+    elif state == 'ocr_image' and context.user_data.get('ocr_images') and text and 'tayyor' in text:
+         if await process_ocr_tayyor(update, context):
+             return
     elif state == 'pdf_images':
          await process_image_to_pdf(update, context)
          return

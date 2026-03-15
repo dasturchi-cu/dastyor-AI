@@ -392,12 +392,18 @@ const DastyorAI = (() => {
     // i18n BRIDGE  (delegates to I18n if it is loaded)
     // ═══════════════════════════════════════════════════════════════════
 
-    /** Change language and re-render all data-i18n elements. */
+    /** Change language and re-render all data-i18n elements across the page. */
     function setLang(lang) {
         const nextLang = (lang || 'uz_lat');
-        if (window.I18n) window.I18n.setLang(nextLang);
-        else localStorage.setItem('lang', nextLang);
+        if (window.I18n) {
+            window.I18n.setLang(nextLang);
+        } else {
+            localStorage.setItem('lang', nextLang);
+        }
         _saveSettings({ lang: nextLang });
+        if (window.I18n && typeof window.I18n.apply === 'function') {
+            window.I18n.apply();
+        }
     }
 
     /** Current language code. */
@@ -477,8 +483,13 @@ const DastyorAI = (() => {
             btn.addEventListener('click', () => window.I18n?.showPicker(true));
         });
 
-        // 6. Listen for theme changes fired by other tabs / pages
+        // 6. Listen for theme/lang changes so UI updates without reload
         window.addEventListener('da-theme-change', () => applyTheme());
+        window.addEventListener('da-settings-change', () => {
+            _settings = null;
+            applyTheme();
+            if (window.I18n && typeof window.I18n.apply === 'function') window.I18n.apply();
+        });
         window.addEventListener('storage', (e) => {
             if (e.key === _LS_SETTINGS || e.key === 'da_theme' || e.key === 'lang') {
                 _settings = null;
@@ -509,6 +520,14 @@ const DastyorAI = (() => {
         if (onUser) onUser(user);
         return user;
     }
+
+    // Global theme listener — ensures theme updates apply on ALL pages (even without initUI)
+    window.addEventListener('da-theme-change', () => applyTheme());
+    // Global settings listener — language/theme change from any source updates current page
+    window.addEventListener('da-settings-change', () => {
+        if (window.I18n) I18n.apply();
+        applyTheme();
+    });
 
     // Dev shortcut: Shift+T toggles theme
     if (typeof document !== 'undefined') {

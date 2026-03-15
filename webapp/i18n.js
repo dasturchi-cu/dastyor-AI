@@ -524,7 +524,11 @@ const I18n = (() => {
     }
 
     function _confirmPick() {
-        setLang(_lang);
+        if (window.DastyorAI && typeof window.DastyorAI.setLang === 'function') {
+            window.DastyorAI.setLang(_lang);
+        } else {
+            setLang(_lang);
+        }
         document.getElementById('i18n-picker')?.remove();
     }
 

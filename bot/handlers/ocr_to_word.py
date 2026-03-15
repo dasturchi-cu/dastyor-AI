@@ -172,16 +172,18 @@ def add_html_to_docx(doc, html_content):
 async def perform_ocr_and_send(context, image_path, chat_id, user_id):
     """
     Reusable function: Takes image path, performs OCR, creates Word doc, and sends it.
+    Runs fully async; safe to call from a background task.
     """
-    # Initial Progress
+    t0 = time.perf_counter()
+    logger.info("OCR task started for user_id=%s chat_id=%s", user_id, chat_id)
     progress_msg = await send_progress(context, chat_id, "Jarayon boshlandi...")
     doc_path = None
-    
+
     try:
         await update_progress(context, progress_msg, 20, "AI matnni o'qimoqda...")
-        
         # Extract Text (HTML format)
         extracted_text = await extract_text_from_image(image_path)
+        logger.info("OCR extract done in %.1fs user_id=%s", time.perf_counter() - t0, user_id)
         
         if not extracted_text:
             await progress_msg.edit_text("❌ **Xatolik:** Matn ajratilmadi.")
@@ -219,14 +221,16 @@ async def perform_ocr_and_send(context, image_path, chat_id, user_id):
                 return
             
         await progress_msg.delete()
-        
-        # CLEAR STATE AFTER SUCCESS
-        if 'waiting_for' in context.user_data and context.user_data['waiting_for'] == 'ocr_image':
-            del context.user_data['waiting_for']
-        
+        # CLEAR STATE AFTER SUCCESS (when run from background task, user_data is shared)
+        if getattr(context, "user_data", None) and context.user_data.get("waiting_for") == "ocr_image":
+            context.user_data.pop("waiting_for", None)
+        logger.info("OCR task completed in %.1fs user_id=%s", time.perf_counter() - t0, user_id)
     except Exception as e:
-        logger.error(f"OCR Error: {e}", exc_info=True)
-        await progress_msg.edit_text(f"❌ **Xatolik yuz berdi:** {str(e)}")
+        logger.error("OCR Error user_id=%s: %s", user_id, e, exc_info=True)
+        try:
+            await progress_msg.edit_text(f"❌ **Xatolik yuz berdi:** {str(e)}")
+        except Exception:
+            pass
         
     finally:
         # Cleanup
@@ -237,28 +241,194 @@ async def perform_ocr_and_send(context, image_path, chat_id, user_id):
 
 
 async def ocr_to_word_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Start OCR process explanation"""
-    # Simply set state
-    context.user_data['waiting_for'] = 'ocr_image'
-    
+    """Start OCR process: collect images then process on 'Tayyor'."""
+    context.user_data["waiting_for"] = "ocr_image"
+    context.user_data["ocr_images"] = []
+
     msg = (
         "📜 **Hujjat rasmi → Word AI** ✨\n\n"
-        "Hujjat rasmini yuboring, men uni format, shrift, jadvallari saqlangan holatda Wordga aylantirib beraman."
+        "Rasmlarni yuboring (1–20 ta). Tayyor bo'lgach, *Tayyor* deb yozing yoki tugmani bosing."
     )
     await update.message.reply_text(
         msg,
         reply_markup=get_back_button(),
-        parse_mode=ParseMode.MARKDOWN
+        parse_mode=ParseMode.MARKDOWN,
     )
 
 
+def _run_ocr_background(
+    bot, chat_id: int, user_id: int, temp_image_path: str, user_data: dict
+) -> None:
+    """
+    Run OCR in a fire-and-forget background task. Does NOT block the event loop.
+    Cleans up temp file and updates user_data on completion.
+    """
+    async def _task():
+        try:
+            # Build a minimal context-like object for progress/send (no full Update)
+            class _Ctx:
+                def __init__(self, b, ud):
+                    self.bot = b
+                    self.user_data = ud
+            ctx = _Ctx(bot, user_data)
+            await perform_ocr_and_send(ctx, temp_image_path, chat_id, user_id)
+        except Exception as e:
+            logger.error(f"OCR background task failed: {e}", exc_info=True)
+            try:
+                await bot.send_message(
+                    chat_id=chat_id,
+                    text=f"❌ **OCR xatolik:** {str(e)}",
+                    parse_mode=ParseMode.MARKDOWN,
+                )
+            except Exception:
+                pass
+        finally:
+            try:
+                if temp_image_path and os.path.exists(temp_image_path):
+                    os.remove(temp_image_path)
+            except Exception:
+                pass
+
+    asyncio.create_task(_task())
+
+
+async def _perform_ocr_batch_and_send(context, bot, chat_id: int, user_id: int, file_ids: list) -> None:
+    """
+    Download all files, run OCR on each with progress (e.g. "Processing 3/10"),
+    merge HTML into one Word doc, send. Runs in background; cleans up temp files.
+    """
+    t0 = time.perf_counter()
+    n = len(file_ids)
+    logger.info("OCR batch started user_id=%s chat_id=%s count=%s", user_id, chat_id, n)
+
+    progress_msg = None
+    temp_paths = []
+    doc_path = None
+    try:
+        progress_msg = await send_progress(context, chat_id, f"0/{n} — Yuklanmoqda...")
+        temp_dir = "temp"
+        os.makedirs(temp_dir, exist_ok=True)
+        for i, fid in enumerate(file_ids):
+            try:
+                f = await bot.get_file(fid)
+                path = os.path.join(temp_dir, f"ocr_batch_{user_id}_{int(time.time())}_{i}.jpg")
+                await f.download_to_drive(path)
+                temp_paths.append(path)
+            except Exception as e:
+                logger.warning("Batch download failed for file %s: %s", i, e)
+        if not temp_paths:
+            await progress_msg.edit_text("❌ Hech qanday rasm yuklanmadi.")
+            return
+
+        html_parts = []
+        for i, img_path in enumerate(temp_paths):
+            pct = 20 + int(70 * (i + 1) / len(temp_paths))
+            await update_progress(
+                context, progress_msg, pct,
+                f"O'qilmoqda {i + 1}/{len(temp_paths)}...",
+            )
+            text = await extract_text_from_image(img_path)
+            if text:
+                html_parts.append(f"<div class=\"page-break\">{text}</div>")
+            else:
+                html_parts.append("<p>[Matn ajratilmadi]</p>")
+
+        await update_progress(context, progress_msg, 90, "Word yaratilmoqda...")
+        merged_html = "<body>" + "\n".join(html_parts) + "</body>"
+        doc_path = f"Ocr_Natija_{user_id}_{int(time.time())}_@DastyorAiBot.docx"
+
+        def _create_doc():
+            doc = Document()
+            try:
+                add_html_to_docx(doc, merged_html)
+            except Exception as parse_err:
+                logger.error("Batch HTML parse error: %s", parse_err)
+                doc.add_paragraph(merged_html.replace("<br>", "\n").replace("</p>", "\n"))
+            doc.save(doc_path)
+            return doc_path
+
+        await asyncio.to_thread(_create_doc)
+
+        await update_progress(context, progress_msg, 95, "Yuborilmoqda...")
+        with open(doc_path, "rb") as f:
+            await send_docx_with_confirmation(
+                bot, chat_id, f,
+                filename=doc_path,
+                caption="✅ **Barcha rasmlar bitta Word faylga birlashtirildi.**",
+                parse_mode=ParseMode.MARKDOWN,
+                reply_markup=get_main_menu(user_id),
+            )
+        await progress_msg.delete()
+        if getattr(context, "user_data", None):
+            context.user_data.pop("waiting_for", None)
+            context.user_data.pop("ocr_images", None)
+        logger.info("OCR batch completed in %.1fs user_id=%s count=%s", time.perf_counter() - t0, user_id, n)
+    except Exception as e:
+        logger.error("OCR batch error user_id=%s: %s", user_id, e, exc_info=True)
+        try:
+            if progress_msg:
+                await progress_msg.edit_text(f"❌ **Xatolik:** {str(e)}")
+        except Exception:
+            pass
+        if getattr(context, "user_data", None):
+            context.user_data.pop("waiting_for", None)
+            context.user_data.pop("ocr_images", None)
+    finally:
+        for p in temp_paths:
+            try:
+                if os.path.exists(p):
+                    os.remove(p)
+            except Exception:
+                pass
+        if doc_path:
+            try:
+                if os.path.exists(doc_path):
+                    os.remove(doc_path)
+            except Exception:
+                pass
+
+
+def _run_ocr_batch_background(bot, chat_id: int, user_id: int, file_ids: list, user_data: dict) -> None:
+    """Start batch OCR in background; does not block the event loop."""
+    class _Ctx:
+        def __init__(self, b, ud):
+            self.bot = b
+            self.user_data = ud
+    ctx = _Ctx(bot, user_data)
+
+    async def _task():
+        await _perform_ocr_batch_and_send(ctx, bot, chat_id, user_id, file_ids)
+
+    asyncio.create_task(_task())
+
+
+async def process_ocr_tayyor(update: Update, context: ContextTypes.DEFAULT_TYPE) -> bool:
+    """
+    Called when user says 'Tayyor' in OCR mode. Starts batch OCR in background.
+    Returns True if batch was started, False otherwise.
+    """
+    images = context.user_data.get("ocr_images") or []
+    if not images:
+        return False
+    chat_id = update.effective_chat.id
+    user_id = update.effective_user.id if update.effective_user else 0
+    context.user_data["ocr_images"] = []  # clear so we don't process twice
+    _run_ocr_batch_background(context.bot, chat_id, user_id, images, context.user_data)
+    await update.message.reply_text(
+        f"⏳ {len(images)} ta rasm qayta ishlanmoqda. Natija tez orada yuboriladi.",
+        parse_mode=ParseMode.MARKDOWN,
+    )
+    return True
+
+
 async def handle_ocr_image(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Handle image upload (Direct menu usage)"""
+    """Handle image upload (Direct menu usage). Downloads file then runs OCR in background."""
     message = update.message
-    
+
     # Check if back button
     if message.text and is_back_button(message.text):
-        del context.user_data['waiting_for']
+        context.user_data.pop("waiting_for", None)
+        context.user_data.pop("ocr_images", None)
         await update.message.reply_text(
             "🏠 **Asosiy menyuga qaytildi**",
             reply_markup=get_main_menu(update.effective_user.id if update.effective_user else None),
@@ -273,38 +443,26 @@ async def handle_ocr_image(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return
 
-    # Send typing action
-    await context.bot.send_chat_action(chat_id=update.effective_chat.id, action=ChatAction.UPLOAD_DOCUMENT)
-    
-    # Inform user about download
-    temp_msg = await update.message.reply_text("⏳ Rasm yuklanmoqda...")
+    # Collect file_id (no download yet — batch will download on Tayyor)
+    if message.document:
+        file_id = message.document.file_id
+    else:
+        file_id = message.photo[-1].file_id
 
-    temp_image_path = None
-    
-    try:
-        # Get file object
-        if message.document:
-             file_obj = await message.document.get_file()
-        else:
-             file_obj = await message.photo[-1].get_file()
+    images = context.user_data.setdefault("ocr_images", [])
+    if len(images) >= 20:
+        await update.message.reply_text(
+            "❌ Maksimum 20 ta rasm. *Tayyor* deb yozing.",
+            reply_markup=get_back_button(),
+            parse_mode=ParseMode.MARKDOWN,
+        )
+        return
+    images.append(file_id)
+    context.user_data["ocr_images"] = images
 
-        # Download file
-        temp_image_path = f"temp_ocr_{update.effective_user.id}_{int(time.time())}.jpg"
-        await file_obj.download_to_drive(temp_image_path)
-        
-        # Delete temp msg because perform_ocr_and_send creates its own progress bar
-        await temp_msg.delete()
-        
-        # Process
-        await perform_ocr_and_send(context, temp_image_path, update.effective_chat.id, update.effective_user.id)
-        
-    except Exception as e:
-        logger.error(f"Download Error: {e}", exc_info=True)
-        await temp_msg.edit_text(f"❌ Yuklashda xato: {e}")
-        
-    finally:
-        # Cleanup temp image
-        try:
-            if temp_image_path and os.path.exists(temp_image_path):
-                os.remove(temp_image_path)
-        except Exception: pass
+    await update.message.reply_text(
+        f"✅ {len(images)} ta rasm qabul qilindi.\n\n"
+        "Yana rasm yuboring yoki *Tayyor* deb yozing.",
+        reply_markup=get_back_button(),
+        parse_mode=ParseMode.MARKDOWN,
+    )
