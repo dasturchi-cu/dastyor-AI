@@ -1,37 +1,27 @@
 <!DOCTYPE html>
-<html lang="uz" class="dark">
-
+<html lang="uz">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>Real-time CV Builder | DASTYOR AI</title>
-  <!-- Fonts -->
-  <link
-    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@400;600;700;800&display=swap"
-    rel="stylesheet" />
-  <!-- 3. Telegram SDK -->
+  
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Sora:wght@400;600;700;800&display=swap" rel="stylesheet" />
+  
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  <link rel="stylesheet" href="theme.css" />
-  <script src="da-core.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-
-  <!-- Tailwind -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
-      darkMode: 'class',
       theme: {
         extend: {
           fontFamily: {
-            sans: ['Inter', 'sans-serif'],
-            display: ['Outfit', 'sans-serif'],
+            sans: ['Plus Jakarta Sans', 'sans-serif'],
+            display: ['Sora', 'sans-serif'],
           },
           colors: {
-            apple: {
-              blue: '#0A84FF',
-              green: '#30D158',
-              orange: '#FF9F0A',
-              purple: '#BF5AF2',
+            brand: {
+              50: '#eff6ff', 100: '#dbeafe', 200: '#bfdbfe', 300: '#93c5fd',
+              400: '#60a5fa', 500: '#3b82f6', 600: '#2563eb', 700: '#1d4ed8',
             }
           }
         }
@@ -40,1768 +30,812 @@
   </script>
 
   <style>
-    body { overscroll-behavior-y: none; background: var(--bg-color); color: var(--text-color); }
-
-    .scroller::-webkit-scrollbar {
-      width: 5px;
-    }
-
-    .scroller::-webkit-scrollbar-thumb {
-      background: rgba(150, 150, 150, 0.3);
-      border-radius: 4px;
-    }
-
-    /* ─── CV OUTPUT CANVAS ─── */
-    .cv-canvas-wrapper {
-      position: relative;
-      transform-origin: top center;
-      transition: transform 0.1s ease;
-    }
-
-    .cv-canvas {
-      width: 210mm;
-      min-height: 297mm;
-      background: #fff;
-      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
-      margin-bottom: 30px;
-      overflow: hidden;
-      font-family: 'Inter', sans-serif;
-    }
-
-    /* TPL 1: MINIMAL */
-    .tpl-minimal {
-      color: #1e293b;
-      padding: 25mm 20mm;
-    }
-
-    .tpl-minimal .header {
-      display: flex;
-      gap: 25px;
-      margin-bottom: 30px;
-      border-bottom: 2px solid #e2e8f0;
-      padding-bottom: 20px;
-    }
-
-    .tpl-minimal .avatar {
-      width: 35mm;
-      height: 35mm;
-      border-radius: 5px;
-      object-fit: cover;
-    }
-
-    .tpl-minimal .name {
-      font-size: 26pt;
-      font-weight: 800;
-      color: #0f172a;
-      line-height: 1.1;
-      margin-bottom: 5px;
-    }
-
-    .tpl-minimal .role {
-      font-size: 14pt;
-      color: #3b82f6;
-      font-weight: 600;
-      margin-bottom: 15px;
-    }
-
-    .tpl-minimal .contact-wrap {
-      display: flex;
-      gap: 15px;
-      font-size: 10pt;
-      color: #64748b;
-    }
-
-    .tpl-minimal .section {
-      margin-bottom: 25px;
-    }
-
-    .tpl-minimal .sec-title {
-      font-size: 13pt;
-      font-weight: 700;
-      color: #0f172a;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      margin-bottom: 12px;
-    }
-
-    .tpl-minimal .text {
-      font-size: 10.5pt;
-      line-height: 1.6;
-    }
-
-    /* TPL 2: SPLIT PROFESSIONAL */
-    .tpl-split {
-      display: flex;
-      color: #1e293b;
-      padding: 0;
-      min-height: 297mm;
-    }
-
-    .tpl-split .sidebar {
-      width: 32%;
-      background: #0f172a;
-      color: #e2e8f0;
-      padding: 20mm 10mm;
-      flex-shrink: 0;
-    }
-
-    .tpl-split .main {
-      flex: 1;
-      padding: 20mm 15mm;
-    }
-
-    .tpl-split .avatar {
-      width: 35mm;
-      height: 35mm;
-      border-radius: 50%;
-      object-fit: cover;
-      border: 3px solid #334155;
-      margin-bottom: 20px;
-    }
-
-    .tpl-split .name {
-      font-size: 24pt;
-      font-weight: 800;
-      color: #e2e8f0;
-      line-height: 1.2;
-      margin-bottom: 8px;
-    }
-
-    .tpl-split .role {
-      font-size: 12pt;
-      color: #3b82f6;
-      font-weight: 500;
-      margin-bottom: 30px;
-    }
-
-    .tpl-split .sec-title-main {
-      font-size: 14pt;
-      font-weight: 800;
-      color: #0f172a;
-      border-bottom: 2px solid #e2e8f0;
-      padding-bottom: 8px;
-      margin-bottom: 15px;
-      text-transform: uppercase;
-    }
-
-    .tpl-split .sec-title-side {
-      font-size: 12pt;
-      font-weight: 700;
-      color: #fff;
-      border-bottom: 1px solid #334155;
-      padding-bottom: 5px;
-      margin-bottom: 15px;
-      text-transform: uppercase;
-    }
-
-    .tpl-split .contact-item {
-      font-size: 9.5pt;
-      margin-bottom: 10px;
-      line-height: 1.4;
-      word-break: break-all;
-    }
-
-    .tpl-split .section {
-      margin-bottom: 25px;
-    }
-
-    /* TPL 3: MODERN HEADER */
-    .tpl-modern {
-      padding: 0;
-      color: #334155;
-      min-height: 297mm;
-    }
-
-    .tpl-modern .header {
-      background: #1e293b;
-      color: white;
-      padding: 20mm;
-      display: flex;
-      align-items: center;
-      gap: 30px;
-    }
-
-    .tpl-modern .avatar {
-      width: 40mm;
-      height: 40mm;
-      border-radius: 12px;
-      object-fit: cover;
-    }
-
-    .tpl-modern .name {
-      font-size: 28pt;
-      font-weight: 900;
-      letter-spacing: -1px;
-      margin-bottom: 5px;
-    }
-
-    .tpl-modern .role {
-      font-size: 14pt;
-      font-weight: 500;
-      color: #94a3b8;
-      margin-bottom: 15px;
-    }
-
-    .tpl-modern .contact {
-      font-size: 10pt;
-      opacity: 0.8;
-      line-height: 1.5;
-    }
-
-    .tpl-modern .body {
-      display: flex;
-      padding: 15mm 20mm;
-      gap: 40px;
-    }
-
-    .tpl-modern .col-main {
-      flex: 6;
-    }
-
-    .tpl-modern .col-side {
-      flex: 4;
-    }
-
-    .tpl-modern .sec-title {
-      font-size: 14pt;
-      font-weight: 800;
-      color: #0f172a;
-      margin-bottom: 15px;
-      text-transform: uppercase;
-    }
-
-    /* TPL 4: ATS SAFE */
-    .tpl-ats {
-      padding: 20mm;
-      font-family: 'Arial', sans-serif;
-      color: #000;
-    }
-
-    .tpl-ats .header {
-      text-align: center;
-      border-bottom: 1px solid #000;
-      padding-bottom: 15px;
-      margin-bottom: 20px;
-    }
-
-    .tpl-ats .name {
-      font-size: 24pt;
-      font-weight: bold;
-      margin-bottom: 4px;
-      text-transform: uppercase;
-    }
-
-    .tpl-ats .role {
-      font-size: 12pt;
-      margin-bottom: 10px;
-    }
-
-    .tpl-ats .contact-wrap {
-      font-size: 10pt;
-      display: flex;
-      justify-content: center;
-      gap: 15px;
-      flex-wrap: wrap;
-    }
-
-    .tpl-ats .section {
-      margin-bottom: 20px;
-    }
-
-    .tpl-ats .sec-title {
-      font-size: 12pt;
-      font-weight: bold;
-      text-transform: uppercase;
-      border-bottom: 1px solid #000;
-      padding-bottom: 3px;
-      margin-bottom: 10px;
-    }
-
-    /* TPL 5: ELEGANT CLASSIC */
-    .tpl-elegant {
-      padding: 20mm;
-      font-family: 'Georgia', serif;
-      color: #333;
-    }
-
-    .tpl-elegant .header {
-      text-align: center;
-      margin-bottom: 30px;
-    }
-
-    .tpl-elegant .name {
-      font-size: 32pt;
-      font-variant: small-caps;
-      letter-spacing: 2px;
-      color: #111;
-      margin-bottom: 5px;
-    }
-
-    .tpl-elegant .role {
-      font-size: 13pt;
-      font-style: italic;
-      color: #555;
-      margin-bottom: 10px;
-    }
-
-    .tpl-elegant .contact-wrap {
-      font-size: 10pt;
-      color: #666;
-    }
-
-    .tpl-elegant .body-cols {
-      display: flex;
-      gap: 30px;
-    }
-
-    .tpl-elegant .col-main {
-      flex: 2;
-    }
-
-    .tpl-elegant .col-side {
-      flex: 1;
-      border-left: 1px solid #ddd;
-      padding-left: 30px;
-    }
-
-    .tpl-elegant .sec-title {
-      font-size: 14pt;
-      padding-bottom: 5px;
-      border-bottom: 1px dashed #ccc;
-      margin-bottom: 15px;
-      text-transform: uppercase;
-      color: #222;
-      font-weight: bold;
-    }
-
-    /* TPL 6: CORPORATE */
-    .tpl-corporate {
-      padding: 0;
-      color: #333;
-      min-height: 297mm;
-      display: flex;
-      flex-direction: column;
-    }
-
-    .tpl-corporate .header {
-      background: #2563eb;
-      color: #fff;
-      padding: 20mm;
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-end;
-    }
-
-    .tpl-corporate .name {
-      font-size: 26pt;
-      font-weight: 800;
-      margin-bottom: 5px;
-    }
-
-    .tpl-corporate .role {
-      font-size: 14pt;
-      font-weight: 500;
-      opacity: 0.9;
-    }
-
-    .tpl-corporate .contact-wrap {
-      text-align: right;
-      font-size: 10pt;
-      opacity: 0.9;
-    }
-
-    .tpl-corporate .body-cols {
-      display: flex;
-      padding: 15mm 20mm;
-      gap: 35px;
-      flex: 1;
-      background: #fff;
-    }
-
-    .tpl-corporate .col-main {
-      flex: 7;
-    }
-
-    .tpl-corporate .col-side {
-      flex: 3;
-    }
-
-    .tpl-corporate .sec-title {
-      font-size: 13pt;
-      font-weight: bold;
-      color: #1e3a8a;
-      margin-bottom: 15px;
-      text-transform: uppercase;
-      border-bottom: 2px solid #bfdbfe;
-      padding-bottom: 4px;
-    }
-
-    /* TPL 7: CREATIVE */
-    .tpl-creative {
-      padding: 0;
-      display: flex;
-      color: #2d3748;
-      min-height: 297mm;
-    }
-
-    .tpl-creative .left {
-      width: 35%;
-      background: #fdf2f8;
-      padding: 20mm 15mm;
-      border-right: 2px solid #fbcfe8;
-      flex-shrink: 0;
-    }
-
-    .tpl-creative .right {
-      flex: 1;
-      padding: 20mm 15mm;
-      background: #fff;
-    }
-
-    .tpl-creative .avatar {
-      width: 40mm;
-      height: 40mm;
-      border-radius: 20mm;
-      object-fit: cover;
-      margin: 0 auto 20px auto;
-      display: block;
-      border: 4px solid #f9a8d4;
-    }
-
-    .tpl-creative .name {
-      font-size: 24pt;
-      font-weight: 900;
-      color: #db2777;
-      text-align: center;
-      line-height: 1.1;
-      margin-bottom: 10px;
-    }
-
-    .tpl-creative .role {
-      font-size: 12pt;
-      color: #9d174d;
-      text-align: center;
-      margin-bottom: 30px;
-      font-weight: 600;
-    }
-
-    .tpl-creative .contact-item {
-      font-size: 10pt;
-      margin-bottom: 12px;
-      color: #831843;
-    }
-
-    .tpl-creative .sec-title {
-      font-size: 14pt;
-      font-weight: 800;
-      color: #be185d;
-      text-transform: uppercase;
-      margin-bottom: 15px;
-    }
-
-    .tpl-creative .sec-title-left {
-      border-bottom: 2px solid #f9a8d4;
-      margin-bottom: 15px;
-      padding-bottom: 5px;
-    }
-
-    /* TPL 8: PROFESSIONAL LEFT */
-    .tpl-prof {
-      display: flex;
-      padding: 0;
-      min-height: 297mm;
-      background: #fff;
-      color: #475569;
-    }
-
-    .tpl-prof .left-strip {
-      width: 50px;
-      background: #0f172a;
-    }
-
-    .tpl-prof .content {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      padding: 20mm;
-    }
-
-    .tpl-prof .header {
-      display: flex;
-      align-items: center;
-      gap: 30px;
-      margin-bottom: 35px;
-    }
-
-    .tpl-prof .name {
-      font-size: 30pt;
-      font-weight: 300;
-      color: #0f172a;
-      margin-bottom: 5px;
-    }
-
-    .tpl-prof .name strong {
-      font-weight: 800;
-    }
-
-    .tpl-prof .role {
-      font-size: 14pt;
-      color: #0284c7;
-      letter-spacing: 2px;
-      text-transform: uppercase;
-    }
-
-    .tpl-prof .contact-wrap {
-      display: flex;
-      gap: 20px;
-      font-size: 10pt;
-      color: #64748b;
-      margin-top: 15px;
-    }
-
-    .tpl-prof .sec-title {
-      font-size: 15pt;
-      font-weight: 700;
-      color: #0f172a;
-      border-bottom: 3px solid #0f172a;
-      padding-bottom: 5px;
-      margin-bottom: 20px;
-    }
-
-    /* Common Output Items */
-    .item-row {
-      margin-bottom: 15px;
-    }
-
-    .item-head {
-      display: flex;
-      justify-content: space-between;
-      align-items: baseline;
-      margin-bottom: 4px;
-    }
-
-    .item-title {
-      font-weight: 700;
-      font-size: 11.5pt;
-    }
-
-    .item-date {
-      font-size: 9.5pt;
-      color: #64748b;
-      font-weight: 600;
-    }
-
-    .item-sub {
-      font-size: 10.5pt;
-      font-weight: 500;
-      font-style: italic;
-      color: #3b82f6;
-      margin-bottom: 5px;
-    }
-
-    .item-desc {
-      font-size: 10pt;
-      line-height: 1.5;
-      color: #475569;
-    }
-
-    .badges-wrap {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-    }
-
-    .badge {
-      background: #e2e8f0;
-      color: #0f172a;
-      padding: 4px 10px;
-      border-radius: 4px;
-      font-size: 9pt;
-      font-weight: 600;
-    }
-
-    .suggest-chip {
-      border: 1px solid rgba(59, 130, 246, 0.25);
-      background: rgba(59, 130, 246, 0.08);
-      color: #60a5fa;
-      padding: 6px 10px;
-      border-radius: 10px;
-      font-size: 11px;
-      font-weight: 700;
-      cursor: pointer;
-      transition: all .2s ease;
-    }
-
-    .suggest-chip:hover {
-      transform: translateY(-1px);
-      background: rgba(59, 130, 246, 0.14);
-    }
-
-    .suggest-chip.active {
-      background: #0A84FF;
-      color: #fff;
-      border-color: #0A84FF;
-      box-shadow: 0 8px 20px rgba(10, 132, 255, .35);
-    }
-
-    .accent-btn {
-      width: 52px;
-      height: 22px;
-      border-radius: 8px;
-      border: 2px solid transparent;
-      cursor: pointer;
-      transition: all .2s ease;
-    }
-
-    .accent-btn.active {
-      transform: translateY(-1px) scale(1.04);
-      border-color: #fff;
-      box-shadow: 0 10px 20px rgba(0, 0, 0, .25);
-    }
-
-    .photo-drop-active {
-      outline: 2px dashed #0A84FF;
-      outline-offset: 3px;
-      box-shadow: 0 12px 30px rgba(10, 132, 255, .3);
-    }
-
-    .clear-btn {
-      background: linear-gradient(135deg, #0f172a, #1e293b);
-      color: #fff;
-      font-weight: 700;
-      border-radius: 12px;
-      padding: 11px 14px;
-      width: 100%;
-      transition: all .2s ease;
-    }
-
-    .clear-btn:hover {
-      opacity: .92;
-      transform: translateY(-1px);
-    }
-
-    .cv-canvas.themable {
-      --cv-accent: #0A84FF;
-    }
-
-    .cv-canvas.themable .role,
-    .cv-canvas.themable .sec-title,
-    .cv-canvas.themable .sec-title-main,
-    .cv-canvas.themable .sec-title-side,
-    .cv-canvas.themable .sec-title-left,
-    .cv-canvas.themable .item-sub {
-      color: var(--cv-accent) !important;
-    }
-
-    .cv-canvas.themable .sec-title,
-    .cv-canvas.themable .sec-title-main,
-    .cv-canvas.themable .sec-title-side,
-    .cv-canvas.themable .sec-title-left {
-      border-color: var(--cv-accent) !important;
-    }
-
-    .cv-canvas.themable .badge {
-      background: var(--cv-accent);
-      color: #ffffff;
-    }
-
-    @media print {
-      body * {
-        visibility: hidden;
-      }
-
-      #cv-box,
-      #cv-box * {
-        visibility: visible;
-      }
-
-      #cv-box {
-        position: absolute;
-        left: 0;
-        top: 0;
-        width: 210mm;
-        min-height: 297mm;
-        transform: none !important;
-        box-shadow: none !important;
-        margin: 0;
-      }
-    }
+    * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
+    body { background: linear-gradient(135deg, #e0f2fe 0%, #f0f9ff 50%, #bae6fd 100%); color: #1e293b; }
+
+    .glass { background: rgba(255,255,255,0.7); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.8); }
+
+    .input-premium { background: #eff6ff; border: 2px solid #bfdbfe; color: #1e293b; transition: all 0.3s ease; }
+    .input-premium:focus { background: #ffffff; border-color: #3b82f6; box-shadow: 0 0 0 4px rgba(59,130,246,0.15); outline: none; }
+    .input-premium::placeholder { color: #94a3b8; }
+
+    /* Custom Scrollbar */
+    .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+    .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 4px; }
+    .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    
+    .scroller::-webkit-scrollbar { width: 8px; }
+    .scroller::-webkit-scrollbar-track { background: rgba(255,255,255,0.05); border-radius: 4px; }
+    .scroller::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 4px; }
+
+    .hyper-emoji {
+      display: inline-block; font-size: 1.5rem; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));
+      transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.3s ease; cursor: pointer;
+    }
+    .hyper-emoji:hover { transform: scale(1.3) translateY(-3px); filter: drop-shadow(0 8px 10px rgba(0,0,0,0.2)); }
+
+    .step-btn { flex: 1; text-align: center; padding: 12px 5px; font-weight: 700; font-size: 12px; color: #64748b; border-bottom: 3px solid transparent; transition: all 0.3s ease; cursor: pointer; text-transform: uppercase; letter-spacing: 0.5px; }
+    .step-btn.active { color: #2563eb; border-bottom: 3px solid #2563eb; background: linear-gradient(to top, rgba(59,130,246,0.1), transparent); border-radius: 8px 8px 0 0; }
+    .step-content { display: none; animation: fadeIn 0.4s ease-out; }
+    .step-content.active { display: block; }
+
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+    .tpl-card { position: relative; transition: all 0.3s ease; overflow: hidden; cursor: pointer; border: 2px solid transparent; background: #fff; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
+    .tpl-card:hover { transform: translateY(-4px); box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); }
+    .tpl-card.tpl-active { border-color: #3b82f6; box-shadow: 0 0 0 4px rgba(59,130,246,0.2); }
+    .tpl-card.tpl-active::after { content: '✓'; position: absolute; top: 4px; right: 4px; width: 20px; height: 20px; background: #3b82f6; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; color: white; font-weight: bold; }
+    .tpl-name { position: absolute; bottom: 0; left: 0; right: 0; background: rgba(255,255,255,0.9); text-align: center; font-size: 10px; font-weight: 700; padding: 4px; color: #1e293b; border-top: 1px solid #e2e8f0; }
+
+    .btn-primary { background: linear-gradient(135deg,#3b82f6 0%,#2563eb 100%); color: white; box-shadow: 0 4px 15px rgba(59,130,246,0.3); transition: all 0.3s; }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(59,130,246,0.4); }
+    
+    .entry-card { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px; padding: 16px; margin-bottom: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+    
+    .cv-canvas-wrapper { position: relative; transform-origin: top center; transition: transform 0.2s ease-out; }
+    .cv-canvas { width: 210mm; min-height: 297mm; background: #fff; box-shadow: 0 10px 30px rgba(0,0,0,0.1); margin: 0 auto; overflow: visible; }
+
+    /* Lang Level Inputs CSS */
+    .lang-level-btn { width: 20px; height: 20px; border-radius: 50%; border: 2px solid #cbd5e1; cursor: pointer; transition: 0.2s; }
+    .lang-level-btn.active { background: #2563eb; border-color: #2563eb; box-shadow: 0 0 8px rgba(37,99,235,0.5); }
+    .lang-preview-dot { width: 14px; height: 14px; border-radius: 50%; border: 2px solid; opacity: 0.3; display: inline-block; margin-right: 4px; }
+    .lang-preview-dot.fill { opacity: 1; }
+
+    /* CV TEMPLATES CSS */
+    .tpl-minimal{padding:20mm}
+    .tpl-minimal .header{display:flex;gap:20px;border-bottom:2px solid #e2e8f0;padding-bottom:15px;margin-bottom:20px}
+    .tpl-minimal .avatar{width:35mm;height:35mm;border-radius:8px;object-fit:cover}
+    .tpl-minimal .name{font-size:24pt;font-weight:800;color:#0f172a}
+    .tpl-minimal .role{font-size:14pt;font-weight:600;margin-bottom:10px}
+    
+    .tpl-split{display:flex;padding:0;min-height:297mm}
+    .tpl-split .sidebar{width:35%;background:#0f172a;color:#e2e8f0;padding:20mm 10mm}
+    .tpl-split .main{flex:1;padding:20mm 15mm;background:#fff}
+    .tpl-split .avatar{width:40mm;height:40mm;border-radius:50%;object-fit:cover;border:3px solid #3b82f6;margin:0 auto 20px;display:block}
+    
+    .tpl-modern{padding:0;min-height:297mm}
+    .tpl-modern .header{background:#1e293b;color:white;padding:20mm;display:flex;align-items:center;gap:30px}
+    .tpl-modern .avatar{width:40mm;height:40mm;border-radius:12px;object-fit:cover;border:2px solid #fff}
+    
+    .tpl-ats{padding:20mm;font-family:Arial,sans-serif}
+    .tpl-ats .header{text-align:center;border-bottom:1px solid #000;padding-bottom:15px;margin-bottom:20px}
+    .tpl-ats .avatar{width:30mm;height:30mm;border-radius:50%;object-fit:cover;margin:0 auto 10px;display:block}
+    
+    .tpl-elegant{padding:20mm;font-family:Georgia,serif}
+    .tpl-elegant .header{display:flex;flex-direction:column;align-items:center;text-align:center;margin-bottom:30px}
+    .tpl-elegant .avatar{width:35mm;height:35mm;border-radius:50%;object-fit:cover;margin-bottom:15px;box-shadow:0 4px 10px rgba(0,0,0,0.1)}
+    
+    .tpl-corporate{padding:0;display:flex;flex-direction:column;min-height:297mm}
+    .tpl-corporate .header{color:#fff;padding:20mm;display:flex;align-items:center;gap:25px}
+    .tpl-corporate .avatar{width:35mm;height:35mm;border-radius:4px;object-fit:cover;border:2px solid #fff}
+    
+    .tpl-creative{padding:0;display:flex;min-height:297mm}
+    .tpl-creative .left{width:35%;padding:20mm 15mm;border-right:1px solid #e2e8f0;background:#f8fafc}
+    .tpl-creative .right{flex:1;padding:20mm 15mm;background:#fff}
+    .tpl-creative .avatar{width:45mm;height:45mm;border-radius:20px;object-fit:cover;margin:0 auto 20px;display:block;transform:rotate(-3deg);box-shadow:4px 4px 0 #3b82f6}
+    
+    .tpl-prof{display:flex;padding:0;min-height:297mm;background:#fff}
+    .tpl-prof .left-strip{width:40px;background:#0f172a}
+    .tpl-prof .content{flex:1;padding:20mm}
+    .tpl-prof .avatar{width:35mm;height:35mm;object-fit:cover;border-radius:50%;margin-right:20px}
+
+    /* Resume Item Styles */
+    .sec-title{font-size:14pt;font-weight:700;text-transform:uppercase;margin-bottom:15px;border-bottom:2px solid;padding-bottom:5px;}
+    .item-row{margin-bottom:15px}
+    .item-head{display:flex;justify-content:space-between;font-weight:700}
+    .item-sub{font-style:italic;font-size:10.5pt;margin-bottom:5px}
+    .item-desc{font-size:10pt;color:#475569;line-height:1.5}
+    .badge{display:inline-block;padding:4px 10px;border-radius:4px;font-size:9pt;margin:0 5px 5px 0}
   </style>
-
-  <!-- DASTYOR AI SDK (must load before page script) -->
-  <script src="app.js"></script>
 </head>
 
-<body
-  class="text-neutral-900 dark:text-neutral-100 flex flex-col min-h-screen overflow-y-auto antialiased selection:bg-apple-purple selection:text-white">
+<body class="min-h-screen pb-10">
 
-  <!-- Global Header -->
-  <header class="builder-header h-16 flex-shrink-0 flex items-center justify-between px-4 z-50">
+  <header class="sticky top-0 h-16 glass z-50 flex items-center justify-between px-4 sm:px-8 shadow-sm">
     <div class="flex items-center gap-3">
-      <a href="index.html"
-        class="w-10 h-10 rounded-xl bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 transition-colors flex items-center justify-center">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
-          stroke-linecap="round" stroke-linejoin="round">
-          <path d="m15 18-6-6 6-6" />
+      <a href="index.html" class="w-9 h-9 rounded-xl border border-blue-200 bg-white hover:bg-blue-50 transition-all flex items-center justify-center flex-shrink-0 group">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="text-slate-500 group-hover:text-blue-600 transition-colors">
+          <path d="m15 18-6-6 6-6"/>
         </svg>
       </a>
-      <h1 class="font-display font-bold text-lg tracking-tight" data-i18n="cv_title">CV Builder</h1>
+      <div class="w-10 h-10 bg-blue-500 rounded-xl flex items-center justify-center text-white font-bold text-xl shadow-lg">C</div>
+      <h1 class="font-display font-bold text-lg text-slate-800 tracking-tight" data-i18n="app_title">CV Builder</h1>
     </div>
-    <div class="flex items-center gap-2">
-      <!-- Mobile Toggle -->
-      <button id="mobileViewToggle" onclick="toggleMobileView()"
-        class="md:hidden px-4 py-2 bg-black/5 dark:bg-white/10 rounded-xl font-semibold text-sm"
-        data-i18n="cv_btn_preview">
-        👁️ Preview
-      </button>
-      <button onclick="exportPDF()" id="btnPdf"
-        class="flex items-center gap-2 px-4 py-2 bg-gradient-to-br from-[#ef4444] to-[#dc2626] hover:opacity-90 active:scale-95 text-white rounded-xl font-bold text-sm transition-all shadow-md">
-        📥 PDF yuklab olish
-      </button>
+    <div class="flex items-center gap-3">
+      <select id="langSelect" onchange="changeLang(this.value)" class="bg-white border border-blue-200 text-slate-700 text-xs rounded-lg px-2 py-1.5 outline-none font-semibold cursor-pointer">
+        <option value="uz_lat">🇺🇿 O'zbek</option>
+        <option value="uz_cyr">🇺🇿 Ўзбек</option>
+        <option value="en">🇬🇧 English</option>
+        <option value="ru">🇷🇺 Русский</option>
+      </select>
     </div>
   </header>
 
-  <div class="flex flex-col lg:flex-row flex-1 relative overflow-hidden">
+  <div class="max-w-4xl mx-auto mt-8 px-4 flex flex-col gap-8">
 
-    <!-- EDITOR PANE -->
-    <div id="editorPane"
-      class="w-full lg:w-[45%] lg:max-w-md h-full scroller overflow-y-auto bg-white dark:bg-[#0a0a0c] border-b lg:border-b-0 lg:border-r border-black/5 dark:border-white/5 pb-8">
-
-      <!-- TEMPLATE SETTINGS -->
-      <div class="p-6">
-        <div class="flex items-center gap-2 mb-4">
-          <div class="w-8 h-8 rounded-lg bg-apple-purple/10 flex items-center justify-center text-apple-purple">🎨</div>
-          <h2 class="font-display font-bold text-sm uppercase tracking-widest text-black/50 dark:text-white/50"
-            data-i18n="cv_tpl_title">Dizayn Shablon</h2>
-        </div>
-
-        <div class="grid grid-cols-4 md:grid-cols-4 gap-2">
-          <!-- 1 Minimal -->
-          <div
-            class="tpl-card border-2 border-apple-purple rounded-xl aspect-[1/1.4] cursor-pointer hover:border-apple-purple/80 bg-black/5 dark:bg-white/5 relative overflow-hidden group"
-            onclick="setTpl('minimal')" id="tpl-minimal">
-            <div
-              class="absolute inset-x-0 bottom-0 bg-black/60 text-white text-[9px] text-center font-bold py-1 backdrop-blur transition-transform z-10">
-              Minimal</div>
-            <div class="absolute inset-0 flex flex-col p-1.5 opacity-80">
-              <div class="w-1/2 h-[2px] bg-black/20 dark:bg-white/20 mb-0.5 rounded"></div>
-              <div class="w-1/3 h-[1px] bg-black/10 dark:bg-white/10 mb-1 rounded"></div>
-              <div class="w-full h-[1px] bg-black/10 dark:bg-white/10 mb-1 rounded"></div>
-              <div class="w-3/4 h-2 bg-black/10 dark:bg-white/10 rounded"></div>
-            </div>
-          </div>
-
-          <!-- 2 Split -->
-          <div
-            class="tpl-card border-2 border-transparent hover:border-apple-purple/50 rounded-xl aspect-[1/1.4] cursor-pointer bg-black/5 dark:bg-white/5 relative overflow-hidden flex group"
-            onclick="setTpl('split')" id="tpl-split">
-            <div
-              class="absolute inset-x-0 bottom-0 bg-black/60 text-white text-[9px] text-center font-bold py-1 backdrop-blur transition-transform z-10 hidden group-hover:block">
-              Split</div>
-            <div class="w-1/3 h-full bg-black/30 dark:bg-white/30"></div>
-            <div class="w-2/3 h-full p-1.5 flex flex-col gap-0.5 opacity-80">
-              <div class="w-3/4 h-[2px] bg-black/20 dark:bg-white/20 rounded"></div>
-              <div class="w-full h-2 mt-1 bg-black/10 dark:bg-white/10 rounded"></div>
-            </div>
-          </div>
-
-          <!-- 3 Modern -->
-          <div
-            class="tpl-card border-2 border-transparent hover:border-apple-purple/50 rounded-xl aspect-[1/1.4] cursor-pointer bg-black/5 dark:bg-white/5 relative overflow-hidden flex flex-col group"
-            onclick="setTpl('modern')" id="tpl-modern">
-            <div
-              class="absolute inset-x-0 bottom-0 bg-black/60 text-white text-[9px] text-center font-bold py-1 backdrop-blur transition-transform z-10 hidden group-hover:block">
-              Modern</div>
-            <div class="h-1/3 w-full bg-black/30 dark:bg-white/30 mb-0.5"></div>
-            <div class="flex-1 px-1 flex gap-1 opacity-80">
-              <div class="w-2/3 h-full bg-black/10 dark:bg-white/10 rounded"></div>
-              <div class="w-1/3 h-full bg-black/10 dark:bg-white/10 rounded"></div>
-            </div>
-          </div>
-
-          <!-- 4 ATS Safe -->
-          <div
-            class="tpl-card border-2 border-transparent hover:border-apple-purple/50 rounded-xl aspect-[1/1.4] cursor-pointer bg-black/5 dark:bg-white/5 relative overflow-hidden group"
-            onclick="setTpl('ats')" id="tpl-ats">
-            <div
-              class="absolute inset-x-0 bottom-0 bg-black/60 text-white text-[9px] text-center font-bold py-1 backdrop-blur transition-transform z-10 hidden group-hover:block">
-              ATS Safe</div>
-            <div class="absolute inset-0 flex flex-col p-1.5 opacity-80 items-center">
-              <div class="w-3/4 h-[2px] bg-black/30 dark:bg-white/30 mb-1 rounded text-center"></div>
-              <div class="w-full h-[1px] bg-black/10 dark:bg-white/10 mb-1 rounded"></div>
-              <div class="w-full flex-1 bg-black/5 dark:bg-white/5 rounded"></div>
-            </div>
-          </div>
-
-          <!-- 5 Elegant -->
-          <div
-            class="tpl-card border-2 border-transparent hover:border-apple-purple/50 rounded-xl aspect-[1/1.4] cursor-pointer bg-black/5 dark:bg-white/5 relative overflow-hidden group"
-            onclick="setTpl('elegant')" id="tpl-elegant">
-            <div
-              class="absolute inset-x-0 bottom-0 bg-black/60 text-white text-[9px] text-center font-bold py-1 backdrop-blur transition-transform z-10 hidden group-hover:block">
-              Elegant</div>
-            <div class="absolute inset-0 flex flex-col p-1.5 opacity-80 items-center">
-              <div class="w-1/2 h-[3px] bg-black/30 dark:bg-white/30 mb-0.5 rounded text-center"></div>
-              <div class="w-1/3 h-[1px] bg-black/20 dark:bg-white/20 mb-1.5 rounded"></div>
-              <div class="w-full flex gap-1 h-full">
-                <div class="w-2/3 bg-black/5 dark:bg-white/5 rounded"></div>
-                <div class="w-1/3 bg-black/10 border-l border-black/20 dark:border-white/20 rounded"></div>
-              </div>
-            </div>
-          </div>
-
-          <!-- 6 Corporate -->
-          <div
-            class="tpl-card border-2 border-transparent hover:border-apple-purple/50 rounded-xl aspect-[1/1.4] cursor-pointer bg-[#eff6ff] dark:bg-[#1e3a8a]/20 relative overflow-hidden flex flex-col group"
-            onclick="setTpl('corporate')" id="tpl-corporate">
-            <div
-              class="absolute inset-x-0 bottom-0 bg-black/60 text-white text-[9px] text-center font-bold py-1 backdrop-blur transition-transform z-10 hidden group-hover:block">
-              Corporate</div>
-            <div class="h-[25%] w-full bg-[#2563eb] mb-1"></div>
-            <div class="flex-1 px-1 flex gap-1 opacity-80">
-              <div class="w-3/4 h-full bg-black/5 dark:bg-white/5 rounded border-t-2 border-[#bfdbfe]"></div>
-              <div class="w-1/4 h-full bg-black/10 dark:bg-white/10 rounded"></div>
-            </div>
-          </div>
-
-          <!-- 7 Creative -->
-          <div
-            class="tpl-card border-2 border-transparent hover:border-apple-purple/50 rounded-xl aspect-[1/1.4] cursor-pointer bg-black/5 dark:bg-white/5 relative overflow-hidden flex group"
-            onclick="setTpl('creative')" id="tpl-creative">
-            <div
-              class="absolute inset-x-0 bottom-0 bg-black/60 text-white text-[9px] text-center font-bold py-1 backdrop-blur transition-transform z-10 hidden group-hover:block">
-              Creative</div>
-            <div
-              class="w-[35%] h-full bg-[#fdf2f8] dark:bg-[#831843] border-r border-[#f9a8d4] flex flex-col items-center pt-2">
-              <div class="w-6 h-6 rounded-full bg-[#db2777] border border-[#f9a8d4]"></div>
-            </div>
-            <div class="flex-1 h-full p-1.5 flex flex-col gap-0.5 opacity-80">
-              <div class="w-full h-[2px] bg-black/20 dark:bg-white/20 rounded"></div>
-              <div class="w-3/4 h-2 mt-1 bg-black/5 dark:bg-white/5 rounded"></div>
-            </div>
-          </div>
-
-          <!-- 8 Professional -->
-          <div
-            class="tpl-card border-2 border-transparent hover:border-apple-purple/50 rounded-xl aspect-[1/1.4] cursor-pointer bg-black/5 dark:bg-white/5 relative overflow-hidden flex group"
-            onclick="setTpl('prof')" id="tpl-prof">
-            <div
-              class="absolute inset-x-0 bottom-0 bg-black/60 text-white text-[9px] text-center font-bold py-1 backdrop-blur transition-transform z-10 hidden group-hover:block">
-              Prof.</div>
-            <div class="w-[10%] h-full bg-black"></div>
-            <div class="flex-1 h-full p-2 flex flex-col opacity-80">
-              <div class="w-3/4 h-[3px] bg-black/30 dark:bg-white/30 rounded mb-1"></div>
-              <div class="w-full h-[1px] bg-black/10 dark:bg-white/10 rounded mb-1"></div>
-              <div class="w-full h-full bg-black/5 rounded"></div>
-            </div>
-          </div>
-
-        </div>
+    <div class="glass rounded-3xl p-6 shadow-xl">
+      
+      <div class="flex bg-white/60 p-1.5 rounded-xl mb-6 shadow-sm border border-blue-100">
+        <div class="step-btn active" onclick="setStep(1)" id="btn-step-1"><span class="hyper-emoji">👤</span> <span data-i18n="step_1">Shaxsiy</span></div>
+        <div class="step-btn" onclick="setStep(2)" id="btn-step-2"><span class="hyper-emoji">💼</span> <span data-i18n="step_2">Tajriba</span></div>
+        <div class="step-btn" onclick="setStep(3)" id="btn-step-3"><span class="hyper-emoji">🏆</span> <span data-i18n="step_3">Yutuqlar</span></div>
       </div>
 
-      <div class="h-px bg-black/5 dark:bg-white/5 mx-6"></div>
-
-      <!-- PERSONAL INFO -->
-      <div class="p-6">
-        <!-- Profile Image -->
-        <div class="flex items-center gap-4 mb-6">
-          <div id="photoPrev"
-            class="w-16 h-16 rounded-full bg-black/5 dark:bg-white/10 border border-black/10 dark:border-white/10 flex flex-shrink-0 items-center justify-center overflow-hidden cursor-pointer"
-            onclick="document.getElementById('imgInput').click()">
-            <span class="text-2xl opacity-50">📷</span>
+      <div id="step-1" class="step-content active">
+        <div class="grid grid-cols-4 sm:grid-cols-8 gap-3 mb-8">
+          <div class="tpl-card tpl-active aspect-[1/1.3] rounded-xl bg-gray-50 flex flex-col items-center pt-2" onclick="setTpl('minimal')" id="tpl-minimal">
+            <div class="w-8 h-8 bg-gray-300 rounded-md mb-1"></div><div class="w-12 h-2 bg-gray-300 mb-1"></div><div class="tpl-name">Minimal</div>
           </div>
-          <div>
+          <div class="tpl-card aspect-[1/1.3] rounded-xl bg-gray-50 flex" onclick="setTpl('split')" id="tpl-split">
+            <div class="w-1/3 h-full bg-slate-800 flex flex-col items-center pt-2"><div class="w-6 h-6 rounded-full bg-blue-400"></div></div><div class="flex-1 bg-white"></div><div class="tpl-name">Split</div>
+          </div>
+          <div class="tpl-card aspect-[1/1.3] rounded-xl bg-gray-50 flex flex-col" onclick="setTpl('modern')" id="tpl-modern">
+            <div class="h-1/3 bg-slate-800 flex items-center px-2"><div class="w-6 h-6 rounded bg-gray-300"></div></div><div class="flex-1 bg-white"></div><div class="tpl-name">Modern</div>
+          </div>
+          <div class="tpl-card aspect-[1/1.3] rounded-xl bg-gray-50 flex flex-col items-center pt-2" onclick="setTpl('ats')" id="tpl-ats">
+            <div class="w-8 h-8 rounded-full bg-gray-300 mb-1"></div><div class="w-full border-t border-black my-1"></div><div class="tpl-name">ATS</div>
+          </div>
+          <div class="tpl-card aspect-[1/1.3] rounded-xl bg-gray-50 flex flex-col items-center pt-4" onclick="setTpl('elegant')" id="tpl-elegant">
+            <div class="w-10 h-10 rounded-full bg-gray-300 shadow-sm"></div><div class="tpl-name">Elegant</div>
+          </div>
+          <div class="tpl-card aspect-[1/1.3] rounded-xl flex flex-col" onclick="setTpl('corporate')" id="tpl-corporate">
+            <div class="h-1/4 bg-blue-600 flex items-center px-1"><div class="w-6 h-6 bg-white rounded-sm"></div></div><div class="flex-1 bg-white"></div><div class="tpl-name">Corp</div>
+          </div>
+          <div class="tpl-card aspect-[1/1.3] rounded-xl flex" onclick="setTpl('creative')" id="tpl-creative">
+            <div class="w-1/3 h-full bg-blue-50 flex flex-col items-center pt-2"><div class="w-6 h-6 bg-blue-300 rounded-lg transform -rotate-6"></div></div><div class="flex-1 bg-white"></div><div class="tpl-name">Creative</div>
+          </div>
+          <div class="tpl-card aspect-[1/1.3] rounded-xl flex" onclick="setTpl('prof')" id="tpl-prof">
+            <div class="w-[10%] h-full bg-slate-900"></div><div class="flex-1 bg-white flex flex-col pt-2 px-1"><div class="w-6 h-6 rounded-full bg-gray-300"></div></div><div class="tpl-name">Prof</div>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-5 mb-6 bg-blue-50 p-4 rounded-2xl border border-blue-100 relative">
+          <div id="photoPrev" class="w-20 h-20 z-10 rounded-full bg-white flex items-center justify-center overflow-hidden border-2 border-dashed border-blue-300 cursor-pointer shadow-sm hover:border-blue-500 transition-colors" onclick="document.getElementById('imgInput').click()">
+            <span class="text-3xl hyper-emoji">📷</span>
+          </div>
+          <div class="z-10 flex flex-col items-start gap-1">
             <input type="file" id="imgInput" accept="image/*" class="hidden" onchange="handleImage(this)">
-            <button
-              class="px-3 py-1.5 bg-apple-blue/10 text-apple-blue font-semibold text-xs rounded-full hover:bg-apple-blue/20 transition-colors"
-              onclick="document.getElementById('imgInput').click()" data-i18n="cv_upload_img">Rasm yuklash</button>
-            <p class="text-[10px] text-black/40 dark:text-white/40 mt-1" data-i18n="cv_rec_img">Professional tasvir
-              tavsiya etiladi</p>
+            <button class="px-5 py-2 bg-white text-blue-600 font-bold text-sm rounded-xl shadow-sm border border-blue-200 hover:bg-blue-50 transition-all" onclick="document.getElementById('imgInput').click()" data-i18n="upload_img">Rasmni tanlang</button>
+            <span class="text-xs text-slate-500 font-medium">yoki rasmni shu yerga tortib tashlang</span>
           </div>
         </div>
 
-        <div class="space-y-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
           <div>
-            <input type="text" id="f_name"
-              class="w-full bg-black/5 dark:bg-white/5 border border-transparent focus:border-apple-purple/50 rounded-xl px-4 py-3 text-sm outline-none transition-all"
-              placeholder="Ism Familiya (Masalan: Alisherov M.)" data-i18n="ph_cv_name" data-i18n-attr="placeholder"
-              value="" oninput="updateCV()">
+            <label class="text-xs text-slate-500 font-bold mb-1 block" data-i18n="name">Ism Familiya</label>
+            <input type="text" id="f_name" class="input-premium w-full rounded-xl px-4 py-3 text-sm" placeholder="Ali Valiyev" oninput="triggerUpdate()">
           </div>
+          
+          <div class="relative">
+            <label class="text-xs text-slate-500 font-bold mb-1 block" data-i18n="role">Kasb / Lavozim</label>
+            <input type="text" id="f_role" class="input-premium w-full rounded-xl px-4 py-3 text-sm font-semibold text-blue-700" placeholder="Masalan: Dasturchi" autocomplete="off" 
+                   oninput="handleSuggest(this, 'roles')" onfocus="handleSuggest(this, 'roles')" onblur="setTimeout(()=>closeSuggest('roles'), 200)">
+            <div id="suggest_roles" class="absolute z-50 w-full bg-white border border-blue-200 rounded-xl mt-1 shadow-lg max-h-48 overflow-y-auto custom-scrollbar hidden"></div>
+          </div>
+
           <div>
-            <input type="text" id="f_role"
-              class="w-full bg-black/5 dark:bg-white/5 border border-transparent focus:border-apple-purple/50 rounded-xl px-4 py-3 text-sm outline-none transition-all text-apple-blue font-medium"
-              placeholder="Kasb (Masalan: UI/UX Designer)" data-i18n="ph_cv_role" data-i18n-attr="placeholder" value=""
-              oninput="updateCV()">
-          </div>
-          <div class="flex gap-3">
-            <input type="text" id="f_phone"
-              class="w-1/2 bg-black/5 dark:bg-white/5 border border-transparent focus:border-apple-purple/50 rounded-xl px-4 py-3 text-sm outline-none transition-all"
-              placeholder="Telefon (+998...)" data-i18n="ph_cv_phone" data-i18n-attr="placeholder" value=""
-              oninput="updateCV()">
-            <input type="email" id="f_email"
-              class="w-1/2 bg-black/5 dark:bg-white/5 border border-transparent focus:border-apple-purple/50 rounded-xl px-4 py-3 text-sm outline-none transition-all"
-              placeholder="Email" data-i18n="ph_email" data-i18n-attr="placeholder" value="" oninput="updateCV()">
+            <label class="text-xs text-slate-500 font-bold mb-1 block" data-i18n="phone">Telefon</label>
+            <input type="tel" id="f_phone" class="input-premium w-full rounded-xl px-4 py-3 text-sm" value="+998 " placeholder="+998 90 123 45 67" oninput="formatPhone(this)">
           </div>
           <div>
-            <input type="text" id="f_loc"
-              class="w-full bg-black/5 dark:bg-white/5 border border-transparent focus:border-apple-purple/50 rounded-xl px-4 py-3 text-sm outline-none transition-all"
-              placeholder="Manzil (Masalan: Toshkent Shahri)" data-i18n="ph_cv_loc" data-i18n-attr="placeholder"
-              value="" oninput="updateCV()">
+            <label class="text-xs text-slate-500 font-bold mb-1 block" data-i18n="email">Email</label>
+            <input type="email" id="f_email" class="input-premium w-full rounded-xl px-4 py-3 text-sm" placeholder="email@gmail.com" oninput="triggerUpdate()">
           </div>
-          <div>
-            <textarea id="f_about"
-              class="w-full h-24 bg-black/5 dark:bg-white/5 border border-transparent focus:border-apple-purple/50 rounded-xl px-4 py-3 text-sm outline-none transition-all resize-none"
-              placeholder="Haqingizda qisqacha ma'lumot (Summary)" data-i18n="ph_cv_about" data-i18n-attr="placeholder"
-              oninput="updateCV()"></textarea>
+          
+           <div class="sm:col-span-2 relative">
+            <label class="text-xs text-slate-500 font-bold mb-1 block" data-i18n="location">Manzil (Viloyat, Shahar)</label>
+            <input type="text" id="f_loc" class="input-premium w-full rounded-xl px-4 py-3 text-sm" placeholder="Masalan: Toshkent shahri" autocomplete="off"
+                   oninput="handleSuggest(this, 'locs')" onfocus="handleSuggest(this, 'locs')" onblur="setTimeout(()=>closeSuggest('locs'), 200)">
+            <div id="suggest_locs" class="absolute z-50 w-full bg-white border border-blue-200 rounded-xl mt-1 shadow-lg max-h-48 overflow-y-auto custom-scrollbar hidden"></div>
+          </div>
+
+          <div class="sm:col-span-2">
+            <label class="text-xs text-slate-500 font-bold mb-1 block" data-i18n="about">Qisqacha o'zingiz haqingizda</label>
+            <textarea id="f_about" class="input-premium w-full h-24 rounded-xl px-4 py-3 text-sm resize-none" placeholder="Men haqimda..." oninput="triggerUpdate()"></textarea>
           </div>
         </div>
-      </div>
-
-      <div class="h-px bg-black/5 dark:bg-white/5 mx-6"></div>
-
-      <!-- EXPERIENCE -->
-      <div class="p-6">
-        <div class="flex items-center justify-between mb-4">
-          <h2 class="font-display font-bold text-sm uppercase tracking-widest text-black/50 dark:text-white/50"
-            data-i18n="cv_experience">Ish Tajribasi</h2>
-        </div>
-        <div id="expList" class="space-y-3 mb-3"></div>
-        <button onclick="addExp()"
-          class="w-full py-2 border border-dashed border-apple-purple/50 text-apple-purple bg-apple-purple/5 rounded-xl font-bold text-sm hover:bg-apple-purple/10 transition-colors"
-          data-i18n="cv_add_exp">+ Tajriba qo'shish</button>
-      </div>
-
-      <div class="h-px bg-black/5 dark:bg-white/5 mx-6"></div>
-
-      <!-- EDUCATION -->
-      <div class="p-6">
-        <div class="flex items-center justify-between mb-4">
-          <h2 class="font-display font-bold text-sm uppercase tracking-widest text-black/50 dark:text-white/50"
-            data-i18n="cv_education">Ta'lim</h2>
-        </div>
-        <div id="eduList" class="space-y-3 mb-3"></div>
-        <button onclick="addEdu()"
-          class="w-full py-2 border border-dashed border-apple-blue/50 text-apple-blue bg-apple-blue/5 rounded-xl font-bold text-sm hover:bg-apple-blue/10 transition-colors"
-          data-i18n="cv_add_edu">+ Ta'lim qo'shish</button>
-      </div>
-
-      <div class="h-px bg-black/5 dark:bg-white/5 mx-6"></div>
-
-      <!-- SKILLS -->
-      <div class="p-6 pb-6">
-        <h2 class="font-display font-bold text-sm uppercase tracking-widest text-black/50 dark:text-white/50 mb-4"
-          data-i18n="cv_skills">Ko'nikmalar</h2>
-        <div class="bg-black/5 dark:bg-white/5 p-4 rounded-xl">
-          <input type="text" id="skillInput"
-            class="w-full bg-transparent border-b border-black/10 dark:border-white/10 px-0 py-2 text-sm outline-none focus:border-apple-purple mb-3"
-            placeholder="Ko'nikma yozib ENTER bosing..." data-i18n="ph_skill" data-i18n-attr="placeholder"
-            onkeydown="handleSkillAdd(event)">
-          <div id="skillSuggestions" class="flex flex-wrap gap-2 mb-3"></div>
-          <div id="skillsWrap" class="flex flex-wrap gap-2"></div>
+        
+        <div class="mt-6 flex justify-end">
+          <button onclick="setStep(2)" class="btn-primary px-8 py-3 rounded-xl font-bold text-sm flex items-center gap-2">Keyingisi <span class="hyper-emoji text-lg">➡️</span></button>
         </div>
       </div>
 
-      <div class="px-6 pb-6">
-        <h2 class="font-display font-bold text-sm uppercase tracking-widest text-black/50 dark:text-white/50 mb-4">
-          Tools & Tech
-        </h2>
-        <div class="bg-black/5 dark:bg-white/5 p-4 rounded-xl">
-          <input type="text" id="toolInput"
-            class="w-full bg-transparent border-b border-black/10 dark:border-white/10 px-0 py-2 text-sm outline-none focus:border-apple-blue mb-3"
-            placeholder="Tool yozib ENTER bosing..."
-            onkeydown="handleToolAdd(event)">
-          <div id="toolSuggestions" class="flex flex-wrap gap-2 mb-3"></div>
-          <div id="toolsWrap" class="flex flex-wrap gap-2"></div>
+      <div id="step-2" class="step-content">
+        <h3 class="font-bold text-slate-700 mb-3 flex items-center gap-2"><span class="hyper-emoji">🎓</span> <span data-i18n="edu_title">Ta'lim</span></h3>
+        <div id="eduList" class="mb-4"></div>
+        <button onclick="addEdu()" class="w-full py-3 mb-8 border-2 border-dashed border-blue-300 text-blue-600 bg-blue-50 rounded-xl font-bold text-sm hover:bg-blue-100 transition-colors" data-i18n="add_edu">+ Ta'lim qo'shish</button>
+
+        <h3 class="font-bold text-slate-700 mb-3 flex items-center gap-2"><span class="hyper-emoji">💼</span> <span data-i18n="exp_title">Ish Tajribasi</span></h3>
+        <div id="expList" class="mb-4"></div>
+        <button onclick="addExp()" class="w-full py-3 mb-8 border-2 border-dashed border-blue-300 text-blue-600 bg-blue-50 rounded-xl font-bold text-sm hover:bg-blue-100 transition-colors" data-i18n="add_exp">+ Tajriba qo'shish</button>
+        
+        <h3 class="font-bold text-slate-700 mb-3 flex items-center gap-2"><span class="hyper-emoji">🌍</span> <span data-i18n="lang_title">Til Bilish</span></h3>
+        <div id="langList" class="mb-4"></div>
+        <button onclick="addLang()" class="w-full py-3 border-2 border-dashed border-blue-300 text-blue-600 bg-blue-50 rounded-xl font-bold text-sm hover:bg-blue-100 transition-colors" data-i18n="add_lang">+ Til qo'shish</button>
+
+        <div class="mt-8 flex justify-between">
+          <button onclick="setStep(1)" class="px-6 py-3 bg-white border border-slate-200 text-slate-600 rounded-xl font-bold text-sm">Orqaga</button>
+          <button onclick="setStep(3)" class="btn-primary px-8 py-3 rounded-xl font-bold text-sm">Keyingisi ➡️</button>
         </div>
       </div>
 
-      <div class="px-6 pb-10">
-        <button onclick="clearFormData()" class="clear-btn">🧹 Ma'lumotlarni tozalash</button>
-      </div>
+      <div id="step-3" class="step-content">
+        <h3 class="font-bold text-slate-700 mb-3 flex items-center gap-2"><span class="hyper-emoji">⚡</span> <span data-i18n="skills_title">Ko'nikmalar (Skills)</span></h3>
+        <div class="bg-blue-50 p-4 rounded-xl mb-8 border border-blue-100">
+          <div class="flex gap-2 mb-3">
+            <input type="text" id="skillInput" class="input-premium flex-1 rounded-lg px-3 py-2 text-sm" placeholder="Masalan: Liderlik, Python..." onkeydown="if(event.key==='Enter')addSkill()">
+            <button onclick="addSkill()" class="bg-blue-600 text-white px-4 py-2 rounded-lg font-bold hover:bg-blue-700">+</button>
+          </div>
+          <div id="skillsWrap" class="flex flex-wrap gap-2 mb-3"></div>
+          <div class="border-t border-blue-200 pt-3 mt-3">
+            <p class="text-xs text-slate-500 font-bold mb-2">Tezkor tanlash:</p>
+            <div id="suggestedSkills" class="flex flex-wrap gap-2"></div>
+          </div>
+        </div>
 
+        <h3 class="font-bold text-slate-700 mb-3 flex items-center gap-2"><span class="hyper-emoji">🏆</span> <span data-i18n="ach_title">Yutuqlar va Qobiliyatlar</span></h3>
+        <div class="bg-blue-50 p-4 rounded-xl mb-4 border border-blue-100">
+          <div class="grid grid-cols-1 sm:grid-cols-4 gap-2 mb-3">
+             <select id="achType" class="input-premium rounded-lg px-3 py-2 text-sm font-semibold sm:col-span-1 cursor-pointer">
+                <option value="Sertifikat">Sertifikat</option>
+                <option value="Diplom">Diplom</option>
+                <option value="Faxriy yorliq">Faxriy yorliq</option>
+                <option value="Sovrin">Sovrin</option>
+             </select>
+             <input type="text" id="achName" class="input-premium rounded-lg px-3 py-2 text-sm sm:col-span-2" placeholder="Nomi (masalan: IELTS 7.5)">
+             <div class="flex gap-2 sm:col-span-1">
+               <input type="number" id="achYear" class="input-premium w-full rounded-lg px-3 py-2 text-sm text-center" placeholder="Yili" min="1990" max="2030">
+               <button onclick="addAchDetails()" class="bg-blue-600 text-white px-4 py-2 rounded-lg font-bold hover:bg-blue-700 w-12 shrink-0" data-i18n="add_ach">+</button>
+             </div>
+          </div>
+          <div id="achList" class="flex flex-col gap-2 mt-4"></div>
+        </div>
+
+        <div class="mt-8 flex justify-between items-center border-t border-slate-200 pt-6">
+          <button onclick="setStep(2)" class="px-6 py-3 bg-white border border-slate-200 text-slate-600 rounded-xl font-bold text-sm">Orqaga</button>
+        </div>
+      </div>
     </div>
 
-    <!-- PREVIEW PANE -->
-    <div id="previewPane"
-      class="flex w-full lg:flex-1 h-full bg-[#1c1c1e] items-start justify-center p-4 md:p-8 scroller overflow-y-auto">
-      <div class="w-full max-w-[980px]">
+    <div class="glass rounded-3xl p-6 shadow-2xl flex flex-col items-center relative">
+      <div class="w-full flex flex-col sm:flex-row justify-between items-center mb-6 border-b border-slate-200 pb-4 gap-4">
+        <h2 class="font-display font-bold text-xl text-slate-800 flex items-center gap-2"><span class="hyper-emoji">📄</span> <span data-i18n="preview">Jonli Ko'rinish</span></h2>
+        
+        <div class="flex items-center gap-2 bg-white px-3 py-1.5 rounded-full shadow-sm border border-slate-200">
+          <span class="text-xs font-bold text-slate-400 mr-1" data-i18n="cv_color">Rang:</span>
+          <button class="w-6 h-6 rounded-full bg-[#3b82f6] shadow-sm border-2 border-white focus:ring-2 focus:ring-[#3b82f6]" onclick="changeCvColor('#3b82f6')"></button>
+          <button class="w-6 h-6 rounded-full bg-[#10b981] shadow-sm border-2 border-white focus:ring-2 focus:ring-[#10b981]" onclick="changeCvColor('#10b981')"></button>
+          <button class="w-6 h-6 rounded-full bg-[#f43f5e] shadow-sm border-2 border-white focus:ring-2 focus:ring-[#f43f5e]" onclick="changeCvColor('#f43f5e')"></button>
+          <button class="w-6 h-6 rounded-full bg-[#8b5cf6] shadow-sm border-2 border-white focus:ring-2 focus:ring-[#8b5cf6]" onclick="changeCvColor('#8b5cf6')"></button>
+        </div>
+
+        <button onclick="exportPDF()" class="bg-red-600 hover:bg-red-700 text-white px-5 py-2 rounded-lg font-semibold text-sm shadow-md transition-all flex items-center gap-2">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+          </svg>
+          <span data-i18n="download_pdf">PDF Yuklash</span>
+        </button>
+      </div>
+
+      <div id="previewPane" class="w-full flex h-[800px] items-start justify-center p-4 sm:p-10 scroller overflow-y-auto rounded-2xl" style="background:linear-gradient(135deg,#0f0f1a 0%,#1a1a2e 100%);">
         <div class="cv-canvas-wrapper" id="previewScaleWrapper">
-        <div class="cv-canvas tpl-minimal" id="cv-box">
-          <!-- HTML generated live here -->
-        </div>
-        </div>
-        <div class="mt-4 flex items-center justify-center gap-2" id="accentPalette">
-          <button class="accent-btn active" style="background:#0A84FF" onclick="setAccentColor('#0A84FF', this)"></button>
-          <button class="accent-btn" style="background:#8B5CF6" onclick="setAccentColor('#8B5CF6', this)"></button>
-          <button class="accent-btn" style="background:#10B981" onclick="setAccentColor('#10B981', this)"></button>
-          <button class="accent-btn" style="background:#F97316" onclick="setAccentColor('#F97316', this)"></button>
-          <button class="accent-btn" style="background:#EF4444" onclick="setAccentColor('#EF4444', this)"></button>
+          <div class="cv-canvas tpl-minimal" id="cv-box"></div>
         </div>
       </div>
+      
     </div>
 
+    <button onclick="clearAllData()" class="mt-4 px-6 py-3 bg-white text-red-500 border border-red-200 hover:bg-red-50 font-bold rounded-xl shadow-sm transition-all text-sm w-full sm:w-auto mx-auto block">Ma'lumotlarni tozalash</button>
   </div>
 
   <script>
-    const tg = window.Telegram?.WebApp;
+    // --- DICTIONARY (i18n) ---
+    const dict = {
+      uz_lat: {
+        app_title: "CV Builder", step_1: "Shaxsiy", step_2: "Tajriba", step_3: "Yutuqlar",
+        upload_img: "Rasmni tanlang", name: "Ism Familiya", role: "Kasb / Lavozim",
+        phone: "Telefon", email: "Email", location: "Manzil (Viloyat, Shahar)", about: "Qisqacha o'zingiz haqingizda",
+        edu_title: "Ta'lim", add_edu: "+ Ta'lim qo'shish", exp_title: "Ish Tajribasi", add_exp: "+ Tajriba qo'shish",
+        lang_title: "Til Bilish", add_lang: "+ Til qo'shish",
+        skills_title: "Ko'nikmalar (Skills)", ach_title: "Yutuqlar va Qobiliyatlar", add_ach: "Qo'shish",
+        cv_color: "Rang:", preview: "Jonli Ko'rinish", download_pdf: "PDF Yuklash"
+      },
+      uz_cyr: {
+        app_title: "CV Builder", step_1: "Шахсий", step_2: "Тажриба", step_3: "Ютуқлар",
+        upload_img: "Расмни танланг", name: "Исм Фамилия", role: "Касб / Лавозим",
+        phone: "Телефон", email: "Email", location: "Манзил (Вилоят, Шаҳар)", about: "Қисқача ўзингиз ҳақингизда",
+        edu_title: "Таълим", add_edu: "+ Таълим қўшиш", exp_title: "Иш Тажрибаси", add_exp: "+ Тажриба қўшиш",
+        lang_title: "Тил Билиш", add_lang: "+ Тил қўшиш",
+        skills_title: "Кўникмалар (Skills)", ach_title: "Ютуқлар ва Қобилиятлар", add_ach: "Қўшиш",
+        cv_color: "Ранг:", preview: "Жонли Кўриниш", download_pdf: "PDF Юклаш"
+      },
+      en: {
+        app_title: "CV Builder", step_1: "Personal", step_2: "Experience", step_3: "Achievements",
+        upload_img: "Select Image", name: "Full Name", role: "Profession / Role",
+        phone: "Phone", email: "Email", location: "Location (City, State)", about: "About Me",
+        edu_title: "Education", add_edu: "+ Add Education", exp_title: "Work Experience", add_exp: "+ Add Experience",
+        lang_title: "Languages", add_lang: "+ Add Language",
+        skills_title: "Skills", ach_title: "Achievements", add_ach: "Add",
+        cv_color: "Color:", preview: "Live Preview", download_pdf: "Download PDF"
+      },
+      ru: {
+        app_title: "CV Builder", step_1: "Личное", step_2: "Опыт", step_3: "Достижения",
+        upload_img: "Выбрать фото", name: "Имя Фамилия", role: "Профессия / Должность",
+        phone: "Телефон", email: "Email", location: "Адрес (Город, Область)", about: "Обо мне",
+        edu_title: "Образование", add_edu: "+ Добавить образование", exp_title: "Опыт работы", add_exp: "+ Добавить опыт",
+        lang_title: "Языки", add_lang: "+ Добавить язык",
+        skills_title: "Навыки", ach_title: "Достижения", add_ach: "Добавить",
+        cv_color: "Цвет:", preview: "Предпросмотр", download_pdf: "Скачать PDF"
+      }
+    };
 
-    let avatarUrl = 'data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs='; // empty transparent image
+    // --- EXTENDED DATA LISTS ---
+    const DB = {
+      locs: [
+        "Toshkent shahri", "Andijon viloyati", "Buxoro viloyati", "Farg'ona viloyati", 
+        "Jizzax viloyati", "Xorazm viloyati", "Namangan viloyati", "Navoiy viloyati", 
+        "Qashqadaryo viloyati", "Qoraqalpog'iston Respublikasi", "Samarqand viloyati", 
+        "Sirdaryo viloyati", "Surxondaryo viloyati"
+      ],
+      roles: [
+        // IT
+        "Dasturchi (Frontend)", "Dasturchi (Backend)", "Dasturchi (Fullstack)", 
+        "Mobil Dasturchi", "UI/UX Dizayner", "Grafik Dizayner", "Loyiha Boshqaruvchisi (PM)", 
+        "Tizim Administratori", "QA Muhandis",
+        // Tibbiyot
+        "Shifokor", "Hamshira", "Stomatolog", "Farmatsevt", "Xirurg (Jarroh)", "Pediatr",
+        // Huquq
+        "Yurist", "Advokat", "Notarius", "Sudya", "Huquqshunos",
+        // Pedagogika
+        "O'qituvchi", "Tarbiyachi", "Professor", "Oliy toifali o'qituvchi", "Defektolog",
+        // Boshqa
+        "Hisobchi (Buxgalter)", "Marketing Mutaxassisi", "SMM Mutaxassisi", "Kadrlar bo'limi (HR)", "Menejer", "Iqtisodchi"
+      ]
+    };
+
+    let currentLang = 'uz_lat';
+    function changeLang(lang, shouldTrigger = true) {
+      currentLang = lang;
+      document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.getAttribute('data-i18n');
+        if (dict[lang] && dict[lang][key]) el.innerText = dict[lang][key];
+      });
+      if(shouldTrigger) triggerUpdate();
+    }
+
+    // --- STATE & DATA ---
+    let avatarUrl = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjOTRhM2I4IiBzdHJva2Utd2lkdGg9IjIiPjxjaXJjbGUgY3g9IjEyIiBjeT0iOCIgcj0iNSIvPjxwYXRoIGQ9Ik0yMCAyMWE4IDggMCAwIDAtMTYgMCIvPjwvc3ZnPg==';
     let activeTpl = 'minimal';
+    let cvColor = '#3b82f6';
+    let eduData = [], expData = [], achData = [], skillsData = [], langData = [];
 
-    // Data states
-    let experiences = [];
-    let education = [];
-    let skills = [];
-    let tools = [];
-    let selectedAccent = '#0A84FF';
-    const CV_DRAFT_KEY = 'cv_builder_draft_v3';
-    const SKILL_SUGGESTIONS = ['Communication', 'Leadership', 'Problem Solving', 'Teamwork', 'Time Management'];
-    const TOOL_SUGGESTIONS = ['Figma', 'Photoshop', 'Excel', 'Notion', 'ChatGPT'];
-
-    // Preview quick button now scrolls to preview block (tagma-tag layout)
-    function toggleMobileView() {
-      const pv = document.getElementById('previewPane');
-      const btn = document.getElementById('mobileViewToggle');
-      pv.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      btn.innerHTML = I18n.t('cv_btn_edit') || '👁️ Preview';
-      setTimeout(autoScale, 120);
+    // --- PHONE FORMATTER ---
+    function formatPhone(input) {
+      let val = input.value;
+      if (!val.startsWith('+998')) {
+         input.value = '+998 ';
+         return;
+      }
+      let numbers = val.substring(4).replace(/[^0-9\s]/g, '');
+      input.value = '+998' + numbers;
+      triggerUpdate();
     }
 
-    function setAccentColor(color, el) {
-      selectedAccent = color;
-      document.querySelectorAll('.accent-btn').forEach(b => b.classList.remove('active'));
-      if (el) el.classList.add('active');
-      const box = document.getElementById('cv-box');
-      box.style.setProperty('--cv-accent', selectedAccent);
-      saveDraft();
+    // --- CUSTOM AUTOCOMPLETE ---
+    function handleSuggest(inputElem, type) {
+      const val = inputElem.value.toLowerCase();
+      const suggestDiv = document.getElementById(`suggest_${type}`);
+      const list = DB[type];
+      
+      if(!val && document.activeElement !== inputElem) { suggestDiv.classList.add('hidden'); return; }
+      
+      const filtered = list.filter(item => item.toLowerCase().includes(val));
+      
+      if(filtered.length === 0) { suggestDiv.classList.add('hidden'); return; }
+      
+      suggestDiv.innerHTML = filtered.map(item => {
+        const regex = new RegExp(`(${val})`, 'gi');
+        const highlighted = val ? item.replace(regex, `<span class="text-blue-600 font-extrabold bg-blue-50 px-0.5 rounded">$1</span>`) : item;
+        
+        return `<div class="px-4 py-2 hover:bg-blue-50 cursor-pointer text-sm font-medium text-slate-700 transition-colors border-b border-slate-50 last:border-0" 
+                     onmousedown="selectSuggest('${inputElem.id}', '${item}', '${type}')">${highlighted}</div>`;
+      }).join('');
+      
+      suggestDiv.classList.remove('hidden');
     }
 
-    // Templates
-    function setTpl(t) {
-      activeTpl = t;
-      document.querySelectorAll('.tpl-card').forEach(el => el.classList.replace('border-apple-purple', 'border-transparent'));
-      document.getElementById(`tpl-${t}`).classList.replace('border-transparent', 'border-apple-purple');
-      updateCV();
-      tg?.HapticFeedback?.impactOccurred('light');
+    function selectSuggest(inputId, val, type) {
+      document.getElementById(inputId).value = val;
+      document.getElementById(`suggest_${type}`).classList.add('hidden');
+      triggerUpdate();
     }
 
-    // Image
-    function _setAvatar(dataUrl) {
-      avatarUrl = dataUrl || avatarUrl;
-      document.getElementById('photoPrev').innerHTML = `<img src="${avatarUrl}" class="w-full h-full object-cover">`;
-      updateCV();
+    function closeSuggest(type) {
+      document.getElementById(`suggest_${type}`).classList.add('hidden');
     }
 
+    // --- STEPS LOGIC ---
+    function setStep(num) {
+      document.querySelectorAll('.step-content').forEach(el => el.classList.remove('active'));
+      document.querySelectorAll('.step-btn').forEach(el => el.classList.remove('active'));
+      document.getElementById('step-' + num).classList.add('active');
+      document.getElementById('btn-step-' + num).classList.add('active');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    // --- IMAGE UPLOAD ---
     function handleImage(input) {
-      if (input.files && input.files[0]) {
-        const reader = new FileReader();
-        reader.onload = function (e) {
-          _setAvatar(e.target.result);
+      if(input.files && input.files[0]) {
+        const r = new FileReader();
+        r.onload = e => {
+          avatarUrl = e.target.result;
+          document.getElementById('photoPrev').innerHTML = `<img src="${avatarUrl}" class="w-full h-full object-cover">`;
+          triggerUpdate();
+        };
+        r.readAsDataURL(input.files[0]);
+      }
+    }
+
+    const dropZone = document.getElementById('photoPrev');
+    dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('border-blue-500', 'bg-blue-100'); });
+    dropZone.addEventListener('dragleave', (e) => { e.preventDefault(); dropZone.classList.remove('border-blue-500', 'bg-blue-100'); });
+    dropZone.addEventListener('drop', (e) => {
+        e.preventDefault(); dropZone.classList.remove('border-blue-500', 'bg-blue-100');
+        if(e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+            const input = document.getElementById('imgInput'); input.files = e.dataTransfer.files; handleImage(input);
         }
-        reader.readAsDataURL(input.files[0]);
-      }
-    }
+    });
 
-    // Skills
-    function renderSkillsInput() {
-      document.getElementById('skillsWrap').innerHTML = skills.map((s, i) => `
-                <div class="px-3 py-1 bg-white dark:bg-black rounded-lg text-xs font-semibold flex items-center gap-2 border border-black/5 dark:border-white/5">
-                    ${s} <span class="text-red-500 cursor-pointer text-[10px]" onclick="removeSkill(${i})">✖</span>
+    // --- THEME & TEMPLATE ---
+    function setTpl(tpl, shouldTrigger = true) {
+      activeTpl = tpl;
+      document.querySelectorAll('.tpl-card').forEach(el => el.classList.remove('tpl-active'));
+      document.getElementById('tpl-' + tpl).classList.add('tpl-active');
+      if(shouldTrigger) triggerUpdate();
+    }
+    function changeCvColor(color) { cvColor = color; triggerUpdate(); }
+
+    // --- DYNAMIC LISTS ---
+    function renderList(containerId, arr, type) {
+      if (type === 'lang') {
+        document.getElementById(containerId).innerHTML = arr.map((item, i) => `
+          <div class="entry-card relative !mb-2 !p-3">
+            <button class="absolute top-2 right-2 text-red-400 hover:text-red-600 font-bold bg-red-50 w-6 h-6 rounded flex items-center justify-center z-10 transition-colors" onclick="removeObj(${i}, '${type}')">✕</button>
+            <select class="input-premium w-full mb-3 rounded-lg px-3 py-2 text-sm font-bold" onchange="langData[${i}].lang=this.value;triggerUpdate()">
+              <option value="">Til tanlang</option>
+              <option value="Ingliz tili" ${item.lang==='Ingliz tili'?'selected':''}>Ingliz tili</option>
+              <option value="Rus tili" ${item.lang==='Rus tili'?'selected':''}>Rus tili</option>
+              <option value="Nemis tili" ${item.lang==='Nemis tili'?'selected':''}>Nemis tili</option>
+              <option value="Turk tili" ${item.lang==='Turk tili'?'selected':''}>Turk tili</option>
+              <option value="Boshqa" ${item.lang==='Boshqa'?'selected':''}>Boshqa</option>
+            </select>
+            ${['listen', 'read', 'speak', 'write'].map(skill => {
+              const label = skill === 'listen' ? 'Tinglash' : skill === 'read' ? 'O‘qish' : skill === 'speak' ? 'Gapirish' : 'Yozish';
+              return `
+              <div class="flex justify-between items-center mb-2">
+                <span class="text-xs font-bold text-slate-500 w-16 capitalize">${label}</span>
+                <div class="flex gap-1.5">
+                  ${[1,2,3,4,5,6].map(level => `
+                    <div class="lang-level-btn ${item[skill] >= level ? 'active' : ''}" onclick="langData[${i}].${skill}=${level}; renderList('langList', langData, 'lang'); triggerUpdate()"></div>
+                  `).join('')}
                 </div>
-            `).join('');
-    }
-    function handleSkillAdd(e) {
-      if (e.key === 'Enter' && e.target.value.trim() !== '') {
-        const val = e.target.value.trim();
-        if (!skills.includes(val)) skills.push(val);
-        e.target.value = '';
-        renderSkillsInput();
-        renderSkillSuggestions();
-        updateCV();
+              </div>`;
+            }).join('')}
+          </div>
+        `).join('');
+        return;
       }
-    }
-    function removeSkill(i) { skills.splice(i, 1); renderSkillsInput(); renderSkillSuggestions(); updateCV(); }
 
-    function toggleSkillSuggestion(label) {
-      if (skills.includes(label)) {
-        skills = skills.filter(x => x !== label);
-      } else {
-        skills.push(label);
-      }
-      renderSkillsInput();
-      renderSkillSuggestions();
-      updateCV();
-    }
-
-    function renderSkillSuggestions() {
-      const wrap = document.getElementById('skillSuggestions');
-      if (!wrap) return;
-      wrap.innerHTML = SKILL_SUGGESTIONS.map(s => `
-        <button type="button" class="suggest-chip ${skills.includes(s) ? 'active' : ''}" onclick="toggleSkillSuggestion('${s.replace(/'/g, "\\'")}')">${s}</button>
+      document.getElementById(containerId).innerHTML = arr.map((item, i) => `
+        <div class="entry-card relative !mb-2 !p-3">
+          <button class="absolute top-2 right-2 text-red-400 hover:text-red-600 font-bold bg-red-50 w-6 h-6 rounded flex items-center justify-center z-10 transition-colors" onclick="removeObj(${i}, '${type}')">✕</button>
+          
+          ${type==='ach' 
+            ? `<div class="flex flex-col gap-2 pr-8">
+                 <div class="flex gap-2">
+                   <input class="input-premium font-bold rounded-lg px-3 py-1.5 text-sm w-1/3" value="${item.type||''}" oninput="${type}Data[${i}].type=this.value;triggerUpdate()">
+                   <input class="input-premium font-bold rounded-lg px-3 py-1.5 text-sm text-center w-24" value="${item.year||''}" oninput="${type}Data[${i}].year=this.value;triggerUpdate()">
+                 </div>
+                 <input class="input-premium w-full rounded-lg px-3 py-1.5 text-sm" value="${item.title||''}" oninput="${type}Data[${i}].title=this.value;triggerUpdate()">
+               </div>`
+            : `<input class="input-premium w-full mb-2 rounded-lg px-3 py-2 text-sm font-bold" placeholder="Sarlavha" value="${item.title||''}" oninput="${type}Data[${i}].title=this.value;triggerUpdate()">
+               <div class="flex gap-2">
+                 <input class="input-premium flex-1 rounded-lg px-3 py-2 text-sm" placeholder="Joy nomi" value="${item.place||''}" oninput="${type}Data[${i}].place=this.value;triggerUpdate()">
+                 <input class="input-premium w-24 rounded-lg px-3 py-2 text-sm text-center" placeholder="2020-2024" value="${item.date||''}" oninput="${type}Data[${i}].date=this.value;triggerUpdate()">
+               </div>`
+          }
+        </div>
       `).join('');
     }
 
-    function renderToolsInput() {
-      document.getElementById('toolsWrap').innerHTML = tools.map((s, i) => `
-                <div class="px-3 py-1 bg-white dark:bg-black rounded-lg text-xs font-semibold flex items-center gap-2 border border-black/5 dark:border-white/5">
-                    ${s} <span class="text-red-500 cursor-pointer text-[10px]" onclick="removeTool(${i})">✖</span>
-                </div>
-            `).join('');
+    function addEdu() { eduData.push({title:'', place:'', date:''}); renderList('eduList', eduData, 'edu'); }
+    function addExp() { expData.push({title:'', place:'', date:''}); renderList('expList', expData, 'exp'); }
+    function addLang() { langData.push({lang:'', listen:0, read:0, speak:0, write:0}); renderList('langList', langData, 'lang'); }
+    
+    function removeObj(idx, type) { window[type+'Data'].splice(idx, 1); renderList(type+'List', window[type+'Data'], type); triggerUpdate(); }
+
+    function addAchDetails() {
+       const type = document.getElementById('achType').value;
+       const title = document.getElementById('achName').value.trim();
+       const year = document.getElementById('achYear').value.trim();
+       
+       if(title) {
+          achData.push({ type: type, title: title, year: year });
+          document.getElementById('achName').value = '';
+          document.getElementById('achYear').value = '';
+          renderList('achList', achData, 'ach');
+          triggerUpdate();
+       }
     }
 
-    function handleToolAdd(e) {
-      if (e.key === 'Enter' && e.target.value.trim() !== '') {
-        const val = e.target.value.trim();
-        if (!tools.includes(val)) tools.push(val);
-        e.target.value = '';
-        renderToolsInput();
-        renderToolSuggestions();
-        updateCV();
+    function addSkill() {
+      const inp = document.getElementById('skillInput');
+      const val = inp.value.trim();
+      if(val && !skillsData.includes(val)) {
+        skillsData.push(val); inp.value='';
+        renderSkills(); renderSuggestedSkills(); triggerUpdate();
       }
     }
-
-    function removeTool(i) { tools.splice(i, 1); renderToolsInput(); renderToolSuggestions(); updateCV(); }
-
-    function toggleToolSuggestion(label) {
-      if (tools.includes(label)) {
-        tools = tools.filter(x => x !== label);
-      } else {
-        tools.push(label);
-      }
-      renderToolsInput();
-      renderToolSuggestions();
-      updateCV();
-    }
-
-    function renderToolSuggestions() {
-      const wrap = document.getElementById('toolSuggestions');
-      if (!wrap) return;
-      wrap.innerHTML = TOOL_SUGGESTIONS.map(s => `
-        <button type="button" class="suggest-chip ${tools.includes(s) ? 'active' : ''}" onclick="toggleToolSuggestion('${s.replace(/'/g, "\\'")}')">${s}</button>
+    
+    function renderSkills() {
+      document.getElementById('skillsWrap').innerHTML = skillsData.map((s,i) => `
+        <span class="bg-blue-100 text-blue-700 px-3 py-1.5 rounded-lg text-sm font-bold flex items-center gap-2 shadow-sm border border-blue-200">
+          ${s} <span class="text-blue-400 cursor-pointer hover:text-red-500" onclick="skillsData.splice(${i},1);renderSkills();renderSuggestedSkills();triggerUpdate()">✕</span>
+        </span>
       `).join('');
     }
 
-    // Expanders (Exp/Edu)
-    function renderExp() {
-      document.getElementById('expList').innerHTML = experiences.map((ex, i) => `
-                <div class="bg-black/5 dark:bg-white/5 p-4 rounded-2xl relative group">
-                    <button class="absolute top-2 right-2 w-6 h-6 bg-red-500/10 text-red-500 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity" onclick="removeExp(${ex.id})">×</button>
-                    <input type="text" class="w-full bg-transparent border-b border-black/10 dark:border-white/10 px-0 py-2 text-sm font-bold outline-none mb-1 focus:border-apple-purple" placeholder="Lavozim" value="${ex.title}" oninput="experiences[${i}].title=this.value; updateCV()">
-                    <div class="flex gap-2 mb-2">
-                        <input type="text" class="w-1/2 bg-transparent border-b border-black/10 dark:border-white/10 px-0 py-2 text-xs outline-none focus:border-apple-purple" placeholder="Kompaniya" value="${ex.company}" oninput="experiences[${i}].company=this.value; updateCV()">
-                        <input type="text" class="w-1/2 bg-transparent border-b border-black/10 dark:border-white/10 px-0 py-2 text-xs outline-none focus:border-apple-purple" placeholder="Yillar" value="${ex.date}" oninput="experiences[${i}].date=this.value; updateCV()">
-                    </div>
-                    <textarea class="w-full bg-transparent border-b border-black/10 dark:border-white/10 px-0 py-2 text-xs outline-none focus:border-apple-purple resize-none h-14" placeholder="Faoliyat haqida..." oninput="experiences[${i}].desc=this.value; updateCV()">${ex.desc}</textarea>
-                </div>
-            `).join('');
-      if (window.SmartAutoFill) SmartAutoFill.initDynamic();
+    const suggestedSkillsList = ["Microsoft Word", "Microsoft Excel", "PowerPoint", "Jamoaviy ishlash", "Muammoni hal qilish"];
+    function renderSuggestedSkills() {
+       const container = document.getElementById('suggestedSkills');
+       container.innerHTML = suggestedSkillsList.map(skill => {
+          const isSelected = skillsData.includes(skill);
+          return `<button onclick="toggleSuggestedSkill('${skill}')" class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${isSelected ? 'bg-blue-500 text-white shadow-md border border-blue-600' : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'}">${skill}</button>`;
+       }).join('');
     }
-    function addExp() { experiences.push({ id: Date.now(), title: '', company: '', date: '', desc: '' }); renderExp(); updateCV(); }
-    function removeExp(id) { experiences = experiences.filter(x => x.id !== id); renderExp(); updateCV(); }
-
-    function renderEdu() {
-      document.getElementById('eduList').innerHTML = education.map((ed, i) => `
-                <div class="bg-black/5 dark:bg-white/5 p-4 rounded-2xl relative group">
-                    <button class="absolute top-2 right-2 w-6 h-6 bg-red-500/10 text-red-500 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity" onclick="removeEdu(${ed.id})">×</button>
-                    <input type="text" class="w-full bg-transparent border-b border-black/10 dark:border-white/10 px-0 py-2 text-sm font-bold outline-none mb-1 focus:border-apple-blue" placeholder="Daraja yoki Kurs" value="${ed.title}" oninput="education[${i}].title=this.value; updateCV()">
-                    <div class="flex gap-2 mb-2">
-                        <input type="text" class="w-1/2 bg-transparent border-b border-black/10 dark:border-white/10 px-0 py-2 text-xs outline-none focus:border-apple-blue" placeholder="Oliygoh" value="${ed.company}" oninput="education[${i}].company=this.value; updateCV()">
-                        <input type="text" class="w-1/2 bg-transparent border-b border-black/10 dark:border-white/10 px-0 py-2 text-xs outline-none focus:border-apple-blue" placeholder="Yillar" value="${ed.date}" oninput="education[${i}].date=this.value; updateCV()">
-                    </div>
-                    <textarea class="w-full bg-transparent border-b border-black/10 dark:border-white/10 px-0 py-2 text-xs outline-none focus:border-apple-blue resize-none h-10" placeholder="Ma'lumotlar..." oninput="education[${i}].desc=this.value; updateCV()">${ed.desc}</textarea>
-                </div>
-            `).join('');
-      if (window.SmartAutoFill) SmartAutoFill.initDynamic();
+    function toggleSuggestedSkill(skill) {
+       if(skillsData.includes(skill)) skillsData = skillsData.filter(s => s !== skill);
+       else skillsData.push(skill);
+       renderSkills(); renderSuggestedSkills(); triggerUpdate();
     }
-    function addEdu() { education.push({ id: Date.now(), title: '', company: '', date: '', desc: '' }); renderEdu(); updateCV(); }
-    function removeEdu(id) { education = education.filter(x => x.id !== id); renderEdu(); updateCV(); }
 
-    function saveDraft() {
-      const draft = {
-        activeTpl,
-        avatarUrl,
-        selectedAccent,
-        experiences,
-        education,
-        skills,
-        tools,
-        fields: {
-          f_name: document.getElementById('f_name')?.value || '',
-          f_role: document.getElementById('f_role')?.value || '',
-          f_phone: document.getElementById('f_phone')?.value || '',
-          f_email: document.getElementById('f_email')?.value || '',
-          f_loc: document.getElementById('f_loc')?.value || '',
-          f_about: document.getElementById('f_about')?.value || '',
+    // --- AUTO SAVE LOGIC ---
+    function saveToLocalStorage() {
+        const data = {
+            f_name: document.getElementById('f_name').value, f_role: document.getElementById('f_role').value,
+            f_phone: document.getElementById('f_phone').value, f_email: document.getElementById('f_email').value,
+            f_loc: document.getElementById('f_loc').value, f_about: document.getElementById('f_about').value,
+            avatarUrl, activeTpl, cvColor, eduData, expData, achData, skillsData, langData, currentLang
+        };
+        localStorage.setItem('cvBuilderData', JSON.stringify(data));
+    }
+
+    function loadFromLocalStorage() {
+        const saved = localStorage.getItem('cvBuilderData');
+        if(saved) {
+            const data = JSON.parse(saved);
+            document.getElementById('f_name').value = data.f_name || '';
+            document.getElementById('f_role').value = data.f_role || '';
+            document.getElementById('f_phone').value = data.f_phone || '+998 ';
+            document.getElementById('f_email').value = data.f_email || '';
+            document.getElementById('f_loc').value = data.f_loc || '';
+            document.getElementById('f_about').value = data.f_about || '';
+            
+            avatarUrl = data.avatarUrl || avatarUrl;
+            if(avatarUrl.length > 200) document.getElementById('photoPrev').innerHTML = `<img src="${avatarUrl}" class="w-full h-full object-cover">`;
+            
+            activeTpl = data.activeTpl || 'minimal'; setTpl(activeTpl, false);
+            cvColor = data.cvColor || '#3b82f6';
+            
+            eduData = data.eduData || []; expData = data.expData || [];
+            achData = data.achData || []; skillsData = data.skillsData || [];
+            langData = data.langData || [];
+            currentLang = data.currentLang || 'uz_lat';
+            
+            document.getElementById('langSelect').value = currentLang; changeLang(currentLang, false);
+            
+            renderList('eduList', eduData, 'edu'); renderList('expList', expData, 'exp'); 
+            renderList('achList', achData, 'ach'); renderList('langList', langData, 'lang');
+            renderSkills(); renderSuggestedSkills();
+            
+            triggerUpdate(false);
+        } else {
+            renderSuggestedSkills(); triggerUpdate();
         }
-      };
-      localStorage.setItem(CV_DRAFT_KEY, JSON.stringify(draft));
     }
 
-    function loadDraft() {
-      const raw = localStorage.getItem(CV_DRAFT_KEY);
-      if (!raw) return;
-      try {
-        const d = JSON.parse(raw);
-        activeTpl = d.activeTpl || activeTpl;
-        avatarUrl = d.avatarUrl || avatarUrl;
-        selectedAccent = d.selectedAccent || selectedAccent;
-        experiences = Array.isArray(d.experiences) ? d.experiences : experiences;
-        education = Array.isArray(d.education) ? d.education : education;
-        skills = Array.isArray(d.skills) ? d.skills : skills;
-        tools = Array.isArray(d.tools) ? d.tools : tools;
-        const f = d.fields || {};
-        ['f_name', 'f_role', 'f_phone', 'f_email', 'f_loc', 'f_about'].forEach(id => {
-          if (document.getElementById(id) && typeof f[id] === 'string') document.getElementById(id).value = f[id];
-        });
-      } catch (_) { }
+    function clearAllData() {
+        if(confirm("Barcha ma'lumotlar o'chiriladi. Ishonchingiz komilmi?")) { localStorage.removeItem('cvBuilderData'); location.reload(); }
     }
 
-    function clearFormData() {
-      if (!confirm("Barcha saqlangan ma'lumotlarni tozalaysizmi?")) return;
-      localStorage.removeItem(CV_DRAFT_KEY);
-      experiences = [];
-      education = [];
-      skills = [];
-      tools = [];
-      activeTpl = 'minimal';
-      selectedAccent = '#0A84FF';
-      avatarUrl = 'data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=';
-      ['f_name', 'f_role', 'f_phone', 'f_email', 'f_loc', 'f_about'].forEach(id => {
-        const el = document.getElementById(id);
-        if (el) el.value = '';
-      });
-      document.querySelectorAll('.tpl-card').forEach(el => el.classList.replace('border-apple-purple', 'border-transparent'));
-      document.getElementById('tpl-minimal')?.classList.replace('border-transparent', 'border-apple-purple');
-      document.querySelectorAll('.accent-btn').forEach(b => b.classList.remove('active'));
-      document.querySelector('.accent-btn')?.classList.add('active');
-      document.getElementById('photoPrev').innerHTML = `<span class="text-2xl opacity-50">📷</span>`;
-      renderExp();
-      renderEdu();
-      renderSkillsInput();
-      renderToolsInput();
-      renderSkillSuggestions();
-      renderToolSuggestions();
-      updateCV();
-    }
-
-    function initPhotoDrop() {
-      const dropEl = document.getElementById('photoPrev');
-      if (!dropEl) return;
-      ['dragenter', 'dragover'].forEach(evt =>
-        dropEl.addEventListener(evt, (e) => {
-          e.preventDefault();
-          dropEl.classList.add('photo-drop-active');
-        })
-      );
-      ['dragleave', 'drop'].forEach(evt =>
-        dropEl.addEventListener(evt, (e) => {
-          e.preventDefault();
-          dropEl.classList.remove('photo-drop-active');
-        })
-      );
-      dropEl.addEventListener('drop', (e) => {
-        const file = e.dataTransfer?.files?.[0];
-        if (!file || !file.type.startsWith('image/')) return;
-        const reader = new FileReader();
-        reader.onload = ev => _setAvatar(ev.target.result);
-        reader.readAsDataURL(file);
-      });
-    }
-
-    // Initialize lists
-    loadDraft();
-    document.getElementById('userAvatarBox') && (document.getElementById('userAvatarBox').innerHTML = `<img src="${avatarUrl}" class="w-full h-full object-cover">`);
-    if (avatarUrl && !avatarUrl.includes('R0lGODlhAQABAAD')) {
-      document.getElementById('photoPrev').innerHTML = `<img src="${avatarUrl}" class="w-full h-full object-cover">`;
-    }
-    renderExp();
-    renderEdu();
-    renderSkillsInput();
-    renderToolsInput();
-    renderSkillSuggestions();
-    renderToolSuggestions();
-    initPhotoDrop();
-    const accentBtn = [...document.querySelectorAll('.accent-btn')]
-      .find(btn => (btn.style.background || '').toLowerCase() === selectedAccent.toLowerCase());
-    if (accentBtn) {
-      setAccentColor(selectedAccent, accentBtn);
-    }
-
-    function v(id) { return (document.getElementById(id).value || '').trim(); }
-
-    // ── LIVE ENGINE ──
-    function updateCV() {
-      const data = {
-        name: v('f_name') || 'Ism Familiya',
-        role: v('f_role'),
-        phone: v('f_phone'),
-        email: v('f_email'),
-        loc: v('f_loc'),
-        about: v('f_about'),
-        img: avatarUrl
-      };
-
-      const expHtml = experiences.map(e => `
-                <div class="item-row">
-                    <div class="item-head">
-                        <span class="item-title">${e.title}</span>
-                        <span class="item-date">${e.date}</span>
-                    </div>
-                    ${e.company ? `<div class="item-sub">${e.company}</div>` : ''}
-                    ${e.desc ? `<div class="item-desc">${e.desc}</div>` : ''}
-                </div>
-            `).join('');
-
-      const eduHtml = education.map(e => `
-                <div class="item-row">
-                    <div class="item-head">
-                        <span class="item-title">${e.title}</span>
-                        <span class="item-date">${e.date}</span>
-                    </div>
-                    ${e.company ? `<div class="item-sub">${e.company}</div>` : ''}
-                    ${e.desc ? `<div class="item-desc">${e.desc}</div>` : ''}
-                </div>
-            `).join('');
-
-      const skillsHtml = skills.map(s => `<span class="badge">${s}</span>`).join('');
-      const toolsHtml = tools.map(s => `<span class="badge">${s}</span>`).join('');
-      const skillsSection = skills.length ? `<div class="section"><div class="sec-title">${I18n.t('cv_skills')}</div><div class="badges-wrap">${skillsHtml}</div></div>` : '';
-      const toolsSection = tools.length ? `<div class="section"><div class="sec-title">Tools & Tech</div><div class="badges-wrap">${toolsHtml}</div></div>` : '';
-      const skillsSectionSide = skills.length ? `<div class="section"><div class="sec-title-side">${I18n.t('cv_skills')}</div><div class="badges-wrap" style="color:#000">${skillsHtml}</div></div>` : '';
-      const toolsSectionSide = tools.length ? `<div class="section"><div class="sec-title-side">Tools & Tech</div><div class="badges-wrap" style="color:#000">${toolsHtml}</div></div>` : '';
-      const skillsSectionLeft = skills.length ? `<div class="section"><div class="sec-title sec-title-left">${I18n.t('cv_skills')}</div><div class="badges-wrap" style="color:#000">${skillsHtml}</div></div>` : '';
-      const toolsSectionLeft = tools.length ? `<div class="section"><div class="sec-title sec-title-left">Tools & Tech</div><div class="badges-wrap" style="color:#000">${toolsHtml}</div></div>` : '';
-      const box = document.getElementById('cv-box');
-
-      if (activeTpl === 'minimal') {
-        box.className = 'cv-canvas tpl-minimal themable';
-        box.innerHTML = `
-                    <div class="header">
-                        <img src="${data.img}" class="avatar">
-                        <div>
-                            <div class="name">${data.name}</div>
-                            <div class="role">${data.role}</div>
-                            <div class="contact-wrap">
-                                ${data.phone ? `<span>📞 ${data.phone}</span>` : ''}
-                                ${data.email ? `<span>| &nbsp; 📧 ${data.email}</span>` : ''}
-                                ${data.loc ? `<span>| &nbsp; 📍 ${data.loc}</span>` : ''}
-                            </div>
-                        </div>
-                    </div>
-                    
-                    ${data.about ? `<div class="section"><div class="sec-title">${I18n.t('cv_about')}</div><div class="text">${data.about}</div></div>` : ''}
-                    
-                    ${experiences.length ? `<div class="section"><div class="sec-title">${I18n.t('cv_experience')}</div>${expHtml}</div>` : ''}
-                    
-                    ${education.length ? `<div class="section"><div class="sec-title">${I18n.t('cv_education')}</div>${eduHtml}</div>` : ''}
-                    
-                    ${skillsSection}
-                    ${toolsSection}
-                `;
-      } else if (activeTpl === 'split') {
-        box.className = 'cv-canvas tpl-split themable';
-        box.innerHTML = `
-                    <div class="sidebar">
-                        <img src="${data.img}" class="avatar">
-                        
-                        <div class="section">
-                            <div class="sec-title-side">${I18n.t('cv_contact')}</div>
-                            ${data.phone ? `<div class="contact-item">📞 ${data.phone}</div>` : ''}
-                            ${data.email ? `<div class="contact-item">📧 ${data.email}</div>` : ''}
-                            ${data.loc ? `<div class="contact-item">📍 ${data.loc}</div>` : ''}
-                        </div>
-                        
-                        ${skillsSectionSide}
-                        ${toolsSectionSide}
-                    </div>
-                    <div class="main">
-                        <div class="name">${data.name}</div>
-                        <div class="role">${data.role}</div>
-
-                        ${data.about ? `<div class="section"><div class="sec-title-main">${I18n.t('cv_about')}</div><div class="text">${data.about}</div></div>` : ''}
-                        ${experiences.length ? `<div class="section"><div class="sec-title-main">${I18n.t('cv_experience')}</div>${expHtml}</div>` : ''}
-                        ${education.length ? `<div class="section"><div class="sec-title-main">${I18n.t('cv_education')}</div>${eduHtml}</div>` : ''}
-                    </div>
-                `;
-      } else if (activeTpl === 'modern') {
-        box.className = 'cv-canvas tpl-modern themable';
-        box.innerHTML = `
-                    <div class="header">
-                        <img src="${data.img}" class="avatar">
-                        <div class="header-info">
-                            <div class="name">${data.name}</div>
-                            <div class="role">${data.role}</div>
-                            <div class="contact">
-                                <div>📞 ${data.phone} &nbsp; | &nbsp; 📧 ${data.email}</div>
-                                <div>📍 ${data.loc}</div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="body">
-                        <div class="col-main">
-                            ${data.about ? `<div class="section"><div class="sec-title">${I18n.t('cv_about')}</div><div class="text">${data.about}</div></div>` : ''}
-                            ${experiences.length ? `<div class="section"><div class="sec-title">${I18n.t('cv_experience')}</div>${expHtml}</div>` : ''}
-                        </div>
-                        <div class="col-side">
-                            ${education.length ? `<div class="section"><div class="sec-title">${I18n.t('cv_education')}</div>${eduHtml}</div>` : ''}
-                            ${skillsSection}
-                            ${toolsSection}
-                        </div>
-                    </div>
-                `;
-      } else if (activeTpl === 'ats') {
-        box.className = 'cv-canvas tpl-ats themable';
-        box.innerHTML = `
-            <div class="header">
-                <div class="name">${data.name}</div>
-                <div class="role">${data.role}</div>
-                <div class="contact-wrap">
-                    ${data.phone ? `<span>📞 ${data.phone}</span>` : ''}
-                    ${data.email ? `<span>📧 ${data.email}</span>` : ''}
-                    ${data.loc ? `<span>📍 ${data.loc}</span>` : ''}
-                </div>
-            </div>
-            ${data.about ? `<div class="section"><div class="sec-title">${I18n.t('cv_about')}</div><div class="text">${data.about}</div></div>` : ''}
-            ${experiences.length ? `<div class="section"><div class="sec-title">${I18n.t('cv_experience')}</div>${expHtml}</div>` : ''}
-            ${education.length ? `<div class="section"><div class="sec-title">${I18n.t('cv_education')}</div>${eduHtml}</div>` : ''}
-            ${skills.length ? `<div class="section"><div class="sec-title">${I18n.t('cv_skills')}</div><div style="font-size:10pt;">${skills.map(s => s).join(', ')}</div></div>` : ''}
-            ${tools.length ? `<div class="section"><div class="sec-title">Tools & Tech</div><div style="font-size:10pt;">${tools.map(s => s).join(', ')}</div></div>` : ''}
-        `;
-      } else if (activeTpl === 'elegant') {
-        box.className = 'cv-canvas tpl-elegant themable';
-        box.innerHTML = `
-            <div class="header">
-                <div class="name">${data.name}</div>
-                <div class="role">${data.role}</div>
-                <div class="contact-wrap">
-                    ${data.phone ? `<span>${data.phone}</span> ` : ''}
-                    ${data.email ? `<span> | ${data.email}</span> ` : ''}
-                    ${data.loc ? `<span> | ${data.loc}</span>` : ''}
-                </div>
-            </div>
-            <div class="body-cols">
-                <div class="col-main">
-                    ${data.about ? `<div class="section"><div class="sec-title">${I18n.t('cv_about')}</div><div class="text">${data.about}</div></div>` : ''}
-                    ${experiences.length ? `<div class="section"><div class="sec-title">${I18n.t('cv_experience')}</div>${expHtml}</div>` : ''}
-                </div>
-                <div class="col-side">
-                    ${education.length ? `<div class="section"><div class="sec-title">${I18n.t('cv_education')}</div>${eduHtml}</div>` : ''}
-                    ${skillsSection}
-                    ${toolsSection}
-                </div>
-            </div>
-        `;
-      } else if (activeTpl === 'corporate') {
-        box.className = 'cv-canvas tpl-corporate themable';
-        box.innerHTML = `
-            <div class="header">
-                <div>
-                   <div class="name">${data.name}</div>
-                   <div class="role">${data.role}</div>
-                </div>
-                <div class="contact-wrap">
-                   ${data.phone ? `<div>${data.phone}</div>` : ''}
-                   ${data.email ? `<div>${data.email}</div>` : ''}
-                   ${data.loc ? `<div>${data.loc}</div>` : ''}
-                </div>
-            </div>
-            <div class="body-cols">
-                <div class="col-main">
-                    ${data.about ? `<div class="section"><div class="sec-title">${I18n.t('cv_about')}</div><div class="text">${data.about}</div></div>` : ''}
-                    ${experiences.length ? `<div class="section"><div class="sec-title">${I18n.t('cv_experience')}</div>${expHtml}</div>` : ''}
-                </div>
-                <div class="col-side">
-                    ${education.length ? `<div class="section"><div class="sec-title">${I18n.t('cv_education')}</div>${eduHtml}</div>` : ''}
-                    ${skillsSectionSide}
-                    ${toolsSectionSide}
-                </div>
-            </div>
-        `;
-      } else if (activeTpl === 'creative') {
-        box.className = 'cv-canvas tpl-creative themable';
-        box.innerHTML = `
-            <div class="left">
-                <img src="${data.img}" class="avatar">
-                <div class="name">${data.name}</div>
-                <div class="role">${data.role}</div>
-                
-                <div class="section">
-                    <div class="sec-title sec-title-left">${I18n.t('cv_contact')}</div>
-                    ${data.phone ? `<div class="contact-item">📞 ${data.phone}</div>` : ''}
-                    ${data.email ? `<div class="contact-item">📧 ${data.email}</div>` : ''}
-                    ${data.loc ? `<div class="contact-item">📍 ${data.loc}</div>` : ''}
-                </div>
-                
-                ${skillsSectionLeft}
-                ${toolsSectionLeft}
-            </div>
-            <div class="right">
-                ${data.about ? `<div class="section"><div class="sec-title">${I18n.t('cv_about')}</div><div class="text">${data.about}</div></div>` : ''}
-                ${experiences.length ? `<div class="section"><div class="sec-title">${I18n.t('cv_experience')}</div>${expHtml}</div>` : ''}
-                ${education.length ? `<div class="section"><div class="sec-title">${I18n.t('cv_education')}</div>${eduHtml}</div>` : ''}
-            </div>
-        `;
-      } else if (activeTpl === 'prof') {
-        box.className = 'cv-canvas tpl-prof themable';
-        const [firstName, ...lastName] = data.name.split(' ');
-        const nameHtml = lastName.length ? `<strong>${firstName}</strong> ${lastName.join(' ')}` : `<strong>${firstName}</strong>`;
-        box.innerHTML = `
-            <div class="left-strip"></div>
-            <div class="content">
-                <div class="header">
-                    <img src="${data.img}" class="avatar" style="width: 35mm; height: 35mm; border-radius: 5px; object-fit: cover;">
-                    <div>
-                        <div class="name">${nameHtml}</div>
-                        <div class="role">${data.role}</div>
-                        <div class="contact-wrap">
-                            ${data.phone ? `<span>${data.phone}</span>` : ''}
-                            ${data.email ? `<span>&bull; ${data.email}</span>` : ''}
-                            ${data.loc ? `<span>&bull; ${data.loc}</span>` : ''}
-                        </div>
-                    </div>
-                </div>
-                
-                ${data.about ? `<div class="section"><div class="sec-title">${I18n.t('cv_about')}</div><div class="text">${data.about}</div></div>` : ''}
-                
-                <div style="display:flex; gap: 30px;">
-                    <div style="flex:2">
-                        ${experiences.length ? `<div class="section"><div class="sec-title">${I18n.t('cv_experience')}</div>${expHtml}</div>` : ''}
-                    </div>
-                    <div style="flex:1">
-                        ${education.length ? `<div class="section"><div class="sec-title">${I18n.t('cv_education')}</div>${eduHtml}</div>` : ''}
-                        ${skillsSection}
-                        ${toolsSection}
-                    </div>
-                </div>
-            </div>
-        `;
-      }
-      box.style.setProperty('--cv-accent', selectedAccent);
-      saveDraft();
-      autoScale();
-    }
-
+    // --- ZOOM LOGIC ---
     function autoScale() {
       const wrap = document.getElementById('previewScaleWrapper');
       const pane = document.getElementById('previewPane');
-      let pw = pane.clientWidth;
-      pw -= (window.innerWidth >= 1024 ? 64 : 24);
-
-      const natW = 793;
-      const scale = Math.min(pw / natW, 1);
-
+      const box = document.getElementById('cv-box');
+      
+      const paneWidth = pane.clientWidth - 40; 
+      const actualWidth = box.offsetWidth; 
+      
+      const scale = Math.min(paneWidth / actualWidth, 1);
+      
+      applyZoom(scale);
+    }
+    
+    function applyZoom(scale) {
+      const wrap = document.getElementById('previewScaleWrapper');
       wrap.style.transform = `scale(${scale})`;
-      wrap.style.marginBottom = `-${Math.max(0, (1 - scale) * 1122)}px`;
+      wrap.style.height = `${297 * 3.78 * scale}px`; // A4 height * scale
     }
     window.addEventListener('resize', autoScale);
 
-    setTimeout(() => {
-      updateCV();
-    }, 100);
-
-    window.addEventListener('i18n:change', updateCV);
-
-    // ── Telegram upload helper ─────────────────────────────────────────
-    function uploadToTelegram(blob, filename) {
-      const tgId = DastyorAI.getTelegramId();
-      if (!tgId) return;
-      const formData = new FormData();
-      formData.append('file', blob, filename);
-      formData.append('telegram_id', tgId);
-      if (DastyorAI.getToken()) formData.append('token', DastyorAI.getToken());
-      fetch(DastyorAI.BASE + '/api/upload_to_telegram', { method: 'POST', body: formData })
-        .catch(err => console.error("Tg upload err:", err));
-    }
-
-    // ── Telegram delivery toast ────────────────────────────────────────
-    function _showTelegramToast(msg) {
-      let t = document.getElementById('_tg_toast');
-      if (!t) {
-        t = document.createElement('div');
-        t.id = '_tg_toast';
-        t.style.cssText = 'position:fixed;bottom:88px;left:50%;transform:translateX(-50%);'
-          + 'background:#30D158;color:#fff;font-weight:700;font-size:13px;padding:10px 20px;'
-          + 'border-radius:999px;box-shadow:0 8px 24px rgba(0,0,0,.25);z-index:9999;'
-          + 'white-space:nowrap;transition:opacity .4s ease';
-        document.body.appendChild(t);
-      }
-      t.textContent = msg;
-      t.style.opacity = '1';
-      clearTimeout(t._hideTimer);
-      t._hideTimer = setTimeout(() => { t.style.opacity = '0'; }, 4000);
-    }
-
-    // ── _collectCVData() — forma ma'lumotlarini to'playdi ────────────
-    function _collectCVData(format) {
-      const get = id => (document.getElementById(id)?.value || '').trim();
-      // Build works array from JS state (already has {title, company, date, desc})
-      const worksArr = experiences.map(e => ({
-        title: e.title, company: e.company, date: e.date, desc: e.desc
-      }));
-      const eduArr = education.map(e => ({
-        title: e.title, company: e.company, date: e.date, desc: e.desc
-      }));
-      return {
-        format: format,
-        lang: I18n.getLang(),
-        telegram_id: DastyorAI.getTelegramId() ? parseInt(DastyorAI.getTelegramId()) : null,
-        token: DastyorAI.getToken() || null,
-        name: get('f_name'),
-        // 'role' field in form is f_role; backend expects 'spec' as role alias
-        spec: get('f_role'),
-        role: get('f_role'),
-        phone: get('f_phone'),
-        email: get('f_email'),
-        loc: get('f_loc'),
-        about: get('f_about'),
-        template: activeTpl || 'minimal',
-        skills: skills.join('\n'),
-        tools: tools.join('\n'),
-        works: worksArr,
-        education_list: eduArr,
-        img: avatarUrl || '',
+    // --- UPDATE PREVIEW ---
+    function triggerUpdate(save = true) {
+      const d = {
+        name: document.getElementById('f_name').value || (currentLang==='en'?'John Doe':(currentLang==='ru'?'Иван Иванов':'Ali Valiyev')),
+        role: document.getElementById('f_role').value || '', phone: document.getElementById('f_phone').value || '',
+        email: document.getElementById('f_email').value || '', loc: document.getElementById('f_loc').value || '',
+        about: document.getElementById('f_about').value || '', img: avatarUrl
       };
-    }
 
-    // ── Detect Telegram Mini App environment ──────────────────────────
-    function _isTgWebApp() {
-      return !!(window.Telegram?.WebApp?.initData);
-    }
+      const t_ab = dict[currentLang].about; const t_ed = dict[currentLang].edu_title;
+      const t_ex = dict[currentLang].exp_title; const t_sk = dict[currentLang].skills_title.split(' ')[0];
+      const t_ac = dict[currentLang].ach_title.split(' ')[0];
+      const t_lng = dict[currentLang].lang_title || "Tillar";
 
-    // ── exportPDF() — Preview'dan 1:1 client-side PDF ───────────────────
-    async function exportPDF() {
-      const btn = document.getElementById('btnPdf');
-      const originalHtml = btn.innerHTML;
-      btn.innerHTML = I18n.t('status_processing') || '⏳ Kutmoqda...';
-      btn.disabled = true;
+      const html_edu = eduData.map(x=>`<div class="item-row"><div class="item-head"><span>${x.title}</span><span style="font-size:9pt;color:#64748b">${x.date}</span></div><div class="item-sub" style="color:${cvColor}">${x.place}</div></div>`).join('');
+      const html_exp = expData.map(x=>`<div class="item-row"><div class="item-head"><span>${x.title}</span><span style="font-size:9pt;color:#64748b">${x.date}</span></div><div class="item-sub" style="color:${cvColor}">${x.place}</div></div>`).join('');
+      const html_ach = achData.map(x=>`<div class="item-desc" style="margin-bottom:6px; display:flex; justify-content:space-between;">
+        <span><strong>${x.type}:</strong> ${x.title}</span>
+        ${x.year ? `<span style="color:#64748b; font-size:9pt;">${x.year}</span>` : ''}
+      </div>`).join('');
+      
+      const html_ski = skillsData.map(x=>`<span class="badge" style="background:${cvColor}20; color:${cvColor}; border:1px solid ${cvColor}40">${x}</span>`).join('');
 
-      const inTelegram = _isTgWebApp();
-      const safeName = (_collectCVData('pdf').name || 'CV').replace(/\s+/g, '_');
-      const filename = `DASTYOR_CV_${safeName}_@DastyorAiBot.pdf`;
-
-      try {
-        const blob = await _exportPDFClientSide(filename);
-        if (inTelegram) {
-          uploadToTelegram(blob, filename);
-          _showTelegramToast("✅ PDF tanlangan ranglar bilan botga yuborildi!");
-        } else {
-          _showTelegramToast('✅ PDF saqlandi!');
-        }
-      } catch (err) {
-        console.error('exportPDF client-side error:', err);
-        _showTelegramToast('❌ PDF yaratishda xatolik. Qayta urinib ko\'ring.');
-      }
-
-      autoScale();
-      btn.innerHTML = originalHtml;
-      btn.disabled = false;
-    }
-
-    // Preview'dagi ayni ko'rinishdan PDF yaratish (ranglar ham 1:1)
-    async function _exportPDFClientSide(filename) {
-      const el = document.getElementById('cv-box');
-      const scaleWrapper = document.getElementById('previewScaleWrapper');
-      const prevTransform = scaleWrapper.style.transform;
-      const prevMarginBottom = scaleWrapper.style.marginBottom;
-      scaleWrapper.style.transform = 'none';
-      scaleWrapper.style.marginBottom = '0';
-      try {
-        const worker = html2pdf().set({
-          margin: 0,
-          filename,
-          image: { type: 'jpeg', quality: 1.0 },
-          html2canvas: { scale: 2.5, useCORS: true, letterRendering: true },
-          jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-        }).from(el);
-
-        let blob = null;
-        try {
-          blob = await worker.outputPdf('blob');
-        } catch (_) {
-          const pdf = await worker.toPdf().get('pdf');
-          blob = pdf.output('blob');
-        }
-
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url; a.download = filename;
-        document.body.appendChild(a); a.click();
-        setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 2000);
-        return blob;
-      } finally {
-        scaleWrapper.style.transform = prevTransform;
-        scaleWrapper.style.marginBottom = prevMarginBottom;
-      }
-    }
-
-    // ── exportWord() — Server-side, pixel-perfect Word ─────────────────
-    async function exportWord() {
-      const inTelegram = _isTgWebApp();
-      const btn = document.querySelector('button[onclick="exportWord()"]');
-      if (btn) { btn.disabled = true; btn.innerHTML = I18n.t('status_processing') || '⏳ Kutmoqda...'; }
-
-      const safeName = (_collectCVData('word').name || 'CV').replace(/\s+/g, '_');
-      const filename = `DASTYOR_CV_${safeName}_@DastyorAiBot.docx`;
-
-      try {
-        const res = await fetch(DastyorAI.BASE + '/api/export_cv', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(_collectCVData('word')),
+      // Yangi Tillar uchun HTML
+      const html_lang = langData.map(x => {
+        let h = `<div style="margin-bottom:15px;">
+          <strong style="display:block;margin-bottom:8px;font-size:11pt;color:${cvColor}">${x.lang || 'Til'}</strong>`;
+        const s_map = [ {n: 'Tinglash', v: x.listen}, {n: 'O‘qish', v: x.read}, {n: 'Gapirish', v: x.speak}, {n: 'Yozish', v: x.write} ];
+        s_map.forEach(s => {
+          h += `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;font-size:9pt;">
+            <span style="width:65px;">${s.n}</span>
+            <div style="display:flex;gap:4px;">`;
+          for(let j=1; j<=6; j++){
+             h += `<div class="lang-preview-dot ${s.v >= j ? 'fill' : ''}" style="border-color:${cvColor}; ${s.v >= j ? `background:${cvColor};` : ''}"></div>`;
+          }
+          h += `</div></div>`;
         });
+        h += `</div>`;
+        return h;
+      }).join('');
 
-        if (!res.ok) throw new Error('Server xatosi: ' + res.status);
+      const box = document.getElementById('cv-box');
+      
+      const templates = {
+        minimal: `<div class="header"><img src="${d.img}" class="avatar"><div><div class="name">${d.name}</div><div class="role" style="color:${cvColor}">${d.role}</div><div style="font-size:10pt;color:#64748b;display:flex;gap:15px"><span>${d.phone}</span><span>${d.email}</span><span>${d.loc}</span></div></div></div>
+          ${d.about?`<div class="sec-title" style="color:${cvColor};border-color:${cvColor}">${t_ab}</div><div class="item-desc" style="margin-bottom:20px">${d.about}</div>`:''}
+          ${skillsData.length?`<div class="sec-title" style="color:${cvColor};border-color:${cvColor}">${t_sk}</div><div style="margin-bottom:20px">${html_ski}</div>`:''}
+          ${expData.length?`<div class="sec-title" style="color:${cvColor};border-color:${cvColor}">${t_ex}</div>${html_exp}`:''}
+          ${eduData.length?`<div class="sec-title" style="color:${cvColor};border-color:${cvColor}">${t_ed}</div>${html_edu}`:''}
+          ${langData.length?`<div class="sec-title" style="color:${cvColor};border-color:${cvColor}">${t_lng}</div>${html_lang}`:''}
+          ${achData.length?`<div class="sec-title" style="color:${cvColor};border-color:${cvColor}">${t_ac}</div>${html_ach}`:''}`,
+          
+        split: `<div class="sidebar"><img src="${d.img}" class="avatar" style="border-color:${cvColor}">
+          <div style="font-size:10pt;line-height:1.8;margin-bottom:20px"><div>${d.phone}</div><div>${d.email}</div><div>${d.loc}</div></div>
+          ${skillsData.length?`<div class="sec-title" style="color:#fff;border-color:#334155;font-size:11pt">${t_sk}</div><div style="margin-bottom:20px">${skillsData.map(s=>`<span class="badge" style="background:rgba(255,255,255,0.1)">${s}</span>`).join('')}</div>`:''}
+          ${langData.length?`<div class="sec-title" style="color:#fff;border-color:#334155;font-size:11pt;margin-top:20px;">${t_lng}</div>${html_lang}`:''}
+          </div><div class="main"><div style="font-size:26pt;font-weight:800;color:${cvColor};line-height:1.1">${d.name}</div><div style="font-size:14pt;margin-bottom:20px">${d.role}</div>
+          ${d.about?`<div class="sec-title" style="border-color:#e2e8f0">${t_ab}</div><div class="item-desc" style="margin-bottom:20px">${d.about}</div>`:''}
+          ${expData.length?`<div class="sec-title" style="border-color:#e2e8f0">${t_ex}</div>${html_exp}`:''}
+          ${eduData.length?`<div class="sec-title" style="border-color:#e2e8f0">${t_ed}</div>${html_edu}`:''}
+          ${achData.length?`<div class="sec-title" style="border-color:#e2e8f0">${t_ac}</div>${html_ach}`:''}</div>`,
 
-        if (inTelegram) {
-          await res.arrayBuffer();
-          _showTelegramToast('✅ Word fayl Telegram chatga yuborildi!');
-        } else {
-          const blob = await res.blob();
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = filename;
-          document.body.appendChild(a);
-          a.click();
-          setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 2000);
-          _showTelegramToast('✅ Word saqlandi!');
-        }
+        modern: `<div class="header" style="background:${cvColor}"><img src="${d.img}" class="avatar"><div><div style="font-size:28pt;font-weight:800">${d.name}</div><div style="font-size:14pt;opacity:0.9">${d.role}</div><div style="font-size:10pt;opacity:0.8;margin-top:10px">${d.phone} | ${d.email} | ${d.loc}</div></div></div>
+          <div style="display:flex;padding:20mm;gap:30px;"><div style="flex:2">
+          ${d.about?`<div class="sec-title" style="color:${cvColor};border-color:#e2e8f0">${t_ab}</div><div class="item-desc" style="margin-bottom:20px">${d.about}</div>`:''}
+          ${expData.length?`<div class="sec-title" style="color:${cvColor};border-color:#e2e8f0">${t_ex}</div>${html_exp}`:''}
+          ${langData.length?`<div class="sec-title" style="color:${cvColor};border-color:#e2e8f0">${t_lng}</div>${html_lang}`:''}
+          </div><div style="flex:1">
+          ${eduData.length?`<div class="sec-title" style="color:${cvColor};border-color:#e2e8f0">${t_ed}</div>${html_edu}`:''}
+          ${skillsData.length?`<div class="sec-title" style="color:${cvColor};border-color:#e2e8f0">${t_sk}</div><div>${html_ski}</div><br>`:''}
+          ${achData.length?`<div class="sec-title" style="color:${cvColor};border-color:#e2e8f0">${t_ac}</div>${html_ach}`:''}
+          </div></div>`,
+
+        ats: `<div class="header"><img src="${d.img}" class="avatar"><div style="font-size:24pt;font-weight:bold;text-transform:uppercase;color:${cvColor}">${d.name}</div><div style="font-size:12pt;margin-bottom:5px">${d.role}</div><div style="font-size:10pt">${d.phone} | ${d.email} | ${d.loc}</div></div>
+          ${d.about?`<div class="sec-title" style="border-color:#000;font-size:12pt">${t_ab}</div><div class="item-desc" style="margin-bottom:15px">${d.about}</div>`:''}
+          ${expData.length?`<div class="sec-title" style="border-color:#000;font-size:12pt">${t_ex}</div>${html_exp}`:''}
+          ${eduData.length?`<div class="sec-title" style="border-color:#000;font-size:12pt">${t_ed}</div>${html_edu}`:''}
+          ${skillsData.length?`<div class="sec-title" style="border-color:#000;font-size:12pt">${t_sk}</div><div style="font-size:10pt;margin-bottom:15px">${skillsData.join(', ')}</div>`:''}
+          ${langData.length?`<div class="sec-title" style="border-color:#000;font-size:12pt">${t_lng}</div>${html_lang}`:''}
+          ${achData.length?`<div class="sec-title" style="border-color:#000;font-size:12pt">${t_ac}</div>${html_ach}`:''}`,
+
+        elegant: `<div class="header"><img src="${d.img}" class="avatar"><div style="font-size:30pt;color:${cvColor};font-variant:small-caps">${d.name}</div><div style="font-style:italic;color:#555;margin-bottom:10px">${d.role}</div><div style="font-size:10pt;color:#666">${d.phone} • ${d.email} • ${d.loc}</div></div>
+          <div style="display:flex;gap:30px"><div style="flex:2">
+          ${d.about?`<div class="sec-title" style="color:${cvColor};border-bottom:1px dashed #ccc">${t_ab}</div><div class="item-desc" style="margin-bottom:20px">${d.about}</div>`:''}
+          ${expData.length?`<div class="sec-title" style="color:${cvColor};border-bottom:1px dashed #ccc">${t_ex}</div>${html_exp}`:''}
+          ${langData.length?`<div class="sec-title" style="color:${cvColor};border-bottom:1px dashed #ccc">${t_lng}</div>${html_lang}`:''}
+          </div><div style="flex:1;border-left:1px solid #eee;padding-left:20px">
+          ${eduData.length?`<div class="sec-title" style="color:${cvColor};border-bottom:1px dashed #ccc">${t_ed}</div>${html_edu}`:''}
+          ${skillsData.length?`<div class="sec-title" style="color:${cvColor};border-bottom:1px dashed #ccc">${t_sk}</div><div>${html_ski}</div><br>`:''}
+          ${achData.length?`<div class="sec-title" style="color:${cvColor};border-bottom:1px dashed #ccc">${t_ac}</div>${html_ach}`:''}
+          </div></div>`,
+
+        corporate: `<div class="header" style="background:${cvColor}"><img src="${d.img}" class="avatar"><div style="flex:1"><div style="font-size:26pt;font-weight:bold">${d.name}</div><div style="font-size:14pt">${d.role}</div></div><div style="text-align:right;font-size:10pt">${d.phone}<br>${d.email}<br>${d.loc}</div></div>
+          <div style="display:flex;padding:20mm;gap:30px"><div style="flex:7">
+          ${d.about?`<div class="sec-title" style="color:${cvColor}">${t_ab}</div><div class="item-desc" style="margin-bottom:20px">${d.about}</div>`:''}
+          ${expData.length?`<div class="sec-title" style="color:${cvColor}">${t_ex}</div>${html_exp}`:''}
+          ${langData.length?`<div class="sec-title" style="color:${cvColor}">${t_lng}</div>${html_lang}`:''}
+          </div><div style="flex:3">
+          ${eduData.length?`<div class="sec-title" style="color:${cvColor}">${t_ed}</div>${html_edu}`:''}
+          ${skillsData.length?`<div class="sec-title" style="color:${cvColor}">${t_sk}</div><div>${html_ski}</div><br>`:''}
+          ${achData.length?`<div class="sec-title" style="color:${cvColor}">${t_ac}</div>${html_ach}`:''}
+          </div></div>`,
+
+        creative: `<div class="left"><img src="${d.img}" class="avatar" style="border-color:${cvColor}"><div style="font-size:24pt;font-weight:900;text-align:center;color:${cvColor};line-height:1.1">${d.name}</div><div style="text-align:center;font-weight:bold;margin-bottom:20px">${d.role}</div>
+          <div style="font-size:10pt;line-height:2;margin-bottom:20px">📞 ${d.phone}<br>📧 ${d.email}<br>📍 ${d.loc}</div>
+          ${skillsData.length?`<div class="sec-title" style="color:${cvColor};border-color:${cvColor};font-size:12pt">${t_sk}</div><div>${html_ski}</div>`:''}
+          ${langData.length?`<div class="sec-title" style="color:${cvColor};border-color:${cvColor};font-size:12pt;margin-top:20px;">${t_lng}</div>${html_lang}`:''}
+          </div><div class="right">
+          ${d.about?`<div class="sec-title" style="color:${cvColor}">${t_ab}</div><div class="item-desc" style="margin-bottom:20px">${d.about}</div>`:''}
+          ${expData.length?`<div class="sec-title" style="color:${cvColor}">${t_ex}</div>${html_exp}`:''}
+          ${eduData.length?`<div class="sec-title" style="color:${cvColor}">${t_ed}</div>${html_edu}`:''}
+          ${achData.length?`<div class="sec-title" style="color:${cvColor}">${t_ac}</div>${html_ach}`:''}</div>`,
+
+        prof: `<div class="left-strip" style="background:${cvColor}"></div><div class="content">
+          <div style="display:flex;align-items:center;margin-bottom:30px"><img src="${d.img}" class="avatar"><div><div style="font-size:28pt;color:#0f172a">${d.name.split(' ').map((n,i)=>i===0?`<strong>${n}</strong>`:n).join(' ')}</div><div style="font-size:12pt;color:${cvColor};letter-spacing:1px;text-transform:uppercase">${d.role}</div><div style="font-size:10pt;color:#64748b;margin-top:10px">${d.phone} • ${d.email} • ${d.loc}</div></div></div>
+          ${d.about?`<div class="sec-title" style="border-color:${cvColor}">${t_ab}</div><div class="item-desc" style="margin-bottom:20px">${d.about}</div>`:''}
+          <div style="display:flex;gap:30px"><div style="flex:2">
+          ${expData.length?`<div class="sec-title" style="border-color:${cvColor}">${t_ex}</div>${html_exp}`:''}
+          ${langData.length?`<div class="sec-title" style="border-color:${cvColor}">${t_lng}</div>${html_lang}`:''}
+          ${achData.length?`<div class="sec-title" style="border-color:${cvColor}">${t_ac}</div>${html_ach}`:''}
+          </div><div style="flex:1">
+          ${eduData.length?`<div class="sec-title" style="border-color:${cvColor}">${t_ed}</div>${html_edu}`:''}
+          ${skillsData.length?`<div class="sec-title" style="border-color:${cvColor}">${t_sk}</div><div>${html_ski}</div>`:''}
+          </div></div></div>`
+      };
+
+      box.className = `cv-canvas tpl-${activeTpl}`;
+      box.innerHTML = templates[activeTpl];
+      
+      autoScale();
+      
+      if(save) saveToLocalStorage();
+    }
+
+    // --- PDF EXPORT ---
+    async function exportPDF() {
+      const name = document.getElementById('f_name').value.trim() || 'CV';
+      const safeName = name.replace(/\s+/g, '_');
+      
+      const opt = {
+        margin: 0,
+        filename: `${safeName}_CV.pdf`,
+        image: { type: 'jpeg', quality: 1.0 },
+        html2canvas: { scale: 3, useCORS: true, scrollY: 0 },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+        pagebreak: { mode: ['avoid-all'] }
+      };
+      
+      const wrap = document.getElementById('previewScaleWrapper');
+      
+      const prevTransform = wrap.style.transform;
+      wrap.style.transform = 'scale(1)';
+
+      try {
+        await html2pdf().set(opt).from(document.getElementById('cv-box')).save();
       } catch (err) {
-        console.error('exportWord server error:', err);
-        if (!inTelegram) _exportWordClientSide(filename);
-        else _showTelegramToast('❌ Xatolik yuz berdi. Qayta urinib ko\'ring.');
+        alert("Xatolik yuz berdi!");
       }
-
-      if (btn) { btn.disabled = false; btn.innerHTML = '📄 Word'; }
+      
+      wrap.style.transform = prevTransform;
     }
 
-    // Fallback: old client-side Word blob export
-    function _exportWordClientSide(filename) {
-      const rawHtml = document.getElementById('cv-box').outerHTML;
-      const styles = document.querySelector('style').innerHTML;
-      const docHTML = `<html xmlns:o='urn:schemas-microsoft-com:office:office'
-        xmlns:w='urn:schemas-microsoft-com:office:word'
-        xmlns='http://www.w3.org/TR/REC-html40'>
-        <head><meta charset='utf-8'><title>${filename}</title>
-        <style>@page WordSection1{size:210mm 297mm;margin:15mm;}div.WordSection1{page:WordSection1;}${styles}</style>
-        </head><body><div class="WordSection1">${rawHtml}</div></body></html>`;
-      const blob = new Blob(['\ufeff', docHTML], { type: 'application/msword' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url; a.download = filename;
-      document.body.appendChild(a); a.click();
-      setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 2000);
-      uploadToTelegram(blob, filename);
-    }
-
-  </script>
-  <script>
-    document.addEventListener('DOMContentLoaded', function() {
-      if (window.DastyorAI && window.DastyorAI.initUI) DastyorAI.initUI({ autoNavLinks: true });
+    // --- INIT ---
+    document.addEventListener('DOMContentLoaded', () => {
+      loadFromLocalStorage();
     });
   </script>
-  <!-- Smart Auto-Fill System -->
-  <script src="smart-autofill.js"></script>
 </body>
-
 </html>
