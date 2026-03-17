@@ -64,6 +64,102 @@ import asyncio, time, io
 import base64
 import re
 import html as html_lib
+from concurrent.futures import ThreadPoolExecutor
+
+# ── PaddleOCR backend (local, fast, no Gemini dependency) ─────────────
+try:
+    import numpy as np
+    import cv2
+    from paddleocr import PaddleOCR
+    from docx import Document
+    from docx.shared import Inches
+    from docx.enum.text import WD_ALIGN_PARAGRAPH
+except Exception:  # keep server bootable even if deps missing
+    np = None
+    cv2 = None
+    PaddleOCR = None
+    Document = None
+    Inches = None
+    WD_ALIGN_PARAGRAPH = None
+
+_PADDLE_OCR = None
+_OCR_POOL = ThreadPoolExecutor(max_workers=int(os.getenv("OCR_WORKERS", "2")))
+
+
+def _ensure_paddle():
+    if np is None or cv2 is None or PaddleOCR is None:
+        raise HTTPException(status_code=500, detail="PaddleOCR deps missing on server")
+
+
+def _paddle_init_once():
+    global _PADDLE_OCR
+    if _PADDLE_OCR is None:
+        lang = os.getenv("PADDLE_OCR_LANG", "en")
+        logger.info("Initializing PaddleOCR (lang=%s)...", lang)
+        _PADDLE_OCR = PaddleOCR(lang=lang, use_angle_cls=True)
+        logger.info("PaddleOCR initialized (api_webhook).")
+
+
+def _cv_preprocess(bgr):
+    gray = cv2.cvtColor(bgr, cv2.COLOR_BGR2GRAY)
+    _, th = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+    return th
+
+
+def _paddle_extract_text(processed) -> str:
+    if _PADDLE_OCR is None:
+        _paddle_init_once()
+    if len(processed.shape) == 2:
+        img = cv2.cvtColor(processed, cv2.COLOR_GRAY2BGR)
+    else:
+        img = processed
+    # Newer PaddleOCR versions may not accept cls=... in .ocr(); use_angle_cls handles rotation.
+    result = _PADDLE_OCR.ocr(img) or []
+    lines: list[str] = []
+    for block in result:
+        for item in block or []:
+            try:
+                t = item[1][0]
+            except Exception:
+                t = ""
+            if t:
+                lines.append(t)
+    return "\n".join(lines).strip()
+
+
+def _docx_image_then_text(image_bytes: bytes, text: str) -> bytes:
+    if Document is None:
+        raise RuntimeError("python-docx missing")
+    doc = Document()
+    try:
+        sec = doc.sections[0]
+        if Inches:
+            sec.top_margin = Inches(0.4)
+            sec.bottom_margin = Inches(0.4)
+            sec.left_margin = Inches(0.4)
+            sec.right_margin = Inches(0.4)
+    except Exception:
+        pass
+
+    bio = io.BytesIO(image_bytes)
+    bio.name = "upload.jpg"
+    p = doc.add_paragraph()
+    if WD_ALIGN_PARAGRAPH:
+        p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    run = p.add_run()
+    if Inches:
+        run.add_picture(bio, width=Inches(7.2))
+    else:
+        run.add_picture(bio)
+
+    doc.add_page_break()
+    for line in (text or "").splitlines():
+        doc.add_paragraph(line)
+
+    buf = io.BytesIO()
+    doc.save(buf)
+    buf.seek(0)
+    return buf.read()
 
 from bot.services.render_service import (
     generate_cv_pdf, safe_filename,
@@ -522,11 +618,73 @@ async def api_ocr_extract(
     return {"ok": True, "text": text, "html": html_text}
 
 
+# ═══════════════════════════════════════════════════════════════════════════
+# PaddleOCR endpoints for WebApp (Render): /ocr and /ocr-word
+# ═══════════════════════════════════════════════════════════════════════════
+@app.post("/ocr")
+async def ocr_paddle(file: UploadFile = File(...)):
+    """
+    Receive uploaded image, preprocess (grayscale + threshold), run PaddleOCR, return JSON.
+    Response: { "text": "..." }
+    """
+    _ensure_paddle()
+    _paddle_init_once()
+
+    raw = await file.read()
+    if not raw:
+        raise HTTPException(status_code=400, detail="Empty file")
+    if len(raw) > 15 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="File too large (max 15MB)")
+
+    arr = np.frombuffer(raw, dtype=np.uint8)
+    img = cv2.imdecode(arr, cv2.IMREAD_COLOR)
+    if img is None:
+        raise HTTPException(status_code=400, detail="Invalid image")
+
+    processed = _cv_preprocess(img)
+    loop = asyncio.get_running_loop()
+    text = await loop.run_in_executor(_OCR_POOL, _paddle_extract_text, processed)
+    return {"text": text}
+
+
+@app.post("/ocr-word")
+async def ocr_word_paddle(file: UploadFile = File(...)):
+    """
+    Receive uploaded image, run PaddleOCR, generate DOCX.
+    1st page: original image (visual 1:1), 2nd page: detected text.
+    """
+    _ensure_paddle()
+    _paddle_init_once()
+
+    raw = await file.read()
+    if not raw:
+        raise HTTPException(status_code=400, detail="Empty file")
+    if len(raw) > 15 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="File too large (max 15MB)")
+
+    arr = np.frombuffer(raw, dtype=np.uint8)
+    img = cv2.imdecode(arr, cv2.IMREAD_COLOR)
+    if img is None:
+        raise HTTPException(status_code=400, detail="Invalid image")
+
+    processed = _cv_preprocess(img)
+    loop = asyncio.get_running_loop()
+    text = await loop.run_in_executor(_OCR_POOL, _paddle_extract_text, processed)
+    docx_bytes = await loop.run_in_executor(_OCR_POOL, _docx_image_then_text, raw, text)
+
+    filename = "ocr_result.docx"
+    return StreamingResponse(
+        io.BytesIO(docx_bytes),
+        media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
 @app.post("/api/ocr_direct")
 async def api_ocr_direct(
     file: UploadFile = File(...),
     telegram_id: Optional[str] = Form(None),   # optional — works without Telegram
-    mode: Optional[str] = Form("docx"),        # "docx" | "text"
+    mode: Optional[str] = Form("docx"),        # "docx" | "text" | "image_docx"
 ):
     ts = int(time.time())
     safe_upload_name = _safe_name(file.filename or "", "img.jpg")
@@ -546,6 +704,60 @@ async def api_ocr_direct(
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Fayl saqlashda xato: {e}")
+
+    # ── Image→DOCX mode: fastest + 1:1 visual (no OCR) ───────────────
+    if (mode or "").strip().lower() in ("image_docx", "image", "imgdocx", "scan_image"):
+        try:
+            from docx import Document
+            from docx.shared import Inches
+            from docx.enum.text import WD_ALIGN_PARAGRAPH
+
+            def build_image_docx() -> bytes:
+                doc = Document()
+                # Fit the image to page width (approx 6.5 inches for default margins)
+                p = doc.add_paragraph()
+                p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                run = p.add_run()
+                run.add_picture(img_path, width=Inches(6.5))
+                buf = io.BytesIO()
+                doc.save(buf)
+                buf.seek(0)
+                return buf.read()
+
+            loop = asyncio.get_running_loop()
+            docx_bytes = await loop.run_in_executor(None, build_image_docx)
+        except Exception as e:
+            logger.error("Image DOCX build error: %s", e, exc_info=True)
+            _cleanup(img_path)
+            raise HTTPException(status_code=500, detail=f"Word hujjat yaratishda xato: {str(e)[:200]}")
+
+        # Optional Telegram send (background)
+        if telegram_id and telegram_id.strip().isdigit():
+            chat_id = int(telegram_id)
+
+            async def send_to_telegram():
+                try:
+                    buf = io.BytesIO(docx_bytes)
+                    buf.name = f"OCR_Image_{ts}.docx"
+                    await send_docx_with_confirmation(
+                        application.bot,
+                        chat_id,
+                        buf,
+                        filename=buf.name,
+                        caption="✅ Rasm Word faylga joylandi (1:1 ko'rinish).",
+                    )
+                except Exception as tg_err:
+                    logger.warning(f"Telegram send failed (non-fatal): {tg_err}")
+
+            asyncio.create_task(send_to_telegram())
+
+        _cleanup(img_path)
+        filename = f"DASTYOR_IMAGE_{ts}_@DastyorAiBot.docx"
+        return StreamingResponse(
+            io.BytesIO(docx_bytes),
+            media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+        )
 
     # ── 2. OCR: extract text from image using Gemini ─────────────────
     ocr_start = time.perf_counter()

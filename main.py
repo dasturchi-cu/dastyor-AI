@@ -1,6 +1,12 @@
 """
 Main Bot Entry Point (with Ban Check Middleware)
 """
+import os
+import io
+import asyncio
+import logging
+from concurrent.futures import ThreadPoolExecutor
+
 from dotenv import load_dotenv
 from telegram import Update
 from telegram.ext import (
@@ -13,6 +19,237 @@ try:
 except: pass
 
 from config import BOT_TOKEN, logger
+
+# ──────────────────────────────────────────────────────────────────────────────
+# DASTYOR AI — OCR Backend (FastAPI + PaddleOCR + OpenCV + python-docx)
+#
+# Endpoints:
+#   POST /ocr      → JSON: {"text": "..."}
+#   POST /ocr-word → DOCX download with detected text
+#
+# Note:
+# - PaddleOCR is initialized once at server startup.
+# - OCR runs in a thread pool (CPU-bound).
+#
+# Run API mode:
+#   RUN_MODE=api uvicorn main:app --host 0.0.0.0 --port 8000
+# Run bot mode (default):
+#   python main.py
+# ──────────────────────────────────────────────────────────────────────────────
+
+try:
+    import numpy as np
+    import cv2
+    from paddleocr import PaddleOCR
+    from docx import Document
+    from fastapi import FastAPI, UploadFile, File, HTTPException
+    from fastapi.responses import StreamingResponse
+    from fastapi.middleware.cors import CORSMiddleware
+except Exception:
+    # Allow bot-only mode even if OCR deps not installed.
+    np = None
+    cv2 = None
+    PaddleOCR = None
+    Document = None
+    FastAPI = None
+    UploadFile = None
+    File = None
+    HTTPException = Exception
+    StreamingResponse = None
+    CORSMiddleware = None
+
+_ocr_logger = logging.getLogger("dastyor.ocr")
+_OCR_ENGINE = None
+_OCR_POOL = ThreadPoolExecutor(max_workers=int(os.getenv("OCR_WORKERS", "2")))
+
+app = FastAPI(title="Dastyor AI OCR API") if FastAPI else None
+
+if app and CORSMiddleware:
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+
+
+def _ensure_ocr_deps():
+    if any(x is None for x in (np, cv2, PaddleOCR, Document, StreamingResponse)) or app is None:
+        raise RuntimeError(
+            "OCR dependencies are missing. Install: paddleocr, opencv-python, numpy, python-docx, fastapi, uvicorn"
+        )
+
+
+def preprocess_image_opencv(image_bgr):
+    """
+    OpenCV preprocessing:
+    - grayscale
+    - threshold (Otsu)
+    Returns a processed image suitable for OCR.
+    """
+    gray = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2GRAY)
+    # Otsu thresholding improves contrast for text
+    _, th = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+    return th
+
+
+def extract_text_with_paddle(processed_img) -> str:
+    """
+    Run PaddleOCR on the processed image and return plain text.
+    """
+    global _OCR_ENGINE
+    if _OCR_ENGINE is None:
+        raise RuntimeError("OCR engine is not initialized")
+
+    # PaddleOCR works well with 3-channel images; convert if needed.
+    if len(processed_img.shape) == 2:
+        img_for_ocr = cv2.cvtColor(processed_img, cv2.COLOR_GRAY2BGR)
+    else:
+        img_for_ocr = processed_img
+
+    # In newer PaddleOCR versions, angle classification is configured at init (use_angle_cls)
+    # and .ocr() may not accept cls=...
+    result = _OCR_ENGINE.ocr(img_for_ocr) or []
+    lines = []
+    # result: list[ list[ [box], (text, score) ] ]
+    for block in result:
+        for item in block or []:
+            try:
+                text = item[1][0]
+            except Exception:
+                text = ""
+            if text:
+                lines.append(text)
+    return "\n".join(lines).strip()
+
+
+def build_docx_bytes(text: str) -> bytes:
+    doc = Document()
+    for line in (text or "").splitlines():
+        doc.add_paragraph(line)
+    buf = io.BytesIO()
+    doc.save(buf)
+    buf.seek(0)
+    return buf.read()
+
+
+def build_docx_with_image_and_text(image_bytes: bytes, text: str) -> bytes:
+    """
+    1:1 visual: embed the original image into the DOCX (scaled to page width),
+    then put OCR text on the next page (so you still get extracted text).
+    """
+    from docx.shared import Inches
+    from docx.enum.text import WD_ALIGN_PARAGRAPH
+
+    doc = Document()
+
+    # Make margins smaller so image fits better (still printable)
+    try:
+        section = doc.sections[0]
+        section.top_margin = Inches(0.4)
+        section.bottom_margin = Inches(0.4)
+        section.left_margin = Inches(0.4)
+        section.right_margin = Inches(0.4)
+    except Exception:
+        pass
+
+    # Add image first (visual 1:1). Use file-like object.
+    bio = io.BytesIO(image_bytes)
+    bio.name = "upload.jpg"
+    p = doc.add_paragraph()
+    p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    run = p.add_run()
+    # Approx page text width with 0.4" margins on Letter/A4 is ~7.2"
+    run.add_picture(bio, width=Inches(7.2))
+
+    # Put OCR text on a new page (optional but keeps requirement "insert detected text")
+    doc.add_page_break()
+    for line in (text or "").splitlines():
+        doc.add_paragraph(line)
+
+    buf = io.BytesIO()
+    doc.save(buf)
+    buf.seek(0)
+    return buf.read()
+
+
+if app:
+    @app.on_event("startup")
+    async def _startup_init_ocr():
+        _ensure_ocr_deps()
+        global _OCR_ENGINE
+        if _OCR_ENGINE is None:
+            lang = os.getenv("PADDLE_OCR_LANG", "en")
+            _ocr_logger.info("Initializing PaddleOCR (lang=%s)...", lang)
+            # Initialize once
+            _OCR_ENGINE = PaddleOCR(lang=lang, use_angle_cls=True)
+            _ocr_logger.info("PaddleOCR initialized.")
+
+
+    async def _read_image_as_bgr(file: UploadFile):
+        raw = await file.read()
+        if not raw:
+            raise HTTPException(status_code=400, detail="Empty file")
+        if len(raw) > 15 * 1024 * 1024:
+            raise HTTPException(status_code=400, detail="File too large (max 15MB)")
+        arr = np.frombuffer(raw, dtype=np.uint8)
+        img = cv2.imdecode(arr, cv2.IMREAD_COLOR)
+        if img is None:
+            raise HTTPException(status_code=400, detail="Invalid image")
+        return img
+
+
+    @app.post("/ocr")
+    async def ocr_endpoint(file: UploadFile = File(...)):
+        """
+        Receive image → preprocess (gray + threshold) → PaddleOCR → return JSON text.
+        """
+        try:
+            _ensure_ocr_deps()
+            img = await _read_image_as_bgr(file)
+            processed = preprocess_image_opencv(img)
+            loop = asyncio.get_running_loop()
+            text = await loop.run_in_executor(_OCR_POOL, extract_text_with_paddle, processed)
+            return {"text": text}
+        except HTTPException:
+            raise
+        except Exception as e:
+            _ocr_logger.error("OCR /ocr failed: %s", e, exc_info=True)
+            raise HTTPException(status_code=500, detail="OCR failed")
+
+
+    @app.post("/ocr-word")
+    async def ocr_word_endpoint(file: UploadFile = File(...)):
+        """
+        Receive image → OCR → generate DOCX → return as download.
+        """
+        try:
+            _ensure_ocr_deps()
+            raw = await file.read()
+            if not raw:
+                raise HTTPException(status_code=400, detail="Empty file")
+            if len(raw) > 15 * 1024 * 1024:
+                raise HTTPException(status_code=400, detail="File too large (max 15MB)")
+            arr = np.frombuffer(raw, dtype=np.uint8)
+            img = cv2.imdecode(arr, cv2.IMREAD_COLOR)
+            if img is None:
+                raise HTTPException(status_code=400, detail="Invalid image")
+            processed = preprocess_image_opencv(img)
+            loop = asyncio.get_running_loop()
+            text = await loop.run_in_executor(_OCR_POOL, extract_text_with_paddle, processed)
+            docx_bytes = await loop.run_in_executor(_OCR_POOL, build_docx_with_image_and_text, raw, text)
+            filename = "ocr_result.docx"
+            return StreamingResponse(
+                io.BytesIO(docx_bytes),
+                media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+            )
+        except HTTPException:
+            raise
+        except Exception as e:
+            _ocr_logger.error("OCR /ocr-word failed: %s", e, exc_info=True)
+            raise HTTPException(status_code=500, detail="OCR-word failed")
 
 # Handlers
 from bot.handlers.admin import (

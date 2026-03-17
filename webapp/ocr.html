@@ -8,7 +8,7 @@
     <script src="da-core.js"></script>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="app.js"></script>
-    <script src="https://unpkg.com/mammoth@1.8.0/mammoth.browser.min.js"></script>
+    <!-- mammoth no longer needed (image→docx mode) -->
     <style>
         .page { max-width: 520px; margin: 0 auto; padding: 14px 14px 108px; }
         .head { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
@@ -48,37 +48,7 @@
             color: var(--text-muted);
             background: var(--da-bg-elevated);
         }
-        .result-title {
-            font-size: 12px;
-            text-transform: uppercase;
-            letter-spacing: .08em;
-            color: var(--text-muted);
-            font-weight: 700;
-            margin-bottom: 8px;
-        }
-        .result-box {
-            width: 100%;
-            min-height: 180px;
-            border: 1px solid var(--border-color);
-            background: var(--da-bg-elevated);
-            border-radius: 12px;
-            padding: 12px;
-            font-size: 14px;
-            color: var(--text-color);
-            line-height: 1.55;
-            resize: vertical;
-        }
-        .btn-row {
-            display: grid;
-            gap: 10px;
-            margin-top: 10px;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-        }
-        .btn-row button { width: 100%; }
         .status { margin-top: 10px; }
-        @media (max-width: 420px) {
-            .btn-row { grid-template-columns: 1fr; }
-        }
     </style>
 </head>
 <body>
@@ -88,8 +58,8 @@
             <svg fill="none" viewBox="0 0 24 24" stroke-width="2.5"><path d="m15 18-6-6 6-6" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </a>
         <div>
-            <h1>OCR Scanner</h1>
-            <p>Rasm yuklang va matnni oling</p>
+            <h1>Rasm → Word</h1>
+            <p>Rasm Word faylga 1:1 ko'rinishda joylanadi</p>
         </div>
     </div>
 
@@ -101,24 +71,14 @@
             <p>Tap yoki drag & drop</p>
         </div>
         <div id="fileName" class="file-name" style="display:none;"></div>
-        <button id="scanBtn" class="btn btn-primary" style="margin-top:10px;" disabled>Matnni aniqlash</button>
+        <button id="convertBtn" class="btn btn-primary" style="margin-top:10px;" disabled>Wordga aylantirish</button>
         <div id="status" class="da-status status"></div>
-    </section>
-
-    <section class="card">
-        <div class="result-title">Aniqlangan matn</div>
-        <textarea id="resultText" class="result-box" placeholder="Natija shu yerda chiqadi..." readonly></textarea>
-        <div class="btn-row">
-            <button id="copyBtn" class="btn">Matnni nusxalash</button>
-            <button id="downloadBtn" class="btn btn-primary" disabled>Word yuklash</button>
-        </div>
     </section>
 </main>
 
 <script>
     const tg = window.Telegram?.WebApp;
     let selectedFile = null;
-    let detectedText = "";
     let optimizedFile = null;
 
     function showStatus(type, text) {
@@ -134,10 +94,7 @@
         optimizedFile = null;
         document.getElementById("fileName").style.display = "block";
         document.getElementById("fileName").textContent = `Tanlangan fayl: ${file.name}`;
-        document.getElementById("scanBtn").disabled = false;
-        document.getElementById("downloadBtn").disabled = false;
-        document.getElementById("resultText").value = "";
-        detectedText = "";
+        document.getElementById("convertBtn").disabled = false;
     }
 
     async function optimizeImageForOCR(file) {
@@ -169,97 +126,42 @@
         }
     }
 
-    async function runOCR() {
+        async function convertToWord() {
         if (!selectedFile) return;
         showStatus("loading", "Rasm tayyorlanmoqda...");
-        document.getElementById("scanBtn").disabled = true;
+        document.getElementById("convertBtn").disabled = true;
         try {
             if (!optimizedFile) {
                 showStatus("loading", "Rasm siqilmoqda...");
                 optimizedFile = await optimizeImageForOCR(selectedFile);
             }
-            showStatus("loading", "Matn aniqlanmoqda...");
-            const fd = new FormData();
-            fd.append("file", optimizedFile);
-            const apiBase = (location.protocol === "file:" ? "https://dastyor-ai.onrender.com" : location.origin);
-            // Tez rejim: server Word yasamasdan faqat matnni qaytaradi (mode=text)
-            fd.append("mode", "text");
-            const tid = (window.DA?.getTelegramId && window.DA.getTelegramId()) || new URLSearchParams(location.search).get("telegram_id") || "";
-            if (tid) fd.append("telegram_id", tid);
-
-            let res = await fetch(apiBase + "/api/ocr_direct", {
-                method: "POST",
-                body: fd
-            });
-
-            if (!res.ok) {
-                let msg = "OCR xatosi";
-                try { const err = await res.json(); msg = err.detail || msg; } catch (_) {}
-                throw new Error(msg);
-            }
-
-            // Eski serverlarda mode=text qo'llanmasa DOCX qaytishi mumkin — shunda mammoth bilan text chiqaramiz
-            const ct = (res.headers.get("content-type") || "").toLowerCase();
-            if (ct.includes("application/json")) {
-                const data = await res.json();
-                detectedText = (data.text || "").trim() || "Matn topilmadi yoki o'qib bo'lmadi.";
-            } else {
-                const blob = await res.blob();
-                const arr = await blob.arrayBuffer();
-                let text = "";
-                try {
-                    const parsed = await window.mammoth.extractRawText({ arrayBuffer: arr });
-                    text = (parsed.value || "").trim();
-                } catch (_) {
-                    text = "";
-                }
-                detectedText = text || "Matn topilmadi yoki o'qib bo'lmadi.";
-            }
-            document.getElementById("resultText").value = detectedText;
-            showStatus("success", "Matn muvaffaqiyatli aniqlandi");
-            tg?.HapticFeedback?.notificationOccurred?.("success");
-        } catch (e) {
-            showStatus("error", e.message || "Xatolik yuz berdi");
-            tg?.HapticFeedback?.notificationOccurred?.("error");
-        } finally {
-            document.getElementById("scanBtn").disabled = false;
-        }
-    }
-
-    async function copyText() {
-        if (!detectedText) return;
-        try {
-            await navigator.clipboard.writeText(detectedText);
-            showStatus("success", "Matn nusxalandi");
-        } catch (_) {
-            showStatus("error", "Nusxalashda xatolik");
-        }
-    }
-
-    async function downloadWord() {
-        if (!selectedFile) return;
-        showStatus("loading", "Rasm siqilmoqda...");
-        try {
-            if (!optimizedFile) optimizedFile = await optimizeImageForOCR(selectedFile);
             showStatus("loading", "Word fayl tayyorlanmoqda...");
             const fd = new FormData();
-            fd.append("file", optimizedFile || selectedFile);
+                fd.append("file", optimizedFile || selectedFile);
+                const qs = new URLSearchParams(location.search);
+                // Render/prod: same origin. Local dev: allow override via ?api=http://localhost:8000
+                const apiBase = qs.get("api") || (location.protocol === "file:" ? "http://localhost:8000" : location.origin);
             const tid = (window.DA?.getTelegramId && window.DA.getTelegramId()) || new URLSearchParams(location.search).get("telegram_id") || "";
-            if (tid) fd.append("telegram_id", tid);
-            const res = await fetch((location.protocol === "file:" ? "https://dastyor-ai.onrender.com" : location.origin) + "/api/ocr_direct", {
+                // API spec uses /ocr-word (FastAPI PaddleOCR backend)
+                const res = await fetch(apiBase + "/ocr-word", {
                 method: "POST",
                 body: fd
             });
-            if (!res.ok) {
-                let msg = "Word yaratishda xatolik";
-                try { const err = await res.json(); msg = err.detail || msg; } catch (_) {}
-                throw new Error(msg);
-            }
-            const blob = await res.blob();
+
+                if (!res.ok) {
+                    let msg = "OCR xatosi";
+                    try {
+                        const err = await res.json();
+                        msg = err.detail || err.error || msg;
+                    } catch (_) {}
+                    throw new Error(msg + ` (HTTP ${res.status})`);
+                }
+
+                const blob = await res.blob();
             const url = URL.createObjectURL(blob);
             const a = document.createElement("a");
             a.href = url;
-            a.download = `OCR_${Date.now()}.docx`;
+            a.download = `Rasm_Word_${Date.now()}.docx`;
             document.body.appendChild(a);
             a.click();
             a.remove();
@@ -267,8 +169,10 @@
             showStatus("success", "Word fayl yuklandi");
             tg?.HapticFeedback?.notificationOccurred?.("success");
         } catch (e) {
-            showStatus("error", e.message || "Xatolik");
+            showStatus("error", e.message || "Xatolik yuz berdi");
             tg?.HapticFeedback?.notificationOccurred?.("error");
+        } finally {
+            document.getElementById("convertBtn").disabled = false;
         }
     }
 
@@ -285,9 +189,7 @@
             drop.classList.remove("dragover");
             if (e.dataTransfer.files?.[0]) bindFile(e.dataTransfer.files[0]);
         });
-        document.getElementById("scanBtn").addEventListener("click", runOCR);
-        document.getElementById("copyBtn").addEventListener("click", copyText);
-        document.getElementById("downloadBtn").addEventListener("click", downloadWord);
+        document.getElementById("convertBtn").addEventListener("click", convertToWord);
         tg?.ready?.();
         tg?.expand?.();
     });
