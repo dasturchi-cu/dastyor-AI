@@ -5,14 +5,19 @@ import os
 import io
 import asyncio
 import logging
+import threading
+import inspect
 from concurrent.futures import ThreadPoolExecutor
 
 # ── Paddle / PaddleOCR stability flags (Windows/oneDNN/PIR issues) ─────────────
 # Set before PaddleOCR initializes models.
-os.environ.setdefault("FLAGS_enable_pir_api", "0")
-os.environ.setdefault("FLAGS_use_new_executor", "0")
-os.environ.setdefault("FLAGS_enable_onednn", "0")
-os.environ.setdefault("FLAGS_use_mkldnn", "0")
+# Force-disable flags (do not use setdefault) because environment may already
+# provide conflicting values on some Windows setups.
+os.environ["FLAGS_enable_pir_api"] = "0"
+os.environ["FLAGS_use_new_executor"] = "0"
+os.environ["FLAGS_enable_onednn"] = "0"
+os.environ["FLAGS_use_mkldnn"] = "0"
+os.environ["FLAGS_enable_pir_in_executor"] = "0"
 
 from dotenv import load_dotenv
 from telegram import Update
@@ -67,6 +72,8 @@ except Exception:
 
 _ocr_logger = logging.getLogger("dastyor.ocr")
 _OCR_ENGINE = None
+_OCR_ENGINE_PROFILE = "default"
+_OCR_LOCK = threading.Lock()
 _OCR_POOL = ThreadPoolExecutor(max_workers=int(os.getenv("OCR_WORKERS", "2")))
 
 app = FastAPI(title="Dastyor AI OCR API") if FastAPI else None
@@ -88,6 +95,75 @@ def _ensure_ocr_deps():
         )
 
 
+def _runtime_executor_error(exc: Exception) -> bool:
+    msg = str(exc)
+    return "ConvertPirAttribute2RuntimeAttribute" in msg or "onednn_instruction.cc" in msg
+
+
+def _build_ocr_engine(lang: str, profile: str):
+    """
+    Build PaddleOCR engine with profile-based kwargs.
+    """
+    def _safe_paddleocr_init(kwargs):
+        try:
+            sig = inspect.signature(PaddleOCR)
+            allowed = set(sig.parameters.keys())
+            filtered = {k: v for k, v in kwargs.items() if k in allowed}
+        except Exception:
+            filtered = kwargs
+        return PaddleOCR(**filtered)
+
+    if profile == "fallback_v4":
+        return _safe_paddleocr_init(
+            {
+                "lang": lang,
+                "use_angle_cls": True,
+                "ocr_version": os.getenv("PADDLE_OCR_FALLBACK_VERSION", "PP-OCRv4"),
+                "enable_mkldnn": False,
+                "show_log": False,
+            }
+        )
+    return _safe_paddleocr_init(
+        {
+            "lang": lang,
+            "use_angle_cls": True,
+            "ocr_version": os.getenv("PADDLE_OCR_VERSION", "PP-OCRv4"),
+            "enable_mkldnn": False,
+            "show_log": False,
+        }
+    )
+
+
+def _init_ocr_engine(lang: str, force_fallback: bool = False):
+    global _OCR_ENGINE, _OCR_ENGINE_PROFILE
+    with _OCR_LOCK:
+        profiles = ["fallback_v4"] if force_fallback else ["default", "fallback_v4"]
+        last_err = None
+        for profile in profiles:
+            try:
+                _ocr_logger.info("Initializing PaddleOCR (lang=%s, profile=%s)...", lang, profile)
+                _OCR_ENGINE = _build_ocr_engine(lang, profile)
+                _OCR_ENGINE_PROFILE = profile
+                _ocr_logger.info("PaddleOCR initialized (profile=%s).", profile)
+                return
+            except TypeError as e:
+                # Some PaddleOCR versions may not support specific kwargs.
+                last_err = e
+                if "unexpected keyword argument" in str(e):
+                    try:
+                        _OCR_ENGINE = PaddleOCR(lang=lang, use_angle_cls=True)
+                        _OCR_ENGINE_PROFILE = f"{profile}_compat"
+                        _ocr_logger.info("PaddleOCR initialized (profile=%s_compat).", profile)
+                        return
+                    except Exception as compat_err:
+                        last_err = compat_err
+                        continue
+            except Exception as e:
+                last_err = e
+                continue
+        raise RuntimeError(f"PaddleOCR init failed: {last_err}")
+
+
 def preprocess_image_opencv(image_bgr):
     """
     OpenCV preprocessing:
@@ -101,9 +177,9 @@ def preprocess_image_opencv(image_bgr):
     return th
 
 
-def extract_text_with_paddle(processed_img) -> str:
+def extract_layout_blocks_with_paddle(processed_img):
     """
-    Run PaddleOCR on the processed image and return plain text.
+    Run PaddleOCR and return normalized blocks with bbox information.
     """
     global _OCR_ENGINE
     if _OCR_ENGINE is None:
@@ -115,65 +191,175 @@ def extract_text_with_paddle(processed_img) -> str:
     else:
         img_for_ocr = processed_img
 
-    # In newer PaddleOCR versions, angle classification is configured at init (use_angle_cls)
-    # and .ocr() may not accept cls=...
-    result = _OCR_ENGINE.ocr(img_for_ocr) or []
-    lines = []
+    try:
+        result = _OCR_ENGINE.ocr(img_for_ocr) or []
+    except Exception as e:
+        if _runtime_executor_error(e):
+            _ocr_logger.warning(
+                "Paddle runtime executor issue detected. Reinitializing OCR engine with fallback profile."
+            )
+            lang = os.getenv("PADDLE_OCR_LANG", "en")
+            _init_ocr_engine(lang=lang, force_fallback=True)
+            result = _OCR_ENGINE.ocr(img_for_ocr) or []
+        else:
+            raise
+    blocks = []
     # result: list[ list[ [box], (text, score) ] ]
     for block in result:
         for item in block or []:
             try:
-                text = item[1][0]
+                points = item[0]
+                text = str(item[1][0]).strip()
+                confidence = float(item[1][1])
+                xs = [float(p[0]) for p in points]
+                ys = [float(p[1]) for p in points]
             except Exception:
-                text = ""
+                continue
             if text:
-                lines.append(text)
-    return "\n".join(lines).strip()
+                left = min(xs)
+                top = min(ys)
+                right = max(xs)
+                bottom = max(ys)
+                blocks.append(
+                    {
+                        "text": text,
+                        "confidence": confidence,
+                        "bbox": [left, top, right, bottom],
+                        "left": left,
+                        "top": top,
+                        "right": right,
+                        "bottom": bottom,
+                        "center_y": (top + bottom) / 2.0,
+                        "height": max(1.0, bottom - top),
+                        "width": max(1.0, right - left),
+                    }
+                )
+    return sorted(blocks, key=lambda b: (b["top"], b["left"]))
 
 
-def build_docx_bytes(text: str) -> bytes:
-    doc = Document()
-    for line in (text or "").splitlines():
-        doc.add_paragraph(line)
-    buf = io.BytesIO()
-    doc.save(buf)
-    buf.seek(0)
-    return buf.read()
+def group_blocks_by_line(blocks):
+    if not blocks:
+        return []
+
+    heights = [b["height"] for b in blocks]
+    median_h = float(np.median(heights)) if heights else 18.0
+    y_tolerance = max(8.0, median_h * 0.65)
+    sorted_blocks = sorted(blocks, key=lambda b: (b["center_y"], b["left"]))
+    lines = []
+
+    for block in sorted_blocks:
+        placed = False
+        for line in reversed(lines):
+            if abs(block["center_y"] - line["avg_center_y"]) <= y_tolerance:
+                line["blocks"].append(block)
+                line["avg_center_y"] = float(
+                    np.mean([x["center_y"] for x in line["blocks"]])
+                )
+                line["top"] = min(line["top"], block["top"])
+                line["bottom"] = max(line["bottom"], block["bottom"])
+                placed = True
+                break
+        if not placed:
+            lines.append(
+                {
+                    "blocks": [block],
+                    "avg_center_y": block["center_y"],
+                    "top": block["top"],
+                    "bottom": block["bottom"],
+                }
+            )
+
+    for line in lines:
+        line["blocks"] = sorted(line["blocks"], key=lambda b: b["left"])
+        line["left"] = min(b["left"] for b in line["blocks"])
+        line["right"] = max(b["right"] for b in line["blocks"])
+        line["height"] = max(1.0, line["bottom"] - line["top"])
+
+    return sorted(lines, key=lambda l: l["top"])
 
 
-def build_docx_with_image_and_text(image_bytes: bytes, text: str) -> bytes:
+def render_layout_text(lines):
+    rendered_lines = []
+    for line in lines:
+        blocks = line["blocks"]
+        if not blocks:
+            rendered_lines.append("")
+            continue
+
+        avg_char_w = max(
+            6.0,
+            float(
+                np.median(
+                    [
+                        max(1.0, b["width"]) / max(1, len(b["text"]))
+                        for b in blocks
+                    ]
+                )
+            ),
+        )
+        line_text = blocks[0]["text"]
+        for idx in range(1, len(blocks)):
+            prev = blocks[idx - 1]
+            curr = blocks[idx]
+            gap = max(0.0, curr["left"] - prev["right"])
+            spaces = max(1, min(24, int(round(gap / avg_char_w))))
+            line_text += (" " * spaces) + curr["text"]
+        rendered_lines.append(line_text.strip())
+
+    return "\n".join(rendered_lines).strip()
+
+
+def build_docx_with_layout(lines) -> bytes:
     """
-    1:1 visual: embed the original image into the DOCX (scaled to page width),
-    then put OCR text on the next page (so you still get extracted text).
+    Create a DOCX with approximate original text layout.
     """
     from docx.shared import Inches
-    from docx.enum.text import WD_ALIGN_PARAGRAPH
 
     doc = Document()
+    if not lines:
+        buf = io.BytesIO()
+        doc.save(buf)
+        buf.seek(0)
+        return buf.read()
 
-    # Make margins smaller so image fits better (still printable)
-    try:
-        section = doc.sections[0]
-        section.top_margin = Inches(0.4)
-        section.bottom_margin = Inches(0.4)
-        section.left_margin = Inches(0.4)
-        section.right_margin = Inches(0.4)
-    except Exception:
-        pass
+    all_left = min(line["left"] for line in lines)
+    all_right = max(line["right"] for line in lines)
+    doc_width_px = max(1.0, all_right - all_left)
+    target_text_width_in = 6.2
+    vertical_unit = max(10.0, float(np.median([line["height"] for line in lines])))
 
-    # Add image first (visual 1:1). Use file-like object.
-    bio = io.BytesIO(image_bytes)
-    bio.name = "upload.jpg"
-    p = doc.add_paragraph()
-    p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    run = p.add_run()
-    # Approx page text width with 0.4" margins on Letter/A4 is ~7.2"
-    run.add_picture(bio, width=Inches(7.2))
+    prev_bottom = None
+    for line in lines:
+        if prev_bottom is not None:
+            v_gap = max(0.0, line["top"] - prev_bottom)
+            extra_blank = max(0, min(4, int(v_gap / vertical_unit) - 1))
+            for _ in range(extra_blank):
+                doc.add_paragraph("")
+        prev_bottom = line["bottom"]
 
-    # Put OCR text on a new page (optional but keeps requirement "insert detected text")
-    doc.add_page_break()
-    for line in (text or "").splitlines():
-        doc.add_paragraph(line)
+        p = doc.add_paragraph()
+        line_indent_in = ((line["left"] - all_left) / doc_width_px) * target_text_width_in
+        p.paragraph_format.left_indent = Inches(max(0.0, min(target_text_width_in, line_indent_in)))
+
+        blocks = line["blocks"]
+        avg_char_w = max(
+            6.0,
+            float(
+                np.median(
+                    [
+                        max(1.0, b["width"]) / max(1, len(b["text"]))
+                        for b in blocks
+                    ]
+                )
+            ),
+        )
+        for idx, block in enumerate(blocks):
+            p.add_run(block["text"])
+            if idx < len(blocks) - 1:
+                next_block = blocks[idx + 1]
+                h_gap = max(0.0, next_block["left"] - block["right"])
+                spaces = max(1, min(24, int(round(h_gap / avg_char_w))))
+                p.add_run(" " * spaces)
 
     buf = io.BytesIO()
     doc.save(buf)
@@ -188,7 +374,6 @@ if app:
         global _OCR_ENGINE
         if _OCR_ENGINE is None:
             lang = os.getenv("PADDLE_OCR_LANG", "en")
-            _ocr_logger.info("Initializing PaddleOCR (lang=%s)...", lang)
             # Initialize once
             try:
                 import paddle
@@ -197,11 +382,11 @@ if app:
                     "FLAGS_use_new_executor": False,
                     "FLAGS_enable_onednn": False,
                     "FLAGS_use_mkldnn": False,
+                    "FLAGS_enable_pir_in_executor": False,
                 })
             except Exception:
                 pass
-            _OCR_ENGINE = PaddleOCR(lang=lang, use_angle_cls=True)
-            _ocr_logger.info("PaddleOCR initialized.")
+            _init_ocr_engine(lang=lang, force_fallback=False)
 
 
     async def _read_image_as_bgr(file: UploadFile):
@@ -227,8 +412,22 @@ if app:
             img = await _read_image_as_bgr(file)
             processed = preprocess_image_opencv(img)
             loop = asyncio.get_running_loop()
-            text = await loop.run_in_executor(_OCR_POOL, extract_text_with_paddle, processed)
-            return {"text": text}
+            blocks = await loop.run_in_executor(_OCR_POOL, extract_layout_blocks_with_paddle, processed)
+            lines = group_blocks_by_line(blocks)
+            text = render_layout_text(lines)
+            return {
+                "text": text,
+                "line_count": len(lines),
+                "block_count": len(blocks),
+                "blocks": [
+                    {
+                        "text": b["text"],
+                        "confidence": round(b["confidence"], 4),
+                        "bbox": [round(v, 2) for v in b["bbox"]],
+                    }
+                    for b in blocks
+                ],
+            }
         except HTTPException:
             raise
         except Exception as e:
@@ -254,12 +453,9 @@ if app:
                 raise HTTPException(status_code=400, detail="Invalid image")
             processed = preprocess_image_opencv(img)
             loop = asyncio.get_running_loop()
-            try:
-                text = await loop.run_in_executor(_OCR_POOL, extract_text_with_paddle, processed)
-            except Exception as ocr_err:
-                _ocr_logger.warning("OCR text failed, returning image-only DOCX: %s", ocr_err)
-                text = ""
-            docx_bytes = await loop.run_in_executor(_OCR_POOL, build_docx_with_image_and_text, raw, text)
+            blocks = await loop.run_in_executor(_OCR_POOL, extract_layout_blocks_with_paddle, processed)
+            lines = group_blocks_by_line(blocks)
+            docx_bytes = await loop.run_in_executor(_OCR_POOL, build_docx_with_layout, lines)
             filename = "ocr_result.docx"
             return StreamingResponse(
                 io.BytesIO(docx_bytes),
