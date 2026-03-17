@@ -223,8 +223,9 @@
             if (window.DastyorAI && window.DastyorAI.initUI) DastyorAI.initUI({ autoNavLinks: true });
         });
         const tg = window.Telegram?.WebApp;
-        const DA = window.DastyorAI;
-        const tid = (DA?.getTelegramId && DA.getTelegramId())
+        const SDK = window.DastyorAI;     // app.js SDK (auth/session/helpers)
+        const Core = window.DA;           // da-core.js (theme/i18n)
+        const tid = (SDK?.getTelegramId && SDK.getTelegramId())
             || new URLSearchParams(location.search).get('telegram_id')
             || sessionStorage.getItem('tg_id')
             || tg?.initDataUnsafe?.user?.id?.toString()
@@ -310,6 +311,10 @@
         function setEngine(name) {
             document.getElementById('engineLabel').textContent = name;
         }
+
+        function t(key, fallback) {
+            try { return (Core?.t && Core.t(key)) || fallback || key; } catch (_) { return fallback || key; }
+        }
         function copyResult() {
             const t = document.getElementById('outText').value;
             if (!t) return;
@@ -375,21 +380,21 @@
 
         async function translateText() {
             const srcText = document.getElementById('srcText').value.trim();
-            if (!srcText) { showStatus('error', '⚠️', (window.DA?.t && DA.t('translate_enter_text')) || 'Matn kiriting!'); return; }
-            if (srcText.length > 5000) { showStatus('error', '⚠️', (window.DA?.t && DA.t('translate_max_chars')) || 'Max 5000 belgi.'); return; }
-            if (srcLang === tgtLang) { showStatus('error', '⚠️', (window.DA?.t && DA.t('translate_swap_langs')) || 'Tillarni almashtiring.'); return; }
+            if (!srcText) { showStatus('error', '⚠️', t('translate_enter_text', 'Matn kiriting!')); return; }
+            if (srcText.length > 5000) { showStatus('error', '⚠️', t('translate_max_chars', 'Max 5000 belgi.')); return; }
+            if (srcLang === tgtLang) { showStatus('error', '⚠️', t('translate_swap_langs', 'Tillarni almashtiring.')); return; }
 
             const btn = document.getElementById('trBtn');
             const outPanel = document.getElementById('outPanel');
             const outText = document.getElementById('outText');
 
-            btn.innerHTML = (window.DA?.t && DA.t('translate_wait')) || 'Kuting...';
+            btn.innerHTML = t('translate_wait', 'Kuting...');
             btn.disabled = true;
             btn.classList.add('opacity-70');
             outText.value = '';
             outText.classList.add('loading-shimmer');
             hideStatus();
-            setEngine((window.DA?.t && DA.t('translate_loading_engine')) || 'Yuklanmoqda...');
+            setEngine(t('translate_loading_engine', 'Yuklanmoqda...'));
 
             let lastError = null;
 
@@ -399,9 +404,9 @@
                     outText.value = result.text;
                     outText.classList.remove('loading-shimmer');
                     setEngine(result.engine);
-                    showStatus('success', '✅', (window.DA?.t && DA.t('translate_done')) || 'Tarjima qilindi');
+                    showStatus('success', '✅', t('translate_done', 'Tarjima qilindi'));
                     tg?.HapticFeedback?.notificationOccurred('success');
-                    btn.innerHTML = (window.DA?.t && DA.t('translate_action')) || '⚡ Tarjima Qilish';
+                    btn.innerHTML = t('translate_action', '⚡ Tarjima Qilish');
                     btn.disabled = false;
                     btn.classList.remove('opacity-70');
                     return;
@@ -414,9 +419,9 @@
                     outText.value = result.text;
                     outText.classList.remove('loading-shimmer');
                     setEngine(result.engine);
-                    showStatus('info', '🌐', (window.DA?.t && DA.t('translate_done')) || 'Tarjima qilindi');
+                    showStatus('info', '🌐', t('translate_done', 'Tarjima qilindi'));
                     tg?.HapticFeedback?.notificationOccurred('success');
-                    btn.innerHTML = (window.DA?.t && DA.t('translate_action')) || '⚡ Tarjima Qilish';
+                    btn.innerHTML = t('translate_action', '⚡ Tarjima Qilish');
                     btn.disabled = false;
                     btn.classList.remove('opacity-70');
                     return;

@@ -501,6 +501,32 @@ window.DA = (() => {
 
     if (document.querySelector('.da-bottom-nav') || document.querySelector('.bottom-nav')) return;
 
+    // Ensure required CSS exists even if theme.css is cached/old.
+    if (!document.getElementById('da-mobile-nav-style')) {
+      const style = document.createElement('style');
+      style.id = 'da-mobile-nav-style';
+      style.textContent = `
+        .da-mobile-shell{padding-bottom:calc(86px + env(safe-area-inset-bottom, 0px));}
+        .da-bottom-nav{
+          position:fixed;left:0;right:0;bottom:0;z-index:999;
+          display:grid;grid-template-columns:repeat(4,minmax(0,1fr));
+          gap:6px;padding:8px 10px calc(8px + env(safe-area-inset-bottom, 0px));
+          background:var(--da-bg-overlay, rgba(255,255,255,.92));
+          backdrop-filter:blur(14px);
+          border-top:1px solid var(--da-border, rgba(226,232,240,1));
+        }
+        .da-nav-item{
+          text-decoration:none;color:var(--da-text-secondary, #64748B);
+          min-height:58px;border-radius:14px;
+          display:flex;flex-direction:column;align-items:center;justify-content:center;
+          gap:4px;font-size:11px;font-weight:700;
+        }
+        .da-nav-item svg{width:20px;height:20px;stroke:currentColor;}
+        .da-nav-item.active{color:var(--da-blue, #2563EB);background:var(--da-blue-soft, rgba(37,99,235,.1));}
+      `;
+      document.head.appendChild(style);
+    }
+
     const path = location.pathname.toLowerCase();
     const active = activeNavKey(path);
     const nav = document.createElement('nav');
