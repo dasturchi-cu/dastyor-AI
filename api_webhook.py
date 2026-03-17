@@ -399,7 +399,7 @@ async def api_translate(req: TranslateRequest):
     if len(req.text) > 5000:
         raise HTTPException(status_code=400, detail="Matn 5000 belgidan oshmasligi kerak")
 
-    valid_dirs = {"uz_en", "en_uz", "ru_uz", "uz_ru", "ru_en"}
+    valid_dirs = {"uz_en", "en_uz", "ru_uz", "uz_ru", "ru_en", "en_ru"}
     if req.direction not in valid_dirs:
         raise HTTPException(status_code=400, detail=f"Noto'g'ri yo'nalish: {req.direction}")
 

@@ -203,7 +203,7 @@ async def translate_document_gemini(file_path: str, target_language: str = "uz")
 async def translate_text(text: str, direction: str = "uz_en") -> str:
     """
     Translate plain text using Gemini. Used by /api/translate web endpoint.
-    direction: uz_en | en_uz | ru_uz | uz_ru | ru_en
+    direction: uz_en | en_uz | ru_uz | uz_ru | ru_en | en_ru
     """
     model = await get_model()
     if not model:
@@ -215,6 +215,7 @@ async def translate_text(text: str, direction: str = "uz_en") -> str:
         "ru_uz": ("Russian", "O'zbek"),
         "uz_ru": ("O'zbek", "Russian"),
         "ru_en": ("Russian", "English"),
+        "en_ru": ("English", "Russian"),
     }
     src, tgt = lang_map.get(direction, ("O'zbek", "English"))
 

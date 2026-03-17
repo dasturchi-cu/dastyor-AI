@@ -345,7 +345,14 @@
                 });
                 clearTimeout(timeout);
 
-                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                if (!res.ok) {
+                    let detail = '';
+                    try {
+                        const err = await res.json();
+                        detail = err?.detail || err?.error || '';
+                    } catch (_) {}
+                    throw new Error(detail ? `${detail} (HTTP ${res.status})` : `HTTP ${res.status}`);
+                }
                 const data = await res.json();
                 if (data.translated_text) return { text: data.translated_text, engine: 'Gemini AI' };
                 return null;

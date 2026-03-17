@@ -1,1448 +1,669 @@
 <!DOCTYPE html>
 <html lang="uz">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Obyektivka Generator | DASTYOR AI</title>
-    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>Obyektivka | DASTYOR AI</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
+    :root{
+      --blue:#1D6FE8;--blue-dark:#1558C0;--blue-deep:#0E3E96;
+      --blue-light:#EFF4FF;--blue-mid:#DBEAFE;
+      --bg:#F2F6FF;--card:#FFFFFF;--text:#0D1B36;--muted:#5E708A;
+      --border:#DDE5F3;--success:#16A34A;--danger:#DC2626;
+      --font:'Plus Jakarta Sans',system-ui,sans-serif;
+      --safe-bottom:env(safe-area-inset-bottom,0px);
+    }
+    body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;-webkit-font-smoothing:antialiased;overflow-x:hidden}
 
-    <style>
-        :root {
-            --blue-50:  #eff6ff;
-            --blue-100: #dbeafe;
-            --blue-200: #bfdbfe;
-            --blue-400: #60a5fa;
-            --blue-500: #3b82f6;
-            --blue-600: #2563eb;
-            --blue-700: #1d4ed8;
-            --blue-800: #1e40af;
-            --blue-900: #1e3a8a;
+    /* LOADING */
+    #loading-overlay{position:fixed;inset:0;background:rgba(242,246,255,.95);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);display:none;flex-direction:column;justify-content:center;align-items:center;z-index:9999;gap:14px}
+    .loader-ring{width:50px;height:50px;border:4px solid var(--blue-mid);border-top-color:var(--blue);border-radius:50%;animation:spin 1s linear infinite}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    .loader-text{font-size:15px;font-weight:700;color:var(--blue-dark)}
+    .loader-sub{font-size:13px;color:var(--muted)}
 
-            --slate-50:  #f8fafc;
-            --slate-100: #f1f5f9;
-            --slate-200: #e2e8f0;
-            --slate-300: #cbd5e1;
-            --slate-400: #94a3b8;
-            --slate-500: #64748b;
-            --slate-600: #475569;
-            --slate-700: #334155;
-            --slate-800: #1e293b;
-            --slate-900: #0f172a;
+    /* HEADER */
+    .header{position:sticky;top:0;z-index:100;height:56px;background:rgba(255,255,255,.93);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-bottom:1.5px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 14px}
+    .header-brand{display:flex;align-items:center;gap:10px}
+    .header-back{width:36px;height:36px;border-radius:10px;border:1.5px solid var(--border);background:var(--card);display:flex;align-items:center;justify-content:center;text-decoration:none;color:var(--muted);-webkit-tap-highlight-color:transparent}
+    .header-back svg{width:16px;height:16px;stroke:currentColor;stroke-width:2.5;fill:none}
+    .header-logo{width:34px;height:34px;background:linear-gradient(135deg,var(--blue),var(--blue-deep));border-radius:9px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:15px}
+    .header-title{font-size:15px;font-weight:700}
+    .header-actions{display:flex;gap:6px}
+    .lang-btn{padding:5px 12px;border-radius:20px;border:1.5px solid var(--border);background:var(--card);font-size:12px;font-weight:700;color:var(--muted);cursor:pointer;font-family:var(--font);-webkit-tap-highlight-color:transparent}
+    .lang-btn:active{background:var(--blue-light);color:var(--blue)}
 
-            --white: #ffffff;
-            --danger: #ef4444;
-            --success: #22c55e;
+    /* MAIN */
+    .main{max-width:680px;margin:0 auto;padding:16px 12px calc(60px + var(--safe-bottom))}
 
-            --radius-sm: 8px;
-            --radius-md: 12px;
-            --radius-lg: 18px;
-            --radius-xl: 24px;
+    /* CARD */
+    .card{background:var(--card);border-radius:18px;border:1.5px solid var(--border);box-shadow:0 4px 24px rgba(29,111,232,.10),0 1px 4px rgba(0,0,0,.05);overflow:hidden;animation:fadeUp .3s ease both}
+    @keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
 
-            --shadow-xs: 0 1px 3px rgba(0,0,0,.06), 0 1px 2px rgba(0,0,0,.04);
-            --shadow-sm: 0 2px 8px rgba(30,64,175,.08), 0 1px 3px rgba(0,0,0,.06);
-            --shadow-md: 0 4px 16px rgba(30,64,175,.1), 0 2px 6px rgba(0,0,0,.06);
-            --shadow-lg: 0 8px 32px rgba(30,64,175,.12), 0 4px 12px rgba(0,0,0,.08);
-            --shadow-xl: 0 16px 48px rgba(30,64,175,.14), 0 8px 24px rgba(0,0,0,.1);
-        }
+    /* HERO */
+    .card-hero{background:linear-gradient(135deg,var(--blue) 0%,var(--blue-deep) 100%);padding:20px 18px 18px;position:relative;overflow:hidden}
+    .card-hero::after{content:'';position:absolute;top:-50px;right:-30px;width:180px;height:180px;border-radius:50%;background:rgba(255,255,255,.07)}
+    .card-hero-title{font-size:19px;font-weight:800;color:#fff;position:relative;z-index:1}
+    .card-hero-sub{font-size:13px;color:rgba(255,255,255,.7);margin-top:2px;position:relative;z-index:1}
 
-        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    /* LANG SCREEN */
+    .lang-screen{padding:40px 20px;text-align:center}
+    .lang-icon{width:54px;height:54px;background:var(--blue-light);border:2px solid var(--blue-mid);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 14px;font-size:24px}
+    .lang-screen h2{font-size:21px;font-weight:800;margin-bottom:6px}
+    .lang-screen p{font-size:13.5px;color:var(--muted);margin-bottom:26px}
+    .lang-options{display:flex;flex-wrap:wrap;justify-content:center;gap:10px}
+    .lang-opt-btn{padding:13px 28px;border-radius:13px;border:2px solid var(--blue-mid);background:var(--card);font-size:15px;font-weight:700;color:var(--blue);cursor:pointer;font-family:var(--font);-webkit-tap-highlight-color:transparent}
+    .lang-opt-btn:active{background:var(--blue);border-color:var(--blue);color:#fff}
 
-        html { scroll-behavior: smooth; }
+    /* STEP BAR */
+    .step-bar{display:flex;align-items:center;padding:16px 18px 0;gap:0}
+    .step-item{display:flex;align-items:center;gap:8px;flex:1}
+    .step-num{width:28px;height:28px;border-radius:50%;border:2px solid var(--border);background:var(--bg);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:var(--muted);flex-shrink:0}
+    .step-lbl{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px}
+    .step-line{flex:1;height:2px;background:var(--border);margin:0 8px;border-radius:2px}
+    .step-item.active .step-num{background:var(--blue);border-color:var(--blue);color:#fff;box-shadow:0 0 0 3px rgba(29,111,232,.15)}
+    .step-item.active .step-lbl{color:var(--blue)}
+    .step-item.done .step-num{background:var(--blue-light);border-color:var(--blue-mid);color:var(--blue)}
+    @media(max-width:380px){.step-lbl{display:none}}
 
-        body {
-            font-family: 'DM Sans', system-ui, sans-serif;
-            background: #f0f6ff;
-            color: var(--slate-800);
-            min-height: 100vh;
-            line-height: 1.6;
-        }
+    /* SEC HEAD */
+    .sec-head{display:flex;align-items:center;gap:9px;margin-bottom:14px;padding-bottom:11px;border-bottom:1.5px solid var(--blue-light)}
+    .sec-icon{width:28px;height:28px;background:var(--blue-light);border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0}
+    .sec-title{font-size:11.5px;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:var(--blue)}
 
-        /* ─── BACKGROUND PATTERN ─── */
-        body::before {
-            content: '';
-            position: fixed;
-            inset: 0;
-            background:
-                radial-gradient(ellipse 80% 60% at 10% 0%, rgba(59,130,246,.12) 0%, transparent 60%),
-                radial-gradient(ellipse 60% 50% at 90% 100%, rgba(30,64,175,.1) 0%, transparent 60%);
-            pointer-events: none;
-            z-index: 0;
-        }
+    /* FORM BODY */
+    .form-body{padding:16px 18px 0}
 
-        /* ─── HEADER ─── */
-        .header {
-            position: sticky;
-            top: 0;
-            z-index: 100;
-            height: 64px;
-            background: rgba(255,255,255,.92);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border-bottom: 1px solid var(--blue-100);
-            box-shadow: 0 1px 0 rgba(30,64,175,.06), 0 2px 12px rgba(30,64,175,.06);
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 0 20px;
-        }
+    /* FIELDS */
+    .field{margin-bottom:12px}
+    .field:last-child{margin-bottom:0}
+    .field label{display:block;font-size:12px;font-weight:700;color:var(--muted);margin-bottom:5px}
+    input,select,textarea{width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:9px;background:var(--bg);color:var(--text);font-family:var(--font);font-size:14px;font-weight:500;-webkit-appearance:none;appearance:none;line-height:1.5;transition:border-color .15s,box-shadow .15s}
+    input::placeholder,textarea::placeholder{color:#A8B8D0;font-weight:400}
+    input:focus,select:focus,textarea:focus{outline:none;border-color:var(--blue);background:#fff;box-shadow:0 0 0 3px rgba(29,111,232,.11)}
+    textarea{resize:vertical;min-height:52px}
+    .sel-wrap{position:relative}
+    .sel-wrap::after{content:'';position:absolute;right:11px;top:50%;transform:translateY(-50%);border-left:5px solid transparent;border-right:5px solid transparent;border-top:6px solid var(--blue);pointer-events:none}
+    select{padding-right:32px;cursor:pointer}
 
-        .header-brand {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
+    /* GRIDS */
+    .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    .grid-photo{display:grid;grid-template-columns:1fr 96px;gap:14px;align-items:start}
+    @media(max-width:440px){.grid-2{grid-template-columns:1fr}.grid-photo{grid-template-columns:1fr 84px}}
 
-        .header-back {
-            width: 36px; height: 36px;
-            border-radius: var(--radius-sm);
-            border: 1.5px solid var(--blue-100);
-            background: var(--white);
-            display: flex; align-items: center; justify-content: center;
-            cursor: pointer;
-            color: var(--slate-500);
-            transition: all .2s;
-            text-decoration: none;
-        }
-        .header-back:hover { background: var(--blue-50); color: var(--blue-600); border-color: var(--blue-200); }
+    /* PHOTO */
+    .photo-frame{width:100%;aspect-ratio:3/4;border:2px dashed var(--blue-mid);border-radius:10px;background:var(--blue-light);display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;overflow:hidden;gap:5px;-webkit-tap-highlight-color:transparent}
+    .photo-frame:active{border-color:var(--blue)}
+    .photo-frame img{width:100%;height:100%;object-fit:cover}
+    .ph-icon{font-size:20px;opacity:.5}
+    .ph-txt{font-size:9.5px;font-weight:700;color:var(--blue);text-align:center;line-height:1.4;padding:0 4px}
 
-        .header-logo {
-            width: 38px; height: 38px;
-            background: linear-gradient(135deg, var(--blue-500), var(--blue-700));
-            border-radius: 10px;
-            display: flex; align-items: center; justify-content: center;
-            color: white;
-            font-weight: 700;
-            font-size: 18px;
-            box-shadow: 0 2px 8px rgba(37,99,235,.35);
-            font-family: 'DM Serif Display', serif;
-        }
+    /* DIVIDER */
+    hr{border:0;border-top:1.5px dashed var(--blue-light);margin:16px 0}
 
-        .header-title {
-            font-size: 16px;
-            font-weight: 600;
-            color: var(--slate-800);
-            letter-spacing: -.3px;
-        }
+    /* WORK ROWS */
+    .work-row{display:grid;grid-template-columns:140px 1fr;gap:8px;margin-bottom:8px;padding:12px;background:var(--bg);border:1.5px solid var(--border);border-radius:10px}
+    .work-row:focus-within{border-color:var(--blue-mid)}
+    .work-dates{display:flex;align-items:center;gap:4px}
+    .work-dates input{padding:8px 6px;text-align:center;font-size:13px}
+    .work-dates span{color:var(--muted);font-weight:700;font-size:13px;flex-shrink:0}
+    @media(max-width:420px){.work-row{grid-template-columns:1fr}}
 
-        .header-actions { display: flex; align-items: center; gap: 8px; }
+    /* RELATIVES */
+    .rel-item{display:flex;justify-content:space-between;align-items:center;padding:11px 13px;margin-bottom:7px;background:var(--card);border:1.5px solid var(--border);border-left:3px solid var(--blue);border-radius:10px}
+    .rel-item-info{font-size:13px}
+    .rel-item-info b{color:var(--blue)}
+    .rel-item-info span{color:var(--muted);font-size:12px}
+    .rel-actions{display:flex;gap:5px;flex-shrink:0}
 
-        .lang-btn {
-            padding: 5px 12px;
-            border-radius: 20px;
-            border: 1.5px solid var(--blue-200);
-            background: var(--white);
-            font-size: 12px;
-            font-weight: 600;
-            color: var(--slate-600);
-            cursor: pointer;
-            transition: all .2s;
-            font-family: 'DM Sans', sans-serif;
-        }
-        .lang-btn:hover { background: var(--blue-50); color: var(--blue-600); border-color: var(--blue-400); }
+    /* BUTTONS */
+    .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:10px 18px;border-radius:11px;font-family:var(--font);font-size:14px;font-weight:700;cursor:pointer;border:none;white-space:nowrap;-webkit-tap-highlight-color:transparent}
+    .btn:active{transform:scale(.96)}
+    .btn svg{width:14px;height:14px;stroke:currentColor;stroke-width:2.4;fill:none;flex-shrink:0}
+    .btn-primary{background:linear-gradient(135deg,var(--blue),var(--blue-deep));color:#fff;box-shadow:0 4px 14px rgba(29,111,232,.35)}
+    .btn-outline{background:var(--card);border:1.5px solid var(--border);color:var(--muted)}
+    .btn-ghost{background:var(--blue-light);border:1.5px solid var(--blue-mid);color:var(--blue)}
+    .btn-dang{background:var(--card);border:1.5px solid #fecaca;color:var(--danger)}
+    .btn-sm{padding:6px 11px;font-size:12px;border-radius:7px}
+    .btn-add{width:100%;padding:10px;margin-top:7px;background:var(--blue-light);border:1.5px dashed var(--blue-mid);border-radius:10px;color:var(--blue);font-size:13px;font-weight:700;font-family:var(--font);cursor:pointer;-webkit-tap-highlight-color:transparent}
+    .btn-add:active{background:var(--blue-mid)}
+    .btn-spinner{width:15px;height:15px;border:2.5px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0}
 
-        .theme-btn {
-            width: 36px; height: 36px;
-            border-radius: 50%;
-            border: 1.5px solid var(--slate-200);
-            background: var(--white);
-            display: flex; align-items: center; justify-content: center;
-            cursor: pointer; color: var(--slate-500);
-            transition: all .2s;
-        }
-        .theme-btn:hover { color: var(--blue-600); border-color: var(--blue-200); }
+    /* FORM FOOTER */
+    .form-footer{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;padding:14px 18px 20px;border-top:1.5px solid var(--blue-light);margin-top:16px}
 
-        /* ─── MAIN WRAPPER ─── */
-        .main {
-            max-width: 960px;
-            margin: 0 auto;
-            padding: 28px 16px 60px;
-            position: relative;
-            z-index: 1;
-        }
+    /* HINT */
+    .hint{background:var(--blue-light);border:1px solid var(--blue-mid);border-radius:9px;padding:8px 11px;font-size:12px;color:var(--blue-dark);font-weight:500;display:flex;align-items:flex-start;gap:6px;margin-bottom:12px}
+    .hint svg{width:13px;height:13px;stroke:var(--blue);stroke-width:2.5;fill:none;flex-shrink:0;margin-top:1px}
 
-        /* ─── CARD ─── */
-        .card {
-            background: var(--white);
-            border-radius: var(--radius-xl);
-            border: 1px solid rgba(59,130,246,.1);
-            box-shadow: var(--shadow-lg);
-            overflow: hidden;
-        }
+    /* PREVIEW */
+    .preview-wrap{padding:0 18px 20px}
+    .preview-bar{display:flex;align-items:center;justify-content:space-between;padding:12px 0 10px;border-top:1.5px solid var(--blue-light);margin-top:2px}
+    .preview-label{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:800}
+    .live-dot{width:8px;height:8px;border-radius:50%;background:var(--success);box-shadow:0 0 0 3px rgba(22,163,74,.2);animation:pulse 1.5s infinite}
+    @keyframes pulse{0%,100%{box-shadow:0 0 0 3px rgba(22,163,74,.2)}50%{box-shadow:0 0 0 6px rgba(22,163,74,.05)}}
+    .live-badge{font-size:10px;background:#dcfce7;color:#15803d;padding:2px 7px;border-radius:20px;font-weight:700}
 
-        .card-header {
-            background: linear-gradient(135deg, var(--blue-600) 0%, var(--blue-800) 100%);
-            padding: 28px 32px 24px;
-            position: relative;
-            overflow: hidden;
-        }
-        .card-header::after {
-            content: '';
-            position: absolute;
-            top: -40%; right: -10%;
-            width: 260px; height: 260px;
-            border-radius: 50%;
-            background: rgba(255,255,255,.06);
-        }
-        .card-header::before {
-            content: '';
-            position: absolute;
-            bottom: -50%; left: 20%;
-            width: 200px; height: 200px;
-            border-radius: 50%;
-            background: rgba(255,255,255,.04);
-        }
+    .preview-port{background:#1e2540;border-radius:12px;overflow:hidden;box-shadow:inset 0 2px 10px rgba(0,0,0,.3),0 4px 16px rgba(0,0,0,.12)}
+    .preview-scroll{max-height:540px;overflow:auto;padding:14px;-webkit-overflow-scrolling:touch}
+    .preview-scroll::-webkit-scrollbar{width:4px}
+    .preview-scroll::-webkit-scrollbar-thumb{background:rgba(255,255,255,.18);border-radius:2px}
 
-        .card-header-title {
-            font-size: 22px;
-            font-weight: 700;
-            color: white;
-            letter-spacing: -.4px;
-            font-family: 'DM Serif Display', serif;
-            position: relative; z-index: 1;
-        }
-        .card-header-sub {
-            font-size: 13px;
-            color: rgba(255,255,255,.7);
-            margin-top: 4px;
-            position: relative; z-index: 1;
-        }
+    /* DOCUMENT */
+    /* Keep A4 proportions stable on mobile by scaling a fixed-width page */
+    .preview-holder{position:relative}
+    .preview-scale{transform-origin:top left;will-change:transform}
+    .doc-page{background:#fff;font-family:'Times New Roman',Georgia,serif;font-size:9pt;color:#000;line-height:1.55;padding:10mm 11mm;width:794px;max-width:794px;box-shadow:0 4px 24px rgba(0,0,0,.5)}
+    .doc-page+.doc-page{margin-top:10px}
+    .doc-photo-box{width:28mm;height:37mm;border:1px solid #bbb;display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0;font-size:7pt;color:#aaa;text-align:center}
+    .doc-photo-box img{width:100%;height:100%;object-fit:cover;display:block}
 
-        /* ─── LANG SELECTION ─── */
-        #step-lang {
-            padding: 48px 32px;
-            text-align: center;
-        }
-        .lang-select-title {
-            font-size: 24px;
-            font-weight: 700;
-            color: var(--slate-800);
-            font-family: 'DM Serif Display', serif;
-            margin-bottom: 8px;
-        }
-        .lang-select-sub {
-            font-size: 14px;
-            color: var(--slate-500);
-            margin-bottom: 32px;
-        }
-        .lang-options {
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: center;
-            gap: 14px;
-        }
-        .lang-option-btn {
-            padding: 14px 36px;
-            border-radius: var(--radius-md);
-            border: 2px solid var(--blue-200);
-            background: var(--white);
-            font-size: 15px;
-            font-weight: 600;
-            color: var(--blue-700);
-            cursor: pointer;
-            transition: all .25s;
-            font-family: 'DM Sans', sans-serif;
-            box-shadow: var(--shadow-xs);
-        }
-        .lang-option-btn:hover {
-            background: var(--blue-600);
-            border-color: var(--blue-600);
-            color: white;
-            box-shadow: 0 4px 16px rgba(37,99,235,.35);
-            transform: translateY(-2px);
-        }
+    @media(max-width:480px){
+      .main{padding:14px 10px calc(56px + var(--safe-bottom))}
+      .form-body{padding:14px 14px 0}
+      .form-footer{padding:12px 14px 16px}
+      .preview-wrap{padding:0 14px 16px}
+      .preview-scroll{max-height:420px;padding:12px}
+      .doc-page+.doc-page{margin-top:12px}
+    }
 
-        /* ─── STEP INDICATOR ─── */
-        .step-bar {
-            display: flex;
-            align-items: center;
-            gap: 0;
-            padding: 20px 32px 0;
-        }
-        .step-item {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            flex: 1;
-            cursor: default;
-        }
-        .step-num {
-            width: 30px; height: 30px;
-            border-radius: 50%;
-            border: 2px solid var(--blue-200);
-            background: var(--white);
-            display: flex; align-items: center; justify-content: center;
-            font-size: 13px;
-            font-weight: 700;
-            color: var(--slate-400);
-            transition: all .3s;
-            flex-shrink: 0;
-        }
-        .step-label {
-            font-size: 12px;
-            font-weight: 600;
-            color: var(--slate-400);
-            letter-spacing: .3px;
-            text-transform: uppercase;
-            transition: color .3s;
-        }
-        .step-line {
-            flex: 1;
-            height: 2px;
-            background: var(--blue-100);
-            margin: 0 12px;
-            border-radius: 2px;
-        }
-        .step-item.active .step-num {
-            background: var(--blue-600);
-            border-color: var(--blue-600);
-            color: white;
-            box-shadow: 0 0 0 4px rgba(37,99,235,.15);
-        }
-        .step-item.active .step-label { color: var(--blue-600); }
-        .step-item.done .step-num { background: var(--blue-100); border-color: var(--blue-300); color: var(--blue-600); }
-        .step-item.done .step-label { color: var(--slate-500); }
+    /* MODAL */
+    .modal{position:fixed;inset:0;background:rgba(13,27,54,.65);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);display:none;justify-content:center;align-items:flex-end;z-index:1000}
+    @media(min-width:500px){.modal{align-items:center;padding:16px}}
+    .modal-box{background:var(--card);border-radius:18px 18px 0 0;padding:22px 18px 22px;width:100%;max-width:480px;box-shadow:0 -8px 40px rgba(0,0,0,.18);animation:slideUp .25s ease;max-height:92vh;overflow-y:auto}
+    @media(min-width:500px){.modal-box{border-radius:18px;animation:scaleIn .22s ease}}
+    @keyframes slideUp{from{transform:translateY(32px);opacity:0}to{transform:none;opacity:1}}
+    @keyframes scaleIn{from{transform:scale(.95) translateY(10px);opacity:0}to{transform:none;opacity:1}}
+    .modal-title{font-size:17px;font-weight:800;margin-bottom:16px}
+    .modal-foot{display:flex;justify-content:flex-end;gap:8px;margin-top:18px;padding-top:14px;border-top:1.5px solid var(--border)}
 
-        /* ─── FORM BODY ─── */
-        .form-body { padding: 28px 32px 0; }
-
-        /* ─── SECTION HEADING ─── */
-        .section-head {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin-bottom: 20px;
-            padding-bottom: 12px;
-            border-bottom: 1px solid var(--blue-50);
-        }
-        .section-icon {
-            width: 32px; height: 32px;
-            background: var(--blue-50);
-            border-radius: 8px;
-            display: flex; align-items: center; justify-content: center;
-            font-size: 15px;
-            flex-shrink: 0;
-        }
-        .section-title {
-            font-size: 13px;
-            font-weight: 700;
-            letter-spacing: .8px;
-            text-transform: uppercase;
-            color: var(--slate-600);
-        }
-
-        /* ─── LABEL & INPUT ─── */
-        .field { margin-bottom: 18px; }
-
-        label {
-            display: block;
-            font-size: 12.5px;
-            font-weight: 600;
-            color: var(--slate-500);
-            margin-bottom: 6px;
-            letter-spacing: .1px;
-        }
-
-        input, select, textarea {
-            width: 100%;
-            padding: 11px 14px;
-            border: 1.5px solid var(--slate-200);
-            border-radius: var(--radius-sm);
-            font-size: 14px;
-            font-family: 'DM Sans', sans-serif;
-            background: var(--white);
-            color: var(--slate-800);
-            transition: all .2s;
-            line-height: 1.5;
-            box-shadow: var(--shadow-xs);
-        }
-        input:hover, select:hover, textarea:hover {
-            border-color: var(--blue-200);
-        }
-        input:focus, select:focus, textarea:focus {
-            outline: none;
-            border-color: var(--blue-500);
-            box-shadow: 0 0 0 3px rgba(59,130,246,.12);
-        }
-        textarea { resize: vertical; min-height: 60px; }
-
-        /* ─── GRID LAYOUTS ─── */
-        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-        .grid-header { display: grid; grid-template-columns: 1fr 130px; gap: 24px; align-items: start; }
-
-        /* ─── PHOTO FRAME ─── */
-        .photo-frame {
-            width: 100%; aspect-ratio: 3/4;
-            border: 2px dashed var(--blue-200);
-            border-radius: var(--radius-md);
-            background: var(--blue-50);
-            display: flex; flex-direction: column;
-            align-items: center; justify-content: center;
-            cursor: pointer;
-            overflow: hidden;
-            transition: all .25s;
-            gap: 8px;
-        }
-        .photo-frame:hover {
-            border-color: var(--blue-400);
-            background: var(--blue-100);
-            transform: scale(1.02);
-        }
-        .photo-frame.drag-over {
-            border-style: solid;
-            border-color: var(--blue-600);
-            background: var(--blue-100);
-        }
-        .photo-frame img { width: 100%; height: 100%; object-fit: cover; }
-        .photo-frame-txt { font-size: 11px; font-weight: 600; color: var(--blue-400); text-align: center; padding: 0 8px; }
-        .photo-frame-icon { font-size: 24px; opacity: .5; }
-
-        /* ─── DIVIDER ─── */
-        .divider {
-            border: 0;
-            border-top: 1px dashed var(--blue-100);
-            margin: 24px 0;
-        }
-
-        /* ─── WORK ROWS ─── */
-        .work-row {
-            display: grid;
-            grid-template-columns: 160px 1fr;
-            gap: 12px;
-            margin-bottom: 12px;
-            padding: 16px;
-            background: var(--slate-50);
-            border: 1.5px solid var(--slate-100);
-            border-radius: var(--radius-md);
-            transition: border-color .2s;
-        }
-        .work-row:hover { border-color: var(--blue-200); }
-        .work-dates { display: flex; align-items: center; gap: 6px; }
-        .work-dates input { text-align: center; padding: 10px 8px; }
-        .work-dates span { color: var(--slate-400); font-weight: 600; flex-shrink: 0; }
-
-        /* ─── RELATIVES ─── */
-        .rel-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 14px 16px;
-            background: var(--white);
-            border: 1.5px solid var(--slate-100);
-            border-left: 3px solid var(--blue-500);
-            border-radius: var(--radius-md);
-            margin-bottom: 8px;
-            transition: all .2s;
-            box-shadow: var(--shadow-xs);
-        }
-        .rel-item:hover { border-color: var(--blue-200); border-left-color: var(--blue-600); transform: translateX(3px); }
-        .rel-item-info { font-size: 14px; }
-        .rel-item-info b { color: var(--blue-700); }
-        .rel-actions { display: flex; gap: 6px; }
-
-        /* ─── BUTTONS ─── */
-        .btn {
-            padding: 11px 22px;
-            border-radius: var(--radius-md);
-            font-weight: 600;
-            font-size: 14px;
-            font-family: 'DM Sans', sans-serif;
-            cursor: pointer;
-            border: none;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            transition: all .2s;
-            white-space: nowrap;
-        }
-        .btn:active { transform: scale(.97); }
-
-        .btn-primary {
-            background: linear-gradient(135deg, var(--blue-500), var(--blue-700));
-            color: white;
-            box-shadow: 0 3px 12px rgba(37,99,235,.35);
-        }
-        .btn-primary:hover {
-            box-shadow: 0 6px 20px rgba(37,99,235,.45);
-            transform: translateY(-1px);
-        }
-
-        .btn-outline {
-            background: var(--white);
-            border: 1.5px solid var(--slate-200);
-            color: var(--slate-600);
-            box-shadow: var(--shadow-xs);
-        }
-        .btn-outline:hover { background: var(--slate-50); border-color: var(--slate-300); color: var(--slate-800); }
-
-        .btn-danger {
-            background: var(--white);
-            border: 1.5px solid #fecaca;
-            color: var(--danger);
-        }
-        .btn-danger:hover { background: #fef2f2; border-color: #fca5a5; }
-
-        .btn-add {
-            width: 100%;
-            padding: 11px;
-            background: var(--blue-50);
-            border: 1.5px dashed var(--blue-300);
-            border-radius: var(--radius-md);
-            color: var(--blue-600);
-            font-size: 13px;
-            font-weight: 600;
-            font-family: 'DM Sans', sans-serif;
-            cursor: pointer;
-            transition: all .2s;
-            margin-top: 8px;
-        }
-        .btn-add:hover { background: var(--blue-100); border-color: var(--blue-500); }
-
-        .btn-sm { padding: 7px 12px; font-size: 12px; border-radius: 8px; }
-
-        /* ─── FORM FOOTER ─── */
-        .form-footer {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 12px;
-            flex-wrap: wrap;
-            padding: 20px 32px 28px;
-            border-top: 1px solid var(--blue-50);
-            margin-top: 24px;
-        }
-
-        /* ─── PREVIEW SECTION ─── */
-        .preview-section {
-            padding: 0 32px 32px;
-        }
-        .preview-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 16px 0 14px;
-            border-top: 1px solid var(--blue-50);
-            margin-top: 4px;
-        }
-        .preview-title {
-            font-size: 14px;
-            font-weight: 700;
-            color: var(--slate-700);
-            display: flex; align-items: center; gap: 8px;
-        }
-        .preview-badge {
-            font-size: 11px;
-            background: #dcfce7;
-            color: #15803d;
-            padding: 2px 8px;
-            border-radius: 20px;
-            font-weight: 600;
-        }
-        .preview-viewport {
-            height: 580px;
-            background: #1a1f2e;
-            border-radius: var(--radius-lg);
-            overflow-y: auto;
-            padding: 24px;
-            display: flex;
-            align-items: flex-start;
-            justify-content: center;
-            box-shadow: inset 0 2px 12px rgba(0,0,0,.3);
-        }
-
-        /* ─── MODAL ─── */
-        .modal {
-            position: fixed;
-            inset: 0;
-            background: rgba(15,23,42,.65);
-            backdrop-filter: blur(8px);
-            -webkit-backdrop-filter: blur(8px);
-            display: none;
-            justify-content: center;
-            align-items: center;
-            z-index: 1000;
-            padding: 16px;
-        }
-        .modal-box {
-            background: var(--white);
-            border-radius: var(--radius-xl);
-            padding: 28px;
-            width: 100%;
-            max-width: 480px;
-            box-shadow: var(--shadow-xl);
-            animation: modalIn .25s ease;
-            max-height: 90vh;
-            overflow-y: auto;
-        }
-        @keyframes modalIn {
-            from { opacity: 0; transform: translateY(16px) scale(.97); }
-            to   { opacity: 1; transform: translateY(0) scale(1); }
-        }
-        .modal-title {
-            font-size: 18px;
-            font-weight: 700;
-            color: var(--slate-800);
-            margin-bottom: 20px;
-            font-family: 'DM Serif Display', serif;
-        }
-        .modal-footer {
-            display: flex;
-            justify-content: flex-end;
-            gap: 10px;
-            margin-top: 24px;
-            padding-top: 20px;
-            border-top: 1px solid var(--slate-100);
-        }
-
-        /* ─── LOADING ─── */
-        #loading-overlay {
-            position: fixed; inset: 0;
-            background: rgba(255,255,255,.92);
-            backdrop-filter: blur(12px);
-            display: none;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            z-index: 9999;
-            gap: 16px;
-        }
-        .loader-ring {
-            width: 56px; height: 56px;
-            border: 4px solid var(--blue-100);
-            border-top-color: var(--blue-600);
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
-        @keyframes spin { to { transform: rotate(360deg); } }
-        .loader-text { font-weight: 600; color: var(--blue-700); font-size: 15px; }
-        .loader-sub { font-size: 13px; color: var(--slate-500); }
-
-        /* ─── PDF DOCUMENT STYLES ─── */
-        .doc-wrapper {
-            background: white;
-            padding: 18mm 20mm;
-            font-family: 'Times New Roman', serif;
-            color: #000;
-            line-height: 1.5;
-            width: 210mm;
-            font-size: 11pt;
-            box-shadow: 0 8px 40px rgba(0,0,0,.4);
-        }
-
-        /* ─── RESPONSIVE ─── */
-        @media (max-width: 640px) {
-            .grid-2, .grid-header { grid-template-columns: 1fr; }
-            .work-row { grid-template-columns: 1fr; }
-            .form-body, .form-footer, .preview-section { padding-left: 16px; padding-right: 16px; }
-            .card-header { padding: 20px 16px 18px; }
-            .step-bar { padding: 16px 16px 0; }
-            .header { padding: 0 12px; }
-            .step-label { display: none; }
-        }
-
-        /* ─── UTILITY ─── */
-        .hidden { display: none !important; }
-        .text-center { text-align: center; }
-    </style>
+    .hidden{display:none!important}
+  </style>
 </head>
 <body>
 
-<!-- Loading Overlay -->
 <div id="loading-overlay">
-    <div class="loader-ring"></div>
-    <div class="loader-text">Hujjat tayyorlanmoqda...</div>
-    <div class="loader-sub">Iltimos, 10–15 soniya kuting</div>
+  <div class="loader-ring"></div>
+  <div class="loader-text">Hujjat tayyorlanmoqda...</div>
+  <div class="loader-sub">Iltimos, 10-15 soniya kuting</div>
 </div>
 
 <datalist id="years-list"></datalist>
 <datalist id="years-list-to"></datalist>
 
-<!-- ─── HEADER ─── -->
 <header class="header">
-    <div class="header-brand">
-        <a href="index.html" class="header-back">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
-        </a>
-        <div class="header-logo">O</div>
-        <span class="header-title">Obyektivka Generator</span>
-    </div>
-    <div class="header-actions">
-        <button class="lang-btn" onclick="initApp('uz_l')">UZ</button>
-        <button class="lang-btn" onclick="initApp('uz_k')">КР</button>
-        <button class="theme-btn" onclick="toggleTheme()">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/>
-            </svg>
-        </button>
-    </div>
+  <div class="header-brand">
+    <a href="index.html" class="header-back">
+      <svg viewBox="0 0 24 24"><path d="m15 18-6-6 6-6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </a>
+    <div class="header-logo">O</div>
+    <span class="header-title">Obyektivka</span>
+  </div>
+  <div class="header-actions">
+    <button class="lang-btn" onclick="initApp('uz_l')">UZ</button>
+    <button class="lang-btn" onclick="initApp('uz_k')">KR</button>
+  </div>
 </header>
 
-<!-- ─── MAIN ─── -->
 <main class="main">
+  <div class="card" id="lang-card">
+    <div class="card-hero">
+      <div class="card-hero-title">Rasmiy Hujjat Generatori</div>
+      <div class="card-hero-sub">Davlat standartiga mos obyektivka tayyorlash</div>
+    </div>
+    <div class="lang-screen">
+      <div class="lang-icon">&#x1F4CB;</div>
+      <h2>Tilni tanlang</h2>
+      <p>Hujjat tanlangan tilda shakllantiriladi</p>
+      <div class="lang-options">
+        <button class="lang-opt-btn" onclick="initApp('uz_l')">O'zbekcha (Lotin)</button>
+        <button class="lang-opt-btn" onclick="initApp('uz_k')">&#x423;&#x437;&#x431;&#x435;&#x43A;&#x447;&#x430; (&#x41A;&#x438;&#x440;&#x438;&#x43B;&#x43B;)</button>
+      </div>
+    </div>
+  </div>
 
-    <!-- Language Selection Card -->
-    <div class="card" id="lang-card">
-        <div class="card-header">
-            <div class="card-header-title">Rasmiy Hujjat Generatori</div>
-            <div class="card-header-sub">Davlat standartiga mos obyektivka tayyorlash xizmati</div>
-        </div>
-        <div id="step-lang" style="padding:40px 32px; text-align:center;">
-            <div style="width:56px;height:56px;background:var(--blue-50);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;font-size:28px;">📋</div>
-            <div class="lang-select-title">Davom etish uchun tilni tanlang</div>
-            <div class="lang-select-sub">Hujjat tanlangan tilda shakllantiriladi</div>
-            <div class="lang-options">
-                <button class="lang-option-btn" onclick="initApp('uz_l')">🇺🇿 O'zbekcha (Lotin)</button>
-                <button class="lang-option-btn" onclick="initApp('uz_k')">🇺🇿 Ўзбекча (Кирилл)</button>
-            </div>
-        </div>
+  <div class="card hidden" id="main-card">
+    <div class="step-bar">
+      <div class="step-item active" id="st1"><div class="step-num">1</div><div class="step-lbl">Shaxsiy</div></div>
+      <div class="step-line"></div>
+      <div class="step-item" id="st2"><div class="step-num">2</div><div class="step-lbl">Qarindoshlar</div></div>
     </div>
 
-    <!-- Main Form Card -->
-    <div class="card hidden" id="main-card">
-
-        <!-- Step Bar -->
-        <div class="step-bar">
-            <div class="step-item active" id="st1">
-                <div class="step-num">1</div>
-                <div class="step-label">Shaxsiy Ma'lumotlar</div>
-            </div>
-            <div class="step-line"></div>
-            <div class="step-item" id="st2">
-                <div class="step-num">2</div>
-                <div class="step-label">Qarindoshlar</div>
-            </div>
+    <form id="obyektivka-form">
+      <!-- PAGE 1 -->
+      <div id="page-1" class="form-body">
+        <div class="sec-head" style="margin-top:8px">
+          <div class="sec-icon">&#x1F464;</div>
+          <div class="sec-title">Asosiy ma'lumotlar</div>
         </div>
-
-        <form id="obyektivka-form">
-
-            <!-- ── PAGE 1 ── -->
-            <div id="page-1" class="form-body">
-
-                <!-- Personal Info Section -->
-                <div class="section-head" style="margin-top:8px;">
-                    <div class="section-icon">👤</div>
-                    <div class="section-title">Asosiy ma'lumotlar</div>
-                </div>
-
-                <div class="grid-header">
-                    <div>
-                        <div class="field">
-                            <label id="lbl-fullname">Familiya, Ism, Sharif</label>
-                            <input type="text" id="fullname" placeholder="Aliyev Ali Aliyevich"
-                                style="font-weight:600;" onchange="saveToLocal()" oninput="updatePreview()">
-                        </div>
-                        <div class="grid-2">
-                            <div class="field">
-                                <label id="lbl-birthdate">Tug'ilgan sanasi</label>
-                                <input type="text" id="birthdate" placeholder="KK.OO.YYYY" maxlength="10"
-                                    onchange="saveToLocal()" oninput="updatePreview()">
-                            </div>
-                            <div class="field">
-                                <label id="lbl-nation">Millati</label>
-                                <input type="text" id="nation" placeholder="O'zbek" list="nation-list"
-                                    onchange="saveToLocal()" oninput="updatePreview()">
-                                <datalist id="nation-list">
-                                    <option value="O'zbek"><option value="Rus"><option value="Tojik">
-                                    <option value="Qozoq"><option value="Turk"><option value="Qirg'iz">
-                                </datalist>
-                            </div>
-                        </div>
-                        <div class="field">
-                            <label id="lbl-birthplace">Tug'ilgan joyi</label>
-                            <input type="text" id="birthplace" placeholder="Toshkent shahri"
-                                onchange="saveToLocal()" oninput="updatePreview()">
-                        </div>
-                    </div>
-
-                    <!-- Photo -->
-                    <div>
-                        <label style="margin-bottom:8px;">Fotosurat</label>
-                        <div class="photo-frame" onclick="document.getElementById('photoInput').click()">
-                            <div class="photo-frame-icon" id="ph-icon">📷</div>
-                            <div class="photo-frame-txt" id="ph-txt">FOTO YUKLASH<br>3×4 sm</div>
-                            <img id="photo-preview" class="hidden">
-                            <input type="file" id="photoInput" accept="image/png,image/jpeg,image/jpg,image/webp" hidden onchange="previewImg(this)">
-                        </div>
-                    </div>
-                </div>
-
-                <hr class="divider">
-
-                <!-- Education & Other -->
-                <div class="section-head">
-                    <div class="section-icon">🎓</div>
-                    <div class="section-title">Ta'lim va Boshqalar</div>
-                </div>
-
-                <div class="grid-2">
-                    <div class="field">
-                        <label id="lbl-party">Partiyaviyligi</label>
-                        <input type="text" id="party" value="yo'q" onchange="saveToLocal()" oninput="updatePreview()">
-                    </div>
-                    <div class="field">
-                        <label id="lbl-edu">Ma'lumoti</label>
-                        <input type="text" id="edu" placeholder="Oliy" list="edu-list"
-                            onchange="saveToLocal()" oninput="updatePreview()">
-                        <datalist id="edu-list">
-                            <option value="Oliy"><option value="O'rta maxsus"><option value="O'rta">
-                            <option value="Tugallanmagan oliy">
-                        </datalist>
-                    </div>
-                    <div class="field">
-                        <label id="lbl-graduated">Tamomlagan</label>
-                        <textarea id="graduated" rows="2" placeholder="OTM nomi"
-                            oninput="handleWordExpansion(this);updatePreview()" onchange="saveToLocal()"></textarea>
-                    </div>
-                    <div class="field">
-                        <label id="lbl-spec">Mutaxassisligi</label>
-                        <input type="text" id="spec" placeholder="Umumiy amaliyot shifokori"
-                            onchange="saveToLocal()" oninput="updatePreview()">
-                    </div>
-                    <div class="field">
-                        <label id="lbl-degree">Ilmiy darajasi</label>
-                        <input type="text" id="degree" value="yo'q" onchange="saveToLocal()" oninput="updatePreview()">
-                    </div>
-                    <div class="field">
-                        <label id="lbl-scititle">Ilmiy unvoni</label>
-                        <input type="text" id="scititle" value="yo'q" onchange="saveToLocal()" oninput="updatePreview()">
-                    </div>
-                    <div class="field">
-                        <label id="lbl-military">Harbiy unvoni</label>
-                        <input type="text" id="military" value="yo'q" onchange="saveToLocal()" oninput="updatePreview()">
-                    </div>
-                    <div class="field">
-                        <label id="lbl-langs">Xorijiy tillar</label>
-                        <input type="text" id="langs" value="yo'q" list="lang-list"
-                            onchange="saveToLocal()" oninput="updatePreview()">
-                        <datalist id="lang-list"></datalist>
-                    </div>
-                    <div class="field" style="grid-column:1/-1;">
-                        <label id="lbl-awards">Davlat mukofotlari bilan taqdirlanganmi</label>
-                        <input type="text" id="awards" value="yo'q" onchange="saveToLocal()" oninput="updatePreview()">
-                    </div>
-                    <div class="field" style="grid-column:1/-1;">
-                        <label id="lbl-deputy">Xalq deputatlari Kengashi deputatimi yoki boshqa saylanadigan organlarning a'zosimi</label>
-                        <input type="text" id="deputy" value="yo'q" onchange="saveToLocal()" oninput="updatePreview()">
-                    </div>
-                </div>
-
-                <hr class="divider">
-
-                <!-- Work Experience -->
-                <div class="section-head">
-                    <div class="section-icon">💼</div>
-                    <div class="section-title" id="lbl-work">Mehnat Faoliyati</div>
-                </div>
-                <p id="work-hint" style="font-size:12.5px;color:var(--slate-400);margin:-12px 0 16px;line-height:1.5;">
-                    Eng oxirida hozirgi ishlayotgan yoki o'qiyotgan joyingizni kiriting
-                </p>
-
-                <div id="work-container"></div>
-                <button type="button" class="btn-add" onclick="addWorkRow()">+ Yangi ish joyi qo'shish</button>
+        <div class="grid-photo">
+          <div>
+            <div class="field">
+              <label id="lbl-fullname">Familiya, Ism, Sharif</label>
+              <input type="text" id="fullname" placeholder="Aliyev Ali Aliyevich" style="font-weight:700" oninput="saveToLocal();updatePreview()">
             </div>
-
-            <div class="form-footer" id="footer-p1">
-                <button type="button" class="btn btn-danger" onclick="clearForm()">🗑 Tozalash</button>
-                <button type="button" class="btn btn-primary" onclick="goToStep(2)">
-                    Keyingisi &nbsp;→
-                </button>
+            <div class="grid-2">
+              <div class="field">
+                <label id="lbl-birthdate">Tug'ilgan sanasi</label>
+                <input type="text" id="birthdate" placeholder="KK.OO.YYYY" maxlength="10" oninput="updatePreview()" onchange="saveToLocal()">
+              </div>
+              <div class="field">
+                <label id="lbl-nation">Millati</label>
+                <input type="text" id="nation" placeholder="O'zbek" list="nation-list" oninput="saveToLocal();updatePreview()">
+                <datalist id="nation-list"></datalist>
+              </div>
             </div>
-
-            <!-- ── PAGE 2 ── -->
-            <div id="page-2" class="hidden form-body">
-                <div class="section-head" style="margin-top:8px;">
-                    <div class="section-icon">👨‍👩‍👧</div>
-                    <div class="section-title" id="lbl-rel-title">Yaqin Qarindoshlar</div>
-                </div>
-
-                <div id="relatives-list-ui"></div>
-                <button type="button" class="btn-add" onclick="openRelModal()">+ Qarindosh qo'shish</button>
+            <div class="field">
+              <label id="lbl-birthplace">Tug'ilgan joyi</label>
+              <input type="text" id="birthplace" placeholder="Toshkent shahri" oninput="saveToLocal();updatePreview()">
             </div>
-
-            <div class="form-footer hidden" id="footer-p2">
-                <button type="button" class="btn btn-outline" onclick="goToStep(1)">← Orqaga</button>
-                <div style="display:flex;gap:10px;flex-wrap:wrap;">
-                    <button type="button" class="btn btn-danger" onclick="clearForm()">🗑 Tozalash</button>
-                    <button type="button" class="btn btn-primary" onclick="downloadDoc()">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                        Word Yuklash
-                    </button>
-                </div>
+          </div>
+          <div>
+            <label style="display:block;font-size:12px;font-weight:700;color:var(--muted);margin-bottom:6px">Fotosurat</label>
+            <div class="photo-frame" onclick="document.getElementById('photoInput').click()">
+              <div class="ph-icon" id="ph-icon">&#x1F4F7;</div>
+              <div class="ph-txt" id="ph-txt">YUKLASH<br>3x4 sm</div>
+              <img id="photo-preview" class="hidden" />
+              <input type="file" id="photoInput" accept="image/png,image/jpeg,image/jpg,image/webp" hidden onchange="previewImg(this)" />
             </div>
-        </form>
-
-        <!-- Preview -->
-        <div class="preview-section" id="preview-section" style="display:none;">
-            <div class="preview-header">
-                <div class="preview-title">
-                    <span>📄</span>
-                    <span>Jonli Ko'rinish</span>
-                    <span class="preview-badge">LIVE</span>
-                </div>
-            </div>
-            <div class="preview-viewport">
-                <div id="obyektivka-preview-wrapper">
-                    <div id="obyektivka-preview-page" class="doc-wrapper">
-                        <div id="obyektivka-preview-body"></div>
-                    </div>
-                </div>
-            </div>
+          </div>
         </div>
+        <hr />
+        <div class="sec-head">
+          <div class="sec-icon">&#x1F393;</div>
+          <div class="sec-title">Ta'lim va boshqalar</div>
+        </div>
+        <div class="grid-2">
+          <div class="field"><label id="lbl-party">Partiyaviyligi</label><input type="text" id="party" value="yo'q" oninput="saveToLocal();updatePreview()"></div>
+          <div class="field"><label id="lbl-edu">Ma'lumoti</label><input type="text" id="edu" placeholder="Oliy" list="edu-list" oninput="saveToLocal();updatePreview()"><datalist id="edu-list"></datalist></div>
+          <div class="field"><label id="lbl-graduated">Tamomlagan</label><textarea id="graduated" rows="2" placeholder="OTM nomi" oninput="handleWX(this);saveToLocal();updatePreview()"></textarea></div>
+          <div class="field"><label id="lbl-spec">Mutaxassisligi</label><input type="text" id="spec" placeholder="Mutaxassislik" oninput="saveToLocal();updatePreview()"></div>
+          <div class="field"><label id="lbl-degree">Ilmiy darajasi</label><input type="text" id="degree" value="yo'q" oninput="saveToLocal();updatePreview()"></div>
+          <div class="field"><label id="lbl-scititle">Ilmiy unvoni</label><input type="text" id="scititle" value="yo'q" oninput="saveToLocal();updatePreview()"></div>
+          <div class="field"><label id="lbl-military">Harbiy unvoni</label><input type="text" id="military" value="yo'q" oninput="saveToLocal();updatePreview()"></div>
+          <div class="field"><label id="lbl-langs">Xorijiy tillar</label><input type="text" id="langs" value="yo'q" list="lang-list" oninput="saveToLocal();updatePreview()"><datalist id="lang-list"></datalist></div>
+          <div class="field" style="grid-column:1/-1"><label id="lbl-awards">Davlat mukofotlari bilan taqdirlanganmi</label><input type="text" id="awards" value="yo'q" oninput="saveToLocal();updatePreview()"></div>
+          <div class="field" style="grid-column:1/-1"><label id="lbl-deputy">Xalq deputatlari Kengashi deputatimi yoki boshqa saylanadigan organlar a'zosimi</label><input type="text" id="deputy" value="yo'q" oninput="saveToLocal();updatePreview()"></div>
+        </div>
+        <hr />
+        <div class="sec-head">
+          <div class="sec-icon">&#x1F4BC;</div>
+          <div class="sec-title" id="lbl-work">Mehnat faoliyati</div>
+        </div>
+        <div class="hint">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01" stroke-linecap="round"/></svg>
+          <span id="work-hint">Eng oxirida hozirgi ishlayotgan yoki o'qiyotgan joyingizni kiriting</span>
+        </div>
+        <div id="work-container"></div>
+        <button type="button" class="btn-add" onclick="addWorkRow()">+ Yangi ish joyi qo'shish</button>
+      </div>
+      <div class="form-footer" id="footer-p1">
+        <button type="button" class="btn btn-dang" onclick="clearForm()">
+          <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg>Tozalash
+        </button>
+        <button type="button" class="btn btn-primary" onclick="goToStep(2)">
+          Keyingisi <svg viewBox="0 0 24 24"><path d="m9 18 6-6-6-6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+      </div>
 
-    </div><!-- /main-card -->
+      <!-- PAGE 2 -->
+      <div id="page-2" class="hidden form-body">
+        <div class="sec-head" style="margin-top:8px">
+          <div class="sec-icon">&#x1F46A;</div>
+          <div class="sec-title" id="lbl-rel-title">Yaqin qarindoshlar</div>
+        </div>
+        <div id="relatives-list-ui"></div>
+        <button type="button" class="btn-add" onclick="openRelModal()">+ Qarindosh qo'shish</button>
+      </div>
+      <div class="form-footer hidden" id="footer-p2">
+        <button type="button" class="btn btn-outline" onclick="goToStep(1)">
+          <svg viewBox="0 0 24 24"><path d="m15 18-6-6 6-6" stroke-linecap="round" stroke-linejoin="round"/></svg>Orqaga
+        </button>
+        <div style="display:flex;gap:7px;flex-wrap:wrap">
+          <button type="button" class="btn btn-dang" onclick="clearForm()">
+            <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg>Tozalash
+          </button>
+          <button type="button" class="btn btn-primary" id="dlBtn" onclick="downloadDoc()">
+            <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Word Yuklash
+          </button>
+        </div>
+      </div>
+    </form>
+
+    <!-- LIVE PREVIEW -->
+    <div class="preview-wrap" id="preview-section" style="display:none">
+      <div class="preview-bar">
+        <div class="preview-label">
+          <span class="live-dot"></span>
+          <span>Jonli Ko'rinish</span>
+          <span class="live-badge">LIVE</span>
+        </div>
+      </div>
+      <div class="preview-port">
+        <div class="preview-scroll">
+          <div class="preview-holder" id="preview-holder">
+            <div class="preview-scale" id="preview-scale">
+              <div class="doc-page" id="doc-page-1"></div>
+              <div class="doc-page" id="doc-page-2" style="margin-top:10px"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 </main>
 
-<!-- ─── RELATIVE MODAL ─── -->
+<!-- MODAL -->
 <div id="rel-modal" class="modal">
-    <div class="modal-box">
-        <div class="modal-title">Qarindosh ma'lumotlari</div>
-
-        <div class="field">
-            <label>Qarindoshligi</label>
-            <select id="m-rel-type">
-                <option value="Otasi">Otasi</option><option value="Onasi">Onasi</option>
-                <option value="Akasi">Akasi</option><option value="Opasi">Opasi</option>
-                <option value="Singlisi">Singlisi</option><option value="Ukasi">Ukasi</option>
-                <option value="Turmush o'rtog'i">Turmush o'rtog'i</option>
-                <option value="O'g'li">O'g'li</option><option value="Qizi">Qizi</option>
-                <option value="Qaynotasi">Qaynotasi</option><option value="Qaynonasi">Qaynonasi</option>
-            </select>
-        </div>
-        <div class="field"><label>F.I.SH</label><input type="text" id="m-rel-name"></div>
-        <div class="field"><label>Tug'ilgan yili va joyi</label><input type="text" id="m-rel-birth" placeholder="1980 yil, Toshkent shahri"></div>
-        <div class="field">
-            <label>Ish joyi va lavozimi</label>
-            <input type="text" id="m-rel-job" list="job-presets" oninput="handleWordExpansion(this)">
-            <datalist id="job-presets">
-                <option value="Vafot etgan"><option value="Maktab tarbiyalanuvchisi">
-                <option value="Nafaqada"><option value="Uy bekasi"><option value="Tadbirkor">
-            </datalist>
-        </div>
-        <div class="field"><label>Turar joyi</label><input type="text" id="m-rel-addr"></div>
-
-        <div class="modal-footer">
-            <button type="button" class="btn btn-outline" onclick="closeRelModal()">Bekor qilish</button>
-            <button type="button" class="btn btn-primary" onclick="saveRel()">Saqlash</button>
-        </div>
+  <div class="modal-box">
+    <div class="modal-title">Qarindosh ma'lumotlari</div>
+    <div class="field"><label>Qarindoshligi</label><div class="sel-wrap"><select id="m-rel-type"><option>Otasi</option><option>Onasi</option><option>Akasi</option><option>Opasi</option><option>Singlisi</option><option>Ukasi</option><option>Turmush o'rtog'i</option><option>O'g'li</option><option>Qizi</option><option>Qaynotasi</option><option>Qaynonasi</option></select></div></div>
+    <div class="field"><label>F.I.SH</label><input type="text" id="m-rel-name" placeholder="Aliyev Ali Aliyevich"></div>
+    <div class="field"><label>Tug'ilgan yili va joyi</label><input type="text" id="m-rel-birth" placeholder="1980 yil, Toshkent shahri"></div>
+    <div class="field"><label>Ish joyi va lavozimi</label><input type="text" id="m-rel-job" list="job-presets" oninput="handleWX(this)"><datalist id="job-presets"><option value="Vafot etgan"><option value="Nafaqada"><option value="Uy bekasi"><option value="Tadbirkor"><option value="Maktab tarbiyalanuvchisi"></datalist></div>
+    <div class="field"><label>Turar joyi</label><input type="text" id="m-rel-addr"></div>
+    <div class="modal-foot">
+      <button type="button" class="btn btn-outline" onclick="closeRelModal()">Bekor qilish</button>
+      <button type="button" class="btn btn-primary" onclick="saveRel()">Saqlash</button>
     </div>
+  </div>
 </div>
 
-<div id="hidden-pdf-container" style="position:fixed;left:-9999px;top:0;"></div>
-
 <script>
-    /* ─── CONFIG ─── */
-    const SUPABASE_URL = 'https://iwqzwzdejkuvkbwxtxht.supabase.co';
-    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml3cXp3emRlamt1dmtid3h0eGh0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY0MDUzNzYsImV4cCI6MjA4MTk4MTM3Nn0.upwRgSzbFwiHcUBBix3qZFV691f1YkchUJVkqkVccrM';
-    const SUPABASE_BUCKET = 'telegram-bot';
-    const supabaseClient = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY) : null;
+var SUPABASE_URL='https://iwqzwzdejkuvkbwxtxht.supabase.co';
+var SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml3cXp3emRlamt1dmtid3h0eGh0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY0MDUzNzYsImV4cCI6MjA4MTk4MTM3Nn0.upwRgSzbFwiHcUBBix3qZFV691f1YkchUJVkqkVccrM';
+var supabaseClient=window.supabase?window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY):null;
+var currentLang='uz_l',photoData='',photoReadyPromise=null,relatives=[],editingRelIndex=-1;
+var telegramId='';
+try{if(window.Telegram&&window.Telegram.WebApp&&window.Telegram.WebApp.initDataUnsafe&&window.Telegram.WebApp.initDataUnsafe.user)telegramId=String(window.Telegram.WebApp.initDataUnsafe.user.id);}catch(e){}
+if(!telegramId){var up=new URLSearchParams(window.location.search).get('telegram_id');if(up)telegramId=up;}
+var API_URL;
+if(window.location.protocol==='file:')API_URL='https://dastyor-ai.onrender.com';
+else if(/localhost|127\.0\.0\.1/.test(window.location.origin))API_URL='http://localhost:8000';
+else API_URL=window.location.origin;
 
-    let currentLang = 'uz_l';
-    let photoData = '';
-    let photoReadyPromise = null;
-    let relatives = [];
-    let savedObyektivkaId = null;
-    let editingRelIndex = -1;
+var uzbRegions={"And":"Andijon viloyati","Bux":"Buxoro viloyati","Far":"Farg'ona viloyati","Jiz":"Jizzax viloyati","Xor":"Xorazm viloyati","Nam":"Namangan viloyati","Nav":"Navoiy viloyati","Qas":"Qashqadaryo viloyati","Sam":"Samarqand viloyati","Sir":"Sirdaryo viloyati","Sur":"Surxondaryo viloyati","Tos":"Toshkent shahri","Qor":"Qoraqalpog'iston Respublikasi"};
 
-    let telegramId = '';
-    if (window.Telegram?.WebApp?.initDataUnsafe?.user) {
-        telegramId = window.Telegram.WebApp.initDataUnsafe.user.id.toString();
-    }
-    if (!telegramId) {
-        const urlId = new URLSearchParams(window.location.search).get('telegram_id');
-        if (urlId) telegramId = urlId;
-    }
+var dict={
+uz_l:{
+  lbl_fullname:"Familiya, Ism, Sharif",lbl_birthdate:"Tug'ilgan sanasi",lbl_birthplace:"Tug'ilgan joyi",lbl_nation:"Millati",lbl_party:"Partiyaviyligi",lbl_edu:"Ma'lumoti",lbl_graduated:"Tamomlagan",lbl_spec:"Mutaxassisligi",lbl_degree:"Ilmiy darajasi",lbl_scititle:"Ilmiy unvoni",lbl_langs:"Xorijiy tillar",lbl_military:"Harbiy unvoni",lbl_awards:"Davlat mukofotlari bilan taqdirlanganmi",lbl_deputy:"Xalq deputatlari Kengashi deputatimi yoki boshqa saylanadigan organlarning a'zosimi",lbl_work:"MEHNAT FAOLIYATI",lbl_rel_title:"YAQIN QARINDOSHLAR",
+  ph_fullname:"Aliyev Ali Aliyevich",ph_birthdate:"KK.OO.YYYY",ph_birthplace:"Toshkent shahri",ph_edu:"Oliy",ph_spec:"Umumiy amaliyot shifokori",ph_graduated:"Tamomlagan OTM nomi",val_no:"yo'q",
+  opts_nation:["O'zbek","Rus","Tojik","Qozoq","Turk","Tatar"],opts_edu:["Oliy","O'rta maxsus","O'rta","Tugallanmagan oliy"],opts_langs:["Rus tili","Ingliz tili","Nemis tili","Fransuz tili","Koreys tili","Turk tili","Arab tili"],
+  txt_work_hint:"Eng oxirida hozirgi ishlayotgan yoki o'qiyotgan joyingizni kiriting",
+  d_title:"MA'LUMOTNOMA",d_work:"MEHNAT FAOLIYATI",d_rel_title:"MA'LUMOTNOMA",
+  d_rel_intro:" ning yaqin qarindoshlari haqida",d_no_rel:"Yaqin qarindoshlar haqida ma'lumot kiritilmagan.",
+  d_qar:"Qarindoshligi",d_fish:"Familiyasi ismi va otasining ismi",d_tug:"Tug'ilgan yili va joyi",d_ish:"Ish joyi va lavozimi",d_tur:"Turar joyi",d_foto:"[3x4 foto]",
+  r1l:"Tug'ilgan yili:",r1r:"Tug'ilgan joyi:",r2l:"Millati:",r2r:"Partiyaviyligi:",
+  r3l:"Ma'lumoti:",r3r:"Tamomlagan:",rSpec:"Ma'lumoti bo'yicha mutaxassisligi:",
+  r4l:"Ilmiy darajasi:",r4r:"Ilmiy unvoni:",r5l:"Qaysi chet tillarini biladi:",r5r:"Harbiy unvoni:",
+  rAw:"Davlat mukofotlari bilan taqdirlanganmi (qanaqa):",
+  rDep:"Xalq deputatlari respublika, viloyat, shahar va tuman Kengashi deputatimi yoki boshqa saylanadigan organlarning a'zosimi (to'liq ko'rsatish lozim):"
+},
+uz_k:{
+  lbl_fullname:"\u0424\u0430\u043c\u0438\u043b\u0438\u044f, \u0438\u0441\u043c, \u0448\u0430\u0440\u0438\u0444\u0438",lbl_birthdate:"\u0422\u0443\u0493\u0438\u043b\u0433\u0430\u043d \u0441\u0430\u043d\u0430\u0441\u0438",lbl_birthplace:"\u0422\u0443\u0493\u0438\u043b\u0433\u0430\u043d \u0436\u043e\u0439\u0438",lbl_nation:"\u041c\u0438\u043b\u043b\u0430\u0442\u0438",lbl_party:"\u041f\u0430\u0440\u0442\u0438\u044f\u0432\u0438\u0439\u043b\u0438\u0433\u0438",lbl_edu:"\u041c\u0430\u044a\u043b\u0443\u043c\u043e\u0442\u0438",lbl_graduated:"\u0422\u0430\u043c\u043e\u043c\u043b\u0430\u0433\u0430\u043d",lbl_spec:"\u041c\u0443\u0442\u0430\u0445\u0430\u0441\u0441\u0438\u0441\u043b\u0438\u0433\u0438",lbl_degree:"\u0418\u043b\u043c\u0438\u0439 \u0434\u0430\u0440\u0430\u0436\u0430\u0441\u0438",lbl_scititle:"\u0418\u043b\u043c\u0438\u0439 \u0443\u043d\u0432\u043e\u043d\u0438",lbl_langs:"\u0425\u043e\u0440\u0438\u0436\u0438\u0439 \u0442\u0438\u043b\u043b\u0430\u0440",lbl_military:"\u04b2\u0430\u0440\u0431\u0438\u0439 \u0443\u043d\u0432\u043e\u043d\u0438",lbl_awards:"\u0414\u0430\u0432\u043b\u0430\u0442 \u043c\u0443\u043a\u043e\u0444\u043e\u0442\u043b\u0430\u0440\u0438 \u0431\u0438\u043b\u0430\u043d \u0442\u0430\u049b\u0434\u0438\u0440\u043b\u0430\u043d\u0433\u0430\u043d\u043c\u0438",lbl_deputy:"\u0425\u0430\u043b\u049b \u0434\u0435\u043f\u0443\u0442\u0430\u0442\u043b\u0430\u0440\u0438 \u041a\u0435\u043d\u0433\u0430\u0448\u0438 \u0434\u0435\u043f\u0443\u0442\u0430\u0442\u0438\u043c\u0438",lbl_work:"\u041c\u0415\u04b2\u041d\u0410\u0422 \u0424\u0410\u041e\u041b\u0418\u042f\u0422\u0418",lbl_rel_title:"\u042f\u049a\u0418\u041d \u049a\u0410\u0420\u0418\u041d\u0414\u041e\u0428\u041b\u0410\u0420",
+  ph_fullname:"\u0410\u043b\u0438\u0435\u0432 \u0410\u043b\u0438 \u0410\u043b\u0438\u0435\u0432\u0438\u0447",ph_birthdate:"\u041a\u041a.\u041e\u041e.\u0419\u0419\u0419\u0419",ph_birthplace:"\u0422\u043e\u0448\u043a\u0435\u043d\u0442 \u0448\u0430\u04b3\u0440\u0438",ph_edu:"\u041e\u043b\u0438\u0439",ph_spec:"\u0423\u043c\u0443\u043c\u0438\u0439 \u0430\u043c\u0430\u043b\u0438\u0451\u0442 \u0448\u0438\u0444\u043e\u043a\u043e\u0440\u0438",ph_graduated:"\u0422\u0430\u043c\u043e\u043c\u043b\u0430\u0433\u0430\u043d \u041e\u0422\u041c \u043d\u043e\u043c\u0438",val_no:"\u0439\u045e\u049b",
+  opts_nation:["\u040e\u0437\u0431\u0435\u043a","\u0420\u0443\u0441","\u0422\u043e\u0436\u0438\u043a","\u049a\u043e\u0437\u043e\u049b","\u0422\u0443\u0440\u043a","\u0422\u0430\u0442\u0430\u0440"],opts_edu:["\u041e\u043b\u0438\u0439","\u040e\u0440\u0442\u0430 \u043c\u0430\u0445\u0441\u0443\u0441","\u040e\u0440\u0442\u0430","\u0422\u0443\u0433\u0430\u043b\u043b\u0430\u043d\u043c\u0430\u0433\u0430\u043d \u043e\u043b\u0438\u0439"],opts_langs:["\u0420\u0443\u0441 \u0442\u0438\u043b\u0438","\u0418\u043d\u0433\u043b\u0438\u0437 \u0442\u0438\u043b\u0438","\u041d\u0435\u043c\u0438\u0441 \u0442\u0438\u043b\u0438","\u0424\u0440\u0430\u043d\u0446\u0443\u0437 \u0442\u0438\u043b\u0438","\u041a\u043e\u0440\u0435\u0439\u0441 \u0442\u0438\u043b\u0438","\u0422\u0443\u0440\u043a \u0442\u0438\u043b\u0438","\u0410\u0440\u0430\u0431 \u0442\u0438\u043b\u0438"],
+  txt_work_hint:"\u042d\u043d\u0433 \u043e\u0445\u0438\u0440\u0438\u0434\u0430 \u04b3\u043e\u0437\u0438\u0440\u0433\u0438 \u0438\u0448\u043b\u0430\u0451\u0442\u0433\u0430\u043d \u0451\u043a\u0438 \u045e\u049b\u0438\u0451\u0442\u0433\u0430\u043d \u0436\u043e\u0439\u0438\u043d\u0433\u0438\u0437\u043d\u0438 \u043a\u0438\u0440\u0438\u0442\u0438\u043d\u0433",
+  d_title:"\u041c\u0410\u042a\u041b\u0423\u041c\u041e\u0422\u041d\u041e\u041c\u0410",d_work:"\u041c\u0415\u04b2\u041d\u0410\u0422 \u0424\u0410\u041e\u041b\u0418\u042f\u0422\u0418",d_rel_title:"\u041c\u0410\u042a\u041b\u0423\u041c\u041e\u0422\u041d\u041e\u041c\u0410",
+  d_rel_intro:" \u043d\u0438\u043d\u0433 \u044f\u049b\u0438\u043d \u049b\u0430\u0440\u0438\u043d\u0434\u043e\u0448\u043b\u0430\u0440\u0438 \u04b3\u0430\u049b\u0438\u0434\u0430",d_no_rel:"\u042f\u049b\u0438\u043d \u049b\u0430\u0440\u0438\u043d\u0434\u043e\u0448\u043b\u0430\u0440 \u04b3\u0430\u049b\u0438\u0434\u0430 \u043c\u0430\u044a\u043b\u0443\u043c\u043e\u0442 \u043a\u0438\u0440\u0438\u0442\u0438\u043b\u043c\u0430\u0433\u0430\u043d.",
+  d_qar:"\u049a\u0430\u0440\u0438\u043d\u0434\u043e\u0448\u043b\u0438\u0433\u0438",d_fish:"\u0424\u0430\u043c\u0438\u043b\u0438\u044f\u0441\u0438 \u0438\u0441\u043c\u0438 \u0432\u0430 \u043e\u0442\u0430\u0441\u0438\u043d\u0438\u043d\u0433 \u0438\u0441\u043c\u0438",d_tug:"\u0422\u0443\u0493\u0438\u043b\u0433\u0430\u043d \u0439\u0438\u043b\u0438 \u0432\u0430 \u0436\u043e\u0439\u0438",d_ish:"\u0418\u0448 \u0436\u043e\u0439\u0438 \u0432\u0430 \u043b\u0430\u0432\u043e\u0437\u0438\u043c\u0438",d_tur:"\u0422\u0443\u044f\u0440 \u0436\u043e\u0439\u0438",d_foto:"[3x4 foto]",
+  r1l:"\u0422\u0443\u0493\u0438\u043b\u0433\u0430\u043d \u0439\u0438\u043b\u0438:",r1r:"\u0422\u0443\u0493\u0438\u043b\u0433\u0430\u043d \u0436\u043e\u0439\u0438:",r2l:"\u041c\u0438\u043b\u043b\u0430\u0442\u0438:",r2r:"\u041f\u0430\u0440\u0442\u0438\u044f\u0432\u0438\u0439\u043b\u0438\u0433\u0438:",
+  r3l:"\u041c\u0430\u044a\u043b\u0443\u043c\u043e\u0442\u0438:",r3r:"\u0422\u0430\u043c\u043e\u043c\u043b\u0430\u0433\u0430\u043d:",rSpec:"\u041c\u0430\u044a\u043b\u0443\u043c\u043e\u0442\u0438 \u0431\u045e\u0439\u0438\u0447\u0430 \u043c\u0443\u0442\u0430\u0445\u0430\u0441\u0441\u0438\u0441\u043b\u0438\u0433\u0438:",
+  r4l:"\u0418\u043b\u043c\u0438\u0439 \u0434\u0430\u0440\u0430\u0436\u0430\u0441\u0438:",r4r:"\u0418\u043b\u043c\u0438\u0439 \u0443\u043d\u0432\u043e\u043d\u0438:",r5l:"\u049a\u0430\u0439\u0441\u0438 \u0447\u0435\u0442 \u0442\u0438\u043b\u043b\u0430\u0440\u0438\u043d\u0438 \u0431\u0438\u043b\u0430\u0434\u0438:",r5r:"\u04b2\u0430\u0440\u0431\u0438\u0439 \u0443\u043d\u0432\u043e\u043d\u0438:",
+  rAw:"\u0414\u0430\u0432\u043b\u0430\u0442 \u043c\u0443\u043a\u043e\u0444\u043e\u0442\u043b\u0430\u0440\u0438 \u0431\u0438\u043b\u0430\u043d \u0442\u0430\u049b\u0434\u0438\u0440\u043b\u0430\u043d\u0433\u0430\u043d\u043c\u0438 (\u049b\u0430\u043d\u0430\u049b\u0430):",
+  rDep:"\u0425\u0430\u043b\u049b \u0434\u0435\u043f\u0443\u0442\u0430\u0442\u043b\u0430\u0440\u0438 \u0440\u0435\u0441\u043f\u0443\u0431\u043b\u0438\u043a\u0430, \u0432\u0438\u043b\u043e\u044f\u0442, \u0448\u0430\u04b3\u0430\u0440 \u0432\u0430 \u0442\u0443\u043c\u0430\u043d \u041a\u0435\u043d\u0433\u0430\u0448\u0438 \u0434\u0435\u043f\u0443\u0442\u0430\u0442\u0438\u043c\u0438 \u0451\u043a\u0438 \u0431\u043e\u0448\u049b\u0430 \u0441\u0430\u0439\u043b\u0430\u043d\u0430\u0434\u0438\u0433\u0430\u043d \u043e\u0440\u0433\u0430\u043d\u043b\u0430\u0440\u043d\u0438\u043d\u0433 \u0430\u044a\u0437\u043e\u0441\u0438\u043c\u0438 (\u0442\u045e\u043b\u0438\u049b \u043a\u045e\u0440\u0441\u0430\u0442\u0438\u0448 \u043b\u043e\u0437\u0438\u043c):"
+}};
 
-    let API_URL;
-    if (window.location.protocol === 'file:') API_URL = 'https://dastyor-ai.onrender.com';
-    else if (window.location.origin.includes('localhost') || window.location.origin.includes('127.0.0.1')) API_URL = 'http://localhost:8000';
-    else API_URL = window.location.origin;
+var defIds=['party','degree','scititle','military','awards','deputy'];
 
-    /* ─── REGIONS ─── */
-    const uzbRegions = {
-        "And":"Andijon viloyati","Bux":"Buxoro viloyati","Far":"Farg'ona viloyati",
-        "Jiz":"Jizzax viloyati","Xor":"Xorazm viloyati","Nam":"Namangan viloyati",
-        "Nav":"Navoiy viloyati","Qas":"Qashqadaryo viloyati","Sam":"Samarqand viloyati",
-        "Sir":"Sirdaryo viloyati","Sur":"Surxondaryo viloyati","Tos":"Toshkent shahri",
-        "Qor":"Qoraqalpog'iston Respublikasi"
-    };
+function initApp(lang){
+  var oldD=dict[currentLang];currentLang=lang;
+  document.getElementById('lang-card').classList.add('hidden');
+  document.getElementById('main-card').classList.remove('hidden');
+  document.getElementById('preview-section').style.display='block';
+  generateYearDatalists();
+  var d=dict[lang];
+  document.querySelectorAll('[id^="lbl-"]').forEach(function(el){var key=el.id.replace(/-/g,'_');if(d[key])el.innerText=d[key];});
+  document.getElementById('work-hint').innerText=d.txt_work_hint;
+  var phMap={fullname:'ph_fullname',birthdate:'ph_birthdate',birthplace:'ph_birthplace',edu:'ph_edu',spec:'ph_spec',graduated:'ph_graduated'};
+  for(var id in phMap){if(d[phMap[id]]){var el2=document.getElementById(id);if(el2)el2.placeholder=d[phMap[id]];}}
+  defIds.forEach(function(id){var inp=document.getElementById(id);if(!inp)return;if(!inp.value.trim()||inp.value===(oldD&&oldD.val_no))inp.value=d.val_no;});
+  var li=document.getElementById('langs');if(!li.value.trim()||(oldD&&li.value===oldD.val_no))li.value=d.val_no;
+  updateDatalist('nation-list',d.opts_nation);updateDatalist('edu-list',d.opts_edu);updateDatalist('lang-list',d.opts_langs);
+  document.querySelectorAll('.work-desc').forEach(function(el){el.placeholder=lang==='uz_l'?"Ish joyi va lavozimi":"\u0418\u0448 \u0436\u043e\u0439\u0438 \u0432\u0430 \u043b\u0430\u0432\u043e\u0437\u0438\u043c\u0438";});
+  setupEventListeners();loadFromLocal();updatePreview();scaleLivePreview();
+  try{if(window.Telegram&&window.Telegram.WebApp){window.Telegram.WebApp.ready&&window.Telegram.WebApp.ready();window.Telegram.WebApp.expand&&window.Telegram.WebApp.expand();window.Telegram.WebApp.setHeaderColor&&window.Telegram.WebApp.setHeaderColor('#F2F6FF');window.Telegram.WebApp.setBackgroundColor&&window.Telegram.WebApp.setBackgroundColor('#F2F6FF');}}catch(e){}
+}
 
-    /* ─── DICT ─── */
-    const dict = {
-        uz_l: {
-            lbl_fullname:"Familiya, Ism, Sharif",lbl_birthdate:"Tug'ilgan sanasi:",
-            lbl_birthplace:"Tug'ilgan joyi:",lbl_nation:"Millati:",lbl_party:"Partiyaviyligi:",
-            lbl_edu:"Ma'lumoti:",lbl_graduated:"Tamomlagan:",lbl_spec:"Mutaxassisligi:",
-            lbl_degree:"Ilmiy darajasi:",lbl_scititle:"Ilmiy unvoni:",
-            lbl_langs:"Xorijiy tillar:",lbl_military:"Harbiy unvoni:",
-            lbl_awards:"Davlat mukofotlari bilan taqdirlanganmi:",
-            lbl_deputy:"Xalq deputatlari Kengashi deputatimi yoki boshqa saylanadigan organlarning a'zosimi:",
-            lbl_work:"MEHNAT FAOLIYATI",lbl_rel_title:"YAQIN QARINDOSHLAR",
-            ph_fullname:"Aliyev Ali Aliyevich",ph_birthdate:"KK.OO.YYYY",
-            ph_birthplace:"Toshkent shahri",ph_edu:"Oliy",ph_spec:"Umumiy amaliyot shifokori",
-            ph_graduated:"Tamomlagan OTM nomi",val_no:"yo'q",val_langs:"yo'q",
-            opts_nation:["O'zbek","Rus","Tojik","Qozoq","Turk","Tatar"],
-            opts_edu:["Oliy","O'rta maxsus","O'rta","Tugallanmagan oliy"],
-            opts_langs:["Rus tili","Ingliz tili","Nemis tili","Fransuz tili","Koreys tili","Turk tili","Arab tili"],
-            txt_work_hint:"(Eng oxirida hozirgi ishlayotgan yoki o'qiyotgan joyingizni kiriting)"
-        },
-        uz_k: {
-            lbl_fullname:"Фамилия, исм, шарифи",lbl_birthdate:"Туғилган санаси:",
-            lbl_birthplace:"Туғилган жойи:",lbl_nation:"Миллати:",lbl_party:"Партиявийлиги:",
-            lbl_edu:"Маълумоти:",lbl_graduated:"Тамомлаган:",lbl_spec:"Мутахассислиги:",
-            lbl_degree:"Илмий даражаси:",lbl_scititle:"Илмий унвони:",
-            lbl_langs:"Хорижий тиллар:",lbl_military:"Ҳарбий унвони:",
-            lbl_awards:"Давлат мукофотлари билан тақдирланганми:",
-            lbl_deputy:"Халқ депутатлари Кенгаши депутатими ёки бошқа сайланадиган органлар аъзосими:",
-            lbl_work:"МЕҲНАТ ФАОЛИЯТИ",lbl_rel_title:"ЯҚИН ҚАРИНДОШЛАР",
-            ph_fullname:"Алиев Али Алиевич",ph_birthdate:"КК.ОО.ЙЙЙЙ",
-            ph_birthplace:"Тошкент шаҳри",ph_edu:"Олий",ph_spec:"Умумий амалиёт шифокори",
-            ph_graduated:"Тамомлаган ОТМ номи",val_no:"йўқ",val_langs:"йўқ",
-            opts_nation:["Ўзбек","Рус","Тожик","Қозоқ","Турк","Татар"],
-            opts_edu:["Олий","Ўрта махсус","Ўрта","Тугалланмаган олий"],
-            opts_langs:["Рус тили","Инглиз тили","Немис тили","Француз тили","Корейс тили","Турк тили","Араб тили"],
-            txt_work_hint:"(Энг охирида ҳозирги ишлаётган ёки ўқиётган жойингизни киритинг)"
-        }
-    };
-    const defaultValuesIds = ['party','degree','scititle','military','awards','deputy'];
+function generateYearDatalists(){var o='',ot='';for(var y=1985;y<=2030;y++){o+='<option value="'+y+'">';ot+='<option value="'+y+'">';}ot+='<option value="h.v"><option value="\u04b3.\u0432">';document.getElementById('years-list').innerHTML=o;document.getElementById('years-list-to').innerHTML=ot;}
+function updateDatalist(id,options){var dl=document.getElementById(id);dl.innerHTML='';options.forEach(function(opt){var o=document.createElement('option');o.value=opt;dl.appendChild(o);});}
 
-    /* ─── INIT ─── */
-    function initApp(lang) {
-        const oldD = dict[currentLang];
-        currentLang = lang;
-        document.getElementById('lang-card').classList.add('hidden');
+function saveToLocal(){
+  var d={fullname:v('fullname'),birthdate:v('birthdate'),birthplace:v('birthplace'),nation:v('nation'),edu:v('edu'),spec:v('spec'),degree:v('degree'),langs:v('langs'),awards:v('awards'),deputy:v('deputy'),party:v('party'),graduated:v('graduated'),scititle:v('scititle'),military:v('military'),works:[],relatives:relatives};
+  document.querySelectorAll('#work-container .work-row').forEach(function(row){d.works.push({f:row.querySelector('.year-from')?row.querySelector('.year-from').value:'',t:row.querySelector('.year-to')?row.querySelector('.year-to').value:'',d:row.querySelector('.work-desc')?row.querySelector('.work-desc').value:''});});
+  try{localStorage.setItem('obyektivkaData',JSON.stringify(d));}catch(e){}
+}
+function loadFromLocal(){
+  try{var str=localStorage.getItem('obyektivkaData');if(!str)return;var d=JSON.parse(str);
+  ['fullname','birthdate','birthplace','nation','edu','spec','degree','langs','awards','deputy','party','graduated','scititle','military'].forEach(function(id){if(d[id]){var el=document.getElementById(id);if(el)el.value=d[id];}});
+  if(d.works&&d.works.length){document.getElementById('work-container').innerHTML='';d.works.forEach(function(w){addWorkRow(w.f,w.t,w.d);});}
+  if(d.relatives&&d.relatives.length){relatives=d.relatives;renderRelList();}}catch(e){console.warn(e);}
+}
+function clearForm(){var msg=currentLang==='uz_l'?"Barcha ma'lumotlar o'chiriladi. Davom etasizmi?":"\u0411\u0430\u0440\u0447\u0430 \u043c\u0430\u044a\u043b\u0443\u043c\u043e\u0442\u043b\u0430\u0440 \u045e\u0447\u0438\u0440\u0438\u043b\u0430\u0434\u0438. \u0414\u0430\u0432\u043e\u043c \u044d\u0442\u0430\u0441\u0438\u0437\u043c\u0438?";if(confirm(msg)){try{localStorage.removeItem('obyektivkaData');}catch(e){}relatives=[];photoData='';location.reload();}}
+function v(id){var el=document.getElementById(id);return el?el.value:'';}
 
-        const newCard = document.getElementById('main-card');
-        newCard.classList.remove('hidden');
-        document.getElementById('preview-section').style.display = 'block';
+function previewImg(input){
+  if(!input.files||!input.files[0])return;var file=input.files[0];
+  if(['image/png','image/jpeg','image/jpg','image/webp'].indexOf(file.type.toLowerCase())<0){alert("Faqat JPG, PNG yoki WEBP!");input.value='';return;}
+  photoReadyPromise=new Promise(function(resolve){var reader=new FileReader();reader.onload=function(e){photoData=e.target.result;document.getElementById('photo-preview').src=photoData;document.getElementById('photo-preview').classList.remove('hidden');document.getElementById('ph-txt').classList.add('hidden');document.getElementById('ph-icon').classList.add('hidden');try{updatePreview();}catch(e2){}resolve(true);};reader.onerror=function(){photoData='';resolve(false);};reader.readAsDataURL(file);});
+}
 
-        generateYearDatalists();
-        const d = dict[lang];
+function handleWX(input){var words=input.value.split(' ');var last=words[words.length-1].toLowerCase();var map={inst:'instituti',mak:'maktabi',uni:'universiteti',tum:'tumani',vil:'Viloyati,'};if(map[last]){words[words.length-1]=map[last];input.value=words.join(' ');}}
 
-        document.querySelectorAll('[id^="lbl-"]').forEach(el => {
-            const key = el.id.replace(/-/g,'_');
-            if (d[key]) el.innerText = d[key];
-        });
-        document.getElementById('work-hint').innerText = d.txt_work_hint;
+function addWorkRow(savedFrom,savedTo,savedDesc){
+  savedFrom=savedFrom||'';savedTo=savedTo||'';savedDesc=savedDesc||'';
+  var div=document.createElement('div');div.className='work-row';
+  var ph=currentLang==='uz_l'?"Ish joyi va lavozimi":"\u0418\u0448 \u0436\u043e\u0439\u0438 \u0432\u0430 \u043b\u0430\u0432\u043e\u0437\u0438\u043c\u0438";
+  div.innerHTML='<div class="work-dates"><input type="number" class="year-from" list="years-list" placeholder="Dan" value="'+savedFrom+'" oninput="saveToLocal();updatePreview()" style="min-width:56px"><span>&ndash;</span><input type="text" class="year-to" list="years-list-to" placeholder="Gacha" value="'+savedTo+'" oninput="saveToLocal();updatePreview()" style="min-width:55px"></div><textarea rows="2" placeholder="'+ph+'" class="work-desc" oninput="handleWX(this);saveToLocal();updatePreview()">'+savedDesc+'</textarea>';
+  document.getElementById('work-container').appendChild(div);
+}
 
-        const phMap = {fullname:'ph_fullname',birthdate:'ph_birthdate',birthplace:'ph_birthplace',edu:'ph_edu',spec:'ph_spec',graduated:'ph_graduated'};
-        for (const [id,key] of Object.entries(phMap)) {
-            if (d[key]) document.getElementById(id).placeholder = d[key];
-        }
+function applyRegionAC(input){input.addEventListener('input',function(){var val=this.value;if(val.indexOf(',')<0&&val.length===3){var key=val.charAt(0).toUpperCase()+val.slice(1).toLowerCase();if(uzbRegions[key])this.value=uzbRegions[key]+', ';}});}
 
-        defaultValuesIds.forEach(id => {
-            const inp = document.getElementById(id);
-            if (!inp.value.trim() || inp.value.trim().toLowerCase() === oldD.val_no.toLowerCase()) inp.value = d.val_no;
-        });
-        const li = document.getElementById('langs');
-        if (!li.value.trim() || li.value === oldD.val_langs) li.value = d.val_langs;
+function setupEventListeners(){
+  var bd=document.getElementById('birthdate');
+  bd.addEventListener('input',function(){var val=this.value.replace(/\D/g,'');if(val.length>8)val=val.slice(0,8);if(val.length>=5)this.value=val.slice(0,2)+'.'+val.slice(2,4)+'.'+val.slice(4);else if(val.length>=3)this.value=val.slice(0,2)+'.'+val.slice(2);else this.value=val;updatePreview();});
+  applyRegionAC(document.getElementById('birthplace'));
+  applyRegionAC(document.getElementById('m-rel-addr'));
+  document.addEventListener('keydown',function(e){if(e.key!=='Enter'||e.target.tagName==='TEXTAREA')return;e.preventDefault();var els=Array.from(document.querySelectorAll('input,select,button,textarea')).filter(function(el){return!el.hidden&&el.type!=='hidden'&&el.offsetParent&&!el.disabled;});var i=els.indexOf(e.target);if(i>-1&&i<els.length-1)els[i+1].focus();});
+  var zone=document.querySelector('.photo-frame'),fi=document.getElementById('photoInput');
+  ['dragenter','dragover','dragleave','drop'].forEach(function(ev){zone.addEventListener(ev,function(e){e.preventDefault();e.stopPropagation();},false);});
+  ['dragenter','dragover'].forEach(function(ev){zone.addEventListener(ev,function(){zone.classList.add('drag-over');});});
+  ['dragleave','drop'].forEach(function(ev){zone.addEventListener(ev,function(){zone.classList.remove('drag-over');});});
+  zone.addEventListener('drop',function(e){var f=e.dataTransfer.files;if(f.length){fi.files=f;previewImg(fi);}});
+}
 
-        updateDatalist('nation-list', d.opts_nation);
-        updateDatalist('edu-list', d.opts_edu);
-        updateDatalist('lang-list', d.opts_langs);
-        document.querySelectorAll('.work-desc').forEach(el => el.placeholder = lang==='uz_l' ? "Ish joyi va lavozimi" : "Иш жойи ва лавозими");
+function goToStep(s){
+  document.getElementById('page-1').classList.toggle('hidden',s!==1);document.getElementById('footer-p1').classList.toggle('hidden',s!==1);
+  document.getElementById('page-2').classList.toggle('hidden',s!==2);document.getElementById('footer-p2').classList.toggle('hidden',s!==2);
+  document.getElementById('st1').className='step-item'+(s===1?' active':' done');
+  document.getElementById('st2').className='step-item'+(s===2?' active':'');
+  window.scrollTo({top:0,behavior:'smooth'});
+}
 
-        setupEventListeners();
-        loadFromLocal();
-        updatePreview();
-    }
+function openRelModal(){editingRelIndex=-1;document.getElementById('m-rel-type').selectedIndex=0;['m-rel-name','m-rel-birth','m-rel-job','m-rel-addr'].forEach(function(id){document.getElementById(id).value='';});document.getElementById('rel-modal').style.display='flex';}
+function closeRelModal(){editingRelIndex=-1;document.getElementById('rel-modal').style.display='none';}
+function saveRel(){var r={type:document.getElementById('m-rel-type').value,name:document.getElementById('m-rel-name').value,birth:document.getElementById('m-rel-birth').value,job:document.getElementById('m-rel-job').value,addr:document.getElementById('m-rel-addr').value};if(!r.name)return;if(editingRelIndex>-1)relatives[editingRelIndex]=r;else relatives.push(r);saveToLocal();renderRelList();closeRelModal();}
+function editRel(i){editingRelIndex=i;var r=relatives[i];['type','name','birth','job','addr'].forEach(function(k){var el=document.getElementById('m-rel-'+k);if(el)el.value=r[k]||'';});document.getElementById('rel-modal').style.display='flex';}
+function removeRel(i){relatives.splice(i,1);saveToLocal();renderRelList();}
+function renderRelList(){document.getElementById('relatives-list-ui').innerHTML=relatives.map(function(r,i){return '<div class="rel-item"><div class="rel-item-info"><b>'+r.type+':</b> '+r.name+' <span>- '+(r.job||'')+'</span></div><div class="rel-actions"><button type="button" class="btn btn-ghost btn-sm" onclick="editRel('+i+')">&#x270F;</button><button type="button" class="btn btn-dang btn-sm" onclick="removeRel('+i+')">&times;</button></div></div>';}).join('');updatePreview();}
 
-    function generateYearDatalists() {
-        let opts = '', optsTo = '';
-        for (let y=1990; y<=2030; y++) { opts += `<option value="${y}">`; optsTo += `<option value="${y}">`; }
-        optsTo += `<option value="h.v"><option value="ҳ.в">`;
-        document.getElementById('years-list').innerHTML = opts;
-        document.getElementById('years-list-to').innerHTML = optsTo;
-    }
+function askMove(){
+  var msg=currentLang==='uz_k'?"\u04b2\u043e\u0437\u0438\u0440\u0433\u0438 \u0438\u0448 \u0436\u043e\u0439\u0438\u043d\u0438 \u0438\u0441\u043c \u0442\u0430\u0433\u0438\u0434\u0430 \u0447\u0438\u049b\u0430\u0440\u0430\u0439\u043c\u0438?":"Hozirgi ish joyini ism tagida chiqaraymi?";
+  if(window.Telegram&&window.Telegram.WebApp&&window.Telegram.WebApp.showConfirm){return new Promise(function(r){try{window.Telegram.WebApp.showConfirm(msg,function(ok){r(!!ok);});}catch(e){r(window.confirm(msg));}});}
+  return Promise.resolve(window.confirm(msg));
+}
 
-    function updateDatalist(id, options) {
-        const dl = document.getElementById(id);
-        dl.innerHTML = '';
-        options.forEach(opt => { const o=document.createElement('option'); o.value=opt; dl.appendChild(o); });
-    }
+async function generateObyektivkaViaApi(){
+  var works=[];var cc=null;
+  document.querySelectorAll('#work-container .work-row').forEach(function(row){
+    var f=(row.querySelector('.year-from')?row.querySelector('.year-from').value:'').trim();
+    var t=(row.querySelector('.year-to')?row.querySelector('.year-to').value:'').trim();
+    var d=row.querySelector('.work-desc')?row.querySelector('.work-desc').value:'';
+    var tN=t.toLowerCase().replace(/[\s.\-_\/]/g,'');
+    var isC=['hv','hvgacha','hozirgacha','present','current'].indexOf(tN)>-1;
+    var yr='';
+    if(f&&t)yr=(t.toLowerCase()==='h.v')?f+' y. - h.v.':f+'-'+t+' yy.';
+    else if(f)yr=f;
+    if(d.trim()){works.push({year:yr,position:d});if(isC)cc={index:works.length-1,from:f,position:d.trim()};}
+  });
+  var cj='',cy='';
+  if(cc){var move=await askMove();if(move){cj=cc.position;cy=cc.from;works.splice(cc.index,1);}}
+  var langMap={uz_l:'uz_lat',uz_k:'uz_cyr'};
+  var payload={telegram_id:telegramId?parseInt(telegramId):null,format:'word',lang:langMap[currentLang]||'uz_lat',fullname:v('fullname'),birthdate:v('birthdate'),birthplace:v('birthplace'),nation:v('nation'),party:v('party'),education:v('edu'),graduated:v('graduated'),specialty:v('spec'),degree:v('degree'),scientific_title:v('scititle'),languages:v('langs'),military_rank:v('military'),awards:v('awards'),deputy:v('deputy'),current_job:cj,current_job_year:cy,work_experience:works,relatives:relatives,photo_data:photoData};
+  var res=await fetch(API_URL+'/api/export_obyektivka',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+  if(!res.ok)throw new Error('Server '+res.status);
+  var blob=await res.blob();
+  var sn=(v('fullname')||'Obyektivka').replace(/\s+/g,'_').replace(/[^a-zA-Z0-9_\-]/g,'').slice(0,30)||'Obyektivka';
+  var url=URL.createObjectURL(blob);var a=document.createElement('a');a.href=url;a.download='DASTYOR_Obyektivka_'+sn+'.docx';document.body.appendChild(a);a.click();setTimeout(function(){URL.revokeObjectURL(url);a.remove();},2000);
+}
 
-    /* ─── LOCAL STORAGE ─── */
-    function saveToLocal() {
-        const d = {
-            fullname: v('fullname'), birthdate: v('birthdate'), birthplace: v('birthplace'),
-            nation: v('nation'), edu: v('edu'), spec: v('spec'), degree: v('degree'),
-            langs: v('langs'), awards: v('awards'), deputy: v('deputy'), party: v('party'),
-            graduated: v('graduated'), scititle: v('scititle'), military: v('military'),
-            works: [], relatives
-        };
-        document.querySelectorAll('#work-container .work-row').forEach(row => {
-            d.works.push({
-                f: row.querySelector('.year-from')?.value || '',
-                t: row.querySelector('.year-to')?.value || '',
-                d: row.querySelector('.work-desc')?.value || ''
-            });
-        });
-        localStorage.setItem('obyektivkaData', JSON.stringify(d));
-    }
+async function downloadDoc(){
+  document.getElementById('loading-overlay').style.display='flex';
+  var btn=document.getElementById('dlBtn');btn.innerHTML='<span class="btn-spinner"></span> Yuklanmoqda...';btn.disabled=true;
+  try{if(photoReadyPromise)await photoReadyPromise;await generateObyektivkaViaApi();}
+  catch(err){console.error(err);alert('\u274C Xatolik: '+(err&&err.message?err.message:"Noma'lum xato"));}
+  finally{document.getElementById('loading-overlay').style.display='none';btn.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" width="14" height="14"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Word Yuklash';btn.disabled=false;}
+}
 
-    function loadFromLocal() {
-        const str = localStorage.getItem('obyektivkaData');
-        if (!str) return;
-        try {
-            const d = JSON.parse(str);
-            const ids = ['fullname','birthdate','birthplace','nation','edu','spec','degree','langs','awards','deputy','party','graduated','scititle','military'];
-            ids.forEach(id => { if (d[id]) { const el=document.getElementById(id); if(el) el.value=d[id]; } });
-            if (d.works?.length) {
-                document.getElementById('work-container').innerHTML = '';
-                d.works.forEach(w => addWorkRow(w.f, w.t, w.d));
-            }
-            if (d.relatives?.length) { relatives = d.relatives; renderRelList(); }
-        } catch(e) { console.warn('Load error', e); }
-    }
+/* LIVE PREVIEW */
+function sf(val){return(val&&String(val).trim())?String(val):'____________________';}
 
-    function clearForm() {
-        const msg = currentLang==='uz_l'
-            ? "Barcha ma'lumotlar o'chiriladi. Davom etasizmi?"
-            : "Барча маълумотлар ўчирилади. Давом этасизми?";
-        if (confirm(msg)) {
-            localStorage.removeItem('obyektivkaData');
-            relatives = []; photoData = '';
-            location.reload();
-        }
-    }
+function updatePreview(){
+  var p1=document.getElementById('doc-page-1');
+  var p2=document.getElementById('doc-page-2');
+  if(!p1||!p2)return;
+  var D=dict[currentLang];
+  var fn=v('fullname');
 
-    function v(id) { return document.getElementById(id)?.value || ''; }
+  var works=[];
+  document.querySelectorAll('#work-container .work-row').forEach(function(row){
+    var f=(row.querySelector('.year-from')?row.querySelector('.year-from').value:'').trim();
+    var t=(row.querySelector('.year-to')?row.querySelector('.year-to').value:'').trim();
+    var d=(row.querySelector('.work-desc')?row.querySelector('.work-desc').value:'').trim();
+    if(!d)return;
+    var yr=f&&t?f+'-'+t+' yy.':f?f+' y.':'';
+    works.push({yr:yr,d:d});
+  });
 
-    /* ─── PHOTO ─── */
-    function previewImg(input) {
-        if (input.files?.[0]) {
-            const file = input.files[0];
-            if (!['image/png','image/jpeg','image/jpg','image/webp'].includes(file.type.toLowerCase())) {
-                alert("Faqat JPG, PNG yoki WEBP rasm yuklang."); input.value=''; return;
-            }
-            photoReadyPromise = new Promise(resolve => {
-                const reader = new FileReader();
-                reader.onload = e => {
-                    photoData = e.target.result;
-                    document.getElementById('photo-preview').src = photoData;
-                    document.getElementById('photo-preview').classList.remove('hidden');
-                    document.getElementById('ph-txt').classList.add('hidden');
-                    document.getElementById('ph-icon').classList.add('hidden');
-                    try { updatePreview(); } catch(e) {}
-                    resolve(true);
-                };
-                reader.onerror = () => { photoData=''; resolve(false); };
-                reader.readAsDataURL(file);
-            });
-        }
-    }
+  var photoEl=photoData
+    ?'<img src="'+photoData+'" style="width:100%;height:100%;object-fit:cover;display:block">'
+    :'<div style="font-size:7pt;color:#aaa;text-align:center;padding:6px;line-height:1.4">'+D.d_foto+'</div>';
 
-    /* ─── WORD EXPANSION ─── */
-    function handleWordExpansion(input) {
-        const words = input.value.split(' ');
-        const last = words[words.length-1].toLowerCase();
-        const map = {inst:'instituti',mak:'maktabi',uni:'universiteti',tum:'tumani',vil:'Viloyati,',
-                     'Вил':'Вилояти,',мак:'мактаби',уни:'университети',тум:'тумани',инст:'институти'};
-        if (map[last]) { words[words.length-1]=map[last]; input.value=words.join(' '); }
-    }
+  function r2(l1,v1,l2,v2){
+    return '<tr>'
+      +'<td style="width:40%;vertical-align:top;padding:1mm 2mm 1.5mm 0">'
+        +'<div style="font-weight:bold;font-size:8.5pt">'+l1+'</div>'
+        +'<div style="font-size:8.5pt">'+v1+'</div>'
+      +'</td>'
+      +'<td style="width:37%;vertical-align:top;padding:1mm 2mm 1.5mm">'
+        +'<div style="font-weight:bold;font-size:8.5pt">'+l2+'</div>'
+        +'<div style="font-size:8.5pt">'+v2+'</div>'
+      +'</td>'
+      +'<td style="vertical-align:top;padding:1mm 0"></td>'
+    +'</tr>';
+  }
+  function r1(lbl,val){
+    return '<tr><td colspan="3" style="vertical-align:top;padding:1mm 0 1.5mm">'
+      +'<div style="font-weight:bold;font-size:8.5pt">'+lbl+'</div>'
+      +'<div style="font-size:8.5pt">'+val+'</div>'
+    +'</td></tr>';
+  }
 
-    /* ─── WORK ROWS ─── */
-    function addWorkRow(savedFrom='', savedTo='', savedDesc='') {
-        const div = document.createElement('div');
-        div.className = 'work-row';
-        const ph = currentLang==='uz_l' ? "Ish joyi va lavozimi" : "Иш жойи ва лавозими";
-        div.innerHTML = `
-            <div class="work-dates">
-                <input type="number" class="year-from" list="years-list" placeholder="Dan" value="${savedFrom}"
-                    onchange="saveToLocal();updatePreview()" style="min-width:60px;">
-                <span>–</span>
-                <input type="text" class="year-to" list="years-list-to" placeholder="Gacha" value="${savedTo}"
-                    onchange="saveToLocal();updatePreview()" style="min-width:60px;">
-            </div>
-            <textarea rows="2" placeholder="${ph}" class="work-desc"
-                oninput="handleWordExpansion(this);updatePreview()" onchange="saveToLocal()">${savedDesc}</textarea>
-        `;
-        document.getElementById('work-container').appendChild(div);
-    }
+  var info='';
+  info+=r2(D.r1l,sf(v('birthdate')),D.r1r,sf(v('birthplace')));
+  info+=r2(D.r2l,sf(v('nation')),D.r2r,sf(v('party')));
+  info+=r2(D.r3l,sf(v('edu')),D.r3r,sf(v('graduated')));
+  info+=r1(D.rSpec,sf(v('spec')));
+  info+=r2(D.r4l,sf(v('degree')),D.r4r,sf(v('scititle')));
+  info+=r2(D.r5l,sf(v('langs')),D.r5r,sf(v('military')));
+  info+=r1(D.rAw,sf(v('awards')));
+  info+=r1(D.rDep,sf(v('deputy')));
 
-    /* ─── REGION AUTOCOMPLETE ─── */
-    function applyRegionAutocomplete(input) {
-        input.addEventListener('input', function() {
-            const val = this.value;
-            if (!val.includes(',') && val.length===3) {
-                const key = val.charAt(0).toUpperCase()+val.slice(1).toLowerCase();
-                if (uzbRegions[key]) { this.value = uzbRegions[key]+', '; }
-            }
-        });
-    }
+  var workRows='';
+  if(works.length){
+    works.forEach(function(w){workRows+='<div style="font-size:8.5pt;margin-bottom:1.5mm;line-height:1.5">'+(w.yr?'<b>'+w.yr+'</b> &ndash; ':'')+w.d+'</div>';});
+  }else{
+    workRows='<div style="font-size:8pt;color:#ccc">______________</div>';
+  }
 
-    /* ─── SETUP EVENTS ─── */
-    function setupEventListeners() {
-        const bd = document.getElementById('birthdate');
-        bd.addEventListener('input', function() {
-            let v = this.value.replace(/\D/g,'');
-            if (v.length>8) v=v.slice(0,8);
-            if (v.length>=5) this.value = v.slice(0,2)+'.'+v.slice(2,4)+'.'+v.slice(4);
-            else if (v.length>=3) this.value = v.slice(0,2)+'.'+v.slice(2);
-            else this.value = v;
-        });
+  p1.innerHTML=
+    '<table style="width:100%;border-collapse:collapse;margin-bottom:3mm">'
+      +'<tr>'
+        +'<td style="text-align:center;vertical-align:top">'
+          +'<div style="font-weight:bold;font-size:13pt;letter-spacing:1.5px;margin-bottom:2mm">'+D.d_title+'</div>'
+          +'<div style="font-weight:bold;font-size:11pt">'+(fn||'____________________')+'</div>'
+        +'</td>'
+        +'<td style="width:31mm;vertical-align:top;text-align:right">'
+          +'<div class="doc-photo-box">'+photoEl+'</div>'
+        +'</td>'
+      +'</tr>'
+    +'</table>'
+    +'<hr style="border:0;border-top:1px solid #aaa;margin:2mm 0 3mm">'
+    +'<table style="width:100%;border-collapse:collapse">'+info+'</table>'
+    +'<div style="text-align:center;font-weight:bold;font-size:10.5pt;letter-spacing:.8px;margin:4mm 0 2mm">'+D.d_work+'</div>'
+    +workRows;
 
-        applyRegionAutocomplete(document.getElementById('birthplace'));
-        applyRegionAutocomplete(document.getElementById('m-rel-addr'));
+  var relRows='';
+  if(relatives.length){
+    relatives.forEach(function(r){relRows+='<tr><td style="border:1px solid #000;padding:1.5mm 2mm;font-size:7.5pt">'+(r.type||'')+'</td><td style="border:1px solid #000;padding:1.5mm 2mm;font-size:7.5pt">'+(r.name||'')+'</td><td style="border:1px solid #000;padding:1.5mm 2mm;font-size:7.5pt">'+(r.birth||'')+'</td><td style="border:1px solid #000;padding:1.5mm 2mm;font-size:7.5pt">'+(r.job||'')+'</td><td style="border:1px solid #000;padding:1.5mm 2mm;font-size:7.5pt">'+(r.addr||'')+'</td></tr>';});
+  }else{
+    relRows='<tr><td colspan="5" style="border:1px solid #000;padding:2mm;text-align:center;font-style:italic;color:#888;font-size:7.5pt">'+D.d_no_rel+'</td></tr>';
+  }
 
-        document.addEventListener('keydown', function(e) {
-            if (e.key!=='Enter' || e.target.tagName==='TEXTAREA') return;
-            e.preventDefault();
-            const els = Array.from(document.querySelectorAll('input,select,button,textarea'))
-                .filter(el => !el.hidden && el.type!=='hidden' && el.offsetParent && !el.disabled);
-            const i = els.indexOf(e.target);
-            if (i>-1 && i<els.length-1) els[i+1].focus();
-        });
+  p2.innerHTML=
+    '<div style="text-align:center;font-size:8.5pt;margin-bottom:2mm">'+(fn?fn+D.d_rel_intro:'')+'</div>'
+    +'<div style="text-align:center;font-weight:bold;font-size:12pt;letter-spacing:1.2px;margin-bottom:4mm">'+D.d_rel_title+'</div>'
+    +'<table style="width:100%;border-collapse:collapse">'
+      +'<thead><tr>'
+        +'<th style="border:1px solid #000;padding:1.5mm 2mm;text-align:center;width:13%;font-size:7.5pt">'+D.d_qar+'</th>'
+        +'<th style="border:1px solid #000;padding:1.5mm 2mm;text-align:center;width:22%;font-size:7.5pt">'+D.d_fish+'</th>'
+        +'<th style="border:1px solid #000;padding:1.5mm 2mm;text-align:center;width:20%;font-size:7.5pt">'+D.d_tug+'</th>'
+        +'<th style="border:1px solid #000;padding:1.5mm 2mm;text-align:center;width:24%;font-size:7.5pt">'+D.d_ish+'</th>'
+        +'<th style="border:1px solid #000;padding:1.5mm 2mm;text-align:center;width:21%;font-size:7.5pt">'+D.d_tur+'</th>'
+      +'</tr></thead>'
+      +'<tbody>'+relRows+'</tbody>'
+    +'</table>';
 
-        // Drag & drop photo
-        const zone = document.querySelector('.photo-frame');
-        const fi = document.getElementById('photoInput');
-        ['dragenter','dragover','dragleave','drop'].forEach(ev => zone.addEventListener(ev, e=>{e.preventDefault();e.stopPropagation();}, false));
-        ['dragenter','dragover'].forEach(ev => zone.addEventListener(ev, ()=>zone.classList.add('drag-over')));
-        ['dragleave','drop'].forEach(ev => zone.addEventListener(ev, ()=>zone.classList.remove('drag-over')));
-        zone.addEventListener('drop', e => { const f=e.dataTransfer.files; if(f.length){fi.files=f;previewImg(fi);} });
-    }
+  // Keep preview scale stable on mobile
+  scaleLivePreview();
+}
 
-    /* ─── STEPS ─── */
-    function goToStep(s) {
-        document.getElementById('page-1').classList.toggle('hidden', s!==1);
-        document.getElementById('footer-p1').classList.toggle('hidden', s!==1);
-        document.getElementById('page-2').classList.toggle('hidden', s!==2);
-        document.getElementById('footer-p2').classList.toggle('hidden', s!==2);
-        document.getElementById('st1').className = 'step-item'+(s===1?' active':' done');
-        document.getElementById('st2').className = 'step-item'+(s===2?' active':'');
-        window.scrollTo({top:0,behavior:'smooth'});
-    }
+function scaleLivePreview(){
+  try{
+    var holder=document.getElementById('preview-holder');
+    var scaleEl=document.getElementById('preview-scale');
+    if(!holder||!scaleEl)return;
+    var scroll=holder.closest('.preview-scroll');
+    if(!scroll)return;
+    var PAGE_W=794; // fixed doc width above
+    var avail=Math.max(0,scroll.clientWidth-2);
+    var s=Math.min(1,avail/PAGE_W);
+    scaleEl.style.transform='scale('+s+')';
+    // Reserve correct height so scroll feels natural
+    holder.style.height=(scaleEl.scrollHeight*s)+'px';
+  }catch(e){}
+}
 
-    /* ─── RELATIVES ─── */
-    function openRelModal() {
-        editingRelIndex = -1;
-        document.getElementById('m-rel-type').selectedIndex = 0;
-        document.getElementById('m-rel-name').value = '';
-        document.getElementById('m-rel-job').value = '';
-        document.getElementById('rel-modal').style.display = 'flex';
-    }
-    function closeRelModal() { editingRelIndex=-1; document.getElementById('rel-modal').style.display='none'; }
-    function saveRel() {
-        const r = {
-            type: document.getElementById('m-rel-type').value,
-            name: document.getElementById('m-rel-name').value,
-            birth: document.getElementById('m-rel-birth').value,
-            job: document.getElementById('m-rel-job').value,
-            addr: document.getElementById('m-rel-addr').value
-        };
-        if (!r.name) return;
-        if (editingRelIndex>-1) relatives[editingRelIndex]=r; else relatives.push(r);
-        saveToLocal(); renderRelList(); closeRelModal();
-    }
-    function editRel(i) {
-        editingRelIndex = i;
-        const r = relatives[i];
-        ['type','name','birth','job','addr'].forEach(k => { const el=document.getElementById('m-rel-'+k); if(el) el.value=r[k]||''; });
-        document.getElementById('rel-modal').style.display='flex';
-    }
-    function removeRel(i) { relatives.splice(i,1); saveToLocal(); renderRelList(); }
-    function renderRelList() {
-        document.getElementById('relatives-list-ui').innerHTML = relatives.map((r,i) => `
-            <div class="rel-item">
-                <div class="rel-item-info"><b>${r.type}:</b> ${r.name} — <span style="color:var(--slate-500);font-size:13px;">${r.job||''}</span></div>
-                <div class="rel-actions">
-                    <button type="button" class="btn btn-outline btn-sm" onclick="editRel(${i})" style="color:var(--blue-600);border-color:var(--blue-200);">✏️</button>
-                    <button type="button" class="btn btn-danger btn-sm" onclick="removeRel(${i})">✕</button>
-                </div>
-            </div>
-        `).join('');
-        updatePreview();
-    }
-
-    /* ─── API: GENERATE DOC ─── */
-    async function askMoveCurrentToHeader() {
-        const msg = currentLang==='uz_k'
-            ? "Ҳозирги иш жойини исм-фамилия тагида чиқарайми?"
-            : "Hozirgi ish joyini ism-familiya tagida chiqaraymi?";
-        if (window.Telegram?.WebApp?.showConfirm) {
-            try { return await new Promise(r => window.Telegram.WebApp.showConfirm(msg, ok=>r(!!ok))); } catch(e){}
-        }
-        return window.confirm(msg);
-    }
-
-    async function generateObyektivkaViaApi() {
-        const works = [];
-        let currentCandidate = null;
-        document.querySelectorAll('#work-container .work-row').forEach(row => {
-            const f = (row.querySelector('.year-from')?.value||'').trim();
-            const t = (row.querySelector('.year-to')?.value||'').trim();
-            const d = row.querySelector('.work-desc')?.value||'';
-            const tNorm = t.toLowerCase().replace(/[\s.\-_/]/g,'');
-            const isCurrent = ['hv','hvgacha','hozirgacha','present','current','ҳв','ҳвгача','ҳозиргача'].includes(tNorm);
-            let yearStr = '';
-            if (f && t) {
-                yearStr = (t.toLowerCase()==='h.v'||t.toLowerCase()==='ҳ.в')
-                    ? `${f} y. - h.v.`
-                    : `${f}-${t} yy.`;
-            } else if (f) yearStr = f;
-            if (d.trim()) {
-                works.push({year:yearStr, position:d});
-                if (isCurrent) currentCandidate = {index:works.length-1, from:f, position:d.trim()};
-            }
-        });
-
-        let currentJob='', currentJobYear='';
-        if (currentCandidate) {
-            const move = await askMoveCurrentToHeader();
-            if (move) { currentJob=currentCandidate.position; currentJobYear=currentCandidate.from; works.splice(currentCandidate.index,1); }
-        }
-
-        const langMap = {uz_l:'uz_lat', uz_k:'uz_cyr'};
-        const payload = {
-            telegram_id: telegramId ? parseInt(telegramId) : null,
-            format: 'word', lang: langMap[currentLang]||'uz_lat',
-            fullname: v('fullname'), birthdate: v('birthdate'), birthplace: v('birthplace'),
-            nation: v('nation'), party: v('party'), education: v('edu'), graduated: v('graduated'),
-            specialty: v('spec'), degree: v('degree'), scientific_title: v('scititle'),
-            languages: v('langs'), military_rank: v('military'), awards: v('awards'),
-            deputy: v('deputy'), current_job: currentJob, current_job_year: currentJobYear,
-            work_experience: works, relatives, photo_data: photoData
-        };
-
-        const res = await fetch(`${API_URL}/api/export_obyektivka`, {
-            method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload)
-        });
-        if (!res.ok) throw new Error(`Server ${res.status}`);
-
-        const blob = await res.blob();
-        const safeName = (v('fullname')||'Obyektivka').replace(/\s+/g,'_').replace(/[^a-zA-Z0-9_\-]/g,'').slice(0,30)||'Obyektivka';
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a'); a.href=url; a.download=`DASTYOR_Obyektivka_${safeName}.docx`;
-        document.body.appendChild(a); a.click();
-        setTimeout(()=>{URL.revokeObjectURL(url);a.remove();},2000);
-    }
-
-    async function downloadDoc() {
-        document.getElementById('loading-overlay').style.display='flex';
-        try {
-            if (photoReadyPromise) await photoReadyPromise;
-            await generateObyektivkaViaApi();
-        } catch(err) {
-            console.error(err);
-            alert('❌ Xatolik: '+(err?.message||'Noma\'lum xato'));
-        } finally {
-            document.getElementById('loading-overlay').style.display='none';
-        }
-    }
-
-    /* ─── LIVE PREVIEW ─── */
-    function updatePreview() {
-        const box = document.getElementById('obyektivka-preview-body');
-        if (!box) return;
-
-        const isK = currentLang==='uz_k';
-        const title = isK?'МАЪЛУМОТНОМА':"MA'LUMOTNOMA";
-        const workTitle = isK?'МЕҲНАТ ФАОЛИЯТИ':'MEHNAT FAOLIYATI';
-        const relTitle = isK?'ЯҚИН ҚАРИНДОШЛАР':'YAQIN QARINDOSHLAR';
-
-        const labels = isK
-            ? {name:"Фамилия, исм, шарифи",bdate:"Туғилган санаси",bplace:"Туғилган жойи",nat:"Миллати",
-               party:"Партиявийлиги",edu:"Маълумоти",grad:"Тамомлаган",spec:"Мутахассислиги",
-               deg:"Илмий даражаси",stit:"Илмий унвони",langs:"Хорижий тиллар",mil:"Ҳарбий унвони",
-               aw:"Давлат мукофотлари билан тақдирланганми",dep:"Халқ депутатлари Кенгаши депутатими",par:"Партиявийлиги"}
-            : {name:"Familiya, ism, sharifi",bdate:"Tug'ilgan sanasi",bplace:"Tug'ilgan joyi",nat:"Millati",
-               party:"Partiyaviyligi",edu:"Maʼlumoti",grad:"Tamomlagan",spec:"Mutaxassisligi",
-               deg:"Ilmiy darajasi",stit:"Ilmiy unvoni",langs:"Xorijiy tillar",mil:"Harbiy unvoni",
-               aw:"Davlat mukofotlari bilan taqdirlanganmi",dep:"Xalq deputatlari Kengashi deputatimi",par:"Partiyaviyligi"};
-
-        const safe = val => (val&&String(val).trim()) ? String(val) : '____________________';
-        const photo = photoData
-            ? `<img src="${photoData}" style="width:30mm;height:40mm;object-fit:cover;border:1px solid #000;">`
-            : `<div style="width:30mm;height:40mm;border:1px solid #000;display:flex;align-items:center;justify-content:center;font-size:8pt;color:#999;">FOTO</div>`;
-
-        const works = [];
-        document.querySelectorAll('#work-container .work-row').forEach(row => {
-            const f=(row.querySelector('.year-from')?.value||'').trim();
-            const t=(row.querySelector('.year-to')?.value||'').trim();
-            const d=(row.querySelector('.work-desc')?.value||'').trim();
-            if (!d) return;
-            let p = f&&t ? `${f} - ${t}` : f||t;
-            works.push({p, d});
-        });
-
-        let html = `
-            <table style="width:100%;border-collapse:collapse;margin-bottom:8mm;">
-                <tr>
-                    <td style="text-align:center;vertical-align:top;">
-                        <div style="font-weight:bold;font-size:14pt;letter-spacing:1.5px;font-family:'Times New Roman',serif;">${title}</div>
-                    </td>
-                    <td style="width:34mm;text-align:right;vertical-align:top;">${photo}</td>
-                </tr>
-            </table>
-            <table style="width:100%;border-collapse:collapse;font-size:11pt;line-height:1.6;">
-        `;
-
-        [
-            [labels.name, safe(v('fullname'))],
-            [labels.bdate, safe(v('birthdate'))],
-            [labels.bplace, safe(v('birthplace'))],
-            [labels.nat, safe(v('nation'))],
-            [labels.party, safe(v('party'))],
-            [labels.edu, safe(v('edu'))],
-            [labels.grad, safe(v('graduated'))],
-            [labels.spec, safe(v('spec'))],
-            [labels.deg, safe(v('degree'))],
-            [labels.stit, safe(v('scititle'))],
-            [labels.langs, safe(v('langs'))],
-            [labels.mil, safe(v('military'))],
-            [labels.aw, safe(v('awards'))],
-            [labels.dep, safe(v('deputy'))],
-        ].forEach(([k,val]) => {
-            html += `<tr><td style="width:58mm;vertical-align:top;padding:1mm 0;font-weight:bold;">${k}:</td><td style="vertical-align:top;padding:1mm 0;">${val}</td></tr>`;
-        });
-        html += `</table>`;
-
-        html += `<div style="margin-top:8mm;text-align:center;font-weight:bold;font-size:12pt;">${workTitle}</div>`;
-        html += `<table style="width:100%;border-collapse:collapse;margin-top:3mm;font-size:11pt;">
-            <tr>
-                <td style="border:1px solid #000;padding:2mm;width:32mm;text-align:center;font-weight:bold;">Yillar</td>
-                <td style="border:1px solid #000;padding:2mm;text-align:center;font-weight:bold;">Ish joyi va lavozimi</td>
-            </tr>`;
-        if (works.length) {
-            works.forEach(w => {
-                html += `<tr><td style="border:1px solid #000;padding:2mm;text-align:center;vertical-align:top;">${w.p||'___'}</td><td style="border:1px solid #000;padding:2mm;vertical-align:top;">${w.d}</td></tr>`;
-            });
-        } else {
-            html += `<tr><td style="border:1px solid #000;padding:7mm;"></td><td style="border:1px solid #000;padding:7mm;"></td></tr>`;
-        }
-        html += `</table>`;
-
-        html += `<div style="margin-top:8mm;text-align:center;font-weight:bold;font-size:12pt;">${relTitle}</div>`;
-        html += `<table style="width:100%;border-collapse:collapse;margin-top:3mm;font-size:10pt;">
-            <tr>
-                <td style="border:1px solid #000;padding:2mm;font-weight:bold;text-align:center;width:18mm;">Qar.</td>
-                <td style="border:1px solid #000;padding:2mm;font-weight:bold;text-align:center;width:32mm;">F.I.Sh</td>
-                <td style="border:1px solid #000;padding:2mm;font-weight:bold;text-align:center;">Tug'ilgan</td>
-                <td style="border:1px solid #000;padding:2mm;font-weight:bold;text-align:center;">Ish joyi</td>
-                <td style="border:1px solid #000;padding:2mm;font-weight:bold;text-align:center;">Turar joyi</td>
-            </tr>`;
-        if (relatives.length) {
-            relatives.forEach(r => {
-                html += `<tr><td style="border:1px solid #000;padding:2mm;">${r.type||''}</td><td style="border:1px solid #000;padding:2mm;">${r.name||''}</td><td style="border:1px solid #000;padding:2mm;">${r.birth||''}</td><td style="border:1px solid #000;padding:2mm;">${r.job||''}</td><td style="border:1px solid #000;padding:2mm;">${r.addr||''}</td></tr>`;
-            });
-        } else {
-            html += `<tr><td style="border:1px solid #000;padding:7mm;"></td><td style="border:1px solid #000;padding:7mm;"></td><td style="border:1px solid #000;padding:7mm;"></td><td style="border:1px solid #000;padding:7mm;"></td><td style="border:1px solid #000;padding:7mm;"></td></tr>`;
-        }
-        html += `</table>`;
-
-        box.innerHTML = html;
-    }
-
-    function toggleTheme() {
-        if (window.DastyorAI?.toggleTheme) { window.DastyorAI.toggleTheme(); return; }
-        document.documentElement.classList.toggle('dark');
-    }
-
-    document.addEventListener('DOMContentLoaded', () => {
-        try { updatePreview(); } catch(e) {}
-    });
+window.addEventListener('resize',function(){try{scaleLivePreview();}catch(e){}});
+document.addEventListener('DOMContentLoaded',function(){try{updatePreview();scaleLivePreview();}catch(e){}});
 </script>
 </body>
 </html>
