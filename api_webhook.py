@@ -14,6 +14,12 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+# ── Paddle / PaddleOCR stability flags (Windows/oneDNN/PIR issues) ─────────────
+os.environ.setdefault("FLAGS_enable_pir_api", "0")
+os.environ.setdefault("FLAGS_use_new_executor", "0")
+os.environ.setdefault("FLAGS_enable_onednn", "0")
+os.environ.setdefault("FLAGS_use_mkldnn", "0")
+
 # Initialize Application
 application = setup_application()
 
@@ -669,7 +675,11 @@ async def ocr_word_paddle(file: UploadFile = File(...)):
 
     processed = _cv_preprocess(img)
     loop = asyncio.get_running_loop()
-    text = await loop.run_in_executor(_OCR_POOL, _paddle_extract_text, processed)
+    try:
+        text = await loop.run_in_executor(_OCR_POOL, _paddle_extract_text, processed)
+    except Exception as ocr_err:
+        logger.warning("Paddle OCR failed, returning image-only DOCX: %s", ocr_err)
+        text = ""
     docx_bytes = await loop.run_in_executor(_OCR_POOL, _docx_image_then_text, raw, text)
 
     filename = "ocr_result.docx"

@@ -7,6 +7,13 @@ import asyncio
 import logging
 from concurrent.futures import ThreadPoolExecutor
 
+# ── Paddle / PaddleOCR stability flags (Windows/oneDNN/PIR issues) ─────────────
+# Set before PaddleOCR initializes models.
+os.environ.setdefault("FLAGS_enable_pir_api", "0")
+os.environ.setdefault("FLAGS_use_new_executor", "0")
+os.environ.setdefault("FLAGS_enable_onednn", "0")
+os.environ.setdefault("FLAGS_use_mkldnn", "0")
+
 from dotenv import load_dotenv
 from telegram import Update
 from telegram.ext import (
@@ -183,6 +190,16 @@ if app:
             lang = os.getenv("PADDLE_OCR_LANG", "en")
             _ocr_logger.info("Initializing PaddleOCR (lang=%s)...", lang)
             # Initialize once
+            try:
+                import paddle
+                paddle.set_flags({
+                    "FLAGS_enable_pir_api": False,
+                    "FLAGS_use_new_executor": False,
+                    "FLAGS_enable_onednn": False,
+                    "FLAGS_use_mkldnn": False,
+                })
+            except Exception:
+                pass
             _OCR_ENGINE = PaddleOCR(lang=lang, use_angle_cls=True)
             _ocr_logger.info("PaddleOCR initialized.")
 
@@ -237,7 +254,11 @@ if app:
                 raise HTTPException(status_code=400, detail="Invalid image")
             processed = preprocess_image_opencv(img)
             loop = asyncio.get_running_loop()
-            text = await loop.run_in_executor(_OCR_POOL, extract_text_with_paddle, processed)
+            try:
+                text = await loop.run_in_executor(_OCR_POOL, extract_text_with_paddle, processed)
+            except Exception as ocr_err:
+                _ocr_logger.warning("OCR text failed, returning image-only DOCX: %s", ocr_err)
+                text = ""
             docx_bytes = await loop.run_in_executor(_OCR_POOL, build_docx_with_image_and_text, raw, text)
             filename = "ocr_result.docx"
             return StreamingResponse(
