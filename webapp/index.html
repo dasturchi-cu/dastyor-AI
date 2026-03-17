@@ -128,6 +128,48 @@
       color: var(--da-blue);
       border-color: var(--da-blue-mid);
     }
+
+    /* Settings modal (bottom sheet) */
+    .da-modal {
+      position: fixed;
+      inset: 0;
+      z-index: 1001;
+      display: none;
+      align-items: flex-end;
+      justify-content: center;
+      padding: 12px 12px calc(12px + env(safe-area-inset-bottom, 0px));
+      background: rgba(15, 23, 42, 0.45);
+      backdrop-filter: blur(8px);
+    }
+    .da-modal.show { display: flex; }
+    .da-sheet {
+      width: min(520px, 100%);
+      background: var(--card-color);
+      border: 1px solid var(--border-color);
+      border-radius: 18px;
+      box-shadow: var(--da-shadow-md);
+      overflow: hidden;
+    }
+    .da-sheet-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--border-color);
+    }
+    .da-sheet-title { font-size: 13px; font-weight: 900; letter-spacing: .08em; text-transform: uppercase; color: var(--text-muted); }
+    .da-sheet-close {
+      width: 40px;
+      height: 40px;
+      border-radius: 12px;
+      border: 1px solid var(--border-color);
+      background: var(--card-color);
+      color: var(--text-color);
+      font-weight: 900;
+      cursor: pointer;
+    }
+    .da-sheet-body { padding: 14px; }
   </style>
 </head>
 <body>
@@ -138,7 +180,7 @@
       <p>Barcha AI asboblaringiz bir joyda</p>
       <div class="actions">
         <a class="btn btn-primary" href="#tools">Asboblarni ochish</a>
-        <a class="btn-secondary" href="#settings">Sozlamalar</a>
+        <button class="btn-secondary" type="button" onclick="openSettings()">Sozlamalar</button>
       </div>
     </section>
 
@@ -166,7 +208,7 @@
             <span class="icon-wrap"><svg fill="none" viewBox="0 0 24 24" stroke-width="2"><path d="M7 3h7l5 5v13H7z"/><path d="M14 3v6h6"/><path d="M10 13h6M10 17h6"/></svg></span>
             <div><div class="tool-title">Objective Generator</div><div class="tool-desc">Qisqa obyektivka yaratish</div></div>
           </div>
-          <a class="btn btn-primary" href="objective.html">Ochish</a>
+          <a class="btn btn-primary" href="obyektivka.html">Ochish</a>
         </article>
         <article class="tool-card" data-tool="more tools asboblar">
           <div class="tool-head">
@@ -185,24 +227,61 @@
       </div>
     </section>
 
-    <section class="section" id="settings">
-      <div class="section-title">Ilova sozlamalari</div>
-      <div class="settings-btns">
-        <button class="btn btn-primary" onclick="DA.setTheme(DA.getTheme() === 'dark' ? 'light' : 'dark')">Mavzuni almashtirish</button>
-        <div>
-          <div class="section-title" style="margin-bottom:6px;" data-i18n="settings_language">Til</div>
-          <div class="lang-switch">
-            <button id="langUzBtn" onclick="setAppLanguage('uz')">UZ</button>
-            <button id="langRuBtn" onclick="setAppLanguage('ru')">RU</button>
-            <button id="langEnBtn" onclick="setAppLanguage('en')">EN</button>
-          </div>
-          <div id="langStatus" class="da-status" style="margin-top:8px;"></div>
-        </div>
-      </div>
-    </section>
   </main>
 
+  <!-- Settings modal -->
+  <div id="settingsModal" class="da-modal" role="dialog" aria-modal="true" aria-label="Settings">
+    <div class="da-sheet">
+      <div class="da-sheet-head">
+        <div class="da-sheet-title" data-i18n="settingsTitle">Sozlamalar</div>
+        <button class="da-sheet-close" type="button" onclick="closeSettings()">✕</button>
+      </div>
+      <div class="da-sheet-body">
+        <div class="settings-btns">
+          <button class="btn btn-primary" type="button" onclick="DA.setTheme(DA.getTheme() === 'dark' ? 'light' : 'dark')">Mavzuni almashtirish</button>
+          <div>
+            <div class="section-title" style="margin-bottom:6px;" data-i18n="settings_language">Til</div>
+            <div class="lang-switch">
+              <button id="langUzBtn" type="button" onclick="setAppLanguage('uz')">UZ</button>
+              <button id="langRuBtn" type="button" onclick="setAppLanguage('ru')">RU</button>
+              <button id="langEnBtn" type="button" onclick="setAppLanguage('en')">EN</button>
+            </div>
+            <div id="langStatus" class="da-status" style="margin-top:8px;"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script>
+    function openSettings() {
+      const m = document.getElementById("settingsModal");
+      if (!m) return;
+      m.classList.add("show");
+      document.body.style.overflow = "hidden";
+      syncLangButtons();
+      window.Telegram?.WebApp?.HapticFeedback?.impactOccurred?.("light");
+      // update URL state so bottom-nav can open it too
+      try {
+        const url = new URL(location.href);
+        url.searchParams.set("open", "settings");
+        history.replaceState({}, "", url.toString());
+      } catch (_) {}
+    }
+
+    function closeSettings() {
+      const m = document.getElementById("settingsModal");
+      if (!m) return;
+      m.classList.remove("show");
+      document.body.style.overflow = "";
+      window.Telegram?.WebApp?.HapticFeedback?.impactOccurred?.("light");
+      try {
+        const url = new URL(location.href);
+        url.searchParams.delete("open");
+        history.replaceState({}, "", url.toString());
+      } catch (_) {}
+    }
+
     function syncLangButtons() {
       const lang = DA.getLang();
       document.getElementById("langUzBtn").classList.toggle("active", lang === "uz");
@@ -239,6 +318,20 @@
       const tgName = window.Telegram?.WebApp?.initDataUnsafe?.user?.first_name || "";
       if (tgName) setWelcomeName(tgName);
       syncLangButtons();
+      // modal close events
+      const modal = document.getElementById("settingsModal");
+      modal?.addEventListener("click", function (e) {
+        if (e.target === modal) closeSettings();
+      });
+      document.addEventListener("keydown", function (e) {
+        if (e.key === "Escape") closeSettings();
+      });
+      // open settings via query (?open=settings) for bottom nav
+      try {
+        const p = new URLSearchParams(location.search);
+        if (p.get("open") === "settings") openSettings();
+      } catch (_) {}
+
       const searchInput = document.getElementById("toolSearch");
       const cards = Array.from(document.querySelectorAll(".tool-card"));
       searchInput.addEventListener("input", function () {

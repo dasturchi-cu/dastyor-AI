@@ -518,7 +518,7 @@ window.DA = (() => {
         ${iconSvg('translate')}
         <span>${t('nav_translator')}</span>
       </a>
-      <a class="da-nav-item ${active === 'settings' ? 'active' : ''}" href="index.html#settings">
+      <a class="da-nav-item ${active === 'settings' ? 'active' : ''}" href="index.html?open=settings">
         ${iconSvg('settings')}
         <span>${t('nav_settings')}</span>
       </a>
