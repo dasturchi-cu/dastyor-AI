@@ -1,558 +1,256 @@
 <!DOCTYPE html>
-<html lang="uz" data-theme="light">
+<html lang="uz">
 <head>
-<meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no"/>
-<title>DASTYOR AI</title>
-<link rel="preconnect" href="https://fonts.googleapis.com"/>
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
-<script src="da-core.js"></script>
-<style>
-:root {
-  --bg:           #F5F4F0;
-  --surface:      #FDFCFA;
-  --surface2:     #EBE9E5;
-  --border:       #E0DDD8;
-  --text:         #252320;
-  --text2:        #6B6560;
-  --accent:       #C85A2A;
-  --accent-soft:  #F5E6DE;
-  --accent-text:  #FFFFFF;
-  --green:        #2A9D6E;
-  --green-soft:   #E2F3EB;
-  --blue:        #3D7AC6;
-  --blue-soft:   #E3EEFA;
-  --purple:       #6B4E9E;
-  --purple-soft: #EDE6F4;
-  --shadow:       0 2px 12px rgba(37,35,32,0.06);
-  --shadow-lg:    0 6px 24px rgba(37,35,32,0.08);
-  --radius:       14px;
-  --radius-sm:    10px;
-  --radius-xs:    8px;
-  --font-head:    'Outfit', sans-serif;
-  --font-body:    'DM Sans', sans-serif;
-  --transition:   0.32s cubic-bezier(0.33, 0, 0.2, 1);
-}
-[data-theme="dark"] {
-  --bg:           #161514;
-  --surface:      #1E1D1B;
-  --surface2:     #282624;
-  --border:       #3A3835;
-  --text:         #E6E4E0;
-  --text2:        #9C9892;
-  --accent:       #E07848;
-  --accent-soft:  #3D281C;
-  --shadow:       0 2px 12px rgba(0,0,0,0.25);
-  --shadow-lg:    0 6px 24px rgba(0,0,0,0.35);
-}
-
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-html, body {
-  height: 100%;
-  font-family: var(--font-body);
-  font-size: 15px;
-  background: var(--bg);
-  color: var(--text);
-  transition: background-color 0.4s ease, color 0.35s ease;
-  -webkit-font-smoothing: antialiased;
-}
-
-.app { max-width: 430px; margin: 0 auto; position: relative; min-height: 100vh; }
-
-/* ─── SCROLL ─── */
-.view {
-  display: none;
-  padding: 24px 18px 100px;
-  animation: fadeUp 0.3s ease both;
-}
-.view.active { display: block; }
-@keyframes fadeUp {
-  from { opacity:0; transform:translateY(12px); }
-  to   { opacity:1; transform:translateY(0); }
-}
-
-/* ─── CARD ─── */
-.card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow);
-  transition: background var(--transition), border-color var(--transition), box-shadow var(--transition);
-}
-
-/* ─── HEADER ─── */
-.header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 24px;
-}
-
-.profile { display: flex; align-items: center; gap: 14px; }
-
-.avatar {
-  width: 52px; height: 52px;
-  border-radius: 14px;
-  background: var(--accent);
-  display: flex; align-items: center; justify-content: center;
-  font-family: var(--font-head);
-  font-weight: 700; font-size: 20px;
-  color: #fff;
-  box-shadow: 0 3px 10px rgba(200,90,42,0.28);
-  flex-shrink: 0;
-  transition: box-shadow var(--transition), background var(--transition);
-}
-[data-theme="dark"] .avatar { box-shadow: 0 3px 10px rgba(224,120,72,0.25); }
-
-.greeting { font-size: 12px; color: var(--text2); font-weight: 400; letter-spacing: 0.02em; }
-.username { font-family: var(--font-head); font-size: 20px; font-weight: 700; line-height: 1.2; }
-
-.badge-pro {
-  display: inline-flex; align-items: center;
-  font-size: 10px; font-weight: 700;
-  background: var(--accent); color: #fff;
-  padding: 2px 7px; border-radius: 20px;
-  margin-left: 6px; vertical-align: middle;
-  letter-spacing: 0.04em;
-}
-
-/* ─── KPI ─── */
-.kpi {
-  padding: 20px;
-  margin-bottom: 20px;
-  background: var(--accent);
-  border: none;
-  box-shadow: 0 4px 20px rgba(200,90,42,0.22);
-  border-radius: var(--radius);
-  color: #fff;
-  position: relative;
-  overflow: hidden;
-  transition: background var(--transition), box-shadow var(--transition);
-}
-.kpi::before {
-  content: '';
-  position: absolute;
-  top: -40px; right: -40px;
-  width: 130px; height: 130px;
-  background: rgba(255,255,255,0.06);
-  border-radius: 50%;
-}
-.kpi::after {
-  content: '';
-  position: absolute;
-  bottom: -50px; left: 30px;
-  width: 100px; height: 100px;
-  background: rgba(255,255,255,0.04);
-  border-radius: 50%;
-}
-.kpi-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; opacity: 0.88; }
-.kpi-row { display: flex; align-items: baseline; gap: 8px; margin-top: 10px; }
-.kpi-num { font-family: var(--font-head); font-size: 36px; font-weight: 800; line-height: 1; letter-spacing: -0.02em; }
-.kpi-unit { font-size: 14px; opacity: 0.82; }
-.kpi-badge {
-  margin-top: 12px;
-  display: inline-flex; align-items: center; gap: 5px;
-  background: rgba(255,255,255,0.2);
-  padding: 4px 10px; border-radius: 20px;
-  font-size: 12px; font-weight: 600;
-}
-
-/* ─── SECTION LABEL ─── */
-.section-label {
-  font-size: 11px; font-weight: 700;
-  text-transform: uppercase; letter-spacing: 0.08em;
-  color: var(--text2);
-  margin-bottom: 12px;
-}
-
-/* ─── APP CARDS ─── */
-.app-grid { display: flex; flex-direction: column; gap: 10px; }
-
-.app-card {
-  display: flex; align-items: center; gap: 16px;
-  padding: 16px 18px;
-  text-decoration: none;
-  color: var(--text);
-  border-radius: var(--radius);
-  background: var(--surface);
-  border: 1px solid var(--border);
-  box-shadow: var(--shadow);
-  transition: transform var(--transition), box-shadow var(--transition), background var(--transition), border-color var(--transition);
-  cursor: pointer;
-}
-.app-card:hover { box-shadow: var(--shadow-lg); }
-.app-card:active { transform: scale(0.99); box-shadow: 0 1px 6px rgba(37,35,32,0.06); }
-[data-theme="dark"] .app-card:active { box-shadow: 0 1px 6px rgba(0,0,0,0.2); }
-
-.app-icon {
-  width: 48px; height: 48px; border-radius: 13px;
-  display: flex; align-items: center; justify-content: center;
-  flex-shrink: 0; font-size: 22px;
-}
-.icon-orange { background: var(--accent-soft); }
-.icon-green  { background: var(--green-soft); }
-.icon-blue   { background: var(--blue-soft); }
-.icon-purple { background: var(--purple-soft); }
-
-.app-info { flex: 1; min-width: 0; }
-.app-title { font-family: var(--font-head); font-size: 15px; font-weight: 600; }
-.app-desc  { font-size: 12px; color: var(--text2); margin-top: 2px; }
-
-.app-arrow {
-  width: 28px; height: 28px; border-radius: 50%;
-  background: var(--surface2);
-  display: flex; align-items: center; justify-content: center;
-  flex-shrink: 0; transition: background var(--transition);
-}
-.app-card:active .app-arrow { background: var(--border); }
-.app-arrow svg { width: 14px; height: 14px; stroke: var(--text2); }
-
-/* ─── SETTINGS ─── */
-.settings-header { margin-bottom: 22px; }
-.settings-header h1 { font-family: var(--font-head); font-size: 26px; font-weight: 700; }
-.settings-header p { font-size: 13px; color: var(--text2); margin-top: 3px; }
-
-.settings-section { margin-bottom: 20px; }
-.settings-section-title {
-  font-size: 11px; font-weight: 700;
-  text-transform: uppercase; letter-spacing: 0.08em;
-  color: var(--text2); margin-bottom: 10px;
-}
-
-.settings-row {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 16px 18px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow);
-  gap: 12px;
-  transition: background var(--transition), border-color var(--transition);
-}
-.settings-row + .settings-row { margin-top: 8px; }
-
-.settings-row-info { flex: 1; min-width: 0; }
-.settings-row-label {
-  font-family: var(--font-head); font-size: 14px; font-weight: 600;
-}
-.settings-row-sub { font-size: 12px; color: var(--text2); margin-top: 2px; }
-
-/* ─── SEGMENTED ─── */
-.segmented {
-  display: flex;
-  background: var(--surface2);
-  border-radius: var(--radius-xs);
-  padding: 3px;
-  gap: 2px;
-  flex-shrink: 0;
-}
-.segmented button {
-  padding: 6px 12px;
-  border: none; background: transparent;
-  border-radius: 6px;
-  font-family: var(--font-body); font-size: 13px; font-weight: 500;
-  color: var(--text2);
-  cursor: pointer;
-  transition: background var(--transition), color var(--transition), box-shadow var(--transition);
-  white-space: nowrap;
-}
-.segmented button.active {
-  background: var(--surface);
-  color: var(--text);
-  box-shadow: 0 1px 4px rgba(0,0,0,0.08);
-}
-[data-theme="dark"] .segmented button.active { box-shadow: 0 1px 4px rgba(0,0,0,0.35); }
-
-/* ─── SUPPORT BTN ─── */
-.btn-support {
-  padding: 8px 16px;
-  border: none;
-  background: var(--accent);
-  color: #fff;
-  border-radius: var(--radius-xs);
-  font-family: var(--font-body); font-size: 13px; font-weight: 600;
-  cursor: pointer;
-  white-space: nowrap;
-  transition: opacity var(--transition), transform var(--transition);
-  flex-shrink: 0;
-}
-.btn-support:active { opacity: 0.85; transform: scale(0.97); }
-
-/* ─── BOTTOM NAV ─── */
-.bottom-nav {
-  position: fixed; left: 0; right: 0; bottom: 0;
-  z-index: 100;
-  max-width: 430px; margin: 0 auto;
-  display: flex; justify-content: center; align-items: center;
-  gap: 8px;
-  padding: 12px 24px 20px;
-  background: var(--surface);
-  border-top: 1px solid var(--border);
-  transition: background var(--transition), border-color var(--transition);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-}
-
-/* Center the nav properly for full-width */
-@media (max-width: 430px) {
-  .bottom-nav { left: 0; right: 0; }
-}
-
-.tab-btn {
-  display: flex; flex-direction: column; align-items: center; gap: 4px;
-  width: 72px; height: 52px;
-  border: none; background: transparent;
-  color: var(--text2);
-  cursor: pointer;
-  border-radius: var(--radius-sm);
-  transition: color var(--transition), background var(--transition);
-  position: relative;
-}
-.tab-btn svg { width: 22px; height: 22px; stroke: currentColor; }
-.tab-btn span { font-size: 10px; font-weight: 600; letter-spacing: 0.03em; }
-.tab-btn.active { color: var(--accent); }
-.tab-btn.active::before {
-  content: '';
-  position: absolute; top: 0; left: 50%; transform: translateX(-50%);
-  width: 32px; height: 3px;
-  background: var(--accent);
-  border-radius: 0 0 3px 3px;
-}
-
-/* ─── ABOUT CARD ─── */
-.about-card {
-  padding: 18px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow);
-  display: flex; align-items: center; gap: 14px;
-}
-.about-logo {
-  width: 44px; height: 44px; border-radius: 12px;
-  background: var(--accent);
-  display: flex; align-items: center; justify-content: center;
-  font-family: var(--font-head); font-size: 14px; font-weight: 800;
-  color: #fff; flex-shrink: 0; letter-spacing: -0.03em;
-}
-.about-name { font-family: var(--font-head); font-size: 15px; font-weight: 700; }
-.about-ver  { font-size: 12px; color: var(--text2); margin-top: 1px; }
-
-/* ─── TOAST ─── */
-.toast {
-  position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%) translateY(12px);
-  background: var(--text); color: var(--bg);
-  padding: 10px 18px; border-radius: 12px;
-  font-size: 13px; font-weight: 500;
-  opacity: 0; pointer-events: none;
-  transition: opacity 0.35s ease, transform 0.35s cubic-bezier(0.33,0,0.2,1);
-  white-space: nowrap; z-index: 200;
-}
-.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
-</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Dastyor AI</title>
+  <link rel="stylesheet" href="theme.css" />
+  <script src="da-core.js"></script>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <script src="app.js"></script>
+  <style>
+    .page { max-width: 520px; margin: 0 auto; padding: 14px 14px 108px; }
+    .hero {
+      background: var(--card-color);
+      border: 1px solid var(--border-color);
+      border-radius: 18px;
+      padding: 18px;
+      box-shadow: var(--da-shadow-sm);
+      margin-bottom: 12px;
+    }
+    .hero h1 { font-size: 28px; line-height: 1.12; margin-bottom: 8px; }
+    .hero p { font-size: 15px; margin-bottom: 14px; }
+    .actions { display: grid; gap: 10px; }
+    .btn-secondary {
+      width: 100%;
+      min-height: 48px;
+      border-radius: 14px;
+      border: 1px solid var(--border-color);
+      background: var(--card-color);
+      color: var(--text-color);
+      font-weight: 700;
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .section {
+      background: var(--card-color);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      box-shadow: var(--da-shadow-sm);
+      padding: 14px;
+      margin-bottom: 12px;
+    }
+    .section-title {
+      font-size: 12px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      margin-bottom: 10px;
+      font-weight: 700;
+    }
+    .search-box {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      border: 1px solid var(--border-color);
+      border-radius: 14px;
+      background: var(--card-color);
+      padding: 0 12px;
+    }
+    .search-box svg { width: 18px; height: 18px; color: var(--text-muted); }
+    .search-box input { border: none; background: transparent; padding: 0; height: 48px; }
+    .tools-grid { display: grid; gap: 10px; }
+    .tool-card {
+      border: 1px solid var(--border-color);
+      border-radius: 14px;
+      background: var(--card-color);
+      padding: 12px;
+      box-shadow: var(--da-shadow-xs);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .tool-card:active { transform: scale(0.99); }
+    .tool-head { display: flex; gap: 10px; margin-bottom: 8px; align-items: flex-start; }
+    .icon-wrap {
+      width: 34px;
+      height: 34px;
+      border-radius: 10px;
+      background: var(--da-blue-soft);
+      color: var(--da-blue);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .icon-wrap svg { width: 18px; height: 18px; stroke: currentColor; }
+    .tool-title { font-size: 15px; font-weight: 700; line-height: 1.2; }
+    .tool-desc { font-size: 13px; color: var(--text-muted); margin-top: 4px; }
+    .mini-list { list-style: none; display: grid; gap: 8px; }
+    .mini-list li {
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 10px 12px;
+      background: var(--da-bg-elevated);
+      font-size: 14px;
+      color: var(--da-text-primary);
+    }
+    .feature-grid { display: grid; gap: 10px; }
+    .feature-item {
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 10px 12px;
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+      background: var(--card-color);
+    }
+    .feature-item h4 { font-size: 14px; margin: 0 0 2px 0; }
+    .feature-item p { font-size: 13px; margin: 0; }
+    .settings-btns { display: grid; gap: 10px; margin-top: 10px; }
+    .lang-switch {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+      margin-top: 4px;
+    }
+    .lang-switch button {
+      min-height: 44px;
+      border-radius: 12px;
+      border: 1px solid var(--border-color);
+      background: var(--card-color);
+      color: var(--text-color);
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .lang-switch button.active {
+      background: var(--da-blue-soft);
+      color: var(--da-blue);
+      border-color: var(--da-blue-mid);
+    }
+  </style>
 </head>
 <body>
-<div class="app">
+  <main class="page">
+    <section class="hero">
+      <div class="section-title">Dastyor AI</div>
+      <h1 id="welcomeName">Salom 👋</h1>
+      <p>Barcha AI asboblaringiz bir joyda</p>
+      <div class="actions">
+        <a class="btn btn-primary" href="#tools">Asboblarni ochish</a>
+        <a class="btn-secondary" href="#settings">Sozlamalar</a>
+      </div>
+    </section>
 
-  <!-- ══════ VIEW: HOME ══════ -->
-  <main id="view-home" class="view active">
+    <section class="section">
+      <h2 style="font-size:22px; margin-bottom:6px;">Dastyor AI bosh sahifa</h2>
+      <p style="font-size:14px; margin-bottom:10px;">Kerakli xizmatni tez toping</p>
+      <div class="search-box">
+        <svg fill="none" viewBox="0 0 24 24" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        <input id="toolSearch" type="text" placeholder="Asboblarni qidiring..." />
+      </div>
+    </section>
 
-    <div class="header">
-      <div class="profile">
-        <div class="avatar" id="avatarBox"><span id="userInitials">D</span></div>
+    <section class="section" id="tools">
+      <div class="section-title">Asosiy bo'limlar</div>
+      <div class="tools-grid" id="toolGrid">
+        <article class="tool-card" data-tool="cv generator rezyume">
+          <div class="tool-head">
+            <span class="icon-wrap"><svg fill="none" viewBox="0 0 24 24" stroke-width="2"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h6"/></svg></span>
+            <div><div class="tool-title">CV Generator</div><div class="tool-desc">Professional CV yaratish</div></div>
+          </div>
+          <a class="btn btn-primary" href="cv.html">Ochish</a>
+        </article>
+        <article class="tool-card" data-tool="objective generator obyektivka">
+          <div class="tool-head">
+            <span class="icon-wrap"><svg fill="none" viewBox="0 0 24 24" stroke-width="2"><path d="M7 3h7l5 5v13H7z"/><path d="M14 3v6h6"/><path d="M10 13h6M10 17h6"/></svg></span>
+            <div><div class="tool-title">Objective Generator</div><div class="tool-desc">Qisqa obyektivka yaratish</div></div>
+          </div>
+          <a class="btn btn-primary" href="objective.html">Ochish</a>
+        </article>
+        <article class="tool-card" data-tool="more tools asboblar">
+          <div class="tool-head">
+            <span class="icon-wrap"><svg fill="none" viewBox="0 0 24 24" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg></span>
+            <div><div class="tool-title">More Tools</div><div class="tool-desc">Image → PDF, OCR, Translator, Latin ↔ Kiril</div></div>
+          </div>
+          <a class="btn btn-primary" href="more.html">Ochish</a>
+        </article>
+        <article class="tool-card" data-tool="premium tarif">
+          <div class="tool-head">
+            <span class="icon-wrap"><svg fill="none" viewBox="0 0 24 24" stroke-width="2"><path d="m12 17 5 3-1.8-5.9L20 10h-6l-2-6-2 6H4l4.8 4.1L7 20z"/></svg></span>
+            <div><div class="tool-title">⭐ Premium</div><div class="tool-desc">Premium imkoniyatlar</div></div>
+          </div>
+          <a class="btn btn-primary" href="premium.html">Ochish</a>
+        </article>
+      </div>
+    </section>
+
+    <section class="section" id="settings">
+      <div class="section-title">Ilova sozlamalari</div>
+      <div class="settings-btns">
+        <button class="btn btn-primary" onclick="DA.setTheme(DA.getTheme() === 'dark' ? 'light' : 'dark')">Mavzuni almashtirish</button>
         <div>
-          <div class="greeting" data-i18n="greeting">Xush kelibsiz,</div>
-          <div class="username" id="userName">Dastyor<span id="proBadge" style="display:none" class="badge-pro">PRO</span></div>
+          <div class="section-title" style="margin-bottom:6px;" data-i18n="settings_language">Til</div>
+          <div class="lang-switch">
+            <button id="langUzBtn" onclick="setAppLanguage('uz')">UZ</button>
+            <button id="langRuBtn" onclick="setAppLanguage('ru')">RU</button>
+            <button id="langEnBtn" onclick="setAppLanguage('en')">EN</button>
+          </div>
+          <div id="langStatus" class="da-status" style="margin-top:8px;"></div>
         </div>
       </div>
-    </div>
-
-    <!-- KPI -->
-    <div class="kpi">
-      <div class="kpi-label" data-i18n="activity">Aktivlik</div>
-      <div class="kpi-row">
-        <span class="kpi-num">1,240</span>
-        <span class="kpi-unit" data-i18n="requests">so'rovlar</span>
-      </div>
-      <div class="kpi-badge">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
-        <span data-i18n="trend">+12% bu hafta</span>
-      </div>
-    </div>
-
-    <!-- Apps -->
-    <div class="section-label" data-i18n="apps">Ilovalar</div>
-    <div class="app-grid">
-
-      <a href="obyektivka.html" class="app-card">
-        <div class="app-icon icon-orange">📄</div>
-        <div class="app-info">
-          <div class="app-title" data-i18n="app1t">Obyektivka AI</div>
-          <div class="app-desc"  data-i18n="app1d">Rasmiy ma'lumotnoma tuzish</div>
-        </div>
-        <div class="app-arrow"><svg fill="none" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 18l6-6-6-6"/></svg></div>
-      </a>
-
-      <a href="cv.html" class="app-card">
-        <div class="app-icon icon-green">📝</div>
-        <div class="app-info">
-          <div class="app-title" data-i18n="app2t">CV Builder</div>
-          <div class="app-desc"  data-i18n="app2d">Zamonaviy rezyume tuzish</div>
-        </div>
-        <div class="app-arrow"><svg fill="none" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 18l6-6-6-6"/></svg></div>
-      </a>
-
-      <a href="translate.html" class="app-card">
-        <div class="app-icon icon-blue">🌐</div>
-        <div class="app-info">
-          <div class="app-title" data-i18n="app3t">Tarjimon AI</div>
-          <div class="app-desc"  data-i18n="app3d">Smart tarjima va tahlil</div>
-        </div>
-        <div class="app-arrow"><svg fill="none" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 18l6-6-6-6"/></svg></div>
-      </a>
-
-      <a href="more.html" class="app-card">
-        <div class="app-icon icon-purple">🛠</div>
-        <div class="app-info">
-          <div class="app-title" data-i18n="app4t">AI Tools</div>
-          <div class="app-desc"  data-i18n="app4d">Tarjima, OCR va boshqa vositalar</div>
-        </div>
-        <div class="app-arrow"><svg fill="none" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 18l6-6-6-6"/></svg></div>
-      </a>
-
-    </div>
+    </section>
   </main>
 
-  <!-- ══════ VIEW: SETTINGS ══════ -->
-  <main id="view-settings" class="view">
+  <script>
+    function syncLangButtons() {
+      const lang = DA.getLang();
+      document.getElementById("langUzBtn").classList.toggle("active", lang === "uz");
+      document.getElementById("langRuBtn").classList.toggle("active", lang === "ru");
+      document.getElementById("langEnBtn").classList.toggle("active", lang === "en");
+    }
 
-    <div class="settings-header">
-      <h1 data-i18n="settingsTitle">Sozlamalar</h1>
-      <p data-i18n="settingsSub">Ilovani o'zingizga moslashtiring</p>
-    </div>
+    function setAppLanguage(lang) {
+      DA.setLang(lang);
+      syncLangButtons();
+      const status = document.getElementById("langStatus");
+      status.className = "da-status show success";
+      status.innerHTML = `<span>✓</span><span>${DA.t("language_changed_success")}</span>`;
+      setTimeout(function () { status.className = "da-status"; }, 2200);
+      window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred?.("success");
+    }
 
-    <!-- Appearance -->
-    <div class="settings-section">
-      <div class="settings-section-title" data-i18n="sectionAppear">Ko'rinish</div>
+    function setWelcomeName(name) {
+      const clean = (name || "").trim();
+      const label = clean ? `Salom, ${clean} 👋` : "Salom 👋";
+      const el = document.getElementById("welcomeName");
+      if (el) el.textContent = label;
+    }
 
-      <div class="settings-row">
-        <div class="settings-row-info">
-          <div class="settings-row-label" data-i18n="theme">Mavzu</div>
-          <div class="settings-row-sub" id="lblThemeSub">Yorug'</div>
-        </div>
-        <div class="segmented">
-          <button id="btnLight" onclick="uiSetTheme('light')">☀️</button>
-          <button id="btnDark"  onclick="uiSetTheme('dark')">🌙</button>
-        </div>
-      </div>
-
-      <div class="settings-row" style="margin-top:8px">
-        <div class="settings-row-info">
-          <div class="settings-row-label" data-i18n="lang">Til</div>
-          <div class="settings-row-sub" id="lblLangSub">O'zbekcha</div>
-        </div>
-        <div class="segmented">
-          <button id="btnUz" onclick="uiSetLang('uz')">UZ</button>
-          <button id="btnRu" onclick="uiSetLang('ru')">RU</button>
-          <button id="btnEn" onclick="uiSetLang('en')">EN</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Support -->
-    <div class="settings-section">
-      <div class="settings-section-title" data-i18n="sectionSupport">Yordam</div>
-      <div class="settings-row">
-        <div class="settings-row-info">
-          <div class="settings-row-label" data-i18n="support">Qo'llab-quvvatlash</div>
-          <div class="settings-row-sub" data-i18n="supportSub">Bot orqali xabar yuboring</div>
-        </div>
-        <button class="btn-support" onclick="openSupport()" data-i18n="contact">Aloqa</button>
-      </div>
-    </div>
-
-    <!-- About -->
-    <div class="settings-section">
-      <div class="settings-section-title" data-i18n="sectionAbout">Ilova haqida</div>
-      <div class="about-card">
-        <div class="about-logo">DA</div>
-        <div>
-          <div class="about-name">DASTYOR AI</div>
-          <div class="about-ver" data-i18n="version">Versiya 1.0.0</div>
-        </div>
-      </div>
-    </div>
-
-  </main>
-
-</div><!-- /app -->
-
-<!-- Bottom Nav -->
-<nav class="bottom-nav">
-  <button class="tab-btn active" id="tabHome" onclick="switchView('home')">
-    <svg fill="none" viewBox="0 0 24 24" stroke-width="2">
-      <path stroke-linecap="round" stroke-linejoin="round" d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H5a1 1 0 01-1-1V9.5z"/>
-      <path stroke-linecap="round" stroke-linejoin="round" d="M9 21V12h6v9"/>
-    </svg>
-    <span data-i18n="tabHome">Bosh sahifa</span>
-  </button>
-  <button class="tab-btn" id="tabSettings" onclick="switchView('settings')">
-    <svg fill="none" viewBox="0 0 24 24" stroke-width="2">
-      <circle cx="12" cy="12" r="3"/>
-      <path stroke-linecap="round" stroke-linejoin="round" d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/>
-    </svg>
-    <span data-i18n="tabSettings">Sozlamalar</span>
-  </button>
-</nav>
-
-<div class="toast" id="toast"></div>
-
-<script>
-function switchView(v) {
-  document.querySelectorAll('.view').forEach(el => el.classList.remove('active'));
-  document.getElementById('view-' + v).classList.add('active');
-  document.getElementById('tabHome').classList.toggle('active', v === 'home');
-  document.getElementById('tabSettings').classList.toggle('active', v === 'settings');
-}
-
-function syncUI() {
-  if (!window.DA) return;
-  const theme = DA.getTheme(), lang = DA.getLang();
-  const btnLight = document.getElementById('btnLight'), btnDark = document.getElementById('btnDark');
-  const btnUz = document.getElementById('btnUz'), btnRu = document.getElementById('btnRu'), btnEn = document.getElementById('btnEn');
-  const lblThemeSub = document.getElementById('lblThemeSub'), lblLangSub = document.getElementById('lblLangSub');
-  if (btnLight) btnLight.classList.toggle('active', theme === 'light');
-  if (btnDark) btnDark.classList.toggle('active', theme === 'dark');
-  if (btnUz) btnUz.classList.toggle('active', lang === 'uz');
-  if (btnRu) btnRu.classList.toggle('active', lang === 'ru');
-  if (btnEn) btnEn.classList.toggle('active', lang === 'en');
-  if (lblThemeSub) lblThemeSub.textContent = DA.t(theme === 'dark' ? 'themeDark' : 'themeLight');
-  if (lblLangSub) lblLangSub.textContent = DA.t('langName');
-}
-
-function uiSetTheme(t) { DA.setTheme(t); syncUI(); showToast(t === 'dark' ? '🌙' : '☀️'); }
-function uiSetLang(l)  { DA.setLang(l); syncUI(); }
-
-function openSupport() {
-  const msg = window.prompt(DA.t('promptMsg'));
-  if (!msg || !msg.trim()) return;
-  showToast(DA.t('toastSent'));
-  setTimeout(() => window.open('https://t.me/DastyorAiBot', '_blank'), 800);
-}
-
-let _tt;
-function showToast(msg) {
-  const el = document.getElementById('toast');
-  if (el) { el.textContent = msg; el.classList.add('show'); }
-  clearTimeout(_tt);
-  _tt = setTimeout(() => el && el.classList.remove('show'), 2200);
-}
-
-window.addEventListener('DOMContentLoaded', syncUI);
-window.addEventListener('da:lang', syncUI);
-window.addEventListener('da:theme', syncUI);
-</script>
+    document.addEventListener("DOMContentLoaded", function () {
+      if (window.DastyorAI && window.DastyorAI.initUI) {
+        DastyorAI.initUI({
+          autoNavLinks: true,
+          onUser: function (me) {
+            setWelcomeName(me?.first_name || me?.username || "");
+          }
+        });
+      }
+      const tgName = window.Telegram?.WebApp?.initDataUnsafe?.user?.first_name || "";
+      if (tgName) setWelcomeName(tgName);
+      syncLangButtons();
+      const searchInput = document.getElementById("toolSearch");
+      const cards = Array.from(document.querySelectorAll(".tool-card"));
+      searchInput.addEventListener("input", function () {
+        const q = searchInput.value.trim().toLowerCase();
+        cards.forEach(function (card) {
+          const isMatch = (card.getAttribute("data-tool") || "").toLowerCase().includes(q);
+          card.style.display = isMatch ? "block" : "none";
+        });
+      });
+      window.Telegram?.WebApp?.ready?.();
+      window.Telegram?.WebApp?.expand?.();
+    });
+  </script>
 </body>
 </html>

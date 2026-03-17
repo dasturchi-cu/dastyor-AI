@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="uz">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Objective Generator — Dastyor AI</title>
+  <link rel="stylesheet" href="theme.css" />
+  <script src="da-core.js"></script>
+  <style>
+    .page { max-width: 760px; margin: 0 auto; padding: 16px; }
+    .topbar { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; margin: 10px 0 16px; }
+    .topbar-left{ display:flex; align-items:flex-start; gap:10px; }
+    .back { width:44px; height:44px; border-radius: 14px; border: 1px solid var(--da-border); background: var(--da-card); display:flex; align-items:center; justify-content:center; }
+    .back svg { width:18px; height:18px; stroke: var(--da-text); }
+    .title { font-size: 18px; font-weight: 900; letter-spacing: -0.02em; display:flex; align-items:center; gap:10px; margin:0; }
+    .subtitle { margin: 2px 0 0; color: var(--da-muted); font-size: 13px; }
+    .card { background: var(--da-card); border: 1px solid var(--da-border); border-radius: 18px; box-shadow: var(--da-shadow); padding: 14px; }
+    .grid { display:grid; gap:12px; }
+    .field label { display:block; font-size:12px; color: var(--da-muted); font-weight: 800; margin: 0 0 6px; }
+    .input, select, textarea { width:100%; border-radius: 14px; border: 1px solid var(--da-border); background: var(--da-bg2); color: var(--da-text); padding: 12px 12px; font-size: 14px; outline: none; }
+    textarea { min-height: 110px; resize: vertical; }
+    .btn { width: 100%; border-radius: 16px; padding: 12px 14px; font-weight: 900; border: 1px solid var(--da-border); background: var(--da-primary); color: white; box-shadow: 0 10px 28px rgba(37, 99, 235, .18); }
+    .btn:disabled { opacity: .7; }
+    .result-actions { display:flex; gap:10px; }
+    .btn-secondary { background: var(--da-card); color: var(--da-text); }
+    .btn-secondary:hover { background: var(--da-bg2); }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <div class="topbar">
+      <div class="topbar-left">
+        <a class="back" href="index.html" aria-label="Back">
+          <svg fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="m15 18-6-6 6-6"></path>
+          </svg>
+        </a>
+        <div>
+          <h1 class="title">
+            <span style="width:34px;height:34px;border-radius:12px;background:rgba(37,99,235,.12);display:inline-flex;align-items:center;justify-content:center;">
+              <svg fill="none" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px;stroke:var(--da-primary)">
+                <path d="M7 3h7l5 5v13H7z"></path><path d="M14 3v6h6"></path><path d="M10 13h6M10 17h6"></path>
+              </svg>
+            </span>
+            <span data-i18n="objective_title">Objective Generator</span>
+          </h1>
+          <p class="subtitle" data-i18n="objective_subtitle">Kasb va tajribangizga mos obyektivka yarating</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid">
+      <section class="card">
+        <div class="grid">
+          <div class="field">
+            <label for="role" data-i18n="objective_role_label">Kasbingizni kiriting</label>
+            <input id="role" class="input" type="text" data-i18n="objective_role_placeholder" data-i18n-attr="placeholder" placeholder="Masalan: UI/UX Designer" />
+          </div>
+
+          <div class="field">
+            <label for="exp" data-i18n="objective_exp_label">Tajriba darajasi</label>
+            <select id="exp" class="input">
+              <option value="junior" data-i18n="objective_exp_junior">Boshlang'ich</option>
+              <option value="middle" data-i18n="objective_exp_middle">O'rta</option>
+              <option value="senior" data-i18n="objective_exp_senior">Katta mutaxassis</option>
+              <option value="lead" data-i18n="objective_exp_lead">Rahbar</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label for="extra" data-i18n="objective_extra_label">Qo'shimcha ma'lumot</label>
+            <textarea id="extra" class="input" data-i18n="objective_extra_placeholder" data-i18n-attr="placeholder" placeholder="Qisqa yo'nalish yoki maqsad yozing"></textarea>
+          </div>
+
+          <button id="genBtn" class="btn" type="button" data-i18n="objective_generate">Obyektivka yaratish</button>
+          <div id="status" class="da-status" style="margin-top:10px;"></div>
+        </div>
+      </section>
+
+      <section class="card" id="resultCard" style="display:none;">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px;">
+          <div style="font-weight:900;letter-spacing:-.01em" data-i18n="objective_result">Natija</div>
+        </div>
+        <textarea id="result" class="input" readonly></textarea>
+        <div class="result-actions" style="margin-top:10px;">
+          <button id="copyBtn" class="btn btn-secondary" type="button" data-i18n="objective_copy">Nusxa olish</button>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <script>
+    const tg = window.Telegram?.WebApp;
+    function showStatus(type, text) {
+      const el = document.getElementById("status");
+      if (!el) return;
+      el.className = "da-status show status " + type;
+      const icon = type === "loading" ? '<span class="da-spinner"></span>' : (type === "success" ? "✓" : "!");
+      el.innerHTML = `${icon}<span>${text}</span>`;
+    }
+
+    async function generateObjective() {
+      const role = (document.getElementById("role").value || "").trim();
+      const exp = (document.getElementById("exp").value || "junior").trim();
+      const extra = (document.getElementById("extra").value || "").trim();
+      if (!role) {
+        showStatus("error", (window.DA?.t && DA.t("objective_error_role")) || "Kasbni kiriting");
+        tg?.HapticFeedback?.notificationOccurred?.("error");
+        return;
+      }
+      document.getElementById("genBtn").disabled = true;
+      showStatus("loading", (window.DA?.t && DA.t("objective_working")) || "AI ishlamoqda...");
+      try {
+        const apiBase = (location.protocol === "file:" ? "https://dastyor-ai.onrender.com" : location.origin);
+        const res = await fetch(apiBase + "/api/objective", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ role, experience: exp, extra, lang: (window.DA?.getLang && DA.getLang()) || "uz" })
+        });
+        if (!res.ok) {
+          let msg = "Xatolik yuz berdi";
+          try { const err = await res.json(); msg = err.detail || msg; } catch (_) {}
+          throw new Error(msg);
+        }
+        const data = await res.json();
+        const text = (data.text || "").trim();
+        document.getElementById("result").value = text || "";
+        document.getElementById("resultCard").style.display = "block";
+        showStatus("success", (window.DA?.t && DA.t("objective_ready")) || "Tayyor");
+        tg?.HapticFeedback?.notificationOccurred?.("success");
+      } catch (e) {
+        showStatus("error", e.message || "Xatolik");
+        tg?.HapticFeedback?.notificationOccurred?.("error");
+      } finally {
+        document.getElementById("genBtn").disabled = false;
+      }
+    }
+
+    async function copyResult() {
+      const v = document.getElementById("result").value || "";
+      if (!v) return;
+      try {
+        await navigator.clipboard.writeText(v);
+        showStatus("success", (window.DA?.t && DA.t("objective_copied")) || "Matn nusxalandi");
+      } catch (_) {
+        showStatus("error", (window.DA?.t && DA.t("copy_error")) || "Nusxalashda xatolik");
+      }
+    }
+
+    document.addEventListener("DOMContentLoaded", function () {
+      document.getElementById("genBtn").addEventListener("click", generateObjective);
+      document.getElementById("copyBtn").addEventListener("click", copyResult);
+      tg?.ready?.();
+      tg?.expand?.();
+    });
+  </script>
+</body>
+</html>
+

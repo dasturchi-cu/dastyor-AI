@@ -233,6 +233,65 @@ async def translate_text(text: str, direction: str = "uz_en") -> str:
         return f"Tarjimada xato: {e}"
 
 
+async def generate_objective(role: str, experience: str = "junior", extra: str = "", lang: str = "uz") -> str:
+    """
+    Generate a short professional CV objective/summary.
+    lang: uz | ru | en
+    experience: junior | middle | senior | lead
+    """
+    model = await get_model()
+    if not model:
+        return "AI model mavjud emas."
+
+    l = (lang or "uz").lower().strip()
+    if l not in ("uz", "ru", "en"):
+        l = "uz"
+
+    exp_map = {
+        "junior": {"uz": "boshlang'ich", "ru": "начальный", "en": "junior"},
+        "middle": {"uz": "o'rta", "ru": "средний", "en": "mid-level"},
+        "senior": {"uz": "katta mutaxassis", "ru": "старший специалист", "en": "senior"},
+        "lead":   {"uz": "rahbar", "ru": "руководитель", "en": "lead"},
+    }
+    exp_key = (experience or "junior").lower().strip()
+    exp_label = exp_map.get(exp_key, exp_map["junior"])[l]
+
+    # Keep it short and usable: 2–3 sentences, no bullet lists.
+    if l == "ru":
+        prompt = (
+            "Сгенерируй краткую профессиональную цель (objective) для резюме.\n"
+            "Требования: 2–3 предложения, без списков, без лишних объяснений, деловой стиль.\n"
+            f"Должность: {role}\n"
+            f"Уровень: {exp_label}\n"
+            f"Дополнительно (если есть): {extra}\n"
+        )
+    elif l == "en":
+        prompt = (
+            "Generate a short professional resume objective.\n"
+            "Requirements: 2–3 sentences, no bullet points, no extra explanation, professional tone.\n"
+            f"Role: {role}\n"
+            f"Level: {exp_label}\n"
+            f"Extra (if any): {extra}\n"
+        )
+    else:
+        prompt = (
+            "Rezyume uchun qisqa professional obyektivka (objective) yozing.\n"
+            "Talablar: 2–3 gap, ro'yxatsiz, ortiqcha izohsiz, rasmiy uslub.\n"
+            f"Kasb/Lavozim: {role}\n"
+            f"Daraja: {exp_label}\n"
+            f"Qo'shimcha (bo'lsa): {extra}\n"
+        )
+
+    try:
+        resp = await _gcall(model.generate_content_async(prompt))
+        if resp is None:
+            return "AI javobi kechikdi. Iltimos, qayta urinib ko'ring."
+        return resp.text.strip() if resp.text else "Natija bo'sh."
+    except Exception as e:
+        logger.error(f"generate_objective error: {e}", exc_info=True)
+        return f"Xatolik: {str(e)[:200]}"
+
+
 async def extract_obyektivka_data(text: str) -> dict:
     """
     Extract structured data from text using Gemini asynchronously

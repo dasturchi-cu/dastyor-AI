@@ -44,6 +44,12 @@ window.DA = (() => {
       translate_input_placeholder: "Matnni bu yerga kiriting...",
       translate_output_placeholder: "Tarjima shu yerda chiqadi...",
       translate_action: "⚡ Tarjima qilish",
+      translate_wait: "Kuting...",
+      translate_loading_engine: "Yuklanmoqda...",
+      translate_enter_text: "Matn kiriting!",
+      translate_max_chars: "Max 5000 belgi.",
+      translate_swap_langs: "Tillarni almashtiring.",
+      translate_done: "Tarjima qilindi",
       quick_phrases: "Tezkor iboralar",
       translit_title: "Krill / Lotin",
       translit_input_placeholder: "Matnni bu yerga kiriting...",
@@ -107,6 +113,31 @@ window.DA = (() => {
       ph_cv_about: "Haqingizda qisqacha ma'lumot (Summary)",
       ph_skill: "Ko'nikma yozib ENTER bosing...",
       obyektivka_form_title: "Ma'lumotnoma tayyorlash xizmati",
+      nav_tools: "Asboblar",
+      nav_translator: "Tarjimon",
+      nav_settings: "Sozlamalar",
+      language_changed_success: "Til muvaffaqiyatli o'zgartirildi",
+      settings_language: "Til",
+      objective_title: "Obyektivka Generator",
+      objective_subtitle: "Kasb va tajribangizga mos obyektivka yarating",
+      objective_role_label: "Kasbingizni kiriting",
+      objective_role_placeholder: "Masalan: UI/UX Designer",
+      objective_exp_label: "Tajriba darajasi",
+      objective_exp_junior: "Boshlang'ich",
+      objective_exp_middle: "O'rta",
+      objective_exp_senior: "Katta mutaxassis",
+      objective_exp_lead: "Rahbar",
+      objective_extra_label: "Qo'shimcha ma'lumot",
+      objective_extra_placeholder: "Qisqa yo'nalish yoki maqsad yozing",
+      objective_generate: "Obyektivka yaratish",
+      objective_result: "Natija",
+      objective_copy: "Nusxa olish",
+      objective_copied: "Matn nusxalandi",
+      objective_error_role: "Kasbni kiriting",
+      objective_back: "Bosh sahifa",
+      objective_working: "AI ishlamoqda...",
+      objective_ready: "Tayyor",
+      copy_error: "Nusxalashda xatolik",
     },
     ru: {
       greeting:        "Добро пожаловать,",
@@ -137,6 +168,12 @@ window.DA = (() => {
       translate_input_placeholder: "Введите текст здесь...",
       translate_output_placeholder: "Перевод появится здесь...",
       translate_action: "⚡ Перевести",
+      translate_wait: "Подождите...",
+      translate_loading_engine: "Загрузка...",
+      translate_enter_text: "Введите текст!",
+      translate_max_chars: "Макс. 5000 символов.",
+      translate_swap_langs: "Поменяйте языки местами.",
+      translate_done: "Переведено",
       quick_phrases: "Быстрые фразы",
       translit_title: "Кирилл / Латиница",
       translit_input_placeholder: "Введите текст здесь...",
@@ -200,6 +237,31 @@ window.DA = (() => {
       ph_cv_about: "Кратко о себе (Summary)",
       ph_skill: "Введите навык и нажмите ENTER...",
       obyektivka_form_title: "Сервис подготовки справки",
+      nav_tools: "Инструменты",
+      nav_translator: "Переводчик",
+      nav_settings: "Настройки",
+      language_changed_success: "Язык успешно изменён",
+      settings_language: "Язык",
+      objective_title: "Генератор цели",
+      objective_subtitle: "Создайте цель под вашу должность и опыт",
+      objective_role_label: "Укажите профессию",
+      objective_role_placeholder: "Например: UI/UX Designer",
+      objective_exp_label: "Уровень опыта",
+      objective_exp_junior: "Начальный",
+      objective_exp_middle: "Средний",
+      objective_exp_senior: "Старший специалист",
+      objective_exp_lead: "Руководитель",
+      objective_extra_label: "Дополнительная информация",
+      objective_extra_placeholder: "Кратко опишите направление или цель",
+      objective_generate: "Создать цель",
+      objective_result: "Результат",
+      objective_copy: "Копировать",
+      objective_copied: "Текст скопирован",
+      objective_error_role: "Введите профессию",
+      objective_back: "Главная",
+      objective_working: "ИИ работает...",
+      objective_ready: "Готово",
+      copy_error: "Ошибка при копировании",
     },
     en: {
       greeting:        "Welcome,",
@@ -230,6 +292,12 @@ window.DA = (() => {
       translate_input_placeholder: "Enter text here...",
       translate_output_placeholder: "Translation will appear here...",
       translate_action: "⚡ Translate",
+      translate_wait: "Please wait...",
+      translate_loading_engine: "Loading...",
+      translate_enter_text: "Enter text!",
+      translate_max_chars: "Max 5000 characters.",
+      translate_swap_langs: "Swap the languages.",
+      translate_done: "Translated",
       quick_phrases: "Quick phrases",
       translit_title: "Cyrillic / Latin",
       translit_input_placeholder: "Enter text here...",
@@ -293,6 +361,31 @@ window.DA = (() => {
       ph_cv_about: "Short about you (Summary)",
       ph_skill: "Type a skill and press ENTER...",
       obyektivka_form_title: "Certificate builder service",
+      nav_tools: "Tools",
+      nav_translator: "Translator",
+      nav_settings: "Settings",
+      language_changed_success: "Language changed successfully",
+      settings_language: "Language",
+      objective_title: "Objective Generator",
+      objective_subtitle: "Generate a focused objective for your role",
+      objective_role_label: "Enter your role",
+      objective_role_placeholder: "Example: UI/UX Designer",
+      objective_exp_label: "Experience level",
+      objective_exp_junior: "Junior",
+      objective_exp_middle: "Mid-level",
+      objective_exp_senior: "Senior",
+      objective_exp_lead: "Lead",
+      objective_extra_label: "Additional details",
+      objective_extra_placeholder: "Add a short focus or goal",
+      objective_generate: "Generate Objective",
+      objective_result: "Result",
+      objective_copy: "Copy",
+      objective_copied: "Text copied",
+      objective_error_role: "Enter your role",
+      objective_back: "Home",
+      objective_working: "AI is working...",
+      objective_ready: "Ready",
+      copy_error: "Copy failed",
     }
   };
 
@@ -354,6 +447,7 @@ window.DA = (() => {
     window.dispatchEvent(new CustomEvent('da:lang', { detail: { lang: l, t } }));
     window.dispatchEvent(new CustomEvent('app:language-changed', { detail: { language: l } }));
     window.dispatchEvent(new CustomEvent('app:language-applied', { detail: { language: l } }));
+    refreshMobileNavLabels();
   }
 
   /* ── Public API ── */
@@ -381,6 +475,65 @@ window.DA = (() => {
     persistLang(lang);
     _applyThemeDom(theme);
     _applyLangDom(lang);
+    setTimeout(enhanceMobileUI, 0);
+  }
+
+  function iconSvg(name) {
+    const common = 'fill="none" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"';
+    if (name === 'home') return `<svg ${common}><path d="M3 10.5 12 3l9 7.5"/><path d="M5 10v10h14V10"/></svg>`;
+    if (name === 'tools') return `<svg ${common}><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>`;
+    if (name === 'translate') return `<svg ${common}><path d="M5 8h10"/><path d="M10 5v3c0 4-2.5 6.5-5 8"/><path d="M10 13l3 6 3-6"/><path d="M16 13h4"/></svg>`;
+    if (name === 'settings') return `<svg ${common}><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-1.8-.3 1.6 1.6 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.6 1.6 0 0 0-1-1.5 1.6 1.6 0 0 0-1.8.3l-.1.1a2 2 0 0 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0 .3-1.8 1.6 1.6 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.6 1.6 0 0 0 1.5-1 1.6 1.6 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.8.3h.1a1.6 1.6 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 1 1.5h.1a1.6 1.6 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8v.1a1.6 1.6 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1z"/></svg>`;
+    return '';
+  }
+
+  function activeNavKey(path) {
+    if (path.endsWith('/index.html') || path === '/' || path.endsWith('/')) return 'home';
+    if (path.endsWith('/more.html')) return 'tools';
+    if (path.endsWith('/translate.html')) return 'translate';
+    return 'settings';
+  }
+
+  function enhanceMobileUI() {
+    const body = document.body;
+    if (!body || body.dataset.disableMobileNav === 'true') return;
+    body.classList.add('da-mobile-shell');
+
+    if (document.querySelector('.da-bottom-nav') || document.querySelector('.bottom-nav')) return;
+
+    const path = location.pathname.toLowerCase();
+    const active = activeNavKey(path);
+    const nav = document.createElement('nav');
+    nav.className = 'da-bottom-nav';
+    nav.innerHTML = `
+      <a class="da-nav-item ${active === 'home' ? 'active' : ''}" href="index.html">
+        ${iconSvg('home')}
+        <span>${t('tabHome')}</span>
+      </a>
+      <a class="da-nav-item ${active === 'tools' ? 'active' : ''}" href="more.html">
+        ${iconSvg('tools')}
+        <span>${t('nav_tools')}</span>
+      </a>
+      <a class="da-nav-item ${active === 'translate' ? 'active' : ''}" href="translate.html">
+        ${iconSvg('translate')}
+        <span>${t('nav_translator')}</span>
+      </a>
+      <a class="da-nav-item ${active === 'settings' ? 'active' : ''}" href="index.html#settings">
+        ${iconSvg('settings')}
+        <span>${t('nav_settings')}</span>
+      </a>
+    `;
+    body.appendChild(nav);
+  }
+
+  function refreshMobileNavLabels() {
+    const nav = document.querySelector('.da-bottom-nav');
+    if (!nav) return;
+    const labels = nav.querySelectorAll('span');
+    if (labels[0]) labels[0].textContent = t('tabHome');
+    if (labels[1]) labels[1].textContent = t('nav_tools');
+    if (labels[2]) labels[2].textContent = t('nav_translator');
+    if (labels[3]) labels[3].textContent = t('nav_settings');
   }
 
   window.addEventListener("storage", (e) => {
@@ -408,5 +561,5 @@ window.DA = (() => {
     init();
   }
 
-  return { getTheme, getLang, setTheme, setLang, t };
+  return { getTheme, getLang, setTheme, setLang, t, iconSvg };
 })();

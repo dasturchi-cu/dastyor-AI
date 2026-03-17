@@ -401,6 +401,13 @@
         const key = el.getAttribute('data-i18n');
         if (dict[lang] && dict[lang][key]) el.innerText = dict[lang][key];
       });
+      // Global app language sync (UZ/RU/EN for all pages)
+      try {
+        if (window.DA && typeof DA.setLang === 'function') {
+          const next = (lang === 'en' || lang === 'ru') ? lang : 'uz';
+          if (DA.getLang && DA.getLang() !== next) DA.setLang(next);
+        }
+      } catch (_) {}
       if(shouldTrigger) triggerUpdate();
     }
 
@@ -669,6 +676,31 @@
       wrap.style.height = `${297 * 3.78 * scale}px`; // A4 height * scale
     }
     window.addEventListener('resize', autoScale);
+
+    // --- Sync with global DA language (index settings) ---
+    (function () {
+      function mapDaToCvLang(daLang) {
+        if (daLang === 'ru') return 'ru';
+        if (daLang === 'en') return 'en';
+        return 'uz_lat';
+      }
+      function syncFromDA() {
+        try {
+          const daLang = (window.DA && DA.getLang) ? DA.getLang() : null;
+          if (!daLang) return;
+          const target = mapDaToCvLang(daLang);
+          const sel = document.getElementById('langSelect');
+          if (sel && sel.value !== target) sel.value = target;
+          if (currentLang !== target) changeLang(target, false);
+        } catch (_) {}
+      }
+      window.addEventListener('da:lang', syncFromDA);
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', syncFromDA);
+      } else {
+        syncFromDA();
+      }
+    })();
 
     // --- UPDATE PREVIEW ---
     function triggerUpdate(save = true) {

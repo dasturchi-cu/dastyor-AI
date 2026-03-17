@@ -1,78 +1,72 @@
-/**
- * Global Theme + Base UI — comfortable contrast, smooth transitions
- * Light: warm paper bg, soft text
- * Dark:  soft dark, easy on eyes
- */
 :root {
-    --bg-color: #F5F4F0;
-    --card-color: #FDFCFA;
-    --text-color: #252320;
-    --text-muted: #6B6560;
-    --border-color: #E0DDD8;
-    --button-color: #252320;
-    --button-text: #FDFCFA;
+    --da-primary: #2563EB;
+    --da-primary-light: #60A5FA;
+    --bg-color: #F8FAFC;
+    --card-color: #FFFFFF;
+    --text-color: #0F172A;
+    --text-muted: #64748B;
+    --border-color: #E2E8F0;
+    --button-color: var(--da-primary);
+    --button-text: #FFFFFF;
 
-    /* Backward-compat aliases for existing pages */
     --da-bg-page: var(--bg-color);
     --da-bg-surface: var(--card-color);
-    --da-bg-elevated: #EBE9E5;
-    --da-bg-overlay: rgba(253, 252, 250, 0.95);
-    --da-bg-code: #F0EEEA;
+    --da-bg-elevated: #F1F5F9;
+    --da-bg-overlay: rgba(255, 255, 255, 0.92);
+    --da-bg-code: #F1F5F9;
     --da-text-primary: var(--text-color);
     --da-text-secondary: var(--text-muted);
     --da-border: var(--border-color);
-    --da-border-mid: #D5D2CC;
-    --da-border-focus: #3D7AC6;
-    --da-input-bg: #FDFCFA;
+    --da-border-mid: #CBD5E1;
+    --da-border-focus: var(--da-primary);
+    --da-input-bg: #FFFFFF;
     --da-input-border: var(--border-color);
     --da-input-text: var(--text-color);
-    --da-input-focus-bg: #FDFCFA;
-    --da-blue: #3D7AC6;
-    --da-blue-soft: rgba(61, 122, 198, 0.12);
-    --da-blue-mid: rgba(61, 122, 198, 0.18);
-    --da-text-on-blue: #ffffff;
-    --da-shadow-xs: 0 1px 3px rgba(37, 35, 32, 0.06);
-    --da-shadow-sm: 0 4px 12px rgba(37, 35, 32, 0.08);
-    --da-shadow-md: 0 8px 24px rgba(37, 35, 32, 0.1);
-    --da-shadow-glow-blue: 0 6px 20px rgba(61, 122, 198, 0.18);
+    --da-input-focus-bg: #FFFFFF;
+    --da-blue: var(--da-primary);
+    --da-blue-soft: rgba(37, 99, 235, 0.1);
+    --da-blue-mid: rgba(37, 99, 235, 0.18);
+    --da-text-on-blue: #FFFFFF;
+    --da-shadow-xs: 0 1px 2px rgba(15, 23, 42, 0.05);
+    --da-shadow-sm: 0 6px 18px rgba(15, 23, 42, 0.08);
+    --da-shadow-md: 0 12px 28px rgba(15, 23, 42, 0.1);
+    --da-shadow-glow-blue: 0 10px 26px rgba(37, 99, 235, 0.22);
 }
 
 html[data-theme="dark"] {
-    --bg-color: #161514;
-    --card-color: #1E1D1B;
-    --text-color: #E6E4E0;
-    --text-muted: #9C9892;
-    --border-color: #3A3835;
-    --button-color: #E6E4E0;
-    --button-text: #161514;
+    --bg-color: #0F172A;
+    --card-color: #1E293B;
+    --text-color: #F1F5F9;
+    --text-muted: #94A3B8;
+    --border-color: #334155;
+    --button-color: #3B82F6;
+    --button-text: #F8FAFC;
 
     --da-bg-page: var(--bg-color);
     --da-bg-surface: var(--card-color);
-    --da-bg-elevated: #282624;
-    --da-bg-overlay: rgba(30, 29, 27, 0.95);
-    --da-bg-code: #252320;
+    --da-bg-elevated: #233148;
+    --da-bg-overlay: rgba(30, 41, 59, 0.92);
+    --da-bg-code: #26354D;
     --da-text-primary: var(--text-color);
     --da-text-secondary: var(--text-muted);
     --da-border: var(--border-color);
-    --da-border-mid: #454340;
-    --da-border-focus: #6B9BD4;
-    --da-input-bg: #1E1D1B;
-    --da-input-border: var(--border-color);
-    --da-input-text: var(--text-color);
-    --da-input-focus-bg: #252422;
-    --da-blue: #6B9BD4;
-    --da-blue-soft: rgba(107, 155, 212, 0.16);
-    --da-blue-mid: rgba(107, 155, 212, 0.24);
-    --da-text-on-blue: #161514;
-    --da-shadow-xs: 0 1px 3px rgba(0, 0, 0, 0.3);
-    --da-shadow-sm: 0 4px 12px rgba(0, 0, 0, 0.35);
-    --da-shadow-md: 0 8px 24px rgba(0, 0, 0, 0.4);
-    --da-shadow-glow-blue: 0 6px 20px rgba(107, 155, 212, 0.2);
+    --da-border-mid: #475569;
+    --da-border-focus: #60A5FA;
+    --da-input-bg: #1E293B;
+    --da-input-border: #334155;
+    --da-input-text: #F1F5F9;
+    --da-input-focus-bg: #243247;
+    --da-blue: #3B82F6;
+    --da-blue-soft: rgba(59, 130, 246, 0.16);
+    --da-blue-mid: rgba(59, 130, 246, 0.26);
+    --da-text-on-blue: #F8FAFC;
+    --da-shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.25);
+    --da-shadow-sm: 0 8px 20px rgba(0, 0, 0, 0.3);
+    --da-shadow-md: 0 14px 32px rgba(0, 0, 0, 0.36);
+    --da-shadow-glow-blue: 0 10px 26px rgba(59, 130, 246, 0.2);
 }
 
-*, *::before, *::after {
-    box-sizing: border-box;
-}
+*, *::before, *::after { box-sizing: border-box; }
 
 html {
     -webkit-text-size-adjust: 100%;
@@ -84,130 +78,143 @@ body {
     padding: 0;
     background: var(--bg-color);
     color: var(--text-color);
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Inter, sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Inter, sans-serif;
     line-height: 1.5;
     -webkit-font-smoothing: antialiased;
     -webkit-tap-highlight-color: transparent;
     overflow-x: hidden;
-    transition: background-color 0.4s ease, color 0.35s ease;
+    transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 .app-container {
     max-width: 900px;
     margin: 0 auto;
-    padding: 20px 16px;
+    padding: 16px;
+    padding-bottom: calc(90px + env(safe-area-inset-bottom));
     min-height: 100vh;
 }
 
-@media (min-width: 600px) {
-    .app-container {
-        padding: 24px;
-    }
-}
+h1, h2, h3 { margin: 0 0 0.5em; color: var(--text-color); }
+p { color: var(--text-muted); }
 
-h1, h2, h3 {
-    margin: 0 0 0.5em;
-    color: var(--text-color);
-}
-
-p {
-    color: var(--text-muted);
-}
-
-.card,
-.app-card,
-.service-card,
-.page-card,
-.container {
+.card, .app-card, .service-card, .page-card, .container {
     background: var(--card-color);
     color: var(--text-color);
     border: 1px solid var(--border-color);
-    transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+    transition: background-color 0.25s ease, color 0.25s ease, border-color 0.25s ease;
+}
+
+.btn, button, [type="button"], [type="submit"] {
+    min-height: 48px;
+    border-radius: 14px;
 }
 
 .btn {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: 8px;
-    padding: 10px 16px;
-    border-radius: 10px;
+    gap: 10px;
+    width: 100%;
+    padding: 12px 16px;
     border: 1px solid var(--border-color);
     background: var(--card-color);
     color: var(--text-color);
-    font-weight: 600;
-    font-size: 14px;
+    font-weight: 700;
+    font-size: 15px;
     cursor: pointer;
     text-decoration: none;
-    transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
 }
 
 .btn-primary {
     background: var(--button-color);
     color: var(--button-text);
     border-color: var(--button-color);
+    box-shadow: var(--da-shadow-glow-blue);
 }
 
 input, textarea, select {
     width: 100%;
-    border: 1px solid var(--border-color);
-    background: var(--card-color);
-    color: var(--text-color);
-    border-radius: 10px;
-    padding: 12px 14px;
+    min-height: 48px;
+    border: 1px solid var(--da-input-border);
+    background: var(--da-input-bg);
+    color: var(--da-input-text);
+    border-radius: 14px;
+    padding: 14px 14px;
     font-family: inherit;
-    transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+    font-size: 16px;
 }
 
-input::placeholder,
-textarea::placeholder {
-    color: var(--text-muted);
+input::placeholder, textarea::placeholder { color: var(--text-muted); }
+.text-muted { color: var(--text-muted); }
+
+.da-mobile-shell {
+    padding-bottom: calc(86px + env(safe-area-inset-bottom, 0px));
 }
 
-.text-muted {
-    color: var(--text-muted);
+.da-bottom-nav {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 999;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 6px;
+    padding: 8px 10px calc(8px + env(safe-area-inset-bottom, 0px));
+    background: var(--da-bg-overlay);
+    backdrop-filter: blur(14px);
+    border-top: 1px solid var(--da-border);
 }
 
-.settings-card {
-    border-radius: 16px;
-    padding: 18px;
-}
-
-.settings-row {
+.da-nav-item {
+    text-decoration: none;
+    color: var(--da-text-secondary);
+    min-height: 58px;
+    border-radius: 14px;
     display: flex;
+    flex-direction: column;
     align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    padding: 12px 0;
-    border-bottom: 1px solid var(--border-color);
-}
-
-.settings-row:last-child {
-    border-bottom: none;
-}
-
-.segmented {
-    display: inline-flex;
-    background: var(--bg-color);
-    border: 1px solid var(--border-color);
-    border-radius: 12px;
-    padding: 4px;
+    justify-content: center;
     gap: 4px;
+    font-size: 11px;
+    font-weight: 700;
 }
 
-.segmented button {
-    border: none;
-    background: transparent;
-    color: var(--text-muted);
+.da-nav-item svg {
+    width: 20px;
+    height: 20px;
+    stroke: currentColor;
+}
+
+.da-nav-item.active {
+    color: var(--da-blue);
+    background: var(--da-blue-soft);
+}
+
+.da-status {
+    display: none;
+    align-items: center;
+    gap: 8px;
+    border-radius: 12px;
+    padding: 10px 12px;
     font-size: 13px;
     font-weight: 600;
-    padding: 8px 12px;
-    border-radius: 8px;
-    cursor: pointer;
-    transition: background-color 0.2s ease, color 0.2s ease;
 }
+.da-status.show { display: flex; }
+.da-status.loading { color: var(--da-blue); background: var(--da-blue-soft); border: 1px solid var(--da-blue-mid); }
+.da-status.success { color: #16A34A; background: rgba(22, 163, 74, 0.12); border: 1px solid rgba(22, 163, 74, 0.3); }
+.da-status.error { color: #DC2626; background: rgba(220, 38, 38, 0.12); border: 1px solid rgba(220, 38, 38, 0.3); }
 
-.segmented button.active {
-    background: var(--button-color);
-    color: var(--button-text);
+.da-spinner {
+    width: 16px;
+    height: 16px;
+    border: 2px solid currentColor;
+    border-right-color: transparent;
+    border-radius: 999px;
+    animation: da-spin 0.7s linear infinite;
+}
+@keyframes da-spin { to { transform: rotate(360deg); } }
+
+@media (max-width: 480px) {
+    .app-container { padding: 14px; }
 }

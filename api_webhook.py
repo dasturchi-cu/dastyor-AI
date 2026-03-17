@@ -62,6 +62,8 @@ from typing import List, Optional
 from telegram import InputFile
 import asyncio, time, io
 import base64
+import re
+import html as html_lib
 
 from bot.services.render_service import (
     generate_cv_pdf, safe_filename,
@@ -414,6 +416,46 @@ async def api_translate(req: TranslateRequest):
         raise HTTPException(status_code=500, detail=f"Tarjima serveri xatosi: {str(e)[:200]}")
 
 
+# ═══════════════════════════════════════════════════════════════════════════
+# /api/objective — short objective generator (UZ/RU/EN)
+# ═══════════════════════════════════════════════════════════════════════════
+class ObjectiveRequest(BaseModel):
+    role: str = ""
+    experience: str = "junior"  # junior | middle | senior | lead
+    extra: str = ""
+    lang: str = "uz"            # uz | ru | en
+
+
+@app.post("/api/objective")
+async def api_objective(req: ObjectiveRequest):
+    role = (req.role or "").strip()
+    if not role:
+        raise HTTPException(status_code=400, detail="Role bo'sh bo'lishi mumkin emas")
+    if len(role) > 120:
+        raise HTTPException(status_code=400, detail="Role juda uzun")
+    if req.extra and len(req.extra) > 800:
+        raise HTTPException(status_code=400, detail="Qo'shimcha ma'lumot juda uzun")
+
+    try:
+        from bot.services.ai_service import generate_objective
+        text = await generate_objective(
+            role=role,
+            experience=req.experience,
+            extra=req.extra or "",
+            lang=req.lang or "uz",
+        )
+        if not text or text.startswith("AI model"):
+            raise HTTPException(status_code=502, detail=text or "AI javobi bo'sh")
+        if text.startswith("Xatolik"):
+            raise HTTPException(status_code=502, detail=text)
+        return {"ok": True, "text": text}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Objective API error: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Objective server xatosi: {str(e)[:200]}")
+
+
 # ─────────────────────────────────────────────────────────────────────
 # /api/ocr_direct — Website-first OCR endpoint
 #
@@ -430,10 +472,61 @@ async def api_translate(req: TranslateRequest):
 #   - int('') raises ValueError at line 1
 #   - DOCX was deleted after bot send — never returned to browser
 # ─────────────────────────────────────────────────────────────────────
+@app.post("/api/ocr_extract")
+async def api_ocr_extract(
+    file: UploadFile = File(...),
+):
+    ts = int(time.time())
+    safe_upload_name = _safe_name(file.filename or "", "img.jpg")
+    img_path = f"temp/ocr_text_{ts}_{safe_upload_name}"
+    os.makedirs("temp", exist_ok=True)
+
+    try:
+        raw = await file.read()
+        if len(raw) == 0:
+            raise HTTPException(status_code=400, detail="Fayl bo'sh")
+        if len(raw) > 15 * 1024 * 1024:
+            raise HTTPException(status_code=400, detail="Fayl 15 MB dan oshmasligi kerak")
+        with open(img_path, "wb") as f:
+            f.write(raw)
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Fayl saqlashda xato: {e}")
+
+    try:
+        from bot.services.ocr_service import extract_text_from_image
+        html_text = await extract_text_from_image(img_path)
+    except Exception as e:
+        logger.error("api_ocr_extract OCR xatosi: %s", e, exc_info=True)
+        _cleanup(img_path)
+        raise HTTPException(status_code=502, detail=f"OCR xatosi: {str(e)[:200]}")
+
+    _cleanup(img_path)
+
+    if not html_text or not html_text.strip():
+        raise HTTPException(status_code=422, detail="Rasmdan matn ajratib bo'lmadi")
+
+    # Preserve structure as much as possible for 1:1 text output
+    text = html_text
+    text = re.sub(r"(?i)<br\s*/?>", "\n", text)
+    text = re.sub(r"(?i)</(p|div|h1|h2|h3|h4|h5|h6|tr|li|ul|ol|table)>", "\n", text)
+    text = re.sub(r"(?i)<td[^>]*>", "\t", text)
+    text = re.sub(r"<[^>]+>", "", text)
+    text = html_lib.unescape(text)
+    text = text.replace("\r\n", "\n").replace("\r", "\n")
+    text = re.sub(r"[ \t]{2,}", " ", text)
+    text = re.sub(r"\n{3,}", "\n\n", text)
+    text = text.strip()
+
+    return {"ok": True, "text": text, "html": html_text}
+
+
 @app.post("/api/ocr_direct")
 async def api_ocr_direct(
     file: UploadFile = File(...),
     telegram_id: Optional[str] = Form(None),   # optional — works without Telegram
+    mode: Optional[str] = Form("docx"),        # "docx" | "text"
 ):
     ts = int(time.time())
     safe_upload_name = _safe_name(file.filename or "", "img.jpg")
@@ -468,6 +561,21 @@ async def api_ocr_direct(
     if not html_text or not html_text.strip():
         _cleanup(img_path)
         raise HTTPException(status_code=422, detail="Rasmdan matn ajratib bo'lmadi. Aniqroq rasm yuboring.")
+
+    # ── Fast mode: return text only (no DOCX build) ───────────────────
+    if (mode or "").strip().lower() in ("text", "txt", "preview"):
+        _cleanup(img_path)
+        text = html_text
+        text = re.sub(r"(?i)<br\s*/?>", "\n", text)
+        text = re.sub(r"(?i)</(p|div|h1|h2|h3|h4|h5|h6|tr|li|ul|ol|table)>", "\n", text)
+        text = re.sub(r"(?i)<td[^>]*>", "\t", text)
+        text = re.sub(r"<[^>]+>", "", text)
+        text = html_lib.unescape(text)
+        text = text.replace("\r\n", "\n").replace("\r", "\n")
+        text = re.sub(r"[ \t]{2,}", " ", text)
+        text = re.sub(r"\n{3,}", "\n\n", text)
+        text = text.strip()
+        return {"ok": True, "text": text, "html": html_text}
 
     # ── 3. Build DOCX in a thread (CPU-bound) ────────────────────────
     try:
