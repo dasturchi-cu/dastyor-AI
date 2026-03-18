@@ -17,10 +17,6 @@ PLAN_INFO = {
 def _premium_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         [
-            [
-                InlineKeyboardButton("Standard — 7 kun", callback_data="buy_plan_standard"),
-                InlineKeyboardButton("Premium — 30 kun", callback_data="buy_plan_premium"),
-            ],
             [InlineKeyboardButton("📋 Kartani nusxa olish", callback_data="buy_copy_card")],
         ]
     )
@@ -29,11 +25,13 @@ def _premium_keyboard() -> InlineKeyboardMarkup:
 def _card_message(plan_title: str) -> str:
     return (
         "💎 <b>Premium sotib olish</b>\n\n"
-        f"📦 Tanlangan tarif: <b>{plan_title}</b>\n\n"
-        "💳 <b>To'lov rekvizitlari</b>\n"
-        f"• Karta raqami: <code>{CARD_NUMBER}</code>\n"
-        f"• Karta egasi: <b>{CARD_OWNER}</b>\n\n"
-        "Pulni ushbu kartaga yuboring va to‘lov skrenshotini shu yerga yuboring."
+        "Premium olish uchun quyidagi kartaga to‘lov qiling.\n\n"
+        "💳 <b>Karta raqami:</b>\n"
+        f"<code>{CARD_NUMBER}</code>\n\n"
+        "👤 <b>Karta egasi:</b>\n"
+        f"<b>{CARD_OWNER}</b>\n\n"
+        "To‘lov qilgandan keyin skrenshotni shu chatga yuboring.\n\n"
+        f"📦 Tarif: <b>{plan_title}</b>"
     )
 
 
@@ -52,10 +50,12 @@ async def premium_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         elif st == "expired":
             status_line = "\n\n⚠️ Premium muddati tugagan. Yangilash mumkin."
 
-    context.user_data["premium_plan"] = "premium"
+    # Default plan unless user selects otherwise elsewhere
+    context.user_data["premium_plan"] = context.user_data.get("premium_plan") or "premium"
     context.user_data["waiting_for"] = "premium_payment_screenshot"
+    plan_data = PLAN_INFO.get(str(context.user_data.get("premium_plan")).lower(), PLAN_INFO["premium"])
     await update.message.reply_text(
-        _card_message("Premium"),
+        _card_message(plan_data["title"]),
         parse_mode="HTML",
         reply_markup=_premium_keyboard(),
     )
@@ -75,22 +75,14 @@ async def premium_purchase_callback(update: Update, context: ContextTypes.DEFAUL
 
     data = query.data or ""
     if data == "buy_copy_card":
-        await query.answer(f"Karta nusxalandi: {CARD_NUMBER}", show_alert=True)
+        # Send plain card number to chat so user can copy easily
+        try:
+            await query.message.reply_text(CARD_NUMBER)
+        except Exception:
+            pass
         return
 
-    if data.startswith("buy_plan_"):
-        plan = data.replace("buy_plan_", "", 1)
-        plan_data = PLAN_INFO.get(plan)
-        if not plan_data:
-            await query.answer("Noto'g'ri tarif", show_alert=True)
-            return
-        context.user_data["premium_plan"] = plan
-        context.user_data["waiting_for"] = "premium_payment_screenshot"
-        await query.message.reply_text(
-            _card_message(plan_data["title"]),
-            parse_mode="HTML",
-            reply_markup=_premium_keyboard(),
-        )
+    return
 
 
 async def handle_premium_screenshot(update: Update, context: ContextTypes.DEFAULT_TYPE) -> bool:
@@ -115,13 +107,12 @@ async def handle_premium_screenshot(update: Update, context: ContextTypes.DEFAUL
     user = update.effective_user
     uname = f"@{user.username}" if user.username else "yo'q"
     caption = (
-        "💳 <b>Yangi premium to'lov skrini</b>\n\n"
-        f"🆔 User ID: <code>{user.id}</code>\n"
-        f"👤 Username: {uname}\n"
-        f"📦 Tarif: <b>{plan_data['title']}</b> ({plan_data['days']} kun)\n\n"
-        "Tasdiqlash: <code>/approve {user_id} {premium_type}</code>\n"
-        "Masalan: <code>/approve {user_id} premium</code>"
-    ).replace("{user_id}", str(user.id)).replace("{premium_type}", plan)
+        "💰 <b>Yangi premium to‘lov</b>\n\n"
+        f"User: {uname}\n"
+        f"ID: <code>{user.id}</code>\n"
+        f"Tarif: <b>{plan_data['title']}</b>\n\n"
+        f"Tasdiqlash: <code>/approve {user.id}</code>"
+    )
 
     try:
         if update.message.photo:

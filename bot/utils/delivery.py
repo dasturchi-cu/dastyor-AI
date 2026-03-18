@@ -1,5 +1,7 @@
+import logging
 import os
-from telegram import InputFile
+
+logger = logging.getLogger(__name__)
 
 
 async def send_docx_with_confirmation(
@@ -52,15 +54,20 @@ async def send_file_safely(
     - Sends confirmation only after successful upload
     """
     try:
-        if not file_path or not os.path.exists(file_path):
+        if not file_path or not os.path.isfile(file_path):
             await bot.send_message(chat_id=chat_id, text="❌ Fayl yaratilmadi")
             return False
 
         filename = os.path.basename(file_path) or "document"
+        try:
+            size = os.path.getsize(file_path)
+        except Exception:
+            size = -1
+        logger.info("Sending file: %s (size=%s) to chat_id=%s", file_path, size, chat_id)
         with open(file_path, "rb") as f:
             await bot.send_document(
                 chat_id=chat_id,
-                document=InputFile(f, filename=filename),
+                document=f,
                 caption=caption,
                 parse_mode=parse_mode,
             )
@@ -68,9 +75,10 @@ async def send_file_safely(
         if confirmation_text:
             await bot.send_message(chat_id=chat_id, text=confirmation_text)
         return True
-    except Exception:
+    except Exception as e:
+        logger.error("File send failed path=%s chat_id=%s err=%s", file_path, chat_id, e, exc_info=True)
         try:
-            await bot.send_message(chat_id=chat_id, text="❌ Fayl yuborishda xatolik yuz berdi")
+            await bot.send_message(chat_id=chat_id, text=f"❌ Fayl yuborilmadi: {str(e)[:200]}")
         except Exception:
             pass
         return False

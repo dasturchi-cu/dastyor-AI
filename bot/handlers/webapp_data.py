@@ -12,8 +12,8 @@ from bot.services.ai_service import check_spelling_text
 
 logger = logging.getLogger(__name__)
 
-def _user_generated_dir(chat_id: int) -> str:
-    base = os.path.join("generated", str(chat_id))
+def _generated_dir() -> str:
+    base = "generated"
     os.makedirs(base, exist_ok=True)
     return base
 
@@ -31,7 +31,7 @@ async def web_app_data_handler(update: Update, context: ContextTypes.DEFAULT_TYP
         
         if action == "generate_obyektivka":
             msg = await update.message.reply_text(f"⏳ Obyektivka ({fmt.upper()}) tayyorlanmoqda...")
-            out_dir = _user_generated_dir(chat_id)
+            out_dir = _generated_dir()
             
             doc_data = {
                 "lang": payload.get("lang", "uz_lat"),
@@ -88,7 +88,7 @@ async def web_app_data_handler(update: Update, context: ContextTypes.DEFAULT_TYP
                 logger.warning(f"web_app_data_handler photo decode failed: {e}")
                 photo_path = None
 
-            objective_path = os.path.join(out_dir, "objective_result.docx")
+            objective_path = os.path.join(out_dir, "objective.docx")
             temp_file = await asyncio.to_thread(generate_obyektivka_docx, doc_data, photo_path, out_dir)
             # Ensure stable filename requested by spec
             try:
@@ -106,10 +106,10 @@ async def web_app_data_handler(update: Update, context: ContextTypes.DEFAULT_TYP
 
         elif action == "generate_cv":
             msg = await update.message.reply_text(f"⏳ CV rezyume ({fmt.upper()}) tayyorlanmoqda...")
-            out_dir = _user_generated_dir(chat_id)
+            out_dir = _generated_dir()
             temp_file = await asyncio.to_thread(generate_cv_docx, payload, out_dir)
             # Ensure stable filename requested by spec (docx)
-            cv_docx = os.path.join(out_dir, "cv_result.docx")
+            cv_docx = os.path.join(out_dir, "cv.docx")
             try:
                 if temp_file and os.path.exists(temp_file) and temp_file != cv_docx:
                     try:
@@ -186,7 +186,7 @@ async def web_app_data_handler(update: Update, context: ContextTypes.DEFAULT_TYP
             pdf_file = await asyncio.to_thread(convert_to_pdf_safe, temp_file, os.path.dirname(temp_file))
             if pdf_file and os.path.exists(pdf_file):
                 # Ensure stable filename requested by spec
-                cv_pdf = os.path.join(os.path.dirname(temp_file), "cv_result.pdf")
+                cv_pdf = os.path.join(os.path.dirname(temp_file), "cv.pdf")
                 try:
                     if pdf_file != cv_pdf:
                         try:

@@ -447,18 +447,19 @@ async def add_premium_command(update: Update, context: ContextTypes.DEFAULT_TYPE
 
 async def approve_premium_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
-    /approve user_id premium_type
-    premium_type: standard (7 days) | premium (30 days)
+    /approve user_id [premium_type]
+    premium_type (optional): standard (7 days) | premium (30 days)
+    If omitted, defaults to premium (30 days).
     """
     if not await is_admin(update.effective_user.id):
         return
     args = context.args or []
-    if len(args) < 2:
-        await update.message.reply_text("⚠️ Foydalanish: /approve <user_id> <standard|premium>")
+    if len(args) < 1:
+        await update.message.reply_text("⚠️ Foydalanish: /approve <user_id> [standard|premium]")
         return
 
     uid_raw = args[0].strip()
-    ptype = args[1].strip().lower()
+    ptype = (args[1].strip().lower() if len(args) > 1 else "premium")
     if not uid_raw.isdigit():
         await update.message.reply_text("❌ user_id raqam bo'lishi kerak.")
         return
@@ -484,7 +485,7 @@ async def approve_premium_command(update: Update, context: ContextTypes.DEFAULT_
         await context.bot.send_message(
             chat_id=uid,
             text=(
-                f"✅ To'lovingiz tasdiqlandi!\n\n"
+                f"✅ Premium muvaffaqiyatli faollashtirildi\n\n"
                 f"📦 Tarif: {'Standard' if ptype == 'standard' else 'Premium'}\n"
                 f"⏳ Muddati: {days} kun\n"
                 f"📅 Tugash sanasi: {end_date}"
