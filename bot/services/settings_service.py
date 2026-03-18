@@ -177,3 +177,30 @@ def set_daily_limit(limit):
     data = _load_settings()
     data["daily_limit"] = int(limit)
     _save_settings(data)
+
+
+def get_maintenance_mode() -> bool:
+    try:
+        from bot.services.supabase_db import has_db, db_get_maintenance_mode
+        if has_db():
+            mode = db_get_maintenance_mode()
+            if mode is not None:
+                return bool(mode)
+    except Exception as e:
+        logger.debug(f"Supabase get_maintenance_mode fallback: {e}")
+    return bool(_load_settings().get("maintenance_mode", False))
+
+
+def set_maintenance_mode(enabled: bool):
+    val = bool(enabled)
+    # Try DB first (if available), but always keep local fallback in sync.
+    try:
+        from bot.services.supabase_db import has_db, db_set_maintenance_mode
+        if has_db():
+            db_set_maintenance_mode(val)
+    except Exception as e:
+        logger.debug(f"Supabase set_maintenance_mode fallback: {e}")
+
+    data = _load_settings()
+    data["maintenance_mode"] = val
+    _save_settings(data)

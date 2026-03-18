@@ -569,8 +569,10 @@
       fd.append("file", file);
       fd.append("plan", selectedPlan);
 
-      const tid = window.DastyorAI?.getTelegramId?.();
-      const token = window.DastyorAI?.getToken?.();
+      // Robust identity: DastyorAI may still be initializing, so fallback to tg.initDataUnsafe.
+      const tgUserId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id;
+      const tid = window.DastyorAI?.getTelegramId?.() || tgUserId;
+      const token = window.DastyorAI?.getToken?.() || sessionStorage.getItem("tg_token");
       if (tid) fd.append("telegram_id", String(tid));
       if (token) fd.append("token", String(token));
 

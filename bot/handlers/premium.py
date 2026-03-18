@@ -191,6 +191,72 @@ async def premium_payment_review_callback(update: Update, context: ContextTypes.
 
     action = parts[1]
     request_id = int(parts[2])
+
+    # ── 1) Supabase path (payments id) ─────────────────────────────────────
+    try:
+        from bot.services.supabase_db import has_db as supa_has_db, db_get_payment, db_set_payment_status, db_activate_subscription
+        if supa_has_db():
+            pay = db_get_payment(request_id)
+            if pay:
+                uid = int(pay["user_id"])
+                plan = (pay.get("plan_type") or "premium").lower()
+                plan_title = "Standart" if plan == "standard" else "Premium"
+                days = 7 if plan == "standard" else 30
+
+                if action == "approve":
+                    # Mark payment approved
+                    db_set_payment_status(request_id, "approved", reviewed_by=int(query.from_user.id))
+
+                    start_dt = datetime.utcnow()
+                    expire_dt = start_dt + timedelta(days=days)
+                    db_activate_subscription(
+                        user_id=uid,
+                        plan_type=plan,
+                        start_date=start_dt.isoformat(),
+                        expire_date=expire_dt.isoformat(),
+                        status="active",
+                    )
+
+                    # Notify user
+                    end_date_str = expire_dt.strftime("%Y-%m-%d")
+                    try:
+                        await context.bot.send_message(
+                            chat_id=uid,
+                            text=(
+                                "✅ Premium tarifingiz faollashtirildi\n\n"
+                                f"📦 Tarif: {plan_title}\n"
+                                f"📅 Tugash sanasi: {end_date_str}"
+                            ),
+                        )
+                    except Exception as e:
+                        logger.warning(f"Failed to notify user {uid} on premium approve (supa): {e}")
+
+                    await query.answer("Tasdiqlandi", show_alert=False)
+                    try:
+                        new_caption = (query.message.caption or "") + "\n\n✅ Tasdiqlandi"
+                        await query.message.edit_caption(caption=new_caption, parse_mode="HTML", reply_markup=None)
+                    except Exception:
+                        pass
+                    return
+
+                if action == "reject":
+                    db_set_payment_status(request_id, "rejected", reviewed_by=int(query.from_user.id))
+                    try:
+                        await context.bot.send_message(chat_id=uid, text="❌ To'lov tasdiqlanmadi")
+                    except Exception as e:
+                        logger.warning(f"Failed to notify user {uid} on premium reject (supa): {e}")
+
+                    await query.answer("Rad etildi", show_alert=False)
+                    try:
+                        new_caption = (query.message.caption or "") + "\n\n❌ Rad etildi"
+                        await query.message.edit_caption(caption=new_caption, parse_mode="HTML", reply_markup=None)
+                    except Exception:
+                        pass
+                    return
+    except Exception as e:
+        logger.warning(f"Supabase premium review failed, fallback to sqlite: {e}")
+
+    # ── 2) SQLite path (request id) ─────────────────────────────────────────
     req = get_payment_request(request_id)
     if not req:
         await query.answer("So'rov topilmadi", show_alert=True)
@@ -210,14 +276,12 @@ async def premium_payment_review_callback(update: Update, context: ContextTypes.
             await query.answer("So'rov holatini yangilab bo'lmadi", show_alert=True)
             return
 
-        # Activate existing premium system (for runtime checks)
         profile = crm.get_user_profile(uid) or {}
         name = profile.get("first_name") or req.get("first_name") or "User"
         username = profile.get("username") or req.get("username") or ""
         end_date = add_premium(uid, days=days, name=name, username=username)
         crm.log_premium_transaction(uid, days, str(query.from_user.id))
 
-        # Persist subscription in DB table (step 8 requirement)
         start_dt = datetime.utcnow()
         expire_dt = start_dt + timedelta(days=days)
         save_subscription(
@@ -237,17 +301,14 @@ async def premium_payment_review_callback(update: Update, context: ContextTypes.
                 ),
             )
         except Exception as e:
-            logger.warning(f"Failed to notify user {uid} on premium approve: {e}")
+            logger.warning(f"Failed to notify user {uid} on premium approve (sqlite): {e}")
 
         await query.answer("Tasdiqlandi", show_alert=False)
         try:
             new_caption = (query.message.caption or "") + "\n\n✅ Tasdiqlandi"
             await query.message.edit_caption(caption=new_caption, parse_mode="HTML", reply_markup=None)
         except Exception:
-            try:
-                await query.message.edit_reply_markup(reply_markup=None)
-            except Exception:
-                pass
+            pass
         return
 
     if action == "reject":
@@ -258,15 +319,12 @@ async def premium_payment_review_callback(update: Update, context: ContextTypes.
         try:
             await context.bot.send_message(chat_id=uid, text="❌ To'lov tasdiqlanmadi")
         except Exception as e:
-            logger.warning(f"Failed to notify user {uid} on premium reject: {e}")
+            logger.warning(f"Failed to notify user {uid} on premium reject (sqlite): {e}")
 
         await query.answer("Rad etildi", show_alert=False)
         try:
             new_caption = (query.message.caption or "") + "\n\n❌ Rad etildi"
             await query.message.edit_caption(caption=new_caption, parse_mode="HTML", reply_markup=None)
         except Exception:
-            try:
-                await query.message.edit_reply_markup(reply_markup=None)
-            except Exception:
-                pass
+            pass
         return

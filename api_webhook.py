@@ -1222,14 +1222,33 @@ async def api_premium_receipt(
         except Exception:
             pass
 
-    from bot.services.premium_purchase_db import create_payment_request
+    # Create payment record in Supabase when possible, otherwise fallback to sqlite.
+    request_id = None
+    payment_id = None
+    try:
+        from bot.services.supabase_db import has_db, db_create_payment
+        if has_db():
+            amount = 10000 if safe_plan == "standard" else 30000
+            payment_id = db_create_payment(
+                user_id=int(uid),
+                plan_type=safe_plan,
+                amount=amount,
+                screenshot_url=None,
+                metadata={"source": "webapp"},
+            )
+    except Exception:
+        payment_id = None
 
-    request_id = create_payment_request(
-        user_id=int(uid),
-        plan_type=safe_plan,
-        username=username or "",
-        first_name=first_name or "",
-    )
+    if payment_id:
+        request_id = payment_id
+    else:
+        from bot.services.premium_purchase_db import create_payment_request
+        request_id = create_payment_request(
+            user_id=int(uid),
+            plan_type=safe_plan,
+            username=username or "",
+            first_name=first_name or "",
+        )
 
     uname = f"@{username}" if username else "yo'q"
     display_name = first_name or "Noma'lum"

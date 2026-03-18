@@ -11,7 +11,7 @@ from config import logger
 from bot.services.settings_service import (
     get_channels, add_channel, remove_channel,
     get_premium_users_full, add_premium, remove_premium, is_premium,
-    get_daily_limit, set_daily_limit
+    get_daily_limit, set_daily_limit, get_maintenance_mode, set_maintenance_mode
 )
 from bot.services.support_service import (
     list_support_requests, set_support_status, support_stats, get_support_request, log_support_reply
@@ -227,7 +227,17 @@ async def handle_admin_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
                
     elif text == "⚙️ Sozlamalar":
         limit = get_daily_limit()
-        msg = f"⚙️ **Bot Sozlamalari**\n\n📉 **Kunlik bepul limit:** {limit} ta\n\n✏️ O'zgartirish: `/set_limit 20` (0 = cheksiz)"
+        maintenance = get_maintenance_mode()
+        maintenance_label = "YOQILGAN" if maintenance else "O'CHIRILGAN"
+        msg = (
+            f"⚙️ **Bot Sozlamalari**\n\n"
+            f"📉 **Kunlik bepul limit:** {limit} ta\n"
+            f"🛠 **Maintenance:** {maintenance_label}\n\n"
+            "✏️ O'zgartirish: `/set_limit 20` (0 = cheksiz)\n"
+            "🛠 Maintenance ON: `/maintenance_on`\n"
+            "✅ Maintenance OFF: `/maintenance_off`\n"
+            "ℹ️ Holat: `/maintenance_status`"
+        )
         await update.message.reply_text(msg, parse_mode="Markdown")
         
     elif text == "👥 Foydalanuvchilar":
@@ -515,6 +525,30 @@ async def set_limit_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         set_daily_limit(int(context.args[0]))
         await update.message.reply_text(f"✅ Limit: {context.args[0]}")
     except: pass
+
+
+async def maintenance_on_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not await is_admin(update.effective_user.id):
+        return
+    set_maintenance_mode(True)
+    await update.message.reply_text("🛠 Maintenance mode: YOQILDI")
+
+
+async def maintenance_off_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not await is_admin(update.effective_user.id):
+        return
+    set_maintenance_mode(False)
+    await update.message.reply_text("✅ Maintenance mode: O'CHIRILDI")
+
+
+async def maintenance_status_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not await is_admin(update.effective_user.id):
+        return
+    mode = get_maintenance_mode()
+    mode_label = "🛠 YOQILGAN" if mode else "✅ O'CHIRILGAN"
+    await update.message.reply_text(
+        f"ℹ️ Maintenance holati: {mode_label}"
+    )
 
 async def stats_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not await is_admin(update.effective_user.id): return

@@ -24,7 +24,8 @@ def _get_client():
     if _client is not None:
         return _client
     url = os.getenv("SUPABASE_URL")
-    key = os.getenv("SUPABASE_ANON_KEY")
+    # Prefer service role for server-side writes (RLS policies).
+    key = os.getenv("SUPABASE_SERVICE_ROLE_KEY") or os.getenv("SUPABASE_ANON_KEY")
     if not url or not key:
         return None
     try:
@@ -226,6 +227,42 @@ def db_get_daily_limit() -> Optional[int]:
         return None
 
 
+def db_get_maintenance_mode() -> Optional[bool]:
+    c = _get_client()
+    if not c:
+        return None
+    try:
+        r = c.table("bot_settings").select("maintenance_mode").eq("id", 1).execute()
+        if r.data:
+            return bool(r.data[0].get("maintenance_mode", False))
+        return False
+    except Exception as e:
+        _mark_temporarily_unavailable(e)
+        logger.error(f"db_get_maintenance_mode: {e}")
+        return None
+
+
+def db_set_maintenance_mode(enabled: bool) -> bool:
+    c = _get_client()
+    if not c:
+        return False
+    try:
+        existing = c.table("bot_settings").select("id").eq("id", 1).execute()
+        if existing.data:
+            c.table("bot_settings").update({"maintenance_mode": bool(enabled)}).eq("id", 1).execute()
+        else:
+            c.table("bot_settings").insert({
+                "id": 1,
+                "daily_limit": 10,
+                "maintenance_mode": bool(enabled),
+            }).execute()
+        return True
+    except Exception as e:
+        _mark_temporarily_unavailable(e)
+        logger.error(f"db_set_maintenance_mode: {e}")
+        return False
+
+
 # ── premium (premium_subscriptions) ──────────────────────────────────────────
 def db_is_premium(user_id: int) -> bool:
     c = _get_client()
@@ -233,11 +270,137 @@ def db_is_premium(user_id: int) -> bool:
         return False
     try:
         now = datetime.utcnow().isoformat()
-        r = c.table("premium_subscriptions").select("id").eq("user_id", user_id).gte("end_date", now).execute()
-        return bool(r.data)
+        # Compatibility: some schemas may only have `expire_date`, others have `end_date`.
+        # Prefer end_date if present; otherwise fallback to expire_date.
+        try:
+            r = c.table("premium_subscriptions").select("id").eq("user_id", user_id).gte("end_date", now).execute()
+            return bool(r.data)
+        except Exception:
+            r = c.table("premium_subscriptions").select("id").eq("user_id", user_id).gte("expire_date", now).execute()
+            return bool(r.data)
     except Exception as e:
         _mark_temporarily_unavailable(e)
         logger.error(f"db_is_premium: {e}")
+        return False
+
+
+# ── premium payments flow (webapp) ─────────────────────────────────────────────
+def db_create_payment(
+    user_id: int,
+    plan_type: str,
+    amount: float,
+    screenshot_url: str | None = None,
+    metadata: dict | None = None,
+) -> Optional[int]:
+    """
+    Create a pending payment row in Supabase.
+    Returns payment id or None if Supabase unavailable / schema drift.
+    """
+    c = _get_client()
+    if not c:
+        return None
+    try:
+        plan = (plan_type or "premium").strip().lower()
+        if plan not in ("standard", "premium"):
+            plan = "premium"
+        meta = metadata or {}
+        payload = {
+            "user_id": int(user_id),
+            "plan_type": plan,
+            "amount": float(amount),
+            "currency": "UZS",
+            "screenshot_url": screenshot_url,
+            "status": "pending",
+        }
+        # Some schemas may or may not have `metadata` jsonb column.
+        try:
+            if meta:
+                payload_with_meta = {**payload, "metadata": meta}
+                res = c.table("payments").insert(payload_with_meta).execute()
+            else:
+                res = c.table("payments").insert(payload).execute()
+        except Exception:
+            res = c.table("payments").insert(payload).execute()
+        if res.data and len(res.data) > 0:
+            return int(res.data[0]["id"])
+        return None
+    except Exception as e:
+        _mark_temporarily_unavailable(e)
+        logger.error(f"db_create_payment error: {e}", exc_info=True)
+        return None
+
+
+def db_get_payment(payment_id: int) -> Optional[dict]:
+    c = _get_client()
+    if not c:
+        return None
+    try:
+        r = c.table("payments").select("*").eq("id", int(payment_id)).execute()
+        if r.data:
+            row = r.data[0]
+            return dict(row)
+        return None
+    except Exception as e:
+        _mark_temporarily_unavailable(e)
+        logger.error(f"db_get_payment error: {e}", exc_info=True)
+        return None
+
+
+def db_set_payment_status(
+    payment_id: int,
+    status: str,
+    reviewed_by: int | None = None,
+    admin_note: str | None = None,
+) -> bool:
+    c = _get_client()
+    if not c:
+        return False
+    try:
+        st = (status or "").strip().lower()
+        if st not in ("approved", "rejected", "pending", "failed"):
+            return False
+        payload = {"status": st}
+        if reviewed_by is not None:
+            payload["reviewed_by"] = int(reviewed_by)
+        if admin_note is not None:
+            payload["admin_note"] = admin_note
+        c.table("payments").update(payload).eq("id", int(payment_id)).execute()
+        return True
+    except Exception as e:
+        _mark_temporarily_unavailable(e)
+        logger.error(f"db_set_payment_status error: {e}", exc_info=True)
+        return False
+
+
+def db_activate_subscription(
+    user_id: int,
+    plan_type: str,
+    start_date,
+    expire_date,
+    status: str = "active",
+) -> bool:
+    c = _get_client()
+    if not c:
+        return False
+    try:
+        plan = (plan_type or "premium").strip().lower()
+        if plan not in ("standard", "premium"):
+            plan = "premium"
+        st = (status or "active").strip().lower()
+        if st not in ("active", "expired", "pending", "cancelled"):
+            st = "active"
+        payload = {
+            "user_id": int(user_id),
+            "plan_type": plan,
+            "start_date": start_date,
+            "expire_date": expire_date,
+            "status": st,
+        }
+        c.table("premium_subscriptions").insert(payload).execute()
+        return True
+    except Exception as e:
+        _mark_temporarily_unavailable(e)
+        logger.error(f"db_activate_subscription error: {e}", exc_info=True)
         return False
 
 

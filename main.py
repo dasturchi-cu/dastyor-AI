@@ -475,7 +475,8 @@ from bot.handlers.admin import (
     add_premium_command, remove_premium_command, set_limit_command,
     user_info_command, top_users_command, ban_user_command, unban_user_command,
     search_command, support_panel_callback, add_admin_command, remove_admin_command,
-    approve_premium_command
+    approve_premium_command, maintenance_on_command, maintenance_off_command,
+    maintenance_status_command
 )
 
 from bot.handlers.admin_middleware import track_user
@@ -514,6 +515,8 @@ from bot.handlers.webapp_data import web_app_data_handler
 # Services
 from bot.services.settings_service import is_premium
 from bot.services.user_service import increment_file_count, get_user_lang
+from bot.services.settings_service import get_maintenance_mode
+from bot.services.admin_service import is_admin as is_admin_user
 
 async def back_to_main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not update.effective_chat or update.effective_chat.type != "private":
@@ -550,6 +553,13 @@ async def unified_router_check(update: Update, context: ContextTypes.DEFAULT_TYP
     """Central check for ban status"""
     if context.user_data.get('is_banned'):
         await update.message.reply_text("🚫 Siz botdan foydalanishdan bloklangansiz.")
+        return False
+    # Maintenance mode: allow only admins to use the bot.
+    uid = update.effective_user.id if update.effective_user else None
+    if uid and get_maintenance_mode() and not is_admin_user(uid):
+        await update.message.reply_text(
+            "🛠 Botda texnik ishlar ketmoqda. Iltimos, birozdan keyin qayta urinib ko'ring."
+        )
         return False
     return True
 
@@ -794,6 +804,9 @@ def setup_application():
     application.add_handler(CommandHandler("add_premium", add_premium_command))
     application.add_handler(CommandHandler("remove_premium", remove_premium_command))
     application.add_handler(CommandHandler("approve", approve_premium_command))
+    application.add_handler(CommandHandler("maintenance_on", maintenance_on_command))
+    application.add_handler(CommandHandler("maintenance_off", maintenance_off_command))
+    application.add_handler(CommandHandler("maintenance_status", maintenance_status_command))
     application.add_handler(CommandHandler("set_limit", set_limit_command))
     application.add_handler(CommandHandler("add_admin", add_admin_command))
     application.add_handler(CommandHandler("remove_admin", remove_admin_command))
