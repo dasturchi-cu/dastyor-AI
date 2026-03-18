@@ -334,11 +334,11 @@
           <button class="w-6 h-6 rounded-full bg-[#8b5cf6] shadow-sm border-2 border-white focus:ring-2 focus:ring-[#8b5cf6]" onclick="changeCvColor('#8b5cf6')"></button>
         </div>
 
-        <button onclick="exportPDF()" class="bg-red-600 hover:bg-red-700 text-white px-5 py-2 rounded-lg font-semibold text-sm shadow-md transition-all flex items-center gap-2">
+        <button onclick="sendCvToBot('pdf')" class="bg-red-600 hover:bg-red-700 text-white px-5 py-2 rounded-lg font-semibold text-sm shadow-md transition-all flex items-center gap-2">
           <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
             <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
           </svg>
-          <span data-i18n="download_pdf">PDF Yuklash</span>
+          <span data-i18n="download_pdf">PDF botga yuborish</span>
         </button>
       </div>
 
@@ -365,7 +365,7 @@
         edu_title: "Ta'lim", add_edu: "+ Ta'lim qo'shish", exp_title: "Ish Tajribasi", add_exp: "+ Tajriba qo'shish",
         lang_title: "Til Bilish", add_lang: "+ Til qo'shish",
         skills_title: "Ko'nikmalar (Skills)", ach_title: "Yutuqlar va Qobiliyatlar", add_ach: "Qo'shish",
-        cv_color: "Rang:", preview: "Jonli Ko'rinish", download_pdf: "PDF Yuklash", 
+        cv_color: "Rang:", preview: "Jonli Ko'rinish", download_pdf: "PDF botga yuborish",
         next_btn: "Keyingisi", back_btn: "Orqaga", clear_data: "Ma'lumotlarni tozalash",
         
         // Dynamic List Labels
@@ -386,7 +386,7 @@
         edu_title: "Таълим", add_edu: "+ Таълим қўшиш", exp_title: "Иш Тажрибаси", add_exp: "+ Тажриба қўшиш",
         lang_title: "Тил Билиш", add_lang: "+ Тил қўшиш",
         skills_title: "Кўникмалар (Skills)", ach_title: "Ютуқлар ва Қобилиятлар", add_ach: "Қўшиш",
-        cv_color: "Ранг:", preview: "Жонли Кўриниш", download_pdf: "PDF Юклаш",
+        cv_color: "Ранг:", preview: "Жонли Кўриниш", download_pdf: "PDF ботга юбориш",
         next_btn: "Кейингиси", back_btn: "Орқага", clear_data: "Маълумотларни тозалаш",
 
         select_lang: "Тил танланг", lang_en: "Инглиз тили", lang_ru: "Рус тили", lang_de: "Немис тили", lang_tr: "Турк тили", lang_other: "Бошқа",
@@ -406,7 +406,7 @@
         edu_title: "Education", add_edu: "+ Add Education", exp_title: "Work Experience", add_exp: "+ Add Experience",
         lang_title: "Languages", add_lang: "+ Add Language",
         skills_title: "Skills", ach_title: "Achievements", add_ach: "Add",
-        cv_color: "Color:", preview: "Live Preview", download_pdf: "Download PDF",
+        cv_color: "Color:", preview: "Live Preview", download_pdf: "Send PDF to bot",
         next_btn: "Next", back_btn: "Back", clear_data: "Clear Data",
 
         select_lang: "Select Language", lang_en: "English", lang_ru: "Russian", lang_de: "German", lang_tr: "Turkish", lang_other: "Other",
@@ -426,7 +426,7 @@
         edu_title: "Образование", add_edu: "+ Добавить образование", exp_title: "Опыт работы", add_exp: "+ Добавить опыт",
         lang_title: "Языки", add_lang: "+ Добавить язык",
         skills_title: "Навыки", ach_title: "Достижения", add_ach: "Добавить",
-        cv_color: "Цвет:", preview: "Предпросмотр", download_pdf: "Скачать PDF",
+        cv_color: "Цвет:", preview: "Предпросмотр", download_pdf: "Отправить PDF в бота",
         next_btn: "Далее", back_btn: "Назад", clear_data: "Очистить данные",
 
         select_lang: "Выберите язык", lang_en: "Английский", lang_ru: "Русский", lang_de: "Немецкий", lang_tr: "Турецкий", lang_other: "Другое",
@@ -945,6 +945,49 @@
       }
       
       wrap.style.transform = prevTransform;
+    }
+
+    function buildCvPayload(fmt) {
+      const normalizeExp = (x) => {
+        const period = (x.date || '').trim();
+        const role = [x.title || '', x.place || ''].filter(Boolean).join(' - ');
+        return { from: period, to: '', description: role };
+      };
+      return {
+        action: 'generate_cv',
+        format: (fmt === 'pdf') ? 'pdf' : 'word',
+        name: document.getElementById('f_name').value || '',
+        spec: document.getElementById('f_role').value || '',
+        phone: document.getElementById('f_phone').value || '',
+        email: document.getElementById('f_email').value || '',
+        loc: document.getElementById('f_loc').value || '',
+        about: document.getElementById('f_about').value || '',
+        works: (expData || []).map(normalizeExp),
+        education_list: (eduData || []).map(x => ({ title: x.title || '', date: x.date || '' })),
+        skills: (skillsData || []).join(', '),
+      };
+    }
+
+    function sendCvToBot(fmt) {
+      const tg = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp : null;
+      if (!tg || !tg.sendData) {
+        alert("Faqat Telegram WebApp ichida ishlaydi!");
+        return;
+      }
+      try {
+        const payload = buildCvPayload(fmt);
+        const raw = JSON.stringify(payload);
+        if (raw.length > 3800) {
+          alert("❌ Ma'lumot hajmi juda katta. Ma'lumotni qisqartirib qayta urinib ko'ring.");
+          return;
+        }
+        tg.sendData(raw);
+        tg.HapticFeedback && tg.HapticFeedback.notificationOccurred && tg.HapticFeedback.notificationOccurred('success');
+        alert("⏳ So'rov botga yuborildi. Chatda faylni kuting.");
+        setTimeout(() => { try { tg.close(); } catch (_) {} }, 1200);
+      } catch (e) {
+        alert("❌ Botga yuborishda xatolik yuz berdi.");
+      }
     }
 
     // --- INIT ---

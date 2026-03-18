@@ -626,13 +626,24 @@ function sendObyektivkaToBot(fmt){
   var btn=document.getElementById('dlBtn');
   if(btn)btn.disabled=true;
   try{
-    tg.sendData(JSON.stringify(buildObyPayload(fmt)));
+    var payload = buildObyPayload(fmt);
+    var raw = JSON.stringify(payload);
+    // Telegram WebApp sendData payload is limited; photo base64 can overflow it.
+    if(raw.length > 3800 && payload.photo_data){
+      payload.photo_data = '';
+      raw = JSON.stringify(payload);
+    }
+    if(raw.length > 3800){
+      alert("❌ Ma'lumot hajmi juda katta. Rasmni olib tashlab qayta urinib ko'ring.");
+      return;
+    }
+    tg.sendData(raw);
     tg.HapticFeedback&&tg.HapticFeedback.notificationOccurred&&tg.HapticFeedback.notificationOccurred('success');
-    var msg=(fmt==='pdf') ? "✅ PDF botga yuborildi. Chatda kuting." : "✅ Word botga yuborildi. Chatda kuting.";
+    var msg="⏳ So'rov botga yuborildi. Chatda faylni kuting.";
     try{ alert(msg); }catch(_){}
-    setTimeout(function(){ try{ tg.close(); }catch(_){} }, 450);
+    setTimeout(function(){ try{ tg.close(); }catch(_){} }, 1200);
   }catch(e){
-    alert("❌ Yuborishda xatolik yuz berdi.");
+    alert("❌ Botga yuborishda xatolik yuz berdi.");
   }finally{
     if(btn)btn.disabled=false;
   }
