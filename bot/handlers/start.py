@@ -32,6 +32,8 @@ _ACTION_MAP: dict[str, tuple[str, str, str]] = {
 
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handle /start [action] — with optional deep-link payload."""
+    if not update.effective_chat or update.effective_chat.type != "private":
+        return
     user = update.effective_user
     if not user:
         return
@@ -131,6 +133,8 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def menu_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handle /menu"""
+    if not update.effective_chat or update.effective_chat.type != "private":
+        return
     uid = update.effective_user.id if update.effective_user else None
     await update.message.reply_text(
         "Menyudan xizmat tanlang:",

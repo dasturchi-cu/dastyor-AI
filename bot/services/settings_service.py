@@ -131,6 +131,36 @@ def is_premium(user_id):
     except:
         return False
 
+
+def get_premium_record(user_id):
+    """Return premium record dict for user or None."""
+    data = _load_settings()
+    return data.get("premium_users", {}).get(str(user_id))
+
+
+def get_premium_status(user_id) -> str:
+    """
+    Premium status:
+    - active
+    - expired
+    - none
+    """
+    rec = get_premium_record(user_id)
+    if not rec:
+        return "none"
+    try:
+        end_date = datetime.strptime(rec.get("end_date", ""), "%Y-%m-%d")
+        return "active" if end_date >= datetime.now() else "expired"
+    except Exception:
+        return "none"
+
+
+def get_premium_expiry(user_id) -> str | None:
+    rec = get_premium_record(user_id)
+    if not rec:
+        return None
+    return rec.get("end_date")
+
 # === CONFIG ===
 def get_daily_limit():
     try:

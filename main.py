@@ -474,15 +474,18 @@ from bot.handlers.admin import (
     handle_admin_text, add_channel_command, remove_channel_command,
     add_premium_command, remove_premium_command, set_limit_command,
     user_info_command, top_users_command, ban_user_command, unban_user_command,
-    search_command, support_panel_callback, add_admin_command, remove_admin_command
+    search_command, support_panel_callback, add_admin_command, remove_admin_command,
+    approve_premium_command
 )
 
 from bot.handlers.admin_middleware import track_user
 from bot.handlers.premium_callbacks import premium_callback_handler
+from bot.handlers.premium import premium_handler, premium_purchase_callback, handle_premium_screenshot
 from bot.handlers.help import help_command
 from bot.handlers.chat_member import chat_member_updated
 from bot.handlers.common import balance_handler, help_button_handler
 from bot.handlers.feedback import start_feedback, handle_feedback
+from bot.handlers.support_group import support_group_router, SUPPORT_GROUP_ID
 
 
 from bot.handlers.ocr_to_word import (
@@ -508,18 +511,24 @@ from bot.services.settings_service import is_premium
 from bot.services.user_service import increment_file_count, get_user_lang
 
 async def back_to_main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not update.effective_chat or update.effective_chat.type != "private":
+        return
     context.user_data.clear()
     lang = get_user_lang(update.effective_user.id) if update.effective_user else "uz_lat"
     await update.message.reply_text(t("or_menu", lang), reply_markup=get_main_menu(update.effective_user.id if update.effective_user else None, lang))
 
 async def more_menu_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Show 'Boshqa xizmatlar' sub-menu"""
+    if not update.effective_chat or update.effective_chat.type != "private":
+        return
     uid = update.effective_user.id if update.effective_user else None
     lang = get_user_lang(uid)
     await update.message.reply_text(t("more_menu_title", lang), reply_markup=get_more_menu(lang))
 
 async def cv_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Open CV Resume webapp page via WebApp inline button"""
+    if not update.effective_chat or update.effective_chat.type != "private":
+        return
     from bot.handlers.start import _ACTION_MAP, WEBAPP_BASE
     from telegram import WebAppInfo, InlineKeyboardMarkup, InlineKeyboardButton
     uid = update.effective_user.id if update.effective_user else 0
@@ -530,16 +539,7 @@ async def cv_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(f"🚀 <b>{desc}</b>", reply_markup=kb, parse_mode="HTML")
 
 async def premium_info_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text(
-        "💎 **Premium Xizmatlar**\n\n"
-        "• Cheklovsiz foydalanish\n"
-        "• Reklamasiz\n"
-        "• Yuqori tezlik\n"
-        "• Kanallarga majburiy a'zolik yo'q\n\n"
-        "Sotib olish uchun adminga yozing.",
-        parse_mode="Markdown",
-        reply_markup=get_back_button()
-    )
+    await premium_handler(update, context)
 
 async def unified_router_check(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Central check for ban status"""
@@ -551,6 +551,8 @@ async def unified_router_check(update: Update, context: ContextTypes.DEFAULT_TYP
 from bot.handlers.admin import process_admin_state_input
 
 async def handle_router_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not update.effective_chat or update.effective_chat.type != "private":
+        return
     if not await unified_router_check(update, context): return
     if await process_admin_state_input(update, context): return
     
@@ -617,7 +619,11 @@ async def handle_router_text(update: Update, context: ContextTypes.DEFAULT_TYPE)
     await update.message.reply_text(t("unknown_cmd", lang), reply_markup=get_main_menu(uid, lang))
 
 async def handle_router_doc(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not update.effective_chat or update.effective_chat.type != "private":
+        return
     if not await unified_router_check(update, context): return
+    if await handle_premium_screenshot(update, context):
+        return
     if await process_admin_state_input(update, context): return
     
     state = context.user_data.get('waiting_for')
@@ -647,7 +653,11 @@ async def handle_router_doc(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await handle_smart_document(update, context)
 
 async def handle_router_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not update.effective_chat or update.effective_chat.type != "private":
+        return
     if not await unified_router_check(update, context): return
+    if await handle_premium_screenshot(update, context):
+        return
     if await process_admin_state_input(update, context): return
     
     state = context.user_data.get('waiting_for')
@@ -666,6 +676,8 @@ async def handle_router_photo(update: Update, context: ContextTypes.DEFAULT_TYPE
         await handle_smart_photo(update, context)
 
 async def handle_router_audio(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not update.effective_chat or update.effective_chat.type != "private":
+        return
     if not await unified_router_check(update, context): return
     if await process_admin_state_input(update, context): return
     
@@ -705,6 +717,8 @@ async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> N
 
 async def _webapp_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE, action: str):
     """Generic handler: sends inline button opening the correct webapp page."""
+    if not update.effective_chat or update.effective_chat.type != "private":
+        return
     from bot.handlers.start import _ACTION_MAP, WEBAPP_BASE
     from bot.services.user_service import get_user_lang
     uid = update.effective_user.id if update.effective_user else 0
@@ -725,7 +739,7 @@ async def cmd_ocr(u, c):       await _webapp_cmd(u, c, "ocr")
 async def cmd_pdf(u, c):       await _webapp_cmd(u, c, "pdf")
 async def cmd_translit(u, c):  await _webapp_cmd(u, c, "translit")
 async def cmd_translate(u, c): await _webapp_cmd(u, c, "translate")
-async def cmd_premium(u, c):   await _webapp_cmd(u, c, "premium")
+async def cmd_premium(u, c):   await premium_handler(u, c)
 
 
 def setup_application():
@@ -737,6 +751,8 @@ def setup_application():
     
     # 1. CRM Middleware (Tracks + Checks Ban)
     application.add_handler(TypeHandler(Update, track_user), group=-1)
+    # 1.1 Support group strict router (ignore all other bot features there)
+    application.add_handler(MessageHandler(filters.Chat(chat_id=SUPPORT_GROUP_ID), support_group_router), group=0)
 
     # 2. Core Commands
     application.add_handler(CommandHandler("start",       start_command))
@@ -769,6 +785,7 @@ def setup_application():
     application.add_handler(CommandHandler("remove_channel", remove_channel_command))
     application.add_handler(CommandHandler("add_premium", add_premium_command))
     application.add_handler(CommandHandler("remove_premium", remove_premium_command))
+    application.add_handler(CommandHandler("approve", approve_premium_command))
     application.add_handler(CommandHandler("set_limit", set_limit_command))
     application.add_handler(CommandHandler("add_admin", add_admin_command))
     application.add_handler(CommandHandler("remove_admin", remove_admin_command))
@@ -777,6 +794,10 @@ def setup_application():
     application.add_handler(CallbackQueryHandler(
         premium_callback_handler,
         pattern="^prem_"
+    ))
+    application.add_handler(CallbackQueryHandler(
+        premium_purchase_callback,
+        pattern="^buy_"
     ))
     
     # Language callback handler removed — bot uses Uzbek by default
@@ -789,19 +810,20 @@ def setup_application():
     # 4. Text Menu Navigation — Asosiy tugmalar
     application.add_handler(MessageHandler(filters.Regex(get_regex_for_key("back_to_menu")), back_to_main_menu))
     application.add_handler(MessageHandler(filters.Regex("^(🔙 Orqaga|🔙 Назад|🔙 Back|🔙 Оркага)$"), back_to_main_menu))
-    application.add_handler(MessageHandler(filters.Regex(get_regex_for_key("btn_more")), more_menu_handler))
-    application.add_handler(MessageHandler(filters.Regex(get_regex_for_key("btn_cv")), cv_handler))
+    application.add_handler(MessageHandler(filters.Regex(get_regex_for_key("btn_more")) & filters.ChatType.PRIVATE, more_menu_handler))
+    application.add_handler(MessageHandler(filters.Regex(get_regex_for_key("btn_cv")) & filters.ChatType.PRIVATE, cv_handler))
     
     admin_buttons = "^(📊 Statistika|📨 Xabar yuborish|📢 Kanallar|💎 Premium Boshqaruv|⚙️ Sozlamalar|👥 Foydalanuvchilar|➕ Admin qo'shish|❌ Admin o'chirish|🆘 Support so'rovlar|🚪 Panelni yopish)$"
     application.add_handler(MessageHandler(filters.Regex(admin_buttons), handle_admin_text))
 
     application.add_handler(MessageHandler(filters.Regex(get_regex_for_key("btn_ocr")), ocr_handler))
-    application.add_handler(MessageHandler(filters.Regex(get_regex_for_key("btn_oby")), obyektivka_handler))
+    application.add_handler(MessageHandler(filters.Regex(get_regex_for_key("btn_oby")) & filters.ChatType.PRIVATE, obyektivka_handler))
     application.add_handler(MessageHandler(filters.Regex(get_regex_for_key("btn_translit")), transliterate_handler))
     application.add_handler(MessageHandler(filters.Regex(get_regex_for_key("btn_translate")), translate_handler))
     application.add_handler(MessageHandler(filters.Regex(get_regex_for_key("btn_pdf")), image_to_pdf_handler))
     application.add_handler(MessageHandler(filters.Regex(get_regex_for_key("btn_spell")), spell_check_handler))
-    application.add_handler(MessageHandler(filters.Regex(get_regex_for_key("btn_premium")), premium_info_handler))
+    application.add_handler(MessageHandler(filters.Regex(get_regex_for_key("btn_premium")) & filters.ChatType.PRIVATE, premium_info_handler))
+    application.add_handler(MessageHandler(filters.Regex("^Premium sotib olish$") & filters.ChatType.PRIVATE, premium_info_handler))
     
     application.add_handler(MessageHandler(filters.Regex("^(🔡 Kirill → Lotin|🔡 Кирилл → Лотин)$"), krill_to_lotin_handler))
     application.add_handler(MessageHandler(filters.Regex("^(🔠 Lotin → Kirill|🔠 Лотин → Кирилл)$"), lotin_to_krill_handler))
@@ -823,7 +845,7 @@ def setup_application():
         go_translate
     ))
     
-    application.add_handler(MessageHandler(filters.Regex(get_regex_for_key("btn_balance")), balance_handler))
+    application.add_handler(MessageHandler(filters.Regex(get_regex_for_key("btn_balance")) & filters.ChatType.PRIVATE, balance_handler))
     application.add_handler(MessageHandler(filters.Regex(get_regex_for_key("btn_contact")), start_feedback))
     application.add_handler(MessageHandler(filters.Regex(get_regex_for_key("btn_help")), help_button_handler))
 

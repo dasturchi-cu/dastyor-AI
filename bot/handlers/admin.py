@@ -445,6 +445,60 @@ async def add_premium_command(update: Update, context: ContextTypes.DEFAULT_TYPE
     except ValueError: await update.message.reply_text("❌ ID raqam bo'lishi kerak.")
     except Exception as e: await update.message.reply_text(f"❌ Xato: {e}")
 
+async def approve_premium_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    /approve user_id premium_type
+    premium_type: standard (7 days) | premium (30 days)
+    """
+    if not await is_admin(update.effective_user.id):
+        return
+    args = context.args or []
+    if len(args) < 2:
+        await update.message.reply_text("⚠️ Foydalanish: /approve <user_id> <standard|premium>")
+        return
+
+    uid_raw = args[0].strip()
+    ptype = args[1].strip().lower()
+    if not uid_raw.isdigit():
+        await update.message.reply_text("❌ user_id raqam bo'lishi kerak.")
+        return
+    if ptype not in {"standard", "premium"}:
+        await update.message.reply_text("❌ premium_type: standard yoki premium bo'lishi kerak.")
+        return
+
+    uid = int(uid_raw)
+    days = 7 if ptype == "standard" else 30
+    profile = crm.get_user_profile(uid) or {}
+    name = profile.get("first_name") or profile.get("name") or "User"
+    username = profile.get("username") or ""
+
+    try:
+        end_date = add_premium(uid, days=days, name=name, username=username)
+        crm.log_premium_transaction(uid, days, str(update.effective_user.id))
+    except Exception as e:
+        await update.message.reply_text(f"❌ Premium tasdiqlashda xatolik: {e}")
+        return
+
+    # Notify user
+    try:
+        await context.bot.send_message(
+            chat_id=uid,
+            text=(
+                f"✅ To'lovingiz tasdiqlandi!\n\n"
+                f"📦 Tarif: {'Standard' if ptype == 'standard' else 'Premium'}\n"
+                f"⏳ Muddati: {days} kun\n"
+                f"📅 Tugash sanasi: {end_date}"
+            ),
+        )
+    except Exception:
+        # User might block bot; still keep admin-side success.
+        pass
+
+    await update.message.reply_text(
+        f"✅ Premium tasdiqlandi.\nUser: <code>{uid}</code>\nTarif: <b>{ptype}</b>\nTugash: <b>{end_date}</b>",
+        parse_mode="HTML",
+    )
+
 async def remove_premium_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not await is_admin(update.effective_user.id): return
     if not context.args: return
