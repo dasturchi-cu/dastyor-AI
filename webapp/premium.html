@@ -569,11 +569,32 @@
       fd.append("file", file);
       fd.append("plan", selectedPlan);
 
-      // Robust identity: DastyorAI may still be initializing, so fallback to tg.initDataUnsafe.
-      const tgUserId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id;
-      const tid = window.DastyorAI?.getTelegramId?.() || tgUserId;
-      const token = window.DastyorAI?.getToken?.() || sessionStorage.getItem("tg_token");
-      if (tid) fd.append("telegram_id", String(tid));
+      function getTelegramIdSafe() {
+        const fromApi = window.DastyorAI?.getTelegramId?.();
+        const fromUnsafe = window.Telegram?.WebApp?.initDataUnsafe?.user?.id;
+        const fromUrl = new URLSearchParams(location.search).get("telegram_id");
+        const candidate = fromApi || fromUnsafe || fromUrl;
+        const s = String(candidate || "").trim();
+        return /^\d+$/.test(s) ? s : null;
+      }
+
+      function getTokenSafe() {
+        const t1 = window.DastyorAI?.getToken?.();
+        const t2 = sessionStorage.getItem("tg_token");
+        const candidate = t1 || t2;
+        const s = String(candidate || "").trim();
+        return s.length > 5 ? s : null;
+      }
+
+      const tid = getTelegramIdSafe();
+      const token = getTokenSafe();
+
+      if (!tid) {
+        if (st) st.textContent = "❌ Unauthorized: telegram_id topilmadi (identity).";
+        return;
+      }
+
+      fd.append("telegram_id", String(tid));
       if (token) fd.append("token", String(token));
 
       const base = window.DastyorAI?.BASE || location.origin;
