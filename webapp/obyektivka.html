@@ -665,37 +665,19 @@ async function sendObyektivkaViaApi(fmt){
 
 async function sendObyektivkaToBot(fmt){
   var tg=window.Telegram&&window.Telegram.WebApp?window.Telegram.WebApp:null;
-  if(!tg||!tg.sendData){
+  if(!tg){
     alert("Faqat Telegram WebApp ichida ishlaydi!");
     return;
   }
   var btn=document.getElementById('dlBtn');
   if(btn)btn.disabled=true;
   try{
-    var payload = buildObyPayload(fmt);
-    var raw = JSON.stringify(payload);
-    // Telegram WebApp sendData payload is limited; photo base64 can overflow it.
-    if(raw.length > 3800){
-      await sendObyektivkaViaApi(fmt);
-      tg.HapticFeedback&&tg.HapticFeedback.notificationOccurred&&tg.HapticFeedback.notificationOccurred('success');
-      alert("⏳ So'rov server orqali yuborildi. Chatda faylni kuting.");
-      setTimeout(function(){ try{ tg.close(); }catch(_){} }, 1200);
-      return;
-    }
-    tg.sendData(raw);
+    await sendObyektivkaViaApi(fmt);
     tg.HapticFeedback&&tg.HapticFeedback.notificationOccurred&&tg.HapticFeedback.notificationOccurred('success');
-    var msg="⏳ So'rov botga yuborildi. Chatda faylni kuting.";
-    try{ alert(msg); }catch(_){}
+    alert("⏳ So'rov yuborildi. Chatda faylni kuting.");
     setTimeout(function(){ try{ tg.close(); }catch(_){} }, 1200);
   }catch(e){
-    try{
-      await sendObyektivkaViaApi(fmt);
-      tg.HapticFeedback&&tg.HapticFeedback.notificationOccurred&&tg.HapticFeedback.notificationOccurred('success');
-      alert("⏳ So'rov server orqali yuborildi. Chatda faylni kuting.");
-      setTimeout(function(){ try{ tg.close(); }catch(_){} }, 1200);
-    }catch(_){
-      alert("❌ Botga yuborishda xatolik yuz berdi.");
-    }
+    alert("❌ Yuborishda xatolik: " + (e.message||String(e)).slice(0,80));
   }finally{
     if(btn)btn.disabled=false;
   }

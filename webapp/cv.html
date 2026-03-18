@@ -1005,33 +1005,17 @@
 
     async function sendCvToBot(fmt) {
       const tg = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp : null;
-      if (!tg || !tg.sendData) {
+      if (!tg) {
         alert("Faqat Telegram WebApp ichida ishlaydi!");
         return;
       }
       try {
-        const payload = buildCvPayload(fmt);
-        const raw = JSON.stringify(payload);
-        if (raw.length > 3800) {
-          await sendCvViaApi(fmt);
-          tg.HapticFeedback && tg.HapticFeedback.notificationOccurred && tg.HapticFeedback.notificationOccurred('success');
-          alert("⏳ So'rov server orqali yuborildi. Chatda faylni kuting.");
-          setTimeout(() => { try { tg.close(); } catch (_) {} }, 1200);
-          return;
-        }
-        tg.sendData(raw);
+        await sendCvViaApi(fmt);
         tg.HapticFeedback && tg.HapticFeedback.notificationOccurred && tg.HapticFeedback.notificationOccurred('success');
-        alert("⏳ So'rov botga yuborildi. Chatda faylni kuting.");
+        alert("⏳ So'rov yuborildi. Chatda faylni kuting.");
         setTimeout(() => { try { tg.close(); } catch (_) {} }, 1200);
       } catch (e) {
-        try {
-          await sendCvViaApi(fmt);
-          tg.HapticFeedback && tg.HapticFeedback.notificationOccurred && tg.HapticFeedback.notificationOccurred('success');
-          alert("⏳ So'rov server orqali yuborildi. Chatda faylni kuting.");
-          setTimeout(() => { try { tg.close(); } catch (_) {} }, 1200);
-        } catch (_) {
-          alert("❌ Botga yuborishda xatolik yuz berdi.");
-        }
+        alert("❌ Yuborishda xatolik: " + (e.message || String(e)).slice(0, 80));
       }
     }
 
