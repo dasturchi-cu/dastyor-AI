@@ -3,10 +3,9 @@ import logging
 import os
 import base64
 import time
-from telegram import Update, InputFile, ReplyKeyboardMarkup
+from telegram import Update, ReplyKeyboardMarkup
 from telegram.ext import ContextTypes
 from bot.services.doc_generator import generate_obyektivka_docx, generate_cv_docx, convert_to_pdf_safe
-from bot.utils.delivery import send_docx_with_confirmation, send_file_safely
 import asyncio
 from bot.services.ai_service import check_spelling_text
 from bot.handlers.premium import premium_handler
@@ -197,7 +196,7 @@ async def web_app_data_handler(update: Update, context: ContextTypes.DEFAULT_TYP
             pdf_file = await asyncio.to_thread(convert_to_pdf_safe, temp_file, os.path.dirname(temp_file))
             if pdf_file and os.path.exists(pdf_file):
                 # Ensure stable filename requested by spec
-                cv_pdf = os.path.join(os.path.dirname(temp_file), "cv.pdf")
+                cv_pdf = os.path.join(os.path.dirname(temp_file), "cv_result.pdf")
                 try:
                     if pdf_file != cv_pdf:
                         try:
@@ -215,28 +214,55 @@ async def web_app_data_handler(update: Update, context: ContextTypes.DEFAULT_TYP
 
         # STEP 1/2/5: ensure exists, send properly, handle errors
         if action == "generate_obyektivka":
-            ok = await send_file_safely(
-                context.bot,
-                chat_id,
-                final_file,
-                caption="📄 Sizning faylingiz tayyor",
-                confirmation_text="✅ Obyektivka Word fayli botga yuborildi",
-            )
+            objective_file = os.path.join(_generated_dir(), "objective.docx")
+            if not os.path.isfile(objective_file):
+                # fallback to whatever was generated if rename failed for any reason
+                objective_file = final_file
+            if not os.path.isfile(objective_file):
+                await context.bot.send_message(chat_id=chat_id, text="❌ Obyektivka Word fayli yaratilmadi")
+                return
+            try:
+                with open(objective_file, "rb") as f:
+                    await context.bot.send_document(chat_id=chat_id, document=f, caption="📄 Sizning faylingiz tayyor")
+                await context.bot.send_message(chat_id=chat_id, text="✅ Obyektivka Word fayli botga yuborildi")
+                ok = True
+            except Exception as e:
+                logger.error("Obyektivka Word send failed: %s", e, exc_info=True)
+                await context.bot.send_message(chat_id=chat_id, text=f"❌ Obyektivka Word faylini yuborishda xatolik: {str(e)[:200]}")
+                ok = False
         elif action == "generate_cv":
-            ok = await send_file_safely(
-                context.bot,
-                chat_id,
-                final_file,
-                caption="📄 Sizning faylingiz tayyor",
-                confirmation_text="✅ CV PDF fayli botga yuborildi" if final_file.lower().endswith(".pdf") else "✅ CV Word fayli botga yuborildi",
-            )
+            target_file = final_file
+            if fmt == "pdf":
+                expected_pdf = os.path.join(_generated_dir(), "cv_result.pdf")
+                if os.path.isfile(expected_pdf):
+                    target_file = expected_pdf
+            if not os.path.isfile(target_file):
+                await context.bot.send_message(chat_id=chat_id, text="❌ CV fayli yaratilmadi")
+                return
+            try:
+                with open(target_file, "rb") as f:
+                    await context.bot.send_document(chat_id=chat_id, document=f, caption="📄 Sizning faylingiz tayyor")
+                if target_file.lower().endswith(".pdf"):
+                    await context.bot.send_message(chat_id=chat_id, text="✅ CV PDF fayli botga yuborildi")
+                else:
+                    await context.bot.send_message(chat_id=chat_id, text="✅ CV Word fayli botga yuborildi")
+                ok = True
+            except Exception as e:
+                logger.error("CV file send failed: %s", e, exc_info=True)
+                if fmt == "pdf":
+                    await context.bot.send_message(chat_id=chat_id, text=f"❌ CV PDF faylini yuborishda xatolik: {str(e)[:200]}")
+                else:
+                    await context.bot.send_message(chat_id=chat_id, text=f"❌ CV Word faylini yuborishda xatolik: {str(e)[:200]}")
+                ok = False
         else:
-            ok = await send_file_safely(
-                context.bot,
-                chat_id,
-                final_file,
-                caption="📄 Sizning faylingiz tayyor",
-            )
+            try:
+                with open(final_file, "rb") as f:
+                    await context.bot.send_document(chat_id=chat_id, document=f, caption="📄 Sizning faylingiz tayyor")
+                ok = True
+            except Exception as e:
+                logger.error("Generic file send failed: %s", e, exc_info=True)
+                await context.bot.send_message(chat_id=chat_id, text=f"❌ Fayl yuborilmadi: {str(e)[:200]}")
+                ok = False
 
         if ok:
             await msg.delete()
