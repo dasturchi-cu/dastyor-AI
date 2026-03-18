@@ -48,6 +48,33 @@ except Exception:
     WEASYPRINT_OK = False
     logger.warning("WeasyPrint not installed — PDF will fall back to python-docx conversion")
 
+_PW_INSTALL_ATTEMPTED = False
+
+def _maybe_install_playwright_chromium() -> None:
+    """
+    Best-effort: ensure Playwright Chromium is installed.
+    Some deployments install the python package but not the browser binaries,
+    which causes runtime 500s for PDF exports.
+    """
+    global _PW_INSTALL_ATTEMPTED
+    if _PW_INSTALL_ATTEMPTED:
+        return
+    _PW_INSTALL_ATTEMPTED = True
+    try:
+        import subprocess
+        import sys
+
+        logger.warning("Playwright Chromium missing? Attempting install...")
+        subprocess.run(
+            [sys.executable, "-m", "playwright", "install", "chromium"],
+            check=False,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+        logger.info("Playwright install attempted.")
+    except Exception as e:
+        logger.warning("Playwright install attempt failed: %s", e)
+
 
 # ═══════════════════════════════════════════════════════════════════════════
 # DATA NORMALISATION
@@ -176,7 +203,27 @@ async def generate_cv_pdf(data: dict, base_url: str | None = None) -> bytes | No
                 logger.info("CV PDF generated via Playwright")
                 return pdf_bytes
         except Exception as e:
-            logger.warning(f"Playwright PDF failed: {e} — trying WeasyPrint")
+            # Common: playwright python pkg installed but browser binaries missing.
+            logger.warning(f"Playwright PDF failed: {e} — attempting chromium install + retry")
+            _maybe_install_playwright_chromium()
+            try:
+                async with async_playwright() as p:
+                    browser = await p.chromium.launch(
+                        args=['--no-sandbox', '--disable-setuid-sandbox',
+                              '--disable-dev-shm-usage']
+                    )
+                    page = await browser.new_page()
+                    await page.set_content(html_str, wait_until="networkidle")
+                    pdf_bytes = await page.pdf(
+                        format="A4",
+                        print_background=True,
+                        margin={"top": "0", "right": "0", "bottom": "0", "left": "0"}
+                    )
+                    await browser.close()
+                    logger.info("CV PDF generated via Playwright (after install)")
+                    return pdf_bytes
+            except Exception as e2:
+                logger.warning(f"Playwright retry failed: {e2} — trying WeasyPrint")
 
     # ── 2. WeasyPrint fallback ─────────────────────────────────────────
     if WEASYPRINT_OK:
@@ -225,7 +272,26 @@ async def generate_obyektivka_pdf(data: dict, base_url: str | None = None) -> by
                 logger.info("Obyektivka PDF generated via Playwright")
                 return pdf_bytes
         except Exception as e:
-            logger.warning(f"Playwright PDF failed: {e} — trying WeasyPrint")
+            logger.warning(f"Playwright PDF failed: {e} — attempting chromium install + retry")
+            _maybe_install_playwright_chromium()
+            try:
+                async with async_playwright() as p:
+                    browser = await p.chromium.launch(
+                        args=['--no-sandbox', '--disable-setuid-sandbox',
+                              '--disable-dev-shm-usage']
+                    )
+                    page = await browser.new_page()
+                    await page.set_content(html_str, wait_until="networkidle")
+                    pdf_bytes = await page.pdf(
+                        format="A4",
+                        print_background=True,
+                        margin={"top": "0", "right": "0", "bottom": "0", "left": "0"}
+                    )
+                    await browser.close()
+                    logger.info("Obyektivka PDF generated via Playwright (after install)")
+                    return pdf_bytes
+            except Exception as e2:
+                logger.warning(f"Playwright retry failed: {e2} — trying WeasyPrint")
 
     # ── 2. WeasyPrint fallback ─────────────────────────────────────────
     if WEASYPRINT_OK:
