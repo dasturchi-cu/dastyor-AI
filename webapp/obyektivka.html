@@ -19,6 +19,7 @@
       --border:#DDE5F3;--success:#16A34A;--danger:#DC2626;
       --font:'Plus Jakarta Sans',system-ui,sans-serif;
       --safe-bottom:env(safe-area-inset-bottom,0px);
+      --kb-offset:0px;
     }
     body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;-webkit-font-smoothing:antialiased;overflow-x:hidden}
 
@@ -177,7 +178,7 @@
     /* MODAL */
     .modal{position:fixed;inset:0;background:rgba(13,27,54,.65);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);display:none;justify-content:center;align-items:flex-end;z-index:1000}
     @media(min-width:500px){.modal{align-items:center;padding:16px}}
-    .modal-box{background:var(--card);border-radius:18px 18px 0 0;padding:22px 18px 22px;width:100%;max-width:480px;box-shadow:0 -8px 40px rgba(0,0,0,.18);animation:slideUp .25s ease;max-height:92vh;overflow-y:auto}
+    .modal-box{background:var(--card);border-radius:18px 18px 0 0;padding:22px 18px calc(22px + var(--safe-bottom));width:100%;max-width:480px;box-shadow:0 -8px 40px rgba(0,0,0,.18);animation:slideUp .25s ease;max-height:calc(92vh - var(--kb-offset));overflow-y:auto;scroll-behavior:smooth}
     @media(min-width:500px){.modal-box{border-radius:18px;animation:scaleIn .22s ease}}
     @keyframes slideUp{from{transform:translateY(32px);opacity:0}to{transform:none;opacity:1}}
     @keyframes scaleIn{from{transform:scale(.95) translateY(10px);opacity:0}to{transform:none;opacity:1}}
@@ -185,6 +186,7 @@
     .modal-foot{display:flex;justify-content:flex-end;gap:8px;margin-top:18px;padding-top:14px;border-top:1.5px solid var(--border)}
 
     .hidden{display:none!important}
+    body.modal-open{overflow:hidden}
   </style>
 </head>
 <body>
@@ -215,8 +217,8 @@
 <main class="main">
   <div class="card" id="lang-card">
     <div class="card-hero">
-      <div class="card-hero-title">Rasmiy Hujjat Generatori</div>
-      <div class="card-hero-sub">Davlat standartiga mos obyektivka tayyorlash</div>
+      <div class="card-hero-title">Obyektivka yaratish</div>
+      <div class="card-hero-sub">Qisqa vaqtda obyektivka yaratish</div>
     </div>
     <div class="lang-screen">
       <div class="lang-icon">&#x1F4CB;</div>
@@ -231,9 +233,9 @@
 
   <div class="card hidden" id="main-card">
     <div class="step-bar">
-      <div class="step-item active" id="st1"><div class="step-num">1</div><div class="step-lbl">Shaxsiy</div></div>
+      <div class="step-item active" id="st1"><div class="step-num">1</div><div class="step-lbl" id="step_lbl_1">Shaxsiy</div></div>
       <div class="step-line"></div>
-      <div class="step-item" id="st2"><div class="step-num">2</div><div class="step-lbl">Qarindoshlar</div></div>
+      <div class="step-item" id="st2"><div class="step-num">2</div><div class="step-lbl" id="step_lbl_2">Qarindoshlar</div></div>
     </div>
 
     <form id="obyektivka-form">
@@ -241,7 +243,7 @@
       <div id="page-1" class="form-body">
         <div class="sec-head" style="margin-top:8px">
           <div class="sec-icon">&#x1F464;</div>
-          <div class="sec-title">Asosiy ma'lumotlar</div>
+          <div class="sec-title" id="sec_basic">Asosiy ma'lumotlar</div>
         </div>
         <div class="grid-photo">
           <div>
@@ -266,7 +268,7 @@
             </div>
           </div>
           <div>
-            <label style="display:block;font-size:12px;font-weight:700;color:var(--muted);margin-bottom:6px">Fotosurat</label>
+            <label style="display:block;font-size:12px;font-weight:700;color:var(--muted);margin-bottom:6px" id="lbl-photo">Fotosurat</label>
             <div class="photo-frame" onclick="document.getElementById('photoInput').click()">
               <div class="ph-icon" id="ph-icon">&#x1F4F7;</div>
               <div class="ph-txt" id="ph-txt">YUKLASH<br>3x4 sm</div>
@@ -278,7 +280,7 @@
         <hr />
         <div class="sec-head">
           <div class="sec-icon">&#x1F393;</div>
-          <div class="sec-title">Ta'lim va boshqalar</div>
+          <div class="sec-title" id="sec_edu_other">Ta'lim va boshqalar</div>
         </div>
         <div class="grid-2">
           <div class="field"><label id="lbl-party">Partiyaviyligi</label><input type="text" id="party" value="yo'q" oninput="saveToLocal();updatePreview()"></div>
@@ -302,13 +304,13 @@
           <span id="work-hint">Eng oxirida hozirgi ishlayotgan yoki o'qiyotgan joyingizni kiriting</span>
         </div>
         <div id="work-container"></div>
-        <button type="button" class="btn-add" onclick="addWorkRow()">+ Yangi ish joyi qo'shish</button>
+        <button type="button" class="btn-add" onclick="addWorkRow()" id="btn_add_work">+ Yangi ish joyi qo'shish</button>
       </div>
       <div class="form-footer" id="footer-p1">
-        <button type="button" class="btn btn-dang" onclick="clearForm()">
+        <button type="button" class="btn btn-dang" onclick="clearForm()" id="btn_clear_1">
           <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg>Tozalash
         </button>
-        <button type="button" class="btn btn-primary" onclick="goToStep(2)">
+        <button type="button" class="btn btn-primary" onclick="goToStep(2)" id="btn_next_1">
           Keyingisi <svg viewBox="0 0 24 24"><path d="m9 18 6-6-6-6" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </button>
       </div>
@@ -320,18 +322,18 @@
           <div class="sec-title" id="lbl-rel-title">Yaqin qarindoshlar</div>
         </div>
         <div id="relatives-list-ui"></div>
-        <button type="button" class="btn-add" onclick="openRelModal()">+ Qarindosh qo'shish</button>
+        <button type="button" class="btn-add" onclick="openRelModal()" id="btn_add_rel">+ Qarindosh qo'shish</button>
       </div>
       <div class="form-footer hidden" id="footer-p2">
-        <button type="button" class="btn btn-outline" onclick="goToStep(1)">
+        <button type="button" class="btn btn-outline" onclick="goToStep(1)" id="btn_back_2">
           <svg viewBox="0 0 24 24"><path d="m15 18-6-6 6-6" stroke-linecap="round" stroke-linejoin="round"/></svg>Orqaga
         </button>
         <div style="display:flex;gap:7px;flex-wrap:wrap">
-          <button type="button" class="btn btn-dang" onclick="clearForm()">
+          <button type="button" class="btn btn-dang" onclick="clearForm()" id="btn_clear_2">
             <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg>Tozalash
           </button>
-          <button type="button" class="btn btn-primary" id="dlBtn" onclick="downloadDoc()">
-            <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Word Yuklash
+          <button type="button" class="btn btn-primary" id="dlBtn" onclick="sendObyektivkaToBot('word')">
+            <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg><span id="btn_word_bot">Word botga</span>
           </button>
         </div>
       </div>
@@ -363,15 +365,32 @@
 <!-- MODAL -->
 <div id="rel-modal" class="modal">
   <div class="modal-box">
-    <div class="modal-title">Qarindosh ma'lumotlari</div>
-    <div class="field"><label>Qarindoshligi</label><div class="sel-wrap"><select id="m-rel-type"><option>Otasi</option><option>Onasi</option><option>Akasi</option><option>Opasi</option><option>Singlisi</option><option>Ukasi</option><option>Turmush o'rtog'i</option><option>O'g'li</option><option>Qizi</option><option>Qaynotasi</option><option>Qaynonasi</option></select></div></div>
-    <div class="field"><label>F.I.SH</label><input type="text" id="m-rel-name" placeholder="Aliyev Ali Aliyevich"></div>
-    <div class="field"><label>Tug'ilgan yili va joyi</label><input type="text" id="m-rel-birth" placeholder="1980 yil, Toshkent shahri"></div>
-    <div class="field"><label>Ish joyi va lavozimi</label><input type="text" id="m-rel-job" list="job-presets" oninput="handleWX(this)"><datalist id="job-presets"><option value="Vafot etgan"><option value="Nafaqada"><option value="Uy bekasi"><option value="Tadbirkor"><option value="Maktab tarbiyalanuvchisi"></datalist></div>
-    <div class="field"><label>Turar joyi</label><input type="text" id="m-rel-addr"></div>
+    <div class="modal-title" id="m_title">Qarindosh ma'lumotlari</div>
+    <div class="field"><label id="m_lbl_type">Qarindoshligi</label><div class="sel-wrap"><select id="m-rel-type"><option>Otasi</option><option>Onasi</option><option>Akasi</option><option>Opasi</option><option>Singlisi</option><option>Ukasi</option><option>Turmush o'rtog'i</option><option>O'g'li</option><option>Qizi</option><option>Qaynotasi</option><option>Qaynonasi</option></select></div></div>
+    <div class="field"><label id="m_lbl_name">F.I.SH</label><input type="text" id="m-rel-name" placeholder="Aliyev Ali Aliyevich"></div>
+    <div class="field"><label id="m_lbl_birth">Tug'ilgan yili va joyi</label><input type="text" id="m-rel-birth" placeholder="1980 yil, Toshkent shahri"></div>
+    <div class="field">
+      <label id="m_lbl_job">Ish joyi va lavozimi</label>
+      <div class="sel-wrap">
+        <select id="m-rel-job" onchange="handleRelJobChange(this)">
+          <option value="">Tanlang</option>
+          <option value="Vafot etgan">Vafot etgan</option>
+          <option value="Nafaqada">Nafaqada</option>
+          <option value="Uy bekasi">Uy bekasi</option>
+          <option value="Tadbirkor">Tadbirkor</option>
+          <option value="Maktab tarbiyalanuvchisi">Maktab tarbiyalanuvchisi</option>
+          <option value="Boshqa">Boshqa</option>
+        </select>
+      </div>
+    </div>
+    <div class="field hidden" id="m-rel-job-custom-wrap">
+      <label id="m_lbl_job_custom">Boshqa ish joyi / lavozimi</label>
+      <input type="text" id="m-rel-job-custom" placeholder="Qo'lda kiriting" oninput="handleWX(this)">
+    </div>
+    <div class="field"><label id="m_lbl_addr">Turar joyi</label><input type="text" id="m-rel-addr"></div>
     <div class="modal-foot">
-      <button type="button" class="btn btn-outline" onclick="closeRelModal()">Bekor qilish</button>
-      <button type="button" class="btn btn-primary" onclick="saveRel()">Saqlash</button>
+      <button type="button" class="btn btn-outline" onclick="closeRelModal()" id="m_btn_cancel">Bekor qilish</button>
+      <button type="button" class="btn btn-primary" onclick="saveRel()" id="m_btn_save">Saqlash</button>
     </div>
   </div>
 </div>
@@ -404,7 +423,13 @@ uz_l:{
   r3l:"Ma'lumoti:",r3r:"Tamomlagan:",rSpec:"Ma'lumoti bo'yicha mutaxassisligi:",
   r4l:"Ilmiy darajasi:",r4r:"Ilmiy unvoni:",r5l:"Qaysi chet tillarini biladi:",r5r:"Harbiy unvoni:",
   rAw:"Davlat mukofotlari bilan taqdirlanganmi (qanaqa):",
-  rDep:"Xalq deputatlari respublika, viloyat, shahar va tuman Kengashi deputatimi yoki boshqa saylanadigan organlarning a'zosimi (to'liq ko'rsatish lozim):"
+  rDep:"Xalq deputatlari respublika, viloyat, shahar va tuman Kengashi deputatimi yoki boshqa saylanadigan organlarning a'zosimi (to'liq ko'rsatish lozim):",
+  ui_step1:"Shaxsiy",ui_step2:"Qarindoshlar",ui_sec_basic:"Asosiy ma'lumotlar",ui_sec_edu_other:"Ta'lim va boshqalar",ui_photo:"Fotosurat",ui_upload_3x4:"YUKLASH\n3x4 sm",
+  ui_add_work:"+ Yangi ish joyi qo'shish",ui_add_rel:"+ Qarindosh qo'shish",
+  ui_next:"Keyingisi",ui_back:"Orqaga",ui_clear:"Tozalash",
+  ui_word_bot:"Word botga",
+  ui_rel_modal:"Qarindosh ma'lumotlari",ui_cancel:"Bekor qilish",ui_save:"Saqlash",
+  ui_m_type:"Qarindoshligi",ui_m_name:"F.I.SH",ui_m_birth:"Tug'ilgan yili va joyi",ui_m_job:"Ish joyi va lavozimi",ui_m_job_custom:"Boshqa ish joyi / lavozimi",ui_m_addr:"Turar joyi"
 },
 uz_k:{
   lbl_fullname:"\u0424\u0430\u043c\u0438\u043b\u0438\u044f, \u0438\u0441\u043c, \u0448\u0430\u0440\u0438\u0444\u0438",lbl_birthdate:"\u0422\u0443\u0493\u0438\u043b\u0433\u0430\u043d \u0441\u0430\u043d\u0430\u0441\u0438",lbl_birthplace:"\u0422\u0443\u0493\u0438\u043b\u0433\u0430\u043d \u0436\u043e\u0439\u0438",lbl_nation:"\u041c\u0438\u043b\u043b\u0430\u0442\u0438",lbl_party:"\u041f\u0430\u0440\u0442\u0438\u044f\u0432\u0438\u0439\u043b\u0438\u0433\u0438",lbl_edu:"\u041c\u0430\u044a\u043b\u0443\u043c\u043e\u0442\u0438",lbl_graduated:"\u0422\u0430\u043c\u043e\u043c\u043b\u0430\u0433\u0430\u043d",lbl_spec:"\u041c\u0443\u0442\u0430\u0445\u0430\u0441\u0441\u0438\u0441\u043b\u0438\u0433\u0438",lbl_degree:"\u0418\u043b\u043c\u0438\u0439 \u0434\u0430\u0440\u0430\u0436\u0430\u0441\u0438",lbl_scititle:"\u0418\u043b\u043c\u0438\u0439 \u0443\u043d\u0432\u043e\u043d\u0438",lbl_langs:"\u0425\u043e\u0440\u0438\u0436\u0438\u0439 \u0442\u0438\u043b\u043b\u0430\u0440",lbl_military:"\u04b2\u0430\u0440\u0431\u0438\u0439 \u0443\u043d\u0432\u043e\u043d\u0438",lbl_awards:"\u0414\u0430\u0432\u043b\u0430\u0442 \u043c\u0443\u043a\u043e\u0444\u043e\u0442\u043b\u0430\u0440\u0438 \u0431\u0438\u043b\u0430\u043d \u0442\u0430\u049b\u0434\u0438\u0440\u043b\u0430\u043d\u0433\u0430\u043d\u043c\u0438",lbl_deputy:"\u0425\u0430\u043b\u049b \u0434\u0435\u043f\u0443\u0442\u0430\u0442\u043b\u0430\u0440\u0438 \u041a\u0435\u043d\u0433\u0430\u0448\u0438 \u0434\u0435\u043f\u0443\u0442\u0430\u0442\u0438\u043c\u0438",lbl_work:"\u041c\u0415\u04b2\u041d\u0410\u0422 \u0424\u0410\u041e\u041b\u0418\u042f\u0422\u0418",lbl_rel_title:"\u042f\u049a\u0418\u041d \u049a\u0410\u0420\u0418\u041d\u0414\u041e\u0428\u041b\u0410\u0420",
@@ -418,13 +443,119 @@ uz_k:{
   r3l:"\u041c\u0430\u044a\u043b\u0443\u043c\u043e\u0442\u0438:",r3r:"\u0422\u0430\u043c\u043e\u043c\u043b\u0430\u0433\u0430\u043d:",rSpec:"\u041c\u0430\u044a\u043b\u0443\u043c\u043e\u0442\u0438 \u0431\u045e\u0439\u0438\u0447\u0430 \u043c\u0443\u0442\u0430\u0445\u0430\u0441\u0441\u0438\u0441\u043b\u0438\u0433\u0438:",
   r4l:"\u0418\u043b\u043c\u0438\u0439 \u0434\u0430\u0440\u0430\u0436\u0430\u0441\u0438:",r4r:"\u0418\u043b\u043c\u0438\u0439 \u0443\u043d\u0432\u043e\u043d\u0438:",r5l:"\u049a\u0430\u0439\u0441\u0438 \u0447\u0435\u0442 \u0442\u0438\u043b\u043b\u0430\u0440\u0438\u043d\u0438 \u0431\u0438\u043b\u0430\u0434\u0438:",r5r:"\u04b2\u0430\u0440\u0431\u0438\u0439 \u0443\u043d\u0432\u043e\u043d\u0438:",
   rAw:"\u0414\u0430\u0432\u043b\u0430\u0442 \u043c\u0443\u043a\u043e\u0444\u043e\u0442\u043b\u0430\u0440\u0438 \u0431\u0438\u043b\u0430\u043d \u0442\u0430\u049b\u0434\u0438\u0440\u043b\u0430\u043d\u0433\u0430\u043d\u043c\u0438 (\u049b\u0430\u043d\u0430\u049b\u0430):",
-  rDep:"\u0425\u0430\u043b\u049b \u0434\u0435\u043f\u0443\u0442\u0430\u0442\u043b\u0430\u0440\u0438 \u0440\u0435\u0441\u043f\u0443\u0431\u043b\u0438\u043a\u0430, \u0432\u0438\u043b\u043e\u044f\u0442, \u0448\u0430\u04b3\u0430\u0440 \u0432\u0430 \u0442\u0443\u043c\u0430\u043d \u041a\u0435\u043d\u0433\u0430\u0448\u0438 \u0434\u0435\u043f\u0443\u0442\u0430\u0442\u0438\u043c\u0438 \u0451\u043a\u0438 \u0431\u043e\u0448\u049b\u0430 \u0441\u0430\u0439\u043b\u0430\u043d\u0430\u0434\u0438\u0433\u0430\u043d \u043e\u0440\u0433\u0430\u043d\u043b\u0430\u0440\u043d\u0438\u043d\u0433 \u0430\u044a\u0437\u043e\u0441\u0438\u043c\u0438 (\u0442\u045e\u043b\u0438\u049b \u043a\u045e\u0440\u0441\u0430\u0442\u0438\u0448 \u043b\u043e\u0437\u0438\u043c):"
+  rDep:"\u0425\u0430\u043b\u049b \u0434\u0435\u043f\u0443\u0442\u0430\u0442\u043b\u0430\u0440\u0438 \u0440\u0435\u0441\u043f\u0443\u0431\u043b\u0438\u043a\u0430, \u0432\u0438\u043b\u043e\u044f\u0442, \u0448\u0430\u04b3\u0430\u0440 \u0432\u0430 \u0442\u0443\u043c\u0430\u043d \u041a\u0435\u043d\u0433\u0430\u0448\u0438 \u0434\u0435\u043f\u0443\u0442\u0430\u0442\u0438\u043c\u0438 \u0451\u043a\u0438 \u0431\u043e\u0448\u049b\u0430 \u0441\u0430\u0439\u043b\u0430\u043d\u0430\u0434\u0438\u0433\u0430\u043d \u043e\u0440\u0433\u0430\u043d\u043b\u0430\u0440\u043d\u0438\u043d\u0433 \u0430\u044a\u0437\u043e\u0441\u0438\u043c\u0438 (\u0442\u045e\u043b\u0438\u049b \u043a\u045e\u0440\u0441\u0430\u0442\u0438\u0448 \u043b\u043e\u0437\u0438\u043c):",
+  ui_step1:"\u0428\u0430\u0445\u0441\u0438\u0439",ui_step2:"\u049a\u0430\u0440\u0438\u043d\u0434\u043e\u0448\u043b\u0430\u0440",ui_sec_basic:"\u0410\u0441\u043e\u0441\u0438\u0439 \u043c\u0430\u044a\u043b\u0443\u043c\u043e\u0442\u043bb\u0430\u0440",ui_sec_edu_other:"\u0422\u0430\u044a\u043b\u0438\u043c \u0432\u0430 \u0431\u043e\u0448\u049b\u0430\u043b\u0430\u0440",ui_photo:"\u0424\u043e\u0442\u043e\u0441\u0443\u0440\u0430\u0442",ui_upload_3x4:"\u042e\u041a\u041b\u0410\u0428\n3x4 \u0441\u043c",
+  ui_add_work:"+ \u042f\u043d\u0433\u0438 \u0438\u0448 \u0436\u043e\u0439\u0438 \u049b\u045e\u0448\u0438\u0448",ui_add_rel:"+ \u049a\u0430\u0440\u0438\u043d\u0434\u043e\u0448 \u049b\u045e\u0448\u0438\u0448",
+  ui_next:"\u041a\u0435\u0439\u0438\u043d\u0433\u0438\u0441\u0438",ui_back:"\u041e\u0440\u049b\u0430\u0433\u0430",ui_clear:"\u0422\u043e\u0437\u0430\u043b\u0430\u0448",
+  ui_word_bot:"Word \u0431\u043e\u0442\u0433\u0430",
+  ui_rel_modal:"\u049a\u0430\u0440\u0438\u043d\u0434\u043e\u0448 \u043c\u0430\u044a\u043bb\u0443\u043c\u043e\u0442\u043bb\u0430\u0440\u0438",ui_cancel:"\u0411\u0435\u043a\u043e\u0440 \u049b\u0438\u043bb\u0438\u0448",ui_save:"\u0421\u0430\u049b\u043bb\u0430\u0448",
+  ui_m_type:"\u049a\u0430\u0440\u0438\u043d\u0434\u043e\u0448\u043b\u0438\u0433\u0438",ui_m_name:"\u0424.\u0418.\u0428",ui_m_birth:"\u0422\u0443\u0493\u0438\u043b\u0433\u0430\u043d \u0439\u0438\u043b\u0438 \u0432\u0430 \u0436\u043e\u0439\u0438",ui_m_job:"\u0418\u0448 \u0436\u043e\u0439\u0438 \u0432\u0430 \u043b\u0430\u0432\u043e\u0437\u0438\u043c\u0438",ui_m_job_custom:"\u0411\u043e\u0448\u049b\u0430 \u0438\u0448 \u0436\u043e\u0439\u0438 / \u043b\u0430\u0432\u043e\u0437\u0438\u043c\u0438",ui_m_addr:"\u0422\u0443\u0440\u0430\u0440 \u0436\u043e\u0439\u0438"
 }};
 
 var defIds=['party','degree','scititle','military','awards','deputy'];
 
+function applyUiLang(){
+  var d=dict[currentLang]||{};
+  var map={
+    step_lbl_1:'ui_step1',step_lbl_2:'ui_step2',
+    sec_basic:'ui_sec_basic',sec_edu_other:'ui_sec_edu_other','lbl-photo':'ui_photo',
+    btn_add_work:'ui_add_work',btn_add_rel:'ui_add_rel',
+    btn_next_1:'ui_next',btn_back_2:'ui_back',btn_clear_1:'ui_clear',btn_clear_2:'ui_clear',
+    btn_word_bot:'ui_word_bot',
+    m_title:'ui_rel_modal',m_btn_cancel:'ui_cancel',m_btn_save:'ui_save',
+    m_lbl_type:'ui_m_type',m_lbl_name:'ui_m_name',m_lbl_birth:'ui_m_birth',m_lbl_job:'ui_m_job',m_lbl_job_custom:'ui_m_job_custom',m_lbl_addr:'ui_m_addr'
+  };
+  Object.keys(map).forEach(function(id){
+    var el=document.getElementById(id);
+    var key=map[id];
+    if(el&&d[key]) el.textContent=d[key];
+  });
+  if(d.ui_upload_3x4){
+    var ph=document.getElementById('ph-txt');
+    if(ph) ph.innerHTML=String(d.ui_upload_3x4).replace(/\n/g,'<br>');
+  }
+  // modal select "Tanlang" and relationship options text
+  var selJob=document.getElementById('m-rel-job');
+  if(selJob && selJob.options && selJob.options.length){
+    selJob.options[0].text = currentLang==='uz_k' ? '\u0422\u0430\u043d\u043b\u0430\u043d\u0433' : 'Tanlang';
+    var values=['Vafot etgan','Nafaqada','Uy bekasi','Tadbirkor','Maktab tarbiyalanuvchisi','Boshqa'];
+    for(var i=1;i<selJob.options.length&&i<=values.length;i++){
+      selJob.options[i].text = currentLang==='uz_k' ? latinToCyrillic(values[i-1]) : values[i-1];
+    }
+  }
+  var selType=document.getElementById('m-rel-type');
+  if(selType && selType.options && selType.options.length){
+    for(var j=0;j<selType.options.length;j++){
+      var base=selType.options[j].text;
+      selType.options[j].text = currentLang==='uz_k' ? latinToCyrillic(base) : cyrillicToLatin(base);
+    }
+  }
+}
+
+/* SCRIPT CONVERSION (UZ LAT <-> UZ CYR) */
+var CYR_TO_LAT={
+  'а':'a','б':'b','в':'v','г':'g','д':'d','е':'e','ё':'yo','ж':'j','з':'z','и':'i','й':'y','к':'k','л':'l','м':'m','н':'n','о':'o','п':'p','р':'r','с':'s','т':'t','у':'u','ф':'f','х':'x','ц':'ts','ч':'ch','ш':'sh','щ':'sh','ъ':"'",'ы':'i','ь':'','э':'e','ю':'yu','я':'ya',
+  'қ':'q','ғ':"g'",'ҳ':'h','ў':"o'",'ҷ':'j',
+  'А':'A','Б':'B','В':'V','Г':'G','Д':'D','Е':'E','Ё':'Yo','Ж':'J','З':'Z','И':'I','Й':'Y','К':'K','Л':'L','М':'M','Н':'N','О':'O','П':'P','Р':'R','С':'S','Т':'T','У':'U','Ф':'F','Х':'X','Ц':'Ts','Ч':'Ch','Ш':'Sh','Щ':'Sh','Ъ':"'",'Ы':'I','Ь':'','Э':'E','Ю':'Yu','Я':'Ya',
+  'Қ':'Q','Ғ':"G'",'Ҳ':'H','Ў':"O'",'Ҷ':'J'
+};
+var LAT_TO_CYR_3={},LAT_TO_CYR_2={},LAT_TO_CYR_1={};
+["'","’","ʻ","`","‘"].forEach(function(ap){
+  LAT_TO_CYR_3['o'+ap]='ў';LAT_TO_CYR_3['O'+ap]='Ў';
+  LAT_TO_CYR_3['g'+ap]='ғ';LAT_TO_CYR_3['G'+ap]='Ғ';
+});
+[
+  ['sh','ш'],['Sh','Ш'],['SH','Ш'],['ch','ч'],['Ch','Ч'],['CH','Ч'],['ng','нг'],['Ng','Нг'],['NG','НГ'],
+  ['yo','ё'],['Yo','Ё'],['YO','Ё'],['ya','я'],['Ya','Я'],['YA','Я'],['yu','ю'],['Yu','Ю'],['YU','Ю'],
+  ['ts','ц'],['Ts','Ц'],['TS','Ц'],['zh','ж'],['Zh','Ж'],['ZH','Ж']
+].forEach(function(p){LAT_TO_CYR_2[p[0]]=p[1];});
+[
+  ['a','а'],['b','б'],['d','д'],['e','е'],['f','ф'],['g','г'],['h','ҳ'],['i','и'],['j','ж'],['k','к'],
+  ['l','л'],['m','м'],['n','н'],['o','о'],['p','п'],['q','қ'],['r','р'],['s','с'],['t','т'],['u','у'],
+  ['v','в'],['w','в'],['x','х'],['y','й'],['z','з'],["'",'ъ'],["’",'ъ'],["ʻ",'ъ'],["‘",'ъ'],
+  ['A','А'],['B','Б'],['D','Д'],['E','Е'],['F','Ф'],['G','Г'],['H','Ҳ'],['I','И'],['J','Ж'],['K','К'],
+  ['L','Л'],['M','М'],['N','Н'],['O','О'],['P','П'],['Q','Қ'],['R','Р'],['S','С'],['T','Т'],['U','У'],
+  ['V','В'],['W','В'],['X','Х'],['Y','Й'],['Z','З']
+].forEach(function(p){LAT_TO_CYR_1[p[0]]=p[1];});
+
+function cyrillicToLatin(text){
+  text=String(text||'');var out=[];
+  for(var i=0;i<text.length;i++){var ch=text[i];out.push(CYR_TO_LAT[ch]!==undefined?CYR_TO_LAT[ch]:ch);}
+  return out.join('');
+}
+function latinToCyrillic(text){
+  text=String(text||'');var out=[];var i=0;
+  while(i<text.length){
+    var k3=text.slice(i,i+3),k2=text.slice(i,i+2),k1=text[i];
+    if(LAT_TO_CYR_3[k3]!==undefined){out.push(LAT_TO_CYR_3[k3]);i+=3;continue;}
+    if(LAT_TO_CYR_2[k2]!==undefined){out.push(LAT_TO_CYR_2[k2]);i+=2;continue;}
+    out.push(LAT_TO_CYR_1[k1]!==undefined?LAT_TO_CYR_1[k1]:k1);i++;
+  }
+  return out.join('');
+}
+function toCurrentScript(text){
+  text=String(text||'');
+  if(currentLang==='uz_k')return latinToCyrillic(text);
+  if(currentLang==='uz_l')return cyrillicToLatin(text);
+  return text;
+}
+function isPresentToken(vl){
+  var t=String(vl||'').toLowerCase().replace(/[\s.\-_\/]/g,'');
+  return ['hv','hvgacha','hozirgacha','ҳв','ҳвгача','present','current'].indexOf(t)>-1;
+}
+function formatWorkPeriod(from,to){
+  from=String(from||'').trim();to=String(to||'').trim();
+  var cyr=currentLang==='uz_k';
+  if(from&&isPresentToken(to)) return cyr?(from+'-йилдан:'):(from+'-yildan:');
+  if(from&&to) return from+'-'+to+':';
+  if(from) return cyr?(from+'-йилдан:'):(from+'-yildan:');
+  return '';
+}
+
 function initApp(lang){
-  var oldD=dict[currentLang];currentLang=lang;
+  var prevLang=currentLang;
+  var oldD=dict[currentLang];
+  currentLang=lang;
   document.getElementById('lang-card').classList.add('hidden');
   document.getElementById('main-card').classList.remove('hidden');
   document.getElementById('preview-section').style.display='block';
@@ -438,8 +569,117 @@ function initApp(lang){
   var li=document.getElementById('langs');if(!li.value.trim()||(oldD&&li.value===oldD.val_no))li.value=d.val_no;
   updateDatalist('nation-list',d.opts_nation);updateDatalist('edu-list',d.opts_edu);updateDatalist('lang-list',d.opts_langs);
   document.querySelectorAll('.work-desc').forEach(function(el){el.placeholder=lang==='uz_l'?"Ish joyi va lavozimi":"\u0418\u0448 \u0436\u043e\u0439\u0438 \u0432\u0430 \u043b\u0430\u0432\u043e\u0437\u0438\u043c\u0438";});
-  setupEventListeners();loadFromLocal();updatePreview();scaleLivePreview();
+  setupEventListeners();
+  loadFromLocal();
+  // Convert values AFTER localStorage restore so everything switches script
+  try{convertExistingValues(prevLang,currentLang);}catch(e){}
+  try{applyUiLang();}catch(e){}
+  updatePreview();scaleLivePreview();
   try{if(window.Telegram&&window.Telegram.WebApp){window.Telegram.WebApp.ready&&window.Telegram.WebApp.ready();window.Telegram.WebApp.expand&&window.Telegram.WebApp.expand();window.Telegram.WebApp.setHeaderColor&&window.Telegram.WebApp.setHeaderColor('#F2F6FF');window.Telegram.WebApp.setBackgroundColor&&window.Telegram.WebApp.setBackgroundColor('#F2F6FF');}}catch(e){}
+}
+
+function buildObyPayload(fmt){
+  var works=[];
+  document.querySelectorAll('#work-container .work-row').forEach(function(row){
+    works.push({
+      f: (row.querySelector('.year-from')?row.querySelector('.year-from').value:'')||'',
+      t: (row.querySelector('.year-to')?row.querySelector('.year-to').value:'')||'',
+      d: (row.querySelector('.work-desc')?row.querySelector('.work-desc').value:'')||''
+    });
+  });
+  var rels=(relatives||[]).map(function(r){
+    return{ type:r.type||'', name:r.name||'', birth:r.birth||'', job:r.job||'', addr:r.addr||'' };
+  });
+  var langMap={uz_l:'uz_lat',uz_k:'uz_cyr'};
+  return {
+    action:'generate_obyektivka',
+    format: (fmt==='pdf')?'pdf':'word',
+    lang: langMap[currentLang]||'uz_lat',
+    fullname: v('fullname'),
+    bdate: v('birthdate'),
+    bplace: v('birthplace'),
+    nation: v('nation'),
+    party: v('party'),
+    edu: v('edu'),
+    grad: v('graduated'),
+    spec: v('spec'),
+    deg: v('degree'),
+    ttl: v('scititle'),
+    langs: v('langs'),
+    mil: v('military'),
+    award: v('awards'),
+    dep: v('deputy'),
+    current_job: '',
+    current_job_year: '',
+    works: works,
+    rels: rels,
+    photo_data: photoData || ''
+  };
+}
+
+function sendObyektivkaToBot(fmt){
+  var tg=window.Telegram&&window.Telegram.WebApp?window.Telegram.WebApp:null;
+  if(!tg||!tg.sendData){
+    alert("Faqat Telegram WebApp ichida ishlaydi!");
+    return;
+  }
+  var btn=document.getElementById('dlBtn');
+  if(btn)btn.disabled=true;
+  try{
+    tg.sendData(JSON.stringify(buildObyPayload(fmt)));
+    tg.HapticFeedback&&tg.HapticFeedback.notificationOccurred&&tg.HapticFeedback.notificationOccurred('success');
+    var msg=(fmt==='pdf') ? "✅ PDF botga yuborildi. Chatda kuting." : "✅ Word botga yuborildi. Chatda kuting.";
+    try{ alert(msg); }catch(_){}
+    setTimeout(function(){ try{ tg.close(); }catch(_){} }, 450);
+  }catch(e){
+    alert("❌ Yuborishda xatolik yuz berdi.");
+  }finally{
+    if(btn)btn.disabled=false;
+  }
+}
+
+function convertExistingValues(fromLang,toLang){
+  if(!fromLang||!toLang||fromLang===toLang)return;
+  var conv=null;
+  if(fromLang==='uz_l'&&toLang==='uz_k')conv=latinToCyrillic;
+  else if(fromLang==='uz_k'&&toLang==='uz_l')conv=cyrillicToLatin;
+  if(!conv)return;
+
+  var ids=['fullname','birthdate','birthplace','nation','party','edu','graduated','spec','degree','scititle','langs','military','awards','deputy'];
+  ids.forEach(function(id){
+    var el=document.getElementById(id);
+    if(!el||!el.value)return;
+    el.value=conv(el.value);
+  });
+
+  // Work rows
+  document.querySelectorAll('#work-container .work-row .work-desc').forEach(function(el){
+    if(el&&el.value)el.value=conv(el.value);
+  });
+
+  // Relatives array (stored data + list rendering)
+  if(Array.isArray(relatives)&&relatives.length){
+    relatives=relatives.map(function(r){
+      return{
+        type: conv(r.type||''),
+        name: conv(r.name||''),
+        birth: conv(r.birth||''),
+        job: conv(r.job||''),
+        addr: conv(r.addr||'')
+      };
+    });
+    try{renderRelList();}catch(e){}
+  }
+
+  // Modal inputs (if open)
+  ['type','name','birth','addr'].forEach(function(k){
+    var el=document.getElementById('m-rel-'+k);
+    if(el&&el.value)el.value=conv(el.value);
+  });
+  try{
+    var currentJob=getRelJobValue();
+    if(currentJob) setRelJobValue(conv(currentJob));
+  }catch(e){}
 }
 
 function generateYearDatalists(){var o='',ot='';for(var y=1985;y<=2030;y++){o+='<option value="'+y+'">';ot+='<option value="'+y+'">';}ot+='<option value="h.v"><option value="\u04b3.\u0432">';document.getElementById('years-list').innerHTML=o;document.getElementById('years-list-to').innerHTML=ot;}
@@ -478,10 +718,21 @@ function addWorkRow(savedFrom,savedTo,savedDesc){
 function applyRegionAC(input){input.addEventListener('input',function(){var val=this.value;if(val.indexOf(',')<0&&val.length===3){var key=val.charAt(0).toUpperCase()+val.slice(1).toLowerCase();if(uzbRegions[key])this.value=uzbRegions[key]+', ';}});}
 
 function setupEventListeners(){
+  if(setupEventListeners._bound)return;
+  setupEventListeners._bound=true;
   var bd=document.getElementById('birthdate');
   bd.addEventListener('input',function(){var val=this.value.replace(/\D/g,'');if(val.length>8)val=val.slice(0,8);if(val.length>=5)this.value=val.slice(0,2)+'.'+val.slice(2,4)+'.'+val.slice(4);else if(val.length>=3)this.value=val.slice(0,2)+'.'+val.slice(2);else this.value=val;updatePreview();});
   applyRegionAC(document.getElementById('birthplace'));
   applyRegionAC(document.getElementById('m-rel-addr'));
+  document.addEventListener('focusin',function(e){
+    var t=e.target;
+    if(!t||!t.matches||!t.matches('input,textarea,select'))return;
+    setTimeout(function(){try{t.scrollIntoView({behavior:'smooth',block:'center',inline:'nearest'});}catch(_){ }},220);
+  });
+  if(window.visualViewport){
+    window.visualViewport.addEventListener('resize',adjustKeyboardOffset);
+    window.visualViewport.addEventListener('scroll',adjustKeyboardOffset);
+  }
   document.addEventListener('keydown',function(e){if(e.key!=='Enter'||e.target.tagName==='TEXTAREA')return;e.preventDefault();var els=Array.from(document.querySelectorAll('input,select,button,textarea')).filter(function(el){return!el.hidden&&el.type!=='hidden'&&el.offsetParent&&!el.disabled;});var i=els.indexOf(e.target);if(i>-1&&i<els.length-1)els[i+1].focus();});
   var zone=document.querySelector('.photo-frame'),fi=document.getElementById('photoInput');
   ['dragenter','dragover','dragleave','drop'].forEach(function(ev){zone.addEventListener(ev,function(e){e.preventDefault();e.stopPropagation();},false);});
@@ -498,10 +749,81 @@ function goToStep(s){
   window.scrollTo({top:0,behavior:'smooth'});
 }
 
-function openRelModal(){editingRelIndex=-1;document.getElementById('m-rel-type').selectedIndex=0;['m-rel-name','m-rel-birth','m-rel-job','m-rel-addr'].forEach(function(id){document.getElementById(id).value='';});document.getElementById('rel-modal').style.display='flex';}
-function closeRelModal(){editingRelIndex=-1;document.getElementById('rel-modal').style.display='none';}
-function saveRel(){var r={type:document.getElementById('m-rel-type').value,name:document.getElementById('m-rel-name').value,birth:document.getElementById('m-rel-birth').value,job:document.getElementById('m-rel-job').value,addr:document.getElementById('m-rel-addr').value};if(!r.name)return;if(editingRelIndex>-1)relatives[editingRelIndex]=r;else relatives.push(r);saveToLocal();renderRelList();closeRelModal();}
-function editRel(i){editingRelIndex=i;var r=relatives[i];['type','name','birth','job','addr'].forEach(function(k){var el=document.getElementById('m-rel-'+k);if(el)el.value=r[k]||'';});document.getElementById('rel-modal').style.display='flex';}
+function adjustKeyboardOffset(){
+  var vv=window.visualViewport;
+  if(!vv){document.documentElement.style.setProperty('--kb-offset','0px');return;}
+  var kb=Math.max(0,window.innerHeight-vv.height-vv.offsetTop);
+  document.documentElement.style.setProperty('--kb-offset',kb+'px');
+}
+function handleRelJobChange(sel){
+  var wrap=document.getElementById('m-rel-job-custom-wrap');
+  if(!wrap||!sel)return;
+  var isOther=sel.value==='Boshqa';
+  wrap.classList.toggle('hidden',!isOther);
+  if(isOther){
+    setTimeout(function(){var i=document.getElementById('m-rel-job-custom');if(i)i.focus();},120);
+  }
+}
+function getRelJobValue(){
+  var sel=document.getElementById('m-rel-job');
+  var custom=document.getElementById('m-rel-job-custom');
+  if(!sel)return'';
+  if(sel.value==='Boshqa')return (custom&&custom.value?custom.value.trim():'');
+  return sel.value||'';
+}
+function setRelJobValue(val){
+  val=String(val||'').trim();
+  var sel=document.getElementById('m-rel-job');
+  var custom=document.getElementById('m-rel-job-custom');
+  var wrap=document.getElementById('m-rel-job-custom-wrap');
+  if(!sel||!custom||!wrap)return;
+  var known=['Vafot etgan','Nafaqada','Uy bekasi','Tadbirkor','Maktab tarbiyalanuvchisi'];
+  if(known.indexOf(val)>-1||!val){
+    sel.value=val;
+    custom.value='';
+    wrap.classList.add('hidden');
+  }else{
+    sel.value='Boshqa';
+    custom.value=val;
+    wrap.classList.remove('hidden');
+  }
+}
+function openRelModal(){
+  editingRelIndex=-1;
+  document.getElementById('m-rel-type').selectedIndex=0;
+  ['m-rel-name','m-rel-birth','m-rel-addr','m-rel-job-custom'].forEach(function(id){var el=document.getElementById(id);if(el)el.value='';});
+  setRelJobValue('');
+  adjustKeyboardOffset();
+  document.body.classList.add('modal-open');
+  document.getElementById('rel-modal').style.display='flex';
+  setTimeout(function(){var el=document.getElementById('m-rel-type');if(el)el.focus();},120);
+}
+function closeRelModal(){
+  editingRelIndex=-1;
+  document.getElementById('rel-modal').style.display='none';
+  document.body.classList.remove('modal-open');
+  document.documentElement.style.setProperty('--kb-offset','0px');
+}
+function saveRel(){
+  var r={
+    type:document.getElementById('m-rel-type').value,
+    name:document.getElementById('m-rel-name').value,
+    birth:document.getElementById('m-rel-birth').value,
+    job:getRelJobValue(),
+    addr:document.getElementById('m-rel-addr').value
+  };
+  if(!r.name)return;
+  if(editingRelIndex>-1)relatives[editingRelIndex]=r;else relatives.push(r);
+  saveToLocal();renderRelList();closeRelModal();
+}
+function editRel(i){
+  editingRelIndex=i;var r=relatives[i];
+  ['type','name','birth','addr'].forEach(function(k){var el=document.getElementById('m-rel-'+k);if(el)el.value=r[k]||'';});
+  setRelJobValue(r.job||'');
+  adjustKeyboardOffset();
+  document.body.classList.add('modal-open');
+  document.getElementById('rel-modal').style.display='flex';
+}
 function removeRel(i){relatives.splice(i,1);saveToLocal();renderRelList();}
 function renderRelList(){document.getElementById('relatives-list-ui').innerHTML=relatives.map(function(r,i){return '<div class="rel-item"><div class="rel-item-info"><b>'+r.type+':</b> '+r.name+' <span>- '+(r.job||'')+'</span></div><div class="rel-actions"><button type="button" class="btn btn-ghost btn-sm" onclick="editRel('+i+')">&#x270F;</button><button type="button" class="btn btn-dang btn-sm" onclick="removeRel('+i+')">&times;</button></div></div>';}).join('');updatePreview();}
 
@@ -516,18 +838,33 @@ async function generateObyektivkaViaApi(){
   document.querySelectorAll('#work-container .work-row').forEach(function(row){
     var f=(row.querySelector('.year-from')?row.querySelector('.year-from').value:'').trim();
     var t=(row.querySelector('.year-to')?row.querySelector('.year-to').value:'').trim();
-    var d=row.querySelector('.work-desc')?row.querySelector('.work-desc').value:'';
-    var tN=t.toLowerCase().replace(/[\s.\-_\/]/g,'');
-    var isC=['hv','hvgacha','hozirgacha','present','current'].indexOf(tN)>-1;
+    var d=toCurrentScript(row.querySelector('.work-desc')?row.querySelector('.work-desc').value:'');
+    var isC=isPresentToken(t);
     var yr='';
-    if(f&&t)yr=(t.toLowerCase()==='h.v')?f+' y. - h.v.':f+'-'+t+' yy.';
-    else if(f)yr=f;
+    if(f||t)yr=formatWorkPeriod(f,t).replace(/:$/,'');
     if(d.trim()){works.push({year:yr,position:d});if(isC)cc={index:works.length-1,from:f,position:d.trim()};}
   });
   var cj='',cy='';
   if(cc){var move=await askMove();if(move){cj=cc.position;cy=cc.from;works.splice(cc.index,1);}}
   var langMap={uz_l:'uz_lat',uz_k:'uz_cyr'};
-  var payload={telegram_id:telegramId?parseInt(telegramId):null,format:'word',lang:langMap[currentLang]||'uz_lat',fullname:v('fullname'),birthdate:v('birthdate'),birthplace:v('birthplace'),nation:v('nation'),party:v('party'),education:v('edu'),graduated:v('graduated'),specialty:v('spec'),degree:v('degree'),scientific_title:v('scititle'),languages:v('langs'),military_rank:v('military'),awards:v('awards'),deputy:v('deputy'),current_job:cj,current_job_year:cy,work_experience:works,relatives:relatives,photo_data:photoData};
+  var relPayload=relatives.map(function(r){
+    return{
+      type:toCurrentScript(r.type||''),
+      name:toCurrentScript(r.name||''),
+      birth:toCurrentScript(r.birth||''),
+      job:toCurrentScript(r.job||''),
+      addr:toCurrentScript(r.addr||'')
+    };
+  });
+  var payload={
+    telegram_id:telegramId?parseInt(telegramId):null,format:'word',lang:langMap[currentLang]||'uz_lat',
+    fullname:toCurrentScript(v('fullname')),birthdate:toCurrentScript(v('birthdate')),birthplace:toCurrentScript(v('birthplace')),
+    nation:toCurrentScript(v('nation')),party:toCurrentScript(v('party')),education:toCurrentScript(v('edu')),
+    graduated:toCurrentScript(v('graduated')),specialty:toCurrentScript(v('spec')),degree:toCurrentScript(v('degree')),
+    scientific_title:toCurrentScript(v('scititle')),languages:toCurrentScript(v('langs')),military_rank:toCurrentScript(v('military')),
+    awards:toCurrentScript(v('awards')),deputy:toCurrentScript(v('deputy')),
+    current_job:cj,current_job_year:cy,work_experience:works,relatives:relPayload,photo_data:photoData
+  };
   var res=await fetch(API_URL+'/api/export_obyektivka',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
   if(!res.ok)throw new Error('Server '+res.status);
   var blob=await res.blob();
@@ -536,11 +873,8 @@ async function generateObyektivkaViaApi(){
 }
 
 async function downloadDoc(){
-  document.getElementById('loading-overlay').style.display='flex';
-  var btn=document.getElementById('dlBtn');btn.innerHTML='<span class="btn-spinner"></span> Yuklanmoqda...';btn.disabled=true;
-  try{if(photoReadyPromise)await photoReadyPromise;await generateObyektivkaViaApi();}
-  catch(err){console.error(err);alert('\u274C Xatolik: '+(err&&err.message?err.message:"Noma'lum xato"));}
-  finally{document.getElementById('loading-overlay').style.display='none';btn.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" width="14" height="14"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Word Yuklash';btn.disabled=false;}
+  // Legacy (network) download disabled: Telegram WebApp should send to bot
+  sendObyektivkaToBot('word');
 }
 
 /* LIVE PREVIEW */
@@ -551,15 +885,15 @@ function updatePreview(){
   var p2=document.getElementById('doc-page-2');
   if(!p1||!p2)return;
   var D=dict[currentLang];
-  var fn=v('fullname');
+  var fn=toCurrentScript(v('fullname'));
 
   var works=[];
   document.querySelectorAll('#work-container .work-row').forEach(function(row){
     var f=(row.querySelector('.year-from')?row.querySelector('.year-from').value:'').trim();
     var t=(row.querySelector('.year-to')?row.querySelector('.year-to').value:'').trim();
-    var d=(row.querySelector('.work-desc')?row.querySelector('.work-desc').value:'').trim();
+    var d=toCurrentScript((row.querySelector('.work-desc')?row.querySelector('.work-desc').value:'').trim());
     if(!d)return;
-    var yr=f&&t?f+'-'+t+' yy.':f?f+' y.':'';
+    var yr=formatWorkPeriod(f,t);
     works.push({yr:yr,d:d});
   });
 
@@ -588,18 +922,23 @@ function updatePreview(){
   }
 
   var info='';
-  info+=r2(D.r1l,sf(v('birthdate')),D.r1r,sf(v('birthplace')));
-  info+=r2(D.r2l,sf(v('nation')),D.r2r,sf(v('party')));
-  info+=r2(D.r3l,sf(v('edu')),D.r3r,sf(v('graduated')));
-  info+=r1(D.rSpec,sf(v('spec')));
-  info+=r2(D.r4l,sf(v('degree')),D.r4r,sf(v('scititle')));
-  info+=r2(D.r5l,sf(v('langs')),D.r5r,sf(v('military')));
-  info+=r1(D.rAw,sf(v('awards')));
-  info+=r1(D.rDep,sf(v('deputy')));
+  info+=r2(D.r1l,sf(toCurrentScript(v('birthdate'))),D.r1r,sf(toCurrentScript(v('birthplace'))));
+  info+=r2(D.r2l,sf(toCurrentScript(v('nation'))),D.r2r,sf(toCurrentScript(v('party'))));
+  info+=r2(D.r3l,sf(toCurrentScript(v('edu'))),D.r3r,sf(toCurrentScript(v('graduated'))));
+  info+=r1(D.rSpec,sf(toCurrentScript(v('spec'))));
+  info+=r2(D.r4l,sf(toCurrentScript(v('degree'))),D.r4r,sf(toCurrentScript(v('scititle'))));
+  info+=r2(D.r5l,sf(toCurrentScript(v('langs'))),D.r5r,sf(toCurrentScript(v('military'))));
+  info+=r1(D.rAw,sf(toCurrentScript(v('awards'))));
+  info+=r1(D.rDep,sf(toCurrentScript(v('deputy'))));
 
   var workRows='';
   if(works.length){
-    works.forEach(function(w){workRows+='<div style="font-size:8.5pt;margin-bottom:1.5mm;line-height:1.5">'+(w.yr?'<b>'+w.yr+'</b> &ndash; ':'')+w.d+'</div>';});
+    works.forEach(function(w){
+      workRows+='<div style="display:grid;grid-template-columns:26mm 1fr;gap:2.5mm;margin-bottom:2mm;align-items:start">'
+        +'<div style="font-size:8.5pt;font-weight:bold;line-height:1.4;text-align:left">'+(w.yr||'')+'</div>'
+        +'<div style="font-size:8.5pt;line-height:1.45;text-align:left">'+w.d+'</div>'
+      +'</div>';
+    });
   }else{
     workRows='<div style="font-size:8pt;color:#ccc">______________</div>';
   }
@@ -623,7 +962,7 @@ function updatePreview(){
 
   var relRows='';
   if(relatives.length){
-    relatives.forEach(function(r){relRows+='<tr><td style="border:1px solid #000;padding:1.5mm 2mm;font-size:7.5pt">'+(r.type||'')+'</td><td style="border:1px solid #000;padding:1.5mm 2mm;font-size:7.5pt">'+(r.name||'')+'</td><td style="border:1px solid #000;padding:1.5mm 2mm;font-size:7.5pt">'+(r.birth||'')+'</td><td style="border:1px solid #000;padding:1.5mm 2mm;font-size:7.5pt">'+(r.job||'')+'</td><td style="border:1px solid #000;padding:1.5mm 2mm;font-size:7.5pt">'+(r.addr||'')+'</td></tr>';});
+    relatives.forEach(function(r){relRows+='<tr><td style="border:1px solid #000;padding:1.5mm 2mm;font-size:7.5pt">'+toCurrentScript(r.type||'')+'</td><td style="border:1px solid #000;padding:1.5mm 2mm;font-size:7.5pt">'+toCurrentScript(r.name||'')+'</td><td style="border:1px solid #000;padding:1.5mm 2mm;font-size:7.5pt">'+toCurrentScript(r.birth||'')+'</td><td style="border:1px solid #000;padding:1.5mm 2mm;font-size:7.5pt">'+toCurrentScript(r.job||'')+'</td><td style="border:1px solid #000;padding:1.5mm 2mm;font-size:7.5pt">'+toCurrentScript(r.addr||'')+'</td></tr>';});
   }else{
     relRows='<tr><td colspan="5" style="border:1px solid #000;padding:2mm;text-align:center;font-style:italic;color:#888;font-size:7.5pt">'+D.d_no_rel+'</td></tr>';
   }
@@ -657,8 +996,15 @@ function scaleLivePreview(){
     var avail=Math.max(0,scroll.clientWidth-2);
     var s=Math.min(1,avail/PAGE_W);
     scaleEl.style.transform='scale('+s+')';
-    // Reserve correct height so scroll feels natural
-    holder.style.height=(scaleEl.scrollHeight*s)+'px';
+    // Reserve stable height (prevents random zoom/jumps on mobile)
+    var p1=document.getElementById('doc-page-1');
+    var p2=document.getElementById('doc-page-2');
+    var h=0;
+    if(p1)h+=p1.offsetHeight||0;
+    if(p2)h+=p2.offsetHeight||0;
+    h+=10; // gap
+    if(h<=0)h=scaleEl.scrollHeight||0;
+    holder.style.height=(h*s)+'px';
   }catch(e){}
 }
 

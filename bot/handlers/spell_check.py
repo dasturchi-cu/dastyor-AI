@@ -10,7 +10,7 @@ from telegram import Update, InputFile
 from telegram.ext import ContextTypes
 from telegram.constants import ChatAction
 from bot.keyboards.reply_keyboards import get_back_button
-from bot.services.ai_service import check_spelling_gemini, check_spelling_pptx
+from bot.services.ai_service import check_spelling_gemini, check_spelling_pptx, check_spelling_text
 
 logger = logging.getLogger(__name__)
 
@@ -32,9 +32,23 @@ async def spell_check_handler(update: Update, context: ContextTypes.DEFAULT_TYPE
 
 async def process_spell_check(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Process spell checking asynchronously for DOCX and PPTX"""
+    # Text spell-check support
     if not update.message.document:
+        if update.message.text and update.message.text.strip():
+            status = await update.message.reply_text("⏳ Matn tekshirilmoqda...")
+            corrected, fixes = await check_spelling_text(update.message.text)
+            await status.delete()
+            await update.message.reply_text(
+                f"✅ Imlo tekshirish yakunlandi!\n\n"
+                f"📊 Tuzatilgan: {fixes} ta o'zgarish\n\n"
+                f"{corrected}",
+                reply_markup=get_back_button()
+            )
+            context.user_data.pop('waiting_for', None)
+            return
+
         await update.message.reply_text(
-            "Iltimos, Word (.docx) yoki PowerPoint (.pptx) fayl yuboring.",
+            "Iltimos, matn yoki Word (.docx) / PowerPoint (.pptx) fayl yuboring.",
             reply_markup=get_back_button()
         )
         return

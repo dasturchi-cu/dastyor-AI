@@ -519,6 +519,33 @@ async def api_translate(req: TranslateRequest):
 
 
 # ═══════════════════════════════════════════════════════════════════════════
+# /api/spellcheck — plain text spell check (UZ/RU)
+# ═══════════════════════════════════════════════════════════════════════════
+class SpellcheckRequest(BaseModel):
+    text: str
+
+
+@app.post("/api/spellcheck")
+async def api_spellcheck(req: SpellcheckRequest):
+    if not req.text or not req.text.strip():
+        raise HTTPException(status_code=400, detail="Matn bo'sh bo'lishi mumkin emas")
+    if len(req.text) > 5000:
+        raise HTTPException(status_code=400, detail="Matn 5000 belgidan oshmasligi kerak")
+
+    try:
+        from bot.services.ai_service import check_spelling_text
+        corrected, fixes = await check_spelling_text(req.text)
+        if corrected is None:
+            raise HTTPException(status_code=502, detail="Natija bo'sh qaytdi")
+        return {"ok": True, "corrected_text": corrected, "fixed": int(fixes or 0)}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Spellcheck API error: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Imlo serveri xatosi: {str(e)[:200]}")
+
+
+# ═══════════════════════════════════════════════════════════════════════════
 # /api/objective — short objective generator (UZ/RU/EN)
 # ═══════════════════════════════════════════════════════════════════════════
 class ObjectiveRequest(BaseModel):

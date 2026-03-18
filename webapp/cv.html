@@ -65,8 +65,8 @@
     .tpl-card { position: relative; transition: all 0.3s ease; overflow: hidden; cursor: pointer; border: 2px solid transparent; background: #fff; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
     .tpl-card:hover { transform: translateY(-4px); box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); }
     .tpl-card.tpl-active { border-color: #3b82f6; box-shadow: 0 0 0 4px rgba(59,130,246,0.2); }
-    .tpl-card.tpl-active::after { content: '✓'; position: absolute; top: 4px; right: 4px; width: 20px; height: 20px; background: #3b82f6; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; color: white; font-weight: bold; }
-    .tpl-name { position: absolute; bottom: 0; left: 0; right: 0; background: rgba(255,255,255,0.9); text-align: center; font-size: 10px; font-weight: 700; padding: 4px; color: #1e293b; border-top: 1px solid #e2e8f0; }
+    .tpl-card.tpl-active::after { content: '✓'; position: absolute; top: 4px; right: 4px; width: 20px; height: 20px; background: #3b82f6; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; color: white; font-weight: bold; z-index: 10; }
+    .tpl-name { position: absolute; bottom: 0; left: 0; right: 0; background: rgba(255,255,255,0.9); text-align: center; font-size: 10px; font-weight: 700; padding: 4px; color: #1e293b; border-top: 1px solid #e2e8f0; z-index: 10; }
 
     .btn-primary { background: linear-gradient(135deg,#3b82f6 0%,#2563eb 100%); color: white; box-shadow: 0 4px 15px rgba(59,130,246,0.3); transition: all 0.3s; }
     .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(59,130,246,0.4); }
@@ -139,7 +139,9 @@
           <path d="m15 18-6-6 6-6"/>
         </svg>
       </a>
-      <div class="w-10 h-10 bg-blue-500 rounded-xl flex items-center justify-center text-white font-bold text-xl shadow-lg">C</div>
+      <div class="w-10 h-10 rounded-xl flex items-center justify-center shadow-lg overflow-hidden flex-shrink-0">
+        <img src="https://i.postimg.cc/rmM0b0qN/IMG-20260208-144233-549.jpg" class="w-full h-full object-cover" alt="Logo">
+      </div>
       <h1 class="font-display font-bold text-lg text-slate-800 tracking-tight" data-i18n="app_title">CV Builder</h1>
     </div>
     <div class="flex items-center gap-3">
@@ -164,29 +166,37 @@
 
       <div id="step-1" class="step-content active">
         <div class="grid grid-cols-4 sm:grid-cols-8 gap-3 mb-8">
-          <div class="tpl-card tpl-active aspect-[1/1.3] rounded-xl bg-gray-50 flex flex-col items-center pt-2" onclick="setTpl('minimal')" id="tpl-minimal">
-            <div class="w-8 h-8 bg-gray-300 rounded-md mb-1"></div><div class="w-12 h-2 bg-gray-300 mb-1"></div><div class="tpl-name">Minimal</div>
+          <div class="tpl-card tpl-active aspect-[1/1.3] rounded-xl flex flex-col items-center" onclick="setTpl('minimal')" id="tpl-minimal">
+            <img src="https://i.postimg.cc/02nFbRTH/Screenshot-20260316-050751-WPS-Office.jpg" class="w-full h-full object-cover" alt="Minimal">
+            <div class="tpl-name">Minimal</div>
           </div>
-          <div class="tpl-card aspect-[1/1.3] rounded-xl bg-gray-50 flex" onclick="setTpl('split')" id="tpl-split">
-            <div class="w-1/3 h-full bg-slate-800 flex flex-col items-center pt-2"><div class="w-6 h-6 rounded-full bg-blue-400"></div></div><div class="flex-1 bg-white"></div><div class="tpl-name">Split</div>
+          <div class="tpl-card aspect-[1/1.3] rounded-xl flex flex-col items-center" onclick="setTpl('split')" id="tpl-split">
+            <img src="https://i.postimg.cc/xdhGkWZb/Screenshot-20260316-050655-WPS-Office.jpg" class="w-full h-full object-cover" alt="Split">
+            <div class="tpl-name">Split</div>
           </div>
-          <div class="tpl-card aspect-[1/1.3] rounded-xl bg-gray-50 flex flex-col" onclick="setTpl('modern')" id="tpl-modern">
-            <div class="h-1/3 bg-slate-800 flex items-center px-2"><div class="w-6 h-6 rounded bg-gray-300"></div></div><div class="flex-1 bg-white"></div><div class="tpl-name">Modern</div>
+          <div class="tpl-card aspect-[1/1.3] rounded-xl flex flex-col items-center" onclick="setTpl('modern')" id="tpl-modern">
+            <img src="https://i.postimg.cc/hjJc0PB9/Screenshot-20260316-102843-WPS-Office.jpg" class="w-full h-full object-cover" alt="Modern">
+            <div class="tpl-name">Modern</div>
           </div>
-          <div class="tpl-card aspect-[1/1.3] rounded-xl bg-gray-50 flex flex-col items-center pt-2" onclick="setTpl('ats')" id="tpl-ats">
-            <div class="w-8 h-8 rounded-full bg-gray-300 mb-1"></div><div class="w-full border-t border-black my-1"></div><div class="tpl-name">ATS</div>
+          <div class="tpl-card aspect-[1/1.3] rounded-xl flex flex-col items-center" onclick="setTpl('ats')" id="tpl-ats">
+            <img src="https://i.postimg.cc/pTvT1ChK/Screenshot-20260316-050609-WPS-Office.jpg" class="w-full h-full object-cover" alt="ATS">
+            <div class="tpl-name">ATS</div>
           </div>
-          <div class="tpl-card aspect-[1/1.3] rounded-xl bg-gray-50 flex flex-col items-center pt-4" onclick="setTpl('elegant')" id="tpl-elegant">
-            <div class="w-10 h-10 rounded-full bg-gray-300 shadow-sm"></div><div class="tpl-name">Elegant</div>
+          <div class="tpl-card aspect-[1/1.3] rounded-xl flex flex-col items-center" onclick="setTpl('elegant')" id="tpl-elegant">
+            <img src="https://i.postimg.cc/j5nXZsfH/Screenshot-20260316-050836-WPS-Office.jpg" class="w-full h-full object-cover" alt="Elegant">
+            <div class="tpl-name">Elegant</div>
           </div>
-          <div class="tpl-card aspect-[1/1.3] rounded-xl flex flex-col" onclick="setTpl('corporate')" id="tpl-corporate">
-            <div class="h-1/4 bg-blue-600 flex items-center px-1"><div class="w-6 h-6 bg-white rounded-sm"></div></div><div class="flex-1 bg-white"></div><div class="tpl-name">Corp</div>
+          <div class="tpl-card aspect-[1/1.3] rounded-xl flex flex-col items-center" onclick="setTpl('corporate')" id="tpl-corporate">
+            <img src="https://i.postimg.cc/8PX7PL91/Screenshot-20260316-050001-WPS-Office.jpg" class="w-full h-full object-cover" alt="Corporate">
+            <div class="tpl-name">Corporate</div>
           </div>
-          <div class="tpl-card aspect-[1/1.3] rounded-xl flex" onclick="setTpl('creative')" id="tpl-creative">
-            <div class="w-1/3 h-full bg-blue-50 flex flex-col items-center pt-2"><div class="w-6 h-6 bg-blue-300 rounded-lg transform -rotate-6"></div></div><div class="flex-1 bg-white"></div><div class="tpl-name">Creative</div>
+          <div class="tpl-card aspect-[1/1.3] rounded-xl flex flex-col items-center" onclick="setTpl('creative')" id="tpl-creative">
+            <img src="https://i.postimg.cc/2ST259mr/Screenshot-20260316-050942-WPS-Office.jpg" class="w-full h-full object-cover" alt="Creative">
+            <div class="tpl-name">Creative</div>
           </div>
-          <div class="tpl-card aspect-[1/1.3] rounded-xl flex" onclick="setTpl('prof')" id="tpl-prof">
-            <div class="w-[10%] h-full bg-slate-900"></div><div class="flex-1 bg-white flex flex-col pt-2 px-1"><div class="w-6 h-6 rounded-full bg-gray-300"></div></div><div class="tpl-name">Prof</div>
+          <div class="tpl-card aspect-[1/1.3] rounded-xl flex flex-col items-center" onclick="setTpl('prof')" id="tpl-prof">
+            <img src="https://i.postimg.cc/3w15YFfC/Screenshot-20260316-052841-WPS-Office.jpg" class="w-full h-full object-cover" alt="Prof">
+            <div class="tpl-name">Prof</div>
           </div>
         </div>
 
@@ -197,19 +207,19 @@
           <div class="z-10 flex flex-col items-start gap-1">
             <input type="file" id="imgInput" accept="image/*" class="hidden" onchange="handleImage(this)">
             <button class="px-5 py-2 bg-white text-blue-600 font-bold text-sm rounded-xl shadow-sm border border-blue-200 hover:bg-blue-50 transition-all" onclick="document.getElementById('imgInput').click()" data-i18n="upload_img">Rasmni tanlang</button>
-            <span class="text-xs text-slate-500 font-medium">yoki rasmni shu yerga tortib tashlang</span>
+            <span class="text-xs text-slate-500 font-medium" data-i18n="drag_img">yoki rasmni shu yerga tortib tashlang</span>
           </div>
         </div>
 
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
           <div>
             <label class="text-xs text-slate-500 font-bold mb-1 block" data-i18n="name">Ism Familiya</label>
-            <input type="text" id="f_name" class="input-premium w-full rounded-xl px-4 py-3 text-sm" placeholder="Ali Valiyev" oninput="triggerUpdate()">
+            <input type="text" id="f_name" class="input-premium w-full rounded-xl px-4 py-3 text-sm" placeholder="Ali Valiyev" data-i18n-ph="name_ph" oninput="triggerUpdate()">
           </div>
           
           <div class="relative">
             <label class="text-xs text-slate-500 font-bold mb-1 block" data-i18n="role">Kasb / Lavozim</label>
-            <input type="text" id="f_role" class="input-premium w-full rounded-xl px-4 py-3 text-sm font-semibold text-blue-700" placeholder="Masalan: Dasturchi" autocomplete="off" 
+            <input type="text" id="f_role" class="input-premium w-full rounded-xl px-4 py-3 text-sm font-semibold text-blue-700" placeholder="Masalan: Dasturchi" data-i18n-ph="role_ph" autocomplete="off" 
                    oninput="handleSuggest(this, 'roles')" onfocus="handleSuggest(this, 'roles')" onblur="setTimeout(()=>closeSuggest('roles'), 200)">
             <div id="suggest_roles" class="absolute z-50 w-full bg-white border border-blue-200 rounded-xl mt-1 shadow-lg max-h-48 overflow-y-auto custom-scrollbar hidden"></div>
           </div>
@@ -225,19 +235,19 @@
           
            <div class="sm:col-span-2 relative">
             <label class="text-xs text-slate-500 font-bold mb-1 block" data-i18n="location">Manzil (Viloyat, Shahar)</label>
-            <input type="text" id="f_loc" class="input-premium w-full rounded-xl px-4 py-3 text-sm" placeholder="Masalan: Toshkent shahri" autocomplete="off"
+            <input type="text" id="f_loc" class="input-premium w-full rounded-xl px-4 py-3 text-sm" placeholder="Masalan: Toshkent shahri" data-i18n-ph="loc_ph" autocomplete="off"
                    oninput="handleSuggest(this, 'locs')" onfocus="handleSuggest(this, 'locs')" onblur="setTimeout(()=>closeSuggest('locs'), 200)">
             <div id="suggest_locs" class="absolute z-50 w-full bg-white border border-blue-200 rounded-xl mt-1 shadow-lg max-h-48 overflow-y-auto custom-scrollbar hidden"></div>
           </div>
 
           <div class="sm:col-span-2">
-            <label class="text-xs text-slate-500 font-bold mb-1 block" data-i18n="about">Qisqacha o'zingiz haqingizda</label>
-            <textarea id="f_about" class="input-premium w-full h-24 rounded-xl px-4 py-3 text-sm resize-none" placeholder="Men haqimda..." oninput="triggerUpdate()"></textarea>
+            <label class="text-xs text-slate-500 font-bold mb-1 block" data-i18n="about">o'zingiz haqingizda</label>
+            <textarea id="f_about" class="input-premium w-full h-24 rounded-xl px-4 py-3 text-sm resize-none" placeholder="Men haqimda..." data-i18n-ph="about_ph" oninput="triggerUpdate()"></textarea>
           </div>
         </div>
         
         <div class="mt-6 flex justify-end">
-          <button onclick="setStep(2)" class="btn-primary px-8 py-3 rounded-xl font-bold text-sm flex items-center gap-2">Keyingisi <span class="hyper-emoji text-lg">➡️</span></button>
+          <button onclick="setStep(2)" class="btn-primary px-8 py-3 rounded-xl font-bold text-sm flex items-center gap-2"><span data-i18n="next_btn">Keyingisi</span> <span class="hyper-emoji text-lg">➡️</span></button>
         </div>
       </div>
 
@@ -255,8 +265,8 @@
         <button onclick="addLang()" class="w-full py-3 border-2 border-dashed border-blue-300 text-blue-600 bg-blue-50 rounded-xl font-bold text-sm hover:bg-blue-100 transition-colors" data-i18n="add_lang">+ Til qo'shish</button>
 
         <div class="mt-8 flex justify-between">
-          <button onclick="setStep(1)" class="px-6 py-3 bg-white border border-slate-200 text-slate-600 rounded-xl font-bold text-sm">Orqaga</button>
-          <button onclick="setStep(3)" class="btn-primary px-8 py-3 rounded-xl font-bold text-sm">Keyingisi ➡️</button>
+          <button onclick="setStep(1)" class="px-6 py-3 bg-white border border-slate-200 text-slate-600 rounded-xl font-bold text-sm" data-i18n="back_btn">Orqaga</button>
+          <button onclick="setStep(3)" class="btn-primary px-8 py-3 rounded-xl font-bold text-sm flex items-center gap-2"><span data-i18n="next_btn">Keyingisi</span> ➡️</button>
         </div>
       </div>
 
@@ -269,7 +279,7 @@
           </div>
           <div id="skillsWrap" class="flex flex-wrap gap-2 mb-3"></div>
           <div class="border-t border-blue-200 pt-3 mt-3">
-            <p class="text-xs text-slate-500 font-bold mb-2">Tezkor tanlash:</p>
+            <p id="quickSelectLabel" class="text-xs text-slate-500 font-bold mb-2">Tezkor tanlash:</p>
             <div id="suggestedSkills" class="flex flex-wrap gap-2"></div>
           </div>
         </div>
@@ -278,22 +288,18 @@
         <div class="bg-blue-50 p-4 rounded-xl mb-4 border border-blue-100">
           <div class="grid grid-cols-1 sm:grid-cols-4 gap-2 mb-3">
              <select id="achType" class="input-premium rounded-lg px-3 py-2 text-sm font-semibold sm:col-span-1 cursor-pointer">
-                <option value="Sertifikat">Sertifikat</option>
-                <option value="Diplom">Diplom</option>
-                <option value="Faxriy yorliq">Faxriy yorliq</option>
-                <option value="Sovrin">Sovrin</option>
-             </select>
+                </select>
              <input type="text" id="achName" class="input-premium rounded-lg px-3 py-2 text-sm sm:col-span-2" placeholder="Nomi (masalan: IELTS 7.5)">
              <div class="flex gap-2 sm:col-span-1">
                <input type="number" id="achYear" class="input-premium w-full rounded-lg px-3 py-2 text-sm text-center" placeholder="Yili" min="1990" max="2030">
-               <button onclick="addAchDetails()" class="bg-blue-600 text-white px-4 py-2 rounded-lg font-bold hover:bg-blue-700 w-12 shrink-0" data-i18n="add_ach">+</button>
+               <button onclick="addAchDetails()" class="bg-blue-600 text-white px-4 py-2 rounded-lg font-bold hover:bg-blue-700 w-12 shrink-0">+</button>
              </div>
           </div>
           <div id="achList" class="flex flex-col gap-2 mt-4"></div>
         </div>
 
         <div class="mt-8 flex justify-between items-center border-t border-slate-200 pt-6">
-          <button onclick="setStep(2)" class="px-6 py-3 bg-white border border-slate-200 text-slate-600 rounded-xl font-bold text-sm">Orqaga</button>
+          <button onclick="setStep(2)" class="px-6 py-3 bg-white border border-slate-200 text-slate-600 rounded-xl font-bold text-sm" data-i18n="back_btn">Orqaga</button>
         </div>
       </div>
     </div>
@@ -326,7 +332,7 @@
       
     </div>
 
-    <button onclick="clearAllData()" class="mt-4 px-6 py-3 bg-white text-red-500 border border-red-200 hover:bg-red-50 font-bold rounded-xl shadow-sm transition-all text-sm w-full sm:w-auto mx-auto block">Ma'lumotlarni tozalash</button>
+    <button onclick="clearAllData()" class="mt-4 px-6 py-3 bg-white text-red-500 border border-red-200 hover:bg-red-50 font-bold rounded-xl shadow-sm transition-all text-sm w-full sm:w-auto mx-auto block" data-i18n="clear_data">Ma'lumotlarni tozalash</button>
   </div>
 
   <script>
@@ -334,39 +340,84 @@
     const dict = {
       uz_lat: {
         app_title: "CV Builder", step_1: "Shaxsiy", step_2: "Tajriba", step_3: "Yutuqlar",
-        upload_img: "Rasmni tanlang", name: "Ism Familiya", role: "Kasb / Lavozim",
-        phone: "Telefon", email: "Email", location: "Manzil (Viloyat, Shahar)", about: "Qisqacha o'zingiz haqingizda",
+        upload_img: "Rasmni tanlang", drag_img: "yoki rasmni shu yerga tortib tashlang", 
+        name: "Ism Familiya", name_ph: "Ali Valiyev", role: "Kasb / Lavozim", role_ph: "Masalan: Dasturchi",
+        phone: "Telefon", email: "Email", location: "Manzil (Viloyat, Shahar)", loc_ph: "Masalan: Toshkent shahri",
+        about: "Men haqimda", about_ph: "Men...",
         edu_title: "Ta'lim", add_edu: "+ Ta'lim qo'shish", exp_title: "Ish Tajribasi", add_exp: "+ Tajriba qo'shish",
         lang_title: "Til Bilish", add_lang: "+ Til qo'shish",
         skills_title: "Ko'nikmalar (Skills)", ach_title: "Yutuqlar va Qobiliyatlar", add_ach: "Qo'shish",
-        cv_color: "Rang:", preview: "Jonli Ko'rinish", download_pdf: "PDF Yuklash"
+        cv_color: "Rang:", preview: "Jonli Ko'rinish", download_pdf: "PDF Yuklash", 
+        next_btn: "Keyingisi", back_btn: "Orqaga", clear_data: "Ma'lumotlarni tozalash",
+        
+        // Dynamic List Labels
+        select_lang: "Til tanlang", lang_en: "Ingliz tili", lang_ru: "Rus tili", lang_de: "Nemis tili", lang_tr: "Turk tili", lang_other: "Boshqa",
+        listen: "Tinglash", read: "O'qish", speak: "Gapirish", write: "Yozish",
+        cert: "Sertifikat", dip: "Diplom", honor: "Faxriy yorliq", prize: "Sovrin",
+        ach_name_ph: "Nomi (masalan: IELTS 7.5)", year_ph: "Yili",
+        title_ph: "Sarlavha", place_ph: "Joy nomi", date_ph: "2020-2024",
+        quick_skills: "Tezkor tanlash:", skills_ph: "Masalan: Liderlik, Python...",
+        sug_skills: ["Microsoft Word", "Microsoft Excel", "PowerPoint", "Jamoaviy ishlash", "Muammoni hal qilish"]
       },
       uz_cyr: {
         app_title: "CV Builder", step_1: "Шахсий", step_2: "Тажриба", step_3: "Ютуқлар",
-        upload_img: "Расмни танланг", name: "Исм Фамилия", role: "Касб / Лавозим",
-        phone: "Телефон", email: "Email", location: "Манзил (Вилоят, Шаҳар)", about: "Қисқача ўзингиз ҳақингизда",
+        upload_img: "Расмни танланг", drag_img: "ёки расмни шу ерга тортиб ташланг",
+        name: "Исм Фамилия", name_ph: "Али Валиев", role: "Касб / Лавозим", role_ph: "Масалан: Дастурчи",
+        phone: "Телефон", email: "Email", location: "Манзил (Вилоят, Шаҳар)", loc_ph: "Масалан: Тошкент шаҳри",
+        about: "Қисқача ўзингиз ҳақингизда", about_ph: "Мен ҳақимда...",
         edu_title: "Таълим", add_edu: "+ Таълим қўшиш", exp_title: "Иш Тажрибаси", add_exp: "+ Тажриба қўшиш",
         lang_title: "Тил Билиш", add_lang: "+ Тил қўшиш",
         skills_title: "Кўникмалар (Skills)", ach_title: "Ютуқлар ва Қобилиятлар", add_ach: "Қўшиш",
-        cv_color: "Ранг:", preview: "Жонли Кўриниш", download_pdf: "PDF Юклаш"
+        cv_color: "Ранг:", preview: "Жонли Кўриниш", download_pdf: "PDF Юклаш",
+        next_btn: "Кейингиси", back_btn: "Орқага", clear_data: "Маълумотларни тозалаш",
+
+        select_lang: "Тил танланг", lang_en: "Инглиз тили", lang_ru: "Рус тили", lang_de: "Немис тили", lang_tr: "Турк тили", lang_other: "Бошқа",
+        listen: "Тинглаш", read: "Ўқиш", speak: "Гапириш", write: "Ёзиш",
+        cert: "Сертификат", dip: "Диплом", honor: "Фахрий ёрлиқ", prize: "Соврин",
+        ach_name_ph: "Номи (масалан: IELTS 7.5)", year_ph: "Йили",
+        title_ph: "Сарлавҳа", place_ph: "Жой номи", date_ph: "2020-2024",
+        quick_skills: "Тезкор танлаш:", skills_ph: "Масалан: Лидерлик, Python...",
+        sug_skills: ["Microsoft Word", "Microsoft Excel", "PowerPoint", "Жамоавий ишлаш", "Муаммони ҳал қилиш"]
       },
       en: {
         app_title: "CV Builder", step_1: "Personal", step_2: "Experience", step_3: "Achievements",
-        upload_img: "Select Image", name: "Full Name", role: "Profession / Role",
-        phone: "Phone", email: "Email", location: "Location (City, State)", about: "About Me",
+        upload_img: "Select Image", drag_img: "or drag and drop image here",
+        name: "Full Name", name_ph: "John Doe", role: "Profession / Role", role_ph: "e.g. Software Engineer",
+        phone: "Phone", email: "Email", location: "Location (City, State)", loc_ph: "e.g. New York",
+        about: "About Me", about_ph: "Brief info about me...",
         edu_title: "Education", add_edu: "+ Add Education", exp_title: "Work Experience", add_exp: "+ Add Experience",
         lang_title: "Languages", add_lang: "+ Add Language",
         skills_title: "Skills", ach_title: "Achievements", add_ach: "Add",
-        cv_color: "Color:", preview: "Live Preview", download_pdf: "Download PDF"
+        cv_color: "Color:", preview: "Live Preview", download_pdf: "Download PDF",
+        next_btn: "Next", back_btn: "Back", clear_data: "Clear Data",
+
+        select_lang: "Select Language", lang_en: "English", lang_ru: "Russian", lang_de: "German", lang_tr: "Turkish", lang_other: "Other",
+        listen: "Listening", read: "Reading", speak: "Speaking", write: "Writing",
+        cert: "Certificate", dip: "Diploma", honor: "Certificate of Honor", prize: "Award",
+        ach_name_ph: "Name (e.g., IELTS 7.5)", year_ph: "Year",
+        title_ph: "Title", place_ph: "Place / Company", date_ph: "2020-2024",
+        quick_skills: "Quick Select:", skills_ph: "e.g., Leadership, Python...",
+        sug_skills: ["Microsoft Word", "Microsoft Excel", "PowerPoint", "Teamwork", "Problem Solving"]
       },
       ru: {
         app_title: "CV Builder", step_1: "Личное", step_2: "Опыт", step_3: "Достижения",
-        upload_img: "Выбрать фото", name: "Имя Фамилия", role: "Профессия / Должность",
-        phone: "Телефон", email: "Email", location: "Адрес (Город, Область)", about: "Обо мне",
+        upload_img: "Выбрать фото", drag_img: "или перетащите фото сюда",
+        name: "Имя Фамилия", name_ph: "Иван Иванов", role: "Профессия / Должность", role_ph: "Например: Программист",
+        phone: "Телефон", email: "Email", location: "Адрес (Город, Область)", loc_ph: "Например: Москва",
+        about: "Обо мне", about_ph: "Кратко о себе...",
         edu_title: "Образование", add_edu: "+ Добавить образование", exp_title: "Опыт работы", add_exp: "+ Добавить опыт",
         lang_title: "Языки", add_lang: "+ Добавить язык",
         skills_title: "Навыки", ach_title: "Достижения", add_ach: "Добавить",
-        cv_color: "Цвет:", preview: "Предпросмотр", download_pdf: "Скачать PDF"
+        cv_color: "Цвет:", preview: "Предпросмотр", download_pdf: "Скачать PDF",
+        next_btn: "Далее", back_btn: "Назад", clear_data: "Очистить данные",
+
+        select_lang: "Выберите язык", lang_en: "Английский", lang_ru: "Русский", lang_de: "Немецкий", lang_tr: "Турецкий", lang_other: "Другое",
+        listen: "Аудирование", read: "Чтение", speak: "Говорение", write: "Письмо",
+        cert: "Сертификат", dip: "Диплом", honor: "Почетная грамота", prize: "Награда",
+        ach_name_ph: "Название (напр., IELTS 7.5)", year_ph: "Год",
+        title_ph: "Заголовок", place_ph: "Место / Компания", date_ph: "2020-2024",
+        quick_skills: "Быстрый выбор:", skills_ph: "Например: Лидерство, Python...",
+        sug_skills: ["Microsoft Word", "Microsoft Excel", "PowerPoint", "Командная работа", "Решение проблем"]
       }
     };
 
@@ -379,36 +430,54 @@
         "Sirdaryo viloyati", "Surxondaryo viloyati"
       ],
       roles: [
-        // IT
         "Dasturchi (Frontend)", "Dasturchi (Backend)", "Dasturchi (Fullstack)", 
         "Mobil Dasturchi", "UI/UX Dizayner", "Grafik Dizayner", "Loyiha Boshqaruvchisi (PM)", 
-        "Tizim Administratori", "QA Muhandis",
-        // Tibbiyot
-        "Shifokor", "Hamshira", "Stomatolog", "Farmatsevt", "Xirurg (Jarroh)", "Pediatr",
-        // Huquq
-        "Yurist", "Advokat", "Notarius", "Sudya", "Huquqshunos",
-        // Pedagogika
-        "O'qituvchi", "Tarbiyachi", "Professor", "Oliy toifali o'qituvchi", "Defektolog",
-        // Boshqa
-        "Hisobchi (Buxgalter)", "Marketing Mutaxassisi", "SMM Mutaxassisi", "Kadrlar bo'limi (HR)", "Menejer", "Iqtisodchi"
+        "Tizim Administratori", "QA Muhandis", "Shifokor", "Hamshira", "Stomatolog", 
+        "Farmatsevt", "Xirurg (Jarroh)", "Pediatr", "Yurist", "Advokat", "Notarius", 
+        "Sudya", "Huquqshunos", "O'qituvchi", "Tarbiyachi", "Professor", "Oliy toifali o'qituvchi", 
+        "Defektolog", "Hisobchi (Buxgalter)", "Marketing Mutaxassisi", "SMM Mutaxassisi", "Kadrlar bo'limi (HR)", "Menejer", "Iqtisodchi"
       ]
     };
 
     let currentLang = 'uz_lat';
+    
     function changeLang(lang, shouldTrigger = true) {
       currentLang = lang;
+      const d = dict[lang];
+
+      // Update basic texts and placeholders
       document.querySelectorAll('[data-i18n]').forEach(el => {
         const key = el.getAttribute('data-i18n');
-        if (dict[lang] && dict[lang][key]) el.innerText = dict[lang][key];
+        if (d && d[key]) el.innerText = d[key];
       });
-      // Global app language sync (UZ/RU/EN for all pages)
-      try {
-        if (window.DA && typeof DA.setLang === 'function') {
-          const next = (lang === 'en' || lang === 'ru') ? lang : 'uz';
-          if (DA.getLang && DA.getLang() !== next) DA.setLang(next);
-        }
-      } catch (_) {}
+      document.querySelectorAll('[data-i18n-ph]').forEach(el => {
+        const key = el.getAttribute('data-i18n-ph');
+        if (d && d[key]) el.placeholder = d[key];
+      });
+
+      // Update static selects and lists
+      updateStaticTexts();
+      renderList('eduList', eduData, 'edu');
+      renderList('expList', expData, 'exp');
+      renderList('langList', langData, 'lang');
+      renderList('achList', achData, 'ach');
+      renderSuggestedSkills();
+
       if(shouldTrigger) triggerUpdate();
+    }
+
+    function updateStaticTexts() {
+      const d = dict[currentLang];
+      document.getElementById('achType').innerHTML = `
+          <option value="${d.cert}">${d.cert}</option>
+          <option value="${d.dip}">${d.dip}</option>
+          <option value="${d.honor}">${d.honor}</option>
+          <option value="${d.prize}">${d.prize}</option>
+      `;
+      document.getElementById('achName').placeholder = d.ach_name_ph;
+      document.getElementById('achYear').placeholder = d.year_ph;
+      document.getElementById('skillInput').placeholder = d.skills_ph;
+      document.getElementById('quickSelectLabel').innerText = d.quick_skills;
     }
 
     // --- STATE & DATA ---
@@ -434,33 +503,23 @@
       const val = inputElem.value.toLowerCase();
       const suggestDiv = document.getElementById(`suggest_${type}`);
       const list = DB[type];
-      
       if(!val && document.activeElement !== inputElem) { suggestDiv.classList.add('hidden'); return; }
-      
       const filtered = list.filter(item => item.toLowerCase().includes(val));
-      
       if(filtered.length === 0) { suggestDiv.classList.add('hidden'); return; }
-      
       suggestDiv.innerHTML = filtered.map(item => {
         const regex = new RegExp(`(${val})`, 'gi');
         const highlighted = val ? item.replace(regex, `<span class="text-blue-600 font-extrabold bg-blue-50 px-0.5 rounded">$1</span>`) : item;
-        
         return `<div class="px-4 py-2 hover:bg-blue-50 cursor-pointer text-sm font-medium text-slate-700 transition-colors border-b border-slate-50 last:border-0" 
                      onmousedown="selectSuggest('${inputElem.id}', '${item}', '${type}')">${highlighted}</div>`;
       }).join('');
-      
       suggestDiv.classList.remove('hidden');
     }
-
     function selectSuggest(inputId, val, type) {
       document.getElementById(inputId).value = val;
       document.getElementById(`suggest_${type}`).classList.add('hidden');
       triggerUpdate();
     }
-
-    function closeSuggest(type) {
-      document.getElementById(`suggest_${type}`).classList.add('hidden');
-    }
+    function closeSuggest(type) { document.getElementById(`suggest_${type}`).classList.add('hidden'); }
 
     // --- STEPS LOGIC ---
     function setStep(num) {
@@ -483,7 +542,6 @@
         r.readAsDataURL(input.files[0]);
       }
     }
-
     const dropZone = document.getElementById('photoPrev');
     dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('border-blue-500', 'bg-blue-100'); });
     dropZone.addEventListener('dragleave', (e) => { e.preventDefault(); dropZone.classList.remove('border-blue-500', 'bg-blue-100'); });
@@ -505,23 +563,24 @@
 
     // --- DYNAMIC LISTS ---
     function renderList(containerId, arr, type) {
+      const d = dict[currentLang];
       if (type === 'lang') {
         document.getElementById(containerId).innerHTML = arr.map((item, i) => `
           <div class="entry-card relative !mb-2 !p-3">
             <button class="absolute top-2 right-2 text-red-400 hover:text-red-600 font-bold bg-red-50 w-6 h-6 rounded flex items-center justify-center z-10 transition-colors" onclick="removeObj(${i}, '${type}')">✕</button>
             <select class="input-premium w-full mb-3 rounded-lg px-3 py-2 text-sm font-bold" onchange="langData[${i}].lang=this.value;triggerUpdate()">
-              <option value="">Til tanlang</option>
-              <option value="Ingliz tili" ${item.lang==='Ingliz tili'?'selected':''}>Ingliz tili</option>
-              <option value="Rus tili" ${item.lang==='Rus tili'?'selected':''}>Rus tili</option>
-              <option value="Nemis tili" ${item.lang==='Nemis tili'?'selected':''}>Nemis tili</option>
-              <option value="Turk tili" ${item.lang==='Turk tili'?'selected':''}>Turk tili</option>
-              <option value="Boshqa" ${item.lang==='Boshqa'?'selected':''}>Boshqa</option>
+              <option value="">${d.select_lang}</option>
+              <option value="${d.lang_en}" ${item.lang===d.lang_en?'selected':''}>${d.lang_en}</option>
+              <option value="${d.lang_ru}" ${item.lang===d.lang_ru?'selected':''}>${d.lang_ru}</option>
+              <option value="${d.lang_de}" ${item.lang===d.lang_de?'selected':''}>${d.lang_de}</option>
+              <option value="${d.lang_tr}" ${item.lang===d.lang_tr?'selected':''}>${d.lang_tr}</option>
+              <option value="${d.lang_other}" ${item.lang===d.lang_other?'selected':''}>${d.lang_other}</option>
             </select>
             ${['listen', 'read', 'speak', 'write'].map(skill => {
-              const label = skill === 'listen' ? 'Tinglash' : skill === 'read' ? 'O‘qish' : skill === 'speak' ? 'Gapirish' : 'Yozish';
+              const label = d[skill];
               return `
               <div class="flex justify-between items-center mb-2">
-                <span class="text-xs font-bold text-slate-500 w-16 capitalize">${label}</span>
+                <span class="text-xs font-bold text-slate-500 w-24 capitalize">${label}</span>
                 <div class="flex gap-1.5">
                   ${[1,2,3,4,5,6].map(level => `
                     <div class="lang-level-btn ${item[skill] >= level ? 'active' : ''}" onclick="langData[${i}].${skill}=${level}; renderList('langList', langData, 'lang'); triggerUpdate()"></div>
@@ -542,14 +601,14 @@
             ? `<div class="flex flex-col gap-2 pr-8">
                  <div class="flex gap-2">
                    <input class="input-premium font-bold rounded-lg px-3 py-1.5 text-sm w-1/3" value="${item.type||''}" oninput="${type}Data[${i}].type=this.value;triggerUpdate()">
-                   <input class="input-premium font-bold rounded-lg px-3 py-1.5 text-sm text-center w-24" value="${item.year||''}" oninput="${type}Data[${i}].year=this.value;triggerUpdate()">
+                   <input class="input-premium font-bold rounded-lg px-3 py-1.5 text-sm text-center w-24" placeholder="${d.year_ph}" value="${item.year||''}" oninput="${type}Data[${i}].year=this.value;triggerUpdate()">
                  </div>
-                 <input class="input-premium w-full rounded-lg px-3 py-1.5 text-sm" value="${item.title||''}" oninput="${type}Data[${i}].title=this.value;triggerUpdate()">
+                 <input class="input-premium w-full rounded-lg px-3 py-1.5 text-sm" placeholder="${d.ach_name_ph}" value="${item.title||''}" oninput="${type}Data[${i}].title=this.value;triggerUpdate()">
                </div>`
-            : `<input class="input-premium w-full mb-2 rounded-lg px-3 py-2 text-sm font-bold" placeholder="Sarlavha" value="${item.title||''}" oninput="${type}Data[${i}].title=this.value;triggerUpdate()">
+            : `<input class="input-premium w-full mb-2 rounded-lg px-3 py-2 text-sm font-bold" placeholder="${d.title_ph}" value="${item.title||''}" oninput="${type}Data[${i}].title=this.value;triggerUpdate()">
                <div class="flex gap-2">
-                 <input class="input-premium flex-1 rounded-lg px-3 py-2 text-sm" placeholder="Joy nomi" value="${item.place||''}" oninput="${type}Data[${i}].place=this.value;triggerUpdate()">
-                 <input class="input-premium w-24 rounded-lg px-3 py-2 text-sm text-center" placeholder="2020-2024" value="${item.date||''}" oninput="${type}Data[${i}].date=this.value;triggerUpdate()">
+                 <input class="input-premium flex-1 rounded-lg px-3 py-2 text-sm" placeholder="${d.place_ph}" value="${item.place||''}" oninput="${type}Data[${i}].place=this.value;triggerUpdate()">
+                 <input class="input-premium w-24 rounded-lg px-3 py-2 text-sm text-center" placeholder="${d.date_ph}" value="${item.date||''}" oninput="${type}Data[${i}].date=this.value;triggerUpdate()">
                </div>`
           }
         </div>
@@ -560,13 +619,23 @@
     function addExp() { expData.push({title:'', place:'', date:''}); renderList('expList', expData, 'exp'); }
     function addLang() { langData.push({lang:'', listen:0, read:0, speak:0, write:0}); renderList('langList', langData, 'lang'); }
     
-    function removeObj(idx, type) { window[type+'Data'].splice(idx, 1); renderList(type+'List', window[type+'Data'], type); triggerUpdate(); }
+    // BUG FIX (Scoped Array access)
+    function removeObj(idx, type) { 
+       let arr;
+       if (type === 'edu') arr = eduData;
+       else if (type === 'exp') arr = expData;
+       else if (type === 'lang') arr = langData;
+       else if (type === 'ach') arr = achData;
+       
+       arr.splice(idx, 1);
+       renderList(type+'List', arr, type);
+       triggerUpdate(); 
+    }
 
     function addAchDetails() {
        const type = document.getElementById('achType').value;
        const title = document.getElementById('achName').value.trim();
        const year = document.getElementById('achYear').value.trim();
-       
        if(title) {
           achData.push({ type: type, title: title, year: year });
           document.getElementById('achName').value = '';
@@ -593,14 +662,15 @@
       `).join('');
     }
 
-    const suggestedSkillsList = ["Microsoft Word", "Microsoft Excel", "PowerPoint", "Jamoaviy ishlash", "Muammoni hal qilish"];
     function renderSuggestedSkills() {
+       const d = dict[currentLang];
        const container = document.getElementById('suggestedSkills');
-       container.innerHTML = suggestedSkillsList.map(skill => {
+       container.innerHTML = d.sug_skills.map(skill => {
           const isSelected = skillsData.includes(skill);
           return `<button onclick="toggleSuggestedSkill('${skill}')" class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${isSelected ? 'bg-blue-500 text-white shadow-md border border-blue-600' : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'}">${skill}</button>`;
        }).join('');
     }
+
     function toggleSuggestedSkill(skill) {
        if(skillsData.includes(skill)) skillsData = skillsData.filter(s => s !== skill);
        else skillsData.push(skill);
@@ -642,70 +712,35 @@
             
             document.getElementById('langSelect').value = currentLang; changeLang(currentLang, false);
             
-            renderList('eduList', eduData, 'edu'); renderList('expList', expData, 'exp'); 
-            renderList('achList', achData, 'ach'); renderList('langList', langData, 'lang');
-            renderSkills(); renderSuggestedSkills();
-            
+            renderSkills(); 
             triggerUpdate(false);
         } else {
-            renderSuggestedSkills(); triggerUpdate();
+            updateStaticTexts(); renderSuggestedSkills(); triggerUpdate();
         }
     }
 
     function clearAllData() {
-        if(confirm("Barcha ma'lumotlar o'chiriladi. Ishonchingiz komilmi?")) { localStorage.removeItem('cvBuilderData'); location.reload(); }
+        if(confirm(dict[currentLang].clear_data + " Ishonchingiz komilmi?")) { localStorage.removeItem('cvBuilderData'); location.reload(); }
     }
 
     // --- ZOOM LOGIC ---
     function autoScale() {
-      const wrap = document.getElementById('previewScaleWrapper');
       const pane = document.getElementById('previewPane');
       const box = document.getElementById('cv-box');
-      
       const paneWidth = pane.clientWidth - 40; 
       const actualWidth = box.offsetWidth; 
-      
       const scale = Math.min(paneWidth / actualWidth, 1);
       
-      applyZoom(scale);
-    }
-    
-    function applyZoom(scale) {
       const wrap = document.getElementById('previewScaleWrapper');
       wrap.style.transform = `scale(${scale})`;
-      wrap.style.height = `${297 * 3.78 * scale}px`; // A4 height * scale
+      wrap.style.height = `${297 * 3.78 * scale}px`; 
     }
     window.addEventListener('resize', autoScale);
-
-    // --- Sync with global DA language (index settings) ---
-    (function () {
-      function mapDaToCvLang(daLang) {
-        if (daLang === 'ru') return 'ru';
-        if (daLang === 'en') return 'en';
-        return 'uz_lat';
-      }
-      function syncFromDA() {
-        try {
-          const daLang = (window.DA && DA.getLang) ? DA.getLang() : null;
-          if (!daLang) return;
-          const target = mapDaToCvLang(daLang);
-          const sel = document.getElementById('langSelect');
-          if (sel && sel.value !== target) sel.value = target;
-          if (currentLang !== target) changeLang(target, false);
-        } catch (_) {}
-      }
-      window.addEventListener('da:lang', syncFromDA);
-      if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', syncFromDA);
-      } else {
-        syncFromDA();
-      }
-    })();
 
     // --- UPDATE PREVIEW ---
     function triggerUpdate(save = true) {
       const d = {
-        name: document.getElementById('f_name').value || (currentLang==='en'?'John Doe':(currentLang==='ru'?'Иван Иванов':'Ali Valiyev')),
+        name: document.getElementById('f_name').value || dict[currentLang].name_ph,
         role: document.getElementById('f_role').value || '', phone: document.getElementById('f_phone').value || '',
         email: document.getElementById('f_email').value || '', loc: document.getElementById('f_loc').value || '',
         about: document.getElementById('f_about').value || '', img: avatarUrl
@@ -725,14 +760,13 @@
       
       const html_ski = skillsData.map(x=>`<span class="badge" style="background:${cvColor}20; color:${cvColor}; border:1px solid ${cvColor}40">${x}</span>`).join('');
 
-      // Yangi Tillar uchun HTML
       const html_lang = langData.map(x => {
         let h = `<div style="margin-bottom:15px;">
-          <strong style="display:block;margin-bottom:8px;font-size:11pt;color:${cvColor}">${x.lang || 'Til'}</strong>`;
-        const s_map = [ {n: 'Tinglash', v: x.listen}, {n: 'O‘qish', v: x.read}, {n: 'Gapirish', v: x.speak}, {n: 'Yozish', v: x.write} ];
+          <strong style="display:block;margin-bottom:8px;font-size:11pt;color:${cvColor}">${x.lang || dict[currentLang].select_lang}</strong>`;
+        const s_map = [ {n: dict[currentLang].listen, v: x.listen}, {n: dict[currentLang].read, v: x.read}, {n: dict[currentLang].speak, v: x.speak}, {n: dict[currentLang].write, v: x.write} ];
         s_map.forEach(s => {
           h += `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;font-size:9pt;">
-            <span style="width:65px;">${s.n}</span>
+            <span style="width:75px;">${s.n}</span>
             <div style="display:flex;gap:4px;">`;
           for(let j=1; j<=6; j++){
              h += `<div class="lang-preview-dot ${s.v >= j ? 'fill' : ''}" style="border-color:${cvColor}; ${s.v >= j ? `background:${cvColor};` : ''}"></div>`;
@@ -868,6 +902,7 @@
     document.addEventListener('DOMContentLoaded', () => {
       loadFromLocalStorage();
     });
+
   </script>
 </body>
 </html>

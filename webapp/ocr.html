@@ -8,72 +8,125 @@
     <script src="da-core.js"></script>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="app.js"></script>
-    <!-- mammoth no longer needed (image→docx mode) -->
-    <style>
-        .page { max-width: 520px; margin: 0 auto; padding: 14px 14px 108px; }
-        .head { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
-        .back-btn {
-            width: 44px; height: 44px; border-radius: 12px; border: 1px solid var(--border-color);
-            background: var(--card-color); display: inline-flex; align-items: center; justify-content: center;
-            text-decoration: none; color: var(--text-color); flex-shrink: 0;
-        }
-        .back-btn svg { width: 20px; height: 20px; stroke: currentColor; }
-        .head h1 { font-size: 24px; margin: 0 0 3px 0; }
-        .head p { margin: 0; font-size: 14px; color: var(--text-muted); }
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Outfit:wght@500;600;700;800&display=swap"
+        rel="stylesheet" />
 
-        .card { background: var(--card-color); border: 1px solid var(--border-color); border-radius: 16px; box-shadow: var(--da-shadow-sm); padding: 14px; margin-bottom: 12px; }
-        .drop-zone {
-            border: 2px dashed var(--da-blue-mid);
-            border-radius: 14px;
-            background: var(--da-blue-soft);
-            min-height: 180px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            text-align: center;
-            gap: 8px;
-            cursor: pointer;
-            padding: 12px;
+    <!-- Tailwind -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        display: ['Outfit', 'sans-serif'],
+                    },
+                    colors: {
+                        apple: {
+                            blue: '#2563EB',
+                            green: '#30D158',
+                            orange: '#FF9F0A',
+                            purple: '#BF5AF2',
+                        }
+                    },
+                    animation: {
+                        'slide-up': 'slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+                    },
+                    keyframes: {
+                        slideUp: {
+                            '0%': { opacity: '0', transform: 'translateY(16px)' },
+                            '100%': { opacity: '1', transform: 'translateY(0)' },
+                        }
+                    }
+                }
+            }
         }
-        .drop-zone.dragover { border-color: var(--da-blue); background: rgba(37,99,235,0.14); }
-        .drop-zone h3 { font-size: 16px; margin: 0; }
-        .drop-zone p { margin: 0; font-size: 13px; color: var(--text-muted); }
-        .file-name {
-            margin-top: 10px;
-            padding: 10px;
-            border: 1px solid var(--border-color);
-            border-radius: 10px;
-            font-size: 13px;
-            color: var(--text-muted);
-            background: var(--da-bg-elevated);
-        }
-        .status { margin-top: 10px; }
+    </script>
+    <style>
+        html, body { -webkit-tap-highlight-color: transparent; overscroll-behavior-y: none; }
+        body { background: var(--bg-color); color: var(--text-color); min-height: 100vh; }
+        .scroller::-webkit-scrollbar { width: 0px; }
     </style>
 </head>
-<body>
-<main class="page">
-    <div class="head">
-        <a class="back-btn" href="more.html">
-            <svg fill="none" viewBox="0 0 24 24" stroke-width="2.5"><path d="m15 18-6-6 6-6" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        </a>
-        <div>
-            <h1>Rasm → Word</h1>
-            <p>Rasm Word faylga 1:1 ko'rinishda joylanadi</p>
-        </div>
-    </div>
+<body class="antialiased selection:bg-apple-blue selection:text-white flex flex-col h-screen overflow-hidden">
 
-    <section class="card">
-        <input type="file" id="fileInput" accept="image/*" hidden />
-        <div id="dropZone" class="drop-zone">
-            <svg width="34" height="34" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-            <h3>Rasm yuklash</h3>
-            <p>Tap yoki drag & drop</p>
+<!-- Global Header (match translit.html) -->
+<header class="h-16 flex-shrink-0 border-b border-black/5 dark:border-white/5 bg-white/80 dark:bg-[#0a0a0c]/80 backdrop-blur-xl flex items-center px-4 z-50">
+    <a href="more.html"
+        class="w-10 h-10 rounded-xl bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 transition-colors flex items-center justify-center shrink-0"
+        id="backBtn">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+            stroke-linecap="round" stroke-linejoin="round">
+            <path d="m15 18-6-6 6-6" />
+        </svg>
+    </a>
+    <div class="ml-4 flex-1">
+        <h1 class="font-display font-bold text-lg tracking-tight leading-tight flex items-center gap-2">
+            <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="6" width="18" height="12" rx="2" />
+                <circle cx="12" cy="12" r="3" />
+                <path d="M8 6l1.5-2h5L16 6" />
+            </svg>
+            <span>Rasm → Word</span>
+        </h1>
+        <p class="text-[10px] font-semibold text-black/40 dark:text-white/40 uppercase tracking-widest">
+            OCR 📷 <span id="statsBadge">fayl tanlanmagan</span>
+        </p>
+    </div>
+</header>
+
+<main class="flex-1 overflow-y-auto scroller relative flex flex-col">
+    <div class="max-w-3xl w-full mx-auto p-4 md:p-6 flex flex-col h-full gap-4">
+
+        <!-- Upload Card -->
+        <div class="flex flex-col bg-white dark:bg-[#151518] border border-black/5 dark:border-white/5 rounded-[24px] overflow-hidden shadow-sm animate-slide-up">
+            <div class="flex items-center justify-between px-5 py-3 border-b border-black/5 dark:border-white/5 bg-black/[0.02] dark:bg-white/[0.02]">
+                <span class="text-[11px] font-bold text-apple-blue uppercase tracking-widest">Rasm yuklash</span>
+                <button onclick="clearSelection()" class="text-black/30 dark:text-white/30 hover:text-black dark:hover:text-white transition-colors text-sm font-bold">✕</button>
+            </div>
+
+            <div class="p-5">
+                <input type="file" id="fileInput" accept="image/*" hidden />
+
+                <div id="dropZone"
+                    class="border-2 border-dashed border-black/10 dark:border-white/10 rounded-2xl bg-black/[0.02] dark:bg-white/[0.03] hover:bg-black/[0.04] dark:hover:bg-white/[0.06] transition-colors p-6 text-center cursor-pointer">
+                    <div class="mx-auto w-14 h-14 rounded-2xl bg-apple-blue/10 text-apple-blue flex items-center justify-center mb-4">
+                        <svg width="26" height="26" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                            <polyline points="17 8 12 3 7 8" />
+                            <line x1="12" y1="3" x2="12" y2="15" />
+                        </svg>
+                    </div>
+                    <div class="font-bold text-base text-black dark:text-white">Rasm yuklash</div>
+                    <div class="text-sm text-black/50 dark:text-white/50 mt-1">Tap yoki drag &amp; drop</div>
+                    <div class="mt-4 flex flex-wrap gap-2 justify-center">
+                        <span class="px-3 py-1 rounded-full text-xs font-bold bg-black/5 dark:bg-white/5 text-black/50 dark:text-white/50 border border-black/5 dark:border-white/10">PNG</span>
+                        <span class="px-3 py-1 rounded-full text-xs font-bold bg-black/5 dark:bg-white/5 text-black/50 dark:text-white/50 border border-black/5 dark:border-white/10">JPG</span>
+                        <span class="px-3 py-1 rounded-full text-xs font-bold bg-black/5 dark:bg-white/5 text-black/50 dark:text-white/50 border border-black/5 dark:border-white/10">WEBP</span>
+                    </div>
+                </div>
+
+                <div id="fileName" class="mt-4 hidden rounded-2xl border border-black/5 dark:border-white/10 bg-black/[0.02] dark:bg-white/[0.03] p-4">
+                    <div class="text-xs font-bold text-black/40 dark:text-white/40 uppercase tracking-widest">Tanlangan fayl</div>
+                    <div id="fileNameText" class="mt-1 font-semibold text-black dark:text-white text-sm"></div>
+                </div>
+
+                <button id="convertBtn"
+                    class="mt-4 w-full py-4 rounded-2xl bg-apple-blue hover:brightness-110 active:scale-[0.98] text-white font-bold text-lg shadow-[0_8px_30px_rgba(37,99,235,0.30)] transition-all flex justify-center items-center gap-2"
+                    disabled>
+                    <span>⚡ Wordga aylantirish</span>
+                </button>
+
+                <div id="status" class="mt-3"></div>
+                <div class="mt-3 text-[11px] font-semibold text-black/40 dark:text-white/40 leading-snug">
+                    Rasm Word faylga 1:1 ko'rinishda joylanadi. Katta rasm bo‘lsa, avtomatik siqiladi.
+                </div>
+            </div>
         </div>
-        <div id="fileName" class="file-name" style="display:none;"></div>
-        <button id="convertBtn" class="btn btn-primary" style="margin-top:10px;" disabled>Wordga aylantirish</button>
-        <div id="status" class="da-status status"></div>
-    </section>
+
+    </div>
 </main>
 
 <script>
@@ -83,18 +136,38 @@
 
     function showStatus(type, text) {
         const el = document.getElementById("status");
-        el.className = "da-status show status " + type;
-        const icon = type === "loading" ? '<span class="da-spinner"></span>' : (type === "success" ? "✓" : "!");
-        el.innerHTML = `${icon}<span>${text}</span>`;
+        const icon = type === "loading" ? "⏳" : (type === "success" ? "✅" : "⚠️");
+        const cls = type === "success"
+            ? "border-apple-green/20 bg-apple-green/10 text-apple-green"
+            : type === "error"
+                ? "border-red-500/20 bg-red-500/10 text-red-500"
+                : "border-black/10 bg-black/5 text-black/70 dark:border-white/10 dark:bg-white/5 dark:text-white/70";
+        el.className = `flex items-center gap-2 p-3 rounded-xl text-sm font-semibold border ${cls}`;
+        el.innerHTML = `<span>${icon}</span><span>${text}</span>`;
     }
 
     function bindFile(file) {
         if (!file || !file.type.startsWith("image/")) return;
         selectedFile = file;
         optimizedFile = null;
-        document.getElementById("fileName").style.display = "block";
-        document.getElementById("fileName").textContent = `Tanlangan fayl: ${file.name}`;
+        document.getElementById("fileName").classList.remove("hidden");
+        document.getElementById("fileNameText").textContent = `${file.name} (${Math.round(file.size / 1024)} KB)`;
         document.getElementById("convertBtn").disabled = false;
+        document.getElementById("statsBadge").textContent = "1 fayl tanlandi";
+    }
+    function clearSelection() {
+        selectedFile = null;
+        optimizedFile = null;
+        const fi = document.getElementById("fileInput");
+        if (fi) fi.value = "";
+        document.getElementById("fileName").classList.add("hidden");
+        document.getElementById("fileNameText").textContent = "";
+        document.getElementById("convertBtn").disabled = true;
+        document.getElementById("statsBadge").textContent = "fayl tanlanmagan";
+        const st = document.getElementById("status");
+        st.className = "";
+        st.innerHTML = "";
+        tg?.HapticFeedback?.impactOccurred?.("light");
     }
 
     async function optimizeImageForOCR(file) {
@@ -126,7 +199,7 @@
         }
     }
 
-        async function convertToWord() {
+    async function convertToWord() {
         if (!selectedFile) return;
         showStatus("loading", "Rasm tayyorlanmoqda...");
         document.getElementById("convertBtn").disabled = true;
@@ -182,14 +255,18 @@
         const input = document.getElementById("fileInput");
         drop.addEventListener("click", () => input.click());
         input.addEventListener("change", (e) => bindFile(e.target.files?.[0]));
-        drop.addEventListener("dragover", (e) => { e.preventDefault(); drop.classList.add("dragover"); });
-        drop.addEventListener("dragleave", () => drop.classList.remove("dragover"));
+        drop.addEventListener("dragover", (e) => { e.preventDefault(); drop.classList.add("ring-2", "ring-apple-blue/40", "bg-apple-blue/5"); });
+        drop.addEventListener("dragleave", () => drop.classList.remove("ring-2", "ring-apple-blue/40", "bg-apple-blue/5"));
         drop.addEventListener("drop", (e) => {
             e.preventDefault();
-            drop.classList.remove("dragover");
+            drop.classList.remove("ring-2", "ring-apple-blue/40", "bg-apple-blue/5");
             if (e.dataTransfer.files?.[0]) bindFile(e.dataTransfer.files[0]);
         });
         document.getElementById("convertBtn").addEventListener("click", convertToWord);
+        document.getElementById("backBtn").onclick = (e) => {
+            e.preventDefault();
+            location.href = 'more.html';
+        };
         tg?.ready?.();
         tg?.expand?.();
     });

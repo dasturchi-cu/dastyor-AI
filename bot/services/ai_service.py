@@ -234,6 +234,47 @@ async def translate_text(text: str, direction: str = "uz_en") -> str:
         return f"Tarjimada xato: {e}"
 
 
+async def check_spelling_text(text: str) -> tuple[str, int]:
+    """
+    Spell-check plain text (Uzbek/Russian) using Gemini asynchronously.
+    Returns: (corrected_text, fixes_count)
+    """
+    model = await get_model()
+    if not model:
+        return "AI model mavjud emas.", 0
+
+    src = (text or "").strip()
+    if not src:
+        return "", 0
+
+    prompt = (
+        "Proofread for spelling errors (Uzbek/Russian).\n"
+        "RULES:\n"
+        "1) Return ONLY the corrected text.\n"
+        "2) Fix typos, casing, punctuation spacing.\n"
+        "3) Do NOT change meaning. Do NOT add explanations.\n\n"
+        f"TEXT:\n{src}"
+    )
+    try:
+        resp = await _gcall(model.generate_content_async(prompt))
+        corrected = (resp.text or "").strip() if resp else ""
+        if not corrected:
+            return src, 0
+
+        # Heuristic: count changed segments (not exact, but gives a useful number)
+        fixes = 0
+        if corrected != src:
+            # count differing words as an approximate "fix count"
+            a = src.split()
+            b = corrected.split()
+            fixes = sum(1 for i in range(min(len(a), len(b))) if a[i] != b[i]) + abs(len(a) - len(b))
+            fixes = max(1, min(fixes, 999))
+        return corrected, fixes
+    except Exception as e:
+        logger.error(f"check_spelling_text error: {e}", exc_info=True)
+        return src, 0
+
+
 async def generate_objective(role: str, experience: str = "junior", extra: str = "", lang: str = "uz") -> str:
     """
     Generate a short professional CV objective/summary.

@@ -1,255 +1,408 @@
 <!DOCTYPE html>
 <html lang="uz">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <title>Premium | DASTYOR AI</title>
-    <link rel="stylesheet" href="theme.css" />
-    <script src="da-core.js"></script>
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link
-        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Outfit:wght@500;600;700;800&display=swap"
-        rel="stylesheet" />
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+  <title>Premium | DASTYOR AI</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-    <!-- Tailwind -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    fontFamily: {
-                        sans: ['Inter', 'sans-serif'],
-                        display: ['Outfit', 'sans-serif'],
-                    },
-                    colors: {
-                        neutral: {
-                            850: '#1f1f22',
-                            900: '#151518',
-                            950: '#0a0a0c',
-                        },
-                        apple: {
-                            blue: '#2563EB',
-                            green: '#30D158',
-                            orange: '#FF9F0A',
-                            purple: '#BF5AF2',
-                        }
-                    },
-                    animation: {
-                        'slide-up': 'slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards',
-                    },
-                    keyframes: {
-                        slideUp: {
-                            '0%': { opacity: '0', transform: 'translateY(16px)' },
-                            '100%': { opacity: '1', transform: 'translateY(0)' },
-                        }
-                    }
-                }
-            }
-        }
-    </script>
+    :root {
+      --b5: #3b82f6;
+      --b6: #2563eb;
+      --b7: #1d4ed8;
+      --b4: #60a5fa;
+      --b3: #93c5fd;
+      --bg: #03071a;
+      --surf: #070e24;
+      --card: #0a1228;
+      --card2: #0d1633;
+      --border: rgba(59,130,246,.14);
+      --border2: rgba(59,130,246,.28);
+      --text: #e2eaff;
+      --muted: #4e6080;
+      --muted2: #8aa0c0;
+      --success: #22d3a0;
+      --gold: #f59e0b;
+      --gold2: #fbbf24;
+    }
 
-    <style>
-        html,
-        body {
-            -webkit-tap-highlight-color: transparent;
-            overscroll-behavior-y: none;
-        }
-        body { background: var(--bg-color); color: var(--text-color); min-height: 100vh; }
+    html, body {
+      min-height: 100%; background: var(--bg);
+      color: var(--text); font-family: 'DM Sans', sans-serif;
+      -webkit-tap-highlight-color: transparent;
+      overscroll-behavior-y: none;
+    }
 
-        ::-webkit-scrollbar {
-            display: none;
-        }
+    ::-webkit-scrollbar { display: none; }
 
-        .gold-glow {
-            box-shadow: 0 0 40px -10px rgba(245, 158, 11, 0.3);
-        }
-    </style>
+    /* ── BG ── */
+    .bg {
+      position: fixed; inset: 0; z-index: 0; pointer-events: none;
+      background:
+        radial-gradient(ellipse 80% 50% at 15% 0%, rgba(59,130,246,.13) 0%, transparent 60%),
+        radial-gradient(ellipse 55% 45% at 85% 100%, rgba(29,78,216,.10) 0%, transparent 55%),
+        var(--bg);
+    }
+    .orb {
+      position: fixed; border-radius: 50%;
+      filter: blur(90px); pointer-events: none; z-index: 0;
+      animation: drift 10s ease-in-out infinite alternate;
+    }
+    .o1 { width:360px;height:360px; background:rgba(59,130,246,.11); top:-90px;left:-70px; animation-duration:11s; }
+    .o2 { width:240px;height:240px; background:rgba(29,78,216,.09); bottom:-50px;right:-40px; animation-duration:13s;animation-delay:-4s; }
+    @keyframes drift { from{transform:translate(0,0)}to{transform:translate(18px,28px)} }
+
+    /* ── PAGE ── */
+    .page {
+      position: relative; z-index: 1;
+      max-width: 520px; margin: 0 auto;
+      padding: 18px 16px 40px;
+    }
+
+    /* ── HEADER ── */
+    .header {
+      display: flex; align-items: center; gap: 14px;
+      margin-bottom: 22px;
+    }
+    .back-btn {
+      width: 38px; height: 38px; border-radius: 12px; flex-shrink: 0;
+      background: var(--card2); border: 1px solid var(--border2);
+      display: grid; place-items: center; cursor: pointer;
+      color: var(--b4); text-decoration: none; transition: all .2s;
+    }
+    .back-btn:hover { background: rgba(59,130,246,.12); border-color: var(--b5); }
+    .header-text h1 {
+      font-family: 'Syne', sans-serif; font-size: 20px; font-weight: 800;
+      color: var(--text); letter-spacing: -.2px;
+    }
+    .header-text p { font-size: 12px; color: var(--muted2); margin-top: 3px; }
+
+    /* ── PLAN CARD ── */
+    .plan {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      overflow: hidden;
+      box-shadow: 0 16px 50px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.03);
+      position: relative;
+      margin-bottom: 12px;
+      animation: fadeUp .5s cubic-bezier(.22,1,.36,1) both;
+    }
+    .plan::before {
+      content:''; position:absolute; top:0; left:8%; right:8%; height:1px;
+      background: linear-gradient(90deg, transparent, var(--b5), transparent);
+      opacity: .35;
+    }
+    .plan:nth-child(2) { animation-delay: .1s; }
+    .plan:nth-child(3) { animation-delay: .2s; }
+    @keyframes fadeUp { from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)} }
+
+    /* gold plan override */
+    .plan.gold {
+      border-color: rgba(245,158,11,.35);
+      box-shadow: 0 0 40px -8px rgba(245,158,11,.22), 0 16px 50px rgba(0,0,0,.5);
+    }
+    .plan.gold::before {
+      background: linear-gradient(90deg, transparent, var(--gold), transparent);
+      opacity: .5;
+    }
+
+    /* ── PLAN HEADER ── */
+    .plan-head {
+      padding: 18px 18px 14px;
+      display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;
+    }
+    .plan-label {
+      font-size: 10px; font-weight: 700; letter-spacing: .8px;
+      text-transform: uppercase; margin-bottom: 4px;
+      color: var(--muted2);
+    }
+    .plan.gold .plan-label { color: var(--gold); }
+    .plan-price {
+      font-family: 'Syne', sans-serif; font-size: 28px; font-weight: 800;
+      color: var(--text); line-height: 1;
+    }
+    .plan-period { font-size: 12px; font-weight: 500; color: var(--muted); margin-left: 2px; }
+
+    .plan-badge {
+      padding: 4px 10px; border-radius: 999px;
+      font-size: 10px; font-weight: 800; letter-spacing: .5px;
+      text-transform: uppercase; white-space: nowrap;
+    }
+    .badge-free { background:rgba(59,130,246,.12); color:var(--b4); border:1px solid rgba(59,130,246,.22); }
+    .badge-std  { background:rgba(59,130,246,.12); color:var(--b4); border:1px solid rgba(59,130,246,.22); }
+    .badge-top  { background:var(--gold); color:#000; }
+
+    /* ── DIVIDER ── */
+    .plan-div { height:1px; background:var(--border); margin:0 18px; }
+
+    /* ── FEATURES ── */
+    .plan-features { padding: 14px 18px; }
+    .feat-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 8px 0;
+      border-bottom: 1px solid rgba(255,255,255,.04);
+      gap: 10px;
+    }
+    .feat-row:last-child { border-bottom: none; }
+    .feat-name { font-size: 13px; font-weight: 500; color: var(--muted2); flex:1; }
+    .feat-val {
+      font-size: 12px; font-weight: 700; text-align: right;
+      white-space: nowrap;
+    }
+    .feat-val.v-yes  { color: var(--success); }
+    .feat-val.v-no   { color: var(--muted); opacity: .5; }
+    .feat-val.v-num  { color: var(--b4); }
+    .feat-val.v-inf  { color: var(--gold2); }
+    .feat-val.v-inf-b{ color: var(--b4); }
+
+    /* ── CTA ── */
+    .plan-cta { padding: 14px 18px 18px; }
+    .cta-btn {
+      display: block; width: 100%; min-height: 48px;
+      border-radius: 16px; border: none; cursor: pointer;
+      font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 700;
+      text-align: center; text-decoration: none; line-height: 48px;
+      transition: all .3s cubic-bezier(.22,1,.36,1);
+      position: relative; overflow: hidden;
+    }
+    .cta-free {
+      background: rgba(59,130,246,.1); color: var(--b4);
+      border: 1px solid rgba(59,130,246,.22);
+    }
+    .cta-free:hover { background: rgba(59,130,246,.18); }
+
+    .cta-primary {
+      background: linear-gradient(135deg, var(--b5), var(--b7));
+      color: #fff;
+      box-shadow: 0 6px 22px rgba(59,130,246,.38), inset 0 1px 0 rgba(255,255,255,.14);
+    }
+    .cta-primary:hover { transform:translateY(-2px); box-shadow:0 12px 32px rgba(59,130,246,.5); }
+
+    .cta-gold {
+      background: linear-gradient(135deg, var(--gold), #d97706);
+      color: #000;
+      box-shadow: 0 6px 22px rgba(245,158,11,.38), inset 0 1px 0 rgba(255,255,255,.2);
+    }
+    .cta-gold:hover { transform:translateY(-2px); box-shadow:0 12px 32px rgba(245,158,11,.5); }
+
+    .cta-btn::after {
+      content:''; position:absolute; top:0;left:-60%;width:50%;height:100%;
+      background:linear-gradient(90deg,transparent,rgba(255,255,255,.18),transparent);
+      animation:shimmer 4s infinite 2s;
+    }
+    @keyframes shimmer { from{left:-60%}to{left:130%} }
+
+    /* ── PAYMENT ── */
+    .payments {
+      margin-top: 20px; text-align: center;
+    }
+    .pay-label {
+      font-size: 10px; font-weight: 700; letter-spacing: .8px;
+      text-transform: uppercase; color: var(--muted); margin-bottom: 10px;
+    }
+    .pay-tags { display:flex; flex-wrap:wrap; justify-content:center; gap:8px; }
+    .pay-tag {
+      padding: 7px 14px; border-radius: 12px;
+      background: var(--card2); border: 1px solid var(--border2);
+      font-size: 12px; font-weight: 600; color: var(--muted2);
+    }
+
+    /* ── BOTTOM NAV ── */
+    .bottom-nav {
+      position: fixed; bottom: 0; left: 0; right: 0; z-index: 50;
+      display: flex; justify-content: center;
+      padding-bottom: 20px; padding-top: 8px;
+      pointer-events: none;
+    }
+    .nav-inner {
+      pointer-events: auto;
+      background: rgba(10,18,40,.85); backdrop-filter: blur(24px);
+      border: 1px solid var(--border2); border-radius: 999px;
+      padding: 6px 6px; display: flex; align-items: center; gap: 2px;
+      box-shadow: 0 8px 32px rgba(0,0,0,.6);
+    }
+    .nav-item {
+      width: 52px; height: 44px; border-radius: 999px;
+      display: grid; place-items: center; cursor: pointer;
+      color: var(--muted); text-decoration: none;
+      transition: all .2s; border: none; background: none;
+    }
+    .nav-item:hover { color: var(--b4); background: rgba(59,130,246,.08); }
+    .nav-item.active-gold {
+      background: var(--gold); color: #000;
+      box-shadow: 0 4px 14px rgba(245,158,11,.4);
+    }
+  </style>
 </head>
+<body>
 
-<body class="antialiased selection:bg-amber-500 selection:text-white pb-32">
+<div class="bg"></div>
+<div class="orb o1"></div>
+<div class="orb o2"></div>
 
-    <main class="max-w-md mx-auto pt-8 px-5">
+<main class="page">
 
-        <header class="mb-8 text-center animate-slide-up">
-            <h1 class="font-display font-extrabold text-4xl mb-1 text-black dark:text-white" id="txt_title"
-                data-i18n="prem_title">Premium Tarif</h1>
-            <p class="text-sm font-medium text-black/50 dark:text-white/50" id="txt_sub" data-i18n="prem_sub">
-                Chegaralarni kengaytiring</p>
-        </header>
-
-        <div class="flex flex-col gap-6 mb-8">
-
-            <!-- FREE PLAN -->
-            <div class="p-6 rounded-[32px] bg-white dark:bg-neutral-900 border border-black/5 dark:border-white/5 shadow-sm transform transition-all animate-slide-up relative overflow-hidden group"
-                style="animation-delay: 0.1s;">
-                <div class="text-xs font-bold text-black/40 dark:text-white/40 uppercase tracking-widest mb-1"
-                    id="txt_p1_n" data-i18n="prem_free">Bepul</div>
-                <div class="font-display font-black text-4xl text-black dark:text-white mb-6">0 <span
-                        class="text-base font-semibold text-black/30 dark:text-white/30">/ mo</span></div>
-
-                <ul class="flex flex-col gap-3 mb-8">
-                    <li class="flex items-center gap-3 text-sm font-bold text-black dark:text-white">
-                        <svg class="text-apple-green" width="16" height="16" viewBox="0 0 24 24" fill="none"
-                            stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-                            <polyline points="20 6 9 17 4 12" />
-                        </svg>
-                        <span>5 <span class="text-black/50 dark:text-white/50 font-medium" id="txt_f_docs"
-                                data-i18n="prem_docs">hujjat/oy</span></span>
-                    </li>
-                    <li class="flex items-center gap-3 text-sm font-bold text-black dark:text-white">
-                        <svg class="text-apple-green" width="16" height="16" viewBox="0 0 24 24" fill="none"
-                            stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-                            <polyline points="20 6 9 17 4 12" />
-                        </svg>
-                        <span>CV & Obyektivka</span>
-                    </li>
-                    <li
-                        class="flex items-center gap-3 text-sm font-medium text-black/30 dark:text-white/30 line-through">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                            stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-                            <line x1="18" y1="6" x2="6" y2="18" />
-                            <line x1="6" y1="6" x2="18" y2="18" />
-                        </svg>
-                        <span id="txt_f_pro" data-i18n="prem_pro">Pro xizmatlar</span>
-                    </li>
-                    <li
-                        class="flex items-center gap-3 text-sm font-medium text-black/30 dark:text-white/30 line-through">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                            stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-                            <line x1="18" y1="6" x2="6" y2="18" />
-                            <line x1="6" y1="6" x2="18" y2="18" />
-                        </svg>
-                        <span id="txt_f_fast" data-i18n="prem_fast">Tezkor aloqa</span>
-                    </li>
-                </ul>
-
-                <a href="index.html"
-                    class="block w-full text-center py-4 rounded-2xl bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 active:scale-[0.98] text-black dark:text-white font-bold transition-all text-[15px]"
-                    id="txt_btn_free" data-i18n="prem_btn_free">
-                    Boshlash
-                </a>
-            </div>
-
-            <div class="p-6 rounded-[32px] bg-gradient-to-b from-amber-500/10 to-amber-500/5 dark:from-amber-500/15 dark:to-transparent border-2 border-amber-500/50 shadow-sm gold-glow transform transition-all animate-slide-up relative overflow-hidden group"
-                style="animation-delay: 0.2s;">
-                <div class="absolute top-4 right-4 bg-amber-500 text-white px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest shadow-md"
-                    id="txt_pop" data-i18n="prem_pop">TOP</div>
-
-                <div class="text-xs font-bold text-amber-600 dark:text-amber-500 uppercase tracking-widest mb-1"
-                    id="txt_p2_n" data-i18n="prem_monthly">Premium Oylik</div>
-                <div class="font-display font-black text-4xl text-black dark:text-white mb-6">29k <span
-                        class="text-base font-semibold text-black/30 dark:text-white/30">/ mo</span></div>
-
-                <ul class="flex flex-col gap-3 mb-8">
-                    <li class="flex items-center gap-3 text-sm font-bold text-black dark:text-white">
-                        <svg class="text-amber-500" width="16" height="16" viewBox="0 0 24 24" fill="none"
-                            stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-                            <polyline points="20 6 9 17 4 12" />
-                        </svg>
-                        <span><span id="txt_inf" class="font-black text-amber-500"
-                                data-i18n="prem_unlimited">Cheksiz</span> <span
-                                class="text-black/50 dark:text-white/50 font-medium" id="txt_f_docs2"
-                                data-i18n="prem_docs2">hujjatlar</span></span>
-                    </li>
-                    <li class="flex items-center gap-3 text-sm font-bold text-black dark:text-white">
-                        <svg class="text-amber-500" width="16" height="16" viewBox="0 0 24 24" fill="none"
-                            stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-                            <polyline points="20 6 9 17 4 12" />
-                        </svg>
-                        <span id="txt_f_pro2" data-i18n="prem_all_svc">Barcha Pro xizmatlar</span>
-                    </li>
-                    <li class="flex items-center gap-3 text-sm font-bold text-black dark:text-white">
-                        <svg class="text-amber-500" width="16" height="16" viewBox="0 0 24 24" fill="none"
-                            stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-                            <polyline points="20 6 9 17 4 12" />
-                        </svg>
-                        <span id="txt_f_fast2" data-i18n="prem_priority">Ustuvor navbat</span>
-                    </li>
-                    <li class="flex items-center gap-3 text-sm font-bold text-black dark:text-white">
-                        <svg class="text-amber-500" width="16" height="16" viewBox="0 0 24 24" fill="none"
-                            stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-                            <polyline points="20 6 9 17 4 12" />
-                        </svg>
-                        <span>24/7 <span class="text-black/50 dark:text-white/50 font-medium" id="txt_f_sup"
-                                data-i18n="prem_support">yordam</span></span>
-                    </li>
-                </ul>
-
-                <a href="https://t.me/DastyorAiBot"
-                    class="block w-full text-center py-4 rounded-2xl bg-amber-500 shadow-[0_8px_20px_rgba(245,158,11,0.4)] hover:brightness-110 active:scale-[0.98] text-white font-bold transition-all text-[15px]"
-                    id="txt_btn_get" data-i18n="prem_btn_get">
-                    Hozir olish
-                </a>
-            </div>
-
-        </div>
-
-        <div class="px-2 animate-slide-up" style="animation-delay: 0.3s;">
-            <h3 class="text-[10px] font-bold text-black/40 dark:text-white/40 uppercase tracking-widest text-center mb-4"
-                id="txt_pay" data-i18n="prem_payment">To'lov usullari</h3>
-            <div class="flex flex-wrap justify-center gap-2">
-                <div
-                    class="px-4 py-2 rounded-xl bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/5 flex items-center justify-center font-bold text-sm text-black/60 dark:text-white/60">
-                    💳 Click</div>
-                <div
-                    class="px-4 py-2 rounded-xl bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/5 flex items-center justify-center font-bold text-sm text-black/60 dark:text-white/60">
-                    🏦 Payme</div>
-                <div
-                    class="px-4 py-2 rounded-xl bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/5 flex items-center justify-center font-bold text-sm text-black/60 dark:text-white/60">
-                    🟣 Uzcard</div>
-                <div
-                    class="px-4 py-2 rounded-xl bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/5 flex items-center justify-center font-bold text-sm text-black/60 dark:text-white/60">
-                    🟡 Humo</div>
-            </div>
-        </div>
-
-    </main>
-
-    <!-- Bottom Nav matching index.html aesthetics -->
-    <div class="fixed bottom-0 left-0 right-0 z-50 flex justify-center pb-6 pointer-events-none">
-        <nav
-            class="pointer-events-auto bg-white/70 dark:bg-neutral-900/70 backdrop-blur-2xl border border-black/5 dark:border-white/10 shadow-[0_20px_40px_rgba(0,0,0,0.1)] dark:shadow-[0_20px_40px_rgba(0,0,0,0.5)] rounded-full px-2 py-2 flex items-center gap-1">
-
-            <a href="index.html"
-                class="px-6 py-3 rounded-full flex flex-col items-center justify-center gap-1 transition-all text-black/40 dark:text-white/40 hover:text-black dark:hover:text-white">
-                <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"
-                    stroke-linecap="round" stroke-linejoin="round">
-                    <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
-                    <polyline points="9 22 9 12 15 12 15 22" />
-                </svg>
-            </a>
-
-            <a href="more.html"
-                class="px-6 py-3 rounded-full flex flex-col items-center justify-center gap-1 transition-all text-black/40 dark:text-white/40 hover:text-black dark:hover:text-white">
-                <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"
-                    stroke-linecap="round" stroke-linejoin="round">
-                    <circle cx="12" cy="12" r="3" />
-                    <path
-                        d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
-                </svg>
-            </a>
-
-            <button
-                class="px-6 py-3 rounded-full flex flex-col items-center justify-center gap-1 transition-all bg-amber-500 text-white shadow-[0_4px_15px_rgba(245,158,11,0.4)]">
-                <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"
-                    stroke-linecap="round" stroke-linejoin="round">
-                    <polygon
-                        points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-                </svg>
-            </button>
-
-        </nav>
+  <!-- Header -->
+  <div class="header">
+    <a href="index.html" class="back-btn">
+      <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M19 12H5M11 6l-6 6 6 6"/></svg>
+    </a>
+    <div class="header-text">
+      <h1>📦 Tariflar</h1>
+      <p>O'zingizga mos rejani tanlang</p>
     </div>
+  </div>
 
-    <!-- app.js provides the boot setup -->
-    <script src="app.js"></script>
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            if (window.DastyorAI && window.DastyorAI.initUI) DastyorAI.initUI({ autoNavLinks: true });
-        });
-        const tg = window.Telegram?.WebApp;
-    </script>
+  <!-- ── FREE ── -->
+  <div class="plan">
+    <div class="plan-head">
+      <div>
+        <div class="plan-label">Bepul tarif</div>
+        <div class="plan-price">0 <span class="plan-period">so'm</span></div>
+      </div>
+      <span class="plan-badge badge-free">Boshlash</span>
+    </div>
+    <div class="plan-div"></div>
+    <div class="plan-features">
+      <div class="feat-row">
+        <span class="feat-name">🔤 Krill ↔ Lotin</span>
+        <span class="feat-val v-num">5 ta / kun</span>
+      </div>
+      <div class="feat-row">
+        <span class="feat-name">🖼 Rasm → PDF</span>
+        <span class="feat-val v-num">5 ta / kun</span>
+      </div>
+      <div class="feat-row">
+        <span class="feat-name">🌐 Tarjima</span>
+        <span class="feat-val v-num">1 ta / kun</span>
+      </div>
+      <div class="feat-row">
+        <span class="feat-name">📄 Obyektivka</span>
+        <span class="feat-val v-no">—</span>
+      </div>
+      <div class="feat-row">
+        <span class="feat-name">📋 CV / Rezyume</span>
+        <span class="feat-val v-no">—</span>
+      </div>
+      <div class="feat-row">
+        <span class="feat-name">🤖 AI skayner</span>
+        <span class="feat-val v-no">—</span>
+      </div>
+      <div class="feat-row">
+        <span class="feat-name">✏️ Imlo tekshirish</span>
+        <span class="feat-val v-no">—</span>
+      </div>
+    </div>
+    <div class="plan-cta">
+      <a href="index.html" class="cta-btn cta-free">Boshlash</a>
+    </div>
+  </div>
+
+  <!-- ── STANDART ── -->
+  <div class="plan">
+    <div class="plan-head">
+      <div>
+        <div class="plan-label">Standart tarif</div>
+        <div class="plan-price">10 000 <span class="plan-period">so'm / 7 kun</span></div>
+      </div>
+      <span class="plan-badge badge-std">7 kun</span>
+    </div>
+    <div class="plan-div"></div>
+    <div class="plan-features">
+      <div class="feat-row">
+        <span class="feat-name">🔤 Krill ↔ Lotin</span>
+        <span class="feat-val v-inf-b">♾ cheksiz</span>
+      </div>
+      <div class="feat-row">
+        <span class="feat-name">🖼 Rasm → PDF</span>
+        <span class="feat-val v-inf-b">♾ cheksiz</span>
+      </div>
+      <div class="feat-row">
+        <span class="feat-name">🌐 Tarjima</span>
+        <span class="feat-val v-num">10 ta / kun</span>
+      </div>
+      <div class="feat-row">
+        <span class="feat-name">📄 Obyektivka</span>
+        <span class="feat-val v-num">1 ta / 7 kun</span>
+      </div>
+      <div class="feat-row">
+        <span class="feat-name">📋 CV / Rezyume</span>
+        <span class="feat-val v-num">1 ta / 7 kun</span>
+      </div>
+      <div class="feat-row">
+        <span class="feat-name">🤖 AI skayner</span>
+        <span class="feat-val v-num">5 ta / kun</span>
+      </div>
+      <div class="feat-row">
+        <span class="feat-name">✏️ Imlo tekshirish</span>
+        <span class="feat-val v-num">5 ta / kun</span>
+      </div>
+    </div>
+    <div class="plan-cta">
+      <a href="https://t.me/DastyorAiBot" class="cta-btn cta-primary">Sotib olish ✦</a>
+    </div>
+  </div>
+
+  <!-- ── PREMIUM ── -->
+  <div class="plan gold">
+    <div class="plan-head">
+      <div>
+        <div class="plan-label">Premium tarif</div>
+        <div class="plan-price">30 000 <span class="plan-period">so'm / oy</span></div>
+      </div>
+      <span class="plan-badge badge-top">⭐ TOP</span>
+    </div>
+    <div class="plan-div"></div>
+    <div class="plan-features">
+      <div class="feat-row">
+        <span class="feat-name">🔤 Krill ↔ Lotin</span>
+        <span class="feat-val v-inf">♾ cheksiz</span>
+      </div>
+      <div class="feat-row">
+        <span class="feat-name">🖼 Rasm → PDF</span>
+        <span class="feat-val v-inf">♾ cheksiz</span>
+      </div>
+      <div class="feat-row">
+        <span class="feat-name">🌐 Tarjima</span>
+        <span class="feat-val v-inf">♾ cheksiz</span>
+      </div>
+      <div class="feat-row">
+        <span class="feat-name">📄 Obyektivka</span>
+        <span class="feat-val v-num">6 ta / oy</span>
+      </div>
+      <div class="feat-row">
+        <span class="feat-name">📋 CV / Rezyume</span>
+        <span class="feat-val v-num">6 ta / oy</span>
+      </div>
+      <div class="feat-row">
+        <span class="feat-name">🤖 AI skayner</span>
+        <span class="feat-val v-num">10 ta / kun</span>
+      </div>
+      <div class="feat-row">
+        <span class="feat-name">✏️ Imlo tekshirish</span>
+        <span class="feat-val v-inf">♾ cheksiz</span>
+      </div>
+    </div>
+    <div class="plan-cta">
+      <a href="https://t.me/DastyorAiBot" class="cta-btn cta-gold">Hozir olish ✦</a>
+    </div>
+  </div>
+
+
+</main>
+
+<script src="app.js"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    if (window.DastyorAI?.initUI) DastyorAI.initUI({ autoNavLinks: true });
+    window.Telegram?.WebApp?.ready?.();
+    window.Telegram?.WebApp?.expand?.();
+  });
+</script>
 </body>
-
 </html>

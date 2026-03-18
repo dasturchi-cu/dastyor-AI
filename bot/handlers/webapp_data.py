@@ -8,6 +8,7 @@ from telegram.ext import ContextTypes
 from bot.services.doc_generator import generate_obyektivka_docx, generate_cv_docx, convert_to_pdf_safe
 from bot.utils.delivery import send_docx_with_confirmation
 import asyncio
+from bot.services.ai_service import check_spelling_text
 
 logger = logging.getLogger(__name__)
 
@@ -97,6 +98,21 @@ async def web_app_data_handler(update: Update, context: ContextTypes.DEFAULT_TYP
         elif action == "start_spellcheck":
             context.user_data['waiting_for'] = 'spellcheck_file'
             await update.message.reply_text("✏️ **Imlo tekshirish**: Menga matn, DOCX, yoki PPTX fayl yuboring. Xatolarni to'g'irlab beraman.", parse_mode="Markdown")
+            return
+
+        elif action == "spellcheck_text":
+            txt = (payload.get("text") or "").strip()
+            if not txt:
+                await update.message.reply_text("Iltimos, tekshirish uchun matn yuboring.")
+                return
+            msg = await update.message.reply_text("⏳ Matn tekshirilmoqda...")
+            corrected, fixes = await check_spelling_text(txt)
+            await msg.delete()
+            await update.message.reply_text(
+                f"✅ Imlo tekshirish yakunlandi!\n\n"
+                f"📊 Tuzatilgan: {fixes} ta o'zgarish\n\n"
+                f"{corrected}"
+            )
             return
             
         elif action == "start_img2pdf":
