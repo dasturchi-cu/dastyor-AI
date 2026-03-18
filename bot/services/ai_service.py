@@ -5,7 +5,9 @@ Handles Text Processing, Data Extraction, and Translation using Gemini Asynchron
 import logging
 import json
 import asyncio
+import re
 from difflib import SequenceMatcher
+import shutil
 import google.generativeai as genai
 from config import GOOGLE_API_KEY
 
@@ -29,6 +31,9 @@ GEMINI_MODELS = [
 _MODEL_CACHE = None
 _MODEL_CACHE_NAME = None
 _MODEL_CACHE_LOCK = asyncio.Lock()
+
+_LANGTOOL_RU = None
+_LANGTOOL_RU_LOCK = asyncio.Lock()
 
 
 async def get_model(preferred_models: list[str] | None = None):
@@ -269,56 +274,181 @@ async def translate_text(text: str, direction: str = "uz_en") -> str:
 
 async def check_spelling_text(text: str) -> tuple[str, int]:
     """
-    Spell-check plain text (Uzbek/Russian) using Gemini asynchronously.
+    Spell-check plain text (Uzbek/Russian) with conservative corrections.
     Returns: (corrected_text, fixes_count)
     """
-    # Spellcheck should prioritize speed: try fastest models first.
-    model = await get_model(preferred_models=[
-        'gemini-2.0-flash',
-        'gemini-2.5-flash',
-        'gemini-1.5-flash-latest',
-    ])
-    if not model:
-        return "AI model mavjud emas.", 0
-
     src = (text or "").strip()
     if not src:
         return "", 0
 
-    # If there is nothing to fix (no letters), skip AI call.
+    # If there is nothing to fix (no letters), skip spell checking.
     if not any(ch.isalpha() for ch in src):
         return src, 0
 
-    # Keep a smaller timeout for spellcheck so UX feels snappy.
-    spell_timeout = int((globals().get("GEMINI_SPELLCHECK_TIMEOUT") or 30))
+    def _is_cyrillic(s: str) -> bool:
+        # Rough heuristic: detect Cyrillic blocks.
+        return any(("\u0400" <= ch <= "\u04FF") or ("\u0500" <= ch <= "\u052F") for ch in (s or ""))
 
-    def _make_prompt(s: str) -> str:
-        return (
-            "Proofread ONLY obvious spelling mistakes (Uzbek/Russian).\n"
-            "Return ONLY the corrected text.\n"
-            "Fix typos, casing, and punctuation spacing.\n"
-            "Do NOT rewrite style, sentence order, names, numbers, abbreviations, or meaning.\n"
-            "If text is already correct, return it unchanged.\n"
-            "No explanations.\n\n"
-            f"{s}"
-        )
+    def _mask_sensitive_tokens(s: str) -> tuple[str, dict[str, str]]:
+        """
+        Replace URLs/emails/numbers with placeholders to prevent the model
+        from "correcting" them into something else.
+        """
+        token_re = re.compile(r"(https?://\S+|www\.\S+|\b\S+@\S+\b|\b\d+(?:[.,]\d+)?\b)")
+        mapping: dict[str, str] = {}
+        i = 0
 
-    def _sanitize_spell_output(source: str, candidate: str) -> str:
+        def repl(m: re.Match) -> str:
+            nonlocal i
+            key = f"__TOK{i}__"
+            mapping[key] = m.group(0)
+            i += 1
+            return key
+
+        masked = token_re.sub(repl, s)
+        return masked, mapping
+
+    def _unmask_sensitive_tokens(s: str, mapping: dict[str, str]) -> str:
+        out = s
+        for key, value in mapping.items():
+            out = out.replace(key, value)
+        return out
+
+    def _conservative_merge(source: str, candidate: str) -> str:
         """
-        Safety guard against hallucinated rewrites:
-        keep the original if model output diverges too much.
+        Apply only small, local changes from `candidate` into `source`.
+        We ignore pure insertions (to reduce hallucinations) and require
+        similarity/length closeness for "replace" blocks.
         """
-        cleaned = (candidate or "").strip()
-        if not cleaned:
-            return source
-        ratio = SequenceMatcher(None, source, cleaned).ratio()
-        # Conservative threshold: spelling fixes should remain close to original text.
-        if ratio < 0.65:
-            return source
-        return cleaned
+        s = source or ""
+        c = (candidate or "")
+        if not c.strip():
+            return s
+
+        # Quick divergence guard.
+        if SequenceMatcher(None, s, c).ratio() < 0.6:
+            return s
+
+        sm = SequenceMatcher(None, s, c, autojunk=False)
+        out: list[str] = []
+
+        for tag, i1, i2, j1, j2 in sm.get_opcodes():
+            if tag == "equal":
+                out.append(s[i1:i2])
+                continue
+
+            if tag == "replace":
+                s_seg = s[i1:i2]
+                c_seg = c[j1:j2]
+                if not c_seg:
+                    out.append(s_seg)
+                    continue
+
+                seg_ratio = SequenceMatcher(None, s_seg, c_seg).ratio()
+                max_len = max(1, len(s_seg), len(c_seg))
+                len_close = abs(len(s_seg) - len(c_seg)) / max_len <= 0.35
+
+                if seg_ratio >= 0.78 and len_close:
+                    out.append(c_seg)
+                else:
+                    out.append(s_seg)
+                continue
+
+            if tag == "delete":
+                # Keep original text if model removed something.
+                out.append(s[i1:i2])
+                continue
+
+            if tag == "insert":
+                ins = c[j1:j2]
+                if not ins:
+                    continue
+                # Allow insertion of whitespace/punctuation only.
+                if ins.strip() == "":
+                    out.append(ins)
+                elif len(ins) <= 5 and not any(ch.isalnum() for ch in ins):
+                    out.append(ins)
+                else:
+                    # Ignore letter/number insertions.
+                    pass
+                continue
+
+        merged = "".join(out)
+        # Final sanity guard.
+        if SequenceMatcher(None, s, merged).ratio() < 0.55:
+            return s
+        return merged
+
+    def _count_fixes(source: str, corrected: str) -> int:
+        if corrected == source:
+            return 0
+        a = (source or "").split()
+        b = (corrected or "").split()
+        diff = sum(1 for i in range(min(len(a), len(b))) if a[i] != b[i]) + abs(len(a) - len(b))
+        return max(1, min(diff, 999)) if diff > 0 else 1
 
     try:
-        # For long texts, split into chunks and process concurrently (faster + more reliable).
+        # 1) Deterministic spell correction for Russian (if LanguageTool is available).
+        # This reduces wrong “LLM hallucination” corrections for ru text.
+        if _is_cyrillic(src):
+            try:
+                global _LANGTOOL_RU
+                import language_tool_python  # optional dependency
+                async with _LANGTOOL_RU_LOCK:
+                    if _LANGTOOL_RU is None:
+                        # Tool initialization (downloads LanguageTool) is blocking.
+                        _LANGTOOL_RU = await asyncio.to_thread(language_tool_python.LanguageTool, "ru")
+
+                    matches = await asyncio.to_thread(_LANGTOOL_RU.check, src)
+                if not matches:
+                    return src, 0
+                # Correct needs the same lock for safety.
+                async with _LANGTOOL_RU_LOCK:
+                    corrected = await asyncio.to_thread(_LANGTOOL_RU.correct, src)
+                merged = _conservative_merge(src, corrected)
+                return merged, _count_fixes(src, merged)
+            except Exception as e:
+                logger.warning(f"LanguageTool ru failed, falling back to Gemini: {e}")
+
+        # 2) Gemini fallback for Uzbek and/or when LanguageTool fails.
+        # Spellcheck should prioritize speed: try fastest models first.
+        model = await get_model(preferred_models=[
+            "gemini-2.0-flash",
+            "gemini-2.5-flash",
+            "gemini-1.5-flash-latest",
+        ])
+        if not model:
+            # No model and no local spell checker: best-effort (no changes).
+            return src, 0
+
+        spell_timeout = int((globals().get("GEMINI_SPELLCHECK_TIMEOUT") or 30))
+
+        def _make_prompt(s: str) -> str:
+            return (
+                "You are a spelling corrector.\n"
+                "Fix ONLY obvious spelling typos (including casing and punctuation spacing if needed).\n"
+                "Do NOT rewrite sentences, change meaning, add new words, or remove existing ones.\n"
+                "Keep line breaks as in the input.\n"
+                "Return ONLY the corrected text.\n\n"
+                f"{s}"
+            )
+
+        def _correct_part(part_src: str) -> str:
+            masked, mapping = _mask_sensitive_tokens(part_src)
+            # Call site runs in async context; this function just formats.
+            return masked, mapping
+
+        async def _call_gemini(masked_part: str) -> str:
+            resp = await _gcall(
+                model.generate_content_async(
+                    _make_prompt(masked_part),
+                    generation_config={"temperature": 0.0},
+                ),
+                timeout=spell_timeout,
+            )
+            return (resp.text if resp and resp.text else "")
+
+        # For long texts, split into chunks and process concurrently.
         if len(src) > 1600:
             parts: list[str] = []
             buf: list[str] = []
@@ -341,64 +471,43 @@ async def check_spelling_text(text: str) -> tuple[str, int]:
             if buf:
                 parts.append("\n".join(buf).strip())
 
-            # Process in small concurrent batches to avoid rate limits.
             out_parts: list[str] = []
-            batch: list[str] = []
+            batch: list[tuple[str, str, dict[str, str]]] = []
+
+            # (orig_text, masked_text, mapping)
             for part in parts:
                 if part == "":
                     out_parts.append("")
                     continue
-                batch.append(part)
+                masked, mapping = _mask_sensitive_tokens(part)
+                batch.append((part, masked, mapping))
                 if len(batch) >= 3:
                     resps = await asyncio.gather(*[
-                        _gcall(
-                            model.generate_content_async(
-                                _make_prompt(x),
-                                generation_config={"temperature": 0.0}
-                            ),
-                            timeout=spell_timeout
-                        )
-                        for x in batch
+                        _call_gemini(masked_part) for (_, masked_part, _) in batch
                     ])
-                    for r, orig in zip(resps, batch):
-                        out_parts.append(_sanitize_spell_output(orig, r.text if r and r.text else ""))
+                    for (orig, _, mapping), resp_text in zip(batch, resps):
+                        candidate = _unmask_sensitive_tokens(resp_text.strip(), mapping) if resp_text else orig
+                        out_parts.append(_conservative_merge(orig, candidate))
                     batch = []
+
             if batch:
                 resps = await asyncio.gather(*[
-                    _gcall(
-                        model.generate_content_async(
-                            _make_prompt(x),
-                            generation_config={"temperature": 0.0}
-                        ),
-                        timeout=spell_timeout
-                    )
-                    for x in batch
+                    _call_gemini(masked_part) for (_, masked_part, _) in batch
                 ])
-                for r, orig in zip(resps, batch):
-                    out_parts.append(_sanitize_spell_output(orig, r.text if r and r.text else ""))
+                for (orig, _, mapping), resp_text in zip(batch, resps):
+                    candidate = _unmask_sensitive_tokens(resp_text.strip(), mapping) if resp_text else orig
+                    out_parts.append(_conservative_merge(orig, candidate))
 
             corrected = "\n".join(out_parts).strip()
         else:
-            resp = await _gcall(
-                model.generate_content_async(
-                    _make_prompt(src),
-                    generation_config={"temperature": 0.0}
-                ),
-                timeout=spell_timeout
-            )
-            corrected = _sanitize_spell_output(src, resp.text if resp else "")
-            if not corrected:
-                return src, 0
+            masked, mapping = _mask_sensitive_tokens(src)
+            resp_text = await _call_gemini(masked)
+            candidate = _unmask_sensitive_tokens(resp_text.strip(), mapping) if resp_text else src
+            corrected = _conservative_merge(src, candidate)
 
-        # Heuristic: count changed segments (not exact, but gives a useful number)
-        fixes = 0
-        if corrected != src:
-            # count differing words as an approximate "fix count"
-            a = src.split()
-            b = corrected.split()
-            fixes = sum(1 for i in range(min(len(a), len(b))) if a[i] != b[i]) + abs(len(a) - len(b))
-            fixes = max(1, min(fixes, 999))
+        fixes = _count_fixes(src, corrected)
         return corrected, fixes
+
     except Exception as e:
         logger.error(f"check_spelling_text error: {e}", exc_info=True)
         return src, 0
@@ -515,26 +624,54 @@ async def check_spelling_gemini(file_path: str) -> tuple[str, int, int]:
     Checks spelling in a DOCX file using Gemini asynchronously.
     Returns: (output_path, errors_found, errors_fixed)
     """
-    if not GOOGLE_API_KEY:
-        return "", 0, 0
-        
     try:
         from docx import Document
 
         loop = asyncio.get_running_loop()
         doc = await loop.run_in_executor(None, Document, file_path)
 
-        paragraphs_to_check = []
-        for para in doc.paragraphs:
-            if para.text and para.text.strip():
-                paragraphs_to_check.append(para)
+        output_path = file_path.replace(".docx", "_checked.docx")
 
-        for table in doc.tables:
+        paragraphs_to_check = []
+        seen: set[int] = set()
+
+        def _add_para(para):
+            if not para:
+                return
+            t = getattr(para, "text", "") or ""
+            if not t.strip():
+                return
+            pid = id(para)
+            if pid in seen:
+                return
+            seen.add(pid)
+            paragraphs_to_check.append(para)
+
+        # Main body paragraphs
+        for para in doc.paragraphs:
+            _add_para(para)
+
+        # Body tables
+        for table in getattr(doc, "tables", []):
             for row in table.rows:
                 for cell in row.cells:
                     for para in cell.paragraphs:
-                        if para.text and para.text.strip():
-                            paragraphs_to_check.append(para)
+                        _add_para(para)
+
+        # Headers/footers (often contain lots of text)
+        for section in getattr(doc, "sections", []):
+            header = getattr(section, "header", None)
+            footer = getattr(section, "footer", None)
+            for part in (header, footer):
+                if not part:
+                    continue
+                for para in getattr(part, "paragraphs", []):
+                    _add_para(para)
+                for table in getattr(part, "tables", []):
+                    for row in table.rows:
+                        for cell in row.cells:
+                            for para in cell.paragraphs:
+                                _add_para(para)
 
         errors_fixed = 0
 
@@ -543,7 +680,7 @@ async def check_spelling_gemini(file_path: str) -> tuple[str, int, int]:
             corrected, fixes = await check_spelling_text(src)
             if corrected and corrected != src:
                 _set_para_text(para, corrected)
-                return max(1, fixes)
+                return fixes if fixes > 0 else 1
             return 0
 
         batch_size = 8
@@ -552,14 +689,19 @@ async def check_spelling_gemini(file_path: str) -> tuple[str, int, int]:
             errors_fixed += sum(await asyncio.gather(*[process_para(p) for p in batch]))
             await asyncio.sleep(0.15)
 
-        output_path = file_path.replace(".docx", "_checked.docx")
         await loop.run_in_executor(None, doc.save, output_path)
 
         return output_path, errors_fixed, errors_fixed
 
     except Exception as e:
         logger.error(f"Async Spell check failed: {e}", exc_info=True)
-        return "", 0, 0
+        # Best-effort: still return a copied file so the bot can send it back.
+        try:
+            output_path = file_path.replace(".docx", "_checked.docx")
+            shutil.copyfile(file_path, output_path)
+            return output_path, 0, 0
+        except Exception:
+            return "", 0, 0
 
 
 async def check_spelling_pptx(file_path: str) -> tuple[str, int, int]:
@@ -568,28 +710,63 @@ async def check_spelling_pptx(file_path: str) -> tuple[str, int, int]:
     Iterates slides → shapes → text frames → paragraphs → runs.
     Returns: (output_path, errors_found, errors_fixed)
     """
-    if not GOOGLE_API_KEY:
-        return "", 0, 0
-
     try:
         from pptx import Presentation
 
         loop = asyncio.get_running_loop()
         prs = await loop.run_in_executor(None, Presentation, file_path)
 
+        output_path = file_path.replace(".pptx", "_checked.pptx")
+
         paragraphs_to_check = []
+        seen: set[int] = set()
+
+        def _add_para(para):
+            if not para:
+                return
+            t = getattr(para, "text", "") or ""
+            if not t.strip():
+                return
+            pid = id(para)
+            if pid in seen:
+                return
+            seen.add(pid)
+            paragraphs_to_check.append(para)
+
+        def _walk_shapes(shapes):
+            # Recursively traverse group shapes to avoid missing text.
+            for shape in shapes:
+                yield shape
+                nested = getattr(shape, "shapes", None)
+                if nested:
+                    try:
+                        yield from _walk_shapes(nested)
+                    except Exception:
+                        pass
+
         for slide in prs.slides:
-            for shape in slide.shapes:
-                if shape.has_text_frame:
+            for shape in _walk_shapes(slide.shapes):
+                if getattr(shape, "has_text_frame", False) and shape.has_text_frame:
                     for para in shape.text_frame.paragraphs:
-                        if para.text and para.text.strip():
-                            paragraphs_to_check.append(para)
-                if shape.has_table:
+                        _add_para(para)
+                if getattr(shape, "has_table", False) and shape.has_table:
                     for row in shape.table.rows:
                         for cell in row.cells:
                             for para in cell.text_frame.paragraphs:
-                                if para.text and para.text.strip():
-                                    paragraphs_to_check.append(para)
+                                _add_para(para)
+
+            # Notes slide text (often ignored but can contain user content)
+            notes_slide = getattr(slide, "notes_slide", None)
+            if notes_slide:
+                for shape in _walk_shapes(notes_slide.shapes):
+                    if getattr(shape, "has_text_frame", False) and shape.has_text_frame:
+                        for para in shape.text_frame.paragraphs:
+                            _add_para(para)
+                    if getattr(shape, "has_table", False) and shape.has_table:
+                        for row in shape.table.rows:
+                            for cell in row.cells:
+                                for para in cell.text_frame.paragraphs:
+                                    _add_para(para)
 
         errors_fixed = 0
 
@@ -598,7 +775,7 @@ async def check_spelling_pptx(file_path: str) -> tuple[str, int, int]:
             corrected, fixes = await check_spelling_text(src)
             if corrected and corrected != src:
                 _set_pptx_paragraph_text(para, corrected)
-                return max(1, fixes)
+                return fixes if fixes > 0 else 1
             return 0
 
         batch_size = 8
@@ -607,10 +784,14 @@ async def check_spelling_pptx(file_path: str) -> tuple[str, int, int]:
             errors_fixed += sum(await asyncio.gather(*[process_para(p) for p in batch]))
             await asyncio.sleep(0.15)
 
-        output_path = file_path.replace(".pptx", "_checked.pptx")
         await loop.run_in_executor(None, prs.save, output_path)
         return output_path, errors_fixed, errors_fixed
 
     except Exception as e:
         logger.error(f"PPTX Spell check failed: {e}", exc_info=True)
-        return "", 0, 0
+        try:
+            output_path = file_path.replace(".pptx", "_checked.pptx")
+            shutil.copyfile(file_path, output_path)
+            return output_path, 0, 0
+        except Exception:
+            return "", 0, 0

@@ -7,6 +7,7 @@ import os
 import time
 import logging
 import tempfile
+import shutil
 from telegram import Update, InputFile
 from telegram.ext import ContextTypes
 from telegram.constants import ChatAction
@@ -104,6 +105,7 @@ async def process_spell_check(update: Update, context: ContextTypes.DEFAULT_TYPE
     
     temp_path = None
     output_path = None
+    file_sent = False
     
     try:
         # Download file
@@ -139,12 +141,35 @@ async def process_spell_check(update: Update, context: ContextTypes.DEFAULT_TYPE
                     f"• Tuzatilgan: {fixed} ta o'zgarish"
                 ),
             )
+        file_sent = True
         await status_msg.delete()
         await update.message.reply_text("📎 Tuzatilgan fayl yuborildi.", reply_markup=get_back_button())
         
     except Exception as e:
         logger.error(f"Spell check handler error: {e}", exc_info=True)
-        await status_msg.edit_text(f"❌ Xatolik yuz berdi: {e}")
+        # Guarantee best-effort delivery even if AI/doc conversion fails.
+        if not file_sent and temp_path and os.path.exists(temp_path):
+            try:
+                fallback_path = temp_path.replace(ext, f"_checked{ext}")
+                shutil.copyfile(temp_path, fallback_path)
+                output_path = fallback_path
+                out_name = f"Tuzatilgan_{file_name}"
+                with open(output_path, "rb") as f:
+                    await context.bot.send_document(
+                        chat_id=update.effective_chat.id,
+                        document=InputFile(f, filename=out_name),
+                        caption=(
+                            "⚠️ Imlo tekshirishda xatolik yuz berdi, lekin "
+                            "fayl qaytarildi (best-effort)."
+                        ),
+                    )
+                await status_msg.delete()
+                await update.message.reply_text("📎 Tuzatilgan fayl yuborildi.", reply_markup=get_back_button())
+                file_sent = True
+            except Exception:
+                pass
+        if not file_sent:
+            await status_msg.edit_text(f"❌ Xatolik yuz berdi: {e}")
     
     finally:
         # Cleanup

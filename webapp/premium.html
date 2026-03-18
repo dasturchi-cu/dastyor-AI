@@ -594,6 +594,7 @@
         return;
       }
 
+      if (st) st.textContent = "⏳ Yuborilmoqda... telegram_id=" + tid;
       fd.append("telegram_id", String(tid));
       if (token) fd.append("token", String(token));
 
@@ -601,10 +602,9 @@
       const urlPrimary = base + "/api/premium_receipt";
       const urlFallback = "https://dastyor-ai.onrender.com/api/premium_receipt";
 
-      // For stability in production, always use fallback URL.
-      // Primary/base may sometimes be stale due to Telegram WebApp initialization timing.
       const url = urlFallback;
-      if (st) st.textContent = "⏳ Yuborilmoqda: " + url;
+      // keep tid in status; add URL only if you want
+      // if (st) st.textContent = "⏳ Yuborilmoqda: " + url;
 
       let resp = null;
       try {

@@ -21,3 +21,4 @@ celery>=5.4.0
 redis>=5.0.0
 # Render build fix: newer python-bidi versions may require Rust/maturin.
 python-bidi==0.4.2
+language-tool-python>=3.3.0
