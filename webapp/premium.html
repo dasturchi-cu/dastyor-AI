@@ -577,7 +577,22 @@
       if (token) fd.append("token", String(token));
 
       const base = window.DastyorAI?.BASE || location.origin;
-      const resp = await fetch(base + "/api/premium_receipt", { method: "POST", body: fd });
+      const urlPrimary = base + "/api/premium_receipt";
+      const urlFallback = "https://dastyor-ai.onrender.com/api/premium_receipt";
+
+      // For stability in production, always use fallback URL.
+      // Primary/base may sometimes be stale due to Telegram WebApp initialization timing.
+      const url = urlFallback;
+      if (st) st.textContent = "⏳ Yuborilmoqda: " + url;
+
+      let resp = null;
+      try {
+        resp = await fetch(url, { method: "POST", body: fd });
+      } catch (e1) {
+        // If the server is unreachable, show the raw message.
+        throw e1;
+      }
+
       const data = await resp.json().catch(() => ({}));
       if (!resp.ok || !data.ok) {
         throw new Error(data.detail || data.error || ("HTTP " + resp.status));
@@ -586,7 +601,8 @@
       window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred?.("success");
       if (input) input.value = "";
     } catch (e) {
-      if (st) st.textContent = "❌ Xatolik: " + (e?.message || "noma'lum");
+      if (st) st.textContent =
+        "❌ Xatolik: " + (e?.message || "noma'lum");
       window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred?.("error");
     }
   }

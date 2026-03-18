@@ -113,34 +113,81 @@ def db_upsert_user(user_id: int, first_name: str = "", username: str = None,
     c = _get_client()
     if not c:
         return False
+    now = datetime.utcnow().isoformat()
+
+    # 1) mavjudligini tekshir (agar select payload ustunlar bo'lmasa, keyin insert fallback bo'ladi)
     try:
-        now = datetime.utcnow().isoformat()
         r = c.table("users").select("id,sessions").eq("id", user_id).execute()
-        if r.data:
+        exists = bool(r.data)
+    except Exception:
+        r = None
+        exists = False
+
+    # 2) update path
+    if exists:
+        try:
             upd = {"first_name": first_name or "", "last_active": now}
             if username is not None:
                 upd["username"] = username
             if chat_id is not None:
                 upd["chat_id"] = chat_id
-            if command == "start":
-                sess = r.data[0].get("sessions", 0) or 0
-                upd["sessions"] = sess + 1
             c.table("users").update(upd).eq("id", user_id).execute()
-        else:
-            c.table("users").insert({
-                "id": user_id,
-                "first_name": first_name or "",
-                "username": username or "",
-                "chat_id": chat_id or user_id,
-                "interaction_count": 1,
-                "activity_count": 1,
-                "sessions": 1 if command == "start" else 0,
-            }).execute()
+        except Exception:
+            # If some columns like chat_id/sessions don't exist, still keep row alive.
+            try:
+                c.table("users").update({"last_active": now}).eq("id", user_id).execute()
+            except Exception as e:
+                _mark_temporarily_unavailable(e)
+                logger.error(f"db_upsert_user update failed: {e}")
+                return False
+
+        # optional sessions increment
+        if command == "start":
+            try:
+                sess = 0
+                if r and r.data and isinstance(r.data, list) and len(r.data) > 0:
+                    sess = r.data[0].get("sessions", 0) or 0
+                c.table("users").update({"sessions": int(sess) + 1}).eq("id", user_id).execute()
+            except Exception:
+                # ignore sessions column drift
+                pass
         return True
-    except Exception as e:
-        _mark_temporarily_unavailable(e)
-        logger.error(f"db_upsert_user: {e}")
-        return False
+
+    # 3) insert path (progressively more minimal payloads)
+    payload_candidates = [
+        # Most complete payload (if columns exist)
+        {
+            "id": user_id,
+            "first_name": first_name or "",
+            "username": username or "",
+            "chat_id": chat_id if chat_id is not None else user_id,
+            "activity_count": 1,
+            "sessions": 1 if command == "start" else 0,
+            "last_active": now,
+        },
+        # Mid-level payload (remove any possibly-missing counters)
+        {
+            "id": user_id,
+            "first_name": first_name or "",
+            "username": username or "",
+            "chat_id": chat_id if chat_id is not None else user_id,
+            "last_active": now,
+        },
+        # Minimal payload: just ID
+        {"id": user_id},
+    ]
+
+    for payload in payload_candidates:
+        try:
+            c.table("users").insert(payload).execute()
+            return True
+        except Exception as e:
+            last_e = e
+            continue
+
+    _mark_temporarily_unavailable(last_e)
+    logger.error(f"db_upsert_user insert failed: {last_e}")
+    return False
 
 
 def db_update_user_field(user_id: int, **kwargs) -> bool:
