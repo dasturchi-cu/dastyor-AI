@@ -344,7 +344,7 @@
       </div>
     </div>
     <div class="plan-cta">
-      <a href="https://t.me/DastyorAiBot" class="cta-btn cta-primary">Sotib olish ✦</a>
+      <button type="button" class="cta-btn cta-primary" onclick="buyPremium('standard')">Sotib olish ✦</button>
     </div>
   </div>
 
@@ -389,7 +389,7 @@
       </div>
     </div>
     <div class="plan-cta">
-      <a href="https://t.me/DastyorAiBot" class="cta-btn cta-gold">Hozir olish ✦</a>
+      <button type="button" class="cta-btn cta-gold" onclick="buyPremium('premium')">Hozir olish ✦</button>
     </div>
   </div>
 
@@ -403,6 +403,20 @@
     window.Telegram?.WebApp?.ready?.();
     window.Telegram?.WebApp?.expand?.();
   });
+
+  function buyPremium(plan) {
+    const tg = window.Telegram?.WebApp;
+    try {
+      const payload = { action: "premium_buy", plan: String(plan || "premium") };
+      tg?.sendData?.(JSON.stringify(payload));
+      tg?.HapticFeedback?.notificationOccurred?.("success");
+      // Close webapp to return user to bot chat
+      setTimeout(() => { try { tg?.close?.(); } catch (_) {} }, 150);
+    } catch (_) {
+      // fallback: open bot link
+      try { tg?.openTelegramLink?.("https://t.me/DastyorAiBot"); } catch (_) {}
+    }
+  }
 </script>
 </body>
 </html>

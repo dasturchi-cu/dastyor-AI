@@ -9,6 +9,7 @@ from bot.services.doc_generator import generate_obyektivka_docx, generate_cv_doc
 from bot.utils.delivery import send_docx_with_confirmation, send_file_safely
 import asyncio
 from bot.services.ai_service import check_spelling_text
+from bot.handlers.premium import premium_handler
 
 logger = logging.getLogger(__name__)
 
@@ -161,6 +162,16 @@ async def web_app_data_handler(update: Update, context: ContextTypes.DEFAULT_TYP
             
             dir_str = direction.replace("_", " -> ").upper()
             await update.message.reply_text(f"🌐 **Tarjima fayl ({dir_str})**: \nMenga Word, PowerPoint yoki Excel fayl yuboring.", parse_mode="Markdown")
+            return
+
+        elif action == "premium_buy":
+            # Premium purchase request from WebApp premium.html
+            plan = str(payload.get("plan") or "premium").lower()
+            if plan not in ("standard", "premium"):
+                plan = "premium"
+            context.user_data["premium_plan"] = plan
+            context.user_data["waiting_for"] = "premium_payment_screenshot"
+            await premium_handler(update, context)
             return
             
         elif action == "start_transliterate":
