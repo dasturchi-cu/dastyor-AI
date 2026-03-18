@@ -69,7 +69,7 @@
                 <circle cx="12" cy="12" r="3" />
                 <path d="M8 6l1.5-2h5L16 6" />
             </svg>
-            <span>Rasm → Word</span>
+            <span>Rasm → Matn</span>
         </h1>
         <p class="text-[10px] font-semibold text-black/40 dark:text-white/40 uppercase tracking-widest">
             OCR 📷 <span id="statsBadge">fayl tanlanmagan</span>
@@ -116,13 +116,12 @@
                 <button id="convertBtn"
                     class="mt-4 w-full py-4 rounded-2xl bg-apple-blue hover:brightness-110 active:scale-[0.98] text-white font-bold text-lg shadow-[0_8px_30px_rgba(37,99,235,0.30)] transition-all flex justify-center items-center gap-2"
                     disabled>
-                    <span>⚡ Wordga aylantirish</span>
+                    <span>⚡ Matnni ajratish</span>
                 </button>
 
                 <div id="status" class="mt-3"></div>
-                <div class="mt-3 text-[11px] font-semibold text-black/40 dark:text-white/40 leading-snug">
-                    Rasm Word faylga 1:1 ko'rinishda joylanadi. Katta rasm bo‘lsa, avtomatik siqiladi.
-                </div>
+                <pre id="ocrText"
+                    class="mt-3 hidden rounded-2xl border border-black/5 dark:border-white/10 bg-black/[0.02] dark:bg-white/[0.03] p-4 text-sm whitespace-pre-wrap break-words text-black dark:text-white"></pre>
             </div>
         </div>
 
@@ -167,6 +166,9 @@
         const st = document.getElementById("status");
         st.className = "";
         st.innerHTML = "";
+        const textOut = document.getElementById("ocrText");
+        textOut.textContent = "";
+        textOut.classList.add("hidden");
         tg?.HapticFeedback?.impactOccurred?.("light");
     }
 
@@ -208,45 +210,62 @@
                 showStatus("loading", "Rasm siqilmoqda...");
                 optimizedFile = await optimizeImageForOCR(selectedFile);
             }
-            showStatus("loading", "Word fayl tayyorlanmoqda...");
-            const fd = new FormData();
-                fd.append("file", optimizedFile || selectedFile);
-                const qs = new URLSearchParams(location.search);
-                // API base:
-                // - Prefer explicit override (?api=...)
-                // - Otherwise use global DastyorAI.BASE (works in Telegram WebApp)
-                // - Fallback to same-origin; file:// should still use prod
-                const apiBase = qs.get("api")
-                    || window.DastyorAI?.BASE
-                    || (location.protocol === "file:" ? "https://dastyor-ai.onrender.com" : location.origin);
-            const tid = (window.DA?.getTelegramId && window.DA.getTelegramId()) || new URLSearchParams(location.search).get("telegram_id") || "";
-                // API spec uses /ocr-word (FastAPI PaddleOCR backend)
-                let res;
-                try {
-                    res = await fetch(apiBase + "/ocr-word", { method: "POST", body: fd });
-                } catch (netErr) {
-                    throw new Error("Internet yoki serverga ulanib bo'lmadi. Keyinroq urinib ko'ring.");
-                }
+            showStatus("loading", "Matn ajratilmoqda...");
+            const qs = new URLSearchParams(location.search);
+            const normalizeBase = (u) => String(u || "").trim().replace(/\/+$/, "");
+            const baseCandidates = [
+                qs.get("api"),
+                window.DastyorAI?.BASE,
+                "https://dastyor-ai.onrender.com",
+                location.origin
+            ]
+                .map(normalizeBase)
+                .filter((v, i, arr) => v && arr.indexOf(v) === i);
 
-                if (!res.ok) {
-                    let msg = "OCR xatosi";
+            const pathCandidates = ["/ocr", "/api/ocr"];
+            let res = null;
+
+            for (const base of baseCandidates) {
+                for (const path of pathCandidates) {
                     try {
-                        const err = await res.json();
-                        msg = err.detail || err.error || msg;
-                    } catch (_) {}
-                    throw new Error(msg + ` (HTTP ${res.status})`);
+                        const fd = new FormData();
+                        fd.append("file", optimizedFile || selectedFile);
+                        const r = await fetch(base + path, { method: "POST", body: fd });
+                        res = r;
+                        // Use first non-404 response immediately
+                        if (r.status !== 404) break;
+                    } catch (_) {
+                        // try next candidate
+                    }
                 }
+                if (res && res.status !== 404) break;
+            }
 
-                const blob = await res.blob();
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement("a");
-            a.href = url;
-            a.download = `Rasm_Word_${Date.now()}.docx`;
-            document.body.appendChild(a);
-            a.click();
-            a.remove();
-            setTimeout(() => URL.revokeObjectURL(url), 10000);
-            showStatus("success", "Word fayl yuklandi");
+            if (!res) {
+                throw new Error("Internet yoki serverga ulanib bo'lmadi. Keyinroq urinib ko'ring.");
+            }
+            if (res.status === 404) {
+                throw new Error("OCR endpoint topilmadi (404). Server routingni tekshiring.");
+            }
+
+            if (!res.ok) {
+                let msg = "OCR xatosi";
+                try {
+                    const err = await res.json();
+                    msg = err.detail || err.error || msg;
+                } catch (_) {}
+                throw new Error(msg + ` (HTTP ${res.status})`);
+            }
+
+            const data = await res.json();
+            const text = String(data?.text || "").trim();
+            if (!text) {
+                throw new Error("Rasmdan matn topilmadi");
+            }
+            const textOut = document.getElementById("ocrText");
+            textOut.textContent = text;
+            textOut.classList.remove("hidden");
+            showStatus("success", "Matn ajratildi");
             tg?.HapticFeedback?.notificationOccurred?.("success");
         } catch (e) {
             showStatus("error", e.message || "Xatolik yuz berdi");

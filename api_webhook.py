@@ -107,9 +107,25 @@ def _paddle_init_once():
 
 
 def _cv_preprocess(bgr):
+    # 1) grayscale -> 2) contrast boost -> 3) denoise
     gray = cv2.cvtColor(bgr, cv2.COLOR_BGR2GRAY)
-    _, th = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-    return th
+    equalized = cv2.equalizeHist(gray)
+    denoised = cv2.GaussianBlur(equalized, (3, 3), 0)
+
+    # 4) adaptive threshold for uneven lighting backgrounds
+    binary = cv2.adaptiveThreshold(
+        denoised,
+        255,
+        cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
+        cv2.THRESH_BINARY,
+        31,
+        15,
+    )
+
+    # 5) sharpen text edges for OCR readability
+    kernel = np.array([[0, -1, 0], [-1, 5, -1], [0, -1, 0]], dtype=np.float32)
+    sharpened = cv2.filter2D(binary, -1, kernel)
+    return sharpened
 
 
 def _paddle_extract_text(processed) -> str:
@@ -657,7 +673,7 @@ async def api_ocr_extract(
 @app.post("/ocr")
 async def ocr_paddle(file: UploadFile = File(...)):
     """
-    Receive uploaded image, preprocess (grayscale + threshold), run PaddleOCR, return JSON.
+    Receive uploaded image, apply OpenCV preprocessing pipeline, run PaddleOCR, return JSON.
     Response: { "text": "..." }
     """
     _ensure_paddle()
