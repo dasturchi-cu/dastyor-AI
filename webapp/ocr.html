@@ -212,14 +212,21 @@
             const fd = new FormData();
                 fd.append("file", optimizedFile || selectedFile);
                 const qs = new URLSearchParams(location.search);
-                // Render/prod: same origin. Local dev: allow override via ?api=http://localhost:8000
-                const apiBase = qs.get("api") || (location.protocol === "file:" ? "http://localhost:8000" : location.origin);
+                // API base:
+                // - Prefer explicit override (?api=...)
+                // - Otherwise use global DastyorAI.BASE (works in Telegram WebApp)
+                // - Fallback to same-origin; file:// should still use prod
+                const apiBase = qs.get("api")
+                    || window.DastyorAI?.BASE
+                    || (location.protocol === "file:" ? "https://dastyor-ai.onrender.com" : location.origin);
             const tid = (window.DA?.getTelegramId && window.DA.getTelegramId()) || new URLSearchParams(location.search).get("telegram_id") || "";
                 // API spec uses /ocr-word (FastAPI PaddleOCR backend)
-                const res = await fetch(apiBase + "/ocr-word", {
-                method: "POST",
-                body: fd
-            });
+                let res;
+                try {
+                    res = await fetch(apiBase + "/ocr-word", { method: "POST", body: fd });
+                } catch (netErr) {
+                    throw new Error("Internet yoki serverga ulanib bo'lmadi. Keyinroq urinib ko'ring.");
+                }
 
                 if (!res.ok) {
                     let msg = "OCR xatosi";
