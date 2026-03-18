@@ -5,6 +5,7 @@ Handles Text Processing, Data Extraction, and Translation using Gemini Asynchron
 import logging
 import json
 import asyncio
+from difflib import SequenceMatcher
 import google.generativeai as genai
 from config import GOOGLE_API_KEY
 
@@ -79,6 +80,18 @@ def _set_para_text(para, text: str):
         para.runs[0].text = text
     else:
         para.add_run(text)
+
+
+def _set_pptx_paragraph_text(para, text: str):
+    """
+    Replace paragraph text while keeping at least one run style alive.
+    """
+    if para.runs:
+        para.runs[0].text = text
+        for run in para.runs[1:]:
+            run.text = ""
+    else:
+        para.add_run().text = text
 
 
 async def transcribe_audio(audio_file_path: str) -> str:
@@ -281,12 +294,28 @@ async def check_spelling_text(text: str) -> tuple[str, int]:
 
     def _make_prompt(s: str) -> str:
         return (
-            "Proofread for spelling errors (Uzbek/Russian).\n"
+            "Proofread ONLY obvious spelling mistakes (Uzbek/Russian).\n"
             "Return ONLY the corrected text.\n"
-            "Fix typos, casing, punctuation spacing.\n"
-            "Do NOT change meaning. No explanations.\n\n"
+            "Fix typos, casing, and punctuation spacing.\n"
+            "Do NOT rewrite style, sentence order, names, numbers, abbreviations, or meaning.\n"
+            "If text is already correct, return it unchanged.\n"
+            "No explanations.\n\n"
             f"{s}"
         )
+
+    def _sanitize_spell_output(source: str, candidate: str) -> str:
+        """
+        Safety guard against hallucinated rewrites:
+        keep the original if model output diverges too much.
+        """
+        cleaned = (candidate or "").strip()
+        if not cleaned:
+            return source
+        ratio = SequenceMatcher(None, source, cleaned).ratio()
+        # Conservative threshold: spelling fixes should remain close to original text.
+        if ratio < 0.65:
+            return source
+        return cleaned
 
     try:
         # For long texts, split into chunks and process concurrently (faster + more reliable).
@@ -322,24 +351,42 @@ async def check_spelling_text(text: str) -> tuple[str, int]:
                 batch.append(part)
                 if len(batch) >= 3:
                     resps = await asyncio.gather(*[
-                        _gcall(model.generate_content_async(_make_prompt(x)), timeout=spell_timeout)
+                        _gcall(
+                            model.generate_content_async(
+                                _make_prompt(x),
+                                generation_config={"temperature": 0.0}
+                            ),
+                            timeout=spell_timeout
+                        )
                         for x in batch
                     ])
                     for r, orig in zip(resps, batch):
-                        out_parts.append((r.text or "").strip() if r and r.text else orig)
+                        out_parts.append(_sanitize_spell_output(orig, r.text if r and r.text else ""))
                     batch = []
             if batch:
                 resps = await asyncio.gather(*[
-                    _gcall(model.generate_content_async(_make_prompt(x)), timeout=spell_timeout)
+                    _gcall(
+                        model.generate_content_async(
+                            _make_prompt(x),
+                            generation_config={"temperature": 0.0}
+                        ),
+                        timeout=spell_timeout
+                    )
                     for x in batch
                 ])
                 for r, orig in zip(resps, batch):
-                    out_parts.append((r.text or "").strip() if r and r.text else orig)
+                    out_parts.append(_sanitize_spell_output(orig, r.text if r and r.text else ""))
 
             corrected = "\n".join(out_parts).strip()
         else:
-            resp = await _gcall(model.generate_content_async(_make_prompt(src)), timeout=spell_timeout)
-            corrected = (resp.text or "").strip() if resp else ""
+            resp = await _gcall(
+                model.generate_content_async(
+                    _make_prompt(src),
+                    generation_config={"temperature": 0.0}
+                ),
+                timeout=spell_timeout
+            )
+            corrected = _sanitize_spell_output(src, resp.text if resp else "")
             if not corrected:
                 return src, 0
 
@@ -473,92 +520,43 @@ async def check_spelling_gemini(file_path: str) -> tuple[str, int, int]:
         
     try:
         from docx import Document
-        
-        # Load doc in thread (CPU bound)
+
         loop = asyncio.get_running_loop()
         doc = await loop.run_in_executor(None, Document, file_path)
-        
-        model = await get_model()
-        
-        # Collect paragraphs to check
+
         paragraphs_to_check = []
         for para in doc.paragraphs:
-            if para.text.strip() and len(para.text.strip()) > 3:
+            if para.text and para.text.strip():
                 paragraphs_to_check.append(para)
-                
+
         for table in doc.tables:
             for row in table.rows:
                 for cell in row.cells:
                     for para in cell.paragraphs:
-                        if para.text.strip() and len(para.text.strip()) > 3:
+                        if para.text and para.text.strip():
                             paragraphs_to_check.append(para)
-                            
-        errors_found = 0
+
         errors_fixed = 0
-        
-        # Async chunk processor
-        async def process_chunk(chunk):
-            
-            numbered_text = ""
-            for idx, para in enumerate(chunk):
-                numbered_text += f"[{idx}] {para.text}\n"
-            
-            prompt = f"""
-            Proofread for Spelling errors (Uzbek/Russian).
-            RULES:
-            1. Return ONLY corrected lines in format '[N] Text'.
-            2. If line is correct, return SAME line.
-            3. Fix typos, casing, spaces. Do NOT change meaning.
-            
-            Text:
-            {numbered_text}
-            """
-            
-            try:
-                resp = await _gcall(model.generate_content_async(prompt))
-                if not resp or not resp.text:
-                    return 0
-                corrected_text = resp.text.strip()
 
-                chunk_fixes = 0
-                for line in corrected_text.split('\n'):
-                    line = line.strip()
-                    if line.startswith('[') and ']' in line:
-                        bracket_end = line.index(']')
-                        try:
-                            idx = int(line[1:bracket_end])
-                            new_text = line[bracket_end+1:].strip()
-                            if idx < len(chunk):
-                                original_para = chunk[idx]
-                                if original_para.text.strip() != new_text:
-                                    chunk_fixes += 1
-                                    _set_para_text(original_para, new_text)
-                        except Exception:
-                            pass
-                return chunk_fixes
-            except Exception as e:
-                logger.error(f"Spell check chunk error: {e}")
-                return 0
+        async def process_para(para):
+            src = para.text or ""
+            corrected, fixes = await check_spelling_text(src)
+            if corrected and corrected != src:
+                _set_para_text(para, corrected)
+                return max(1, fixes)
+            return 0
 
-        # Process in batches of 2 chunks at a time
-        chunk_size = 10
-        tasks = []
-        for i in range(0, len(paragraphs_to_check), chunk_size):
-            tasks.append(process_chunk(paragraphs_to_check[i:i+chunk_size]))
-            if len(tasks) >= 2:
-                errors_fixed += sum(await asyncio.gather(*tasks))
-                tasks = []
-                await asyncio.sleep(0.5)
-        if tasks:
-            errors_fixed += sum(await asyncio.gather(*tasks))
+        batch_size = 8
+        for i in range(0, len(paragraphs_to_check), batch_size):
+            batch = paragraphs_to_check[i:i + batch_size]
+            errors_fixed += sum(await asyncio.gather(*[process_para(p) for p in batch]))
+            await asyncio.sleep(0.15)
 
-        errors_found = errors_fixed
-        
         output_path = file_path.replace(".docx", "_checked.docx")
         await loop.run_in_executor(None, doc.save, output_path)
-        
-        return output_path, errors_found, errors_fixed
-        
+
+        return output_path, errors_fixed, errors_fixed
+
     except Exception as e:
         logger.error(f"Async Spell check failed: {e}", exc_info=True)
         return "", 0, 0
@@ -575,61 +573,42 @@ async def check_spelling_pptx(file_path: str) -> tuple[str, int, int]:
 
     try:
         from pptx import Presentation
-        import asyncio
 
         loop = asyncio.get_running_loop()
         prs = await loop.run_in_executor(None, Presentation, file_path)
 
-        model = await get_model()
-
-        # Collect all runs with text > 3 chars
-        runs_to_check = []
+        paragraphs_to_check = []
         for slide in prs.slides:
             for shape in slide.shapes:
                 if shape.has_text_frame:
                     for para in shape.text_frame.paragraphs:
-                        for run in para.runs:
-                            if run.text and len(run.text.strip()) > 3:
-                                runs_to_check.append(run)
+                        if para.text and para.text.strip():
+                            paragraphs_to_check.append(para)
                 if shape.has_table:
                     for row in shape.table.rows:
                         for cell in row.cells:
                             for para in cell.text_frame.paragraphs:
-                                for run in para.runs:
-                                    if run.text and len(run.text.strip()) > 3:
-                                        runs_to_check.append(run)
+                                if para.text and para.text.strip():
+                                    paragraphs_to_check.append(para)
 
         errors_fixed = 0
-        # Process in batches
-        chunk_size = 10
-        for i in range(0, len(runs_to_check), chunk_size):
-            chunk = runs_to_check[i:i+chunk_size]
-            text = "\n".join([f"[{i}]: {run.text}" for i, run in enumerate(chunk)])
-            prompt = f"Toshkent davlat o'zbek tili lug'atiga asoslanib xatolarni to'g'irla. Asil ma'noni va qo'shimchalarni o'zgacha qilib yuborma.\n\n{text}"
-            try:
-                if model:
-                    resp = await _gcall(model.generate_content_async(prompt))
-                    if resp and resp.text:
-                        for line in resp.text.split('\n'):
-                            line = line.strip()
-                            if line.startswith('[') and ']' in line:
-                                bracket_end = line.index(']')
-                                try:
-                                    idx = int(line[1:bracket_end])
-                                    new_text = line[bracket_end+2:].strip()
-                                    if idx < len(chunk) and chunk[idx].text.strip() != new_text:
-                                        errors_fixed += 1
-                                        chunk[idx].text = new_text  # pptx Run.text has a setter
-                                except Exception:
-                                    pass
-            except Exception as e:
-                logger.error(f"PPTX spell check chunk error: {e}")
 
-            await asyncio.sleep(0.5)
+        async def process_para(para):
+            src = para.text or ""
+            corrected, fixes = await check_spelling_text(src)
+            if corrected and corrected != src:
+                _set_pptx_paragraph_text(para, corrected)
+                return max(1, fixes)
+            return 0
+
+        batch_size = 8
+        for i in range(0, len(paragraphs_to_check), batch_size):
+            batch = paragraphs_to_check[i:i + batch_size]
+            errors_fixed += sum(await asyncio.gather(*[process_para(p) for p in batch]))
+            await asyncio.sleep(0.15)
 
         output_path = file_path.replace(".pptx", "_checked.pptx")
         await loop.run_in_executor(None, prs.save, output_path)
-
         return output_path, errors_fixed, errors_fixed
 
     except Exception as e:

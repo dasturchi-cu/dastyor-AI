@@ -571,6 +571,9 @@ async def handle_router_text(update: Update, context: ContextTypes.DEFAULT_TYPE)
     elif state == 'translate_input' or context.user_data.get('translate_direction'):
          await process_translate_doc(update, context)
          return
+    elif state == 'spell_check_doc' or state == 'spellcheck_file':
+         await process_spell_check(update, context)
+         return
     elif state == 'ocr_image' and context.user_data.get('ocr_images') and text and 'tayyor' in text:
          if await process_ocr_tayyor(update, context):
              return

@@ -214,6 +214,7 @@ from bot.services.render_service import (
 from bot.utils.delivery import send_docx_with_confirmation
 
 SITE_BASE_URL = os.getenv("SITE_BASE_URL", "https://dastyor-ai.onrender.com")
+PREMIUM_ADMIN_GROUP_ID = int(os.getenv("PREMIUM_ADMIN_GROUP_ID", "-1003457224552"))
 
 
 def _safe_name(name: str, fallback: str) -> str:
@@ -1181,6 +1182,86 @@ async def api_upload_to_telegram(
     except Exception as e:
         logger.error(f"Error sending file via /api/upload_to_telegram: {e}", exc_info=True)
         return {"ok": False, "error": str(e)}
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# /api/premium_receipt — Upload premium payment receipt from WebApp
+# Sends receipt directly to admin group and confirms to user chat.
+# ═══════════════════════════════════════════════════════════════════════════
+@app.post("/api/premium_receipt")
+async def api_premium_receipt(
+    file: UploadFile = File(...),
+    plan: str = Form("premium"),
+    telegram_id: str = Form(None),
+    token: str = Form(None),
+):
+    uid = _resolve_uid(telegram_id, token)
+    if not uid:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+    safe_plan = (plan or "premium").strip().lower()
+    if safe_plan not in ("standard", "premium"):
+        safe_plan = "premium"
+
+    filename = _safe_name(file.filename or "receipt.jpg", "receipt.jpg")
+    content = await file.read()
+    if not content:
+        raise HTTPException(status_code=400, detail="Empty file")
+    if len(content) > 15 * 1024 * 1024:
+        raise HTTPException(status_code=413, detail="File too large (max 15MB)")
+
+    # Try to enrich caption from session profile.
+    first_name = ""
+    username = ""
+    if token:
+        try:
+            from bot.services.session_service import resolve_session
+            sess = resolve_session(token) or {}
+            first_name = sess.get("first_name") or ""
+            username = sess.get("username") or ""
+        except Exception:
+            pass
+
+    uname = f"@{username}" if username else "yo'q"
+    display_name = first_name or "Noma'lum"
+    caption = (
+        "💰 <b>Yangi premium to'lov (WebApp)</b>\n\n"
+        f"Ism: <b>{html_lib.escape(display_name)}</b>\n"
+        f"User: {html_lib.escape(uname)}\n"
+        f"ID: <code>{uid}</code>\n"
+        f"Tarif: <b>{'Standard (7 kun)' if safe_plan == 'standard' else 'Premium (30 kun)'}</b>\n\n"
+        f"Tasdiqlash: <code>/approve {uid}</code>"
+    )
+
+    try:
+        buf = io.BytesIO(content)
+        buf.name = filename
+        ext = (filename.rsplit(".", 1)[-1].lower() if "." in filename else "")
+
+        if ext in ("jpg", "jpeg", "png", "webp", "bmp", "gif"):
+            await application.bot.send_photo(
+                chat_id=PREMIUM_ADMIN_GROUP_ID,
+                photo=InputFile(buf, filename=filename),
+                caption=caption,
+                parse_mode="HTML",
+            )
+        else:
+            await application.bot.send_document(
+                chat_id=PREMIUM_ADMIN_GROUP_ID,
+                document=InputFile(buf, filename=filename),
+                caption=caption,
+                parse_mode="HTML",
+            )
+
+        # User confirmation in private chat.
+        await application.bot.send_message(
+            chat_id=int(uid),
+            text="✅ Chek qabul qilindi va adminga yuborildi. Tasdiqdan so'ng premium yoqiladi.",
+        )
+        return {"ok": True}
+    except Exception as e:
+        logger.error(f"/api/premium_receipt error: {e}", exc_info=True)
+        return {"ok": False, "error": str(e)[:300]}
 
 
 # ═══════════════════════════════════════════════════════════════════════════

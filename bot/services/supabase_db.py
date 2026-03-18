@@ -4,16 +4,23 @@ SUPABASE_URL va SUPABASE_ANON_KEY bo'lsa ishlatiladi.
 """
 import os
 import logging
+import time
 from datetime import datetime, date
 from typing import Optional
 
 logger = logging.getLogger(__name__)
 
 _client = None
+_disabled_until_ts = 0.0
+_last_disable_reason = ""
+_DB_DISABLE_SECONDS = int(os.getenv("SUPABASE_DISABLE_SECONDS", "300"))
 
 
 def _get_client():
     global _client
+    now = time.time()
+    if _disabled_until_ts > now:
+        return None
     if _client is not None:
         return _client
     url = os.getenv("SUPABASE_URL")
@@ -28,6 +35,37 @@ def _get_client():
     except Exception as e:
         logger.warning(f"Supabase init failed: {e}")
         return None
+
+
+def _mark_temporarily_unavailable(exc: Exception):
+    """
+    Disable Supabase calls for a cooldown window on network-level failures.
+    This prevents repeated noisy errors and allows local JSON fallback.
+    """
+    global _client, _disabled_until_ts, _last_disable_reason
+    msg = str(exc or "").lower()
+    # Common DNS / network connectivity signatures.
+    transient_markers = (
+        "name or service not known",
+        "temporary failure in name resolution",
+        "nodename nor servname provided",
+        "failed to resolve",
+        "connection refused",
+        "connect timeout",
+        "network is unreachable",
+        "timed out",
+    )
+    if any(marker in msg for marker in transient_markers):
+        _client = None
+        _disabled_until_ts = time.time() + _DB_DISABLE_SECONDS
+        reason = str(exc)[:200]
+        if reason != _last_disable_reason:
+            _last_disable_reason = reason
+            logger.warning(
+                "Supabase temporarily disabled for %ss due to connectivity issue: %s",
+                _DB_DISABLE_SECONDS,
+                reason,
+            )
 
 
 def has_db() -> bool:
@@ -64,6 +102,7 @@ def db_get_user(user_id: int | str) -> Optional[dict]:
             "last_service": row.get("last_service"),
         }
     except Exception as e:
+        _mark_temporarily_unavailable(e)
         logger.error(f"db_get_user: {e}")
         return None
 
@@ -98,6 +137,7 @@ def db_upsert_user(user_id: int, first_name: str = "", username: str = None,
             }).execute()
         return True
     except Exception as e:
+        _mark_temporarily_unavailable(e)
         logger.error(f"db_upsert_user: {e}")
         return False
 
@@ -110,6 +150,7 @@ def db_update_user_field(user_id: int, **kwargs) -> bool:
         c.table("users").update(kwargs).eq("id", user_id).execute()
         return True
     except Exception as e:
+        _mark_temporarily_unavailable(e)
         logger.error(f"db_update_user_field: {e}")
         return False
 
@@ -128,6 +169,7 @@ def db_increment_files(user_id: int, service_name: str = None) -> bool:
             c.table("users").update(upd).eq("id", user_id).execute()
         return True
     except Exception as e:
+        _mark_temporarily_unavailable(e)
         logger.error(f"db_increment_files: {e}")
         return False
 
@@ -144,6 +186,7 @@ def db_get_usage(user_id: int) -> int:
             return r.data[0].get("count", 0)
         return 0
     except Exception as e:
+        _mark_temporarily_unavailable(e)
         logger.error(f"db_get_usage: {e}")
         return 0
 
@@ -162,6 +205,7 @@ def db_increment_usage(user_id: int) -> int:
         c.table("daily_usage").insert({"user_id": user_id, "usage_date": today, "count": 1}).execute()
         return 1
     except Exception as e:
+        _mark_temporarily_unavailable(e)
         logger.error(f"db_increment_usage: {e}")
         return 0
 
@@ -177,6 +221,7 @@ def db_get_daily_limit() -> Optional[int]:
             return r.data[0].get("daily_limit", 10)
         return 10
     except Exception as e:
+        _mark_temporarily_unavailable(e)
         logger.error(f"db_get_daily_limit: {e}")
         return None
 
@@ -191,6 +236,7 @@ def db_is_premium(user_id: int) -> bool:
         r = c.table("premium_subscriptions").select("id").eq("user_id", user_id).gte("end_date", now).execute()
         return bool(r.data)
     except Exception as e:
+        _mark_temporarily_unavailable(e)
         logger.error(f"db_is_premium: {e}")
         return False
 
@@ -225,5 +271,6 @@ def db_get_all_users() -> dict:
             }
         return out
     except Exception as e:
+        _mark_temporarily_unavailable(e)
         logger.error(f"db_get_all_users: {e}")
         return {}
