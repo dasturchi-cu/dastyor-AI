@@ -457,6 +457,26 @@
       ]
     };
 
+    let telegramId = '';
+    try {
+      if (
+        window.Telegram &&
+        window.Telegram.WebApp &&
+        window.Telegram.WebApp.initDataUnsafe &&
+        window.Telegram.WebApp.initDataUnsafe.user
+      ) {
+        telegramId = String(window.Telegram.WebApp.initDataUnsafe.user.id);
+      }
+    } catch (_) {}
+    if (!telegramId) {
+      const up = new URLSearchParams(window.location.search).get('telegram_id');
+      if (up) telegramId = up;
+    }
+    let API_URL;
+    if (window.location.protocol === 'file:') API_URL = 'https://dastyor-ai.onrender.com';
+    else if (/localhost|127\.0\.0\.1/.test(window.location.origin)) API_URL = 'http://localhost:8000';
+    else API_URL = window.location.origin;
+
     let currentLang = 'uz_lat';
     
     function changeLang(lang, shouldTrigger = true) {
@@ -968,7 +988,22 @@
       };
     }
 
-    function sendCvToBot(fmt) {
+    async function sendCvViaApi(fmt) {
+      const payload = buildCvPayload(fmt);
+      const req = Object.assign({}, payload, {
+        telegram_id: telegramId ? parseInt(telegramId, 10) : null,
+      });
+      const res = await fetch(API_URL + '/api/export_cv', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(req),
+      });
+      if (!res.ok) {
+        throw new Error('Server ' + res.status);
+      }
+    }
+
+    async function sendCvToBot(fmt) {
       const tg = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp : null;
       if (!tg || !tg.sendData) {
         alert("Faqat Telegram WebApp ichida ishlaydi!");
@@ -978,7 +1013,10 @@
         const payload = buildCvPayload(fmt);
         const raw = JSON.stringify(payload);
         if (raw.length > 3800) {
-          alert("❌ Ma'lumot hajmi juda katta. Ma'lumotni qisqartirib qayta urinib ko'ring.");
+          await sendCvViaApi(fmt);
+          tg.HapticFeedback && tg.HapticFeedback.notificationOccurred && tg.HapticFeedback.notificationOccurred('success');
+          alert("⏳ So'rov server orqali yuborildi. Chatda faylni kuting.");
+          setTimeout(() => { try { tg.close(); } catch (_) {} }, 1200);
           return;
         }
         tg.sendData(raw);
@@ -986,7 +1024,14 @@
         alert("⏳ So'rov botga yuborildi. Chatda faylni kuting.");
         setTimeout(() => { try { tg.close(); } catch (_) {} }, 1200);
       } catch (e) {
-        alert("❌ Botga yuborishda xatolik yuz berdi.");
+        try {
+          await sendCvViaApi(fmt);
+          tg.HapticFeedback && tg.HapticFeedback.notificationOccurred && tg.HapticFeedback.notificationOccurred('success');
+          alert("⏳ So'rov server orqali yuborildi. Chatda faylni kuting.");
+          setTimeout(() => { try { tg.close(); } catch (_) {} }, 1200);
+        } catch (_) {
+          alert("❌ Botga yuborishda xatolik yuz berdi.");
+        }
       }
     }
 

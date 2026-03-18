@@ -617,7 +617,53 @@ function buildObyPayload(fmt){
   };
 }
 
-function sendObyektivkaToBot(fmt){
+async function sendObyektivkaViaApi(fmt){
+  var payload = buildObyPayload(fmt);
+  var req = {
+    telegram_id: telegramId ? parseInt(telegramId, 10) : null,
+    format: (fmt === 'pdf') ? 'pdf' : 'word',
+    lang: payload.lang,
+    fullname: payload.fullname || '',
+    birthdate: payload.bdate || '',
+    birthplace: payload.bplace || '',
+    nation: payload.nation || '',
+    party: payload.party || '',
+    education: payload.edu || '',
+    graduated: payload.grad || '',
+    specialty: payload.spec || '',
+    degree: payload.deg || '',
+    scientific_title: payload.ttl || '',
+    languages: payload.langs || '',
+    military_rank: payload.mil || '',
+    awards: payload.award || '',
+    deputy: payload.dep || '',
+    current_job: payload.current_job || '',
+    current_job_year: payload.current_job_year || '',
+    work_experience: (payload.works || []).map(function(w){
+      return { year: ((w.f || '') + ((w.f || w.t) ? '-' : '') + (w.t || '')).replace(/^-|-$/g,''), position: w.d || '' };
+    }),
+    relatives: (payload.rels || []).map(function(r){
+      return {
+        degree: r.type || '',
+        fullname: r.name || '',
+        birth_year_place: r.birth || '',
+        work_place: r.job || '',
+        address: r.addr || ''
+      };
+    }),
+    photo_data: payload.photo_data || ''
+  };
+  var res = await fetch(API_URL + '/api/export_obyektivka', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(req)
+  });
+  if (!res.ok) {
+    throw new Error('Server ' + res.status);
+  }
+}
+
+async function sendObyektivkaToBot(fmt){
   var tg=window.Telegram&&window.Telegram.WebApp?window.Telegram.WebApp:null;
   if(!tg||!tg.sendData){
     alert("Faqat Telegram WebApp ichida ishlaydi!");
@@ -629,12 +675,11 @@ function sendObyektivkaToBot(fmt){
     var payload = buildObyPayload(fmt);
     var raw = JSON.stringify(payload);
     // Telegram WebApp sendData payload is limited; photo base64 can overflow it.
-    if(raw.length > 3800 && payload.photo_data){
-      payload.photo_data = '';
-      raw = JSON.stringify(payload);
-    }
     if(raw.length > 3800){
-      alert("❌ Ma'lumot hajmi juda katta. Rasmni olib tashlab qayta urinib ko'ring.");
+      await sendObyektivkaViaApi(fmt);
+      tg.HapticFeedback&&tg.HapticFeedback.notificationOccurred&&tg.HapticFeedback.notificationOccurred('success');
+      alert("⏳ So'rov server orqali yuborildi. Chatda faylni kuting.");
+      setTimeout(function(){ try{ tg.close(); }catch(_){} }, 1200);
       return;
     }
     tg.sendData(raw);
@@ -643,7 +688,14 @@ function sendObyektivkaToBot(fmt){
     try{ alert(msg); }catch(_){}
     setTimeout(function(){ try{ tg.close(); }catch(_){} }, 1200);
   }catch(e){
-    alert("❌ Botga yuborishda xatolik yuz berdi.");
+    try{
+      await sendObyektivkaViaApi(fmt);
+      tg.HapticFeedback&&tg.HapticFeedback.notificationOccurred&&tg.HapticFeedback.notificationOccurred('success');
+      alert("⏳ So'rov server orqali yuborildi. Chatda faylni kuting.");
+      setTimeout(function(){ try{ tg.close(); }catch(_){} }, 1200);
+    }catch(_){
+      alert("❌ Botga yuborishda xatolik yuz berdi.");
+    }
   }finally{
     if(btn)btn.disabled=false;
   }
