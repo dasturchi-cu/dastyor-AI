@@ -32,13 +32,22 @@
 
   <style>
     html, body { -webkit-tap-highlight-color: transparent; overscroll-behavior-y: none; }
-    body { background: var(--bg-color); color: var(--text-color); min-height: 100vh; }
+    body {
+      background: var(--bg-color);
+      color: var(--text-color);
+      min-height: var(--app-vh, 100vh);
+      overflow-x: hidden;
+    }
     .scroller::-webkit-scrollbar { width: 0px; }
     .seg.active { background: rgba(37,99,235,0.10); border-color: rgba(37,99,235,0.35); color: #2563EB; }
+
+    /* Keyboard-safe layout */
+    .page-shell { min-height: var(--app-vh, 100vh); }
+    .page-main { padding-bottom: calc(86px + env(safe-area-inset-bottom, 0px) + var(--kb-offset, 0px)); }
   </style>
 </head>
 
-<body class="antialiased selection:bg-apple-blue selection:text-white flex flex-col h-screen overflow-hidden">
+<body class="page-shell antialiased selection:bg-apple-blue selection:text-white flex flex-col">
   <!-- Global Header (match translit/ocr) -->
   <header class="h-16 flex-shrink-0 border-b border-black/5 dark:border-white/5 bg-white/80 dark:bg-[#0a0a0c]/80 backdrop-blur-xl flex items-center px-4 z-50">
     <a href="more.html"
@@ -62,7 +71,7 @@
     </div>
   </header>
 
-  <main class="flex-1 overflow-y-auto scroller relative flex flex-col">
+  <main class="page-main flex-1 overflow-y-auto scroller relative flex flex-col">
     <div class="max-w-3xl w-full mx-auto p-4 md:p-6 flex flex-col h-full gap-4">
 
       <!-- Info -->

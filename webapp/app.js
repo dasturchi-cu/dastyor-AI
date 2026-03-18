@@ -346,6 +346,18 @@ const DastyorAI = (() => {
         window.visualViewport?.addEventListener?.('resize', apply);
         window.visualViewport?.addEventListener?.('scroll', apply);
         window.addEventListener('resize', apply, { passive: true });
+
+        // When focusing inputs on mobile, ensure they stay visible.
+        document.addEventListener('focusin', (e) => {
+            const t = e.target;
+            if (!t) return;
+            const tag = String(t.tagName || '').toLowerCase();
+            if (tag === 'input' || tag === 'textarea' || tag === 'select') {
+                setTimeout(() => {
+                    try { t.scrollIntoView({ block: 'center', behavior: 'smooth' }); } catch (_) {}
+                }, 50);
+            }
+        }, true);
     }
 
     function haptic(type = 'light') {
@@ -479,6 +491,19 @@ const DastyorAI = (() => {
     // Early apply (before page scripts run)
     applyTheme(localStorage.getItem(THEME_KEY) || DEFAULT_THEME, false);
     setLanguage(localStorage.getItem(LANGUAGE_KEY) || DEFAULT_LANG, false);
+
+    // Ensure bottom nav exists even if a page forgets to call initUI().
+    const _bootMobile = () => {
+        try {
+            _bindViewportVars();
+            _ensureBottomNav();
+        } catch (_) {}
+    };
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', _bootMobile, { once: true });
+    } else {
+        _bootMobile();
+    }
 
     return api;
 })();
