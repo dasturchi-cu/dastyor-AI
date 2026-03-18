@@ -17,3 +17,5 @@ reportlab>=3.6.12
 numpy>=2.0.0
 opencv-python>=4.10.0
 paddleocr>=2.8.0
+# Render build fix: newer python-bidi versions may require Rust/maturin.
+python-bidi==0.4.2
