@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>Asboblar | Dastyor AI</title>
   <link rel="stylesheet" href="theme.css" />
-  <script src="da-core.js"></script>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script src="app.js"></script>
   <style>
@@ -25,19 +24,25 @@
       text-decoration: none;
       color: inherit;
       display: flex;
-      gap: 10px;
-      align-items: center;
+      gap: 12px;
+      align-items: flex-start;
       border: 1px solid var(--border-color);
       border-radius: 13px;
-      padding: 10px;
+      padding: 12px;
       background: var(--card-color);
       margin-bottom: 8px;
+      min-height: 56px; /* touch-friendly */
+      -webkit-tap-highlight-color: transparent;
+      transition: transform .12s ease, background-color .12s ease, border-color .12s ease;
     }
+    .tool-link:hover { background: var(--da-bg-elevated); }
+    .tool-link:active { transform: scale(0.99); }
+    .tool-link:focus-visible { outline: 2px solid var(--da-border-focus); outline-offset: 2px; }
     .tool-link:last-child { margin-bottom: 0; }
     .icon {
-      width: 34px;
-      height: 34px;
-      border-radius: 10px;
+      width: 40px;
+      height: 40px;
+      border-radius: 12px;
       background: var(--da-blue-soft);
       color: var(--da-blue);
       display: inline-flex;
@@ -45,38 +50,39 @@
       justify-content: center;
       flex-shrink: 0;
     }
-    .icon svg { width: 18px; height: 18px; stroke: currentColor; }
-    .tool-name { font-size: 15px; font-weight: 700; line-height: 1.2; }
-    .tool-sub { font-size: 12px; color: var(--text-muted); }
+    .icon svg { width: 24px; height: 24px; stroke: currentColor; }
+    .tool-meta { min-width: 0; flex: 1; }
+    .tool-name { font-size: 15px; font-weight: 800; line-height: 1.2; margin-top: 1px; }
+    .tool-sub { font-size: 12.5px; color: var(--text-muted); line-height: 1.35; margin-top: 4px; word-break: break-word; }
   </style>
 </head>
 <body>
   <main class="page">
     <section class="head">
-      <h1>Asboblar ⚙️</h1>
+      <h1>Asboblar</h1>
       <p>Barcha vositalar bir joyda</p>
     </section>
 
     <section class="group">
       <a class="tool-link" href="img2pdf.html">
         <span class="icon"><svg fill="none" viewBox="0 0 24 24" stroke-width="2"><path d="M7 3h7l5 5v13H7z"/><path d="M14 3v6h6"/></svg></span>
-        <span><div class="tool-name">Image → PDF</div><div class="tool-sub">Rasmlarni PDF ga birlashtirish</div></span>
+        <div class="tool-meta"><div class="tool-name">Image → PDF</div><div class="tool-sub">Rasmlarni PDF ga birlashtirish</div></div>
       </a>
       <a class="tool-link" href="translit.html">
         <span class="icon"><svg fill="none" viewBox="0 0 24 24" stroke-width="2"><path d="M5 8h10"/><path d="M10 5v3c0 4-2.5 6.5-5 8"/><path d="M10 13l3 6 3-6"/></svg></span>
-        <span><div class="tool-name">Latin ↔ Kiril</div><div class="tool-sub">Matn alifbosini o'girish</div></span>
+        <div class="tool-meta"><div class="tool-name">Lotin ↔ Kirill</div><div class="tool-sub">Matn alifbosini o'girish</div></div>
       </a>
       <a class="tool-link" href="translate.html">
         <span class="icon"><svg fill="none" viewBox="0 0 24 24" stroke-width="2"><path d="M5 8h10"/><path d="M10 5v3c0 4-2.5 6.5-5 8"/><path d="M16 13h4"/><path d="m16 13-3 6-3-6"/></svg></span>
-        <span><div class="tool-name">Tarjima 🌐</div><div class="tool-sub">Matn tarjima qilish</div></span>
+        <div class="tool-meta"><div class="tool-name">Tarjima</div><div class="tool-sub">Matn tarjima qilish</div></div>
       </a>
       <a class="tool-link" href="spellcheck.html">
         <span class="icon"><svg fill="none" viewBox="0 0 24 24" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4Z"/><path d="m15 5 4 4"/></svg></span>
-        <span><div class="tool-name">Imlo tekshirish </div><div class="tool-sub">Matndagi imlo xatolarini aniqlash</div></span>
+        <div class="tool-meta"><div class="tool-name">Imlo tekshirish</div><div class="tool-sub">Matndagi imlo xatolarini aniqlash</div></div>
       </a>
       <a class="tool-link" href="ocr.html">
         <span class="icon"><svg fill="none" viewBox="0 0 24 24" stroke-width="2"><rect x="3" y="6" width="18" height="12" rx="2"/><circle cx="12" cy="12" r="3"/><path d="M8 6l1.5-2h5L16 6"/></svg></span>
-        <span><div class="tool-name">OCR 📷</div><div class="tool-sub">Rasmdan matn aniqlash</div></span>
+        <div class="tool-meta"><div class="tool-name">OCR skaner</div><div class="tool-sub">Rasmdan matn aniqlash</div></div>
       </a>
     </section>
   </main>

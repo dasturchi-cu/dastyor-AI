@@ -86,6 +86,25 @@ body {
     transition: background-color 0.3s ease, color 0.3s ease;
 }
 
+/* Mobile keyboard + safe viewport helpers */
+:root {
+    --app-vh: 100vh;
+    --kb-offset: 0px;
+}
+
+@supports (height: 100dvh) {
+    :root { --app-vh: 100dvh; }
+}
+
+/* Avoid horizontal scroll from long content */
+img, svg, video, canvas { max-width: 100%; height: auto; }
+pre, code { white-space: pre-wrap; word-break: break-word; }
+
+/* Touch targets */
+a, button, input, select, textarea { touch-action: manipulation; }
+button, .btn, [role="button"] { min-height: 44px; }
+
+
 .app-container {
     max-width: 900px;
     margin: 0 auto;

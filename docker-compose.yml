@@ -1,0 +1,46 @@
+services:
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+
+  api:
+    build: .
+    environment:
+      - ENV=prod
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+      - MAX_UPLOAD_BYTES=15728640
+      - JOB_TTL_SECONDS=3600
+      - PADDLE_OCR_LANG=en
+      - PADDLE_OCR_MAX_SIDE=1800
+      - PADDLE_OCR_DET_LIMIT_SIDE_LEN=1800
+    ports:
+      - "8000:8000"
+    depends_on:
+      - redis
+    command: ["uvicorn", "backend.app:app", "--host", "0.0.0.0", "--port", "8000"]
+    restart: unless-stopped
+
+  worker:
+    build: .
+    environment:
+      - ENV=prod
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+      - PADDLE_OCR_LANG=en
+      - PADDLE_OCR_MAX_SIDE=1800
+      - PADDLE_OCR_DET_LIMIT_SIDE_LEN=1800
+      - FLAGS_enable_pir_api=0
+      - FLAGS_use_new_executor=0
+      - FLAGS_enable_onednn=0
+      - FLAGS_use_mkldnn=0
+    depends_on:
+      - redis
+    command: ["celery", "-A", "backend.celery_app.celery_app", "worker", "--loglevel=INFO", "--concurrency=1"]
+    restart: unless-stopped
+

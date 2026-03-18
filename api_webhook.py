@@ -71,6 +71,8 @@ import base64
 import re
 import html as html_lib
 from concurrent.futures import ThreadPoolExecutor
+import hashlib
+from collections import OrderedDict
 
 # ── PaddleOCR backend (local, fast, no Gemini dependency) ─────────────
 try:
@@ -89,7 +91,24 @@ except Exception:  # keep server bootable even if deps missing
     WD_ALIGN_PARAGRAPH = None
 
 _PADDLE_OCR = None
-_OCR_POOL = ThreadPoolExecutor(max_workers=int(os.getenv("OCR_WORKERS", "2")))
+_OCR_POOL = ThreadPoolExecutor(max_workers=int(os.getenv("OCR_WORKERS", "4")))
+
+
+def _resize_for_ocr(bgr, max_side: int = 1800):
+    """
+    Downscale very large scans to speed up OCR (keeps aspect ratio).
+    """
+    try:
+        h, w = bgr.shape[:2]
+        m = max(h, w)
+        if m <= max_side:
+            return bgr
+        scale = max_side / float(m)
+        nh = max(1, int(round(h * scale)))
+        nw = max(1, int(round(w * scale)))
+        return cv2.resize(bgr, (nw, nh), interpolation=cv2.INTER_AREA)
+    except Exception:
+        return bgr
 
 
 def _ensure_paddle():
@@ -102,7 +121,13 @@ def _paddle_init_once():
     if _PADDLE_OCR is None:
         lang = os.getenv("PADDLE_OCR_LANG", "en")
         logger.info("Initializing PaddleOCR (lang=%s)...", lang)
-        _PADDLE_OCR = PaddleOCR(lang=lang, use_angle_cls=True)
+        det_limit = int(os.getenv("PADDLE_OCR_DET_LIMIT_SIDE_LEN", "1800"))
+        _PADDLE_OCR = PaddleOCR(
+            lang=lang,
+            use_angle_cls=True,
+            show_log=False,
+            det_limit_side_len=det_limit,
+        )
         logger.info("PaddleOCR initialized (api_webhook).")
 
 
@@ -541,6 +566,12 @@ class SpellcheckRequest(BaseModel):
     text: str
 
 
+# Small in-memory cache to speed up repeated checks (same text pasted again).
+_SPELL_CACHE_MAX = int(os.getenv("SPELLCHECK_CACHE_MAX", "256"))
+_SPELL_CACHE_TTL_SEC = int(os.getenv("SPELLCHECK_CACHE_TTL_SEC", "600"))
+_SPELL_CACHE: "OrderedDict[str, tuple[float, str, int]]" = OrderedDict()
+
+
 @app.post("/api/spellcheck")
 async def api_spellcheck(req: SpellcheckRequest):
     if not req.text or not req.text.strip():
@@ -550,9 +581,30 @@ async def api_spellcheck(req: SpellcheckRequest):
 
     try:
         from bot.services.ai_service import check_spelling_text
-        corrected, fixes = await check_spelling_text(req.text)
+        src = req.text.strip()
+        key = hashlib.sha256(src.encode("utf-8")).hexdigest()
+        now = time.time()
+
+        cached = _SPELL_CACHE.get(key)
+        if cached:
+            ts, corrected, fixes = cached
+            if now - ts <= _SPELL_CACHE_TTL_SEC:
+                _SPELL_CACHE.move_to_end(key)
+                return {"ok": True, "corrected_text": corrected, "fixed": int(fixes or 0)}
+            else:
+                try:
+                    del _SPELL_CACHE[key]
+                except Exception:
+                    pass
+
+        corrected, fixes = await check_spelling_text(src)
         if corrected is None:
             raise HTTPException(status_code=502, detail="Natija bo'sh qaytdi")
+
+        _SPELL_CACHE[key] = (now, corrected, int(fixes or 0))
+        _SPELL_CACHE.move_to_end(key)
+        while len(_SPELL_CACHE) > _SPELL_CACHE_MAX:
+            _SPELL_CACHE.popitem(last=False)
         return {"ok": True, "corrected_text": corrected, "fixed": int(fixes or 0)}
     except HTTPException:
         raise
@@ -690,6 +742,7 @@ async def ocr_paddle(file: UploadFile = File(...)):
     if img is None:
         raise HTTPException(status_code=400, detail="Invalid image")
 
+    img = _resize_for_ocr(img, max_side=int(os.getenv("PADDLE_OCR_MAX_SIDE", "1800")))
     processed = _cv_preprocess(img)
     loop = asyncio.get_running_loop()
     text = await loop.run_in_executor(_OCR_POOL, _paddle_extract_text, processed)
@@ -716,6 +769,7 @@ async def ocr_word_paddle(file: UploadFile = File(...)):
     if img is None:
         raise HTTPException(status_code=400, detail="Invalid image")
 
+    img = _resize_for_ocr(img, max_side=int(os.getenv("PADDLE_OCR_MAX_SIDE", "1800")))
     processed = _cv_preprocess(img)
     loop = asyncio.get_running_loop()
     try:

@@ -31,7 +31,18 @@
 
   <style>
     * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
-    body { background: linear-gradient(135deg, #e0f2fe 0%, #f0f9ff 50%, #bae6fd 100%); color: #1e293b; }
+    :root { --app-vh: 100vh; --kb-offset: 0px; }
+    @supports (height: 100dvh) { :root { --app-vh: 100dvh; } }
+
+    body {
+      background: linear-gradient(135deg, #e0f2fe 0%, #f0f9ff 50%, #bae6fd 100%);
+      color: #1e293b;
+      overflow-x: hidden;
+      min-height: var(--app-vh);
+    }
+
+    /* Mobile touch targets */
+    button, a, [role="button"] { min-height: 44px; min-width: 44px; }
 
     .glass { background: rgba(255,255,255,0.7); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.8); }
 
@@ -68,13 +79,20 @@
     .tpl-card.tpl-active::after { content: '✓'; position: absolute; top: 4px; right: 4px; width: 20px; height: 20px; background: #3b82f6; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; color: white; font-weight: bold; z-index: 10; }
     .tpl-name { position: absolute; bottom: 0; left: 0; right: 0; background: rgba(255,255,255,0.9); text-align: center; font-size: 10px; font-weight: 700; padding: 4px; color: #1e293b; border-top: 1px solid #e2e8f0; z-index: 10; }
 
-    .btn-primary { background: linear-gradient(135deg,#3b82f6 0%,#2563eb 100%); color: white; box-shadow: 0 4px 15px rgba(59,130,246,0.3); transition: all 0.3s; }
-    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(59,130,246,0.4); }
+    .btn-primary { background: linear-gradient(135deg,#3b82f6 0%,#2563eb 100%); color: white; box-shadow: 0 4px 15px rgba(59,130,246,0.3); transition: all 0.2s; }
+    .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 8px 25px rgba(59,130,246,0.4); }
     
     .entry-card { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px; padding: 16px; margin-bottom: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
     
     .cv-canvas-wrapper { position: relative; transform-origin: top center; transition: transform 0.2s ease-out; }
     .cv-canvas { width: 210mm; min-height: 297mm; background: #fff; box-shadow: 0 10px 30px rgba(0,0,0,0.1); margin: 0 auto; overflow: visible; }
+
+    /* Preview: avoid fixed 800px on small screens */
+    #previewPane { height: min(calc(var(--app-vh) - 240px), 720px); }
+
+    @media (max-width: 480px) {
+      #previewPane { padding: 12px !important; }
+    }
 
     /* Lang Level Inputs CSS */
     .lang-level-btn { width: 20px; height: 20px; border-radius: 50%; border: 2px solid #cbd5e1; cursor: pointer; transition: 0.2s; }
@@ -324,7 +342,7 @@
         </button>
       </div>
 
-      <div id="previewPane" class="w-full flex h-[800px] items-start justify-center p-4 sm:p-10 scroller overflow-y-auto rounded-2xl" style="background:linear-gradient(135deg,#0f0f1a 0%,#1a1a2e 100%);">
+      <div id="previewPane" class="w-full flex items-start justify-center p-4 sm:p-10 scroller overflow-y-auto rounded-2xl" style="background:linear-gradient(135deg,#0f0f1a 0%,#1a1a2e 100%);">
         <div class="cv-canvas-wrapper" id="previewScaleWrapper">
           <div class="cv-canvas tpl-minimal" id="cv-box"></div>
         </div>
@@ -727,15 +745,46 @@
     function autoScale() {
       const pane = document.getElementById('previewPane');
       const box = document.getElementById('cv-box');
-      const paneWidth = pane.clientWidth - 40; 
-      const actualWidth = box.offsetWidth; 
+      if (!pane || !box) return;
+      const paneWidth = Math.max(0, pane.clientWidth - 24);
+      const actualWidth = Math.max(1, box.offsetWidth);
       const scale = Math.min(paneWidth / actualWidth, 1);
       
       const wrap = document.getElementById('previewScaleWrapper');
       wrap.style.transform = `scale(${scale})`;
-      wrap.style.height = `${297 * 3.78 * scale}px`; 
+      // Keep container height synced with scaled content (prevents horizontal scroll + jumpiness)
+      const h = Math.max(1, box.offsetHeight);
+      wrap.style.height = `${h * scale}px`;
     }
     window.addEventListener('resize', autoScale);
+
+    // Keyboard-safe viewport vars + focus scroll for mobile
+    (function bindViewportVars(){
+      function apply(){
+        try{
+          const vv = window.visualViewport;
+          const h = vv?.height || window.innerHeight;
+          document.documentElement.style.setProperty('--app-vh', h + 'px');
+          const kb = vv ? Math.max(0, window.innerHeight - vv.height - (vv.offsetTop||0)) : 0;
+          document.documentElement.style.setProperty('--kb-offset', kb + 'px');
+        }catch(_){}
+      }
+      apply();
+      window.visualViewport?.addEventListener?.('resize', apply);
+      window.visualViewport?.addEventListener?.('scroll', apply);
+      window.addEventListener('resize', apply, { passive: true });
+
+      document.addEventListener('focusin', function(e){
+        const t = e.target;
+        if (!t) return;
+        const tag = (t.tagName || '').toLowerCase();
+        if (tag === 'input' || tag === 'textarea' || tag === 'select') {
+          setTimeout(function(){
+            try { t.scrollIntoView({ block: 'center', behavior: 'smooth' }); } catch(_) {}
+          }, 50);
+        }
+      }, true);
+    })();
 
     // --- UPDATE PREVIEW ---
     function triggerUpdate(save = true) {

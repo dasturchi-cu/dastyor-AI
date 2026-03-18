@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>OCR Scanner | Dastyor AI</title>
     <link rel="stylesheet" href="theme.css" />
-    <script src="da-core.js"></script>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="app.js"></script>
     <link
@@ -178,11 +177,15 @@
         const MAX_DIM = 1600;
         const QUALITY = 0.82;
         if (!file || !file.type.startsWith("image/")) return file;
-        // Kichik fayl bo'lsa o'zgartirmaymiz
-        if (file.size <= 900 * 1024) return file;
         try {
             const bmp = await createImageBitmap(file);
-            const scale = Math.min(1, MAX_DIM / Math.max(bmp.width, bmp.height));
+            // Always resize if pixel dimensions are large (even if file size is small).
+            const maxSide = Math.max(bmp.width, bmp.height);
+            if (maxSide <= MAX_DIM) {
+                bmp.close?.();
+                return file;
+            }
+            const scale = MAX_DIM / maxSide;
             const w = Math.max(1, Math.round(bmp.width * scale));
             const h = Math.max(1, Math.round(bmp.height * scale));
             const canvas = document.createElement("canvas");
@@ -224,6 +227,7 @@
 
             const pathCandidates = ["/ocr", "/api/ocr"];
             let res = null;
+            let usedBase = "";
 
             for (const base of baseCandidates) {
                 for (const path of pathCandidates) {
@@ -232,6 +236,7 @@
                         fd.append("file", optimizedFile || selectedFile);
                         const r = await fetch(base + path, { method: "POST", body: fd });
                         res = r;
+                        usedBase = base;
                         // Use first non-404 response immediately
                         if (r.status !== 404) break;
                     } catch (_) {
@@ -258,10 +263,36 @@
             }
 
             const data = await res.json();
-            const text = String(data?.text || "").trim();
-            if (!text) {
-                throw new Error("Rasmdan matn topilmadi");
+
+            async function pollJob(base, jobId) {
+                let delay = 500;
+                const maxDelay = 2500;
+                const deadline = Date.now() + 120000; // 2 minutes
+                while (Date.now() < deadline) {
+                    let jr = null;
+                    try {
+                        const r = await fetch(base + "/api/jobs/" + jobId);
+                        jr = r.ok ? await r.json() : null;
+                    } catch (_) {}
+                    const st = jr?.status;
+                    if (st === "succeeded") return jr?.result || {};
+                    if (st === "failed") throw new Error(jr?.error || "OCR xatosi");
+                    await new Promise((r) => setTimeout(r, delay));
+                    delay = Math.min(maxDelay, Math.round(delay * 1.25));
+                }
+                throw new Error("OCR juda uzoq davom etdi. Keyinroq urinib ko'ring.");
             }
+
+            // New async flow: /api/ocr returns { job_id }, then poll /api/jobs/{job_id}
+            let text = String(data?.text || "").trim();
+            if (!text && data?.job_id) {
+                showStatus("loading", "Navbatda... matn ajratilmoqda");
+                const base = usedBase || location.origin;
+                const result = await pollJob(base, String(data.job_id));
+                text = String(result?.text || "").trim();
+            }
+
+            if (!text) throw new Error("Rasmdan matn topilmadi");
             const textOut = document.getElementById("ocrText");
             textOut.textContent = text;
             textOut.classList.remove("hidden");

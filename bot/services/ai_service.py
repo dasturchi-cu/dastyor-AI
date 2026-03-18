@@ -25,19 +25,39 @@ GEMINI_MODELS = [
     'gemini-1.5-flash-latest',
 ]
 
-async def get_model():
-    """Get async Gemini model instance — tries models in order"""
+_MODEL_CACHE = None
+_MODEL_CACHE_NAME = None
+_MODEL_CACHE_LOCK = asyncio.Lock()
+
+
+async def get_model(preferred_models: list[str] | None = None):
+    """Get Gemini model instance (cached) — tries models in order."""
     if not GOOGLE_API_KEY:
         return None
-    for model_name in GEMINI_MODELS:
-        try:
-            model = genai.GenerativeModel(model_name)
-            logger.info(f"Using Gemini model: {model_name}")
-            return model
-        except Exception as e:
-            logger.warning(f"Model {model_name} unavailable: {e}")
-    logger.error("All Gemini models unavailable!")
-    return None
+
+    global _MODEL_CACHE, _MODEL_CACHE_NAME
+    order = preferred_models or GEMINI_MODELS
+
+    # Fast path: cached model still matches preference list (or default list).
+    if _MODEL_CACHE is not None and _MODEL_CACHE_NAME in order:
+        return _MODEL_CACHE
+
+    async with _MODEL_CACHE_LOCK:
+        if _MODEL_CACHE is not None and _MODEL_CACHE_NAME in order:
+            return _MODEL_CACHE
+
+        for model_name in order:
+            try:
+                model = genai.GenerativeModel(model_name)
+                _MODEL_CACHE = model
+                _MODEL_CACHE_NAME = model_name
+                logger.info(f"Using Gemini model: {model_name}")
+                return model
+            except Exception as e:
+                logger.warning(f"Model {model_name} unavailable: {e}")
+
+        logger.error("All Gemini models unavailable!")
+        return None
 
 
 GEMINI_TIMEOUT = 90  # seconds per API call
@@ -239,7 +259,12 @@ async def check_spelling_text(text: str) -> tuple[str, int]:
     Spell-check plain text (Uzbek/Russian) using Gemini asynchronously.
     Returns: (corrected_text, fixes_count)
     """
-    model = await get_model()
+    # Spellcheck should prioritize speed: try fastest models first.
+    model = await get_model(preferred_models=[
+        'gemini-2.0-flash',
+        'gemini-2.5-flash',
+        'gemini-1.5-flash-latest',
+    ])
     if not model:
         return "AI model mavjud emas.", 0
 
@@ -247,19 +272,76 @@ async def check_spelling_text(text: str) -> tuple[str, int]:
     if not src:
         return "", 0
 
-    prompt = (
-        "Proofread for spelling errors (Uzbek/Russian).\n"
-        "RULES:\n"
-        "1) Return ONLY the corrected text.\n"
-        "2) Fix typos, casing, punctuation spacing.\n"
-        "3) Do NOT change meaning. Do NOT add explanations.\n\n"
-        f"TEXT:\n{src}"
-    )
+    # If there is nothing to fix (no letters), skip AI call.
+    if not any(ch.isalpha() for ch in src):
+        return src, 0
+
+    # Keep a smaller timeout for spellcheck so UX feels snappy.
+    spell_timeout = int((globals().get("GEMINI_SPELLCHECK_TIMEOUT") or 30))
+
+    def _make_prompt(s: str) -> str:
+        return (
+            "Proofread for spelling errors (Uzbek/Russian).\n"
+            "Return ONLY the corrected text.\n"
+            "Fix typos, casing, punctuation spacing.\n"
+            "Do NOT change meaning. No explanations.\n\n"
+            f"{s}"
+        )
+
     try:
-        resp = await _gcall(model.generate_content_async(prompt))
-        corrected = (resp.text or "").strip() if resp else ""
-        if not corrected:
-            return src, 0
+        # For long texts, split into chunks and process concurrently (faster + more reliable).
+        if len(src) > 1600:
+            parts: list[str] = []
+            buf: list[str] = []
+            cur = 0
+            for para in src.splitlines():
+                p = para.rstrip()
+                # preserve blank lines
+                if not p:
+                    if buf:
+                        parts.append("\n".join(buf).strip())
+                        buf, cur = [], 0
+                    parts.append("")
+                    continue
+                if cur + len(p) + 1 > 1200 and buf:
+                    parts.append("\n".join(buf).strip())
+                    buf, cur = [p], len(p)
+                else:
+                    buf.append(p)
+                    cur += len(p) + 1
+            if buf:
+                parts.append("\n".join(buf).strip())
+
+            # Process in small concurrent batches to avoid rate limits.
+            out_parts: list[str] = []
+            batch: list[str] = []
+            for part in parts:
+                if part == "":
+                    out_parts.append("")
+                    continue
+                batch.append(part)
+                if len(batch) >= 3:
+                    resps = await asyncio.gather(*[
+                        _gcall(model.generate_content_async(_make_prompt(x)), timeout=spell_timeout)
+                        for x in batch
+                    ])
+                    for r, orig in zip(resps, batch):
+                        out_parts.append((r.text or "").strip() if r and r.text else orig)
+                    batch = []
+            if batch:
+                resps = await asyncio.gather(*[
+                    _gcall(model.generate_content_async(_make_prompt(x)), timeout=spell_timeout)
+                    for x in batch
+                ])
+                for r, orig in zip(resps, batch):
+                    out_parts.append((r.text or "").strip() if r and r.text else orig)
+
+            corrected = "\n".join(out_parts).strip()
+        else:
+            resp = await _gcall(model.generate_content_async(_make_prompt(src)), timeout=spell_timeout)
+            corrected = (resp.text or "").strip() if resp else ""
+            if not corrected:
+                return src, 0
 
         # Heuristic: count changed segments (not exact, but gives a useful number)
         fixes = 0
