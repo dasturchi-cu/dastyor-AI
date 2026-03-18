@@ -480,7 +480,12 @@ from bot.handlers.admin import (
 
 from bot.handlers.admin_middleware import track_user
 from bot.handlers.premium_callbacks import premium_callback_handler
-from bot.handlers.premium import premium_handler, premium_purchase_callback, handle_premium_screenshot
+from bot.handlers.premium import (
+    premium_handler,
+    premium_purchase_callback,
+    handle_premium_screenshot,
+    premium_payment_review_callback,
+)
 from bot.handlers.help import help_command
 from bot.handlers.chat_member import chat_member_updated
 from bot.handlers.common import balance_handler, help_button_handler
@@ -801,6 +806,10 @@ def setup_application():
     application.add_handler(CallbackQueryHandler(
         premium_purchase_callback,
         pattern="^buy_"
+    ))
+    application.add_handler(CallbackQueryHandler(
+        premium_payment_review_callback,
+        pattern=r"^prempay_(approve|reject)_\d+$"
     ))
     
     # Language callback handler removed — bot uses Uzbek by default

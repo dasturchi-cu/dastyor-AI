@@ -65,7 +65,7 @@ from pydantic import BaseModel
 from fastapi import File, UploadFile, Form, Query
 from fastapi.responses import StreamingResponse, HTMLResponse
 from typing import List, Optional
-from telegram import InputFile
+from telegram import InputFile, InlineKeyboardButton, InlineKeyboardMarkup
 import asyncio, time, io
 import base64
 import re
@@ -1222,15 +1222,31 @@ async def api_premium_receipt(
         except Exception:
             pass
 
+    from bot.services.premium_purchase_db import create_payment_request
+
+    request_id = create_payment_request(
+        user_id=int(uid),
+        plan_type=safe_plan,
+        username=username or "",
+        first_name=first_name or "",
+    )
+
     uname = f"@{username}" if username else "yo'q"
     display_name = first_name or "Noma'lum"
+    plan_title = "Standart" if safe_plan == "standard" else "Premium"
     caption = (
         "💰 <b>Yangi premium to'lov (WebApp)</b>\n\n"
+        f"So'rov ID: <code>{request_id}</code>\n"
         f"Ism: <b>{html_lib.escape(display_name)}</b>\n"
-        f"User: {html_lib.escape(uname)}\n"
-        f"ID: <code>{uid}</code>\n"
-        f"Tarif: <b>{'Standard (7 kun)' if safe_plan == 'standard' else 'Premium (30 kun)'}</b>\n\n"
-        f"Tasdiqlash: <code>/approve {uid}</code>"
+        f"Username: {html_lib.escape(uname)}\n"
+        f"User ID: <code>{uid}</code>\n"
+        f"Tarif: <b>{plan_title}</b>"
+    )
+    review_kb = InlineKeyboardMarkup(
+        [[
+            InlineKeyboardButton("✅ Tasdiqlash", callback_data=f"prempay_approve_{request_id}"),
+            InlineKeyboardButton("❌ Rad etish", callback_data=f"prempay_reject_{request_id}"),
+        ]]
     )
 
     try:
@@ -1244,6 +1260,7 @@ async def api_premium_receipt(
                 photo=InputFile(buf, filename=filename),
                 caption=caption,
                 parse_mode="HTML",
+                reply_markup=review_kb,
             )
         else:
             await application.bot.send_document(
@@ -1251,6 +1268,7 @@ async def api_premium_receipt(
                 document=InputFile(buf, filename=filename),
                 caption=caption,
                 parse_mode="HTML",
+                reply_markup=review_kb,
             )
 
         # User confirmation in private chat.

@@ -212,48 +212,82 @@
       font-size: 12px; font-weight: 600; color: var(--muted2);
     }
 
-    /* ── CHECKOUT ── */
-    .checkout {
-      margin-top: 14px;
+    .hidden { display: none !important; }
+
+    .payment-page {
       background: var(--card);
       border: 1px solid var(--border2);
-      border-radius: 18px;
-      padding: 14px;
+      border-radius: 22px;
+      padding: 16px;
+      box-shadow: 0 16px 50px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.03);
     }
-    .checkout h3 {
-      font-family: 'Syne', sans-serif;
-      font-size: 16px;
-      margin-bottom: 10px;
-    }
-    .checkout .row {
-      display: flex;
-      justify-content: space-between;
-      gap: 10px;
-      margin: 8px 0;
+    .pay-back {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--b4);
+      text-decoration: none;
       font-size: 13px;
+      margin-bottom: 12px;
+      cursor: pointer;
+    }
+    .pay-title {
+      font-family: 'Syne', sans-serif;
+      font-size: 20px;
+      margin-bottom: 4px;
+    }
+    .pay-sub {
       color: var(--muted2);
+      font-size: 12px;
+      margin-bottom: 14px;
     }
-    .checkout code {
-      color: #fff;
-      font-weight: 700;
-      background: rgba(59,130,246,.12);
-      border: 1px solid rgba(59,130,246,.22);
-      padding: 3px 8px;
-      border-radius: 8px;
-      user-select: all;
-    }
-    .file-input {
-      width: 100%;
-      margin-top: 10px;
+    .pay-card {
       background: var(--card2);
       border: 1px solid var(--border2);
+      border-radius: 16px;
+      padding: 12px;
+      margin-bottom: 12px;
+    }
+    .pay-row { margin-bottom: 10px; }
+    .pay-row:last-child { margin-bottom: 0; }
+    .pay-label-2 { color: var(--muted2); font-size: 12px; margin-bottom: 3px; }
+    .pay-value {
+      font-size: 17px;
+      font-weight: 800;
+      letter-spacing: .3px;
+      word-break: break-word;
+    }
+    .copy-btn {
+      width: 100%;
+      margin-top: 8px;
+      min-height: 44px;
+      line-height: 44px;
       border-radius: 12px;
+      border: 1px solid rgba(59,130,246,.22);
+      background: rgba(59,130,246,.1);
+      color: var(--b4);
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .upload-box {
+      border: 1.5px dashed var(--border2);
+      border-radius: 14px;
+      padding: 12px;
+      margin-top: 12px;
+      background: rgba(59,130,246,.05);
+    }
+    .upload-title { font-size: 13px; color: var(--text); margin-bottom: 8px; }
+    .upload-input {
+      width: 100%;
+      background: var(--card2);
+      border: 1px solid var(--border2);
+      border-radius: 10px;
       color: var(--text);
-      padding: 10px;
+      padding: 8px;
     }
     .status {
       min-height: 18px;
-      margin-top: 10px;
+      margin-top: 9px;
       font-size: 12px;
       color: var(--muted2);
     }
@@ -304,6 +338,7 @@
     </div>
   </div>
 
+  <section id="plansSection">
   <!-- ── FREE ── -->
   <div class="plan">
     <div class="plan-head">
@@ -390,7 +425,7 @@
       </div>
     </div>
     <div class="plan-cta">
-      <button type="button" class="cta-btn cta-primary" onclick="showCheckout('standard')">Sotib olish ✦</button>
+      <button type="button" class="cta-btn cta-primary" onclick="openPaymentPage('standard')">Standart sotib olish ✦</button>
     </div>
   </div>
 
@@ -435,19 +470,40 @@
       </div>
     </div>
     <div class="plan-cta">
-      <button type="button" class="cta-btn cta-gold" onclick="showCheckout('premium')">Hozir olish ✦</button>
+      <button type="button" class="cta-btn cta-gold" onclick="openPaymentPage('premium')">Premium sotib olish ✦</button>
     </div>
   </div>
+  </section>
 
-  <section class="checkout">
-    <h3>💳 To'lov va chek yuborish</h3>
-    <div class="row"><span>Tanlangan tarif:</span><strong id="planText">Premium (30 kun)</strong></div>
-    <div class="row"><span>Karta raqami:</span><code id="cardNo">9860 1201 7225 8424</code></div>
-    <div class="row"><span>Karta egasi:</span><strong>DILNOZA MOMINOVA</strong></div>
-    <button type="button" class="cta-btn cta-primary" style="margin-top:8px;height:44px;line-height:44px;" onclick="copyCard()">Kartani nusxalash</button>
-    <input id="receiptFile" class="file-input" type="file" accept="image/*,.pdf,.doc,.docx"/>
-    <button type="button" class="cta-btn cta-gold" style="margin-top:10px;height:46px;line-height:46px;" onclick="submitReceipt()">Chekni adminga yuborish</button>
-    <div id="receiptStatus" class="status"></div>
+  <section id="paymentSection" class="payment-page hidden">
+    <a class="pay-back" onclick="backToPlans()">
+      <span>←</span>
+      <span>Tariflarga qaytish</span>
+    </a>
+    <div class="pay-title" id="payPlanTitle">Premium to'lovi</div>
+    <div class="pay-sub">To'lovni amalga oshiring va skrenshotni shu yerning o'zida yuboring.</div>
+
+    <div class="pay-card">
+      <div class="pay-row">
+        <div class="pay-label-2">💳 Karta raqami</div>
+        <div class="pay-value" id="cardNo">9860 1201 7225 8424</div>
+      </div>
+      <div class="pay-row">
+        <div class="pay-label-2">👤 Karta egasi</div>
+        <div class="pay-value">DILNOZA MOMINOVA</div>
+      </div>
+    </div>
+
+    <button type="button" class="copy-btn" onclick="copyCard()">Kartani nusxa olish</button>
+
+    <div class="upload-box">
+      <div class="upload-title">To'lov skrenshotini yuklang</div>
+      <input id="receiptInput" class="upload-input" type="file" accept="image/*"/>
+      <button type="button" class="cta-btn cta-gold" style="margin-top:10px;" onclick="submitScreenshot()">
+        Skrenshotni adminga yuborish
+      </button>
+      <div id="uploadStatus" class="status"></div>
+    </div>
   </section>
 
 </main>
@@ -462,44 +518,57 @@
 
   let selectedPlan = "premium";
 
-  function showCheckout(plan) {
-    selectedPlan = (plan === "standard") ? "standard" : "premium";
-    const planText = document.getElementById("planText");
-    if (planText) {
-      planText.textContent = selectedPlan === "standard" ? "Standard (7 kun)" : "Premium (30 kun)";
+  function openPaymentPage(plan) {
+    selectedPlan = plan === "standard" ? "standard" : "premium";
+    const titleEl = document.getElementById("payPlanTitle");
+    if (titleEl) {
+      titleEl.textContent = selectedPlan === "standard"
+        ? "Standart to'lovi (7 kun)"
+        : "Premium to'lovi (30 kun)";
     }
-    const checkout = document.querySelector(".checkout");
-    if (checkout) checkout.scrollIntoView({ behavior: "smooth", block: "start" });
+    document.getElementById("plansSection")?.classList.add("hidden");
+    document.getElementById("paymentSection")?.classList.remove("hidden");
+    document.getElementById("uploadStatus").textContent = "";
     window.Telegram?.WebApp?.HapticFeedback?.impactOccurred?.("light");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function backToPlans() {
+    document.getElementById("paymentSection")?.classList.add("hidden");
+    document.getElementById("plansSection")?.classList.remove("hidden");
   }
 
   async function copyCard() {
-    const card = document.getElementById("cardNo")?.textContent?.trim() || "";
+    const val = document.getElementById("cardNo")?.textContent?.trim() || "";
+    const st = document.getElementById("uploadStatus");
     try {
-      await navigator.clipboard.writeText(card);
-      const st = document.getElementById("receiptStatus");
-      if (st) st.textContent = "✅ Karta raqami nusxalandi.";
+      await navigator.clipboard.writeText(val);
+      if (st) st.textContent = "✅ Karta raqami nusxa olindi.";
       window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred?.("success");
     } catch (_) {
-      const st = document.getElementById("receiptStatus");
-      if (st) st.textContent = "❌ Nusxalab bo'lmadi. Qo'lda ko'chiring.";
+      if (st) st.textContent = "❌ Nusxa olishda xato. Qo'lda ko'chiring.";
     }
   }
 
-  async function submitReceipt() {
-    const tg = window.Telegram?.WebApp;
-    const statusEl = document.getElementById("receiptStatus");
-    const fileInput = document.getElementById("receiptFile");
-    const file = fileInput?.files?.[0];
+  async function submitScreenshot() {
+    const input = document.getElementById("receiptInput");
+    const st = document.getElementById("uploadStatus");
+    const file = input?.files?.[0];
     if (!file) {
-      if (statusEl) statusEl.textContent = "❌ Avval chek faylini tanlang.";
+      if (st) st.textContent = "❌ Avval rasm yuklang.";
       return;
     }
-    if (statusEl) statusEl.textContent = "⏳ Chek yuborilmoqda...";
+    if (!String(file.type || "").startsWith("image/")) {
+      if (st) st.textContent = "❌ Faqat rasm yuklash mumkin.";
+      return;
+    }
+    if (st) st.textContent = "⏳ Adminga yuborilmoqda...";
+
     try {
       const fd = new FormData();
       fd.append("file", file);
       fd.append("plan", selectedPlan);
+
       const tid = window.DastyorAI?.getTelegramId?.();
       const token = window.DastyorAI?.getToken?.();
       if (tid) fd.append("telegram_id", String(tid));
@@ -511,25 +580,12 @@
       if (!resp.ok || !data.ok) {
         throw new Error(data.detail || data.error || ("HTTP " + resp.status));
       }
-      if (statusEl) statusEl.textContent = "✅ Chek adminga yuborildi. Tez orada tasdiqlanadi.";
-      tg?.HapticFeedback?.notificationOccurred?.("success");
+      if (st) st.textContent = "✅ Yuborildi. Admin tasdiqlashini kuting.";
+      window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred?.("success");
+      if (input) input.value = "";
     } catch (e) {
-      if (statusEl) statusEl.textContent = "❌ Yuborishda xatolik: " + (e?.message || "noma'lum");
-      tg?.HapticFeedback?.notificationOccurred?.("error");
-    }
-  }
-
-  function buyPremium(plan) {
-    const tg = window.Telegram?.WebApp;
-    try {
-      const payload = { action: "premium_buy", plan: String(plan || "premium") };
-      tg?.sendData?.(JSON.stringify(payload));
-      tg?.HapticFeedback?.notificationOccurred?.("success");
-      // Close webapp to return user to bot chat
-      setTimeout(() => { try { tg?.close?.(); } catch (_) {} }, 150);
-    } catch (_) {
-      // fallback: open bot link
-      try { tg?.openTelegramLink?.("https://t.me/DastyorAiBot"); } catch (_) {}
+      if (st) st.textContent = "❌ Xatolik: " + (e?.message || "noma'lum");
+      window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred?.("error");
     }
   }
 </script>

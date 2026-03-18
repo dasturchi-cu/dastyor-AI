@@ -1,12 +1,23 @@
 import os
+import logging
+from datetime import datetime, timedelta
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
 from bot.keyboards.reply_keyboards import get_back_button
-from bot.services.settings_service import get_premium_status, get_premium_expiry
+from bot.services.settings_service import get_premium_status, get_premium_expiry, add_premium
+from bot.handlers.admin import is_admin
+import bot.services.user_service as crm
+from bot.services.premium_purchase_db import (
+    create_payment_request,
+    get_payment_request,
+    set_payment_request_status,
+    save_subscription,
+)
 
 CARD_NUMBER = "9860 1201 7225 8424"
 CARD_OWNER = "DILNOZA MOMINOVA"
 PREMIUM_ADMIN_GROUP_ID = int(os.getenv("PREMIUM_ADMIN_GROUP_ID", "-1003457224552"))
+logger = logging.getLogger(__name__)
 
 PLAN_INFO = {
     "standard": {"title": "Standard", "days": 7},
@@ -105,13 +116,26 @@ async def handle_premium_screenshot(update: Update, context: ContextTypes.DEFAUL
     plan = str(context.user_data.get("premium_plan", "premium")).lower()
     plan_data = PLAN_INFO.get(plan, PLAN_INFO["premium"])
     user = update.effective_user
+    request_id = create_payment_request(
+        user_id=int(user.id),
+        plan_type=plan,
+        username=user.username or "",
+        first_name=user.first_name or "",
+    )
     uname = f"@{user.username}" if user.username else "yo'q"
+    review_kb = InlineKeyboardMarkup(
+        [[
+            InlineKeyboardButton("✅ Tasdiqlash", callback_data=f"prempay_approve_{request_id}"),
+            InlineKeyboardButton("❌ Rad etish", callback_data=f"prempay_reject_{request_id}"),
+        ]]
+    )
     caption = (
         "💰 <b>Yangi premium to‘lov</b>\n\n"
-        f"User: {uname}\n"
-        f"ID: <code>{user.id}</code>\n"
-        f"Tarif: <b>{plan_data['title']}</b>\n\n"
-        f"Tasdiqlash: <code>/approve {user.id}</code>"
+        f"So'rov ID: <code>{request_id}</code>\n"
+        f"Username: {uname}\n"
+        f"User ID: <code>{user.id}</code>\n"
+        f"Tarif: <b>{plan_data['title']}</b>\n"
+        f"Holat: <b>{plan_data['title']} uchun to'lov qildi</b>"
     )
 
     try:
@@ -121,6 +145,7 @@ async def handle_premium_screenshot(update: Update, context: ContextTypes.DEFAUL
                 photo=update.message.photo[-1].file_id,
                 caption=caption,
                 parse_mode="HTML",
+                reply_markup=review_kb,
             )
         else:
             await context.bot.send_document(
@@ -128,6 +153,7 @@ async def handle_premium_screenshot(update: Update, context: ContextTypes.DEFAUL
                 document=update.message.document.file_id,
                 caption=caption,
                 parse_mode="HTML",
+                reply_markup=review_kb,
             )
     except Exception:
         await update.message.reply_text("❌ Fayl yuborishda xatolik yuz berdi")
@@ -138,3 +164,109 @@ async def handle_premium_screenshot(update: Update, context: ContextTypes.DEFAUL
         "✅ Skrenshot qabul qilindi. Admin tasdiqlaganidan keyin premium faollashadi."
     )
     return True
+
+
+async def premium_payment_review_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    Admin group callbacks:
+    - prempay_approve_<request_id>
+    - prempay_reject_<request_id>
+    """
+    query = update.callback_query
+    if not query:
+        return
+
+    data = query.data or ""
+    if not data.startswith("prempay_"):
+        return
+
+    if not await is_admin(query.from_user.id):
+        await query.answer("⛔ Sizda ruxsat yo'q", show_alert=True)
+        return
+
+    parts = data.split("_")
+    if len(parts) != 3 or not parts[2].isdigit():
+        await query.answer("Noto'g'ri callback", show_alert=True)
+        return
+
+    action = parts[1]
+    request_id = int(parts[2])
+    req = get_payment_request(request_id)
+    if not req:
+        await query.answer("So'rov topilmadi", show_alert=True)
+        return
+    if req.get("status") != "pending":
+        await query.answer("Bu so'rov allaqachon ko'rib chiqilgan", show_alert=True)
+        return
+
+    uid = int(req["user_id"])
+    plan = (req.get("plan_type") or "premium").lower()
+    plan_title = "Standart" if plan == "standard" else "Premium"
+    days = 7 if plan == "standard" else 30
+
+    if action == "approve":
+        ok = set_payment_request_status(request_id, "approved", reviewer_id=int(query.from_user.id))
+        if not ok:
+            await query.answer("So'rov holatini yangilab bo'lmadi", show_alert=True)
+            return
+
+        # Activate existing premium system (for runtime checks)
+        profile = crm.get_user_profile(uid) or {}
+        name = profile.get("first_name") or req.get("first_name") or "User"
+        username = profile.get("username") or req.get("username") or ""
+        end_date = add_premium(uid, days=days, name=name, username=username)
+        crm.log_premium_transaction(uid, days, str(query.from_user.id))
+
+        # Persist subscription in DB table (step 8 requirement)
+        start_dt = datetime.utcnow()
+        expire_dt = start_dt + timedelta(days=days)
+        save_subscription(
+            user_id=uid,
+            plan_type=plan,
+            start_date=start_dt.isoformat(),
+            expire_date=expire_dt.isoformat(),
+        )
+
+        try:
+            await context.bot.send_message(
+                chat_id=uid,
+                text=(
+                    "✅ Premium tarifingiz faollashtirildi\n\n"
+                    f"📦 Tarif: {plan_title}\n"
+                    f"📅 Tugash sanasi: {end_date}"
+                ),
+            )
+        except Exception as e:
+            logger.warning(f"Failed to notify user {uid} on premium approve: {e}")
+
+        await query.answer("Tasdiqlandi", show_alert=False)
+        try:
+            new_caption = (query.message.caption or "") + "\n\n✅ Tasdiqlandi"
+            await query.message.edit_caption(caption=new_caption, parse_mode="HTML", reply_markup=None)
+        except Exception:
+            try:
+                await query.message.edit_reply_markup(reply_markup=None)
+            except Exception:
+                pass
+        return
+
+    if action == "reject":
+        ok = set_payment_request_status(request_id, "rejected", reviewer_id=int(query.from_user.id))
+        if not ok:
+            await query.answer("So'rov holatini yangilab bo'lmadi", show_alert=True)
+            return
+        try:
+            await context.bot.send_message(chat_id=uid, text="❌ To'lov tasdiqlanmadi")
+        except Exception as e:
+            logger.warning(f"Failed to notify user {uid} on premium reject: {e}")
+
+        await query.answer("Rad etildi", show_alert=False)
+        try:
+            new_caption = (query.message.caption or "") + "\n\n❌ Rad etildi"
+            await query.message.edit_caption(caption=new_caption, parse_mode="HTML", reply_markup=None)
+        except Exception:
+            try:
+                await query.message.edit_reply_markup(reply_markup=None)
+            except Exception:
+                pass
+        return
