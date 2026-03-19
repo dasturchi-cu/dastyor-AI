@@ -1645,18 +1645,19 @@ async def api_export_cv(req: ExportCVRequest):
     safe = safe_filename(req.name or "CV")
     bot_suffix = "_@DastyorAiBot"
 
-    # Immediate progress message so the user isn't confused during heavy PDF/Word rendering.
+    # Immediate progress message so the user isn't confused during heavy rendering.
+    # We'll delete it after Telegram delivery.
+    progress_msg_id: int | None = None
     if uid_str:
         try:
             progress = (
                 f"⏳ CV {fmt.upper()} tayyorlanmoqda... (taxminan 10-15 soniya)\n"
                 f"Chatda faylni kuting."
             )
-            asyncio.create_task(
-                application.bot.send_message(chat_id=int(uid_str), text=progress)
-            )
+            progress_msg = await application.bot.send_message(chat_id=int(uid_str), text=progress)
+            progress_msg_id = progress_msg.message_id
         except Exception:
-            pass
+            progress_msg_id = None
 
     if fmt == "word":
         # ── Word export — real .docx (python-docx, mobile-compatible) ──
@@ -1740,6 +1741,12 @@ async def api_export_cv(req: ExportCVRequest):
                     )
             except Exception as tg_err:
                 logger.warning(f"CV export Telegram send failed: {tg_err}")
+            finally:
+                if progress_msg_id is not None:
+                    try:
+                        await application.bot.delete_message(chat_id=int(uid_str), message_id=progress_msg_id)
+                    except Exception:
+                        pass
 
         asyncio.create_task(_send())
 
@@ -1759,7 +1766,7 @@ async def api_export_cv(req: ExportCVRequest):
 class ExportObyektivkaRequest(BaseModel):
     telegram_id    : Optional[int] = None
     token          : Optional[str] = None
-    # format field kept for compatibility but ignored; always DOCX
+    # "word" | "pdf"
     format         : str           = "word"
     lang           : str           = "uz_lat"
     fullname       : str = ""
@@ -1785,100 +1792,136 @@ class ExportObyektivkaRequest(BaseModel):
     # optional current job line under full name
     current_job    : Optional[str] = None
     current_job_year: Optional[str] = None
+    send_only      : Optional[bool] = False
 
 @app.post("/api/export_obyektivka")
 async def api_export_obyektivka(req: ExportObyektivkaRequest):
     """
-    Server-side Obyektivka export — WORD (DOCX) only.
-    PDF export/conversion has been removed.
+    Server-side Obyektivka export — WORD or PDF.
     """
     ts  = int(time.time())
     os.makedirs("temp", exist_ok=True)
     uid_str = _resolve_uid(str(req.telegram_id) if req.telegram_id else None, req.token)
+    # Obyektivka: Word (DOCX) only.
+    # UI ham faqat Word yuboradi, va konvertatsiya (PDF) qayta ishlamay qolmasligi uchun
+    # formatni majburan "word" qilamiz.
+    fmt = "word"
     data = req.dict(exclude={"telegram_id", "token", "format"})
     safe = safe_filename(req.fullname or "Obyektivka")
     bot_suffix = "_@DastyorAiBot"
 
+    # Immediate progress message so the user isn't confused during heavy rendering.
+    progress_msg_id: int | None = None
     if uid_str:
         try:
-            asyncio.create_task(
-                application.bot.send_message(
-                    chat_id=int(uid_str),
-                    text="⏳ Obyektivka tayyorlanmoqda... (taxminan 10-15 soniya)\nChatda faylni kuting.",
-                )
+            progress_msg = await application.bot.send_message(
+                chat_id=int(uid_str),
+                text="⏳ Obyektivka tayyorlanmoqda... (taxminan 10-15 soniya)\nChatda faylni kuting.",
             )
+            progress_msg_id = progress_msg.message_id
         except Exception:
-            pass
+            progress_msg_id = None
 
-    # Optional photo_data (data URL) -> temp image for DOCX insertion.
-    photo_path = None
-    try:
-        if req.photo_data and isinstance(req.photo_data, str) and req.photo_data.startswith("data:image/"):
-            header, b64 = req.photo_data.split(",", 1)
-            mime = header.split(";")[0].split(":")[1].lower()
-            ext = {
-                "image/png": "png",
-                "image/jpeg": "jpg",
-                "image/jpg": "jpg",
-                "image/webp": "webp",
-            }.get(mime, "png")
-            raw = base64.b64decode(b64)
-            photo_path = os.path.join("temp", f"oby_export_photo_{ts}.{ext}")
-            with open(photo_path, "wb") as f:
-                f.write(raw)
-    except Exception as e:
-        logger.warning(f"/api/export_obyektivka photo decode failed: {e}")
+    filename   = ""
+    media_type = ""
+    file_bytes = b""
+
+    if fmt == "pdf":
+        from bot.services.render_service import generate_obyektivka_pdf
+        pdf_bytes = await generate_obyektivka_pdf(data, base_url=SITE_BASE_URL)
+        if not pdf_bytes:
+            raise HTTPException(status_code=500, detail="PDF yaratishda xato")
+        filename = f"DASTYOR_Obyektivka_{safe}_{ts}{bot_suffix}.pdf"
+        media_type = "application/pdf"
+        file_bytes = pdf_bytes
+    else:
+        # Optional photo_data (data URL) -> temp image for DOCX insertion.
         photo_path = None
-
-    # Har doim DOCX yaratamiz (rassmiy minimal layout bilan)
-    from bot.services.doc_generator import generate_obyektivka_docx
-
-    loop = asyncio.get_running_loop()
-    docx_path = await loop.run_in_executor(None, generate_obyektivka_docx, data, photo_path)
-    if not docx_path or not os.path.exists(docx_path):
-        raise HTTPException(status_code=500, detail="Word fayl yaratishda xato")
-
-    filename   = f"DASTYOR_Obyektivka_{safe}_{ts}{bot_suffix}.docx"
-    media_type = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-    with open(docx_path, "rb") as fh:
-        file_bytes = fh.read()
-    try:
-        os.remove(docx_path)
-    except Exception:
-        pass
-    if photo_path:
         try:
-            os.remove(photo_path)
+            if req.photo_data and isinstance(req.photo_data, str) and req.photo_data.startswith("data:image/"):
+                header, b64 = req.photo_data.split(",", 1)
+                mime = header.split(";")[0].split(":")[1].lower()
+                ext = {
+                    "image/png": "png",
+                    "image/jpeg": "jpg",
+                    "image/jpg": "jpg",
+                    "image/webp": "webp",
+                }.get(mime, "png")
+                raw = base64.b64decode(b64)
+                photo_path = os.path.join("temp", f"oby_export_photo_{ts}.{ext}")
+                with open(photo_path, "wb") as f:
+                    f.write(raw)
+        except Exception as e:
+            logger.warning(f"/api/export_obyektivka photo decode failed: {e}")
+            photo_path = None
+
+        from bot.services.doc_generator import generate_obyektivka_docx
+        loop = asyncio.get_running_loop()
+        docx_path = await loop.run_in_executor(None, generate_obyektivka_docx, data, photo_path)
+        if not docx_path or not os.path.exists(docx_path):
+            raise HTTPException(status_code=500, detail="Word fayl yaratishda xato")
+
+        filename   = f"DASTYOR_Obyektivka_{safe}_{ts}{bot_suffix}.docx"
+        media_type = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        with open(docx_path, "rb") as fh:
+            file_bytes = fh.read()
+        try:
+            os.remove(docx_path)
         except Exception:
             pass
+        if photo_path:
+            try:
+                os.remove(photo_path)
+            except Exception:
+                pass
 
     if uid_str:
         from bot.services.user_service import increment_file_count
-        increment_file_count(int(uid_str), "Obyektivka Export WORD")
+        increment_file_count(int(uid_str), "Obyektivka Export PDF" if fmt == "pdf" else "Obyektivka Export WORD")
 
         async def _send_oby():
             try:
                 buf = io.BytesIO(file_bytes)
                 buf.name = filename
-                ok = await send_docx_with_confirmation(
-                    application.bot,
-                    int(uid_str),
-                    buf,
-                    filename=filename,
-                    caption=(
-                        f"✅ <b>Obyektivka tayyor!</b>\n"
-                        f"👤 <b>{req.fullname}</b>\n"
-                        f"📎 <code>{filename}</code>"
-                    ),
-                    parse_mode="HTML",
-                )
-                if ok:
-                    await application.bot.send_message(
-                        chat_id=int(uid_str),
-                        text="✅ Obyektivka Word fayli botga yuborildi",
+                chat_id = int(uid_str)
+                if filename.lower().endswith(".pdf"):
+                    await application.bot.send_document(
+                        chat_id=chat_id,
+                        document=InputFile(buf, filename=filename),
+                        caption=(
+                            f"✅ <b>Obyektivka tayyor!</b>\n"
+                            f"👤 <b>{req.fullname}</b>\n"
+                            f"📎 <code>{filename}</code>"
+                        ),
+                        parse_mode="HTML",
                     )
+                    await application.bot.send_message(chat_id=chat_id, text="✅ Obyektivka PDF fayli botga yuborildi")
+                else:
+                    ok = await send_docx_with_confirmation(
+                        application.bot,
+                        chat_id,
+                        buf,
+                        filename=filename,
+                        caption=(
+                            f"✅ <b>Obyektivka tayyor!</b>\n"
+                            f"👤 <b>{req.fullname}</b>\n"
+                            f"📎 <code>{filename}</code>"
+                        ),
+                        parse_mode="HTML",
+                    )
+                    if ok:
+                        await application.bot.send_message(
+                            chat_id=chat_id,
+                            text="✅ Obyektivka Word fayli botga yuborildi",
+                        )
             except Exception as e:
                 logger.warning(f"Obyektivka export Telegram send failed: {e}")
+            finally:
+                if progress_msg_id is not None:
+                    try:
+                        await application.bot.delete_message(chat_id=int(uid_str), message_id=progress_msg_id)
+                    except Exception:
+                        pass
 
         asyncio.create_task(_send_oby())
 

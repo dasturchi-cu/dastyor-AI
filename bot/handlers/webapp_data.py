@@ -30,6 +30,8 @@ async def web_app_data_handler(update: Update, context: ContextTypes.DEFAULT_TYP
         chat_id = update.effective_chat.id
         
         if action == "generate_obyektivka":
+            # Ob'yektivka bu bo'limda faqat Word (DOCX) ko'rinishida yuboriladi.
+            fmt = "word"
             msg = await update.message.reply_text(f"⏳ Obyektivka ({fmt.upper()}) tayyorlanmoqda...")
             out_dir = _generated_dir()
             
@@ -196,7 +198,10 @@ async def web_app_data_handler(update: Update, context: ContextTypes.DEFAULT_TYP
             pdf_file = await asyncio.to_thread(convert_to_pdf_safe, temp_file, os.path.dirname(temp_file))
             if pdf_file and os.path.exists(pdf_file):
                 # Ensure stable filename requested by spec
-                cv_pdf = os.path.join(os.path.dirname(temp_file), "cv_result.pdf")
+                stable_name = "cv_result.pdf"
+                if action == "generate_obyektivka":
+                    stable_name = "objective_result.pdf"
+                cv_pdf = os.path.join(os.path.dirname(temp_file), stable_name)
                 try:
                     if pdf_file != cv_pdf:
                         try:
@@ -214,21 +219,33 @@ async def web_app_data_handler(update: Update, context: ContextTypes.DEFAULT_TYP
 
         # STEP 1/2/5: ensure exists, send properly, handle errors
         if action == "generate_obyektivka":
-            objective_file = os.path.join(_generated_dir(), "objective.docx")
-            if not os.path.isfile(objective_file):
-                # fallback to whatever was generated if rename failed for any reason
-                objective_file = final_file
-            if not os.path.isfile(objective_file):
-                await context.bot.send_message(chat_id=chat_id, text="❌ Obyektivka Word fayli yaratilmadi")
+            target_file = final_file
+            if not target_file.lower().endswith(".pdf"):
+                # Word expected
+                objective_docx = os.path.join(_generated_dir(), "objective.docx")
+                if os.path.isfile(objective_docx):
+                    target_file = objective_docx
+
+            if not os.path.isfile(target_file):
+                await context.bot.send_message(
+                    chat_id=chat_id,
+                    text="❌ Obyektivka fayli yaratilmadi",
+                )
                 return
             try:
-                with open(objective_file, "rb") as f:
+                with open(target_file, "rb") as f:
                     await context.bot.send_document(chat_id=chat_id, document=f, caption="📄 Sizning faylingiz tayyor")
-                await context.bot.send_message(chat_id=chat_id, text="✅ Obyektivka Word fayli botga yuborildi")
+                if target_file.lower().endswith(".pdf"):
+                    await context.bot.send_message(chat_id=chat_id, text="✅ Obyektivka PDF fayli botga yuborildi")
+                else:
+                    await context.bot.send_message(chat_id=chat_id, text="✅ Obyektivka Word fayli botga yuborildi")
                 ok = True
             except Exception as e:
-                logger.error("Obyektivka Word send failed: %s", e, exc_info=True)
-                await context.bot.send_message(chat_id=chat_id, text=f"❌ Obyektivka Word faylini yuborishda xatolik: {str(e)[:200]}")
+                logger.error("Obyektivka send failed: %s", e, exc_info=True)
+                await context.bot.send_message(
+                    chat_id=chat_id,
+                    text=f"❌ Obyektivka faylini yuborishda xatolik: {str(e)[:200]}",
+                )
                 ok = False
         elif action == "generate_cv":
             target_file = final_file
