@@ -76,6 +76,27 @@ async def log_webapp_gets(request: Request, call_next):
         return response
     return await call_next(request)
 
+
+@app.middleware("http")
+async def webapp_404_fallback_to_index(request: Request, call_next):
+    """
+    If Telegram WebApp opens a URL that doesn't exactly match the static file,
+    user sees 'Not Found'. For HTML-like 404s under `/webapp`, serve index.html.
+    """
+    response = await call_next(request)
+    if (
+        request.method == "GET"
+        and response.status_code == 404
+        and request.url.path.startswith("/webapp")
+    ):
+        accept = request.headers.get("accept", "")
+        if "text/html" in accept or request.url.path.endswith(".html") or request.url.path.endswith("/"):
+            try:
+                return FileResponse("webapp/index.html")
+            except Exception:
+                return response
+    return response
+
 @app.get("/webapp")
 async def webapp_root():
     # Some Telegram WebApp implementations open the directory path
@@ -101,7 +122,7 @@ async def health():
 
 from pydantic import BaseModel
 from fastapi import File, UploadFile, Form, Query
-from fastapi.responses import StreamingResponse, HTMLResponse, JSONResponse
+from fastapi.responses import StreamingResponse, HTMLResponse, JSONResponse, FileResponse
 from typing import List, Optional
 from telegram import InputFile, InlineKeyboardButton, InlineKeyboardMarkup
 import asyncio, time, io
