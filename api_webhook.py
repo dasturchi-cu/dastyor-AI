@@ -7,6 +7,7 @@ from contextlib import asynccontextmanager
 from fastapi.staticfiles import StaticFiles
 from main import setup_application
 from starlette.requests import Request
+from fastapi.responses import FileResponse
 
 # Setup Logging
 logging.basicConfig(
@@ -31,7 +32,7 @@ async def lifespan(app: FastAPI):
     await application.start()
     
     # Set webhook automatically on startup (configurable via .env)
-    webhook_url = os.getenv("WEBHOOK_URL", "https://dastyor-ai.onrender.com/webhook").strip()
+    webhook_url = os.getenv("WEBHOOK_URL", "https://dastyor-ai-production.up.railway.app/webhook").strip()
     logger.info(f"Setting webhook to: {webhook_url}")
     await application.bot.set_webhook(url=webhook_url, drop_pending_updates=True)
     
