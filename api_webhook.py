@@ -56,7 +56,9 @@ app.add_middleware(
 )
 
 # Serve Web App Files
-app.mount("/webapp", StaticFiles(directory="webapp"), name="webapp")
+# html=True makes StaticFiles serve index.html for directory-like paths
+# (helps with Telegram WebApp sometimes opening /webapp instead of /webapp/index.html).
+app.mount("/webapp", StaticFiles(directory="webapp", html=True), name="webapp")
 
 @app.middleware("http")
 async def log_webapp_gets(request: Request, call_next):
