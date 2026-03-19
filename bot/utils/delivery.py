@@ -1,5 +1,8 @@
 import logging
 import os
+from typing import Any
+
+from telegram import InputFile
 
 logger = logging.getLogger(__name__)
 
@@ -7,7 +10,7 @@ logger = logging.getLogger(__name__)
 async def send_docx_with_confirmation(
     bot,
     chat_id: int,
-    document,
+    document: Any,
     *,
     filename: str,
     caption: str | None = None,
@@ -20,9 +23,24 @@ async def send_docx_with_confirmation(
     If sending fails, attempts to send an explicit failure message.
     """
     try:
+        # BytesIO / file-like pointer safety.
+        try:
+            if hasattr(document, "seek"):
+                document.seek(0)
+        except Exception:
+            pass
+
+        # If it's BytesIO, Telegram upload sometimes behaves better with raw bytes.
+        file_for_upload = document
+        try:
+            if hasattr(document, "getvalue"):
+                file_for_upload = document.getvalue()
+        except Exception:
+            pass
+
         await bot.send_document(
             chat_id=chat_id,
-            document=InputFile(document, filename=filename),
+            document=InputFile(file_for_upload, filename=filename),
             caption=caption,
             parse_mode=parse_mode,
             reply_markup=reply_markup,
@@ -30,9 +48,19 @@ async def send_docx_with_confirmation(
         if send_confirmation:
             await bot.send_message(chat_id=chat_id, text="✅ Word fayl yuborildi.")
         return True
-    except Exception:
+    except Exception as e:
+        logger.error(
+            "send_docx_with_confirmation failed chat_id=%s filename=%s err=%s",
+            chat_id,
+            filename,
+            e,
+            exc_info=True,
+        )
         try:
-            await bot.send_message(chat_id=chat_id, text="❌ Word fayl yuborishda xatolik yuz berdi.")
+            await bot.send_message(
+                chat_id=chat_id,
+                text=f"❌ Word fayl yuborishda xatolik yuz berdi: {str(e)[:200]}",
+            )
         except Exception:
             pass
         return False

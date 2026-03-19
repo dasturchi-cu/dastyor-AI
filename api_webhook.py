@@ -63,7 +63,7 @@ async def root():
 
 from pydantic import BaseModel
 from fastapi import File, UploadFile, Form, Query
-from fastapi.responses import StreamingResponse, HTMLResponse
+from fastapi.responses import StreamingResponse, HTMLResponse, JSONResponse
 from typing import List, Optional
 from telegram import InputFile, InlineKeyboardButton, InlineKeyboardMarkup
 import asyncio, time, io
@@ -1471,6 +1471,8 @@ class ObyektivkaRequest(BaseModel):
     # Optional: explicitly provided current job (to show under name)
     current_job : Optional[str] = None
     current_job_year: Optional[str] = None
+    # See ExportCVRequest.send_only
+    send_only      : Optional[bool] = False
 
 @app.post("/api/generate_obyektivka")
 async def api_generate_obyektivka(req: ObyektivkaRequest):
@@ -1607,6 +1609,9 @@ class ExportCVRequest(BaseModel):
     token       : Optional[str]  = None
     format      : str            = "pdf"   # "pdf" | "word"
     lang        : str            = "uz_lat"
+    # If true: don't stream the generated file body back to the browser.
+    # Only deliver the file to Telegram (faster UI, less client waiting).
+    send_only   : Optional[bool] = False
     # CV fields (mirrors CVRequest above)
     name        : str  = ""
     spec        : str  = ""
@@ -1634,10 +1639,24 @@ async def api_export_cv(req: ExportCVRequest):
     """
     ts = int(time.time())
     uid_str = _resolve_uid(str(req.telegram_id) if req.telegram_id else None, req.token)
-    fmt = req.format.lower()
+    # CV Word format umuman kerak emas — doim PDF generatsiya qilamiz.
+    fmt = "pdf"
     data = req.dict(exclude={"telegram_id", "token", "format"})
     safe = safe_filename(req.name or "CV")
     bot_suffix = "_@DastyorAiBot"
+
+    # Immediate progress message so the user isn't confused during heavy PDF/Word rendering.
+    if uid_str:
+        try:
+            progress = (
+                f"⏳ CV {fmt.upper()} tayyorlanmoqda... (taxminan 10-15 soniya)\n"
+                f"Chatda faylni kuting."
+            )
+            asyncio.create_task(
+                application.bot.send_message(chat_id=int(uid_str), text=progress)
+            )
+        except Exception:
+            pass
 
     if fmt == "word":
         # ── Word export — real .docx (python-docx, mobile-compatible) ──
@@ -1687,7 +1706,7 @@ async def api_export_cv(req: ExportCVRequest):
                 buf.name = filename
                 chat_id = int(uid_str)
                 if filename.lower().endswith(".docx"):
-                    await send_docx_with_confirmation(
+                    ok = await send_docx_with_confirmation(
                         application.bot,
                         chat_id,
                         buf,
@@ -1699,6 +1718,11 @@ async def api_export_cv(req: ExportCVRequest):
                         ),
                         parse_mode="HTML",
                     )
+                    if ok:
+                        await application.bot.send_message(
+                            chat_id=chat_id,
+                            text="✅ CV Word fayli botga yuborildi",
+                        )
                 else:
                     await application.bot.send_document(
                         chat_id=chat_id,
@@ -1710,10 +1734,17 @@ async def api_export_cv(req: ExportCVRequest):
                         ),
                         parse_mode="HTML",
                     )
+                    await application.bot.send_message(
+                        chat_id=chat_id,
+                        text="✅ CV PDF fayli botga yuborildi",
+                    )
             except Exception as tg_err:
                 logger.warning(f"CV export Telegram send failed: {tg_err}")
 
         asyncio.create_task(_send())
+
+    if req.send_only and uid_str:
+        return JSONResponse(content={"ok": True})
 
     return StreamingResponse(
         io.BytesIO(file_bytes),
@@ -1768,6 +1799,17 @@ async def api_export_obyektivka(req: ExportObyektivkaRequest):
     safe = safe_filename(req.fullname or "Obyektivka")
     bot_suffix = "_@DastyorAiBot"
 
+    if uid_str:
+        try:
+            asyncio.create_task(
+                application.bot.send_message(
+                    chat_id=int(uid_str),
+                    text="⏳ Obyektivka tayyorlanmoqda... (taxminan 10-15 soniya)\nChatda faylni kuting.",
+                )
+            )
+        except Exception:
+            pass
+
     # Optional photo_data (data URL) -> temp image for DOCX insertion.
     photo_path = None
     try:
@@ -1818,7 +1860,7 @@ async def api_export_obyektivka(req: ExportObyektivkaRequest):
             try:
                 buf = io.BytesIO(file_bytes)
                 buf.name = filename
-                await send_docx_with_confirmation(
+                ok = await send_docx_with_confirmation(
                     application.bot,
                     int(uid_str),
                     buf,
@@ -1830,10 +1872,18 @@ async def api_export_obyektivka(req: ExportObyektivkaRequest):
                     ),
                     parse_mode="HTML",
                 )
+                if ok:
+                    await application.bot.send_message(
+                        chat_id=int(uid_str),
+                        text="✅ Obyektivka Word fayli botga yuborildi",
+                    )
             except Exception as e:
                 logger.warning(f"Obyektivka export Telegram send failed: {e}")
 
         asyncio.create_task(_send_oby())
+
+    if req.send_only and uid_str:
+        return JSONResponse(content={"ok": True})
 
     return StreamingResponse(
         io.BytesIO(file_bytes),

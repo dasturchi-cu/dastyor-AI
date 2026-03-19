@@ -193,7 +193,8 @@ async def generate_cv_pdf(data: dict, base_url: str | None = None) -> bytes | No
                           '--disable-dev-shm-usage']
                 )
                 page = await browser.new_page()
-                await page.set_content(html_str, wait_until="networkidle")
+                # networkidle can hang if external resources keep polling.
+                await page.set_content(html_str, wait_until="domcontentloaded")
                 pdf_bytes = await page.pdf(
                     format="A4",
                     print_background=True,
@@ -213,7 +214,7 @@ async def generate_cv_pdf(data: dict, base_url: str | None = None) -> bytes | No
                               '--disable-dev-shm-usage']
                     )
                     page = await browser.new_page()
-                    await page.set_content(html_str, wait_until="networkidle")
+                    await page.set_content(html_str, wait_until="domcontentloaded")
                     pdf_bytes = await page.pdf(
                         format="A4",
                         print_background=True,
@@ -262,7 +263,7 @@ async def generate_obyektivka_pdf(data: dict, base_url: str | None = None) -> by
                           '--disable-dev-shm-usage']
                 )
                 page = await browser.new_page()
-                await page.set_content(html_str, wait_until="networkidle")
+                await page.set_content(html_str, wait_until="domcontentloaded")
                 pdf_bytes = await page.pdf(
                     format="A4",
                     print_background=True,
@@ -281,7 +282,7 @@ async def generate_obyektivka_pdf(data: dict, base_url: str | None = None) -> by
                               '--disable-dev-shm-usage']
                     )
                     page = await browser.new_page()
-                    await page.set_content(html_str, wait_until="networkidle")
+                    await page.set_content(html_str, wait_until="domcontentloaded")
                     pdf_bytes = await page.pdf(
                         format="A4",
                         print_background=True,

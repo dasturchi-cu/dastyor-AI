@@ -975,7 +975,8 @@
       };
       return {
         action: 'generate_cv',
-        format: (fmt === 'pdf') ? 'pdf' : 'word',
+        // CV Word shart emas — doim PDF yuboramiz.
+        format: 'pdf',
         name: document.getElementById('f_name').value || '',
         spec: document.getElementById('f_role').value || '',
         phone: document.getElementById('f_phone').value || '',
@@ -992,6 +993,7 @@
       const payload = buildCvPayload(fmt);
       const req = Object.assign({}, payload, {
         telegram_id: telegramId ? parseInt(telegramId, 10) : null,
+        send_only: true,
       });
       const res = await fetch(API_URL + '/api/export_cv', {
         method: 'POST',

@@ -622,6 +622,7 @@ async function sendObyektivkaViaApi(fmt){
   var req = {
     telegram_id: telegramId ? parseInt(telegramId, 10) : null,
     format: (fmt === 'pdf') ? 'pdf' : 'word',
+    send_only: true,
     lang: payload.lang,
     fullname: payload.fullname || '',
     birthdate: payload.bdate || '',
