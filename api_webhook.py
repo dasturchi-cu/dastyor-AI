@@ -1716,23 +1716,40 @@ async def api_export_cv(req: ExportCVRequest):
         # ── PDF export (Playwright → exact browser render) ─────────────
         filename = f"DASTYOR_CV_{safe}_{ts}{bot_suffix}.pdf"
         pdf_bytes = await generate_cv_pdf(data, base_url=SITE_BASE_URL)
+        media_type = "application/pdf"
+
         if not pdf_bytes:
-            # Playwright unavailable → fall back to python-docx PDF
+            # Playwright unavailable → try DOCX->PDF, and if that fails too,
+            # still deliver DOCX so the user receives a file.
             from bot.services.doc_generator import generate_cv_docx, convert_to_pdf_safe
             loop = asyncio.get_running_loop()
             docx_path = await loop.run_in_executor(None, generate_cv_docx, data)
             pdf_path = convert_to_pdf_safe(docx_path) if docx_path else None
+
             if pdf_path and os.path.exists(pdf_path):
                 with open(pdf_path, "rb") as fh:
                     pdf_bytes = fh.read()
-                for p in [pdf_path, docx_path]:
-                    try: os.remove(p)
-                    except: pass
+                try:
+                    os.remove(pdf_path)
+                except Exception:
+                    pass
+                try:
+                    os.remove(docx_path)
+                except Exception:
+                    pass
             else:
-                logger.error("All PDF generation methods failed inside api_webhook.py")
-                raise HTTPException(status_code=500, detail="PDF yaratishda xato")
-        file_bytes = pdf_bytes
-        media_type = "application/pdf"
+                # Final fallback: send DOCX.
+                with open(docx_path, "rb") as fh:
+                    file_bytes = fh.read()
+                try:
+                    os.remove(docx_path)
+                except Exception:
+                    pass
+                filename = f"DASTYOR_CV_{safe}_{ts}{bot_suffix}.docx"
+                media_type = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+
+        if pdf_bytes:
+            file_bytes = pdf_bytes
 
     # ── Background Telegram delivery ────────────────────────────────────
     if uid_str:
