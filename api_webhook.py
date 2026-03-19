@@ -1710,7 +1710,7 @@ async def api_export_cv(req: ExportCVRequest):
     if uid_str:
         try:
             progress = (
-                f"⏳ CV {fmt.upper()} tayyorlanmoqda... (taxminan 10-15 soniya)\n"
+                f"⏳ CV tayyorlanmoqda... (taxminan 10-15 soniya)\n"
                 f"Chatda faylni kuting."
             )
             progress_msg = await application.bot.send_message(chat_id=int(uid_str), text=progress)
@@ -1718,8 +1718,98 @@ async def api_export_cv(req: ExportCVRequest):
         except Exception:
             progress_msg_id = None
 
+    # Fast UI mode: when WebApp sets send_only=true, we return immediately
+    # and do heavy PDF generation + Telegram sending in background.
+    if req.send_only and uid_str:
+        async def _generate_and_send():
+            try:
+                local_ts = int(time.time())
+                filename_pdf = f"DASTYOR_CV_{safe}_{local_ts}{bot_suffix}.pdf"
+                filename_docx = f"DASTYOR_CV_{safe}_{local_ts}{bot_suffix}.docx"
+
+                pdf_bytes = await generate_cv_pdf(data, base_url=SITE_BASE_URL)
+                filename_to_send = filename_pdf
+                file_bytes_to_send = pdf_bytes
+                is_docx = False
+
+                if not file_bytes_to_send:
+                    # Last-resort: try DOCX and/or DOCX->PDF
+                    from bot.services.doc_generator import generate_cv_docx, convert_to_pdf_safe
+                    loop = asyncio.get_running_loop()
+                    docx_path = await loop.run_in_executor(None, generate_cv_docx, data)
+                    pdf_path = convert_to_pdf_safe(docx_path) if docx_path else None
+                    if pdf_path and os.path.exists(pdf_path):
+                        with open(pdf_path, "rb") as fh:
+                            file_bytes_to_send = fh.read()
+                        filename_to_send = filename_pdf
+                        is_docx = False
+                        try:
+                            os.remove(pdf_path)
+                        except Exception:
+                            pass
+                        try:
+                            os.remove(docx_path)
+                        except Exception:
+                            pass
+                    else:
+                        with open(docx_path, "rb") as fh:
+                            file_bytes_to_send = fh.read()
+                        filename_to_send = filename_docx
+                        is_docx = True
+                        try:
+                            os.remove(docx_path)
+                        except Exception:
+                            pass
+
+                buf = io.BytesIO(file_bytes_to_send or b"")
+                buf.name = filename_to_send
+                chat_id = int(uid_str)
+
+                if filename_to_send.lower().endswith(".docx") or is_docx:
+                    ok = await send_docx_with_confirmation(
+                        application.bot,
+                        chat_id,
+                        buf,
+                        filename=filename_to_send,
+                        caption=(
+                            f"✅ <b>CV tayyor!</b>\n"
+                            f"📎 <code>{filename_to_send}</code>"
+                        ),
+                        parse_mode="HTML",
+                    )
+                    if ok:
+                        await application.bot.send_message(chat_id=chat_id, text="✅ CV fayli botga yuborildi (DOCX)")
+                else:
+                    await application.bot.send_document(
+                        chat_id=chat_id,
+                        document=InputFile(buf, filename=filename_to_send),
+                        caption=(
+                            f"✅ <b>CV tayyor!</b>\n"
+                            f"📎 <code>{filename_to_send}</code>"
+                        ),
+                        parse_mode="HTML",
+                    )
+                    await application.bot.send_message(chat_id=chat_id, text="✅ CV PDF fayli botga yuborildi")
+
+            except Exception as e:
+                logger.error("CV background generation/send failed: %s", e, exc_info=True)
+                try:
+                    await application.bot.send_message(chat_id=int(uid_str), text=f"❌ CV yuborilmadi: {str(e)[:200]}")
+                except Exception:
+                    pass
+            finally:
+                if progress_msg_id is not None:
+                    try:
+                        await application.bot.delete_message(chat_id=int(uid_str), message_id=progress_msg_id)
+                    except Exception:
+                        pass
+
+        asyncio.create_task(_generate_and_send())
+        return JSONResponse(content={"ok": True})
+
+    # If send_only was false, keep the old behavior (stream to browser / response body).
     if fmt == "word":
-        # ── Word export — real .docx (python-docx, mobile-compatible) ──
+        # (Kept for compatibility, but CV Word isn't used in WebApp.)
         filename = f"DASTYOR_CV_{safe}_{ts}{bot_suffix}.docx"
         from bot.services.doc_generator import generate_cv_docx
         loop = asyncio.get_running_loop()
@@ -1734,43 +1824,10 @@ async def api_export_cv(req: ExportCVRequest):
             pass
         media_type = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
     else:
-        # ── PDF export (Playwright → exact browser render) ─────────────
         filename = f"DASTYOR_CV_{safe}_{ts}{bot_suffix}.pdf"
         pdf_bytes = await generate_cv_pdf(data, base_url=SITE_BASE_URL)
+        file_bytes = pdf_bytes
         media_type = "application/pdf"
-
-        if not pdf_bytes:
-            # Playwright unavailable → try DOCX->PDF, and if that fails too,
-            # still deliver DOCX so the user receives a file.
-            from bot.services.doc_generator import generate_cv_docx, convert_to_pdf_safe
-            loop = asyncio.get_running_loop()
-            docx_path = await loop.run_in_executor(None, generate_cv_docx, data)
-            pdf_path = convert_to_pdf_safe(docx_path) if docx_path else None
-
-            if pdf_path and os.path.exists(pdf_path):
-                with open(pdf_path, "rb") as fh:
-                    pdf_bytes = fh.read()
-                try:
-                    os.remove(pdf_path)
-                except Exception:
-                    pass
-                try:
-                    os.remove(docx_path)
-                except Exception:
-                    pass
-            else:
-                # Final fallback: send DOCX.
-                with open(docx_path, "rb") as fh:
-                    file_bytes = fh.read()
-                try:
-                    os.remove(docx_path)
-                except Exception:
-                    pass
-                filename = f"DASTYOR_CV_{safe}_{ts}{bot_suffix}.docx"
-                media_type = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-
-        if pdf_bytes:
-            file_bytes = pdf_bytes
 
     # ── Background Telegram delivery ────────────────────────────────────
     if uid_str:

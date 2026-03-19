@@ -623,12 +623,12 @@
   'name_ph': "Ism Familiya"
   },
   'uz_cyr': {
-  'about': "ТІР°Т›РёРґР°",
-  'experience': "РС€ РўР°Р¶СЂРёР±Р°СЃРё",
-  'education': "РўР°СЉР»РёРј",
-  'skills': "РљСћРЅРёРєРјР°Р»Р°СЂ",
-  'contact': "РђР»РѕТ›Р°",
-  'name_ph': "РСЃРј Р¤Р°РјРёР»РёСЏ"
+  'about': "Ҳақида",
+  'experience': "Иш тажрибаси",
+  'education': "Таълим",
+  'skills': "Кўникмалар",
+  'contact': "Алоқа",
+  'name_ph': "Исм Фамилия"
   },
   'en': {
   'about': "About",
@@ -639,12 +639,12 @@
   'name_ph': "Full Name"
   },
   'ru': {
-  'about': "Рћ СЃРµР±Рµ",
-  'experience': "РћРїС‹С‚ СЂР°Р±РѕС‚С‹",
-  'education': "РћР±СЂР°Р·РѕРІР°РЅРёРµ",
-  'skills': "РќР°РІС‹РєРё",
-  'contact': "РљРѕРЅС‚Р°РєС‚С‹",
-  'name_ph': "РРјСЏ Р¤Р°РјРёР»РёСЏ"
+  'about': "О себе",
+  'experience': "Опыт работы",
+  'education': "Образование",
+  'skills': "Навыки",
+  'contact': "Контакты",
+  'name_ph': "Имя Фамилия"
   }
   } -%}
   {%- set ll = _labels.get(d.lang or 'uz_lat', _labels['uz_lat']) -%}
@@ -705,9 +705,9 @@
         <div class="name">{{ d.name or ll.name_ph }}</div>
         <div class="role">{{ d.role or '' }}</div>
         <div class="contact-wrap">
-          {%- if d.phone -%}<span>рџ“ћ {{ d.phone }}</span>{%- endif -%}
+          {%- if d.phone -%}<span>📞 {{ d.phone }}</span>{%- endif -%}
           {%- if d.email -%}<span>вњ‰пёЏ {{ d.email }}</span>{%- endif -%}
-          {%- if d.loc -%}<span>рџ“Ќ {{ d.loc }}</span>{%- endif -%}
+          {%- if d.loc -%}<span>📍 {{ d.loc }}</span>{%- endif -%}
         </div>
       </div>
     </div>
@@ -729,9 +729,9 @@
       {%- if d.img -%}<img src="{{ d.img }}" class="avatar" alt="avatar">{%- endif -%}
       <div class="section">
         <div class="sec-title-side">{{ ll.contact }}</div>
-        {%- if d.phone -%}<div class="contact-item">рџ“ћ {{ d.phone }}</div>{%- endif -%}
+        {%- if d.phone -%}<div class="contact-item">📞 {{ d.phone }}</div>{%- endif -%}
         {%- if d.email -%}<div class="contact-item">вњ‰пёЏ {{ d.email }}</div>{%- endif -%}
-        {%- if d.loc -%}<div class="contact-item">рџ“Ќ {{ d.loc }}</div>{%- endif -%}
+        {%- if d.loc -%}<div class="contact-item">📍 {{ d.loc }}</div>{%- endif -%}
       </div>
       {%- if d.skills -%}
       <div class="section">
@@ -787,11 +787,11 @@
         <div class="role">{{ d.role or '' }}</div>
         <div class="contact">
           {%- if d.phone or d.email -%}<div>
-            {%- if d.phone -%}рџ“ћ {{ d.phone }}{%- endif -%}
+            {%- if d.phone -%}📞 {{ d.phone }}{%- endif -%}
             {%- if d.phone and d.email %} &nbsp;|&nbsp; {%- endif -%}
             {%- if d.email -%}вњ‰пёЏ {{ d.email }}{%- endif -%}
           </div>{%- endif -%}
-          {%- if d.loc -%}<div>рџ“Ќ {{ d.loc }}</div>{%- endif -%}
+          {%- if d.loc -%}<div>📍 {{ d.loc }}</div>{%- endif -%}
         </div>
       </div>
     </div>
@@ -817,9 +817,9 @@
       <div class="name">{{ d.name or ll.name_ph }}</div>
       <div class="role">{{ d.role or '' }}</div>
       <div class="contact-wrap">
-        {%- if d.phone -%}<span>рџ“ћ {{ d.phone }}</span>{%- endif -%}
+        {%- if d.phone -%}<span>📞 {{ d.phone }}</span>{%- endif -%}
         {%- if d.email -%}<span>вњ‰пёЏ {{ d.email }}</span>{%- endif -%}
-        {%- if d.loc -%}<span>рџ“Ќ {{ d.loc }}</span>{%- endif -%}
+        {%- if d.loc -%}<span>📍 {{ d.loc }}</span>{%- endif -%}
       </div>
     </div>
     {%- if d.about -%}<div class="section">
@@ -875,9 +875,9 @@
         <div class="role">{{ d.role or '' }}</div>
       </div>
       <div class="contact-wrap">
-        {%- if d.phone -%}<div>рџ“ћ {{ d.phone }}</div>{%- endif -%}
+        {%- if d.phone -%}<div>📞 {{ d.phone }}</div>{%- endif -%}
         {%- if d.email -%}<div>вњ‰пёЏ {{ d.email }}</div>{%- endif -%}
-        {%- if d.loc -%}<div>рџ“Ќ {{ d.loc }}</div>{%- endif -%}
+        {%- if d.loc -%}<div>📍 {{ d.loc }}</div>{%- endif -%}
       </div>
     </div>
     <div class="body-cols">
@@ -904,9 +904,9 @@
       <div class="role">{{ d.role or '' }}</div>
       <div class="section">
         <div class="sec-title sec-title-left">{{ ll.contact }}</div>
-        {%- if d.phone -%}<div class="contact-item">рџ“ћ {{ d.phone }}</div>{%- endif -%}
+        {%- if d.phone -%}<div class="contact-item">📞 {{ d.phone }}</div>{%- endif -%}
         {%- if d.email -%}<div class="contact-item">вњ‰пёЏ {{ d.email }}</div>{%- endif -%}
-        {%- if d.loc -%}<div class="contact-item">рџ“Ќ {{ d.loc }}</div>{%- endif -%}
+        {%- if d.loc -%}<div class="contact-item">📍 {{ d.loc }}</div>{%- endif -%}
       </div>
       {%- if d.skills -%}
       <div class="section">
