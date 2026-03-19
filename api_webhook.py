@@ -6,6 +6,7 @@ from telegram import Update
 from contextlib import asynccontextmanager
 from fastapi.staticfiles import StaticFiles
 from main import setup_application
+from starlette.requests import Request
 
 # Setup Logging
 logging.basicConfig(
@@ -56,6 +57,22 @@ app.add_middleware(
 
 # Serve Web App Files
 app.mount("/webapp", StaticFiles(directory="webapp"), name="webapp")
+
+@app.middleware("http")
+async def log_webapp_gets(request: Request, call_next):
+    # Helps debug Telegram WebApp "Not Found" (wrong URL/path vs static mounting).
+    if request.method == "GET" and request.url.path.startswith("/webapp"):
+        response = await call_next(request)
+        try:
+            logger.info(
+                "Webapp GET path=%s status=%s",
+                request.url.path,
+                getattr(response, "status_code", None),
+            )
+        except Exception:
+            pass
+        return response
+    return await call_next(request)
 
 @app.get("/webapp")
 async def webapp_root():
