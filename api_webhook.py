@@ -61,6 +61,15 @@ app.mount("/webapp", StaticFiles(directory="webapp"), name="webapp")
 async def root():
     return RedirectResponse(url="/webapp/index.html")
 
+
+@app.get("/health")
+async def health():
+    return {
+        "ok": True,
+        "webapp_mounted": True,
+        "time": time.time(),
+    }
+
 from pydantic import BaseModel
 from fastapi import File, UploadFile, Form, Query
 from fastapi.responses import StreamingResponse, HTMLResponse, JSONResponse
@@ -1989,6 +1998,13 @@ async def webhook(request: Request):
     except Exception as e:
         logger.error(f"Error processing update: {e}")
         return Response(status_code=500)
+
+
+# Telegram webhook URL noto'g'ri (pathsiz) bo'lsa, update'lar "/" ga tushib qolishi mumkin.
+# 405 Method Not Allowed bo'lmasligi uchun alias qilamiz.
+@app.post("/")
+async def webhook_root(request: Request):
+    return await webhook(request)
 
 if __name__ == "__main__":
     import uvicorn
