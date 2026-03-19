@@ -57,6 +57,16 @@ app.add_middleware(
 # Serve Web App Files
 app.mount("/webapp", StaticFiles(directory="webapp"), name="webapp")
 
+@app.get("/webapp")
+async def webapp_root():
+    # Some Telegram WebApp implementations open the directory path
+    # (without /index.html) which would otherwise return 404.
+    return RedirectResponse(url="/webapp/index.html")
+
+@app.get("/webapp/")
+async def webapp_root_trailing_slash():
+    return RedirectResponse(url="/webapp/index.html")
+
 @app.get("/")
 async def root():
     return RedirectResponse(url="/webapp/index.html")
