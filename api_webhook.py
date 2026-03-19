@@ -1991,6 +1991,7 @@ async def webhook(request: Request):
     Handle incoming Telegram updates via POST request.
     """
     try:
+        logger.info("Telegram webhook hit path=%s method=%s", request.url.path, request.method)
         data = await request.json()
         update = Update.de_json(data, application.bot)
         await application.process_update(update)
