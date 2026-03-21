@@ -17,6 +17,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
+from backend.paths import webapp_dir, webapp_index_path
 from backend.exception_handlers import register_exception_handlers
 from backend.middleware.webapp import register_webapp_middleware
 from backend.routers.documents_web import router as documents_router
@@ -86,5 +87,16 @@ def create_webhook_app() -> FastAPI:
     app.include_router(ocr_jobs_router)
     app.include_router(tg_update_router)
 
-    app.mount("/webapp", StaticFiles(directory="webapp", html=True), name="webapp")
+    _wd = webapp_dir()
+    _ix = webapp_index_path()
+    if not _ix.is_file():
+        logger.error(
+            "WebApp index missing at %s (cwd=%s). Set WORKDIR to project root in Docker.",
+            _ix,
+            __import__("os").getcwd(),
+        )
+    else:
+        logger.info("WebApp static dir=%s index_ok=True", _wd)
+
+    app.mount("/webapp", StaticFiles(directory=str(_wd), html=True), name="webapp")
     return app
