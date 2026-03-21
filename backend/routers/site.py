@@ -39,6 +39,12 @@ async def webapp_root_trailing_slash():
     return _index_response()
 
 
+@router.get("/webapp/index.html")
+async def webapp_index_explicit():
+    """BotFather: .../webapp/index.html — ba'zi CDN/proksi faqat shu yo'lni chaqiradi."""
+    return _index_response()
+
+
 @router.get("/")
 async def root():
     return _index_response()
