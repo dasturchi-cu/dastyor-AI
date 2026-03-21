@@ -353,7 +353,13 @@ async def _perform_ocr_batch_and_send(context, bot, chat_id: int, user_id: int, 
         for i, fid in enumerate(file_ids):
             try:
                 f = await bot.get_file(fid)
-                path = os.path.join(temp_dir, f"ocr_batch_{user_id}_{int(time.time())}_{i}.jpg")
+                ext = os.path.splitext(f.file_path or "")[1] or ".jpg"
+                if not ext.startswith("."):
+                    ext = "." + ext
+                path = os.path.join(
+                    temp_dir,
+                    f"ocr_batch_{user_id}_{int(time.time())}_{i}{ext}",
+                )
                 await f.download_to_drive(path)
                 temp_paths.append(path)
             except Exception as e:
@@ -496,6 +502,19 @@ async def handle_ocr_image(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     # Collect file_id (no download yet — batch will download on Tayyor)
     if message.document:
+        mime = (message.document.mime_type or "").lower()
+        fname = (message.document.file_name or "").lower()
+        ok = mime.startswith("image/") or mime == "application/pdf" or fname.endswith(
+            (".jpg", ".jpeg", ".png", ".webp", ".gif", ".pdf", ".heic", ".heif")
+        )
+        if mime and not ok:
+            await update.message.reply_text(
+                "⚠️ OCR uchun **rasm** (fotosurat sifatida) yoki **PDF** yuboring.\n"
+                "Word/Excel fayllar bu yerda ishlamaydi.",
+                reply_markup=get_ocr_to_word_keyboard(lang),
+                parse_mode=ParseMode.MARKDOWN,
+            )
+            return
         file_id = message.document.file_id
     else:
         file_id = message.photo[-1].file_id

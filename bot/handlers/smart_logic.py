@@ -102,7 +102,10 @@ async def smart_callback_handler(update: Update, context: ContextTypes.DEFAULT_T
         if data == "smart_ocr":
             await query.message.edit_text("⏳ Yuklanmoqda...")
             file_obj = await context.bot.get_file(file_id)
-            temp_path = f"smart_ocr_{user_id}_{int(time.time())}.jpg"
+            ext = os.path.splitext(file_obj.file_path or "")[1] or ".jpg"
+            if not ext.startswith("."):
+                ext = "." + ext
+            temp_path = f"smart_ocr_{user_id}_{int(time.time())}{ext}"
             await file_obj.download_to_drive(temp_path)
             await query.message.delete()
             # Fire-and-forget: do not block the event loop
