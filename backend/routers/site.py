@@ -11,11 +11,21 @@ from backend.paths import webapp_index_path
 router = APIRouter(tags=["site"])
 
 
+_NO_CACHE_HTML = {
+    "Cache-Control": "no-store, no-cache, must-revalidate",
+    "Pragma": "no-cache",
+}
+
+
 def _index_response():
     """Serve index.html directly — some Telegram WebViews handle redirects poorly."""
     p = webapp_index_path()
     if p.is_file():
-        return FileResponse(str(p), media_type="text/html; charset=utf-8")
+        return FileResponse(
+            str(p),
+            media_type="text/html; charset=utf-8",
+            headers=_NO_CACHE_HTML,
+        )
     return RedirectResponse(url="/webapp/index.html")
 
 

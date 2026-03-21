@@ -15,9 +15,10 @@ logger = logging.getLogger("dastyor.webapp")
 def _spa_entry_fallback_path(path: str) -> bool:
     """
     Telegram WebView ba'zan Accept: */* va UA da 'telegram' bo'lmasin.
-    Shunday 404 larda ham bosh sahifani berish kerak.
+    Yo'l registrini ham tekshiramiz (/Webapp kabi noyob holatlar).
     """
-    p = (path or "").split("?", 1)[0].rstrip("/") or "/"
+    raw = (path or "").split("?", 1)[0]
+    p = raw.rstrip("/").lower() or "/"
     if p == "/":
         return True
     if p in ("/webapp", "/app", "/index.html"):
@@ -29,14 +30,14 @@ def _spa_entry_fallback_path(path: str) -> bool:
         return True
     if "/" in rest:
         return False
-    ext = rest.rsplit(".", 1)[-1].lower() if "." in rest else ""
+    ext = rest.rsplit(".", 1)[-1] if "." in rest else ""
     return ext in ("", "html", "htm")
 
 
 def register_webapp_middleware(app: FastAPI) -> None:
     @app.middleware("http")
     async def log_webapp_gets(request: Request, call_next: Callable):
-        if request.method == "GET" and request.url.path.startswith("/webapp"):
+        if request.method == "GET" and request.url.path.lower().startswith("/webapp"):
             response = await call_next(request)
             try:
                 logger.info(
@@ -55,21 +56,29 @@ def register_webapp_middleware(app: FastAPI) -> None:
         if (
             request.method == "GET"
             and response.status_code == 404
-            and request.url.path.startswith("/webapp")
+            and request.url.path.lower().startswith("/webapp")
         ):
             accept = (request.headers.get("accept") or "").lower()
             p = request.url.path
+            pl = p.lower()
             if (
                 "text/html" in accept
                 or "*/*" in accept
-                or p.endswith(".html")
-                or p.endswith("/")
-                or p.rstrip("/").endswith("/webapp")
+                or pl.endswith(".html")
+                or pl.endswith("/")
+                or pl.rstrip("/").endswith("/webapp")
             ):
                 idx = webapp_index_path()
                 if idx.is_file():
                     try:
-                        return FileResponse(str(idx), media_type="text/html; charset=utf-8")
+                        return FileResponse(
+                            str(idx),
+                            media_type="text/html; charset=utf-8",
+                            headers={
+                                "Cache-Control": "no-store, no-cache, must-revalidate",
+                                "Pragma": "no-cache",
+                            },
+                        )
                     except Exception:
                         return response
         return response
@@ -83,20 +92,35 @@ def register_webapp_middleware(app: FastAPI) -> None:
         if response.status_code != 404 or request.method != "GET":
             return response
         path = request.url.path
+        pl = path.lower()
         if (
-            path.startswith("/api")
-            or path.startswith("/webhook")
-            or path.startswith("/docs")
-            or path.startswith("/redoc")
-            or path.startswith("/openapi")
+            pl.startswith("/api")
+            or pl.startswith("/webhook")
+            or pl.startswith("/docs")
+            or pl.startswith("/redoc")
+            or pl.startswith("/openapi")
         ):
             return response
+        if "webapp" in pl or pl in ("/", "/app", "/index.html"):
+            logger.warning(
+                "GET 404 (webapp-related) path=%r host=%r ua=%r",
+                path,
+                request.headers.get("host"),
+                ((request.headers.get("user-agent") or "")[:160]),
+            )
         if not _spa_entry_fallback_path(path):
             return response
         idx = webapp_index_path()
         if not idx.is_file():
             return response
         try:
-            return FileResponse(str(idx), media_type="text/html; charset=utf-8")
+            return FileResponse(
+                str(idx),
+                media_type="text/html; charset=utf-8",
+                headers={
+                    "Cache-Control": "no-store, no-cache, must-revalidate",
+                    "Pragma": "no-cache",
+                },
+            )
         except Exception:
             return response
