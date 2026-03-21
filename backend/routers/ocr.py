@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import base64
 import io
+import os
 from typing import Any
 
 from fastapi import APIRouter, File, HTTPException, UploadFile
@@ -9,39 +10,74 @@ from fastapi.responses import StreamingResponse
 
 from backend.celery_app import celery_app
 from backend.jobs import create_job, get_job, update_job
-from backend.settings import get_settings
+from backend.services.upload_io import EmptyUploadError, UploadTooLargeError, read_upload_limited
 
 
 router = APIRouter(prefix="/api", tags=["ocr"])
 
 
+def _ocr_use_celery() -> bool:
+    return os.getenv("OCR_USE_CELERY", "0").strip().lower() in ("1", "true", "yes")
+
+
 @router.post("/ocr")
-async def api_ocr_enqueue(file: UploadFile = File(...)) -> dict[str, Any]:
-    settings = get_settings()
-    raw = await file.read()
-    if not raw:
+async def api_ocr(file: UploadFile = File(...)) -> dict[str, Any]:
+    """
+    Matn ajratish: default — sinxron Paddle (Celery worker shart emas).
+    OCR_USE_CELERY=1 bo'lsa — navbat (job_id + /api/jobs/{id}).
+    """
+    try:
+        raw = await read_upload_limited(file)
+    except EmptyUploadError:
         raise HTTPException(status_code=400, detail="Empty file")
-    if len(raw) > settings.max_upload_bytes:
+    except UploadTooLargeError:
         raise HTTPException(status_code=400, detail="File too large")
 
-    job = await create_job("ocr:text")
-    # enqueue celery
-    celery_app.send_task("ocr.extract_text", args=[raw], kwargs={}, task_id=job.job_id)
-    return {"ok": True, "job_id": job.job_id}
+    if _ocr_use_celery():
+        job = await create_job("ocr:text")
+        celery_app.send_task("ocr.extract_text", args=[raw], kwargs={}, task_id=job.job_id)
+        return {"ok": True, "job_id": job.job_id}
+
+    from backend.services.paddle_ocr_runtime import ocr_extract_text_from_bytes
+
+    loop = __import__("asyncio").get_running_loop()
+    try:
+        result = await loop.run_in_executor(None, lambda: ocr_extract_text_from_bytes(raw))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"OCR xatosi: {str(e)[:200]}")
+    return {"ok": True, "text": (result or {}).get("text") or "", "lines": (result or {}).get("lines")}
 
 
 @router.post("/ocr-word")
-async def api_ocr_word_enqueue(file: UploadFile = File(...)) -> dict[str, Any]:
-    settings = get_settings()
-    raw = await file.read()
-    if not raw:
+async def api_ocr_word_enqueue(file: UploadFile = File(...)) -> Any:
+    try:
+        raw = await read_upload_limited(file)
+    except EmptyUploadError:
         raise HTTPException(status_code=400, detail="Empty file")
-    if len(raw) > settings.max_upload_bytes:
+    except UploadTooLargeError:
         raise HTTPException(status_code=400, detail="File too large")
 
-    job = await create_job("ocr:docx")
-    celery_app.send_task("ocr.image_to_docx", args=[raw], kwargs={}, task_id=job.job_id)
-    return {"ok": True, "job_id": job.job_id}
+    if _ocr_use_celery():
+        job = await create_job("ocr:docx")
+        celery_app.send_task("ocr.image_to_docx", args=[raw], kwargs={}, task_id=job.job_id)
+        return {"ok": True, "job_id": job.job_id}
+
+    from backend.services.paddle_ocr_runtime import ocr_image_to_docx_from_bytes
+
+    loop = __import__("asyncio").get_running_loop()
+    try:
+        payload = await loop.run_in_executor(None, lambda: ocr_image_to_docx_from_bytes(raw))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"OCR Word xatosi: {str(e)[:200]}")
+    b64 = (payload or {}).get("docx_b64")
+    if not b64:
+        raise HTTPException(status_code=500, detail="DOCX yaratilmadi")
+    docx_bytes = base64.b64decode(b64)
+    return StreamingResponse(
+        io.BytesIO(docx_bytes),
+        media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        headers={"Content-Disposition": 'attachment; filename="ocr_result.docx"'},
+    )
 
 
 @router.get("/ocr-word/{job_id}")
@@ -51,7 +87,6 @@ async def api_ocr_word_download(job_id: str):
         raise HTTPException(status_code=404, detail="Job not found")
     if rec.status != "succeeded" or not rec.result_json:
         raise HTTPException(status_code=409, detail="Job not ready")
-    # result_json is produced by update_job; for now we also accept celery backend via polling step (see below)
     import json
 
     try:
@@ -67,4 +102,3 @@ async def api_ocr_word_download(job_id: str):
         media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
         headers={"Content-Disposition": 'attachment; filename="ocr_result.docx"'},
     )
-

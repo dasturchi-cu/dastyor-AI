@@ -1054,14 +1054,23 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(req),
       });
+      const ct = (res.headers.get('content-type') || '').toLowerCase();
       if (!res.ok) {
         let detail = '';
         try {
-          const err = await res.json();
+          const err = ct.includes('json') ? await res.json() : {};
           detail = err.detail || err.message || '';
         } catch (_) {}
         throw new Error((detail || 'Server') + ' ' + res.status);
       }
+      if (ct.includes('application/json')) {
+        try {
+          return await res.json();
+        } catch (_) {
+          return { ok: true };
+        }
+      }
+      return { ok: true, status: 'download' };
     }
 
     async function sendCvToBot(fmt) {
@@ -1071,9 +1080,10 @@
         return;
       }
       try {
-        await sendCvViaApi(fmt);
+        const data = await sendCvViaApi(fmt);
         tg.HapticFeedback && tg.HapticFeedback.notificationOccurred && tg.HapticFeedback.notificationOccurred('success');
-        alert("⏳ So'rov yuborildi. Chatda faylni kuting.");
+        const line = (data && data.message) ? data.message : "✅ Fayl botga yuborilishi uchun navbatga qo‘yildi. Telegram chatda kuting.";
+        alert(line);
         setTimeout(() => { try { tg.close(); } catch (_) {} }, 1200);
       } catch (e) {
         alert("❌ Yuborishda xatolik: " + (e.message || String(e)).slice(0, 80));

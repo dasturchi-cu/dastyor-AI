@@ -91,7 +91,6 @@ def db_get_user(user_id: int | str) -> Optional[dict]:
             "chat_id": row.get("chat_id"),
             "joined_at": row.get("joined_at"),
             "last_active": row.get("last_active"),
-            "activtiy_count": row.get("activity_count", 0),
             "activity_count": row.get("activity_count", 0),
             "files_processed": row.get("files_processed", 0),
             "sessions": row.get("sessions", 0),
@@ -101,6 +100,9 @@ def db_get_user(user_id: int | str) -> Optional[dict]:
             "ban_date": row.get("ban_date"),
             "blocked_bot": row.get("blocked_bot", False),
             "last_service": row.get("last_service"),
+            "user_plan": row.get("user_plan", "standard"),
+            "usage_count": row.get("usage_count", 0),
+            "limit_count": row.get("limit_count"),
         }
     except Exception as e:
         _mark_temporarily_unavailable(e)
@@ -256,6 +258,43 @@ def db_increment_usage(user_id: int) -> int:
         _mark_temporarily_unavailable(e)
         logger.error(f"db_increment_usage: {e}")
         return 0
+
+
+def db_reset_daily_usage(user_id: int) -> bool:
+    """Premium tasdiqdan keyin kunlik bepul limit hisobini 0 ga (daily_usage)."""
+    c = _get_client()
+    if not c:
+        return False
+    try:
+        today = date.today().isoformat()
+        r = c.table("daily_usage").select("id").eq("user_id", user_id).eq("usage_date", today).execute()
+        if r.data:
+            c.table("daily_usage").update({"count": 0}).eq("id", r.data[0]["id"]).execute()
+        return True
+    except Exception as e:
+        _mark_temporarily_unavailable(e)
+        logger.error(f"db_reset_daily_usage: {e}")
+        return False
+
+
+def db_log_usage(user_id: int, action: str, metadata: dict | None = None) -> bool:
+    """usage_logs jadvaliga audit (ustunlar bo'lmasa — sessiz o'tkaziladi)."""
+    c = _get_client()
+    if not c:
+        return False
+    try:
+        payload = {
+            "user_id": int(user_id),
+            "action": (action or "unknown")[:120],
+            "created_at": datetime.utcnow().isoformat(),
+        }
+        if metadata:
+            payload["metadata"] = metadata
+        c.table("usage_logs").insert(payload).execute()
+        return True
+    except Exception as e:
+        logger.debug("db_log_usage skip or schema drift: %s", e)
+        return False
 
 
 # ── bot_settings ─────────────────────────────────────────────────────────────
@@ -443,7 +482,20 @@ def db_activate_subscription(
             "expire_date": expire_date,
             "status": st,
         }
-        c.table("premium_subscriptions").insert(payload).execute()
+        try:
+            c.table("premium_subscriptions").insert(payload).execute()
+        except Exception:
+            # Ba'zi sxemalarda faqat end_date bor (expire_date emas)
+            alt = {**payload, "end_date": expire_date}
+            alt.pop("expire_date", None)
+            c.table("premium_subscriptions").insert(alt).execute()
+        # users.user_plan — ustun bo'lsa yangilaymiz
+        try:
+            c.table("users").update({"user_plan": "premium" if plan == "premium" else "standard"}).eq(
+                "id", int(user_id)
+            ).execute()
+        except Exception:
+            pass
         return True
     except Exception as e:
         _mark_temporarily_unavailable(e)
@@ -468,7 +520,6 @@ def db_get_all_users() -> dict:
                 "chat_id": row.get("chat_id"),
                 "joined_at": row.get("joined_at"),
                 "last_active": row.get("last_active"),
-                "activtiy_count": row.get("activity_count", 0),
                 "activity_count": row.get("activity_count", 0),
                 "files_processed": row.get("files_processed", 0),
                 "sessions": row.get("sessions", 0),

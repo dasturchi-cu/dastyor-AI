@@ -367,7 +367,13 @@ async def api_export_cv(
                         pass
 
         asyncio.create_task(_generate_and_send())
-        return JSONResponse(content={"ok": True})
+        return JSONResponse(
+            content={
+                "ok": True,
+                "status": "queued_to_bot",
+                "message": "✅ So‘rov qabul qilindi. CV tayyorlanmoqda — fayl tez orada bot chatiga yuboriladi.",
+            }
+        )
 
     if fmt == "word":
         filename = f"DASTYOR_CV_{safe}_{ts}{bot_suffix}.docx"

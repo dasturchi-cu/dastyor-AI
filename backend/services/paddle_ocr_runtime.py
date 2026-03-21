@@ -164,6 +164,7 @@ def resize_for_ocr(bgr, max_side: int | None = None):
 
 
 def cv_preprocess(bgr):
+    """Aggressive binarization — use when CLAHE/light path fails (faded scans)."""
     import cv2
     import numpy as np
 
@@ -182,30 +183,107 @@ def cv_preprocess(bgr):
     return cv2.filter2D(binary, -1, kernel)
 
 
-def paddle_extract_plain_text(processed) -> str:
+def cv_preprocess_light(bgr):
+    """CLAHE + unsharp on L channel — preserves photos/screenshots better than binary-only."""
     import cv2
 
-    img = cv2.cvtColor(processed, cv2.COLOR_GRAY2BGR) if len(processed.shape) == 2 else processed
+    try:
+        lab = cv2.cvtColor(bgr, cv2.COLOR_BGR2LAB)
+        l_ch, a_ch, b_ch = cv2.split(lab)
+        clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
+        cl = clahe.apply(l_ch)
+        merged = cv2.merge((cl, a_ch, b_ch))
+        enhanced = cv2.cvtColor(merged, cv2.COLOR_LAB2BGR)
+        blurred = cv2.GaussianBlur(enhanced, (0, 0), sigmaX=3)
+        sharp = cv2.addWeighted(enhanced, 1.45, blurred, -0.45, 0)
+        return sharp
+    except Exception:
+        return bgr
+
+
+def _paddle_ocr_raw(img_bgr):
     try:
         engine = get_paddle_engine()
-        result = engine.ocr(img) or []
+        return engine.ocr(img_bgr) or []
     except Exception as e:
         if _runtime_executor_error(e):
             logger.warning("Paddle runtime executor issue; reinitializing with fallback profile")
             reinit_paddle_engine_fallback()
-            result = get_paddle_engine().ocr(img) or []
-        else:
-            raise
-    lines: list[str] = []
-    for block in result:
+            return get_paddle_engine().ocr(img_bgr) or []
+        raise
+
+
+def _reading_order_lines(ocr_result) -> list[tuple[list, str, float]]:
+    """Sort detection boxes top-to-bottom, left-to-right; return (box, text, conf)."""
+    items: list[tuple[list, str, float]] = []
+    for block in ocr_result or []:
         for item in block or []:
             try:
-                t = item[1][0]
+                box = item[0]
+                text = str(item[1][0] or "").strip()
+                conf = float(item[1][1]) if len(item[1]) > 1 else 1.0
             except Exception:
-                t = ""
-            if t:
-                lines.append(str(t).strip())
-    return "\n".join(lines).strip()
+                continue
+            if text:
+                items.append((box, text, conf))
+
+    def sort_key(entry):
+        box = entry[0]
+        try:
+            ys = [float(p[1]) for p in box]
+            xs = [float(p[0]) for p in box]
+            return (sum(ys) / max(len(ys), 1), sum(xs) / max(len(xs), 1))
+        except Exception:
+            return (0.0, 0.0)
+
+    items.sort(key=sort_key)
+    return items
+
+
+def paddle_extract_structured(bgr_color) -> dict[str, Any]:
+    """
+    Run OCR with fallbacks: color BGR → light preprocess → aggressive binary.
+    Returns plain text + line boxes for layout-aware clients.
+    """
+    import cv2
+
+    base = resize_for_ocr(bgr_color)
+    variants: list[tuple[str, Any]] = [
+        ("color", base),
+        ("light", cv_preprocess_light(base)),
+        ("binary", cv_preprocess(base)),
+    ]
+    last_items: list[tuple[list, str, float]] = []
+    for name, im in variants:
+        try:
+            to_run = im
+            if len(to_run.shape) == 2:
+                to_run = cv2.cvtColor(to_run, cv2.COLOR_GRAY2BGR)
+            result = _paddle_ocr_raw(to_run)
+            items = _reading_order_lines(result)
+            if items:
+                last_items = items
+                lines_text = "\n".join(t for _, t, _ in items).strip()
+                if lines_text:
+                    logger.debug("Paddle OCR path=%s lines=%s", name, len(items))
+                    return {
+                        "text": lines_text,
+                        "lines": [
+                            {"text": t, "bbox": box, "confidence": conf}
+                            for box, t, conf in items
+                        ],
+                        "preprocess": name,
+                    }
+        except Exception as e:
+            logger.warning("Paddle variant %s failed: %s", name, e)
+            continue
+
+    return {"text": "", "lines": [], "preprocess": "none"}
+
+
+def paddle_extract_plain_text(bgr_color) -> str:
+    """Backward-compatible: structured extract, plain text only."""
+    return (paddle_extract_structured(bgr_color) or {}).get("text") or ""
 
 
 def docx_image_then_text(image_bytes: bytes, text: str) -> bytes:
@@ -244,9 +322,15 @@ def ocr_extract_text_from_bytes(image_bytes: bytes) -> dict[str, Any]:
     if img is None:
         raise ValueError("Invalid image")
     img = resize_for_ocr(img)
-    processed = cv_preprocess(img)
-    text = paddle_extract_plain_text(processed)
-    return {"text": text}
+    structured = paddle_extract_structured(img)
+    text = (structured.get("text") or "").strip()
+    out: dict[str, Any] = {"text": text}
+    lines = structured.get("lines") or []
+    if lines:
+        out["lines"] = lines
+    if structured.get("preprocess"):
+        out["preprocess"] = structured["preprocess"]
+    return out
 
 
 def ocr_image_to_docx_from_bytes(image_bytes: bytes) -> dict[str, Any]:
@@ -254,9 +338,8 @@ def ocr_image_to_docx_from_bytes(image_bytes: bytes) -> dict[str, Any]:
     if img is None:
         raise ValueError("Invalid image")
     img = resize_for_ocr(img)
-    processed = cv_preprocess(img)
     try:
-        text = paddle_extract_plain_text(processed)
+        text = paddle_extract_plain_text(img)
     except Exception as e:
         logger.warning("Paddle OCR failed, image-only DOCX: %s", e)
         text = ""

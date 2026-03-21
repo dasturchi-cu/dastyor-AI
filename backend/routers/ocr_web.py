@@ -8,7 +8,7 @@ import os
 import time
 from typing import List, Optional
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile
 from fastapi.responses import StreamingResponse
 from telegram import InputFile
 
@@ -19,7 +19,6 @@ from backend.services.paddle_ocr_runtime import (
     get_ocr_thread_pool,
     paddle_extract_plain_text,
 )
-from backend.services.paddle_ocr_runtime import cv_preprocess as paddle_cv_preprocess
 from backend.services.paddle_ocr_runtime import resize_for_ocr as paddle_resize
 from backend.services.temp_files import safe_remove, temp_image_path
 from backend.services.upload_io import EmptyUploadError, UploadTooLargeError, read_upload_limited
@@ -63,10 +62,76 @@ async def api_ocr_extract(file: UploadFile = File(...)):
     return {"ok": True, "text": plain, "html": html_text}
 
 
-@router.post("/ocr")
-async def ocr_paddle(file: UploadFile = File(...)):
+@router.post("/api/ocr_extract_docx")
+async def api_ocr_extract_docx(file: UploadFile = File(...)):
+    """
+    Bot bilan bir xil: Gemini → HTML → python-docx (1:1 layout).
+    """
     try:
-        from backend.services.paddle_ocr_runtime import bytes_to_bgr, ensure_paddle_imports
+        raw = await read_upload_limited(file)
+    except EmptyUploadError:
+        raise HTTPException(status_code=400, detail="Fayl bo'sh")
+    except UploadTooLargeError:
+        raise HTTPException(status_code=400, detail="Fayl juda katta")
+
+    with temp_image_path(suffix=safe_filename_part(file.filename or "", ".jpg")) as img_path:
+        try:
+            with open(img_path, "wb") as f:
+                f.write(raw)
+        except OSError as e:
+            raise HTTPException(status_code=500, detail=f"Fayl saqlashda xato: {e}")
+
+        try:
+            from bot.services.ocr_service import extract_text_from_image
+
+            html_text = await extract_text_from_image(img_path)
+        except Exception as e:
+            logger.error("api_ocr_extract_docx OCR xatosi: %s", e, exc_info=True)
+            raise HTTPException(status_code=502, detail=f"OCR xatosi: {str(e)[:200]}")
+
+    if not html_text or not html_text.strip():
+        raise HTTPException(status_code=422, detail="Rasmdan matn ajratib bo'lmadi")
+
+    try:
+        from docx import Document
+
+        from bot.handlers.ocr_to_word import add_html_to_docx
+
+        loop = asyncio.get_running_loop()
+
+        def _build():
+            doc = Document()
+            add_html_to_docx(doc, html_text)
+            buf = io.BytesIO()
+            doc.save(buf)
+            buf.seek(0)
+            return buf.read()
+
+        docx_bytes = await loop.run_in_executor(None, _build)
+    except Exception as e:
+        logger.error("api_ocr_extract_docx DOCX xatosi: %s", e, exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Word yaratishda xato: {str(e)[:200]}")
+
+    ts = int(time.time())
+    fname = f"OCR_1to1_{ts}.docx"
+    return StreamingResponse(
+        io.BytesIO(docx_bytes),
+        media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        headers={"Content-Disposition": f'attachment; filename="{fname}"'},
+    )
+
+
+@router.post("/ocr")
+async def ocr_paddle(
+    file: UploadFile = File(...),
+    layout: Optional[str] = Query(None, description="1/true=yes — bbox va qatorlar bilan JSON"),
+):
+    try:
+        from backend.services.paddle_ocr_runtime import (
+            bytes_to_bgr,
+            ensure_paddle_imports,
+            paddle_extract_structured,
+        )
 
         ensure_paddle_imports()
     except ImportError:
@@ -87,11 +152,22 @@ async def ocr_paddle(file: UploadFile = File(...)):
         raise HTTPException(status_code=400, detail="Invalid image")
 
     img = paddle_resize(img)
-    processed = paddle_cv_preprocess(img)
     loop = asyncio.get_running_loop()
     pool = get_ocr_thread_pool()
-    text = await loop.run_in_executor(pool, paddle_extract_plain_text, processed)
-    return {"text": text}
+    want_layout = (layout or "").strip().lower() in ("1", "true", "yes", "full")
+
+    def _run():
+        if want_layout:
+            return paddle_extract_structured(img)
+        return {"text": paddle_extract_plain_text(img), "lines": [], "preprocess": ""}
+
+    data = await loop.run_in_executor(pool, _run)
+    text = (data.get("text") or "").strip()
+    out: dict = {"text": text}
+    if want_layout:
+        out["lines"] = data.get("lines") or []
+        out["preprocess"] = data.get("preprocess") or "none"
+    return out
 
 
 @router.post("/ocr-word")
@@ -118,11 +194,10 @@ async def ocr_word_paddle(file: UploadFile = File(...)):
         raise HTTPException(status_code=400, detail="Invalid image")
 
     img = paddle_resize(img)
-    processed = paddle_cv_preprocess(img)
     loop = asyncio.get_running_loop()
     pool = get_ocr_thread_pool()
     try:
-        text = await loop.run_in_executor(pool, paddle_extract_plain_text, processed)
+        text = await loop.run_in_executor(pool, paddle_extract_plain_text, img)
     except Exception as ocr_err:
         logger.warning("Paddle OCR failed, returning image-only DOCX: %s", ocr_err)
         text = ""

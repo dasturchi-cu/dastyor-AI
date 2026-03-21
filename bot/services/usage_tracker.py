@@ -49,12 +49,13 @@ def get_user_usage(user_id: int) -> int:
         return data[uid].get("count", 0)
     return 0
 
-def increment_usage(user_id: int) -> int:
+def increment_usage(user_id: int, action: str = "service") -> int:
     """Increment usage and return new count"""
     try:
-        from bot.services.supabase_db import has_db, db_increment_usage, db_get_usage
+        from bot.services.supabase_db import has_db, db_increment_usage, db_get_usage, db_log_usage
         if has_db():
             db_increment_usage(user_id)
+            db_log_usage(user_id, action)
             return db_get_usage(user_id)
     except Exception as e:
         logger.debug(f"Supabase increment_usage fallback: {e}")
@@ -71,11 +72,25 @@ def can_use(user_id: int) -> bool:
     """Check if user can use a service (within daily limit)"""
     if DAILY_FREE_LIMIT <= 0:
         return True  # Unlimited
+    try:
+        from bot.services.settings_service import is_premium
+
+        if is_premium(int(user_id)):
+            return True
+    except Exception as e:
+        logger.debug("can_use premium check: %s", e)
     return get_user_usage(user_id) < DAILY_FREE_LIMIT
 
 def get_remaining(user_id: int) -> int:
     """Get remaining free uses for today"""
     if DAILY_FREE_LIMIT <= 0:
         return 999
+    try:
+        from bot.services.settings_service import is_premium
+
+        if is_premium(int(user_id)):
+            return 999
+    except Exception:
+        pass
     used = get_user_usage(user_id)
     return max(0, DAILY_FREE_LIMIT - used)

@@ -117,6 +117,11 @@
                     disabled>
                     <span>⚡ Matnni ajratish</span>
                 </button>
+                <button id="wordBtn" type="button"
+                    class="mt-2 w-full py-3 rounded-2xl border-2 border-apple-blue/40 text-apple-blue font-bold text-sm hover:bg-apple-blue/5 transition-all disabled:opacity-40 disabled:pointer-events-none"
+                    disabled>
+                    📄 Word (1:1 — bot bilan bir xil)
+                </button>
 
                 <div id="status" class="mt-3"></div>
                 <pre id="ocrText"
@@ -151,6 +156,8 @@
         document.getElementById("fileName").classList.remove("hidden");
         document.getElementById("fileNameText").textContent = `${file.name} (${Math.round(file.size / 1024)} KB)`;
         document.getElementById("convertBtn").disabled = false;
+        const wb = document.getElementById("wordBtn");
+        if (wb) wb.disabled = false;
         document.getElementById("statsBadge").textContent = "1 fayl tanlandi";
     }
     function clearSelection() {
@@ -161,6 +168,8 @@
         document.getElementById("fileName").classList.add("hidden");
         document.getElementById("fileNameText").textContent = "";
         document.getElementById("convertBtn").disabled = true;
+        const wb = document.getElementById("wordBtn");
+        if (wb) wb.disabled = true;
         document.getElementById("statsBadge").textContent = "fayl tanlanmagan";
         const st = document.getElementById("status");
         st.className = "";
@@ -204,105 +213,153 @@
         }
     }
 
+    function getOcrBaseCandidates() {
+        const qs = new URLSearchParams(location.search);
+        const normalizeBase = (u) => String(u || "").trim().replace(/\/+$/, "");
+        return [
+            qs.get("api"),
+            window.DastyorAI?.BASE,
+            "https://dastyor-ai.onrender.com",
+            location.origin
+        ]
+            .map(normalizeBase)
+            .filter((v, i, arr) => v && arr.indexOf(v) === i);
+    }
+
+    async function pollOcrJob(base, jobId) {
+        let delay = 500;
+        const maxDelay = 2500;
+        const deadline = Date.now() + 120000;
+        while (Date.now() < deadline) {
+            let jr = null;
+            try {
+                const r = await fetch(base + "/api/jobs/" + jobId);
+                jr = r.ok ? await r.json() : null;
+            } catch (_) {}
+            const st = jr?.status;
+            if (st === "succeeded") return jr?.result || {};
+            if (st === "failed") throw new Error(jr?.error || "OCR xatosi");
+            await new Promise((r) => setTimeout(r, delay));
+            delay = Math.min(maxDelay, Math.round(delay * 1.25));
+        }
+        throw new Error("OCR juda uzoq davom etdi. Keyinroq urinib ko'ring.");
+    }
+
+    /**
+     * Bot bilan bir xil: avval Gemini (/api/ocr_extract), keyin Paddle (/ocr), so'ng /api/ocr (sinxron yoki job).
+     */
+    async function runOcrPipeline(file) {
+        const baseCandidates = getOcrBaseCandidates();
+        const steps = [
+            { path: "/api/ocr_extract", name: "gemini" },
+            { path: "/ocr", name: "paddle" },
+            { path: "/api/ocr", name: "api" },
+        ];
+        let lastDetail = "";
+        for (const base of baseCandidates) {
+            for (const step of steps) {
+                try {
+                    const fd = new FormData();
+                    fd.append("file", file);
+                    const r = await fetch(base + step.path, { method: "POST", body: fd });
+                    if (r.status === 404) continue;
+                    if (!r.ok) {
+                        try {
+                            const err = await r.json();
+                            lastDetail = err.detail || err.error || lastDetail;
+                        } catch (_) {}
+                        continue;
+                    }
+                    const data = await r.json();
+                    let text = String(data?.text || "").trim();
+                    let usedBase = base;
+                    if (!text && data?.job_id) {
+                        const result = await pollOcrJob(base, String(data.job_id));
+                        text = String(result?.text || "").trim();
+                    }
+                    if (text) {
+                        return { text, base: usedBase, engine: step.name, raw: data };
+                    }
+                } catch (e) {
+                    lastDetail = e.message || String(e);
+                }
+            }
+        }
+        throw new Error(lastDetail || "Rasmdan matn topilmadi yoki server javob bermadi");
+    }
+
     async function convertToWord() {
         if (!selectedFile) return;
         showStatus("loading", "Rasm tayyorlanmoqda...");
         document.getElementById("convertBtn").disabled = true;
+        const wordBtn = document.getElementById("wordBtn");
+        if (wordBtn) wordBtn.disabled = true;
         try {
             if (!optimizedFile) {
                 showStatus("loading", "Rasm siqilmoqda...");
                 optimizedFile = await optimizeImageForOCR(selectedFile);
             }
-            showStatus("loading", "Matn ajratilmoqda...");
-            const qs = new URLSearchParams(location.search);
-            const normalizeBase = (u) => String(u || "").trim().replace(/\/+$/, "");
-            const baseCandidates = [
-                qs.get("api"),
-                window.DastyorAI?.BASE,
-                "https://dastyor-ai.onrender.com",
-                location.origin
-            ]
-                .map(normalizeBase)
-                .filter((v, i, arr) => v && arr.indexOf(v) === i);
-
-            const pathCandidates = ["/ocr", "/api/ocr"];
-            let res = null;
-            let usedBase = "";
-
-            for (const base of baseCandidates) {
-                for (const path of pathCandidates) {
-                    try {
-                        const fd = new FormData();
-                        fd.append("file", optimizedFile || selectedFile);
-                        const r = await fetch(base + path, { method: "POST", body: fd });
-                        res = r;
-                        usedBase = base;
-                        // Use first non-404 response immediately
-                        if (r.status !== 404) break;
-                    } catch (_) {
-                        // try next candidate
-                    }
-                }
-                if (res && res.status !== 404) break;
-            }
-
-            if (!res) {
-                throw new Error("Internet yoki serverga ulanib bo'lmadi. Keyinroq urinib ko'ring.");
-            }
-            if (res.status === 404) {
-                throw new Error("OCR endpoint topilmadi (404). Server routingni tekshiring.");
-            }
-
-            if (!res.ok) {
-                let msg = "OCR xatosi";
-                try {
-                    const err = await res.json();
-                    msg = err.detail || err.error || msg;
-                } catch (_) {}
-                throw new Error(msg + ` (HTTP ${res.status})`);
-            }
-
-            const data = await res.json();
-
-            async function pollJob(base, jobId) {
-                let delay = 500;
-                const maxDelay = 2500;
-                const deadline = Date.now() + 120000; // 2 minutes
-                while (Date.now() < deadline) {
-                    let jr = null;
-                    try {
-                        const r = await fetch(base + "/api/jobs/" + jobId);
-                        jr = r.ok ? await r.json() : null;
-                    } catch (_) {}
-                    const st = jr?.status;
-                    if (st === "succeeded") return jr?.result || {};
-                    if (st === "failed") throw new Error(jr?.error || "OCR xatosi");
-                    await new Promise((r) => setTimeout(r, delay));
-                    delay = Math.min(maxDelay, Math.round(delay * 1.25));
-                }
-                throw new Error("OCR juda uzoq davom etdi. Keyinroq urinib ko'ring.");
-            }
-
-            // New async flow: /api/ocr returns { job_id }, then poll /api/jobs/{job_id}
-            let text = String(data?.text || "").trim();
-            if (!text && data?.job_id) {
-                showStatus("loading", "Navbatda... matn ajratilmoqda");
-                const base = usedBase || location.origin;
-                const result = await pollJob(base, String(data.job_id));
-                text = String(result?.text || "").trim();
-            }
-
+            showStatus("loading", "Matn ajratilmoqda (bot bilan bir xil tartib)...");
+            const file = optimizedFile || selectedFile;
+            const { text, engine } = await runOcrPipeline(file);
             if (!text) throw new Error("Rasmdan matn topilmadi");
             const textOut = document.getElementById("ocrText");
             textOut.textContent = text;
             textOut.classList.remove("hidden");
-            showStatus("success", "Matn ajratildi");
+            const label = engine === "gemini" ? "Matn ajratildi (AI — botdagi kabi)" : "Matn ajratildi (zaxira OCR)";
+            showStatus("success", label);
             tg?.HapticFeedback?.notificationOccurred?.("success");
         } catch (e) {
             showStatus("error", e.message || "Xatolik yuz berdi");
             tg?.HapticFeedback?.notificationOccurred?.("error");
         } finally {
             document.getElementById("convertBtn").disabled = false;
+            if (wordBtn) wordBtn.disabled = !selectedFile;
+        }
+    }
+
+    async function downloadOcrWordOneToOne() {
+        if (!selectedFile) return;
+        showStatus("loading", "Word hujjat tayyorlanmoqda (1:1)...");
+        const wordBtn = document.getElementById("wordBtn");
+        document.getElementById("convertBtn").disabled = true;
+        if (wordBtn) wordBtn.disabled = true;
+        try {
+            if (!optimizedFile) {
+                optimizedFile = await optimizeImageForOCR(selectedFile);
+            }
+            const file = optimizedFile || selectedFile;
+            const bases = getOcrBaseCandidates();
+            let ok = false;
+            for (const base of bases) {
+                try {
+                    const fd = new FormData();
+                    fd.append("file", file);
+                    const r = await fetch(base + "/api/ocr_extract_docx", { method: "POST", body: fd });
+                    if (!r.ok || r.status === 404) continue;
+                    const blob = await r.blob();
+                    if (!blob || blob.size < 100) continue;
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement("a");
+                    a.href = url;
+                    a.download = "OCR_1to1.docx";
+                    document.body.appendChild(a);
+                    a.click();
+                    a.remove();
+                    URL.revokeObjectURL(url);
+                    ok = true;
+                    showStatus("success", "Word fayl yuklandi");
+                    tg?.HapticFeedback?.notificationOccurred?.("success");
+                    break;
+                } catch (_) {}
+            }
+            if (!ok) throw new Error("Word yaratib bo'lmadi — GOOGLE_API_KEY yoki serverni tekshiring");
+        } catch (e) {
+            showStatus("error", e.message || "Xatolik");
+            tg?.HapticFeedback?.notificationOccurred?.("error");
+        } finally {
+            document.getElementById("convertBtn").disabled = false;
+            if (wordBtn) wordBtn.disabled = !selectedFile;
         }
     }
 
@@ -320,6 +377,8 @@
             if (e.dataTransfer.files?.[0]) bindFile(e.dataTransfer.files[0]);
         });
         document.getElementById("convertBtn").addEventListener("click", convertToWord);
+        const wb = document.getElementById("wordBtn");
+        if (wb) wb.addEventListener("click", downloadOcrWordOneToOne);
         document.getElementById("backBtn").onclick = (e) => {
             e.preventDefault();
             location.href = 'more.html';

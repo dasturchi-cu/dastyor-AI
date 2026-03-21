@@ -194,7 +194,13 @@ async def premium_payment_review_callback(update: Update, context: ContextTypes.
 
     # ── 1) Supabase path (payments id) ─────────────────────────────────────
     try:
-        from bot.services.supabase_db import has_db as supa_has_db, db_get_payment, db_set_payment_status, db_activate_subscription
+        from bot.services.supabase_db import (
+            has_db as supa_has_db,
+            db_get_payment,
+            db_set_payment_status,
+            db_activate_subscription,
+            db_reset_daily_usage,
+        )
         if supa_has_db():
             pay = db_get_payment(request_id)
             if pay:
@@ -216,6 +222,7 @@ async def premium_payment_review_callback(update: Update, context: ContextTypes.
                         expire_date=expire_dt.isoformat(),
                         status="active",
                     )
+                    db_reset_daily_usage(uid)
 
                     # Notify user
                     end_date_str = expire_dt.strftime("%Y-%m-%d")
@@ -281,6 +288,14 @@ async def premium_payment_review_callback(update: Update, context: ContextTypes.
         username = profile.get("username") or req.get("username") or ""
         end_date = add_premium(uid, days=days, name=name, username=username)
         crm.log_premium_transaction(uid, days, str(query.from_user.id))
+
+        try:
+            from bot.services.supabase_db import has_db as supa_has_db, db_reset_daily_usage
+
+            if supa_has_db():
+                db_reset_daily_usage(uid)
+        except Exception:
+            pass
 
         start_dt = datetime.utcnow()
         expire_dt = start_dt + timedelta(days=days)

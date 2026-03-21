@@ -735,32 +735,93 @@ async def process_admin_state_input(update: Update, context: ContextTypes.DEFAUL
     elif state == 'support_reply':
         target_uid = context.user_data.get('support_reply_user_id')
         req_id = context.user_data.get('support_reply_req_id')
-        reply_text = (text or "").strip()
+        msg = update.message
+        adm = update.effective_user.username if update.effective_user else ""
         if not target_uid:
             await update.message.reply_text("❌ Target user topilmadi.", reply_markup=get_admin_keyboard())
             context.user_data.pop('admin_state', None)
             return True
-        if not reply_text:
-            await update.message.reply_text("❓ Javob matnini yuboring yoki bekor qiling.")
-            return True
-        try:
-            await _send_support_reply_to_user(
-                context,
-                int(target_uid),
-                reply_text,
-                int(req_id) if req_id else None,
-                admin_username=update.effective_user.username if update.effective_user else "",
-                template_used="manual",
-            )
+
+        async def _done_ok():
             await update.message.reply_text(
                 f"✅ Javob foydalanuvchiga yuborildi (ID: <code>{target_uid}</code>).",
                 parse_mode="HTML",
-                reply_markup=get_admin_keyboard()
+                reply_markup=get_admin_keyboard(),
             )
+
+        try:
+            if msg and msg.photo:
+                cap = (msg.caption or "").strip()
+                cap_out = f"📩 Admin javobi:\n\n{cap}" if cap else "📩 Admin javobi (rasm)"
+                await context.bot.send_photo(
+                    chat_id=int(target_uid),
+                    photo=msg.photo[-1].file_id,
+                    caption=cap_out[:1024],
+                )
+                if req_id:
+                    log_support_reply(
+                        int(req_id),
+                        admin_username=adm,
+                        template_used="manual_photo",
+                        user_id=int(target_uid),
+                    )
+                    set_support_status(int(req_id), "resolved")
+                await _done_ok()
+            elif msg and msg.document:
+                cap = (msg.caption or "").strip()
+                cap_out = f"📩 Admin javobi:\n\n{cap}" if cap else "📩 Admin javobi (fayl)"
+                await context.bot.send_document(
+                    chat_id=int(target_uid),
+                    document=msg.document.file_id,
+                    caption=cap_out[:1024],
+                )
+                if req_id:
+                    log_support_reply(
+                        int(req_id),
+                        admin_username=adm,
+                        template_used="manual_document",
+                        user_id=int(target_uid),
+                    )
+                    set_support_status(int(req_id), "resolved")
+                await _done_ok()
+            elif msg and msg.video:
+                cap = (msg.caption or "").strip()
+                cap_out = f"📩 Admin javobi:\n\n{cap}" if cap else "📩 Admin javobi (video)"
+                await context.bot.send_video(
+                    chat_id=int(target_uid),
+                    video=msg.video.file_id,
+                    caption=cap_out[:1024],
+                )
+                if req_id:
+                    log_support_reply(
+                        int(req_id),
+                        admin_username=adm,
+                        template_used="manual_video",
+                        user_id=int(target_uid),
+                    )
+                    set_support_status(int(req_id), "resolved")
+                await _done_ok()
+            else:
+                reply_text = ((msg.text if msg else None) or (msg.caption if msg else None) or text or "").strip()
+                if not reply_text:
+                    await update.message.reply_text(
+                        "❓ Matn, rasm yoki PDF/Word fayl yuboring yoki bekor qiling.",
+                        reply_markup=get_admin_keyboard(),
+                    )
+                    return True
+                await _send_support_reply_to_user(
+                    context,
+                    int(target_uid),
+                    reply_text,
+                    int(req_id) if req_id else None,
+                    admin_username=adm,
+                    template_used="manual",
+                )
+                await _done_ok()
         except Exception as e:
             await update.message.reply_text(
                 f"❌ Yuborishda xatolik: {e}",
-                reply_markup=get_admin_keyboard()
+                reply_markup=get_admin_keyboard(),
             )
         finally:
             context.user_data.pop('admin_state', None)

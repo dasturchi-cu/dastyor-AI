@@ -54,27 +54,50 @@ async def support_group_router(update: Update, context: ContextTypes.DEFAULT_TYP
     user_is_admin = is_admin(user.id)
 
     # Admin reply flow (replying to forwarded complaint header).
-    if user_is_admin and msg.reply_to_message and (msg.text or msg.caption):
+    if user_is_admin and msg.reply_to_message:
         target_uid = _extract_target_user_id_from_message(msg.reply_to_message)
         if target_uid:
-            reply_text = (msg.text or msg.caption or "").strip()
-            if reply_text:
-                try:
-                    await context.bot.send_message(
+            try:
+                if msg.text or msg.caption:
+                    reply_text = (msg.text or msg.caption or "").strip()
+                    if reply_text:
+                        await context.bot.send_message(
+                            chat_id=target_uid,
+                            text=f"📩 Admin javobi:\n\n{reply_text}",
+                        )
+                elif msg.photo:
+                    cap = (msg.caption or "").strip()
+                    out = f"📩 Admin javobi:\n\n{cap}" if cap else "📩 Admin javobi (rasm)"
+                    await context.bot.send_photo(
                         chat_id=target_uid,
-                        text=f"📩 Admin javobi:\n\n{reply_text}",
+                        photo=msg.photo[-1].file_id,
+                        caption=out[:1024],
                     )
-                except Exception:
-                    pass
+                elif msg.document:
+                    cap = (msg.caption or "").strip()
+                    out = f"📩 Admin javobi:\n\n{cap}" if cap else "📩 Admin javobi (fayl)"
+                    await context.bot.send_document(
+                        chat_id=target_uid,
+                        document=msg.document.file_id,
+                        caption=out[:1024],
+                    )
+            except Exception:
+                pass
         return
 
-    # Non-admin users: complaints/screenshots
+    # Non-admin users: complaints + media (rasm, video, hujjat)
     if not user_is_admin:
-        if msg.text or msg.photo or msg.document:
+        if msg.text or msg.photo or msg.document or msg.video:
+            label = (
+                (msg.text or msg.caption or "").strip()
+                or ("[Support: video]" if msg.video else "")
+                or ("[Support: rasm]" if msg.photo else "")
+                or ("[Support: fayl]" if msg.document else "")
+            )
             create_support_request(
                 user_id=user.id,
                 username=user.username or "",
-                message=(msg.text or msg.caption or "[Support attachment]").strip(),
+                message=label,
                 source="support_group",
             )
             return
