@@ -2,11 +2,13 @@
 from __future__ import annotations
 
 import html as html_lib
+import io
 import logging
 import os
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile
+from telegram import InputFile
 
 from backend.dependencies import get_ptb_application
 from backend.schemas.webapp import (
@@ -20,6 +22,7 @@ from backend.schemas.webapp import (
 )
 from backend.services.spellcheck_cache import spellcheck_cache_get, spellcheck_cache_key, spellcheck_cache_set
 from backend.services.user_resolve import resolve_telegram_uid
+from backend.settings import get_settings
 from backend.web_constants import (
     BOT_USERNAME,
     NOTIFY_MAX_CHARS,
@@ -295,26 +298,127 @@ async def api_spellcheck(req: SpellcheckRequest):
         )
 
     try:
-        from bot.services.ai_service import check_spelling_text
+        from bot.services.ai_service import check_spelling_text, count_words_text
 
         src = req.text.strip()
+        wc = count_words_text(src)
         key = spellcheck_cache_key(src)
         hit = spellcheck_cache_get(key)
         if hit is not None:
             corrected, fixes = hit
-            return {"ok": True, "corrected_text": corrected, "fixed": fixes}
+            fc = int(fixes or 0)
+            return {
+                "ok": True,
+                "corrected_text": corrected,
+                "fixed": fc,
+                "error_count": fc,
+                "word_count": wc,
+            }
 
         corrected, fixes = await check_spelling_text(src)
         if corrected is None:
             raise HTTPException(status_code=502, detail="Natija bo'sh qaytdi")
 
         spellcheck_cache_set(key, corrected, int(fixes or 0))
-        return {"ok": True, "corrected_text": corrected, "fixed": int(fixes or 0)}
+        fc = int(fixes or 0)
+        return {
+            "ok": True,
+            "corrected_text": corrected,
+            "fixed": fc,
+            "error_count": fc,
+            "word_count": wc,
+        }
     except HTTPException:
         raise
     except Exception as e:
         logger.error("Spellcheck API error: %s", e, exc_info=True)
         raise HTTPException(status_code=500, detail=f"Imlo serveri xatosi: {str(e)[:200]}")
+
+
+@router.post("/api/spellcheck_file")
+async def api_spellcheck_file(
+    file: UploadFile = File(...),
+    token: Optional[str] = Form(None),
+    telegram_id: Optional[str] = Form(None),
+    notify_telegram: str = Form("false"),
+    ptb=Depends(get_ptb_application),
+):
+    """
+    Extract text from .txt / .docx / .pptx / .pdf → spell-check → JSON.
+    Optional: send corrected UTF-8 .txt to the user's Telegram chat.
+    """
+    uid = resolve_telegram_uid(telegram_id, token)
+    max_b = get_settings().max_upload_bytes
+    raw = await file.read()
+    do_notify = str(notify_telegram).lower() in ("1", "true", "yes", "on")
+    logger.info(
+        "POST /api/spellcheck_file name=%s bytes=%s notify=%s uid=%s",
+        file.filename,
+        len(raw),
+        do_notify,
+        uid or "-",
+    )
+    if not raw:
+        raise HTTPException(status_code=400, detail="Bo'sh fayl")
+    if len(raw) > max_b:
+        raise HTTPException(status_code=413, detail="Fayl juda katta")
+
+    try:
+        from bot.services.document_text_extract import extract_plain_text_from_bytes
+
+        text = extract_plain_text_from_bytes(file.filename or "upload.txt", raw)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
+
+    if not (text or "").strip():
+        raise HTTPException(status_code=422, detail="Fayldan matn ajratilmadi")
+
+    src = text.strip()
+    if len(src) > SPELLCHECK_MAX_CHARS:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Matn {SPELLCHECK_MAX_CHARS} belgidan oshmasligi kerak",
+        )
+
+    from bot.services.ai_service import check_spelling_text, count_words_text
+
+    wc = count_words_text(src)
+    key = spellcheck_cache_key(src)
+    hit = spellcheck_cache_get(key)
+    if hit is not None:
+        corrected, fixes = hit
+    else:
+        corrected, fixes = await check_spelling_text(src)
+        if corrected is None:
+            raise HTTPException(status_code=502, detail="Natija bo'sh qaytdi")
+        spellcheck_cache_set(key, corrected, int(fixes or 0))
+
+    fc = int(fixes or 0)
+    out = {
+        "ok": True,
+        "corrected_text": corrected,
+        "fixed": fc,
+        "error_count": fc,
+        "word_count": wc,
+        "filename": file.filename or "document",
+    }
+
+    if do_notify and uid:
+        try:
+            from bot.services.user_service import get_chat_id
+
+            chat_id = get_chat_id(int(uid)) or int(uid)
+            raw_txt = (corrected or "").encode("utf-8")
+            buf = io.BytesIO(raw_txt)
+            await ptb.bot.send_document(
+                chat_id=chat_id,
+                document=InputFile(buf, filename="imlo_tuzatilgan.txt"),
+                caption=f"✅ Imlo (WebApp)\nSo‘zlar: {wc}\nTuzatishlar: {fc}",
+            )
+        except Exception as e:
+            logger.warning("spellcheck_file Telegram: %s", e)
+
+    return out
 
 
 @router.post("/api/objective")

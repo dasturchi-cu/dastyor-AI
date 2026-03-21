@@ -32,6 +32,41 @@ logger = logging.getLogger(__name__)
 router = APIRouter(tags=["web-documents"])
 
 
+async def _cv_bytes_pdf_with_fallback(data: dict, safe: str, local_ts: int, bot_suffix: str) -> tuple[bytes, str]:
+    """
+    PDF via Playwright/WeasyPrint; if both fail, DOCX (user can open in Word / print to PDF).
+    Returns (file_bytes, filename).
+    """
+    filename_pdf = f"DASTYOR_CV_{safe}_{local_ts}{bot_suffix}.pdf"
+    filename_docx = f"DASTYOR_CV_{safe}_{local_ts}{bot_suffix}.docx"
+
+    logger.info("CV PDF pipeline: rendering HTML → PDF (Playwright/WeasyPrint)")
+    pdf_bytes = await generate_cv_pdf(data, base_url=SITE_BASE_URL)
+    if pdf_bytes:
+        logger.info("CV PDF pipeline: OK (%s bytes)", len(pdf_bytes))
+        return pdf_bytes, filename_pdf
+
+    logger.warning("CV PDF pipeline: PDF engines failed, falling back to DOCX")
+    from bot.services.doc_generator import convert_to_pdf_safe, generate_cv_docx
+
+    loop = asyncio.get_running_loop()
+    docx_path = await loop.run_in_executor(None, generate_cv_docx, data)
+    pdf_path = convert_to_pdf_safe(docx_path) if docx_path else None
+    if pdf_path and os.path.exists(pdf_path):
+        with open(pdf_path, "rb") as fh:
+            raw = fh.read()
+        safe_remove(pdf_path, docx_path)
+        logger.info("CV PDF pipeline: secondary PDF (%s bytes)", len(raw))
+        return raw, filename_pdf
+    if docx_path and os.path.exists(docx_path):
+        with open(docx_path, "rb") as fh:
+            raw = fh.read()
+        safe_remove(docx_path)
+        logger.info("CV PDF pipeline: returning DOCX only (%s bytes)", len(raw))
+        return raw, filename_docx
+    raise HTTPException(status_code=500, detail="CV eksport fayli yaratilmadi")
+
+
 @router.post("/api/generate_cv")
 async def api_generate_cv(
     req: CVRequest,
@@ -253,6 +288,14 @@ async def api_export_cv(
     safe = safe_filename(req.name or "CV")
     bot_suffix = "_@DastyorAiBot"
 
+    logger.info(
+        "POST /api/export_cv send_only=%s uid=%s template=%s img_len=%s",
+        bool(req.send_only),
+        uid_str or "-",
+        data.get("template"),
+        len((data.get("img") or "")),
+    )
+
     progress_msg_id: int | None = None
     if uid_str:
         try:
@@ -272,38 +315,16 @@ async def api_export_cv(
         async def _generate_and_send():
             try:
                 local_ts = int(time.time())
-                filename_pdf = f"DASTYOR_CV_{safe}_{local_ts}{bot_suffix}.pdf"
-                filename_docx = f"DASTYOR_CV_{safe}_{local_ts}{bot_suffix}.docx"
-
-                pdf_bytes = await generate_cv_pdf(data, base_url=SITE_BASE_URL)
-                filename_to_send = filename_pdf
-                file_bytes_to_send = pdf_bytes
-                is_docx = False
-
-                if not file_bytes_to_send:
-                    from bot.services.doc_generator import convert_to_pdf_safe, generate_cv_docx
-
-                    loop = asyncio.get_running_loop()
-                    docx_path = await loop.run_in_executor(None, generate_cv_docx, data)
-                    pdf_path = convert_to_pdf_safe(docx_path) if docx_path else None
-                    if pdf_path and os.path.exists(pdf_path):
-                        with open(pdf_path, "rb") as fh:
-                            file_bytes_to_send = fh.read()
-                        filename_to_send = filename_pdf
-                        is_docx = False
-                        safe_remove(pdf_path, docx_path)
-                    else:
-                        with open(docx_path, "rb") as fh:
-                            file_bytes_to_send = fh.read()
-                        filename_to_send = filename_docx
-                        is_docx = True
-                        safe_remove(docx_path)
+                file_bytes_to_send, filename_to_send = await _cv_bytes_pdf_with_fallback(
+                    data, safe, local_ts, bot_suffix
+                )
+                is_docx = filename_to_send.lower().endswith(".docx")
 
                 buf = io.BytesIO(file_bytes_to_send or b"")
                 buf.name = filename_to_send
                 chat_id = int(uid_str)
 
-                if filename_to_send.lower().endswith(".docx") or is_docx:
+                if is_docx:
                     ok = await send_docx_with_confirmation(
                         ptb.bot,
                         chat_id,
@@ -361,10 +382,11 @@ async def api_export_cv(
         safe_remove(docx_path)
         media_type = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
     else:
-        filename = f"DASTYOR_CV_{safe}_{ts}{bot_suffix}.pdf"
-        pdf_bytes = await generate_cv_pdf(data, base_url=SITE_BASE_URL)
-        file_bytes = pdf_bytes
-        media_type = "application/pdf"
+        file_bytes, filename = await _cv_bytes_pdf_with_fallback(data, safe, ts, bot_suffix)
+        if filename.lower().endswith(".docx"):
+            media_type = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        else:
+            media_type = "application/pdf"
 
     if uid_str:
         from bot.services.user_service import increment_file_count
@@ -413,9 +435,6 @@ async def api_export_cv(
                         pass
 
         asyncio.create_task(_send())
-
-    if req.send_only and uid_str:
-        return JSONResponse(content={"ok": True})
 
     return StreamingResponse(
         io.BytesIO(file_bytes),

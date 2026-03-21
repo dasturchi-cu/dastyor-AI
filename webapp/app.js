@@ -225,8 +225,9 @@ const DastyorAI = (() => {
 
     function navigate(page) {
         const tid = getTelegramId();
-        const sep = page.includes('?') ? '&' : '?';
-        location.href = tid ? `${page}${sep}telegram_id=${tid}` : page;
+        const abs = new URL(page, window.location.href);
+        if (tid) abs.searchParams.set('telegram_id', tid);
+        location.href = abs.toString();
     }
 
     async function notify(message) {

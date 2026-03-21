@@ -84,14 +84,33 @@ def _parse_items(raw: list[dict]) -> list[dict]:
     """
     Normalize experience/education records from the webapp payload.
     Webapp sends: {title, company, date, desc}  OR  {pos, co, yr, d}
+    CV builder (cv.html) sends experience as {from, to, description}.
     """
     out = []
     for r in raw:
+        title = (
+            r.get("title")
+            or r.get("pos")
+            or r.get("position")
+            or r.get("description")
+            or r.get("d")
+            or ""
+        )
+        company = (
+            r.get("company")
+            or r.get("co")
+            or r.get("institution")
+            or r.get("place")
+            or ""
+        )
+        date = r.get("date") or r.get("yr") or r.get("year") or ""
+        if not date and (r.get("from") or r.get("to")):
+            date = f"{r.get('from') or ''}-{r.get('to') or ''}".strip("-")
         out.append({
-            "title":   r.get("title") or r.get("pos") or r.get("position") or "",
-            "company": r.get("company") or r.get("co") or r.get("institution") or "",
-            "date":    r.get("date") or r.get("yr") or r.get("year") or "",
-            "desc":    r.get("desc") or r.get("d") or r.get("description") or "",
+            "title": title,
+            "company": company,
+            "date": date,
+            "desc": r.get("desc") or r.get("d") or r.get("description") or "",
         })
     return out
 
@@ -198,6 +217,13 @@ async def generate_cv_pdf(data: dict, base_url: str | None = None) -> bytes | No
                 page = await browser.new_page()
                 # networkidle can hang if external resources keep polling.
                 await page.set_content(html_str, wait_until="domcontentloaded")
+                try:
+                    await page.evaluate(
+                        """async () => { if (document.fonts && document.fonts.ready) await document.fonts.ready; }"""
+                    )
+                except Exception:
+                    pass
+                await page.wait_for_timeout(450)
                 pdf_bytes = await page.pdf(
                     format="A4",
                     print_background=True,
@@ -218,6 +244,13 @@ async def generate_cv_pdf(data: dict, base_url: str | None = None) -> bytes | No
                     )
                     page = await browser.new_page()
                     await page.set_content(html_str, wait_until="domcontentloaded")
+                    try:
+                        await page.evaluate(
+                            """async () => { if (document.fonts && document.fonts.ready) await document.fonts.ready; }"""
+                        )
+                    except Exception:
+                        pass
+                    await page.wait_for_timeout(450)
                     pdf_bytes = await page.pdf(
                         format="A4",
                         print_background=True,
@@ -267,6 +300,13 @@ async def generate_obyektivka_pdf(data: dict, base_url: str | None = None) -> by
                 )
                 page = await browser.new_page()
                 await page.set_content(html_str, wait_until="domcontentloaded")
+                try:
+                    await page.evaluate(
+                        """async () => { if (document.fonts && document.fonts.ready) await document.fonts.ready; }"""
+                    )
+                except Exception:
+                    pass
+                await page.wait_for_timeout(450)
                 pdf_bytes = await page.pdf(
                     format="A4",
                     print_background=True,
@@ -286,6 +326,13 @@ async def generate_obyektivka_pdf(data: dict, base_url: str | None = None) -> by
                     )
                     page = await browser.new_page()
                     await page.set_content(html_str, wait_until="domcontentloaded")
+                    try:
+                        await page.evaluate(
+                            """async () => { if (document.fonts && document.fonts.ready) await document.fonts.ready; }"""
+                        )
+                    except Exception:
+                        pass
+                    await page.wait_for_timeout(450)
                     pdf_bytes = await page.pdf(
                         format="A4",
                         print_background=True,

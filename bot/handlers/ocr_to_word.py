@@ -10,7 +10,7 @@ from telegram.ext import ContextTypes
 from telegram.constants import ParseMode, ChatAction
 from docx import Document
 from bs4 import BeautifulSoup
-from bot.keyboards.reply_keyboards import get_back_button, get_main_menu
+from bot.keyboards.reply_keyboards import get_back_button, get_main_menu, get_ocr_to_word_keyboard
 from bot.utils.helpers import is_back_button
 from bot.services.user_service import get_user_lang
 from bot.services.ocr_service import extract_text_from_image
@@ -23,6 +23,43 @@ from docx.enum.text import WD_ALIGN_PARAGRAPH
 logger = logging.getLogger(__name__)
 
 from bs4.element import NavigableString, Tag
+
+
+def _schedule_ocr_auto_process(
+    bot,
+    chat_id: int,
+    user_id: int,
+    context: ContextTypes.DEFAULT_TYPE,
+) -> None:
+    """After the last photo, wait ~3s; if no new photos, start batch OCR (debounced)."""
+    old = context.user_data.get("_ocr_debounce_task")
+    if old and not old.done():
+        old.cancel()
+
+    async def _job():
+        try:
+            await asyncio.sleep(2.8)
+            if context.user_data.get("waiting_for") != "ocr_image":
+                return
+            imgs = list(context.user_data.get("ocr_images") or [])
+            if not imgs:
+                return
+            context.user_data["ocr_images"] = []
+            _run_ocr_batch_background(bot, chat_id, user_id, imgs, context.user_data)
+            await bot.send_message(
+                chat_id=chat_id,
+                text=(
+                    f"⏳ {len(imgs)} ta rasm avtomatik qayta ishlanmoqda.\n"
+                    "Bir nechta rasm yuborganingizda, oxirgi rasmdan keyin ~3 soniya kutamiz."
+                ),
+            )
+        except asyncio.CancelledError:
+            return
+        except Exception as e:
+            logger.error("OCR debounce error: %s", e, exc_info=True)
+
+    context.user_data["_ocr_debounce_task"] = asyncio.create_task(_job())
+
 
 def _add_run_with_style(paragraph_obj, element, bold=False, italic=False, underline=False):
     """Recursively parses HTML elements and adds styled runs to a docx paragraph."""
@@ -245,14 +282,18 @@ async def ocr_to_word_handler(update: Update, context: ContextTypes.DEFAULT_TYPE
     """Start OCR process: collect images then process on 'Tayyor'."""
     context.user_data["waiting_for"] = "ocr_image"
     context.user_data["ocr_images"] = []
+    uid = update.effective_user.id if update.effective_user else None
+    lang = get_user_lang(uid) if uid else "uz_lat"
 
     msg = (
         "📜 **Hujjat rasmi → Word AI** ✨\n\n"
-        "Rasmlarni yuboring (1–20 ta). Tayyor bo'lgach, *Tayyor* deb yozing yoki tugmani bosing."
+        "Rasmlarni yuboring (1–20 ta).\n"
+        "Pastdagi **«✅ Tayyor — Word yaratish»** tugmasini bosing yoki *tayyor* deb yozing.\n"
+        "Bitta yoki bir nechta rasm yuborganingizdan keyin ~3 soniya kutib, avtomatik ham boshlanadi."
     )
     await update.message.reply_text(
         msg,
-        reply_markup=get_back_button(),
+        reply_markup=get_ocr_to_word_keyboard(lang),
         parse_mode=ParseMode.MARKDOWN,
     )
 
@@ -411,6 +452,9 @@ async def process_ocr_tayyor(update: Update, context: ContextTypes.DEFAULT_TYPE)
     images = context.user_data.get("ocr_images") or []
     if not images:
         return False
+    t = context.user_data.get("_ocr_debounce_task")
+    if t and not t.done():
+        t.cancel()
     chat_id = update.effective_chat.id
     user_id = update.effective_user.id if update.effective_user else 0
     context.user_data["ocr_images"] = []  # clear so we don't process twice
@@ -427,11 +471,15 @@ async def handle_ocr_image(update: Update, context: ContextTypes.DEFAULT_TYPE):
     message = update.message
 
     # Check if back button
+    uid = update.effective_user.id if update.effective_user else None
+    lang = get_user_lang(uid) if uid else "uz_lat"
+
     if message.text and is_back_button(message.text):
         context.user_data.pop("waiting_for", None)
         context.user_data.pop("ocr_images", None)
-        uid = update.effective_user.id if update.effective_user else None
-        lang = get_user_lang(uid) if uid else "uz_lat"
+        t = context.user_data.get("_ocr_debounce_task")
+        if t and not t.done():
+            t.cancel()
         await update.message.reply_text(
             "🏠 **Asosiy menyuga qaytildi**",
             reply_markup=get_main_menu(uid, lang),
@@ -442,7 +490,7 @@ async def handle_ocr_image(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not message.photo and not message.document:
         await update.message.reply_text(
             "⚠️ Iltimos, rasm yuboring (JPG yoki PNG formatda).",
-            reply_markup=get_back_button()
+            reply_markup=get_ocr_to_word_keyboard(lang),
         )
         return
 
@@ -455,8 +503,8 @@ async def handle_ocr_image(update: Update, context: ContextTypes.DEFAULT_TYPE):
     images = context.user_data.setdefault("ocr_images", [])
     if len(images) >= 20:
         await update.message.reply_text(
-            "❌ Maksimum 20 ta rasm. *Tayyor* deb yozing.",
-            reply_markup=get_back_button(),
+            "❌ Maksimum 20 ta rasm. *Tayyor* deb yozing yoki tugmani bosing.",
+            reply_markup=get_ocr_to_word_keyboard(lang),
             parse_mode=ParseMode.MARKDOWN,
         )
         return
@@ -465,7 +513,13 @@ async def handle_ocr_image(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await update.message.reply_text(
         f"✅ {len(images)} ta rasm qabul qilindi.\n\n"
-        "Yana rasm yuboring yoki *Tayyor* deb yozing.",
-        reply_markup=get_back_button(),
+        "Yana rasm yuboring, **Tayyor** tugmasini bosing yoki biroz kuting (avtomatik boshlanadi).",
+        reply_markup=get_ocr_to_word_keyboard(lang),
         parse_mode=ParseMode.MARKDOWN,
+    )
+    _schedule_ocr_auto_process(
+        context.bot,
+        update.effective_chat.id,
+        uid or 0,
+        context,
     )

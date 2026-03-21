@@ -272,6 +272,14 @@ async def translate_text(text: str, direction: str = "uz_en") -> str:
         return f"Tarjimada xato: {e}"
 
 
+def count_words_text(text: str) -> int:
+    """Whitespace-delimited tokens (works for Uzbek apostrophes and Cyrillic)."""
+    s = (text or "").strip()
+    if not s:
+        return 0
+    return len(re.findall(r"\S+", s))
+
+
 async def check_spelling_text(text: str) -> tuple[str, int]:
     """
     Spell-check plain text (Uzbek/Russian) with conservative corrections.
@@ -448,8 +456,8 @@ async def check_spelling_text(text: str) -> tuple[str, int]:
             )
             return (resp.text if resp and resp.text else "")
 
-        # For long texts, split into chunks and process concurrently.
-        if len(src) > 1600:
+        # For long texts, split into chunks and process concurrently (larger batches = fewer round-trips).
+        if len(src) > 2000:
             parts: list[str] = []
             buf: list[str] = []
             cur = 0
@@ -462,7 +470,7 @@ async def check_spelling_text(text: str) -> tuple[str, int]:
                         buf, cur = [], 0
                     parts.append("")
                     continue
-                if cur + len(p) + 1 > 1200 and buf:
+                if cur + len(p) + 1 > 2000 and buf:
                     parts.append("\n".join(buf).strip())
                     buf, cur = [p], len(p)
                 else:
@@ -481,7 +489,7 @@ async def check_spelling_text(text: str) -> tuple[str, int]:
                     continue
                 masked, mapping = _mask_sensitive_tokens(part)
                 batch.append((part, masked, mapping))
-                if len(batch) >= 3:
+                if len(batch) >= 8:
                     resps = await asyncio.gather(*[
                         _call_gemini(masked_part) for (_, masked_part, _) in batch
                     ])

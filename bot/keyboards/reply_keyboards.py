@@ -105,3 +105,12 @@ def get_image_to_pdf_keyboard(lang="uz_lat"):
         [KeyboardButton(t("back_to_menu", lang))],
     ]
     return ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
+
+
+def get_ocr_to_word_keyboard(lang="uz_lat"):
+    """Rasm → Word: explicit Tayyor + back (ReplyKeyboard — Telegram WebApp-friendly)."""
+    keyboard = [
+        [KeyboardButton("✅ Tayyor — Word yaratish")],
+        [KeyboardButton(t("back_to_menu", lang))],
+    ]
+    return ReplyKeyboardMarkup(keyboard, resize_keyboard=True)

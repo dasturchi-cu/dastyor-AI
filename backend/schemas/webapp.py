@@ -49,7 +49,7 @@ class ObjectiveRequest(BaseModel):
 
 class CVRequest(BaseModel):
     telegram_id: Optional[int] = None
-    token: Optional[str] = None
+    token: Optional[str] = None  # session from /api/auth
     name: str = ""
     spec: str = ""
     phone: str = ""
@@ -98,7 +98,7 @@ class ObyektivkaRequest(BaseModel):
 
 class ExportCVRequest(BaseModel):
     telegram_id: Optional[int] = None
-    token: Optional[str] = None
+    token: Optional[str] = None  # session from /api/auth (required for some deployments)
     format: str = "pdf"
     lang: str = "uz_lat"
     send_only: Optional[bool] = False
