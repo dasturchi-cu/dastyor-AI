@@ -461,7 +461,7 @@ async def api_export_obyektivka(
         try:
             progress_msg = await ptb.bot.send_message(
                 chat_id=int(uid_str),
-                text="⏳ Obyektivka tayyorlanmoqda... (taxminan 10-15 soniya)\nChatda faylni kuting.",
+                text="⏳ Obyektivka tayyorlanmoqda... (bir necha soniya)",
             )
             progress_msg_id = progress_msg.message_id
         except Exception:
@@ -537,9 +537,8 @@ async def api_export_obyektivka(
                         ),
                         parse_mode="HTML",
                     )
-                    await ptb.bot.send_message(chat_id=chat_id, text="✅ Obyektivka PDF fayli botga yuborildi")
                 else:
-                    ok = await send_docx_with_confirmation(
+                    await send_docx_with_confirmation(
                         ptb.bot,
                         chat_id,
                         buf,
@@ -551,11 +550,6 @@ async def api_export_obyektivka(
                         ),
                         parse_mode="HTML",
                     )
-                    if ok:
-                        await ptb.bot.send_message(
-                            chat_id=chat_id,
-                            text="✅ Obyektivka Word fayli botga yuborildi",
-                        )
             except Exception as e:
                 logger.warning("Obyektivka export Telegram send failed: %s", e)
             finally:

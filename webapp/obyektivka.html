@@ -675,8 +675,15 @@ async function sendObyektivkaToBot(fmt){
   try{
     await sendObyektivkaViaApi(fmt);
     tg.HapticFeedback&&tg.HapticFeedback.notificationOccurred&&tg.HapticFeedback.notificationOccurred('success');
-    alert("⏳ So'rov yuborildi. Chatda faylni kuting.");
-    setTimeout(function(){ try{ tg.close(); }catch(_){} }, 1200);
+    var doneMsg = (fmt === 'pdf')
+      ? "✅ Tayyor! PDF fayl chatga yuborildi. Chatni ochib faylni oling."
+      : "✅ Tayyor! Word fayl chatga yuborildi. Chatni ochib faylni oling.";
+    if (typeof tg.showAlert === 'function') {
+      tg.showAlert(doneMsg, function () { try { tg.close(); } catch (_) {} });
+    } else {
+      alert(doneMsg);
+      setTimeout(function () { try { tg.close(); } catch (_) {} }, 600);
+    }
   }catch(e){
     alert("❌ Yuborishda xatolik: " + (e.message||String(e)).slice(0,80));
   }finally{
