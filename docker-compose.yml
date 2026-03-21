@@ -10,6 +10,9 @@ services:
     build: .
     environment:
       - ENV=prod
+      # Required for webhook app: same token as the Telegram bot
+      - BOT_TOKEN=${BOT_TOKEN}
+      - WEBHOOK_URL=${WEBHOOK_URL:-http://api:8000/webhook}
       - REDIS_URL=redis://redis:6379/0
       - CELERY_BROKER_URL=redis://redis:6379/0
       - CELERY_RESULT_BACKEND=redis://redis:6379/0
@@ -22,6 +25,7 @@ services:
       - "8000:8000"
     depends_on:
       - redis
+    # Full stack (backend.app re-exports api_webhook app): WebApp, REST, webhook, Celery routes
     command: ["uvicorn", "backend.app:app", "--host", "0.0.0.0", "--port", "8000"]
     restart: unless-stopped
 

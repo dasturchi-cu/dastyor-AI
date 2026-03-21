@@ -44,43 +44,60 @@ BOT_TOKEN=your_token_here
 
 ## 🏃 Run
 
+**Telegram bot (polling, local dev):**
+
 ```bash
 python main.py
 ```
+
+**Production HTTP stack (WebApp static + REST `/api/*` + sync `/ocr` + Telegram webhook + Celery job routes):**
+
+```bash
+uvicorn backend.app:app --host 0.0.0.0 --port 8000
+# equivalent thin entry module:
+uvicorn api_webhook:app --host 0.0.0.0 --port 8000
+```
+
+`backend.app` imports the same `app` instance built in `backend.server_app` (via `api_webhook.py`), so Docker and docs stay aligned.
+
+Set `WEBAPP_BASE` to your public URL including `/webapp`, e.g. `https://your-host/webapp`, so Telegram opens `cv.html`, `ocr.html`, etc. A mismatch (API-only host without `/webapp`) causes WebApp “Not Found” / blank app.
 
 ## 📁 Project Structure
 
 ```
 hujjatchi_ai_bot/
+├── api_webhook.py          # ASGI entry (logging + create_webhook_app)
+├── backend/
+│   ├── app.py              # Re-exports `app` (same object as api_webhook)
+│   ├── server_app.py       # Composes FastAPI: lifespan, routers, /webapp mount
+│   ├── routers/            # site, public_web, ocr_web, documents_web, telegram_files_web, tg_update, jobs, ocr
+│   ├── services/           # paddle_ocr_runtime, upload_io, temp_files, spellcheck_cache, …
+│   ├── schemas/webapp.py   # Pydantic models for WebApp API
+│   ├── tasks.py            # Celery → paddle_ocr_runtime
+│   └── ...
 ├── bot/
-│   ├── handlers/       # Message handlers
-│   ├── keyboards/      # Reply keyboards
-│   ├── utils/          # Helper functions
-│   └── services/       # Business logic (future)
-├── config.py           # Configuration
-├── main.py             # Entry point
-├── requirements.txt    # Dependencies
-└── .env                # Environment variables
+│   ├── handlers/           # Telegram handlers
+│   ├── keyboards/
+│   ├── utils/
+│   └── services/           # AI, OCR (Gemini), docs, sessions
+├── webapp/                 # Telegram Web App (HTML/JS)
+├── main.py                 # Polling bot + optional `RUN_MODE=api` OCR API
+├── config.py
+├── requirements.txt
+└── .env
 ```
 
 ## 🔧 Tech Stack
 
-- **Framework:** python-telegram-bot 20.7
-- **Language:** Python 3.11+
-- **Architecture:** Handler-based routing
-- **Future:** FastAPI webhooks, PostgreSQL, Redis
+- **Bot:** python-telegram-bot 21+
+- **HTTP:** FastAPI + Uvicorn
+- **OCR:** PaddleOCR (local, shared `backend/services/paddle_ocr_runtime.py`), Gemini path in `bot/services/ocr_service.py` for web “AI OCR”
+- **Queue (optional):** Celery + Redis (`docker-compose.yml`)
 
 ## 📝 Todo
 
-- [ ] Integrate Speech-to-Text API
-- [ ] Add OCR engine (Tesseract/Google Vision)
-- [ ] Implement transliteration logic
-- [ ] Add AI translation service
-- [ ] PDF generation from images
-- [ ] Spell checker integration
-- [ ] Payment gateway (Click, Payme)
-- [ ] Database layer
-- [ ] Admin panel
+- [ ] Migrate `google.generativeai` → `google.genai`
+- [ ] Payment gateway (Click, Payme) where needed
 
 ## 👨‍💻 Developer
 
