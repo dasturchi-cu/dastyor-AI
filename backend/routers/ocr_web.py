@@ -9,7 +9,7 @@ import time
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile
-from fastapi.responses import StreamingResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 from telegram import InputFile
 
 from backend.dependencies import get_ptb_application
@@ -428,6 +428,7 @@ async def api_upload_ocr(
 async def api_pdf_direct(
     files: List[UploadFile] = File(...),
     telegram_id: Optional[str] = Form(None),
+    send_only: Optional[str] = Form(None),
     ptb=Depends(get_ptb_application),
 ):
     try:
@@ -436,20 +437,27 @@ async def api_pdf_direct(
         img_paths: list[str] = []
         ts = int(time.time())
         settings = get_settings()
+        n_files = len(files)
+        want_send_only = str(send_only or "").lower() in ("1", "true", "yes", "on")
         try:
-            for i, file in enumerate(files):
+
+            async def _save_one(i: int, file: UploadFile) -> str:
                 if not file.filename:
-                    raise HTTPException(status_code=400, detail="Noto'g'ri fayl nomi")
+                    raise ValueError("Noto'g'ri fayl nomi")
                 ext = os.path.splitext(file.filename)[1] or ".jpg"
                 path = f"temp/pdf_req_{ts}_{i}{ext}"
                 content = await file.read()
                 if not content:
-                    raise HTTPException(status_code=400, detail=f"Bo'sh fayl: {file.filename}")
+                    raise ValueError(f"Bo'sh fayl: {file.filename}")
                 if len(content) > settings.max_upload_bytes:
-                    raise HTTPException(status_code=400, detail=f"Fayl juda katta: {file.filename}")
+                    raise ValueError(f"Fayl juda katta: {file.filename}")
                 with open(path, "wb") as f:
                     f.write(content)
-                img_paths.append(path)
+                return path
+
+            img_paths = await asyncio.gather(*[_save_one(i, f) for i, f in enumerate(files)])
+        except ValueError as ve:
+            raise HTTPException(status_code=400, detail=str(ve)) from ve
         except HTTPException:
             raise
         except Exception as e:
@@ -479,8 +487,10 @@ async def api_pdf_direct(
 
         safe_remove(pdf_path, *img_paths)
 
-        if telegram_id and telegram_id.strip().isdigit():
+        tid_ok = telegram_id and telegram_id.strip().isdigit()
+        if tid_ok:
             chat_id = int(telegram_id)
+            n_merge = n_files
 
             async def send_pdf_to_telegram():
                 try:
@@ -489,13 +499,30 @@ async def api_pdf_direct(
                     await ptb.bot.send_document(
                         chat_id=chat_id,
                         document=InputFile(buf, filename=buf.name),
-                        caption=f"✅ **PDF tayyor!**\n📄 {len(img_paths)} ta rasm birlashtirildi.",
-                        parse_mode="Markdown",
+                        caption=(
+                            "✅ PDF tayyor va botga yuborildi\n"
+                            f"📄 {n_merge} ta rasm birlashtirildi."
+                        ),
                     )
+                    try:
+                        from bot.services.supabase_db import db_insert_action_log
+
+                        db_insert_action_log(chat_id, "pdf", buf.name or "merged.pdf")
+                    except Exception:
+                        pass
                 except Exception as tg_err:
                     logger.error("[PDF API Background] Telegram xatosi: %s", tg_err, exc_info=True)
 
             asyncio.create_task(send_pdf_to_telegram())
+
+        if want_send_only and tid_ok:
+            return JSONResponse(
+                content={
+                    "ok": True,
+                    "message": "PDF tayyor va botga yuborildi.",
+                    "files": n_files,
+                }
+            )
 
         filename = f"DASTYOR_AI_Rasmlar_{ts}_@DastyorAiBot.pdf"
         return StreamingResponse(

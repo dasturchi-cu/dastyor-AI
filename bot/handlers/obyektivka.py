@@ -43,14 +43,6 @@ async def process_obyektivka_from_audio_path(context, audio_path, chat_id, user_
             await progress_msg.edit_text("❌ Ma'lumotlarni ajratib bo'lmadi. To'liqroq gapirib bering.")
             return
             
-        summary = (
-            f"✅ **Ma'lumotlar topildi:**\n"
-            f"👤 {extracted_data.get('fullname', 'N/A')}\n"
-            f"📅 {extracted_data.get('birthdate', 'N/A')}\n"
-            f"📍 {extracted_data.get('birthplace', 'N/A')}\n"
-            f"🎓 {extracted_data.get('education', 'N/A')}"
-        )
-        
         await update_progress(context, progress_msg, 80, "Web-shaklga bog'lanmoqda...")
 
         # 3. Save data — persistent (user_profiles) + temp file fallback
@@ -66,20 +58,35 @@ async def process_obyektivka_from_audio_path(context, audio_path, chat_id, user_
             logger.error(f"Error saving temp json: {e}")
         
         await update_progress(context, progress_msg, 100, "Tayyor!")
-        
-        # 4. Give webapp link
+
+        try:
+            from bot.services.supabase_db import db_insert_action_log
+
+            db_insert_action_log(
+                int(user_id),
+                "obyektivka_voice",
+                None,
+                {"fullname": (extracted_data.get("fullname") or "")[:80]},
+            )
+        except Exception:
+            pass
+
+        # 4. Give webapp link (form opens with autoload=1 → fields prefilled from API)
         kb = [[InlineKeyboardButton(
-            "📋 Formani ko'rish / Yuklab olish", 
+            "📋 Obyektivkani ochish",
             web_app=WebAppInfo(url=f"{WEBAPP_BASE}/obyektivka.html?autoload=1&telegram_id={user_id}&v={WEBAPP_VERSION}")
         )]]
-        
+
+        fn = extracted_data.get("fullname") or ""
         await context.bot.send_message(
             chat_id=chat_id,
-            text=f"{summary}\n\n✅ **Ma'lumotlaringiz tayyorlandi.**\nQuyidagi havola orqali formani ko'rib chiqing va Word (DOCX) yoki PDF yuklab oling.",
-            parse_mode="Markdown",
-            reply_markup=InlineKeyboardMarkup(kb)
+            text=(
+                (f"👤 {fn}\n\n" if fn else "")
+                + "✅ Obyektivka to'ldirildi — formada ma'lumotlarni tekshirib, Word/PDF yuklab oling."
+            ),
+            reply_markup=InlineKeyboardMarkup(kb),
         )
-            
+
         await progress_msg.delete()
         
     except Exception as e:
@@ -196,3 +203,50 @@ async def handle_obyektivka_audio(update: Update, context: ContextTypes.DEFAULT_
         # Let's keep state unless back button pressed. BUT user might want to try again.
         # Usually we clear state only on success or back.
         # Let's leave it.
+
+
+async def auto_voice_obyektivka_from_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    Shaxsiy chatda ovoz/audio yuborilganda: menyu bosilmasdan STT → obyektivka ma'lumotlari → Web App.
+    """
+    message = update.message
+    if not message or not update.effective_user or not update.effective_chat:
+        return
+
+    msg = await message.reply_text("⏳ Ovoz qayta ishlanmoqda...")
+    audio_path = None
+    try:
+        if message.voice:
+            audio_file = await message.voice.get_file()
+            ext = "ogg"
+        elif message.audio:
+            audio_file = await message.audio.get_file()
+            fn = (message.audio.file_name or "") or ""
+            ext = fn.rsplit(".", 1)[-1][:8] if "." in fn else "mp3"
+            if not ext or len(ext) > 8:
+                ext = "mp3"
+        else:
+            await msg.edit_text("❌ Faqat ovozli xabar yuboring.")
+            return
+
+        audio_path = f"temp/auto_oby_{update.effective_user.id}_{int(time.time())}.{ext}"
+        await audio_file.download_to_drive(audio_path)
+        try:
+            await msg.delete()
+        except Exception:
+            pass
+        await process_obyektivka_from_audio_path(
+            context, audio_path, update.effective_chat.id, update.effective_user.id
+        )
+    except Exception as e:
+        logger.error("auto_voice_obyektivka: %s", e, exc_info=True)
+        try:
+            await msg.edit_text(f"❌ Xatolik: {str(e)[:200]}")
+        except Exception:
+            pass
+    finally:
+        try:
+            if audio_path and os.path.exists(audio_path):
+                os.remove(audio_path)
+        except Exception:
+            pass

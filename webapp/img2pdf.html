@@ -180,35 +180,24 @@
                     <div
                         class="w-16 h-16 rounded-[22px] bg-apple-green/20 text-apple-green flex items-center justify-center text-3xl mb-4">
                         ✅</div>
-                    <div class="font-display font-bold text-xl mb-2" data-i18n="img2pdf_generated">PDF yaratildi!</div>
-                    <div class="text-xs font-medium text-black/50 dark:text-white/50 mb-8" id="resultSub">PDF
-                        muvaffaqiyatli saqlandi.</div>
+                    <div class="font-display font-bold text-xl mb-2" data-i18n="img2pdf_generated">PDF tayyor!</div>
+                    <div class="text-xs font-medium text-black/50 dark:text-white/50 mb-8" id="resultSub">PDF bot chatiga yuborildi.</div>
                     <div class="w-full flex flex-col gap-3">
-                        <a id="downloadLinkBtn" href="#" download="DASTYOR_AI_Rasmlar.pdf"
-                            class="w-full py-4 rounded-xl bg-apple-green hover:bg-green-600 active:scale-[0.98] text-white font-bold transition-all shadow-[0_8px_30px_rgba(48,209,88,0.25)] flex items-center justify-center gap-2">
-                            ⬇️ Yuklab Olish (Download)
-                        </a>
                         <button onclick="startNew()"
                             class="w-full py-4 rounded-xl bg-apple-blue/10 text-apple-blue hover:bg-apple-blue/20 active:scale-[0.98] font-bold transition-all">🔄
-                            Yangi PDF yaratish</button>
+                            Yangi rasmlar</button>
                     </div>
                 </div>
 
             </div>
 
-            <!-- STATUS AND ACTION -->
+            <!-- STATUS -->
             <div class="mt-auto pt-2 pb-4 animate-slide-up flex flex-col gap-3" style="animation-delay: 0.2s;">
                 <div id="statusBanner"
                     class="hidden items-center gap-2 p-3 rounded-xl text-sm font-semibold max-w-full leading-tight">
                     <span id="statusIcon">⚠️</span>
                     <span id="statusMsg"></span>
                 </div>
-
-                <button
-                    class="w-full py-4 rounded-2xl bg-apple-blue hover:bg-blue-600 active:scale-[0.98] disabled:opacity-50 disabled:active:scale-100 disabled:shadow-none text-white font-bold text-lg shadow-[0_8px_30px_rgba(10,132,255,0.3)] transition-all flex justify-center items-center gap-2"
-                    id="pdfBtn" onclick="startImgToPdf()" data-i18n="img2pdf_btn_create" disabled>
-                    ⚡ PDF yaratish
-                </button>
             </div>
 
         </div>
@@ -290,7 +279,6 @@
 
             const preview = document.getElementById('imgsPreview');
             const badge = document.getElementById('countBadge');
-            const btn = document.getElementById('pdfBtn');
             const addBtn = document.getElementById('addMoreBtn');
             const wrapEl = document.getElementById('queueWrap');
 
@@ -299,7 +287,6 @@
             if (selectedFiles.length === 0) {
                 wrapEl.classList.remove('flex');
                 wrapEl.classList.add('hidden');
-                btn.disabled = true;
                 return;
             }
 
@@ -323,7 +310,6 @@
             });
 
             badge.textContent = `${selectedFiles.length} ta rasm tanlandi`;
-            btn.disabled = false;
             addBtn.classList.toggle('hidden', selectedFiles.length >= 20);
 
             tg?.HapticFeedback?.impactOccurred('light');
@@ -361,17 +347,18 @@
         async function startImgToPdf() {
             if (selectedFiles.length === 0) return;
 
-            const btn = document.getElementById('pdfBtn');
-            btn.innerHTML = '<div class="spin"></div> Jarayon...';
-            btn.disabled = true;
-            btn.classList.add('opacity-70');
             hideStatus();
+            showStatus('info', '⏳', 'PDF yaratilmoqda...');
 
             const formData = new FormData();
-            if (tid) formData.append('telegram_id', tid);
+            if (tid) {
+                formData.append('telegram_id', tid);
+                formData.append('send_only', 'true');
+            }
             selectedFiles.forEach(f => formData.append('files', f));
 
-            let apiBase = location.protocol === 'file:' ? 'https://dastyor-ai.onrender.com' : location.origin;
+            const apiBase = (window.DastyorAI && window.DastyorAI.BASE)
+                || (location.protocol === 'file:' ? 'https://dastyor-ai.onrender.com' : location.origin);
 
             try {
                 const res = await fetch(apiBase + '/api/pdf_direct', { method: 'POST', body: formData });
@@ -380,53 +367,38 @@
                     let errText = "Server xatosi";
                     try { const errData = await res.json(); errText = errData.detail || errData.error || errText; } catch (e) { }
                     showStatus('error', '❌', "Xatolik: " + errText);
-                    btn.innerHTML = window.DA?.t('img2pdf_btn_create') || '⚡ PDF yaratish';
-                    btn.classList.remove('opacity-70');
-                    btn.disabled = false;
                     tg?.HapticFeedback?.notificationOccurred('error');
                     return;
                 }
 
-                const blob = await res.blob();
-                const url = window.URL.createObjectURL(blob);
-                const downloadName = `DASTYOR_AI_Rasmlar_${new Date().getTime()}_@DastyorAiBot.pdf`;
-                
-                // Set explicit download link for users since Telegram WebApp can block auto-downloads
-                const dlBtn = document.getElementById('downloadLinkBtn');
-                dlBtn.href = url;
-                dlBtn.download = downloadName;
-
-                // Attempt auto-download
-                try {
-                    const a = document.createElement('a');
-                    a.style.display = 'none';
-                    a.href = url;
-                    a.download = downloadName;
-                    document.body.appendChild(a);
-                    a.click();
-                    setTimeout(() => { a.remove(); }, 2000);
-                } catch(e) {}
-
-                if (tid && tg) {
-                    document.getElementById('resultSub').textContent = "PDF tayyor! Bot orqali ham yuborildi. Yoki quyidagi tugma orqali yuklab oling.";
+                const ct = (res.headers.get('content-type') || '').toLowerCase();
+                if (tid && ct.indexOf('application/json') >= 0) {
+                    await res.json().catch(function () { return {}; });
+                    document.getElementById('resultSub').textContent = '✅ PDF tayyor va botga yuborildi. Chatni ochib faylni oling.';
                 } else {
-                    document.getElementById('resultSub').textContent = "PDF tayyor! Quyidagi tugma orqali yuklab oling.";
+                    const blob = await res.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    document.getElementById('resultSub').textContent = tid
+                        ? 'PDF tayyor. Telegram ulanmagan bo\'lsa, brauzer orqali saqlang.'
+                        : 'PDF tayyor. Fayl yuklab olindi.';
+                    try {
+                        const a = document.createElement('a');
+                        a.style.display = 'none';
+                        a.href = url;
+                        a.download = `DASTYOR_AI_Rasmlar_${new Date().getTime()}_@DastyorAiBot.pdf`;
+                        document.body.appendChild(a);
+                        a.click();
+                        setTimeout(function () { a.remove(); window.URL.revokeObjectURL(url); }, 2000);
+                    } catch (e) { }
                 }
 
+                hideStatus();
                 document.getElementById('resultCard').classList.remove('hidden');
                 document.getElementById('resultCard').classList.add('flex');
-
-                btn.innerHTML = window.DA?.t('img2pdf_btn_create') || '⚡ PDF yaratish';
-                btn.classList.remove('opacity-70');
-                btn.disabled = false;
-
                 tg?.HapticFeedback?.notificationOccurred('success');
 
             } catch (e) {
                 showStatus('error', '❌', "Server ulanishda xato: " + e.message);
-                btn.innerHTML = window.DA?.t('img2pdf_btn_create') || '⚡ PDF yaratish';
-                btn.classList.remove('opacity-70');
-                btn.disabled = false;
                 tg?.HapticFeedback?.notificationOccurred('error');
             }
         }

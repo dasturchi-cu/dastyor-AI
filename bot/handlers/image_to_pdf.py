@@ -88,24 +88,29 @@ async def collect_pdf_images(update: Update, context: ContextTypes.DEFAULT_TYPE)
             os.makedirs(temp_dir, exist_ok=True)
             downloaded_paths = []
             pdf_path = None
+            base_ts = int(time.time())
             try:
-                for idx, file_id in enumerate(images, start=1):
+
+                async def _dl_one(idx: int, file_id: str) -> tuple[int, str | None]:
                     try:
                         file = await context.bot.get_file(file_id)
                         img_path = os.path.join(
                             temp_dir,
                             sanitize_filename(
-                                f"pdf_{message.from_user.id}_{int(time.time())}_{idx}.jpg"
+                                f"pdf_{message.from_user.id}_{base_ts}_{idx}.jpg"
                             ),
                         )
                         await file.download_to_drive(img_path)
-                        downloaded_paths.append(img_path)
-                        if len(images) > 2 and idx % 3 == 0:
-                            await status_msg.edit_text(
-                                f"⏳ Yuklanmoqda {idx}/{len(images)}..."
-                            )
+                        return idx, img_path
                     except Exception as e:
                         logger.warning("PDF download file %s failed: %s", idx, e)
+                        return idx, None
+
+                pairs = await asyncio.gather(*[_dl_one(i, fid) for i, fid in enumerate(images, start=1)])
+                pairs.sort(key=lambda x: x[0])
+                downloaded_paths = [p for _, p in pairs if p]
+                if len(images) > 2:
+                    await status_msg.edit_text(f"⏳ {len(downloaded_paths)}/{len(images)} rasm yuklandi...")
                 if not downloaded_paths:
                     await status_msg.edit_text("❌ Hech qanday rasm yuklanmadi.")
                     return
@@ -123,9 +128,11 @@ async def collect_pdf_images(update: Update, context: ContextTypes.DEFAULT_TYPE)
                     await context.bot.send_document(
                         chat_id=message.chat_id,
                         document=InputFile(f, filename=pdf_filename),
-                        caption="✅ PDF tayyor!\n\nBarcha rasmlar bitta faylga birlashtirildi.",
+                        caption=(
+                            "✅ PDF tayyor va botga yuborildi\n"
+                            f"📄 {len(downloaded_paths)} ta rasm birlashtirildi."
+                        ),
                         reply_markup=get_image_to_pdf_keyboard(),
-                        parse_mode=ParseMode.MARKDOWN,
                     )
                 await status_msg.delete()
                 logger.info("PDF created for user_id=%s images=%s", message.from_user.id, len(downloaded_paths))

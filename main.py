@@ -56,7 +56,11 @@ from bot.handlers.ocr_to_word import (
     handle_ocr_image as process_ocr_image,
     process_ocr_tayyor,
 )
-from bot.handlers.obyektivka import obyektivka_handler, handle_obyektivka_audio as process_obyektivka_audio
+from bot.handlers.obyektivka import (
+    auto_voice_obyektivka_from_message,
+    obyektivka_handler,
+    handle_obyektivka_audio as process_obyektivka_audio,
+)
 from bot.handlers.transliterate import transliterate_handler, process_transliteration as process_transliterate, krill_to_lotin_handler, lotin_to_krill_handler, translit_direction_callback
 from bot.handlers.translate import translate_handler, process_translation as process_translate_doc, set_translation_direction
 from bot.handlers.image_to_pdf import image_to_pdf_handler, collect_pdf_images as process_image_to_pdf
@@ -65,7 +69,7 @@ from bot.handlers.start import start_command, menu_command
 from bot.keyboards.reply_keyboards import get_main_menu, get_back_button, get_more_menu
 from bot.utils.i18n import get_regex_for_key, t
 from bot.handlers.smart_logic import (
-    handle_smart_photo, handle_smart_document, handle_smart_audio, smart_callback_handler
+    handle_smart_photo, handle_smart_document, smart_callback_handler
 )
 from bot.handlers.webapp_data import web_app_data_handler
 
@@ -265,8 +269,8 @@ async def handle_router_audio(update: Update, context: ContextTypes.DEFAULT_TYPE
     elif state == 'feedback':
         await handle_feedback(update, context)
     else:
-        # Smart logic handles unknown audio
-        await handle_smart_audio(update, context)
+        await auto_voice_obyektivka_from_message(update, context)
+        increment_file_count(uid, "Obyektivka Audio Auto")
 
 async def button_callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not await unified_router_check(update, context): return

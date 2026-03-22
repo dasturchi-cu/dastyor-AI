@@ -301,10 +301,7 @@ async def api_export_cv(
         try:
             progress_msg = await ptb.bot.send_message(
                 chat_id=int(uid_str),
-                text=(
-                    "⏳ CV tayyorlanmoqda... (taxminan 10-15 soniya)\n"
-                    "Chatda faylni kuting."
-                ),
+                text="⏳ CV tayyorlanmoqda... (2–5 soniya)",
             )
             progress_msg_id = progress_msg.message_id
         except Exception:
@@ -325,7 +322,7 @@ async def api_export_cv(
                 chat_id = int(uid_str)
 
                 if is_docx:
-                    ok = await send_docx_with_confirmation(
+                    await send_docx_with_confirmation(
                         ptb.bot,
                         chat_id,
                         buf,
@@ -336,8 +333,6 @@ async def api_export_cv(
                         ),
                         parse_mode="HTML",
                     )
-                    if ok:
-                        await ptb.bot.send_message(chat_id=chat_id, text="✅ CV fayli botga yuborildi (DOCX)")
                 else:
                     await ptb.bot.send_document(
                         chat_id=chat_id,
@@ -348,7 +343,12 @@ async def api_export_cv(
                         ),
                         parse_mode="HTML",
                     )
-                    await ptb.bot.send_message(chat_id=chat_id, text="✅ CV PDF fayli botga yuborildi")
+                try:
+                    from bot.services.supabase_db import db_insert_action_log
+
+                    db_insert_action_log(int(uid_str), "cv", filename_to_send)
+                except Exception:
+                    pass
 
             except Exception as e:
                 logger.error("CV background generation/send failed: %s", e, exc_info=True)
@@ -405,7 +405,7 @@ async def api_export_cv(
                 buf.name = filename
                 chat_id = int(uid_str)
                 if filename.lower().endswith(".docx"):
-                    ok = await send_docx_with_confirmation(
+                    await send_docx_with_confirmation(
                         ptb.bot,
                         chat_id,
                         buf,
@@ -417,8 +417,6 @@ async def api_export_cv(
                         ),
                         parse_mode="HTML",
                     )
-                    if ok:
-                        await ptb.bot.send_message(chat_id=chat_id, text="✅ CV Word fayli botga yuborildi")
                 else:
                     await ptb.bot.send_document(
                         chat_id=chat_id,
@@ -430,7 +428,6 @@ async def api_export_cv(
                         ),
                         parse_mode="HTML",
                     )
-                    await ptb.bot.send_message(chat_id=chat_id, text="✅ CV PDF fayli botga yuborildi")
             except Exception as tg_err:
                 logger.warning("CV export Telegram send failed: %s", tg_err)
             finally:

@@ -195,86 +195,89 @@ def render_obyektivka_html(data: dict) -> str:
 # PDF GENERATION  (Playwright - Pixel Perfect)
 # ═══════════════════════════════════════════════════════════════════════════
 
+async def _pdf_bytes_weasy(html_str: str, base_url: str | None) -> bytes | None:
+    """Fast path: no browser startup (target ~2–3s total pipeline)."""
+    if not WEASYPRINT_OK:
+        return None
+    try:
+        import asyncio
+
+        loop = asyncio.get_event_loop()
+        return await loop.run_in_executor(
+            None,
+            lambda: WeasyHTML(string=html_str, base_url=base_url).write_pdf(),
+        )
+    except Exception as e:
+        logger.warning("WeasyPrint PDF failed: %s", e)
+        return None
+
+
+async def _html_pdf_playwright(html_str: str) -> bytes | None:
+    """Slower pixel-perfect path; shorter font wait than legacy 450ms."""
+    if not PLAYWRIGHT_OK:
+        return None
+    font_wait_ms = 120
+
+    async def _once():
+        async with async_playwright() as p:
+            browser = await p.chromium.launch(
+                args=[
+                    "--no-sandbox",
+                    "--disable-setuid-sandbox",
+                    "--disable-dev-shm-usage",
+                ]
+            )
+            page = await browser.new_page()
+            await page.set_content(html_str, wait_until="domcontentloaded")
+            try:
+                await page.evaluate(
+                    "async () => { if (document.fonts && document.fonts.ready) await document.fonts.ready; }"
+                )
+            except Exception:
+                pass
+            await page.wait_for_timeout(font_wait_ms)
+            pdf_bytes = await page.pdf(
+                format="A4",
+                print_background=True,
+                margin={"top": "0", "right": "0", "bottom": "0", "left": "0"},
+            )
+            await browser.close()
+            return pdf_bytes
+
+    try:
+        out = await _once()
+        logger.info("HTML→PDF generated via Playwright")
+        return out
+    except Exception as e:
+        logger.warning("Playwright PDF failed: %s — attempting chromium install + retry", e)
+        _maybe_install_playwright_chromium()
+        try:
+            out = await _once()
+            logger.info("HTML→PDF generated via Playwright (after install)")
+            return out
+        except Exception as e2:
+            logger.warning("Playwright retry failed: %s", e2)
+            return None
+
+
 async def generate_cv_pdf(data: dict, base_url: str | None = None) -> bytes | None:
     """
     Render CV template → PDF bytes.
-    Tries Playwright first (pixel-perfect), then WeasyPrint as fallback.
-    Returns None if both are unavailable.
+    Order: WeasyPrint first (fast production default), then Playwright for layout fidelity.
     """
     html_str = render_cv_html(data)
 
     if base_url and "<head>" in html_str:
         html_str = html_str.replace("<head>", f"<head><base href='{base_url}'>")
 
-    # ── 1. Playwright (headless Chromium) ──────────────────────────────
-    if PLAYWRIGHT_OK:
-        try:
-            async with async_playwright() as p:
-                browser = await p.chromium.launch(
-                    args=['--no-sandbox', '--disable-setuid-sandbox',
-                          '--disable-dev-shm-usage']
-                )
-                page = await browser.new_page()
-                # networkidle can hang if external resources keep polling.
-                await page.set_content(html_str, wait_until="domcontentloaded")
-                try:
-                    await page.evaluate(
-                        """async () => { if (document.fonts && document.fonts.ready) await document.fonts.ready; }"""
-                    )
-                except Exception:
-                    pass
-                await page.wait_for_timeout(450)
-                pdf_bytes = await page.pdf(
-                    format="A4",
-                    print_background=True,
-                    margin={"top": "0", "right": "0", "bottom": "0", "left": "0"}
-                )
-                await browser.close()
-                logger.info("CV PDF generated via Playwright")
-                return pdf_bytes
-        except Exception as e:
-            # Common: playwright python pkg installed but browser binaries missing.
-            logger.warning(f"Playwright PDF failed: {e} — attempting chromium install + retry")
-            _maybe_install_playwright_chromium()
-            try:
-                async with async_playwright() as p:
-                    browser = await p.chromium.launch(
-                        args=['--no-sandbox', '--disable-setuid-sandbox',
-                              '--disable-dev-shm-usage']
-                    )
-                    page = await browser.new_page()
-                    await page.set_content(html_str, wait_until="domcontentloaded")
-                    try:
-                        await page.evaluate(
-                            """async () => { if (document.fonts && document.fonts.ready) await document.fonts.ready; }"""
-                        )
-                    except Exception:
-                        pass
-                    await page.wait_for_timeout(450)
-                    pdf_bytes = await page.pdf(
-                        format="A4",
-                        print_background=True,
-                        margin={"top": "0", "right": "0", "bottom": "0", "left": "0"}
-                    )
-                    await browser.close()
-                    logger.info("CV PDF generated via Playwright (after install)")
-                    return pdf_bytes
-            except Exception as e2:
-                logger.warning(f"Playwright retry failed: {e2} — trying WeasyPrint")
+    pdf_fast = await _pdf_bytes_weasy(html_str, base_url)
+    if pdf_fast:
+        logger.info("CV PDF generated via WeasyPrint (fast path)")
+        return pdf_fast
 
-    # ── 2. WeasyPrint fallback ─────────────────────────────────────────
-    if WEASYPRINT_OK:
-        try:
-            import asyncio
-            loop = asyncio.get_event_loop()
-            pdf_bytes = await loop.run_in_executor(
-                None,
-                lambda: WeasyHTML(string=html_str, base_url=base_url).write_pdf()
-            )
-            logger.info("CV PDF generated via WeasyPrint")
-            return pdf_bytes
-        except Exception as e:
-            logger.warning(f"WeasyPrint PDF failed: {e}")
+    pdf_pw = await _html_pdf_playwright(html_str)
+    if pdf_pw:
+        return pdf_pw
 
     logger.error("All PDF backends failed for CV")
     return None
@@ -283,80 +286,22 @@ async def generate_cv_pdf(data: dict, base_url: str | None = None) -> bytes | No
 async def generate_obyektivka_pdf(data: dict, base_url: str | None = None) -> bytes | None:
     """
     Render Obyektivka template → PDF bytes.
-    Tries Playwright first, then WeasyPrint as fallback.
+    Same ordering as CV: WeasyPrint first, Playwright second.
     """
     html_str = render_obyektivka_html(data)
 
     if base_url and "<head>" in html_str:
         html_str = html_str.replace("<head>", f"<head><base href='{base_url}'>")
 
-    # ── 1. Playwright ──────────────────────────────────────────────────
-    if PLAYWRIGHT_OK:
-        try:
-            async with async_playwright() as p:
-                browser = await p.chromium.launch(
-                    args=['--no-sandbox', '--disable-setuid-sandbox',
-                          '--disable-dev-shm-usage']
-                )
-                page = await browser.new_page()
-                await page.set_content(html_str, wait_until="domcontentloaded")
-                try:
-                    await page.evaluate(
-                        """async () => { if (document.fonts && document.fonts.ready) await document.fonts.ready; }"""
-                    )
-                except Exception:
-                    pass
-                await page.wait_for_timeout(450)
-                pdf_bytes = await page.pdf(
-                    format="A4",
-                    print_background=True,
-                    margin={"top": "0", "right": "0", "bottom": "0", "left": "0"}
-                )
-                await browser.close()
-                logger.info("Obyektivka PDF generated via Playwright")
-                return pdf_bytes
-        except Exception as e:
-            logger.warning(f"Playwright PDF failed: {e} — attempting chromium install + retry")
-            _maybe_install_playwright_chromium()
-            try:
-                async with async_playwright() as p:
-                    browser = await p.chromium.launch(
-                        args=['--no-sandbox', '--disable-setuid-sandbox',
-                              '--disable-dev-shm-usage']
-                    )
-                    page = await browser.new_page()
-                    await page.set_content(html_str, wait_until="domcontentloaded")
-                    try:
-                        await page.evaluate(
-                            """async () => { if (document.fonts && document.fonts.ready) await document.fonts.ready; }"""
-                        )
-                    except Exception:
-                        pass
-                    await page.wait_for_timeout(450)
-                    pdf_bytes = await page.pdf(
-                        format="A4",
-                        print_background=True,
-                        margin={"top": "0", "right": "0", "bottom": "0", "left": "0"}
-                    )
-                    await browser.close()
-                    logger.info("Obyektivka PDF generated via Playwright (after install)")
-                    return pdf_bytes
-            except Exception as e2:
-                logger.warning(f"Playwright retry failed: {e2} — trying WeasyPrint")
+    pdf_fast = await _pdf_bytes_weasy(html_str, base_url)
+    if pdf_fast:
+        logger.info("Obyektivka PDF generated via WeasyPrint (fast path)")
+        return pdf_fast
 
-    # ── 2. WeasyPrint fallback ─────────────────────────────────────────
-    if WEASYPRINT_OK:
-        try:
-            import asyncio
-            loop = asyncio.get_event_loop()
-            pdf_bytes = await loop.run_in_executor(
-                None,
-                lambda: WeasyHTML(string=html_str, base_url=base_url).write_pdf()
-            )
-            logger.info("Obyektivka PDF generated via WeasyPrint")
-            return pdf_bytes
-        except Exception as e:
-            logger.warning(f"WeasyPrint PDF failed: {e}")
+    pdf_pw = await _html_pdf_playwright(html_str)
+    if pdf_pw:
+        logger.info("Obyektivka PDF generated via Playwright")
+        return pdf_pw
 
     logger.error("All PDF backends failed for Obyektivka")
     return None

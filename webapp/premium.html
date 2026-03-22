@@ -598,20 +598,36 @@
       fd.append("telegram_id", String(tid));
       if (token) fd.append("token", String(token));
 
-      const base = window.DastyorAI?.BASE || location.origin;
+      const base = (window.DastyorAI && window.DastyorAI.BASE) || location.origin;
       const urlPrimary = base + "/api/premium_receipt";
       const urlFallback = "https://dastyor-ai.onrender.com/api/premium_receipt";
 
-      const url = urlFallback;
-      // keep tid in status; add URL only if you want
-      // if (st) st.textContent = "⏳ Yuborilmoqda: " + url;
+      async function fetchWithTimeout(url, options, ms) {
+        const ctrl = new AbortController();
+        const t = setTimeout(function () { ctrl.abort(); }, ms);
+        try {
+          return await fetch(url, Object.assign({}, options || {}, { signal: ctrl.signal }));
+        } finally {
+          clearTimeout(t);
+        }
+      }
 
       let resp = null;
+      let lastErr = null;
       try {
-        resp = await fetch(url, { method: "POST", body: fd });
+        resp = await fetchWithTimeout(urlPrimary, { method: "POST", body: fd }, 45000);
       } catch (e1) {
-        // If the server is unreachable, show the raw message.
-        throw e1;
+        lastErr = e1;
+        try {
+          if (urlFallback !== urlPrimary) {
+            resp = await fetchWithTimeout(urlFallback, { method: "POST", body: fd }, 45000);
+          }
+        } catch (e2) {
+          lastErr = e2;
+        }
+      }
+      if (!resp) {
+        throw lastErr || new Error("failed to fetch");
       }
 
       const data = await resp.json().catch(() => ({}));

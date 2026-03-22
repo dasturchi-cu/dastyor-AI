@@ -355,6 +355,22 @@ def db_is_premium(user_id: int) -> bool:
     if not c:
         return False
     try:
+        try:
+            ur = c.table("users").select("user_plan").eq("id", int(user_id)).execute()
+            if ur.data:
+                plan = (ur.data[0].get("user_plan") or "").strip().lower()
+                if plan == "premium":
+                    return True
+        except Exception:
+            try:
+                ur2 = c.table("users").select("plan").eq("id", int(user_id)).execute()
+                if ur2.data:
+                    plan2 = (ur2.data[0].get("plan") or "").strip().lower()
+                    if plan2 == "premium":
+                        return True
+            except Exception:
+                pass
+
         now = datetime.utcnow().isoformat()
         # Compatibility: some schemas may only have `expire_date`, others have `end_date`.
         # Prefer end_date if present; otherwise fallback to expire_date.
@@ -367,6 +383,50 @@ def db_is_premium(user_id: int) -> bool:
     except Exception as e:
         _mark_temporarily_unavailable(e)
         logger.error(f"db_is_premium: {e}")
+        return False
+
+
+def db_insert_action_log(
+    user_id: int,
+    action_type: str,
+    file_name: str | None = None,
+    metadata: dict | None = None,
+) -> bool:
+    """
+    Append one row to `logs` (preferred) or `usage_logs` if schema differs.
+    action_type: ocr, cv, pdf, word, translate, translit, imlo, obyektivka_voice, ...
+    """
+    c = _get_client()
+    if not c:
+        return False
+    uid = int(user_id)
+    at = (action_type or "unknown")[:120]
+    fn = (file_name or "")[:500] if file_name else None
+    ts = datetime.utcnow().isoformat()
+    base = {"user_id": uid, "action_type": at}
+    if fn:
+        base["file_name"] = fn
+    attempts: list[dict] = [
+        {**base, "created_at": ts},
+        dict(base),
+    ]
+    if metadata:
+        attempts.insert(0, {**base, "created_at": ts, "metadata": metadata})
+        attempts.insert(1, {**base, "metadata": metadata})
+    for payload in attempts:
+        try:
+            c.table("logs").insert(payload).execute()
+            return True
+        except Exception:
+            continue
+    try:
+        alt = {"user_id": uid, "action": at, "created_at": ts}
+        if metadata:
+            alt["metadata"] = metadata
+        c.table("usage_logs").insert(alt).execute()
+        return True
+    except Exception as e:
+        logger.debug("db_insert_action_log skip: %s", e)
         return False
 
 

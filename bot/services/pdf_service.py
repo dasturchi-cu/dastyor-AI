@@ -7,11 +7,14 @@ Uses Pillow. Includes image compression for handling 20+ images efficiently.
 
 import os
 import logging
+from concurrent.futures import ThreadPoolExecutor
 from typing import List
 
 from PIL import Image
 
 logger = logging.getLogger(__name__)
+
+_pdf_img_executor = ThreadPoolExecutor(max_workers=8, thread_name_prefix="pdfimg")
 
 # ── Compression settings ────────────────────────────────────────────────
 MAX_DIMENSION = 1920       # Max width or height in pixels
@@ -41,6 +44,19 @@ def _compress_image(img: Image.Image) -> Image.Image:
     return img
 
 
+def _open_compress_one(path: str) -> Image.Image | None:
+    try:
+        file_size_mb = os.path.getsize(path) / (1024 * 1024)
+        if file_size_mb > MAX_FILE_SIZE_MB:
+            logger.warning("Skipping %s: %.1f MB exceeds limit", path, file_size_mb)
+            return None
+        with Image.open(path) as raw:
+            return _compress_image(raw)
+    except Exception as e:
+        logger.warning("Failed to process image %s: %s", path, e)
+        return None
+
+
 def images_to_pdf(image_paths: List[str], output_path: str) -> str:
     """
     Merge multiple images into a single PDF with compression.
@@ -52,20 +68,9 @@ def images_to_pdf(image_paths: List[str], output_path: str) -> str:
     if not image_paths:
         raise ValueError("image_paths bo'sh bo'lishi mumkin emas")
 
-    pil_images = []
-    for path in image_paths:
-        try:
-            # Skip files that are too large
-            file_size_mb = os.path.getsize(path) / (1024 * 1024)
-            if file_size_mb > MAX_FILE_SIZE_MB:
-                logger.warning(f"Skipping {path}: {file_size_mb:.1f} MB exceeds limit")
-                continue
-
-            img = Image.open(path)
-            img = _compress_image(img)
-            pil_images.append(img)
-        except Exception as e:
-            logger.warning(f"Failed to process image {path}: {e}")
+    pil_images = [
+        im for im in _pdf_img_executor.map(_open_compress_one, image_paths) if im is not None
+    ]
 
     if not pil_images:
         raise ValueError("Yaroqli rasmlar topilmadi.")

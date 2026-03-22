@@ -351,6 +351,8 @@ async def api_spellcheck_file(
     max_b = get_settings().max_upload_bytes
     raw = await file.read()
     do_notify = str(notify_telegram).lower() in ("1", "true", "yes", "on")
+    if uid:
+        do_notify = True
     logger.info(
         "POST /api/spellcheck_file name=%s bytes=%s notify=%s uid=%s",
         file.filename,
@@ -406,15 +408,19 @@ async def api_spellcheck_file(
     if do_notify and uid:
         try:
             from bot.services.user_service import get_chat_id
+            from bot.services.supabase_db import db_insert_action_log
 
             chat_id = get_chat_id(int(uid)) or int(uid)
+            summary = f"✅ Imlo tekshiruvi (WebApp)\nSo'zlar: {wc}\nTopilgan xatolar: {fc}"
+            await ptb.bot.send_message(chat_id=chat_id, text=summary)
             raw_txt = (corrected or "").encode("utf-8")
             buf = io.BytesIO(raw_txt)
             await ptb.bot.send_document(
                 chat_id=chat_id,
                 document=InputFile(buf, filename="imlo_tuzatilgan.txt"),
-                caption=f"✅ Imlo (WebApp)\nSo‘zlar: {wc}\nTuzatishlar: {fc}",
+                caption="Tuzatilgan matn (TXT)",
             )
+            db_insert_action_log(int(uid), "imlo", file.filename or "upload")
         except Exception as e:
             logger.warning("spellcheck_file Telegram: %s", e)
 

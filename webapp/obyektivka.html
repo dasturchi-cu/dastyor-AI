@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <title>Obyektivka | DASTYOR AI</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <script src="app.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -404,7 +405,8 @@ var telegramId='';
 try{if(window.Telegram&&window.Telegram.WebApp&&window.Telegram.WebApp.initDataUnsafe&&window.Telegram.WebApp.initDataUnsafe.user)telegramId=String(window.Telegram.WebApp.initDataUnsafe.user.id);}catch(e){}
 if(!telegramId){var up=new URLSearchParams(window.location.search).get('telegram_id');if(up)telegramId=up;}
 var API_URL;
-if(window.location.protocol==='file:')API_URL='https://dastyor-ai.onrender.com';
+if(window.DastyorAI&&window.DastyorAI.BASE)API_URL=window.DastyorAI.BASE;
+else if(window.location.protocol==='file:')API_URL='https://dastyor-ai.onrender.com';
 else if(/localhost|127\.0\.0\.1/.test(window.location.origin))API_URL='http://localhost:8000';
 else API_URL=window.location.origin;
 
@@ -1061,8 +1063,58 @@ function scaleLivePreview(){
   }catch(e){}
 }
 
+function applyServerObyData(d){
+  if(!d)return;
+  function setv(id,val){var el=document.getElementById(id);if(el&&val!=null&&String(val).trim()!=='')el.value=String(val);}
+  setv('fullname',d.fullname);
+  setv('birthdate',d.birthdate);
+  setv('birthplace',d.birthplace);
+  setv('nation',d.nation);
+  setv('party',d.party);
+  setv('edu',d.education);
+  setv('graduated',d.graduated);
+  setv('spec',d.specialty);
+  setv('degree',d.degree);
+  setv('scititle',d.scientific_title);
+  setv('langs',d.languages);
+  setv('military',d.military_rank);
+  setv('awards',d.awards);
+  setv('deputy',d.deputy);
+  var wc=document.getElementById('work-container');
+  if(wc){
+    wc.innerHTML='';
+    (d.work_experience||[]).forEach(function(w){
+      var yr=String(w.year||'').trim();
+      var f='',t='';
+      var ix=yr.indexOf('-');
+      if(ix>=0){f=yr.slice(0,ix).trim();t=yr.slice(ix+1).trim();}
+      else if(yr)f=yr;
+      addWorkRow(f,t,w.position||'');
+    });
+  }
+  relatives=[];
+  (d.relatives||[]).forEach(function(r){
+    relatives.push({type:r.degree||'',name:r.fullname||'',birth:r.birth_year_place||'',job:r.work_place||'',addr:r.address||''});
+  });
+  renderRelList();
+  try{saveToLocal();}catch(e){}
+  try{updatePreview();scaleLivePreview();}catch(e){}
+}
+
 window.addEventListener('resize',function(){try{scaleLivePreview();}catch(e){}});
-document.addEventListener('DOMContentLoaded',function(){try{updatePreview();scaleLivePreview();}catch(e){}});
+document.addEventListener('DOMContentLoaded',function(){
+  try{
+    var up=new URLSearchParams(window.location.search);
+    if(up.get('autoload')==='1'&&telegramId){
+      initApp('uz_l');
+      fetch(API_URL+'/api/get_oby_data?telegram_id='+encodeURIComponent(telegramId))
+        .then(function(r){return r.json();})
+        .then(function(js){if(js&&js.ok&&js.data)applyServerObyData(js.data);})
+        .catch(function(e){console.warn(e);});
+    }
+  }catch(e){console.warn(e);}
+  try{updatePreview();scaleLivePreview();}catch(e){}
+});
 </script>
 </body>
 </html>

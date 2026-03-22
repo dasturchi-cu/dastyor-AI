@@ -508,3 +508,7 @@ const DastyorAI = (() => {
 
     return api;
 })();
+
+try {
+    window.DastyorAI = DastyorAI;
+} catch (_) {}
