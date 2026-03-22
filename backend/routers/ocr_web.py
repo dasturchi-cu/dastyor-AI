@@ -95,58 +95,70 @@ async def api_ocr_extract(
     return {"ok": True, "text": plain, "html": html_text, "quota": quota}
 
 
+_MAX_CLIENT_HTML_CHARS = int(os.getenv("OCR_DOCX_CLIENT_HTML_MAX", "1800000"))
+
+
 @router.post("/api/ocr_extract_docx")
 async def api_ocr_extract_docx(
     file: UploadFile = File(...),
     telegram_id: Optional[str] = Form(None),
     token: Optional[str] = Form(None),
+    html: Optional[str] = Form(None),
 ):
     """
     Bot bilan bir xil: Gemini → HTML → python-docx (1:1 layout).
+
+    Agar `html` form maydoni kelsa (WebApp oldin OCR qilib ko‘rsatgan HTML) — qayta Gemini
+    chaqirilmaydi; Word aynan shu layout bilan yasaladi (botdagi kabi bir xil HTML tufayli).
     """
     from config import GOOGLE_API_KEY
-
-    if not (GOOGLE_API_KEY or "").strip():
-        raise HTTPException(
-            status_code=503,
-            detail=(
-                "OCR ishlamayapti: serverda GOOGLE_API_KEY sozlanmagan. "
-                "Admin .env / Render Environment ga kalit qo'shsin."
-            ),
-        )
 
     uid_str = resolve_telegram_uid(telegram_id, token)
     uid_int = int(uid_str) if uid_str else None
 
-    try:
-        raw = await read_upload_limited(file)
-    except EmptyUploadError:
-        raise HTTPException(status_code=400, detail="Fayl bo'sh")
-    except UploadTooLargeError:
-        raise HTTPException(status_code=400, detail="Fayl juda katta")
+    html_text = (html or "").strip()
+    if html_text:
+        if len(html_text) > _MAX_CLIENT_HTML_CHARS:
+            raise HTTPException(status_code=400, detail="HTML juda katta")
+    else:
+        if not (GOOGLE_API_KEY or "").strip():
+            raise HTTPException(
+                status_code=503,
+                detail=(
+                    "OCR ishlamayapti: serverda GOOGLE_API_KEY sozlanmagan. "
+                    "Admin .env / Render Environment ga kalit qo'shsin."
+                ),
+            )
 
-    with temp_image_path(suffix=safe_filename_part(file.filename or "", ".jpg")) as img_path:
         try:
-            with open(img_path, "wb") as f:
-                f.write(raw)
-        except OSError as e:
-            raise HTTPException(status_code=500, detail=f"Fayl saqlashda xato: {e}")
+            raw = await read_upload_limited(file)
+        except EmptyUploadError:
+            raise HTTPException(status_code=400, detail="Fayl bo'sh")
+        except UploadTooLargeError:
+            raise HTTPException(status_code=400, detail="Fayl juda katta")
 
-        try:
-            from bot.services.ocr_service import extract_text_from_image
+        with temp_image_path(suffix=safe_filename_part(file.filename or "", ".jpg")) as img_path:
+            try:
+                with open(img_path, "wb") as f:
+                    f.write(raw)
+            except OSError as e:
+                raise HTTPException(status_code=500, detail=f"Fayl saqlashda xato: {e}")
 
-            html_text = await extract_text_from_image(img_path)
-        except Exception as e:
-            logger.error("api_ocr_extract_docx OCR xatosi: %s", e, exc_info=True)
-            raise HTTPException(status_code=502, detail=f"OCR xatosi: {str(e)[:200]}")
+            try:
+                from bot.services.ocr_service import extract_text_from_image
 
-    if not html_text or not html_text.strip():
-        raise HTTPException(
-            status_code=422,
-            detail=(
-                "Rasmdan matn ajratilmadi. Rasmni aniqroq yuklang yoki keyinroq qayta urinib ko'ring."
-            ),
-        )
+                html_text = await extract_text_from_image(img_path)
+            except Exception as e:
+                logger.error("api_ocr_extract_docx OCR xatosi: %s", e, exc_info=True)
+                raise HTTPException(status_code=502, detail=f"OCR xatosi: {str(e)[:200]}") from e
+
+        if not html_text or not html_text.strip():
+            raise HTTPException(
+                status_code=422,
+                detail=(
+                    "Rasmdan matn ajratilmadi. Rasmni aniqroq yuklang yoki keyinroq qayta urinib ko'ring."
+                ),
+            )
 
     try:
         from docx import Document

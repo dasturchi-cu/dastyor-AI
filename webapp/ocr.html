@@ -138,6 +138,8 @@
     const tg = window.Telegram?.WebApp;
     let selectedFile = null;
     let optimizedFile = null;
+    /** Ko‘rinishdagi OCR HTML (Gemini `html` yoki Paddle `html_layout`) — Word 1:1 shu matndan, qayta OCRsiz */
+    let lastOcrDocxHtml = "";
 
     function ocrTelegramId() {
         const raw = window.DastyorAI?.getTelegramId?.()
@@ -202,6 +204,7 @@
         if (!file || !file.type.startsWith("image/")) return;
         selectedFile = file;
         optimizedFile = null;
+        lastOcrDocxHtml = "";
         document.getElementById("fileName").classList.remove("hidden");
         document.getElementById("fileNameText").textContent = `${file.name} (${Math.round(file.size / 1024)} KB)`;
         document.getElementById("convertBtn").disabled = false;
@@ -213,6 +216,7 @@
     function clearSelection() {
         selectedFile = null;
         optimizedFile = null;
+        lastOcrDocxHtml = "";
         const fi = document.getElementById("fileInput");
         if (fi) fi.value = "";
         document.getElementById("fileName").classList.add("hidden");
@@ -345,6 +349,8 @@
                     const data = await r.json();
                     let text = String(data?.text || "").trim();
                     const htmlLayout = String(data?.html_layout || "").trim();
+                    const apiHtml = String(data?.html || "").trim();
+                    const docHtml = apiHtml || htmlLayout || "";
                     if (!text && data?.html) {
                         const tmp = document.createElement("div");
                         tmp.innerHTML = String(data.html);
@@ -356,10 +362,10 @@
                         text = String(result?.text || "").trim();
                     }
                     if (text && htmlLayout) {
-                        return { text, html_layout: htmlLayout, base: usedBase, engine: step.name, raw: data };
+                        return { text, html_layout: htmlLayout, docHtml, base: usedBase, engine: step.name, raw: data };
                     }
                     if (text) {
-                        return { text, base: usedBase, engine: step.name, raw: data };
+                        return { text, docHtml, base: usedBase, engine: step.name, raw: data };
                     }
                 } catch (e) {
                     lastDetail = e.message || String(e);
@@ -392,8 +398,9 @@
             }
             showStatus("loading", "Matn ajratilmoqda (bot bilan bir xil tartib)...");
             const file = optimizedFile || selectedFile;
-            const { text, engine, html_layout } = await runOcrPipeline(file);
+            const { text, engine, html_layout, docHtml } = await runOcrPipeline(file);
             if (!text) throw new Error("Rasmdan matn topilmadi");
+            lastOcrDocxHtml = (docHtml && docHtml.length > 40) ? docHtml : "";
             const textOut = document.getElementById("ocrText");
             if (html_layout) {
                 textOut.innerHTML = "<div class=\"ocr-scroll-wrap\" style=\"overflow:auto;max-width:100%;-webkit-overflow-scrolling:touch\">" + html_layout + "</div>";
@@ -437,16 +444,16 @@
                     window.DastyorAI.showDocumentLoading("Hujjat tayyorlanmoqda...", "Word fayl yaratilmoqda");
                 }
             } catch (_) {}
-            if (!optimizedFile) {
-                optimizedFile = await optimizeImageForOCR(selectedFile);
-            }
-            const file = optimizedFile || selectedFile;
             const bases = getOcrBaseCandidates();
             let ok = false;
             for (const base of bases) {
                 try {
                     const fd = new FormData();
-                    fd.append("file", file);
+                    const fileForWord = selectedFile || optimizedFile;
+                    fd.append("file", fileForWord);
+                    if (lastOcrDocxHtml && lastOcrDocxHtml.length > 40) {
+                        fd.append("html", lastOcrDocxHtml);
+                    }
                     ocrAppendAuth(fd);
                     const r = await fetch(base + "/api/ocr_extract_docx", { method: "POST", body: fd });
                     if (r.status === 429) {
@@ -475,7 +482,13 @@
                     break;
                 } catch (_) {}
             }
-            if (!ok) throw new Error("Word yaratib bo'lmadi — GOOGLE_API_KEY yoki serverni tekshiring");
+            if (!ok) {
+                throw new Error(
+                    lastOcrDocxHtml
+                        ? "Word yaratib bo‘lmadi. Internet yoki serverni tekshiring."
+                        : "Word yaratib bo‘lmadi. Avval «Matnni ajratish» ni bosing (1:1 uchun) yoki serverda GOOGLE_API_KEY borligini tekshiring."
+                );
+            }
         } catch (e) {
             showStatus("error", e.message || "Xatolik");
             tg?.HapticFeedback?.notificationOccurred?.("error");
