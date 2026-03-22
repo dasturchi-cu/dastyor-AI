@@ -3,6 +3,7 @@ Main Bot Entry Point (with Ban Check Middleware).
 
 OCR / WebApp HTTP API: run `uvicorn api_webhook:app` (or `uvicorn backend.app:app`).
 """
+import asyncio
 import os
 
 # ── Paddle / PaddleOCR stability flags (handlers may load OCR lazily) ─────
@@ -83,7 +84,13 @@ async def back_to_main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not update.effective_chat or update.effective_chat.type != "private":
         return
     context.user_data.clear()
-    lang = get_user_lang(update.effective_user.id) if update.effective_user else "uz_lat"
+    if update.effective_user:
+        try:
+            lang = await asyncio.to_thread(get_user_lang, update.effective_user.id)
+        except Exception:
+            lang = get_user_lang(update.effective_user.id)
+    else:
+        lang = "uz_lat"
     await update.message.reply_text(t("or_menu", lang), reply_markup=get_main_menu(update.effective_user.id if update.effective_user else None, lang))
 
 async def more_menu_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -91,7 +98,10 @@ async def more_menu_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not update.effective_chat or update.effective_chat.type != "private":
         return
     uid = update.effective_user.id if update.effective_user else None
-    lang = get_user_lang(uid)
+    try:
+        lang = await asyncio.to_thread(get_user_lang, uid) if uid else "uz_lat"
+    except Exception:
+        lang = get_user_lang(uid) if uid else "uz_lat"
     await update.message.reply_text(t("more_menu_title", lang), reply_markup=get_more_menu(lang))
 
 async def cv_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -101,7 +111,10 @@ async def cv_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     from bot.handlers.start import _ACTION_MAP, WEBAPP_BASE
     from telegram import WebAppInfo, InlineKeyboardMarkup, InlineKeyboardButton
     uid = update.effective_user.id if update.effective_user else 0
-    lang = get_user_lang(uid)
+    try:
+        lang = await asyncio.to_thread(get_user_lang, uid)
+    except Exception:
+        lang = get_user_lang(uid)
     page_file, btn_label, desc = _ACTION_MAP["cv"]
     url = f"{WEBAPP_BASE}/{page_file}?telegram_id={uid}&lang={lang}"
     kb = InlineKeyboardMarkup([[InlineKeyboardButton(btn_label, web_app=WebAppInfo(url=url))]])
@@ -117,11 +130,16 @@ async def unified_router_check(update: Update, context: ContextTypes.DEFAULT_TYP
         return False
     # Maintenance mode: allow only admins to use the bot.
     uid = update.effective_user.id if update.effective_user else None
-    if uid and get_maintenance_mode() and not is_admin_user(uid):
-        await update.message.reply_text(
-            "🛠 Botda texnik ishlar ketmoqda. Iltimos, birozdan keyin qayta urinib ko'ring."
-        )
-        return False
+    if uid:
+        try:
+            maint = await asyncio.to_thread(get_maintenance_mode)
+        except Exception:
+            maint = get_maintenance_mode()
+        if maint and not is_admin_user(uid):
+            await update.message.reply_text(
+                "🛠 Botda texnik ishlar ketmoqda. Iltimos, birozdan keyin qayta urinib ko'ring."
+            )
+            return False
     return True
 
 from bot.handlers.admin import process_admin_state_input
@@ -164,7 +182,10 @@ async def handle_router_text(update: Update, context: ContextTypes.DEFAULT_TYPE)
     import re
     # Obyektivka (obyektivga, obyektovka, obyektvka, abyektiv)
     uid = update.effective_user.id
-    lang = get_user_lang(uid)
+    try:
+        lang = await asyncio.to_thread(get_user_lang, uid)
+    except Exception:
+        lang = get_user_lang(uid)
     if re.search(r'(obyektiv|obyektov|abyektiv|obekt|resume|rezume|sivi|ma\'lumotnoma)', text):
         await update.message.reply_text(t("opening_service", lang, service="Obyektivka"))
         await obyektivka_handler(update, context)
@@ -292,7 +313,10 @@ async def _webapp_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE, action
     from bot.handlers.start import _ACTION_MAP, WEBAPP_BASE
     from bot.services.user_service import get_user_lang
     uid = update.effective_user.id if update.effective_user else 0
-    lang = get_user_lang(uid)
+    try:
+        lang = await asyncio.to_thread(get_user_lang, uid)
+    except Exception:
+        lang = get_user_lang(uid)
     page_info = _ACTION_MAP.get(action)
     if not page_info:
         await update.message.reply_text("❌ Noma'lum buyruq.") # Or t("unknown_cmd", lang)

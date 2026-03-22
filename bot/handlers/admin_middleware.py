@@ -16,7 +16,12 @@ async def track_user(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Middleware: ban tekshiruvi + CRM (fon-da, javobni sekinlatmaydi)."""
     if update.effective_user:
         uid = update.effective_user.id
-        if crm.is_user_banned(uid):
+        # DB/profil sinxron chaqiruv event loopni bloklamasin (tugma bosish 4–5s kechikish)
+        try:
+            banned = await asyncio.to_thread(crm.is_user_banned, uid)
+        except Exception:
+            banned = crm.is_user_banned(uid)
+        if banned:
             if not is_admin_sync(uid):
                 context.user_data["is_banned"] = True
                 return

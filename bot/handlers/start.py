@@ -62,10 +62,14 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         page_file, btn_label, description = action
         url = f"{WEBAPP_BASE}/{page_file}?telegram_id={uid}&lang={lang}"
 
+        try:
+            tariff_block = await asyncio.to_thread(format_tariff_status_html, uid)
+        except Exception:
+            tariff_block = format_tariff_status_html(uid)
         text = (
             f"Assalomu alaykum, {first_name}! 👋\n\n"
             f"🚀 <b>{description}</b>:\n\n"
-            f"{format_tariff_status_html(uid)}"
+            f"{tariff_block}"
         )
         keyboard = InlineKeyboardMarkup([[
             InlineKeyboardButton(btn_label, web_app=WebAppInfo(url=url))
@@ -86,7 +90,11 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"• Rasmlarni PDFga birlashtirish\n\n"
         f"👇 Quyidagi menyudan xizmat tanlang:"
     )
-    welcome_text += f"\n\n{format_tariff_status_html(uid)}"
+    try:
+        tariff_block = await asyncio.to_thread(format_tariff_status_html, uid)
+    except Exception:
+        tariff_block = format_tariff_status_html(uid)
+    welcome_text += f"\n\n{tariff_block}"
 
     keyboard = InlineKeyboardMarkup([
         [
@@ -146,7 +154,11 @@ async def menu_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     uid = update.effective_user.id if update.effective_user else None
     if not uid:
         return
-    body = f"{format_tariff_status_html(uid)}\n\nMenyudan xizmat tanlang:"
+    try:
+        tariff_block = await asyncio.to_thread(format_tariff_status_html, uid)
+    except Exception:
+        tariff_block = format_tariff_status_html(uid)
+    body = f"{tariff_block}\n\nMenyudan xizmat tanlang:"
     await update.message.reply_text(
         body,
         reply_markup=get_main_menu(uid, DEFAULT_LANG),
