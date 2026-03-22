@@ -266,13 +266,25 @@ def paddle_extract_structured(bgr_color) -> dict[str, Any]:
                 lines_text = "\n".join(t for _, t, _ in items).strip()
                 if lines_text:
                     logger.debug("Paddle OCR path=%s lines=%s", name, len(items))
+                    line_dicts = [
+                        {"text": t, "bbox": box, "confidence": conf}
+                        for box, t, conf in items
+                    ]
+                    ih, iw = int(to_run.shape[0]), int(to_run.shape[1])
+                    html_layout = ""
+                    try:
+                        from backend.services.ocr_layout_reconstruct import build_absolute_layout_html
+
+                        html_layout = build_absolute_layout_html(to_run, line_dicts, iw, ih)
+                    except Exception as le:
+                        logger.debug("Layout HTML skipped: %s", le)
                     return {
                         "text": lines_text,
-                        "lines": [
-                            {"text": t, "bbox": box, "confidence": conf}
-                            for box, t, conf in items
-                        ],
+                        "lines": line_dicts,
                         "preprocess": name,
+                        "html_layout": html_layout,
+                        "width": iw,
+                        "height": ih,
                     }
         except Exception as e:
             logger.warning("Paddle variant %s failed: %s", name, e)
@@ -330,6 +342,13 @@ def ocr_extract_text_from_bytes(image_bytes: bytes) -> dict[str, Any]:
         out["lines"] = lines
     if structured.get("preprocess"):
         out["preprocess"] = structured["preprocess"]
+    hl = (structured.get("html_layout") or "").strip()
+    if hl:
+        out["html_layout"] = hl
+    if structured.get("width") is not None:
+        out["width"] = structured["width"]
+    if structured.get("height") is not None:
+        out["height"] = structured["height"]
     return out
 
 

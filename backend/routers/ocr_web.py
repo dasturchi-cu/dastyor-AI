@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import asyncio
 import io
+import json
 import logging
 import os
 import time
@@ -88,13 +89,14 @@ async def api_ocr_extract(
             ),
         )
 
+    quota = None
     if uid_int:
         from bot.services.plan_limits import CAT_OCR
 
-        web_quota_after(uid_int, CAT_OCR, "Web OCR matn")
+        quota = web_quota_after(uid_int, CAT_OCR, "Web OCR matn")
 
     plain = html_ocr_to_plain(html_text)
-    return {"ok": True, "text": plain, "html": html_text}
+    return {"ok": True, "text": plain, "html": html_text, "quota": quota}
 
 
 @router.post("/api/ocr_extract_docx")
@@ -174,17 +176,21 @@ async def api_ocr_extract_docx(
         logger.error("api_ocr_extract_docx DOCX xatosi: %s", e, exc_info=True)
         raise HTTPException(status_code=500, detail=f"Word yaratishda xato: {str(e)[:200]}")
 
+    quota = None
     if uid_int:
         from bot.services.plan_limits import CAT_OCR
 
-        web_quota_after(uid_int, CAT_OCR, "Web OCR Word")
+        quota = web_quota_after(uid_int, CAT_OCR, "Web OCR Word")
 
     ts = int(time.time())
     fname = f"OCR_1to1_{ts}.docx"
+    hdrs = {"Content-Disposition": f'attachment; filename="{fname}"'}
+    if quota is not None:
+        hdrs["X-Service-Quota"] = json.dumps(quota, ensure_ascii=False)[:1800]
     return StreamingResponse(
         io.BytesIO(docx_bytes),
         media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-        headers={"Content-Disposition": f'attachment; filename="{fname}"'},
+        headers=hdrs,
     )
 
 
@@ -234,6 +240,13 @@ async def ocr_paddle(
     if want_layout:
         out["lines"] = data.get("lines") or []
         out["preprocess"] = data.get("preprocess") or "none"
+        hl = (data.get("html_layout") or "").strip()
+        if hl:
+            out["html_layout"] = hl
+        if data.get("width") is not None:
+            out["width"] = data["width"]
+        if data.get("height") is not None:
+            out["height"] = data["height"]
     return out
 
 
@@ -566,10 +579,11 @@ async def api_pdf_direct(
 
         safe_remove(pdf_path, *img_paths)
 
+        quota_pdf = None
         if uid_int:
             from bot.services.plan_limits import CAT_IMAGE_PDF
 
-            web_quota_after(uid_int, CAT_IMAGE_PDF, "Web Rasm→PDF")
+            quota_pdf = web_quota_after(uid_int, CAT_IMAGE_PDF, "Web Rasm→PDF")
 
         tid_ok = telegram_id and telegram_id.strip().isdigit()
         if tid_ok:
@@ -599,14 +613,18 @@ async def api_pdf_direct(
                     "ok": True,
                     "message": "PDF tayyor va botga yuborildi.",
                     "files": n_files,
+                    "quota": quota_pdf,
                 }
             )
 
         filename = f"DASTYOR_AI_Rasmlar_{ts}_@DastyorAiBot.pdf"
+        hdrs_pdf = {"Content-Disposition": f'attachment; filename="{filename}"'}
+        if quota_pdf is not None:
+            hdrs_pdf["X-Service-Quota"] = json.dumps(quota_pdf, ensure_ascii=False)[:1800]
         return StreamingResponse(
             io.BytesIO(pdf_bytes),
             media_type="application/pdf",
-            headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+            headers=hdrs_pdf,
         )
     except HTTPException:
         raise

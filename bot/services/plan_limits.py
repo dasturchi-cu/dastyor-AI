@@ -123,18 +123,26 @@ def resolve_bucket_key(user_id: int, category: str, mode: str) -> Optional[str]:
 
 
 def _batch_bucket_counts(user_id: int, bucket_keys: list[str]) -> dict[str, int]:
-    """Bitta DB so'rov yoki mahalliy fayl."""
+    """
+    DB + mahalliy fayl: agar yozuv RLS tufayli bazaga tushmasa, lekin local ga
+    yozilgan bo'lsa, faqat DB o'qilsa limit 'har doim to'liq' ko'rinardi — max() bilan birlashtiramiz.
+    """
     uid = int(user_id)
     if not bucket_keys:
         return {}
+    local_out = {k: _local_bucket_get(uid, k) for k in bucket_keys}
     try:
         from bot.services.supabase_db import db_service_bucket_get_many, has_db
 
         if has_db():
-            return db_service_bucket_get_many(uid, bucket_keys)
+            db_out = db_service_bucket_get_many(uid, bucket_keys)
+            return {
+                k: max(int(db_out.get(k, 0)), int(local_out.get(k, 0)))
+                for k in bucket_keys
+            }
     except Exception as e:
         logger.debug("plan_limits batch get: %s", e)
-    return {k: _local_bucket_get(uid, k) for k in bucket_keys}
+    return local_out
 
 
 def _get_bucket_count(user_id: int, bucket_key: str) -> int:
@@ -248,6 +256,20 @@ def _assemble_category_status(
         "limit": lim,
         "remaining": rem,
         "period_note": pnote,
+    }
+
+
+def category_quota_for_response(user_id: int, category: str) -> dict[str, Any]:
+    """API javobi: qolgan limit / ishlatilgan (web_quota_after dan keyin)."""
+    st = category_status(int(user_id), category)
+    return {
+        "category": category,
+        "unlimited": bool(st.get("unlimited")),
+        "blocked": bool(st.get("blocked")),
+        "used": st.get("used"),
+        "limit": st.get("limit"),
+        "remaining": st.get("remaining"),
+        "period": st.get("period_note"),
     }
 
 

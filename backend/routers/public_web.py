@@ -120,6 +120,7 @@ async def api_translit(req: TranslitRequest):
 
         web_quota_before(uid, CAT_TRANSLIT)
 
+    quota = None
     try:
         from bot.services.transliterate_service import transliterate
 
@@ -127,8 +128,8 @@ async def api_translit(req: TranslitRequest):
         if uid:
             from bot.services.plan_limits import CAT_TRANSLIT
 
-            web_quota_after(uid, CAT_TRANSLIT, "Web translit")
-        return {"ok": True, "result": result, "direction": req.direction}
+            quota = web_quota_after(uid, CAT_TRANSLIT, "Web translit")
+        return {"ok": True, "result": result, "direction": req.direction, "quota": quota}
     except HTTPException:
         raise
     except Exception as e:
@@ -301,6 +302,7 @@ async def api_translate(req: TranslateRequest):
 
         web_quota_before(uid, CAT_TRANSLATE)
 
+    quota = None
     try:
         from bot.services.ai_service import translate_text
 
@@ -310,8 +312,8 @@ async def api_translate(req: TranslateRequest):
         if uid:
             from bot.services.plan_limits import CAT_TRANSLATE
 
-            web_quota_after(uid, CAT_TRANSLATE, "Web translate")
-        return {"ok": True, "translated_text": result, "direction": req.direction}
+            quota = web_quota_after(uid, CAT_TRANSLATE, "Web translate")
+        return {"ok": True, "translated_text": result, "direction": req.direction, "quota": quota}
     except HTTPException:
         raise
     except Exception as e:
@@ -335,6 +337,7 @@ async def api_spellcheck(req: SpellcheckRequest):
 
         web_quota_before(uid, CAT_SPELL)
 
+    quota = None
     try:
         from bot.services.ai_service import check_spelling_text, count_words_text
 
@@ -348,13 +351,14 @@ async def api_spellcheck(req: SpellcheckRequest):
             if uid:
                 from bot.services.plan_limits import CAT_SPELL
 
-                web_quota_after(uid, CAT_SPELL, "Web spell text")
+                quota = web_quota_after(uid, CAT_SPELL, "Web spell text")
             return {
                 "ok": True,
                 "corrected_text": corrected,
                 "fixed": fc,
                 "error_count": fc,
                 "word_count": wc,
+                "quota": quota,
             }
 
         corrected, fixes = await check_spelling_text(src)
@@ -366,13 +370,14 @@ async def api_spellcheck(req: SpellcheckRequest):
         if uid:
             from bot.services.plan_limits import CAT_SPELL
 
-            web_quota_after(uid, CAT_SPELL, "Web spell text")
+            quota = web_quota_after(uid, CAT_SPELL, "Web spell text")
         return {
             "ok": True,
             "corrected_text": corrected,
             "fixed": fc,
             "error_count": fc,
             "word_count": wc,
+            "quota": quota,
         }
     except HTTPException:
         raise
@@ -447,6 +452,11 @@ async def api_spellcheck_file(
         spellcheck_cache_set(key, corrected, int(fixes or 0))
 
     fc = int(fixes or 0)
+    quota = None
+    if uid_int:
+        from bot.services.plan_limits import CAT_SPELL
+
+        quota = web_quota_after(uid_int, CAT_SPELL, "Web spell file")
     out = {
         "ok": True,
         "corrected_text": corrected,
@@ -454,12 +464,8 @@ async def api_spellcheck_file(
         "error_count": fc,
         "word_count": wc,
         "filename": file.filename or "document",
+        "quota": quota,
     }
-
-    if uid_int:
-        from bot.services.plan_limits import CAT_SPELL
-
-        web_quota_after(uid_int, CAT_SPELL, "Web spell file")
 
     if do_notify and uid:
         try:

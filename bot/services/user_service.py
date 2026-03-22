@@ -193,22 +193,37 @@ def increment_file_count(user_id, service_name=None):
 
 def record_service_completion(user_id, category: str, service_name=None):
     """Muvaffaqiyatli xizmatdan keyin: tarif bo'yicha kategoriya + files_processed + Supabase audit."""
-    from bot.services.plan_limits import record_category_use
+    from bot.services.plan_limits import category_status, record_category_use
 
-    record_category_use(int(user_id), category)
-    increment_file_count(int(user_id), service_name or category)
+    uid = int(user_id)
+    record_category_use(uid, category)
+    try:
+        from bot.services.supabase_db import db_increment_user_action_counters, has_db
+
+        if has_db():
+            db_increment_user_action_counters(uid)
+    except Exception:
+        pass
+    increment_file_count(uid, service_name or category)
     try:
         from bot.services.supabase_db import has_db, db_insert_action_log
 
         if has_db():
             label = (service_name or category or "")[:300]
+            st = category_status(uid, category)
             db_insert_action_log(
-                int(user_id),
+                uid,
                 str(category)[:120],
                 file_name=label if len(label) <= 200 else None,
                 metadata={
                     "service_label": label,
                     "event": "service_completion",
+                    "quota_after": {
+                        "used": st.get("used"),
+                        "remaining": st.get("remaining"),
+                        "limit": st.get("limit"),
+                        "unlimited": st.get("unlimited"),
+                    },
                 },
             )
     except Exception:

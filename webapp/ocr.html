@@ -124,8 +124,8 @@
                 </button>
 
                 <div id="status" class="mt-3"></div>
-                <pre id="ocrText"
-                    class="mt-3 hidden rounded-2xl border border-black/5 dark:border-white/10 bg-black/[0.02] dark:bg-white/[0.03] p-4 text-sm whitespace-pre-wrap break-words text-black dark:text-white"></pre>
+                <div id="ocrText"
+                    class="mt-3 hidden rounded-2xl border border-black/5 dark:border-white/10 bg-black/[0.02] dark:bg-white/[0.03] p-4 text-sm break-words text-black dark:text-white overflow-x-auto"></div>
             </div>
         </div>
 
@@ -192,7 +192,8 @@
         st.className = "";
         st.innerHTML = "";
         const textOut = document.getElementById("ocrText");
-        textOut.textContent = "";
+        textOut.innerHTML = "";
+        textOut.style.whiteSpace = "";
         textOut.classList.add("hidden");
         tg?.HapticFeedback?.impactOccurred?.("light");
     }
@@ -274,11 +275,12 @@
     }
 
     /**
-     * Bot bilan bir xil: avval Gemini (/api/ocr_extract), keyin Paddle (/ocr), so'ng /api/ocr (sinxron yoki job).
+     * Avval Paddle layout (bbox + HTML), keyin Gemini (/api/ocr_extract), keyin oddiy Paddle, /api/ocr.
      */
     async function runOcrPipeline(file) {
         const baseCandidates = getOcrBaseCandidates();
         const steps = [
+            { path: "/ocr?layout=1", name: "paddle_layout" },
             { path: "/api/ocr_extract", name: "gemini" },
             { path: "/ocr", name: "paddle" },
             { path: "/api/ocr", name: "api" },
@@ -308,6 +310,7 @@
                     }
                     const data = await r.json();
                     let text = String(data?.text || "").trim();
+                    const htmlLayout = String(data?.html_layout || "").trim();
                     if (!text && data?.html) {
                         const tmp = document.createElement("div");
                         tmp.innerHTML = String(data.html);
@@ -317,6 +320,9 @@
                     if (!text && data?.job_id) {
                         const result = await pollOcrJob(base, String(data.job_id));
                         text = String(result?.text || "").trim();
+                    }
+                    if (text && htmlLayout) {
+                        return { text, html_layout: htmlLayout, base: usedBase, engine: step.name, raw: data };
                     }
                     if (text) {
                         return { text, base: usedBase, engine: step.name, raw: data };
@@ -342,12 +348,19 @@
             }
             showStatus("loading", "Matn ajratilmoqda (bot bilan bir xil tartib)...");
             const file = optimizedFile || selectedFile;
-            const { text, engine } = await runOcrPipeline(file);
+            const { text, engine, html_layout } = await runOcrPipeline(file);
             if (!text) throw new Error("Rasmdan matn topilmadi");
             const textOut = document.getElementById("ocrText");
-            textOut.textContent = text;
+            if (html_layout) {
+                textOut.innerHTML = "<div class=\"ocr-scroll-wrap\" style=\"overflow:auto;max-width:100%;-webkit-overflow-scrolling:touch\">" + html_layout + "</div>";
+            } else {
+                textOut.textContent = text;
+                textOut.style.whiteSpace = "pre-wrap";
+            }
             textOut.classList.remove("hidden");
-            const label = engine === "gemini" ? "Matn ajratildi (AI — botdagi kabi)" : "Matn ajratildi (zaxira OCR)";
+            const label = html_layout
+                ? "Ko'rinish saqlandi (layout OCR — bbox + HTML)"
+                : (engine === "gemini" ? "Matn ajratildi (AI — botdagi kabi)" : "Matn ajratildi (zaxira OCR)");
             showStatus("success", label);
             tg?.HapticFeedback?.notificationOccurred?.("success");
             try { void window.DastyorAI?.refreshProfile?.(); } catch (_) { /* ignore */ }

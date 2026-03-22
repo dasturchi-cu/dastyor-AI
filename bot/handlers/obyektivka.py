@@ -11,7 +11,7 @@ from bot.services.ai_service import (
     is_valid_transcription_text,
 )
 from bot.services.plan_limits import CAT_OBYEKTIVKA
-from bot.services.user_service import get_user_lang
+from bot.services.user_service import get_user_lang, record_service_completion
 from bot.services.usage_tracker import ensure_can_use_or_notify
 from config import WEBAPP_BASE, WEBAPP_VERSION
 import json
@@ -87,6 +87,8 @@ async def process_obyektivka_from_audio_path(context, audio_path, chat_id, user_
             )
         except Exception:
             pass
+
+        record_service_completion(int(user_id), CAT_OBYEKTIVKA, "Obyektivka Voice")
 
         # 4. Give webapp link (form opens with autoload=1 → fields prefilled from API)
         kb = [[InlineKeyboardButton(

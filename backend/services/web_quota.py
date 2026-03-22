@@ -1,6 +1,8 @@
 """Veb API: tarif limiti (bot bilan bir xil kategoriyalar)."""
 from __future__ import annotations
 
+from typing import Any
+
 from fastapi import HTTPException
 
 
@@ -15,7 +17,9 @@ def web_quota_before(uid: int, category: str) -> None:
         )
 
 
-def web_quota_after(uid: int, category: str, service_label: str) -> None:
+def web_quota_after(uid: int, category: str, service_label: str) -> dict[str, Any]:
+    from bot.services.plan_limits import category_quota_for_response
     from bot.services.user_service import record_service_completion
 
     record_service_completion(int(uid), category, service_label)
+    return category_quota_for_response(int(uid), category)

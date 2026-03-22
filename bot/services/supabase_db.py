@@ -452,11 +452,84 @@ def db_service_bucket_get_many(user_id: int, bucket_keys: list[str]) -> dict[str
         return {k: 0 for k in uniq}
 
 
+def _rpc_scalar_int(res) -> Optional[int]:
+    """PostgREST RPC integer qaytishi (skalyar yoki bitta elementli ro'yxat)."""
+    d = getattr(res, "data", None)
+    if d is None:
+        return None
+    if isinstance(d, bool):
+        return None
+    if isinstance(d, int):
+        return d
+    if isinstance(d, float) and d.is_integer():
+        return int(d)
+    if isinstance(d, (list, tuple)) and len(d) > 0:
+        try:
+            return int(d[0])
+        except (TypeError, ValueError):
+            return None
+    try:
+        return int(d)
+    except (TypeError, ValueError):
+        return None
+
+
+def db_increment_user_action_counters(user_id: int) -> bool:
+    """
+    Har bir muvaffaqiyatli xizmat: users jadvalida usage_count / used_count +1 (audit).
+    RPC (atomik) yo'q bo'lsa read-modify-write.
+    """
+    c = _get_client()
+    if not c:
+        return False
+    uid = int(user_id)
+    try:
+        c.rpc("increment_user_action_counters", {"p_user_id": uid}).execute()
+        return True
+    except Exception as e:
+        logger.debug("increment_user_action_counters rpc: %s", e)
+    try:
+        r = (
+            c.table("users")
+            .select("id,usage_count,used_count,activity_count")
+            .eq("id", uid)
+            .limit(1)
+            .execute()
+        )
+        if not r.data:
+            return False
+        row = r.data[0]
+        c.table("users").update(
+            {
+                "usage_count": int(row.get("usage_count") or 0) + 1,
+                "used_count": int(row.get("used_count") or 0) + 1,
+                "activity_count": int(row.get("activity_count") or 0) + 1,
+            }
+        ).eq("id", uid).execute()
+        return True
+    except Exception as e2:
+        _log_write_error("db_increment_user_action_counters", e2)
+        return False
+
+
 def db_service_bucket_increment(user_id: int, bucket_key: str) -> int:
+    """
+    Kategoriya bucket +1. Avvalo RPC (INSERT ... ON CONFLICT — atomik), keyin REST fallback.
+    """
     c = _get_client()
     if not c:
         return 0
     uid = int(user_id)
+    try:
+        r = c.rpc(
+            "increment_service_bucket",
+            {"p_user_id": uid, "p_bucket_key": bucket_key},
+        ).execute()
+        n = _rpc_scalar_int(r)
+        if n is not None and n >= 1:
+            return n
+    except Exception as e:
+        logger.debug("increment_service_bucket rpc: %s", e)
     try:
         r = (
             c.table("service_usage_buckets")

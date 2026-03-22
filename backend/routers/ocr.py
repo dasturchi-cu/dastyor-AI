@@ -45,7 +45,21 @@ async def api_ocr(file: UploadFile = File(...)) -> dict[str, Any]:
         result = await loop.run_in_executor(None, lambda: ocr_extract_text_from_bytes(raw))
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"OCR xatosi: {str(e)[:200]}")
-    return {"ok": True, "text": (result or {}).get("text") or "", "lines": (result or {}).get("lines")}
+    r = result or {}
+    payload: dict[str, Any] = {
+        "ok": True,
+        "text": r.get("text") or "",
+        "lines": r.get("lines"),
+    }
+    if r.get("html_layout"):
+        payload["html_layout"] = r["html_layout"]
+    if r.get("width") is not None:
+        payload["width"] = r["width"]
+    if r.get("height") is not None:
+        payload["height"] = r["height"]
+    if r.get("preprocess"):
+        payload["preprocess"] = r["preprocess"]
+    return payload
 
 
 @router.post("/ocr-word")
