@@ -203,6 +203,7 @@
 </header>
 
 <main class="main">
+  <div id="obyQuotaWarn" class="hidden card" style="margin:12px 16px;border-color:#fecaca;background:#fef2f2;color:#991b1b;font-weight:600;padding:12px 14px;text-align:center;" role="alert"></div>
   <div class="card" id="lang-card">
     <div class="card-hero">
       <div class="card-hero-title">Obyektivka yaratish</div>
@@ -640,6 +641,25 @@ function buildObyPayload(fmt){
   };
 }
 
+function syncObyQuotaUi() {
+  var u = window.DastyorAI && window.DastyorAI.getUser ? window.DastyorAI.getUser() : null;
+  var btn = document.getElementById('dlBtn');
+  var warn = document.getElementById('obyQuotaWarn');
+  var blocked = window.DastyorAI && window.DastyorAI.isQuotaBlockedForCategory
+    ? window.DastyorAI.isQuotaBlockedForCategory(u, 'obyektivka')
+    : false;
+  if (btn) btn.disabled = !!blocked;
+  if (warn) {
+    if (blocked) {
+      warn.classList.remove('hidden');
+      warn.textContent = '⛔ Obyektivka limiti tugadi. Keyingi oy yoki tarifni yangilang. Balans 💰 tugmasida batafsil.';
+    } else {
+      warn.classList.add('hidden');
+      warn.textContent = '';
+    }
+  }
+}
+
 async function sendObyektivkaViaApi(fmt){
   try {
     if (window.DastyorAI && window.DastyorAI.showDocumentLoading) {
@@ -703,6 +723,10 @@ async function sendObyektivkaToBot(fmt){
   var tg=window.Telegram&&window.Telegram.WebApp?window.Telegram.WebApp:null;
   if(!tg){
     alert("Faqat Telegram WebApp ichida ishlaydi!");
+    return;
+  }
+  if (window.DastyorAI && window.DastyorAI.isQuotaBlockedForCategory(window.DastyorAI.getUser(), 'obyektivka')) {
+    alert('⛔ Obyektivka limiti tugadi. Keyingi oy yoki tarifni yangilang.');
     return;
   }
   var btn=document.getElementById('dlBtn');
@@ -1177,8 +1201,13 @@ document.addEventListener('DOMContentLoaded',function(){
       if(window.DastyorAI&&typeof window.DastyorAI.init==='function'){
         await window.DastyorAI.init();
       }
+      if(window.DastyorAI&&typeof window.DastyorAI.refreshProfile==='function'){
+        await window.DastyorAI.refreshProfile();
+      }
+      syncObyQuotaUi();
     }catch(e){console.warn(e);}
   })();
+  try{ window.addEventListener('dastyor:profile-updated', function(){ syncObyQuotaUi(); }); }catch(e){}
   try{
     var up=new URLSearchParams(window.location.search);
     if(up.get('autoload')==='1'&&telegramId){

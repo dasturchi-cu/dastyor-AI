@@ -240,6 +240,22 @@ const DastyorAI = (() => {
         return o;
     }
 
+    /**
+     * /api/me limits_breakdown: bu kategoriya uchun limit tugagan yoki tarifda yo'q.
+     * category masalan: cv, obyektivka, ocr
+     */
+    function isQuotaBlockedForCategory(u, category) {
+        if (!u || !category || !Array.isArray(u.limits_breakdown)) return false;
+        const row = u.limits_breakdown.find((r) => r.category === category);
+        if (!row) return false;
+        if (row.unlimited) return false;
+        if (row.blocked) return true;
+        if (row.exhausted === true) return true;
+        const rem = row.remaining != null ? Number(row.remaining) : NaN;
+        if (!Number.isNaN(rem) && rem <= 0) return true;
+        return false;
+    }
+
     function shouldShowTariffStrip() {
         try {
             return document.body && document.body.getAttribute('data-da-show-tariff-strip') === '1';
@@ -712,6 +728,7 @@ html[data-theme="dark"] .da-doc-loading-ring{border-color:#334155;border-top-col
         initUI,
         renderTariffBanner,
         refreshProfile,
+        isQuotaBlockedForCategory,
         shouldShowTariffStrip,
         getUser: () => user,
         getToken: () => token,

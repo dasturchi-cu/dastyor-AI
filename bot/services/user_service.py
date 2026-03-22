@@ -191,16 +191,19 @@ def increment_file_count(user_id, service_name=None):
         _save_profiles()
 
 
-def record_service_completion(user_id, category: str, service_name=None):
+def record_service_completion(user_id, category: str, service_name=None, *, skip_quota: bool = False):
     """Muvaffaqiyatli xizmatdan keyin: tarif bo'yicha kategoriya + files_processed + Supabase audit.
 
     Barcha xizmatlar (bot va /api) shu funksiyadan o'tadi; limitlar plan_limits.record_category_use
     orqali bitta joyda (CV / OCR / tarjima farqi yo'q).
+
+    skip_quota=True: limit allaqachon record_category_use bilan yeb qo'yilgan (masalan veb-API kirishida).
     """
     from bot.services.plan_limits import category_status, record_category_use
 
     uid = int(user_id)
-    record_category_use(uid, category)
+    if not skip_quota:
+        record_category_use(uid, category)
     try:
         from bot.services.supabase_db import db_increment_user_action_counters, has_db
 

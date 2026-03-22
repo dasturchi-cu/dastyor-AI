@@ -301,6 +301,8 @@
       </div>
     </div>
 
+    <div id="cvQuotaWarn" class="hidden max-w-3xl mx-auto w-full rounded-xl border border-red-200 bg-red-50 text-red-800 text-sm px-4 py-3 mb-4 font-semibold text-center" role="alert"></div>
+
     <div id="cvLivePreviewCard" class="glass rounded-3xl p-6 shadow-2xl flex flex-col items-center relative" style="--preview-accent:#3b82f6">
       <div class="w-full flex flex-col sm:flex-row justify-between items-center mb-6 border-b border-slate-200 pb-4 gap-4">
         <h2 class="font-display font-bold text-xl text-slate-800 flex items-center gap-2"><span class="hyper-emoji">📄</span> <span class="preview-heading-label" data-i18n="preview">Jonli Ko'rinish</span></h2>
@@ -313,7 +315,7 @@
           <button class="w-6 h-6 rounded-full bg-[#8b5cf6] shadow-sm border-2 border-white focus:ring-2 focus:ring-[#8b5cf6]" onclick="changeCvColor('#8b5cf6')"></button>
         </div>
 
-        <button onclick="sendCvToBot('pdf')" class="bg-red-600 hover:bg-red-700 text-white px-5 py-2 rounded-lg font-semibold text-sm shadow-md transition-all flex items-center gap-2">
+        <button type="button" id="cvSendBotBtn" onclick="sendCvToBot('pdf')" class="bg-red-600 hover:bg-red-700 text-white px-5 py-2 rounded-lg font-semibold text-sm shadow-md transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-red-600">
           <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
             <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
           </svg>
@@ -1050,8 +1052,12 @@
         try {
           const err = ct.includes('json') ? await res.json() : {};
           detail = err.detail || err.message || '';
+          if (Array.isArray(detail)) {
+            detail = detail.map((x) => (typeof x === 'string' ? x : (x && x.msg) || '')).filter(Boolean).join(' ');
+          }
         } catch (_) {}
-        throw new Error((detail || 'Server') + ' ' + res.status);
+        const head = res.status === 429 ? '⛔ Limit tugadi: ' : '';
+        throw new Error(head + (detail || 'Server ' + res.status));
       }
       if (ct.includes('application/json')) {
         try {
@@ -1063,10 +1069,35 @@
       return { ok: true, status: 'download' };
     }
 
+    function syncCvQuotaUi() {
+      const u = window.DastyorAI && window.DastyorAI.getUser ? window.DastyorAI.getUser() : null;
+      const btn = document.getElementById('cvSendBotBtn');
+      const warn = document.getElementById('cvQuotaWarn');
+      const blocked = window.DastyorAI && window.DastyorAI.isQuotaBlockedForCategory
+        ? window.DastyorAI.isQuotaBlockedForCategory(u, 'cv')
+        : false;
+      if (btn) {
+        btn.disabled = !!blocked;
+      }
+      if (warn) {
+        if (blocked) {
+          warn.classList.remove('hidden');
+          warn.textContent = '⛔ CV / Rezyume limiti tugadi. Keyingi oy yoki tarifni yangilang. Balans 💰 tugmasida batafsil.';
+        } else {
+          warn.classList.add('hidden');
+          warn.textContent = '';
+        }
+      }
+    }
+
     async function sendCvToBot(fmt) {
       const tg = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp : null;
       if (!tg) {
         alert("Faqat Telegram WebApp ichida ishlaydi!");
+        return;
+      }
+      if (window.DastyorAI && window.DastyorAI.isQuotaBlockedForCategory(window.DastyorAI.getUser(), 'cv')) {
+        alert('⛔ CV / Rezyume limiti tugadi. Keyingi oy yoki tarifni yangilang.');
         return;
       }
       try {
@@ -1093,8 +1124,13 @@
     document.addEventListener('DOMContentLoaded', async () => {
       try {
         if (window.DastyorAI && window.DastyorAI.init) await window.DastyorAI.init();
+        if (window.DastyorAI && window.DastyorAI.refreshProfile) await window.DastyorAI.refreshProfile();
+        syncCvQuotaUi();
       } catch (_) {}
       loadFromLocalStorage();
+      try {
+        window.addEventListener('dastyor:profile-updated', () => syncCvQuotaUi());
+      } catch (_) {}
     });
 
   </script>
