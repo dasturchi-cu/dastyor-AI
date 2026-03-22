@@ -117,7 +117,7 @@ def get_tariff_snapshot(user_id: int) -> dict:
         "standard": "Standard",
         "premium": "Premium",
     }
-    breakdown = user_limits_breakdown(uid)
+    breakdown = user_limits_breakdown(uid, plan=plan)
     subs = (
         get_active_subscription_expires_display(uid)
         if plan in ("standard", "premium")
@@ -138,9 +138,9 @@ def get_tariff_snapshot(user_id: int) -> dict:
     }
 
 
-def format_tariff_status_html(user_id: int) -> str:
+def format_tariff_status_html(user_id: int, snapshot: dict | None = None) -> str:
     """Telegram HTML (/start, /menu)."""
-    s = get_tariff_snapshot(user_id)
+    s = snapshot if snapshot is not None else get_tariff_snapshot(user_id)
     lines = [
         f"📦 <b>Tarif:</b> {s['plan_label']}",
         "📋 Har xizmat alohida: <b>necha marta berilgan</b> / <b>limit</b> / <b>qancha qoldi</b> yoki <b>cheksiz</b>.",
@@ -151,9 +151,9 @@ def format_tariff_status_html(user_id: int) -> str:
     return "\n".join(lines)
 
 
-def format_tariff_status_markdown(user_id: int) -> str:
+def format_tariff_status_markdown(user_id: int, snapshot: dict | None = None) -> str:
     """Markdown (Balans va boshqa * matnlar)."""
-    s = get_tariff_snapshot(user_id)
+    s = snapshot if snapshot is not None else get_tariff_snapshot(user_id)
     lines = [
         f"📦 *Tarif:* {s['plan_label']}",
         "📋 Har xizmat: *berilgan / limit / qoldi* yoki *cheksiz* — quyida.",

@@ -1,14 +1,8 @@
 from telegram import Update
 from telegram.ext import ContextTypes
 from bot.services.user_service import get_user_profile, get_user_lang
-from bot.services.settings_service import (
-    get_active_plan_code,
-    get_active_subscription_expires_display,
-    get_premium_status,
-    get_premium_expiry,
-)
-from bot.services.plan_limits import user_limits_breakdown
-from bot.services.usage_tracker import format_tariff_status_markdown
+from bot.services.settings_service import get_premium_status, get_premium_expiry
+from bot.services.usage_tracker import format_tariff_status_markdown, get_tariff_snapshot
 from bot.utils.i18n import t
 
 async def balance_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -22,7 +16,8 @@ async def balance_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     files = profile.get("files_processed", 0) if profile else 0
 
     lang = get_user_lang(user_id)
-    plan = get_active_plan_code(user_id)
+    snap = get_tariff_snapshot(user_id)
+    plan = snap["plan"]
     if plan == "premium":
         status = t("status_prem", lang)
     elif plan == "standard":
@@ -30,14 +25,14 @@ async def balance_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         status = t("status_free", lang)
 
-    breakdown = user_limits_breakdown(user_id)
+    breakdown = snap["limits_breakdown"]
     limit_text = "\n".join(f"• {row['display']}" for row in breakdown)
 
     premium_btn = t("btn_premium", lang)
 
-    head = format_tariff_status_markdown(user_id)
+    head = format_tariff_status_markdown(user_id, snapshot=snap)
     msg = head + "\n\n" + t("balance_msg", lang, user_id=user_id, status=status, limit_text=limit_text, files=files, premium_btn=premium_btn)
-    exp_disp = get_active_subscription_expires_display(user_id)
+    exp_disp = snap.get("subscription_ends")
     if plan in ("standard", "premium") and exp_disp:
         msg += f"\n\n📅 Obuna tugashi: `{exp_disp}`"
     p_status = get_premium_status(user_id)

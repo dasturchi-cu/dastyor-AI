@@ -6,6 +6,7 @@ Deep-link format:  /start <action>
 
 Oddiy /start: to'g'ridan-to'g'ri menuni ko'rsatadi.
 """
+import asyncio
 import os
 from telegram import Update, WebAppInfo, InlineKeyboardMarkup, InlineKeyboardButton
 from telegram.ext import ContextTypes
@@ -45,8 +46,12 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # Har doim o'zbek tili (bot uchun til tanlash yo'q)
     lang = DEFAULT_LANG
 
-    # ── Persist chat_id immediately so file delivery always works ──────
-    save_chat_id(uid, update.effective_chat.id if update.effective_chat else uid)
+    # chat_id DBga yozish — javobni sekinlatmasin (fon-da)
+    chat_id_persistent = update.effective_chat.id if update.effective_chat else uid
+    try:
+        asyncio.create_task(asyncio.to_thread(save_chat_id, uid, chat_id_persistent))
+    except Exception:
+        save_chat_id(uid, chat_id_persistent)
 
     # ── Check payload ──────────────────────────────────────────────────
     payload = (context.args[0] if context.args else "").strip().lower()
