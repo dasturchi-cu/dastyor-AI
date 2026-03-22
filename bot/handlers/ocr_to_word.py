@@ -12,7 +12,8 @@ from docx import Document
 from bs4 import BeautifulSoup
 from bot.keyboards.reply_keyboards import get_back_button, get_main_menu, get_ocr_to_word_keyboard
 from bot.utils.helpers import is_back_button
-from bot.services.user_service import get_user_lang
+from bot.services.user_service import get_user_lang, record_service_completion
+from bot.services.usage_tracker import ensure_can_use_or_notify
 from bot.services.ocr_service import extract_text_from_image
 from bot.utils.progress import send_progress, update_progress
 from bot.utils.delivery import send_docx_with_confirmation
@@ -43,6 +44,10 @@ def _schedule_ocr_auto_process(
                 return
             imgs = list(context.user_data.get("ocr_images") or [])
             if not imgs:
+                return
+            if not await ensure_can_use_or_notify(
+                bot, chat_id, user_id, get_user_lang(user_id)
+            ):
                 return
             context.user_data["ocr_images"] = []
             _run_ocr_batch_background(bot, chat_id, user_id, imgs, context.user_data)
@@ -214,6 +219,9 @@ async def perform_ocr_and_send(context, image_path, chat_id, user_id):
     """
     t0 = time.perf_counter()
     logger.info("OCR task started for user_id=%s chat_id=%s", user_id, chat_id)
+    lang = get_user_lang(user_id)
+    if not await ensure_can_use_or_notify(context.bot, chat_id, user_id, lang):
+        return
     progress_msg = await send_progress(context, chat_id, "Jarayon boshlandi...")
     doc_path = None
 
@@ -257,7 +265,8 @@ async def perform_ocr_and_send(context, image_path, chat_id, user_id):
             )
             if not ok:
                 return
-            
+
+        record_service_completion(user_id, "OCR Image")
         await progress_msg.delete()
         # CLEAR STATE AFTER SUCCESS (when run from background task, user_data is shared)
         if getattr(context, "user_data", None) and context.user_data.get("waiting_for") == "ocr_image":
@@ -399,13 +408,15 @@ async def _perform_ocr_batch_and_send(context, bot, chat_id: int, user_id: int, 
 
         await update_progress(context, progress_msg, 95, "Yuborilmoqda...")
         with open(doc_path, "rb") as f:
-            await send_docx_with_confirmation(
+            ok_send = await send_docx_with_confirmation(
                 bot, chat_id, f,
                 filename=doc_path,
                 caption="✅ **Barcha rasmlar bitta Word faylga birlashtirildi.**",
                 parse_mode=ParseMode.MARKDOWN,
                 reply_markup=get_main_menu(user_id, get_user_lang(user_id)),
             )
+        if ok_send:
+            record_service_completion(user_id, "OCR Batch")
         await progress_msg.delete()
         if getattr(context, "user_data", None):
             context.user_data.pop("waiting_for", None)
@@ -463,6 +474,10 @@ async def process_ocr_tayyor(update: Update, context: ContextTypes.DEFAULT_TYPE)
         t.cancel()
     chat_id = update.effective_chat.id
     user_id = update.effective_user.id if update.effective_user else 0
+    if not await ensure_can_use_or_notify(
+        context.bot, chat_id, user_id, get_user_lang(user_id)
+    ):
+        return True
     context.user_data["ocr_images"] = []  # clear so we don't process twice
     _run_ocr_batch_background(context.bot, chat_id, user_id, images, context.user_data)
     await update.message.reply_text(

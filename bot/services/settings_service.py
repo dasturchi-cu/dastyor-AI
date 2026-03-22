@@ -161,6 +161,40 @@ def get_premium_expiry(user_id) -> str | None:
         return None
     return rec.get("end_date")
 
+
+def get_active_plan_code(user_id) -> str:
+    """
+    Foydalanuvchining hozirgi tarifi: 'free' | 'standard' | 'premium'.
+    DBda faol obuna bo'lsa plan_type; JSON (legacy) faqat premium sifatida.
+    """
+    uid = int(user_id)
+    try:
+        from bot.services.supabase_db import has_db, db_get_active_plan_type
+        if has_db():
+            pt = db_get_active_plan_type(uid)
+            if pt in ("standard", "premium"):
+                return pt
+    except Exception as e:
+        logger.debug("get_active_plan_code db: %s", e)
+    if is_premium(uid):
+        return "premium"
+    return "free"
+
+
+def get_active_subscription_expires_display(user_id) -> str | None:
+    """Faol obuna tugash sanasi (YYYY-MM-DD) yoki None."""
+    uid = int(user_id)
+    try:
+        from bot.services.supabase_db import has_db, db_get_active_subscription_expiry_raw
+        if has_db():
+            raw = db_get_active_subscription_expiry_raw(uid)
+            if raw:
+                return raw[:10] if len(raw) >= 10 else raw
+    except Exception as e:
+        logger.debug("get_active_subscription_expires_display db: %s", e)
+    return get_premium_expiry(user_id)
+
+
 # === CONFIG ===
 def get_daily_limit():
     try:

@@ -75,7 +75,7 @@ from bot.handlers.webapp_data import web_app_data_handler
 
 # Services
 from bot.services.settings_service import is_premium
-from bot.services.user_service import increment_file_count, get_user_lang
+from bot.services.user_service import get_user_lang
 from bot.services.settings_service import get_maintenance_mode
 from bot.services.admin_service import is_admin as is_admin_user
 
@@ -217,14 +217,11 @@ async def handle_router_doc(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # Translate mode — detected by presence of translate_direction key
     elif translate_dir or state == 'translate_input':
         await process_translate_doc(update, context)
-        increment_file_count(uid, "Translate Doc")
     elif state == 'spell_check_doc' or state == 'spellcheck_file':
         await process_spell_check(update, context)
-        increment_file_count(uid, "Spell Check")
     elif state == 'ocr_image' or state == 'ocr_image_doc':
         # Some users send images as documents
         await process_ocr_image(update, context)
-        increment_file_count(uid, "OCR Doc-Image")
     elif state == 'feedback':
         await handle_feedback(update, context)
     else:
@@ -240,14 +237,11 @@ async def handle_router_photo(update: Update, context: ContextTypes.DEFAULT_TYPE
     if await process_admin_state_input(update, context): return
     
     state = context.user_data.get('waiting_for')
-    uid = update.effective_user.id
-    
+
     if state == 'ocr_image':
         await process_ocr_image(update, context)
-        increment_file_count(uid, "OCR Image")
     elif state == 'pdf_images':
         await process_image_to_pdf(update, context)
-        increment_file_count(uid, "Image to PDF")
     elif state == 'feedback':
         await handle_feedback(update, context)
     else:
@@ -261,16 +255,13 @@ async def handle_router_audio(update: Update, context: ContextTypes.DEFAULT_TYPE
     if await process_admin_state_input(update, context): return
     
     state = context.user_data.get('waiting_for')
-    uid = update.effective_user.id
-    
+
     if state == 'obyektivka_audio':
         await process_obyektivka_audio(update, context)
-        increment_file_count(uid, "Obyektivka Audio")
     elif state == 'feedback':
         await handle_feedback(update, context)
     else:
         await auto_voice_obyektivka_from_message(update, context)
-        increment_file_count(uid, "Obyektivka Audio Auto")
 
 async def button_callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not await unified_router_check(update, context): return

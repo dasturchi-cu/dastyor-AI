@@ -8,6 +8,8 @@ from bot.keyboards.inline_keyboards import (
 )
 from bot.keyboards.reply_keyboards import get_image_to_pdf_keyboard, get_main_menu
 from bot.handlers.ocr_to_word import perform_ocr_and_send
+from bot.services.user_service import get_user_lang, record_service_completion
+from bot.services.usage_tracker import ensure_can_use_or_notify
 from bot.services.ai_service import transcribe_audio
 from bot.utils.delivery import send_docx_with_confirmation
 
@@ -100,6 +102,14 @@ async def smart_callback_handler(update: Update, context: ContextTypes.DEFAULT_T
     try:
         # === 1. OCR (Rasm -> Word) — run in background so bot stays responsive ===
         if data == "smart_ocr":
+            if not await ensure_can_use_or_notify(
+                context.bot, chat_id, user_id, get_user_lang(user_id)
+            ):
+                try:
+                    await query.message.delete()
+                except Exception:
+                    pass
+                return
             await query.message.edit_text("⏳ Yuklanmoqda...")
             file_obj = await context.bot.get_file(file_id)
             ext = os.path.splitext(file_obj.file_path or "")[1] or ".jpg"
@@ -143,6 +153,14 @@ async def smart_callback_handler(update: Update, context: ContextTypes.DEFAULT_T
 
         # === 3. Transcribe (Audio -> Text) ===
         elif data == "smart_transcribe":
+            if not await ensure_can_use_or_notify(
+                context.bot, chat_id, user_id, get_user_lang(user_id)
+            ):
+                try:
+                    await query.message.delete()
+                except Exception:
+                    pass
+                return
             await query.message.edit_text("⏳ Audio yuklanmoqda va transkripsiya qilinmoqda...")
             
             # Download file
@@ -161,6 +179,7 @@ async def smart_callback_handler(update: Update, context: ContextTypes.DEFAULT_T
                 parse_mode="Markdown",
                 reply_markup=get_main_menu(update.effective_user.id if update.effective_user else None)
             )
+            record_service_completion(user_id, "Smart Transcribe")
             return
 
         # === 4. Obyektivka (Audio -> Obyektivka) ===
@@ -215,6 +234,15 @@ async def smart_callback_handler(update: Update, context: ContextTypes.DEFAULT_T
                 )
                 return
 
+            if not await ensure_can_use_or_notify(
+                context.bot, chat_id, user_id, get_user_lang(user_id)
+            ):
+                try:
+                    await query.message.delete()
+                except Exception:
+                    pass
+                return
+
             await query.message.edit_text(
                 f"⏳ <b>'{file_name}'</b> tarjima qilinmoqda...\n"
                 f"🔄 {label} · AI ishlamoqda (30–90 son).",
@@ -265,6 +293,7 @@ async def smart_callback_handler(update: Update, context: ContextTypes.DEFAULT_T
                                 ),
                                 parse_mode="HTML"
                             )
+                    record_service_completion(user_id, "Smart Translate DOC")
                 else:
                     await query.message.edit_text(
                         "❌ Tarjima qilishda xatolik yuz berdi.\n"

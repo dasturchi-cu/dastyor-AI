@@ -11,6 +11,7 @@ from telegram import Update, WebAppInfo, InlineKeyboardMarkup, InlineKeyboardBut
 from telegram.ext import ContextTypes
 from bot.keyboards.reply_keyboards import get_main_menu
 from bot.services.user_service import save_chat_id
+from bot.services.usage_tracker import get_effective_daily_cap
 from config import WEBAPP_BASE
 
 BOT_USERNAME = os.getenv("BOT_USERNAME", "DastyorAiBot")
@@ -79,6 +80,12 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"• Rasmlarni PDFga birlashtirish\n\n"
         f"👇 Quyidagi menyudan xizmat tanlang:"
     )
+    cap = get_effective_daily_cap()
+    if cap > 0:
+        welcome_text += (
+            f"\n\n🎁 <b>Bepul tarif:</b> kuniga <b>{cap}</b> ta xizmat. "
+            f"Limit tugasa — menyudagi <b>Premium</b> orqali Standard/Premium obuna oling."
+        )
 
     keyboard = InlineKeyboardMarkup([
         [

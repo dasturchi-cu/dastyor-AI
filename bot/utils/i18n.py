@@ -119,6 +119,12 @@ _DICT = {
     "status_prem": {
         "uz_lat": "💎 Premium", "uz_cyr": "💎 Premium", "en": "💎 Premium", "ru": "💎 Премиум"
     },
+    "status_standard": {
+        "uz_lat": "📗 Standard",
+        "uz_cyr": "📗 Standard",
+        "en": "📗 Standard",
+        "ru": "📗 Standard",
+    },
     "status_free": {
         "uz_lat": "🆓 Oddiy", "uz_cyr": "🆓 Оддий", "en": "🆓 Free", "ru": "🆓 Обычный"
     },

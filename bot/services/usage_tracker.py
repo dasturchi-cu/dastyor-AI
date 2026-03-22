@@ -7,7 +7,12 @@ import os
 import json
 import logging
 from datetime import date
+from typing import TYPE_CHECKING
+
 from config import DAILY_FREE_LIMIT
+
+if TYPE_CHECKING:
+    from telegram import Update
 
 logger = logging.getLogger(__name__)
 
@@ -68,29 +73,96 @@ def increment_usage(user_id: int, action: str = "service") -> int:
     _save_usage(data)
     return data[uid]["count"]
 
-def can_use(user_id: int) -> bool:
-    """Check if user can use a service (within daily limit)"""
-    if DAILY_FREE_LIMIT <= 0:
-        return True  # Unlimited
+def get_effective_daily_cap() -> int:
+    """
+    Bepul tarif uchun kunlik limit.
+    0 yoki manfiy = cheksiz (bepul ham).
+    """
     try:
-        from bot.services.settings_service import is_premium
+        from bot.services.settings_service import get_daily_limit
 
-        if is_premium(int(user_id)):
-            return True
-    except Exception as e:
-        logger.debug("can_use premium check: %s", e)
-    return get_user_usage(user_id) < DAILY_FREE_LIMIT
-
-def get_remaining(user_id: int) -> int:
-    """Get remaining free uses for today"""
-    if DAILY_FREE_LIMIT <= 0:
-        return 999
-    try:
-        from bot.services.settings_service import is_premium
-
-        if is_premium(int(user_id)):
-            return 999
+        lim = int(get_daily_limit())
+        if lim <= 0:
+            return 0
+        return lim
     except Exception:
         pass
+    return max(0, int(DAILY_FREE_LIMIT))
+
+
+def has_paid_active_plan(user_id: int) -> bool:
+    """Standard yoki Premium — kunlik bepul limit qo'llanmaydi."""
+    try:
+        from bot.services.settings_service import is_premium
+
+        return bool(is_premium(int(user_id)))
+    except Exception:
+        return False
+
+
+def can_use(user_id: int) -> bool:
+    """Bepul foydalanuvchi: kunlik limit ichida; to'lovli: har doim True."""
+    cap = get_effective_daily_cap()
+    if cap <= 0:
+        return True
+    if has_paid_active_plan(user_id):
+        return True
+    return get_user_usage(user_id) < cap
+
+
+def get_remaining(user_id: int) -> int:
+    """Bugun qolgan bepul urinishlar (to'lovli: katta son)."""
+    cap = get_effective_daily_cap()
+    if cap <= 0 or has_paid_active_plan(user_id):
+        return 999
     used = get_user_usage(user_id)
-    return max(0, DAILY_FREE_LIMIT - used)
+    return max(0, cap - used)
+
+
+async def _send_quota_blocked_message(bot, chat_id: int, user_id: int, lang: str = "uz_lat") -> None:
+    from telegram import InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo
+    from config import WEBAPP_BASE
+
+    uid = int(user_id)
+    cap = get_effective_daily_cap()
+    used = get_user_usage(uid)
+    text = (
+        "⛔️ <b>Kunlik limit tugadi.</b>\n\n"
+        f"Bugun: <b>{used}</b> / <b>{cap}</b> ta bepul urinish ishlatildi.\n\n"
+        "💎 <b>Standard</b> yoki <b>Premium</b> obuna oling — cheksiz foydalanish.\n\n"
+        "👇 Quyidagi tugma orqali tariflarni oching:"
+    )
+    url = f"{WEBAPP_BASE.rstrip('/')}/premium.html?telegram_id={uid}&lang={lang}"
+    kb = InlineKeyboardMarkup(
+        [[InlineKeyboardButton("💎 Tariflar (Premium/Standard)", web_app=WebAppInfo(url=url))]]
+    )
+    await bot.send_message(chat_id=chat_id, text=text, parse_mode="HTML", reply_markup=kb)
+
+
+async def ensure_can_use_or_notify(bot, chat_id: int, user_id: int, lang: str = "uz_lat") -> bool:
+    """
+    True — xizmatni boshlash mumkin.
+    False — limit tugagan, foydalanuvchiga xabar yuborildi.
+    """
+    from bot.services.admin_service import is_admin
+
+    uid = int(user_id)
+    if is_admin(uid):
+        return True
+    if can_use(uid):
+        return True
+    await _send_quota_blocked_message(bot, chat_id, uid, lang)
+    return False
+
+
+async def reply_if_daily_quota_blocked(update: "Update", user_id: int, lang: str = "uz_lat") -> bool:
+    """
+    Limit tugagan bo'lsa xabar yuboradi va True qaytaradi (handler return qilishi kerak).
+    Admin cheksiz.
+    """
+    uid = int(user_id)
+    bot = update.get_bot()
+    cid = update.effective_chat.id if update.effective_chat else uid
+    if await ensure_can_use_or_notify(bot, cid, uid, lang):
+        return False
+    return True

@@ -161,6 +161,14 @@ def increment_file_count(user_id, service_name=None):
         data[uid]["last_service"] = service_name
         _save_profiles()
 
+
+def record_service_completion(user_id, service_name=None):
+    """Muvaffaqiyatli xizmatdan keyin: kunlik hisob + files_processed."""
+    from bot.services.usage_tracker import increment_usage
+
+    increment_usage(int(user_id), service_name or "service")
+    increment_file_count(int(user_id), service_name)
+
 def set_ban_status(user_id, is_banned=True, reason=None):
     """Ban or Unban user (Admin action)"""
     try:

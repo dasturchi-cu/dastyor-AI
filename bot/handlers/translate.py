@@ -6,6 +6,8 @@ from telegram.ext import ContextTypes
 from telegram.constants import ChatAction
 from bot.keyboards.reply_keyboards import get_translate_menu, get_back_button
 from bot.services.ai_service import translate_document_gemini, translate_text
+from bot.services.user_service import get_user_lang, record_service_completion
+from bot.services.usage_tracker import reply_if_daily_quota_blocked
 
 logger = logging.getLogger(__name__)
 
@@ -75,6 +77,10 @@ async def process_translation(update: Update, context: ContextTypes.DEFAULT_TYPE
             await message.reply_text("❌ Matn juda qisqa.")
             return
 
+        uid = message.from_user.id
+        if await reply_if_daily_quota_blocked(update, uid, get_user_lang(uid)):
+            return
+
         label = DIRECTION_MAP.get(direction, direction)
         status_msg = await message.reply_text(f"⏳ {label} tarjima qilinmoqda...")
         await context.bot.send_chat_action(chat_id=message.chat_id, action=ChatAction.TYPING)
@@ -88,6 +94,7 @@ async def process_translation(update: Update, context: ContextTypes.DEFAULT_TYPE
                 escaped_result,
                 reply_markup=get_back_button()
             )
+            record_service_completion(uid, "Translate Text")
         except Exception as e:
             logger.error(f"Text translation error: {e}", exc_info=True)
             await status_msg.edit_text("❌ Tarjimada xatolik yuz berdi.")
@@ -105,6 +112,10 @@ async def process_translation(update: Update, context: ContextTypes.DEFAULT_TYPE
                 "Faqat <b>.docx</b> (Word) fayllar qabul qilinadi.",
                 parse_mode="HTML"
             )
+            return
+
+        uid = message.from_user.id
+        if await reply_if_daily_quota_blocked(update, uid, get_user_lang(uid)):
             return
 
         label = DIRECTION_MAP.get(direction, direction)
@@ -145,6 +156,7 @@ async def process_translation(update: Update, context: ContextTypes.DEFAULT_TYPE
                         parse_mode="HTML",
                         reply_markup=get_back_button()
                     )
+                record_service_completion(message.from_user.id, "Translate Doc")
             else:
                 await status_msg.edit_text(
                     "❌ Tarjima qilishda xatolik yuz berdi.\n"

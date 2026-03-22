@@ -32,6 +32,23 @@ logger = logging.getLogger(__name__)
 router = APIRouter(tags=["web-documents"])
 
 
+def _assert_daily_quota_web(uid_int: int) -> None:
+    """Veb-API: bepul kunlik limit (admin va faol obuna cheksiz)."""
+    from bot.services.admin_service import is_admin
+    from bot.services.usage_tracker import can_use
+
+    if is_admin(uid_int):
+        return
+    if not can_use(uid_int):
+        raise HTTPException(
+            status_code=429,
+            detail=(
+                "Kunlik bepul limit tugadi. Standard yoki Premium obunani "
+                "tanlang (bot yoki veb-ilovadagi «Premium» bo'limi)."
+            ),
+        )
+
+
 async def _cv_bytes_pdf_with_fallback(data: dict, safe: str, local_ts: int, bot_suffix: str) -> tuple[bytes, str]:
     """
     PDF via Playwright/WeasyPrint; if both fail, DOCX (user can open in Word / print to PDF).
@@ -79,6 +96,8 @@ async def api_generate_cv(
         str(req.telegram_id) if req.telegram_id else None,
         req.token,
     )
+    if uid_str:
+        _assert_daily_quota_web(int(uid_str))
     payload = req.dict(exclude={"telegram_id", "token"})
 
     try:
@@ -98,10 +117,10 @@ async def api_generate_cv(
     safe_remove(docx_path)
 
     if uid_str:
-        from bot.services.user_service import get_chat_id, increment_file_count
+        from bot.services.user_service import get_chat_id, record_service_completion
 
         chat_id = get_chat_id(int(uid_str)) or int(uid_str)
-        increment_file_count(int(uid_str), "CV Generator")
+        record_service_completion(int(uid_str), "CV Generator")
 
         async def _send_cv():
             try:
@@ -175,6 +194,8 @@ async def api_generate_obyektivka(
         str(req.telegram_id) if req.telegram_id else None,
         req.token,
     )
+    if uid_str:
+        _assert_daily_quota_web(int(uid_str))
 
     doc_data = {
         "lang": req.lang,
@@ -239,10 +260,10 @@ async def api_generate_obyektivka(
     mime = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
 
     if uid_str:
-        from bot.services.user_service import get_chat_id, increment_file_count
+        from bot.services.user_service import get_chat_id, record_service_completion
 
         chat_id = get_chat_id(int(uid_str)) or int(uid_str)
-        increment_file_count(int(uid_str), "Obyektivka Generator")
+        record_service_completion(int(uid_str), "Obyektivka Generator")
 
         async def _send_oby():
             try:
@@ -283,6 +304,8 @@ async def api_export_cv(
 ):
     ts = int(time.time())
     uid_str = resolve_telegram_uid(str(req.telegram_id) if req.telegram_id else None, req.token)
+    if uid_str:
+        _assert_daily_quota_web(int(uid_str))
     fmt = "pdf"
     data = req.dict(exclude={"telegram_id", "token", "format"})
     safe = safe_filename(req.name or "CV")
@@ -349,6 +372,12 @@ async def api_export_cv(
                     db_insert_action_log(int(uid_str), "cv", filename_to_send)
                 except Exception:
                     pass
+                try:
+                    from bot.services.user_service import record_service_completion
+
+                    record_service_completion(int(uid_str), "CV Export SEND_ONLY")
+                except Exception:
+                    pass
 
             except Exception as e:
                 logger.error("CV background generation/send failed: %s", e, exc_info=True)
@@ -395,9 +424,9 @@ async def api_export_cv(
             media_type = "application/pdf"
 
     if uid_str:
-        from bot.services.user_service import increment_file_count
+        from bot.services.user_service import record_service_completion
 
-        increment_file_count(int(uid_str), f"CV Export {fmt.upper()}")
+        record_service_completion(int(uid_str), f"CV Export {fmt.upper()}")
 
         async def _send():
             try:
@@ -454,6 +483,8 @@ async def api_export_obyektivka(
     ts = int(time.time())
     os.makedirs("temp", exist_ok=True)
     uid_str = resolve_telegram_uid(str(req.telegram_id) if req.telegram_id else None, req.token)
+    if uid_str:
+        _assert_daily_quota_web(int(uid_str))
     fmt = "word"
     data = req.dict(exclude={"telegram_id", "token", "format"})
     safe = safe_filename(req.fullname or "Obyektivka")
@@ -517,9 +548,9 @@ async def api_export_obyektivka(
         safe_remove(docx_path, photo_path)
 
     if uid_str:
-        from bot.services.user_service import increment_file_count
+        from bot.services.user_service import record_service_completion
 
-        increment_file_count(
+        record_service_completion(
             int(uid_str),
             "Obyektivka Export PDF" if fmt == "pdf" else "Obyektivka Export WORD",
         )

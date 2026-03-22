@@ -504,17 +504,13 @@ def _parse_ts(val) -> Optional[datetime]:
         return None
 
 
-def db_is_premium(user_id: int) -> bool:
-    """
-    True faqat faol to'lovli obuna bo'lsa (premium yoki standard tarif).
-    Muddati tugagach avtomatik False — limitlar qaytadi (/start maxsus emas).
-    """
+def _db_fetch_subscription_rows(user_id: int) -> list:
+    """premium_subscriptions qatorlari (id bo'yicha yangiroq avval)."""
     c = _get_client()
     if not c:
-        return False
+        return []
+    uid = int(user_id)
     try:
-        uid = int(user_id)
-        now = datetime.utcnow()
         try:
             r = (
                 c.table("premium_subscriptions")
@@ -525,24 +521,69 @@ def db_is_premium(user_id: int) -> bool:
             )
         except Exception:
             r = c.table("premium_subscriptions").select("*").eq("user_id", uid).limit(40).execute()
-
-        rows = sorted(
+        return sorted(
             r.data or [],
             key=lambda x: int(x.get("id") or 0),
             reverse=True,
         )
-        for row in rows:
-            st = (row.get("status") or "active").strip().lower()
-            if st in ("cancelled", "rejected", "expired"):
-                continue
-            exp = _parse_ts(row.get("expire_date")) or _parse_ts(row.get("end_date"))
-            if exp and exp >= now:
-                return True
+    except Exception as e:
+        _mark_temporarily_unavailable(e)
+        logger.error(f"_db_fetch_subscription_rows: {e}")
+        return []
+
+
+def db_pick_active_subscription_row(user_id: int) -> Optional[dict]:
+    """
+    Faol obuna qatori (muddati o'tmagan, status bekor emas).
+    Standard / Premium ajratish va muddat ko'rsatish uchun.
+    """
+    now = datetime.utcnow()
+    for row in _db_fetch_subscription_rows(user_id):
+        st = (row.get("status") or "active").strip().lower()
+        if st in ("cancelled", "rejected", "expired"):
+            continue
+        exp = _parse_ts(row.get("expire_date")) or _parse_ts(row.get("end_date"))
+        if exp and exp >= now:
+            return row
+    return None
+
+
+def db_is_premium(user_id: int) -> bool:
+    """
+    True faqat faol to'lovli obuna bo'lsa (premium yoki standard tarif).
+    Muddati tugagach avtomatik False — limitlar qaytadi (/start maxsus emas).
+    """
+    if not _get_client():
         return False
+    try:
+        return db_pick_active_subscription_row(int(user_id)) is not None
     except Exception as e:
         _mark_temporarily_unavailable(e)
         logger.error(f"db_is_premium: {e}")
         return False
+
+
+def db_get_active_plan_type(user_id: int) -> Optional[str]:
+    """'standard' | 'premium' yoki None (faol obuna yo'q)."""
+    row = db_pick_active_subscription_row(int(user_id))
+    if not row:
+        return None
+    pt = (row.get("plan_type") or "premium").strip().lower()
+    if pt == "standard":
+        return "standard"
+    return "premium"
+
+
+def db_get_active_subscription_expiry_raw(user_id: int) -> Optional[str]:
+    """Jadvaldagi expire_date yoki end_date (matn) — ko'rsatish uchun."""
+    row = db_pick_active_subscription_row(int(user_id))
+    if not row:
+        return None
+    v = row.get("expire_date") or row.get("end_date")
+    if v is None:
+        return None
+    s = str(v).strip()
+    return s or None
 
 
 def db_insert_action_log(
