@@ -122,16 +122,23 @@ def resolve_bucket_key(user_id: int, category: str, mode: str) -> Optional[str]:
     return None
 
 
-def _get_bucket_count(user_id: int, bucket_key: str) -> int:
+def _batch_bucket_counts(user_id: int, bucket_keys: list[str]) -> dict[str, int]:
+    """Bitta DB so'rov yoki mahalliy fayl."""
     uid = int(user_id)
+    if not bucket_keys:
+        return {}
     try:
-        from bot.services.supabase_db import has_db, db_service_bucket_get
+        from bot.services.supabase_db import db_service_bucket_get_many, has_db
 
         if has_db():
-            return int(db_service_bucket_get(uid, bucket_key))
+            return db_service_bucket_get_many(uid, bucket_keys)
     except Exception as e:
-        logger.debug("plan_limits db get: %s", e)
-    return _local_bucket_get(uid, bucket_key)
+        logger.debug("plan_limits batch get: %s", e)
+    return {k: _local_bucket_get(uid, k) for k in bucket_keys}
+
+
+def _get_bucket_count(user_id: int, bucket_key: str) -> int:
+    return int(_batch_bucket_counts(int(user_id), [bucket_key]).get(bucket_key, 0))
 
 
 def _local_bucket_get(user_id: int, bucket_key: str) -> int:
@@ -175,15 +182,18 @@ def _incr_bucket(user_id: int, bucket_key: str) -> int:
     return _local_bucket_incr(uid, bucket_key)
 
 
-def category_status(user_id: int, category: str) -> dict[str, Any]:
-    """Bitta kategoriya: used, limit, remaining, unlimited, blocked, label, period_note."""
-    from bot.services.settings_service import get_active_plan_code
-
+def _assemble_category_status(
+    user_id: int,
+    category: str,
+    plan: str,
+    mode: str,
+    cap: int | None,
+    label: str,
+    bkey: str | None,
+    counts: dict[str, int],
+) -> dict[str, Any]:
+    """category_status va user_limits_breakdown uchun umumiy jadval."""
     uid = int(user_id)
-    plan = get_active_plan_code(uid)
-    mode, cap = _plan_limits(plan).get(category, ("blocked", 0))
-    label = category_label_uz(category)
-
     if mode == "unlimited":
         return {
             "category": category,
@@ -207,7 +217,6 @@ def category_status(user_id: int, category: str) -> dict[str, Any]:
             "period_note": "mavjud emas",
         }
 
-    bkey = resolve_bucket_key(uid, category, mode)
     if not bkey:
         return {
             "category": category,
@@ -220,7 +229,7 @@ def category_status(user_id: int, category: str) -> dict[str, Any]:
             "period_note": "obuna topilmadi",
         }
 
-    used = _get_bucket_count(uid, bkey)
+    used = int(counts.get(bkey, 0))
     lim = int(cap or 0)
     rem = max(0, lim - used)
     if mode == "day":
@@ -240,6 +249,23 @@ def category_status(user_id: int, category: str) -> dict[str, Any]:
         "remaining": rem,
         "period_note": pnote,
     }
+
+
+def category_status(user_id: int, category: str) -> dict[str, Any]:
+    """Bitta kategoriya: used, limit, remaining, unlimited, blocked, label, period_note."""
+    from bot.services.settings_service import get_active_plan_code
+
+    uid = int(user_id)
+    plan = get_active_plan_code(uid)
+    mode, cap = _plan_limits(plan).get(category, ("blocked", 0))
+    label = category_label_uz(category)
+
+    bkey: str | None = None
+    if mode not in ("unlimited", "blocked") and cap != 0:
+        bkey = resolve_bucket_key(uid, category, mode)
+    keys = [bkey] if bkey else []
+    counts = _batch_bucket_counts(uid, keys)
+    return _assemble_category_status(uid, category, plan, mode, cap, label, bkey, counts)
 
 
 def can_use_category(user_id: int, category: str) -> bool:
@@ -290,11 +316,34 @@ def record_category_use(user_id: int, category: str) -> bool:
     return True
 
 
-def user_limits_breakdown(user_id: int) -> list[dict[str, Any]]:
-    """API / balans uchun barcha kategoriyalar ro'yxati."""
+def user_limits_breakdown(user_id: int, plan: str | None = None) -> list[dict[str, Any]]:
+    """API / balans uchun barcha kategoriyalar ro'yxati (bitta bucket so'rovi)."""
+    from bot.services.settings_service import get_active_plan_code
+
+    uid = int(user_id)
+    if plan is None:
+        plan = get_active_plan_code(uid)
+    limits = _plan_limits(plan)
+
+    bkey_by_cat: dict[str, str] = {}
+    all_keys: list[str] = []
+    for cat in _ORDER:
+        mode, cap = limits.get(cat, ("blocked", 0))
+        if mode in ("unlimited", "blocked") or cap == 0:
+            continue
+        bk = resolve_bucket_key(uid, cat, mode)
+        if bk:
+            bkey_by_cat[cat] = bk
+            all_keys.append(bk)
+
+    counts = _batch_bucket_counts(uid, all_keys)
+
     out: list[dict[str, Any]] = []
     for cat in _ORDER:
-        st = category_status(user_id, cat)
+        mode, cap = limits.get(cat, ("blocked", 0))
+        label = category_label_uz(cat)
+        bkey = bkey_by_cat.get(cat)
+        st = _assemble_category_status(uid, cat, plan, mode, cap, label, bkey, counts)
         line = {
             "category": cat,
             "label": st["label"],

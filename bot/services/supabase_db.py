@@ -419,25 +419,37 @@ def db_reset_daily_usage(user_id: int) -> bool:
 
 # ── service_usage_buckets (tarif bo'yicha kategoriyalar) ────────────────────
 def db_service_bucket_get(user_id: int, bucket_key: str) -> int:
+    m = db_service_bucket_get_many(int(user_id), [bucket_key])
+    return int(m.get(bucket_key, 0))
+
+
+def db_service_bucket_get_many(user_id: int, bucket_keys: list[str]) -> dict[str, int]:
+    """Bir nechta bucket uchun bitta so'rov (Balans /start tezligi)."""
+    uid = int(user_id)
+    if not bucket_keys:
+        return {}
     c = _get_client()
     if not c:
-        return 0
+        return {k: 0 for k in bucket_keys}
+    uniq = list(dict.fromkeys(bucket_keys))
     try:
         r = (
             c.table("service_usage_buckets")
-            .select("count")
-            .eq("user_id", int(user_id))
-            .eq("bucket_key", bucket_key)
-            .limit(1)
+            .select("bucket_key,count")
+            .eq("user_id", uid)
+            .in_("bucket_key", uniq)
             .execute()
         )
-        if r.data:
-            return int(r.data[0].get("count", 0))
-        return 0
+        out = {k: 0 for k in uniq}
+        for row in r.data or []:
+            k = row.get("bucket_key")
+            if k in out:
+                out[str(k)] = int(row.get("count", 0))
+        return out
     except Exception as e:
         _mark_temporarily_unavailable(e)
-        logger.debug("db_service_bucket_get: %s", e)
-        return 0
+        logger.debug("db_service_bucket_get_many: %s", e)
+        return {k: 0 for k in uniq}
 
 
 def db_service_bucket_increment(user_id: int, bucket_key: str) -> int:
@@ -592,7 +604,16 @@ def _sort_subscription_rows(rows: list) -> list:
     return sorted(rows or [], key=sort_key, reverse=True)
 
 
-def _db_fetch_subscription_rows(user_id: int) -> list:
+_SUB_ROWS_TTL = float(os.getenv("SUPABASE_SUBSCRIPTION_CACHE_SECONDS", "5"))
+_sub_rows_cache: dict[int, tuple[float, list]] = {}
+
+
+def invalidate_subscription_rows_cache(user_id: int) -> None:
+    """Obuna yozilgandan keyin chaqirish (ixtiyoriy)."""
+    _sub_rows_cache.pop(int(user_id), None)
+
+
+def _db_fetch_subscription_rows_nocache(user_id: int) -> list:
     """premium_subscriptions qatorlari (created_at bo'yicha yangiroq avval)."""
     c = _get_client()
     if not c:
@@ -612,8 +633,20 @@ def _db_fetch_subscription_rows(user_id: int) -> list:
         return _sort_subscription_rows(r.data or [])
     except Exception as e:
         _mark_temporarily_unavailable(e)
-        logger.error(f"_db_fetch_subscription_rows: {e}")
+        logger.error(f"_db_fetch_subscription_rows_nocache: {e}")
         return []
+
+
+def _db_fetch_subscription_rows(user_id: int) -> list:
+    """Qisqa TTL kesh — bir nechta limit tekshiruvlarida qayta-qayta so'rovni kesadi."""
+    uid = int(user_id)
+    now = time.monotonic()
+    hit = _sub_rows_cache.get(uid)
+    if hit and (now - hit[0]) < _SUB_ROWS_TTL:
+        return hit[1]
+    rows = _db_fetch_subscription_rows_nocache(uid)
+    _sub_rows_cache[uid] = (now, rows)
+    return rows
 
 
 def db_pick_active_subscription_row(user_id: int) -> Optional[dict]:
@@ -860,6 +893,7 @@ def db_activate_subscription(
             ).execute()
         except Exception:
             pass
+        invalidate_subscription_rows_cache(int(user_id))
         return True
     except Exception as e:
         _mark_temporarily_unavailable(e)
