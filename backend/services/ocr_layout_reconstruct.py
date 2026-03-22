@@ -82,13 +82,21 @@ def build_absolute_layout_html(
     img_h: int,
 ) -> str:
     """
-    One div per OCR box, position:absolute in a root matching image dimensions.
-    line_items: { "text", "bbox", "confidence" } as from paddle_extract_structured.
+    Har bir OCR qutisi: foiz bilan absolute joylashuv — konteyner kengayganda/siqlganda
+    nisbat saqlanadi (px faqat bitta o‘lchamda ishonchli).
+
+    Root: width:100% + max-width + aspect-ratio — real rasm proporsiyasi.
+    Matn: left/top/width/min-height — foiz; shrift: container query cqh (balandlik nisbati).
     """
+    iw = max(1, int(img_w))
+    ih = max(1, int(img_h))
+    # Foizlar — bbox va OCR ishlatilgan rasm (iw x ih) bilan bir xil koordinata tizimi
     parts: list[str] = [
-        f'<div class="ocr-visual" data-ocr-layout="1" style="position:relative;'
-        f"width:{int(img_w)}px;height:{int(img_h)}px;margin:0 auto;"
-        f'background:#ffffff;box-sizing:border-box;overflow:hidden;">'
+        f'<div class="ocr-visual" data-ocr-layout="1" style="'
+        f"container-type:size;position:relative;box-sizing:border-box;"
+        f"width:100%;max-width:{iw}px;aspect-ratio:{iw} / {ih};"
+        f"margin:0 auto;background:#ffffff;overflow:hidden;"
+        f'-webkit-text-size-adjust:100%;text-size-adjust:100%;">'
     ]
     for item in line_items:
         text = (item.get("text") or "").strip()
@@ -98,14 +106,31 @@ def build_absolute_layout_html(
         x, y, w, h = bbox_to_xywh(box)
         if w < 0.5 or h < 0.5:
             continue
+        # Paddle ba'zan 1–2 px tashqarida qaytaradi — foizlar "sakrab" ketmasin
+        x = min(max(0.0, x), float(iw - 1))
+        y = min(max(0.0, y), float(ih - 1))
+        w = min(w, float(iw) - x)
+        h = min(h, float(ih) - y)
+        if w < 0.5 or h < 0.5:
+            continue
         fs = max(8.0, min(96.0, h * 0.82))
         color = sample_ink_color_hex(bgr, x, y, w, h)
         et = html_lib.escape(text)
+        lp = 100.0 * x / iw
+        tp = 100.0 * y / ih
+        wp = 100.0 * w / iw
+        hp = 100.0 * h / ih
+        # 1cqh = konteyner balandligining 1%; H*fs/ih = shrift px ekvivalenti
+        cqh_mul = 100.0 * fs / ih
         parts.append(
-            f'<div style="position:absolute;left:{x:.2f}px;top:{y:.2f}px;'
-            f"width:{w:.2f}px;min-height:{h:.2f}px;font-size:{fs:.1f}px;"
-            f"line-height:1.05;color:{color};white-space:pre-wrap;word-break:break-word;"
-            f'font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;">{et}</div>'
+            f'<div style="position:absolute;left:{lp:.5f}%;top:{tp:.5f}%;'
+            f"width:{wp:.5f}%;min-height:{hp:.5f}%;"
+            f"box-sizing:border-box;margin:0;padding:0;"
+            f"font-size:{fs:.2f}px;"
+            f"font-size:calc(1cqh * {cqh_mul:.6f});"
+            f"line-height:1.02;color:{color};white-space:pre-wrap;word-break:break-word;"
+            f"font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;"
+            f'overflow:hidden;">{et}</div>'
         )
     parts.append("</div>")
     return "\n".join(parts)
