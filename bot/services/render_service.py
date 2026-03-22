@@ -60,7 +60,15 @@ except Exception:
 _PW_INSTALL_ATTEMPTED = False
 
 # Production: WeasyPrint tez; Playwright og'ir. Railway'da build vaqtida chromium o'rnatish yaxshi.
-def _playwright_disabled() -> bool:
+def _playwright_disabled(*, cv_pdf: bool = False) -> bool:
+    """
+    Global o‘chirish: barcha HTML→PDF (masalan Obyektivka fallback).
+    CV uchun alohida: jonli preview iframe = Chromium, PDF ham Chromium bo‘lmasa
+    WeasyPrint bilan dizayn 1:1 bo‘lmaydi. Shuning uchun CV defaultda global
+    DISABLE ni e’tiborsiz qoldiradi — faqat DISABLE_PLAYWRIGHT_CV_PDF=1 Weasy ga majbur qiladi.
+    """
+    if cv_pdf:
+        return os.getenv("DISABLE_PLAYWRIGHT_CV_PDF", "").strip().lower() in ("1", "true", "yes", "on")
     return os.getenv("DISABLE_PLAYWRIGHT_PDF", "").strip().lower() in ("1", "true", "yes", "on")
 
 
@@ -286,13 +294,15 @@ async def _pdf_bytes_weasy(html_str: str, base_url: str | None) -> bytes | None:
         return None
 
 
-async def _html_pdf_playwright(html_str: str) -> bytes | None:
-    """Slower pixel-perfect path; shorter font wait than legacy 450ms."""
-    if _playwright_disabled():
+async def _html_pdf_playwright(html_str: str, *, cv_pdf: bool = False) -> bytes | None:
+    """Chromium print — veb-preview (iframe) bilan bir xil dvigatel; shriftlar va CSS yaqinroq."""
+    if _playwright_disabled(cv_pdf=cv_pdf):
         return None
     if not PLAYWRIGHT_OK:
         return None
-    font_wait_ms = 120
+    # Tarmoq shriftlari (Google Fonts) + katta HTML: domcontentloaded yetarli emas
+    font_wait_ms = 450 if cv_pdf else 200
+    content_timeout_ms = 90_000 if cv_pdf else 60_000
 
     async def _once():
         async with async_playwright() as p:
@@ -304,7 +314,15 @@ async def _html_pdf_playwright(html_str: str) -> bytes | None:
                 ]
             )
             page = await browser.new_page()
-            await page.set_content(html_str, wait_until="domcontentloaded")
+            try:
+                await page.emulate_media(media="screen")
+            except Exception:
+                pass
+            await page.set_content(
+                html_str,
+                wait_until="load",
+                timeout=content_timeout_ms,
+            )
             try:
                 await page.evaluate(
                     "async () => { if (document.fonts && document.fonts.ready) await document.fonts.ready; }"
@@ -315,6 +333,7 @@ async def _html_pdf_playwright(html_str: str) -> bytes | None:
             pdf_bytes = await page.pdf(
                 format="A4",
                 print_background=True,
+                prefer_css_page_size=True,
                 margin={"top": "0", "right": "0", "bottom": "0", "left": "0"},
             )
             await browser.close()
@@ -353,12 +372,17 @@ async def generate_cv_pdf(data: dict, base_url: str | None = None) -> bytes | No
     pw_first = os.getenv("CV_PDF_PLAYWRIGHT_FIRST", "1").strip().lower() in ("1", "true", "yes", "on")
 
     if pw_first:
-        pdf_pw = await _html_pdf_playwright(html_str)
+        pdf_pw = await _html_pdf_playwright(html_str, cv_pdf=True)
         if pdf_pw:
             logger.info("CV PDF generated via Playwright (preview bilan moslashtirilgan)")
             return pdf_pw
         pdf_fast = await _pdf_bytes_weasy(html_str, bu or None)
         if pdf_fast:
+            logger.warning(
+                "CV PDF: WeasyPrint ishlatildi (Playwright yo‘q yoki xato). "
+                "Jonli ko‘rinish bilan rang/font/layout farqi bo‘lishi mumkin — "
+                "Chromium o‘rnatilganini va DISABLE_PLAYWRIGHT_CV_PDF=0 ekanini tekshiring."
+            )
             logger.info("CV PDF generated via WeasyPrint (fallback)")
             return pdf_fast
     else:
@@ -366,7 +390,7 @@ async def generate_cv_pdf(data: dict, base_url: str | None = None) -> bytes | No
         if pdf_fast:
             logger.info("CV PDF generated via WeasyPrint (fast path)")
             return pdf_fast
-        pdf_pw = await _html_pdf_playwright(html_str)
+        pdf_pw = await _html_pdf_playwright(html_str, cv_pdf=True)
         if pdf_pw:
             return pdf_pw
 
@@ -389,7 +413,7 @@ async def generate_obyektivka_pdf(data: dict, base_url: str | None = None) -> by
         logger.info("Obyektivka PDF generated via WeasyPrint (fast path)")
         return pdf_fast
 
-    pdf_pw = await _html_pdf_playwright(html_str)
+    pdf_pw = await _html_pdf_playwright(html_str, cv_pdf=False)
     if pdf_pw:
         logger.info("Obyektivka PDF generated via Playwright")
         return pdf_pw
