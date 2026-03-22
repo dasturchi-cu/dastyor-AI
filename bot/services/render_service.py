@@ -125,6 +125,46 @@ def _parse_items(raw: list[dict]) -> list[dict]:
     return out
 
 
+def _normalize_language_levels(raw: list) -> list[dict]:
+    out: list[dict] = []
+    for r in raw or []:
+        if not isinstance(r, dict):
+            continue
+
+        def _lvl(key: str) -> int:
+            try:
+                v = int(r.get(key) or 0)
+            except (TypeError, ValueError):
+                v = 0
+            return max(0, min(6, v))
+
+        out.append(
+            {
+                "lang": str(r.get("lang") or "").strip(),
+                "listen": _lvl("listen"),
+                "read": _lvl("read"),
+                "speak": _lvl("speak"),
+                "write": _lvl("write"),
+            }
+        )
+    return out
+
+
+def _normalize_cv_achievements(raw: list) -> list[dict]:
+    out: list[dict] = []
+    for r in raw or []:
+        if not isinstance(r, dict):
+            continue
+        out.append(
+            {
+                "type": str(r.get("type") or "").strip(),
+                "title": str(r.get("title") or "").strip(),
+                "year": str(r.get("year") or "").strip(),
+            }
+        )
+    return out
+
+
 def build_cv_context(raw: dict) -> dict:
     """
     Build a clean template context dict from raw API form payload.
@@ -136,6 +176,19 @@ def build_cv_context(raw: dict) -> dict:
     # Support works[] from webapp OR work_experience[] from bot
     works_raw = raw.get("works") or raw.get("work_experience") or []
     edu_raw   = raw.get("education_list") or raw.get("education") or []
+
+    lang_raw = (
+        raw.get("languages_list")
+        or raw.get("language_levels")
+        or raw.get("langData")
+        or []
+    )
+    ach_raw = (
+        raw.get("achievements_list")
+        or raw.get("cv_achievements")
+        or raw.get("achData")
+        or []
+    )
 
     return {
         "template":    raw.get("template", "minimal").lower(),
@@ -150,6 +203,8 @@ def build_cv_context(raw: dict) -> dict:
         "skills":      skills,
         "experiences": _parse_items(works_raw),
         "education":   _parse_items(edu_raw),
+        "language_levels": _normalize_language_levels(lang_raw if isinstance(lang_raw, list) else []),
+        "achievements": _normalize_cv_achievements(ach_raw if isinstance(ach_raw, list) else []),
     }
 
 

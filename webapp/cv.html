@@ -984,15 +984,27 @@
           title: x.title || '',
           company: x.place || '',
           date: x.date || '',
-          desc: '',
+          desc: (x.desc || x.description || '').trim(),
         })),
         education_list: (eduData || []).map((x) => ({
           title: x.title || '',
-          company: '',
+          company: x.place || '',
           date: x.date || '',
           desc: '',
         })),
         skills: (skillsData || []).join(', '),
+        languages_list: (langData || []).map((x) => ({
+          lang: x.lang || '',
+          listen: Number(x.listen) || 0,
+          read: Number(x.read) || 0,
+          speak: Number(x.speak) || 0,
+          write: Number(x.write) || 0,
+        })),
+        achievements_list: (achData || []).map((x) => ({
+          type: x.type || '',
+          title: x.title || '',
+          year: x.year || '',
+        })),
         img: avatarUrl || '',
       };
     }

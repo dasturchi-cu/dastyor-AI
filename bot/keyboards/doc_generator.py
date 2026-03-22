@@ -70,39 +70,87 @@ def generate_cv_docx(data: dict[str, Any], output_dir: str = "temp") -> str:
         h.runs[0].bold = True
         doc.add_paragraph(about)
 
-    works = _parse_list(data.get("works") or data.get("work_experience"))
-    if works:
-        h = doc.add_paragraph("ISH TAJRIBASI")
-        h.runs[0].bold = True
-        for item in works:
-            year = _as_text(item.get("year") or item.get("from"))
-            to = _as_text(item.get("to"))
-            if year and to:
-                period = f"{year}-{to}"
-            else:
-                period = year or to
-            role = _as_text(item.get("position") or item.get("description") or item.get("title"))
-            line = f"{period} - {role}" if period and role else (period or role)
-            if line:
-                doc.add_paragraph(line)
-
-    education = _parse_list(data.get("education_list"))
-    if education:
-        h = doc.add_paragraph("TA'LIM")
-        h.runs[0].bold = True
-        for item in education:
-            title_text = _as_text(item.get("title") or item.get("name"))
-            date_text = _as_text(item.get("date") or item.get("year"))
-            line = f"{date_text} - {title_text}" if date_text and title_text else (date_text or title_text)
-            if line:
-                doc.add_paragraph(line)
-
     skills = _as_text(data.get("skills"))
     if skills:
         h = doc.add_paragraph("KO'NIKMALAR")
         h.runs[0].bold = True
         for part in [s.strip() for s in skills.replace(",", "\n").splitlines() if s.strip()]:
             doc.add_paragraph(f"- {part}")
+
+    works = _parse_list(data.get("works") or data.get("work_experience"))
+    if works:
+        h = doc.add_paragraph("ISH TAJRIBASI")
+        h.runs[0].bold = True
+        for item in works:
+            title = _as_text(item.get("title"))
+            date_s = _as_text(item.get("date") or item.get("year") or item.get("from"))
+            place = _as_text(item.get("company") or item.get("place") or item.get("co"))
+            desc = _as_text(item.get("desc") or item.get("description") or item.get("d"))
+            head_line = " · ".join([p for p in (title, date_s) if p])
+            if head_line:
+                doc.add_paragraph(head_line)
+            if place:
+                pp = doc.add_paragraph(place)
+                for r in pp.runs:
+                    r.italic = True
+            if desc:
+                doc.add_paragraph(desc)
+
+    education = _parse_list(data.get("education_list") or data.get("education"))
+    if education:
+        h = doc.add_paragraph("TA'LIM")
+        h.runs[0].bold = True
+        for item in education:
+            title_text = _as_text(item.get("title") or item.get("name"))
+            date_text = _as_text(item.get("date") or item.get("year"))
+            place_text = _as_text(item.get("place") or item.get("company") or item.get("institution"))
+            head_line = " · ".join([p for p in (title_text, date_text) if p])
+            if head_line:
+                doc.add_paragraph(head_line)
+            if place_text:
+                ep = doc.add_paragraph(place_text)
+                for r in ep.runs:
+                    r.italic = True
+
+    langs = _parse_list(data.get("languages_list") or data.get("language_levels"))
+    if langs:
+        h = doc.add_paragraph("TILLAR")
+        h.runs[0].bold = True
+        for row in langs:
+            lang_name = _as_text(row.get("lang")) or "—"
+            try:
+                li = int(row.get("listen") or 0)
+            except (TypeError, ValueError):
+                li = 0
+            try:
+                rd = int(row.get("read") or 0)
+            except (TypeError, ValueError):
+                rd = 0
+            try:
+                sp = int(row.get("speak") or 0)
+            except (TypeError, ValueError):
+                sp = 0
+            try:
+                wr = int(row.get("write") or 0)
+            except (TypeError, ValueError):
+                wr = 0
+            doc.add_paragraph(
+                f"{lang_name}: tinglash {li}/6, o'qish {rd}/6, gapirish {sp}/6, yozish {wr}/6"
+            )
+
+    achievements = _parse_list(data.get("achievements_list"))
+    if achievements:
+        h = doc.add_paragraph("YUTUQLAR")
+        h.runs[0].bold = True
+        for row in achievements:
+            t = _as_text(row.get("type"))
+            tit = _as_text(row.get("title"))
+            yr = _as_text(row.get("year"))
+            line = f"{t}: {tit}" if t else tit
+            if yr:
+                line = f"{line} ({yr})" if line else yr
+            if line:
+                doc.add_paragraph(line)
 
     doc.save(filepath)
     return filepath

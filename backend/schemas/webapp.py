@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from typing import Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class AuthRequest(BaseModel):
@@ -71,6 +71,8 @@ class CVRequest(BaseModel):
     works: list = []
     education_list: list = []
     skills: str = ""
+    languages_list: list = Field(default_factory=list)
+    achievements_list: list = Field(default_factory=list)
 
 
 class ObyektivkaRequest(BaseModel):
@@ -124,6 +126,8 @@ class ExportCVRequest(BaseModel):
     education_list: list = []
     skills: str = ""
     img: str = ""
+    languages_list: list = Field(default_factory=list)
+    achievements_list: list = Field(default_factory=list)
 
 
 class ExportObyektivkaRequest(BaseModel):
