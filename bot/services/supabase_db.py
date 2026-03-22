@@ -604,7 +604,7 @@ def _sort_subscription_rows(rows: list) -> list:
     return sorted(rows or [], key=sort_key, reverse=True)
 
 
-_SUB_ROWS_TTL = float(os.getenv("SUPABASE_SUBSCRIPTION_CACHE_SECONDS", "5"))
+_SUB_ROWS_TTL = float(os.getenv("SUPABASE_SUBSCRIPTION_CACHE_SECONDS", "15"))
 _sub_rows_cache: dict[int, tuple[float, list]] = {}
 
 

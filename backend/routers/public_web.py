@@ -464,7 +464,6 @@ async def api_spellcheck_file(
     if do_notify and uid:
         try:
             from bot.services.user_service import get_chat_id
-            from bot.services.supabase_db import db_insert_action_log
 
             chat_id = get_chat_id(int(uid)) or int(uid)
             summary = f"✅ Imlo tekshiruvi (WebApp)\nSo'zlar: {wc}\nTopilgan xatolar: {fc}"
@@ -476,7 +475,6 @@ async def api_spellcheck_file(
                 document=InputFile(buf, filename="imlo_tuzatilgan.txt"),
                 caption="Tuzatilgan matn (TXT)",
             )
-            db_insert_action_log(int(uid), "imlo", file.filename or "upload")
         except Exception as e:
             logger.warning("spellcheck_file Telegram: %s", e)
 

@@ -401,22 +401,43 @@ async def generate_cv_pdf(data: dict, base_url: str | None = None) -> bytes | No
 async def generate_obyektivka_pdf(data: dict, base_url: str | None = None) -> bytes | None:
     """
     Render Obyektivka template → PDF bytes.
-    Same ordering as CV: WeasyPrint first, Playwright second.
+    Default: Playwright first (mini-app iframe bilan bir xil Chromium) — preview ≈ PDF.
+    OBY_PDF_PLAYWRIGHT_FIRST=0 yoki WeasyPrint tez yo‘l.
     """
     html_str = render_obyektivka_html(data)
 
-    if base_url and "<head>" in html_str:
-        html_str = html_str.replace("<head>", f"<head><base href='{base_url}'>")
+    bu = (base_url or "").strip().rstrip("/")
+    if bu and "<head>" in html_str:
+        html_str = html_str.replace("<head>", f"<head><base href='{bu}/'>")
 
-    pdf_fast = await _pdf_bytes_weasy(html_str, base_url)
-    if pdf_fast:
-        logger.info("Obyektivka PDF generated via WeasyPrint (fast path)")
-        return pdf_fast
+    pw_first = os.getenv("OBY_PDF_PLAYWRIGHT_FIRST", os.getenv("CV_PDF_PLAYWRIGHT_FIRST", "1")).strip().lower() in (
+        "1",
+        "true",
+        "yes",
+        "on",
+    )
 
-    pdf_pw = await _html_pdf_playwright(html_str, cv_pdf=False)
-    if pdf_pw:
-        logger.info("Obyektivka PDF generated via Playwright")
-        return pdf_pw
+    if pw_first:
+        pdf_pw = await _html_pdf_playwright(html_str, cv_pdf=True)
+        if pdf_pw:
+            logger.info("Obyektivka PDF generated via Playwright (preview bilan moslashtirilgan)")
+            return pdf_pw
+        pdf_fast = await _pdf_bytes_weasy(html_str, bu or None)
+        if pdf_fast:
+            logger.warning(
+                "Obyektivka PDF: WeasyPrint ishlatildi (Playwright yo‘q yoki xato). "
+                "Jonli ko‘rinish bilan farq bo‘lishi mumkin."
+            )
+            return pdf_fast
+    else:
+        pdf_fast = await _pdf_bytes_weasy(html_str, bu or None)
+        if pdf_fast:
+            logger.info("Obyektivka PDF generated via WeasyPrint (fast path)")
+            return pdf_fast
+        pdf_pw = await _html_pdf_playwright(html_str, cv_pdf=True)
+        if pdf_pw:
+            logger.info("Obyektivka PDF generated via Playwright")
+            return pdf_pw
 
     logger.error("All PDF backends failed for Obyektivka")
     return None

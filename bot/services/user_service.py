@@ -6,6 +6,7 @@ Uses Supabase when SUPABASE_URL is set, else JSON file.
 import json
 import os
 import logging
+import threading
 import time
 from datetime import datetime
 
@@ -13,6 +14,11 @@ logger = logging.getLogger(__name__)
 
 PROFILES_FILE = "user_profiles.json"
 profiles_cache = {}
+
+# Qisqa TTL: har update'da Supabase ga qayta-qayta db_get_user chaqiruvini kesadi (/start, balans tezlashadi).
+_USER_PROFILE_CACHE_TTL = float(os.getenv("USER_PROFILE_CACHE_TTL_SECONDS", "45") or "45")
+_user_profile_cache: dict[int, tuple[float, dict | None]] = {}
+_user_profile_cache_lock = threading.Lock()
 # Supabase: har xabarda yozmaslik — sekinlik va 429 oldini olish (0 = har safar)
 _SUPABASE_USER_SYNC_INTERVAL = float(os.getenv("USER_SUPABASE_SYNC_SECONDS", "35") or "35")
 _LAST_SUPABASE_USER_SYNC: dict[int, float] = {}
@@ -35,9 +41,19 @@ def _save_profiles():
     except Exception:
         pass
 
-def get_user_profile(user_id):
+def invalidate_user_profile_cache(user_id: int | None = None) -> None:
+    """Obuna/limit/ban yangilanganda chaqiriladi."""
+    with _user_profile_cache_lock:
+        if user_id is None:
+            _user_profile_cache.clear()
+        else:
+            _user_profile_cache.pop(int(user_id), None)
+
+
+def _fetch_user_profile_uncached(user_id):
     try:
         from bot.services.supabase_db import has_db, db_get_user
+
         if has_db():
             p = db_get_user(user_id)
             if p:
@@ -46,6 +62,19 @@ def get_user_profile(user_id):
         logger.debug(f"Supabase get_user_profile fallback: {e}")
     data = _load_profiles()
     return data.get(str(user_id))
+
+
+def get_user_profile(user_id):
+    uid = int(user_id)
+    now = time.monotonic()
+    with _user_profile_cache_lock:
+        hit = _user_profile_cache.get(uid)
+        if hit and (now - hit[0]) < _USER_PROFILE_CACHE_TTL:
+            return hit[1]
+    p = _fetch_user_profile_uncached(uid)
+    with _user_profile_cache_lock:
+        _user_profile_cache[uid] = (time.monotonic(), p)
+    return p
 
 def get_all_profiles():
     try:
@@ -163,11 +192,35 @@ def increment_file_count(user_id, service_name=None):
 
 
 def record_service_completion(user_id, category: str, service_name=None):
-    """Muvaffaqiyatli xizmatdan keyin: tarif bo'yicha kategoriya + files_processed."""
+    """Muvaffaqiyatli xizmatdan keyin: tarif bo'yicha kategoriya + files_processed + Supabase audit."""
     from bot.services.plan_limits import record_category_use
 
     record_category_use(int(user_id), category)
     increment_file_count(int(user_id), service_name or category)
+    try:
+        from bot.services.supabase_db import has_db, db_insert_action_log
+
+        if has_db():
+            label = (service_name or category or "")[:300]
+            db_insert_action_log(
+                int(user_id),
+                str(category)[:120],
+                file_name=label if len(label) <= 200 else None,
+                metadata={
+                    "service_label": label,
+                    "event": "service_completion",
+                },
+            )
+    except Exception:
+        pass
+    try:
+        invalidate_user_profile_cache(int(user_id))
+        from bot.services.usage_tracker import invalidate_tariff_snapshot_cache
+
+        invalidate_tariff_snapshot_cache(int(user_id))
+    except Exception:
+        pass
+
 
 def set_ban_status(user_id, is_banned=True, reason=None):
     """Ban or Unban user (Admin action)"""
@@ -183,6 +236,7 @@ def set_ban_status(user_id, is_banned=True, reason=None):
                     ban_reason=reason,
                     ban_date=dt.utcnow().isoformat() if is_banned else None
                 )
+                invalidate_user_profile_cache(int(user_id))
                 return True
             return False
     except Exception as e:
@@ -198,6 +252,7 @@ def set_ban_status(user_id, is_banned=True, reason=None):
             data[uid]["ban_date"] = None
             data[uid]["ban_reason"] = None
         _save_profiles()
+        invalidate_user_profile_cache(int(user_id))
         return True
     return False
 
@@ -216,6 +271,7 @@ def save_chat_id(user_id, chat_id):
                 db_update_user_field(int(user_id), chat_id=int(chat_id))
             else:
                 db_upsert_user(int(user_id), first_name="", chat_id=int(chat_id))
+            invalidate_user_profile_cache(int(user_id))
             return
     except Exception as e:
         logger.debug(f"Supabase save_chat_id fallback: {e}")
@@ -245,6 +301,8 @@ def save_chat_id(user_id, chat_id):
             "premium_history": []
         }
         _save_profiles()
+    invalidate_user_profile_cache(int(user_id))
+
 
 def get_user_lang(user_id) -> str:
     p = get_user_profile(user_id)

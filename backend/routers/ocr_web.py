@@ -92,12 +92,6 @@ async def api_ocr_extract(
         from bot.services.plan_limits import CAT_OCR
 
         web_quota_after(uid_int, CAT_OCR, "Web OCR matn")
-        try:
-            from bot.services.supabase_db import db_insert_action_log
-
-            db_insert_action_log(uid_int, "ocr_web", file.filename or "image")
-        except Exception:
-            pass
 
     plain = html_ocr_to_plain(html_text)
     return {"ok": True, "text": plain, "html": html_text}
@@ -184,12 +178,6 @@ async def api_ocr_extract_docx(
         from bot.services.plan_limits import CAT_OCR
 
         web_quota_after(uid_int, CAT_OCR, "Web OCR Word")
-        try:
-            from bot.services.supabase_db import db_insert_action_log
-
-            db_insert_action_log(uid_int, "ocr_web_docx", file.filename or "image")
-        except Exception:
-            pass
 
     ts = int(time.time())
     fname = f"OCR_1to1_{ts}.docx"
@@ -582,12 +570,6 @@ async def api_pdf_direct(
             from bot.services.plan_limits import CAT_IMAGE_PDF
 
             web_quota_after(uid_int, CAT_IMAGE_PDF, "Web Rasm→PDF")
-            try:
-                from bot.services.supabase_db import db_insert_action_log
-
-                db_insert_action_log(uid_int, "pdf_web", f"{n_files}_images.pdf")
-            except Exception:
-                pass
 
         tid_ok = telegram_id and telegram_id.strip().isdigit()
         if tid_ok:

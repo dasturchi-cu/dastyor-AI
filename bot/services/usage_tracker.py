@@ -3,9 +3,11 @@ Usage Tracker Service
 Tracks daily usage per user for free tier limits.
 Stores data in a simple JSON file (can be migrated to DB later).
 """
-import os
 import json
 import logging
+import os
+import threading
+import time
 from datetime import date
 from typing import TYPE_CHECKING
 
@@ -17,6 +19,20 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 USAGE_FILE = "usage_data.json"
+
+# Tarif jadvali (bir necha Supabase so'rovini birlashtiradi) — /start va balans tezligi.
+_TARIFF_SNAPSHOT_TTL = float(os.getenv("TARIFF_SNAPSHOT_CACHE_TTL_SECONDS", "30") or "30")
+_tariff_snapshot_cache: dict[int, tuple[float, dict]] = {}
+_tariff_cache_lock = threading.Lock()
+
+
+def invalidate_tariff_snapshot_cache(user_id: int | None = None) -> None:
+    """Limit/obuna o'zgaganda (record_service_completion) chaqiriladi."""
+    with _tariff_cache_lock:
+        if user_id is None:
+            _tariff_snapshot_cache.clear()
+        else:
+            _tariff_snapshot_cache.pop(int(user_id), None)
 
 def _load_usage() -> dict:
     """Load usage data from file"""
@@ -100,10 +116,7 @@ def has_paid_active_plan(user_id: int) -> bool:
         return False
 
 
-def get_tariff_snapshot(user_id: int) -> dict:
-    """
-    Bot va /api/me: tarif + har xizmat bo'yicha limit / ishlatilgan / qoldi.
-    """
+def _build_tariff_snapshot_uncached(user_id: int) -> dict:
     from bot.services.plan_limits import user_limits_breakdown
     from bot.services.settings_service import (
         get_active_plan_code,
@@ -128,7 +141,6 @@ def get_tariff_snapshot(user_id: int) -> dict:
         "plan_label": labels.get(plan, plan),
         "subscription_ends": subs,
         "limits_breakdown": breakdown,
-        # Eski mobil mijozlar uchun (app.js): yakka «cheksiz» faqat hammasi cheksiz yoki bloklangan bo'lsa
         "unlimited": all(
             bool(b.get("unlimited")) or bool(b.get("blocked")) for b in breakdown
         ),
@@ -136,6 +148,23 @@ def get_tariff_snapshot(user_id: int) -> dict:
         "used_today": None,
         "remaining": None,
     }
+
+
+def get_tariff_snapshot(user_id: int) -> dict:
+    """
+    Bot va /api/me: tarif + har xizmat bo'yicha limit / ishlatilgan / qoldi.
+    Qisqa TTL kesh — ketma-ket Supabase chaqiruvlarini kamaytiradi.
+    """
+    uid = int(user_id)
+    now = time.monotonic()
+    with _tariff_cache_lock:
+        hit = _tariff_snapshot_cache.get(uid)
+        if hit and (now - hit[0]) < _TARIFF_SNAPSHOT_TTL:
+            return hit[1]
+    snap = _build_tariff_snapshot_uncached(uid)
+    with _tariff_cache_lock:
+        _tariff_snapshot_cache[uid] = (time.monotonic(), snap)
+    return snap
 
 
 def format_tariff_status_html(user_id: int, snapshot: dict | None = None) -> str:

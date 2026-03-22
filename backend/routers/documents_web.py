@@ -390,12 +390,6 @@ async def api_export_cv(
                         parse_mode="HTML",
                     )
                 try:
-                    from bot.services.supabase_db import db_insert_action_log
-
-                    db_insert_action_log(int(uid_str), "cv", filename_to_send)
-                except Exception:
-                    pass
-                try:
                     from bot.services.user_service import record_service_completion
 
                     from bot.services.plan_limits import CAT_CV
