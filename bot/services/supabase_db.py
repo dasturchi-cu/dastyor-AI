@@ -293,19 +293,28 @@ def db_upsert_user(user_id: int, first_name: str = "", username: str = None,
         dict(base),
     ]
 
+    # Upsert ba'zi PostgREST sxemalarida NOT NULL ustunlarni NULL qilib yuborishi mumkin.
+    # Shuning uchun: avvalo INSERT, duplicate / unique xatosi bo'lsa UPDATE.
     last_e: Exception | None = None
     for payload in payload_candidates:
         try:
-            c.table("users").upsert(payload).execute()
+            c.table("users").insert(payload).execute()
             return True
         except Exception as e:
             last_e = e
-            try:
-                c.table("users").insert(payload).execute()
-                return True
-            except Exception as e2:
-                last_e = e2
-                continue
+            err_txt = str(e).lower()
+            dup = any(
+                x in err_txt
+                for x in ("duplicate", "23505", "unique", "already exists", "violates unique constraint")
+            )
+            if dup:
+                try:
+                    upd = {k: v for k, v in payload.items() if k != "id"}
+                    c.table("users").update(upd).eq("id", tid).execute()
+                    return True
+                except Exception as e2:
+                    last_e = e2
+            continue
 
     if last_e:
         _mark_temporarily_unavailable(last_e)
