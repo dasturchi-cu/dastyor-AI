@@ -191,6 +191,50 @@ const DastyorAI = (() => {
             ?? null;
     }
 
+    function _pickTariffFields(obj) {
+        const keys = ['plan', 'plan_label', 'unlimited', 'daily_limit', 'used_today', 'remaining', 'subscription_ends'];
+        const o = {};
+        keys.forEach((k) => {
+            if (obj[k] !== undefined && obj[k] !== null) o[k] = obj[k];
+        });
+        return o;
+    }
+
+    function renderTariffBanner(subject) {
+        const u = subject || user;
+        try {
+            document.querySelectorAll('#da-tariff-strip').forEach((el) => el.remove());
+        } catch (_) {}
+        if (!u || !u.telegram_id || !u.plan) return;
+
+        let line;
+        if (u.unlimited) {
+            line = `${u.plan_label || u.plan} · cheksiz`;
+            if (u.subscription_ends) line += ` · obuna ${u.subscription_ends}`;
+        } else if (u.daily_limit != null && u.used_today != null && u.remaining != null) {
+            line = `${u.plan_label || u.plan} · bugun ${u.used_today}/${u.daily_limit} · qoldi ${u.remaining}`;
+        } else {
+            line = `${u.plan_label || u.plan}`;
+        }
+
+        const el = document.createElement('div');
+        el.id = 'da-tariff-strip';
+        el.className = 'da-tariff-strip';
+        el.setAttribute('role', 'status');
+        el.textContent = line;
+        const dark =
+            document.documentElement.classList.contains('dark')
+            || document.documentElement.getAttribute('data-theme') === 'dark';
+        const colors = dark
+            ? 'background:rgba(59,130,246,0.22);color:#e2e8f0;border-bottom:1px solid rgba(96,165,250,0.35)'
+            : 'background:rgba(37,99,235,0.12);color:#0f172a;border-bottom:1px solid rgba(37,99,235,0.28)';
+        el.style.cssText =
+            'position:sticky;top:0;left:0;right:0;z-index:10050;width:100%;box-sizing:border-box;'
+            + 'padding:8px 12px;font-size:12px;font-weight:600;line-height:1.35;text-align:center;'
+            + colors;
+        if (document.body) document.body.insertBefore(el, document.body.firstChild);
+    }
+
     async function init() {
         restoreSession();
         if (tg) {
@@ -200,7 +244,23 @@ const DastyorAI = (() => {
         const identity = readIdentity();
         if (!identity) return null;
 
-        if (token && user && String(user.telegram_id) === String(identity.telegram_id)) return user;
+        if (token && user && String(user.telegram_id) === String(identity.telegram_id)) {
+            renderTariffBanner(user);
+            void (async () => {
+                try {
+                    const r = await apiFetch(
+                        `/api/me?telegram_id=${identity.telegram_id}&token=${encodeURIComponent(token)}`,
+                    );
+                    if (r.ok) {
+                        const p = await r.json();
+                        Object.assign(user, _pickTariffFields(p));
+                        persistSession(user, token);
+                        renderTariffBanner(user);
+                    }
+                } catch (_) { /* ignore */ }
+            })();
+            return user;
+        }
 
         try {
             const authResp = await auth(identity);
@@ -214,11 +274,18 @@ const DastyorAI = (() => {
                 is_premium: profile.is_premium ?? false,
                 files_processed: profile.files_processed ?? 0,
                 joined_at: profile.joined_at || '',
+                ..._pickTariffFields(profile),
             };
             persistSession(fullUser, authResp.token);
+            renderTariffBanner(fullUser);
             return fullUser;
         } catch (_) {
             user = { ...identity, is_premium: false, files_processed: 0 };
+            try {
+                const mr = await apiFetch(`/api/me?telegram_id=${identity.telegram_id}`);
+                if (mr.ok) Object.assign(user, _pickTariffFields(await mr.json()));
+            } catch (e2) { /* ignore */ }
+            renderTariffBanner(user);
             return user;
         }
     }
@@ -439,6 +506,7 @@ const DastyorAI = (() => {
     const api = {
         init,
         initUI,
+        renderTariffBanner,
         getUser: () => user,
         getToken: () => token,
         getTelegramId,

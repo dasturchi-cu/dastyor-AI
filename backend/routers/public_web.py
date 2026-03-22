@@ -77,9 +77,11 @@ async def api_me(
     from bot.services.session_service import get_session_by_telegram_id
     from bot.services.settings_service import is_premium
     from bot.services.user_service import get_user_profile
+    from bot.services.usage_tracker import get_tariff_snapshot
 
     profile = get_user_profile(uid) or {}
     session = get_session_by_telegram_id(uid) or {}
+    tariff = get_tariff_snapshot(int(uid))
 
     return {
         "ok": True,
@@ -91,6 +93,7 @@ async def api_me(
         "files_processed": profile.get("files_processed", 0),
         "joined_at": profile.get("joined_at", ""),
         "last_active": profile.get("last_active", ""),
+        **tariff,
     }
 
 

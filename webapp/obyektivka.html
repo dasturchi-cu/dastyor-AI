@@ -1121,6 +1121,13 @@ function runAutoloadObyData(){
 
 window.addEventListener('resize',function(){try{scaleLivePreview();}catch(e){}});
 document.addEventListener('DOMContentLoaded',function(){
+  void (async function(){
+    try{
+      if(window.DastyorAI&&typeof window.DastyorAI.init==='function'){
+        await window.DastyorAI.init();
+      }
+    }catch(e){console.warn(e);}
+  })();
   try{
     var up=new URLSearchParams(window.location.search);
     if(up.get('autoload')==='1'&&telegramId){

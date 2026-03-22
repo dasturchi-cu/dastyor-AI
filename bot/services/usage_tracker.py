@@ -119,6 +119,77 @@ def get_remaining(user_id: int) -> int:
     return max(0, cap - used)
 
 
+def get_tariff_snapshot(user_id: int) -> dict:
+    """
+    Bot va /api/me uchun: tarif kodi, o'zbekcha nom, kunlik limit va qoldiq.
+    JSON/API uchun dict (None = cheksiz tarifda shu maydonlar yo'q).
+    """
+    from bot.services.settings_service import (
+        get_active_plan_code,
+        get_active_subscription_expires_display,
+    )
+
+    uid = int(user_id)
+    plan = get_active_plan_code(uid)
+    labels = {
+        "free": "Oddiy (bepul)",
+        "standard": "Standard",
+        "premium": "Premium",
+    }
+    cap = get_effective_daily_cap()
+    paid = has_paid_active_plan(uid)
+    unlimited = cap <= 0 or paid
+    used = get_user_usage(uid)
+    rem = get_remaining(uid)
+    return {
+        "plan": plan,
+        "plan_label": labels.get(plan, plan),
+        "unlimited": bool(unlimited),
+        "daily_limit": None if unlimited else cap,
+        "used_today": None if unlimited else used,
+        "remaining": None if unlimited else rem,
+        "subscription_ends": (
+            get_active_subscription_expires_display(uid)
+            if plan in ("standard", "premium")
+            else None
+        ),
+    }
+
+
+def format_tariff_status_html(user_id: int) -> str:
+    """Telegram HTML (/start, /menu)."""
+    s = get_tariff_snapshot(user_id)
+    if s["unlimited"]:
+        lines = [f"📦 <b>Tarif:</b> {s['plan_label']} — <b>cheksiz</b>"]
+        if s.get("subscription_ends"):
+            lines.append(f"📅 <b>Obuna tugashi:</b> {s['subscription_ends']}")
+        return "\n".join(lines)
+    dl = int(s["daily_limit"] or 0)
+    ut = int(s["used_today"] or 0)
+    rm = 0 if s["remaining"] is None else int(s["remaining"])
+    return (
+        f"📦 <b>Tarif:</b> {s['plan_label']}\n"
+        f"📊 <b>Bugun:</b> {ut}/{dl} · <b>Qoldi:</b> {rm}"
+    )
+
+
+def format_tariff_status_markdown(user_id: int) -> str:
+    """Markdown (Balans va boshqa * matnlar)."""
+    s = get_tariff_snapshot(user_id)
+    if s["unlimited"]:
+        lines = [f"📦 *Tarif:* {s['plan_label']} — *cheksiz*"]
+        if s.get("subscription_ends"):
+            lines.append(f"📅 *Obuna tugashi:* `{s['subscription_ends']}`")
+        return "\n".join(lines)
+    dl = int(s["daily_limit"] or 0)
+    ut = int(s["used_today"] or 0)
+    rm = 0 if s["remaining"] is None else int(s["remaining"])
+    return (
+        f"📦 *Tarif:* {s['plan_label']}\n"
+        f"📊 *Bugun:* {ut}/{dl} · *qoldi:* {rm}"
+    )
+
+
 async def _send_quota_blocked_message(bot, chat_id: int, user_id: int, lang: str = "uz_lat") -> None:
     from telegram import InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo
     from config import WEBAPP_BASE

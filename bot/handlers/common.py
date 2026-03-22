@@ -7,7 +7,13 @@ from bot.services.settings_service import (
     get_premium_status,
     get_premium_expiry,
 )
-from bot.services.usage_tracker import get_effective_daily_cap, get_remaining, get_user_usage, has_paid_active_plan
+from bot.services.usage_tracker import (
+    format_tariff_status_markdown,
+    get_effective_daily_cap,
+    get_remaining,
+    get_user_usage,
+    has_paid_active_plan,
+)
 from bot.utils.i18n import t
 
 async def balance_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -45,7 +51,8 @@ async def balance_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     premium_btn = t("btn_premium", lang)
 
-    msg = t("balance_msg", lang, user_id=user_id, status=status, limit_text=limit_text, files=files, premium_btn=premium_btn)
+    head = format_tariff_status_markdown(user_id)
+    msg = head + "\n\n" + t("balance_msg", lang, user_id=user_id, status=status, limit_text=limit_text, files=files, premium_btn=premium_btn)
     exp_disp = get_active_subscription_expires_display(user_id)
     if plan in ("standard", "premium") and exp_disp:
         msg += f"\n\n📅 Obuna tugashi: `{exp_disp}`"

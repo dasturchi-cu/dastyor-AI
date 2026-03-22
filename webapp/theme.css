@@ -234,6 +234,28 @@ input::placeholder, textarea::placeholder { color: var(--text-muted); }
 }
 @keyframes da-spin { to { transform: rotate(360deg); } }
 
+/* Tarif / limit — barcha webapp sahifalarida (app.js → renderTariffBanner) */
+.da-tariff-strip {
+    position: sticky;
+    top: 0;
+    z-index: 10050;
+    width: 100%;
+    box-sizing: border-box;
+    padding: 8px 12px;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1.35;
+    text-align: center;
+    color: var(--text-color);
+    background: var(--da-blue-soft);
+    border-bottom: 1px solid var(--da-border-mid);
+}
+
+html[data-theme="dark"] .da-tariff-strip {
+    background: var(--da-blue-mid);
+    color: var(--text-color);
+}
+
 @media (max-width: 480px) {
     .app-container { padding: 14px; }
 }

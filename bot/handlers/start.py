@@ -11,7 +11,7 @@ from telegram import Update, WebAppInfo, InlineKeyboardMarkup, InlineKeyboardBut
 from telegram.ext import ContextTypes
 from bot.keyboards.reply_keyboards import get_main_menu
 from bot.services.user_service import save_chat_id
-from bot.services.usage_tracker import get_effective_daily_cap
+from bot.services.usage_tracker import format_tariff_status_html
 from config import WEBAPP_BASE
 
 BOT_USERNAME = os.getenv("BOT_USERNAME", "DastyorAiBot")
@@ -59,7 +59,8 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         text = (
             f"Assalomu alaykum, {first_name}! 👋\n\n"
-            f"🚀 <b>{description}</b>:"
+            f"🚀 <b>{description}</b>:\n\n"
+            f"{format_tariff_status_html(uid)}"
         )
         keyboard = InlineKeyboardMarkup([[
             InlineKeyboardButton(btn_label, web_app=WebAppInfo(url=url))
@@ -80,12 +81,7 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"• Rasmlarni PDFga birlashtirish\n\n"
         f"👇 Quyidagi menyudan xizmat tanlang:"
     )
-    cap = get_effective_daily_cap()
-    if cap > 0:
-        welcome_text += (
-            f"\n\n🎁 <b>Bepul tarif:</b> kuniga <b>{cap}</b> ta xizmat. "
-            f"Limit tugasa — menyudagi <b>Premium</b> orqali Standard/Premium obuna oling."
-        )
+    welcome_text += f"\n\n{format_tariff_status_html(uid)}"
 
     keyboard = InlineKeyboardMarkup([
         [
@@ -143,8 +139,11 @@ async def menu_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not update.effective_chat or update.effective_chat.type != "private":
         return
     uid = update.effective_user.id if update.effective_user else None
+    if not uid:
+        return
+    body = f"{format_tariff_status_html(uid)}\n\nMenyudan xizmat tanlang:"
     await update.message.reply_text(
-        "Menyudan xizmat tanlang:",
+        body,
         reply_markup=get_main_menu(uid, DEFAULT_LANG),
         parse_mode="HTML",
     )
