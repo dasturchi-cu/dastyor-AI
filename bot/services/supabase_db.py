@@ -55,9 +55,9 @@ def _get_client():
         return None
     if _client is not None:
         return _client
-    url = os.getenv("SUPABASE_URL")
+    url = (os.getenv("SUPABASE_URL") or "").strip().strip('"').strip("'")
     # Prefer service role for server-side writes (RLS policies).
-    key = os.getenv("SUPABASE_SERVICE_ROLE_KEY") or os.getenv("SUPABASE_ANON_KEY")
+    key = (os.getenv("SUPABASE_SERVICE_ROLE_KEY") or os.getenv("SUPABASE_ANON_KEY") or "").strip().strip('"').strip("'")
     if not url or not key:
         return None
     try:
@@ -468,36 +468,55 @@ def db_set_maintenance_mode(enabled: bool) -> bool:
 
 
 # ── premium (premium_subscriptions) ──────────────────────────────────────────
+def _parse_ts(val) -> Optional[datetime]:
+    if val is None:
+        return None
+    if isinstance(val, datetime):
+        return val.replace(tzinfo=None) if val.tzinfo else val
+    s = str(val).strip()
+    if not s:
+        return None
+    try:
+        return datetime.fromisoformat(s.replace("Z", "+00:00")).replace(tzinfo=None)
+    except Exception:
+        return None
+
+
 def db_is_premium(user_id: int) -> bool:
+    """
+    True faqat faol to'lovli obuna bo'lsa (premium yoki standard tarif).
+    Muddati tugagach avtomatik False — limitlar qaytadi (/start maxsus emas).
+    """
     c = _get_client()
     if not c:
         return False
     try:
+        uid = int(user_id)
+        now = datetime.utcnow()
         try:
-            ur = c.table("users").select("user_plan").eq("id", int(user_id)).execute()
-            if ur.data:
-                plan = (ur.data[0].get("user_plan") or "").strip().lower()
-                if plan == "premium":
-                    return True
+            r = (
+                c.table("premium_subscriptions")
+                .select("id,plan_type,status,expire_date,end_date")
+                .eq("user_id", uid)
+                .limit(40)
+                .execute()
+            )
         except Exception:
-            try:
-                ur2 = c.table("users").select("plan").eq("id", int(user_id)).execute()
-                if ur2.data:
-                    plan2 = (ur2.data[0].get("plan") or "").strip().lower()
-                    if plan2 == "premium":
-                        return True
-            except Exception:
-                pass
+            r = c.table("premium_subscriptions").select("*").eq("user_id", uid).limit(40).execute()
 
-        now = datetime.utcnow().isoformat()
-        # Compatibility: some schemas may only have `expire_date`, others have `end_date`.
-        # Prefer end_date if present; otherwise fallback to expire_date.
-        try:
-            r = c.table("premium_subscriptions").select("id").eq("user_id", user_id).gte("end_date", now).execute()
-            return bool(r.data)
-        except Exception:
-            r = c.table("premium_subscriptions").select("id").eq("user_id", user_id).gte("expire_date", now).execute()
-            return bool(r.data)
+        rows = sorted(
+            r.data or [],
+            key=lambda x: int(x.get("id") or 0),
+            reverse=True,
+        )
+        for row in rows:
+            st = (row.get("status") or "active").strip().lower()
+            if st in ("cancelled", "rejected", "expired"):
+                continue
+            exp = _parse_ts(row.get("expire_date")) or _parse_ts(row.get("end_date"))
+            if exp and exp >= now:
+                return True
+        return False
     except Exception as e:
         _mark_temporarily_unavailable(e)
         logger.error(f"db_is_premium: {e}")

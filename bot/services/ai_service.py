@@ -5,7 +5,10 @@ Handles Text Processing, Data Extraction, and Translation using Gemini Asynchron
 import logging
 import json
 import asyncio
+import os
 import re
+import subprocess
+import tempfile
 import warnings
 from difflib import SequenceMatcher
 import shutil
@@ -121,12 +124,64 @@ _STT_FAILURE_SUBSTRINGS = (
 def is_valid_transcription_text(text: str) -> bool:
     """True agar matn haqiqiy transkripsiya bo'lsa (xato xabari emas)."""
     t = (text or "").strip()
-    if len(t) < 2:
+    if not t:
         return False
     u = t.upper()
     if u in ("[EMPTY]", "[BO'SH]", "[BOSH]"):
         return False
-    return not any(s in t for s in _STT_FAILURE_SUBSTRINGS)
+    if any(s in t for s in _STT_FAILURE_SUBSTRINGS):
+        return False
+    # Kamida 2 ta "belgi" (harf yoki raqam) — qisqa "ha" / "yo'q" ham o'tsin
+    sig = sum(1 for ch in t if ch.isalnum())
+    return sig >= 2
+
+
+def _normalize_audio_for_gemini(src_path: str) -> tuple[str, bool]:
+    """
+    Telegram ovozi ko'pincha OGG/Opus. Gemini yuklashini yaxshilash uchun MP3 ga aylantiramiz.
+    Qaytaradi: (yuklash uchun yo'l, vaqtinchalik fayl bo'lsa True).
+    """
+    src_path = os.path.abspath(src_path)
+    if not os.path.isfile(src_path):
+        return src_path, False
+    ext = (os.path.splitext(src_path)[1] or "").lower()
+    if ext in (".mp3", ".wav", ".mpeg", ".mpga", ".flac"):
+        return src_path, False
+    if not shutil.which("ffmpeg"):
+        logger.debug("ffmpeg yo'q — audio asl formatda yuklanadi")
+        return src_path, False
+    fd, out_path = tempfile.mkstemp(suffix=".mp3", prefix="stt_")
+    os.close(fd)
+    try:
+        subprocess.run(
+            [
+                "ffmpeg",
+                "-y",
+                "-i",
+                src_path,
+                "-ac",
+                "1",
+                "-ar",
+                "16000",
+                "-codec:a",
+                "libmp3lame",
+                "-b:a",
+                "64k",
+                out_path,
+            ],
+            check=True,
+            capture_output=True,
+            timeout=120,
+        )
+        if os.path.isfile(out_path) and os.path.getsize(out_path) > 80:
+            return out_path, True
+    except Exception as e:
+        logger.warning("ffmpeg audio normalize: %s", e)
+    try:
+        os.remove(out_path)
+    except OSError:
+        pass
+    return src_path, False
 
 
 async def transcribe_audio(audio_file_path: str) -> str:
@@ -137,28 +192,32 @@ async def transcribe_audio(audio_file_path: str) -> str:
         return ""
     
     loop = asyncio.get_running_loop()
-    
-    def blocking_upload():
+    upload_path, temp_conv = _normalize_audio_for_gemini(audio_file_path)
+
+    def blocking_upload(path: str):
+        import time
+
         try:
-            myfile = genai.upload_file(audio_file_path)
-            # Wait for processing
+            myfile = genai.upload_file(path)
             waited = 0
-            while myfile.state.name == "PROCESSING" and waited < 30:
-                import time
-                time.sleep(2)
-                waited += 2
+            while getattr(myfile.state, "name", str(myfile.state)) == "PROCESSING" and waited < 90:
+                time.sleep(1)
+                waited += 1
                 try:
                     myfile = genai.get_file(myfile.name)
-                except:
+                except Exception:
                     break
+            st = getattr(myfile.state, "name", str(myfile.state))
+            if st == "PROCESSING":
+                logger.warning("STT: fayl hali PROCESSING (timeout)")
             return myfile
         except Exception as e:
             logger.error(f"Upload error: {e}")
             return None
 
     try:
-        logger.info(f"Uploading audio file: {audio_file_path}")
-        myfile = await loop.run_in_executor(None, blocking_upload)
+        logger.info("Uploading audio for STT: %s (normalized=%s)", upload_path, temp_conv)
+        myfile = await loop.run_in_executor(None, blocking_upload, upload_path)
         
         if not myfile:
             return "Audio yuklashda xatolik."
@@ -188,16 +247,26 @@ async def transcribe_audio(audio_file_path: str) -> str:
         asyncio.create_task(cleanup())
 
         if not result or not result.candidates:
+            fb = getattr(result, "prompt_feedback", None) if result else None
+            if fb:
+                logger.warning("STT prompt_feedback: %s", fb)
             return "Audio tanilmadi."
 
         raw = (result.text or "").strip()
         if raw.upper() in ("[EMPTY]", "[BO'SH]", "[BOSH]"):
             return ""
+        logger.info("STT raw len=%s preview=%r", len(raw), raw[:160])
         return raw if raw else "Bo'sh javob."
 
     except Exception as e:
         logger.error(f"Gemini Async Transcription error: {e}", exc_info=True)
         return "Audio transkripsiya xatoligi."
+    finally:
+        if temp_conv:
+            try:
+                os.remove(upload_path)
+            except OSError:
+                pass
 
 
 async def translate_document_gemini(file_path: str, target_language: str = "uz") -> str:

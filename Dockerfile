@@ -26,6 +26,7 @@ RUN apt-get update \
       libxshmfence1 \
       libxrender1 \
       ca-certificates \
+      ffmpeg \
     && rm -rf /var/lib/apt/lists/*
 
 RUN pip install --no-cache-dir --upgrade pip

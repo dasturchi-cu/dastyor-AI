@@ -1,3 +1,4 @@
+import asyncio
 import os
 import logging
 from datetime import datetime, timedelta
@@ -116,12 +117,36 @@ async def handle_premium_screenshot(update: Update, context: ContextTypes.DEFAUL
     plan = str(context.user_data.get("premium_plan", "premium")).lower()
     plan_data = PLAN_INFO.get(plan, PLAN_INFO["premium"])
     user = update.effective_user
-    request_id = create_payment_request(
-        user_id=int(user.id),
-        plan_type=plan,
-        username=user.username or "",
-        first_name=user.first_name or "",
-    )
+
+    request_id = None
+    try:
+        from bot.services.supabase_db import has_db, db_create_payment
+
+        if has_db():
+            pid = db_create_payment(
+                int(user.id),
+                plan,
+                0.0,
+                screenshot_url=None,
+                metadata={
+                    "source": "telegram_screenshot",
+                    "username": user.username or "",
+                    "first_name": user.first_name or "",
+                },
+            )
+            if pid is not None:
+                request_id = pid
+    except Exception as e:
+        logger.debug("db_create_payment (telegram): %s", e)
+
+    if request_id is None:
+        request_id = create_payment_request(
+            user_id=int(user.id),
+            plan_type=plan,
+            username=user.username or "",
+            first_name=user.first_name or "",
+        )
+
     uname = f"@{user.username}" if user.username else "yo'q"
     review_kb = InlineKeyboardMarkup(
         [[
@@ -138,31 +163,48 @@ async def handle_premium_screenshot(update: Update, context: ContextTypes.DEFAUL
         f"Holat: <b>{plan_data['title']} uchun to'lov qildi</b>"
     )
 
-    try:
-        if update.message.photo:
-            await context.bot.send_photo(
-                chat_id=PREMIUM_ADMIN_GROUP_ID,
-                photo=update.message.photo[-1].file_id,
-                caption=caption,
-                parse_mode="HTML",
-                reply_markup=review_kb,
-            )
-        else:
-            await context.bot.send_document(
-                chat_id=PREMIUM_ADMIN_GROUP_ID,
-                document=update.message.document.file_id,
-                caption=caption,
-                parse_mode="HTML",
-                reply_markup=review_kb,
-            )
-    except Exception:
-        await update.message.reply_text("❌ Fayl yuborishda xatolik yuz berdi")
-        return True
-
     context.user_data.pop("waiting_for", None)
     await update.message.reply_text(
-        "✅ Skrenshot qabul qilindi. Admin tasdiqlaganidan keyin premium faollashadi."
+        "✅ Skrenshot qabul qilindi. Admin tasdiqlashini kuting — tasdiqdan keyin tarif darhol amal qiladi."
     )
+
+    bot = context.bot
+    chat_admin = PREMIUM_ADMIN_GROUP_ID
+
+    async def _forward_to_admins():
+        try:
+            if update.message.photo:
+                await bot.send_photo(
+                    chat_id=chat_admin,
+                    photo=update.message.photo[-1].file_id,
+                    caption=caption,
+                    parse_mode="HTML",
+                    reply_markup=review_kb,
+                )
+            else:
+                await bot.send_document(
+                    chat_id=chat_admin,
+                    document=update.message.document.file_id,
+                    caption=caption,
+                    parse_mode="HTML",
+                    reply_markup=review_kb,
+                )
+        except Exception as e:
+            logger.exception("Premium skrenshot admin guruhiga yuborishda xato: %s", e)
+            try:
+                await bot.send_message(
+                    chat_id=int(user.id),
+                    text=(
+                        "⚠️ Skrenshot admin guruhiga yuborilmadi. "
+                        "Iltimos, support orqali yozing yoki qayta urinib ko'ring.\n"
+                        f"So'rov ID: <code>{request_id}</code>"
+                    ),
+                    parse_mode="HTML",
+                )
+            except Exception:
+                pass
+
+    asyncio.create_task(_forward_to_admins())
     return True
 
 
@@ -223,6 +265,15 @@ async def premium_payment_review_callback(update: Update, context: ContextTypes.
                         status="active",
                     )
                     db_reset_daily_usage(uid)
+
+                    meta = pay.get("metadata") if isinstance(pay.get("metadata"), dict) else {}
+                    pname = (meta.get("first_name") or "").strip() or "User"
+                    puser = (meta.get("username") or "").strip() or ""
+                    try:
+                        add_premium(uid, days=days, name=pname, username=puser)
+                        crm.log_premium_transaction(uid, days, str(query.from_user.id))
+                    except Exception as e:
+                        logger.debug("add_premium sync (supa path): %s", e)
 
                     # Notify user
                     end_date_str = expire_dt.strftime("%Y-%m-%d")
