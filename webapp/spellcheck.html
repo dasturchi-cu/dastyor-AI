@@ -256,6 +256,11 @@
 
       // Prefer showing result in WebApp directly via API
       try {
+        try {
+          if (window.DastyorAI && window.DastyorAI.showDocumentLoading) {
+            window.DastyorAI.showDocumentLoading('Matn tekshirilmoqda...', 'Iltimos, bir necha soniya kuting');
+          }
+        } catch (_) {}
         const qs = new URLSearchParams(location.search);
         const apiBase = qs.get("api") || (location.protocol === "file:" ? "https://dastyor-ai.onrender.com" : location.origin);
         const DA = window.DastyorAI;
@@ -283,7 +288,6 @@
         showStatus('statusText', 'success', `✅ So‘zlar: ${wc} · Tuzatishlar: ${ec}`);
         void window.DastyorAI?.refreshProfile?.();
         tg?.HapticFeedback?.notificationOccurred?.('success');
-        btn.disabled = false;
         return;
       } catch (e) {
         // Fallback: send to bot chat if API is not reachable
@@ -291,11 +295,14 @@
           showStatus('statusText', 'loading', 'Serverga ulanib bo‘lmadi. Botga yuborildi...');
           tg.sendData(JSON.stringify({ action: 'spellcheck_text', text }));
           tg?.HapticFeedback?.notificationOccurred?.('success');
-          btn.disabled = false;
           return;
         }
         showStatus('statusText', 'error', e?.message || 'Xatolik yuz berdi');
         tg?.HapticFeedback?.notificationOccurred?.('error');
+      } finally {
+        try {
+          if (window.DastyorAI && window.DastyorAI.hideDocumentLoading) window.DastyorAI.hideDocumentLoading();
+        } catch (_) {}
         btn.disabled = false;
       }
     }
@@ -360,6 +367,11 @@
       fd.append('notify_telegram', notify ? 'true' : 'false');
 
       try {
+        try {
+          if (window.DastyorAI && window.DastyorAI.showDocumentLoading) {
+            window.DastyorAI.showDocumentLoading('Fayl qayta ishlanmoqda...', 'Iltimos, biroz kuting');
+          }
+        } catch (_) {}
         const res = await fetch(apiBaseUrl() + '/api/spellcheck_file', { method: 'POST', body: fd });
         if (!res.ok) {
           let msg = 'Xato';
@@ -381,8 +393,12 @@
       } catch (e) {
         showStatus('statusFile', 'error', e?.message || 'Xatolik');
         tg?.HapticFeedback?.notificationOccurred?.('error');
+      } finally {
+        try {
+          if (window.DastyorAI && window.DastyorAI.hideDocumentLoading) window.DastyorAI.hideDocumentLoading();
+        } catch (_) {}
+        btn.disabled = false;
       }
-      btn.disabled = false;
     }
 
     function downloadCorrectedTxt() {

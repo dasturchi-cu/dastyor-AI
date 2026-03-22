@@ -7,7 +7,38 @@
 const DastyorAI = (() => {
     'use strict';
 
-    const BASE = location.protocol === 'file:' ? 'https://dastyor-ai.onrender.com' : location.origin;
+    /**
+     * API bazasi: avvalo ?api=, keyin meta[name=dastyor-api-base], keyin joriy origin.
+     * Railway / boshqa hostda Render ga «qolib ketmasin».
+     */
+    function resolveApiBase() {
+        try {
+            const qs = new URLSearchParams(location.search || '');
+            const apiQ = qs.get('api');
+            if (apiQ && String(apiQ).trim()) {
+                return String(apiQ).trim().replace(/\/+$/, '');
+            }
+        } catch (_) {}
+        try {
+            const m = document.querySelector('meta[name="dastyor-api-base"]');
+            const c = m && m.getAttribute('content');
+            if (c != null && String(c).trim() !== '') {
+                return String(c).trim().replace(/\/+$/, '');
+            }
+        } catch (_) {}
+        if (location.protocol === 'file:') {
+            return 'https://dastyor-ai.onrender.com';
+        }
+        try {
+            const o = location.origin;
+            if (o && o !== 'null') {
+                return String(o).replace(/\/+$/, '');
+            }
+        } catch (_) {}
+        return 'https://dastyor-ai.onrender.com';
+    }
+
+    const BASE = resolveApiBase();
     const THEME_KEY = 'theme';
     const LANGUAGE_KEY = 'language';
     const SUPPORTED_LANGS = ['uz', 'ru', 'en'];
@@ -537,27 +568,95 @@ const DastyorAI = (() => {
         else tg.HapticFeedback.notificationOccurred(type);
     }
 
-    async function generateDoc(endpoint, payload, filename) {
-        const tid = getTelegramId();
-        const enriched = { ...payload, telegram_id: tid ? parseInt(tid, 10) : null, token: token || undefined };
-        const resp = await fetch(BASE + endpoint, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(enriched),
-        });
-        if (!resp.ok) {
-            const err = await resp.json().catch(() => ({}));
-            throw new Error(err.detail || `Server error (${resp.status})`);
+    /** To‘liq ekran: hujjat tayyorlash (CV, obyektivka, PDF, OCR, …) */
+    let _docLoadingRef = 0;
+    let _docLoadingEl = null;
+
+    function _injectDocumentLoadingStyles() {
+        if (document.getElementById('da-doc-loading-styles')) return;
+        const s = document.createElement('style');
+        s.id = 'da-doc-loading-styles';
+        s.textContent = `
+#da-doc-loading-overlay{position:fixed;inset:0;background:rgba(242,246,255,.96);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);display:none;flex-direction:column;justify-content:center;align-items:center;z-index:2147483000;gap:14px;padding:24px;box-sizing:border-box}
+#da-doc-loading-overlay.da-doc-loading-visible{display:flex!important}
+html.da-doc-loading-lock{overflow:hidden!important}
+html.da-doc-loading-lock body{overflow:hidden!important;touch-action:none}
+.da-doc-loading-ring{width:50px;height:50px;border:4px solid #bfdbfe;border-top-color:#2563eb;border-radius:50%;animation:daDocLoadingSpin 1s linear infinite;flex-shrink:0}
+@keyframes daDocLoadingSpin{to{transform:rotate(360deg)}}
+.da-doc-loading-title{font-size:15px;font-weight:700;color:#1558c0;text-align:center;max-width:92vw}
+.da-doc-loading-sub{font-size:13px;color:#64748b;max-width:280px;text-align:center;line-height:1.4}
+html[data-theme="dark"] #da-doc-loading-overlay{background:rgba(15,23,42,.94)}
+html[data-theme="dark"] .da-doc-loading-title{color:#93c5fd}
+html[data-theme="dark"] .da-doc-loading-sub{color:#94a3b8}
+html[data-theme="dark"] .da-doc-loading-ring{border-color:#334155;border-top-color:#60a5fa}
+`;
+        document.head.appendChild(s);
+    }
+
+    function showDocumentLoading(title, sub) {
+        _injectDocumentLoadingStyles();
+        _docLoadingRef++;
+        if (!_docLoadingEl) {
+            _docLoadingEl = document.createElement('div');
+            _docLoadingEl.id = 'da-doc-loading-overlay';
+            _docLoadingEl.setAttribute('role', 'status');
+            _docLoadingEl.setAttribute('aria-busy', 'true');
+            _docLoadingEl.innerHTML =
+                '<div class="da-doc-loading-ring"></div>' +
+                '<div class="da-doc-loading-title"></div>' +
+                '<div class="da-doc-loading-sub"></div>';
+            document.body.appendChild(_docLoadingEl);
         }
-        const blob = await resp.blob();
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = filename || 'document.docx';
-        document.body.appendChild(a);
-        a.click();
-        setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 2000);
-        return blob;
+        const titleEl = _docLoadingEl.querySelector('.da-doc-loading-title');
+        const subEl = _docLoadingEl.querySelector('.da-doc-loading-sub');
+        if (titleEl) titleEl.textContent = title || 'Hujjat tayyorlanmoqda...';
+        if (subEl) subEl.textContent = sub !== undefined && sub !== null ? sub : 'Iltimos, 10–15 soniya kuting';
+        _docLoadingEl.classList.add('da-doc-loading-visible');
+        try {
+            document.documentElement.classList.add('da-doc-loading-lock');
+        } catch (_) {}
+    }
+
+    function hideDocumentLoading() {
+        _docLoadingRef = Math.max(0, _docLoadingRef - 1);
+        if (_docLoadingRef > 0) return;
+        if (_docLoadingEl) {
+            _docLoadingEl.classList.remove('da-doc-loading-visible');
+        }
+        try {
+            document.documentElement.classList.remove('da-doc-loading-lock');
+        } catch (_) {}
+        try {
+            if (_docLoadingEl) _docLoadingEl.setAttribute('aria-busy', 'false');
+        } catch (_) {}
+    }
+
+    async function generateDoc(endpoint, payload, filename) {
+        showDocumentLoading('Hujjat tayyorlanmoqda...', 'Iltimos, 10–15 soniya kuting');
+        try {
+            const tid = getTelegramId();
+            const enriched = { ...payload, telegram_id: tid ? parseInt(tid, 10) : null, token: token || undefined };
+            const resp = await fetch(BASE + endpoint, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(enriched),
+            });
+            if (!resp.ok) {
+                const err = await resp.json().catch(() => ({}));
+                throw new Error(err.detail || `Server error (${resp.status})`);
+            }
+            const blob = await resp.blob();
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename || 'document.docx';
+            document.body.appendChild(a);
+            a.click();
+            setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 2000);
+            return blob;
+        } finally {
+            hideDocumentLoading();
+        }
     }
 
     async function initUI(options = {}) {
@@ -623,6 +722,8 @@ const DastyorAI = (() => {
         translit,
         generateDoc,
         haptic,
+        showDocumentLoading,
+        hideDocumentLoading,
 
         // Theme API
         applyTheme,

@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="dastyor-api-base" content="" />
   <title>Obyektivka | DASTYOR AI</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script src="app.js"></script>
@@ -22,13 +23,6 @@
       --kb-offset:0px;
     }
     body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;-webkit-font-smoothing:antialiased;overflow-x:hidden}
-
-    /* LOADING */
-    #loading-overlay{position:fixed;inset:0;background:rgba(242,246,255,.95);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);display:none;flex-direction:column;justify-content:center;align-items:center;z-index:9999;gap:14px}
-    .loader-ring{width:50px;height:50px;border:4px solid var(--blue-mid);border-top-color:var(--blue);border-radius:50%;animation:spin 1s linear infinite}
-    @keyframes spin{to{transform:rotate(360deg)}}
-    .loader-text{font-size:15px;font-weight:700;color:var(--blue-dark)}
-    .loader-sub{font-size:13px;color:var(--muted)}
 
     /* HEADER */
     .header{position:sticky;top:0;z-index:100;height:56px;background:rgba(255,255,255,.93);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-bottom:1.5px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 14px}
@@ -190,12 +184,6 @@
   </style>
 </head>
 <body data-disable-mobile-nav="true">
-
-<div id="loading-overlay">
-  <div class="loader-ring"></div>
-  <div class="loader-text">Hujjat tayyorlanmoqda...</div>
-  <div class="loader-sub">Iltimos, 10-15 soniya kuting</div>
-</div>
 
 <datalist id="years-list"></datalist>
 <datalist id="years-list-to"></datalist>
@@ -403,10 +391,11 @@ if(!telegramId){var up=new URLSearchParams(window.location.search).get('telegram
 var API_URL;
 var _qApi=new URLSearchParams(window.location.search).get('api');
 if(_qApi){API_URL=String(_qApi).replace(/\/$/,'');}
-else if(window.DastyorAI&&window.DastyorAI.BASE)API_URL=window.DastyorAI.BASE;
+else if(/^https?:\/\//i.test(window.location.origin||'')){API_URL=String(window.location.origin).replace(/\/$/,'');}
+else if(window.DastyorAI&&window.DastyorAI.BASE)API_URL=String(window.DastyorAI.BASE).replace(/\/$/,'');
 else if(window.location.protocol==='file:')API_URL='https://dastyor-ai.onrender.com';
 else if(/localhost|127\.0\.0\.1/.test(window.location.origin))API_URL='http://localhost:8000';
-else API_URL=window.location.origin;
+else API_URL='https://dastyor-ai.onrender.com';
 
 function getDastyorSessionToken(){
   try { if (window.DastyorAI && window.DastyorAI.getToken) return window.DastyorAI.getToken() || null; } catch (_) {}
@@ -652,6 +641,10 @@ function buildObyPayload(fmt){
 }
 
 async function sendObyektivkaViaApi(fmt){
+  try {
+    if (window.DastyorAI && window.DastyorAI.showDocumentLoading) {
+      window.DastyorAI.showDocumentLoading('Hujjat tayyorlanmoqda...', 'Iltimos, 10–15 soniya kuting');
+    }
   var payload = buildObyPayload(fmt);
   var req = {
     telegram_id: telegramId ? parseInt(telegramId, 10) : null,
@@ -698,6 +691,11 @@ async function sendObyektivkaViaApi(fmt){
   if (!res.ok) {
     var errMsg = await dastyorReadApiError(res);
     throw new Error(errMsg);
+  }
+  } finally {
+    try {
+      if (window.DastyorAI && window.DastyorAI.hideDocumentLoading) window.DastyorAI.hideDocumentLoading();
+    } catch (_) {}
   }
 }
 
@@ -959,6 +957,10 @@ async function generateObyektivkaViaApi(){
   };
   var tok2 = getDastyorSessionToken();
   if (tok2) payload.token = tok2;
+  try {
+    if (window.DastyorAI && window.DastyorAI.showDocumentLoading) {
+      window.DastyorAI.showDocumentLoading('Hujjat tayyorlanmoqda...', 'Iltimos, 10–15 soniya kuting');
+    }
   var res=await fetch(API_URL+'/api/export_obyektivka',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
   if(!res.ok){
     var err2 = await dastyorReadApiError(res);
@@ -967,6 +969,11 @@ async function generateObyektivkaViaApi(){
   var blob=await res.blob();
   var sn=(v('fullname')||'Obyektivka').replace(/\s+/g,'_').replace(/[^a-zA-Z0-9_\-]/g,'').slice(0,30)||'Obyektivka';
   var url=URL.createObjectURL(blob);var a=document.createElement('a');a.href=url;a.download='DASTYOR_Obyektivka_'+sn+'.docx';document.body.appendChild(a);a.click();setTimeout(function(){URL.revokeObjectURL(url);a.remove();},2000);
+  } finally {
+    try {
+      if (window.DastyorAI && window.DastyorAI.hideDocumentLoading) window.DastyorAI.hideDocumentLoading();
+    } catch (_) {}
+  }
 }
 
 async function downloadDoc(){

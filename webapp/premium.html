@@ -811,9 +811,12 @@
       fd.append("telegram_id", String(tid));
       if (token) fd.append("token", String(token));
 
-      const base = (window.DastyorAI && window.DastyorAI.BASE) || location.origin;
+      const base = String((window.DastyorAI && window.DastyorAI.BASE) || location.origin || "").replace(/\/+$/, "");
       const urlPrimary = base + "/api/premium_receipt";
-      const urlFallback = "https://dastyor-ai.onrender.com/api/premium_receipt";
+      const urlFallback =
+        location.protocol === "file:"
+          ? "https://dastyor-ai.onrender.com/api/premium_receipt"
+          : urlPrimary;
 
       async function fetchWithTimeout(url, options, ms) {
         const ctrl = new AbortController();

@@ -239,10 +239,10 @@
             if (location.protocol !== "file:") origin = normalizeBase(location.origin);
         } catch (_) { /* ignore */ }
         const order = [
-            normalizeBase(window.DastyorAI?.BASE),
             normalizeBase(qs.get("api")),
             origin,
-            "https://dastyor-ai.onrender.com",
+            normalizeBase(window.DastyorAI?.BASE),
+            "https://dastyor-ai-production.up.railway.app/webapp",
         ];
         const seen = new Set();
         const out = [];
@@ -342,6 +342,11 @@
         const wordBtn = document.getElementById("wordBtn");
         if (wordBtn) wordBtn.disabled = true;
         try {
+            try {
+                if (window.DastyorAI && window.DastyorAI.showDocumentLoading) {
+                    window.DastyorAI.showDocumentLoading("Rasm qayta ishlanmoqda...", "Matn ajratilmoqda, biroz kuting");
+                }
+            } catch (_) {}
             if (!optimizedFile) {
                 showStatus("loading", "Rasm siqilmoqda...");
                 optimizedFile = await optimizeImageForOCR(selectedFile);
@@ -368,6 +373,9 @@
             showStatus("error", e.message || "Xatolik yuz berdi");
             tg?.HapticFeedback?.notificationOccurred?.("error");
         } finally {
+            try {
+                if (window.DastyorAI && window.DastyorAI.hideDocumentLoading) window.DastyorAI.hideDocumentLoading();
+            } catch (_) {}
             document.getElementById("convertBtn").disabled = false;
             if (wordBtn) wordBtn.disabled = !selectedFile;
         }
@@ -380,6 +388,11 @@
         document.getElementById("convertBtn").disabled = true;
         if (wordBtn) wordBtn.disabled = true;
         try {
+            try {
+                if (window.DastyorAI && window.DastyorAI.showDocumentLoading) {
+                    window.DastyorAI.showDocumentLoading("Hujjat tayyorlanmoqda...", "Word fayl yaratilmoqda");
+                }
+            } catch (_) {}
             if (!optimizedFile) {
                 optimizedFile = await optimizeImageForOCR(selectedFile);
             }
@@ -423,6 +436,9 @@
             showStatus("error", e.message || "Xatolik");
             tg?.HapticFeedback?.notificationOccurred?.("error");
         } finally {
+            try {
+                if (window.DastyorAI && window.DastyorAI.hideDocumentLoading) window.DastyorAI.hideDocumentLoading();
+            } catch (_) {}
             document.getElementById("convertBtn").disabled = false;
             if (wordBtn) wordBtn.disabled = !selectedFile;
         }

@@ -3,6 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <!-- Bo‘sh = location.origin; Railway da alohida API domeni bo‘lsa to‘ldiring -->
+  <meta name="dastyor-api-base" content="" />
   <title>Real-time CV Builder | DASTYOR AI</title>
   
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Sora:wght@400;600;700;800&display=swap" rel="stylesheet" />
@@ -453,9 +455,18 @@
       if (up) telegramId = up;
     }
     let API_URL;
-    if (window.location.protocol === 'file:') API_URL = 'https://dastyor-ai.onrender.com';
-    else if (/localhost|127\.0\.0\.1/.test(window.location.origin)) API_URL = 'http://localhost:8000';
-    else API_URL = window.location.origin;
+    (function initApiUrl() {
+      try {
+        const a = new URLSearchParams(window.location.search || '').get('api');
+        if (a && String(a).trim()) {
+          API_URL = String(a).trim().replace(/\/+$/, '');
+          return;
+        }
+      } catch (_) {}
+      if (window.location.protocol === 'file:') API_URL = 'https://dastyor-ai.onrender.com';
+      else if (/localhost|127\.0\.0\.1/.test(window.location.origin)) API_URL = 'http://localhost:8000';
+      else API_URL = window.location.origin.replace(/\/+$/, '');
+    })();
 
     let currentLang = 'uz_lat';
     
@@ -901,10 +912,19 @@
 
     function getCvApiBase() {
       try {
+        const a = new URLSearchParams(location.search || '').get('api');
+        if (a && String(a).trim()) return String(a).trim().replace(/\/+$/, '');
+      } catch (_) {}
+      try {
+        if (location.protocol !== 'file:' && location.origin && location.origin !== 'null') {
+          return String(location.origin).replace(/\/+$/, '');
+        }
+      } catch (_) {}
+      try {
         const b = window.DastyorAI && window.DastyorAI.BASE;
         if (b && String(b).trim()) return String(b).trim().replace(/\/+$/, '');
       } catch (_) { /* ignore */ }
-      return API_URL || (typeof location !== 'undefined' ? location.origin : '');
+      return API_URL || '';
     }
 
     function resizePreviewIframe() {
@@ -1050,6 +1070,11 @@
         return;
       }
       try {
+        try {
+          if (window.DastyorAI && window.DastyorAI.showDocumentLoading) {
+            window.DastyorAI.showDocumentLoading('Hujjat tayyorlanmoqda...', 'Iltimos, 10–15 soniya kuting');
+          }
+        } catch (_) {}
         const data = await sendCvViaApi(fmt);
         tg.HapticFeedback && tg.HapticFeedback.notificationOccurred && tg.HapticFeedback.notificationOccurred('success');
         const line = (data && data.message) ? data.message : "✅ Fayl botga yuborilishi uchun navbatga qo‘yildi. Telegram chatda kuting.";
@@ -1057,6 +1082,10 @@
         setTimeout(() => { try { tg.close(); } catch (_) {} }, 1200);
       } catch (e) {
         alert("❌ Yuborishda xatolik: " + (e.message || String(e)).slice(0, 80));
+      } finally {
+        try {
+          if (window.DastyorAI && window.DastyorAI.hideDocumentLoading) window.DastyorAI.hideDocumentLoading();
+        } catch (_) {}
       }
     }
 

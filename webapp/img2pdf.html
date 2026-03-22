@@ -349,6 +349,11 @@
 
             hideStatus();
             showStatus('info', '⏳', 'PDF yaratilmoqda...');
+            try {
+                if (window.DastyorAI && window.DastyorAI.showDocumentLoading) {
+                    window.DastyorAI.showDocumentLoading('Hujjat tayyorlanmoqda...', 'PDF yaratilmoqda, biroz kuting');
+                }
+            } catch (_) {}
 
             const formData = new FormData();
             if (tid) {
@@ -406,6 +411,10 @@
             } catch (e) {
                 showStatus('error', '❌', "Server ulanishda xato: " + e.message);
                 tg?.HapticFeedback?.notificationOccurred('error');
+            } finally {
+                try {
+                    if (window.DastyorAI && window.DastyorAI.hideDocumentLoading) window.DastyorAI.hideDocumentLoading();
+                } catch (_) {}
             }
         }
     </script>
