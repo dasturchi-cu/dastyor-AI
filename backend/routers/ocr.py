@@ -3,14 +3,16 @@ from __future__ import annotations
 import base64
 import io
 import os
-from typing import Any
+from typing import Any, Optional
 
-from fastapi import APIRouter, File, HTTPException, UploadFile
+from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 from fastapi.responses import StreamingResponse
 
 from backend.celery_app import celery_app
 from backend.jobs import create_job, get_job, update_job
 from backend.services.upload_io import EmptyUploadError, UploadTooLargeError, read_upload_limited
+from backend.services.user_resolve import resolve_telegram_uid
+from backend.services.web_quota import web_quota_after, web_quota_before
 
 
 router = APIRouter(prefix="/api", tags=["ocr"])
@@ -21,11 +23,19 @@ def _ocr_use_celery() -> bool:
 
 
 @router.post("/ocr")
-async def api_ocr(file: UploadFile = File(...)) -> dict[str, Any]:
+async def api_ocr(
+    file: UploadFile = File(...),
+    telegram_id: Optional[str] = Form(None),
+    token: Optional[str] = Form(None),
+) -> dict[str, Any]:
     """
     Matn ajratish: default — sinxron Paddle (Celery worker shart emas).
     OCR_USE_CELERY=1 bo'lsa — navbat (job_id + /api/jobs/{id}).
+    telegram_id + token (ixtiyoriy) — WebApp: OCR limiti hisoblanadi.
     """
+    uid_str = resolve_telegram_uid(telegram_id, token)
+    uid_int = int(uid_str) if uid_str else None
+
     try:
         raw = await read_upload_limited(file)
     except EmptyUploadError:
@@ -37,6 +47,11 @@ async def api_ocr(file: UploadFile = File(...)) -> dict[str, Any]:
         job = await create_job("ocr:text")
         celery_app.send_task("ocr.extract_text", args=[raw], kwargs={}, task_id=job.job_id)
         return {"ok": True, "job_id": job.job_id}
+
+    if uid_int:
+        from bot.services.plan_limits import CAT_OCR
+
+        web_quota_before(uid_int, CAT_OCR)
 
     from backend.services.paddle_ocr_runtime import ocr_extract_text_from_bytes
 
@@ -59,6 +74,10 @@ async def api_ocr(file: UploadFile = File(...)) -> dict[str, Any]:
         payload["height"] = r["height"]
     if r.get("preprocess"):
         payload["preprocess"] = r["preprocess"]
+    if uid_int and (payload.get("text") or "").strip():
+        from bot.services.plan_limits import CAT_OCR
+
+        payload["quota"] = web_quota_after(uid_int, CAT_OCR, "Web API OCR")
     return payload
 
 

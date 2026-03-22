@@ -198,7 +198,12 @@ async def api_ocr_extract_docx(
 async def ocr_paddle(
     file: UploadFile = File(...),
     layout: Optional[str] = Query(None, description="1/true=yes — bbox va qatorlar bilan JSON"),
+    telegram_id: Optional[str] = Form(None),
+    token: Optional[str] = Form(None),
 ):
+    uid_str = resolve_telegram_uid(telegram_id, token)
+    uid_int = int(uid_str) if uid_str else None
+
     try:
         from backend.services.paddle_ocr_runtime import (
             bytes_to_bgr,
@@ -225,6 +230,10 @@ async def ocr_paddle(
         raise HTTPException(status_code=400, detail="Invalid image")
 
     img = paddle_resize(img)
+    if uid_int:
+        from bot.services.plan_limits import CAT_OCR
+
+        web_quota_before(uid_int, CAT_OCR)
     loop = asyncio.get_running_loop()
     pool = get_ocr_thread_pool()
     want_layout = (layout or "").strip().lower() in ("1", "true", "yes", "full")
@@ -247,6 +256,10 @@ async def ocr_paddle(
             out["width"] = data["width"]
         if data.get("height") is not None:
             out["height"] = data["height"]
+    if uid_int and text:
+        from bot.services.plan_limits import CAT_OCR
+
+        out["quota"] = web_quota_after(uid_int, CAT_OCR, "Web Paddle OCR")
     return out
 
 

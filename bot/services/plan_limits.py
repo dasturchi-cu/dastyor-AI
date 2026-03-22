@@ -179,12 +179,26 @@ def _local_bucket_incr(user_id: int, bucket_key: str) -> int:
 
 
 def _incr_bucket(user_id: int, bucket_key: str) -> int:
+    """
+    Supabase yozuvi muvaffaqiyatsiz bo'lsa (RPC yo'q, RLS, va h.k.)
+    db_service_bucket_increment ba'zan 0 qaytaradi — shunda mahalliy faylga
+    ham +1 (o'qishda max(db, local) birlashtiriladi).
+    """
     uid = int(user_id)
+    db_n = 0
     try:
         from bot.services.supabase_db import has_db, db_service_bucket_increment
 
         if has_db():
-            return int(db_service_bucket_increment(uid, bucket_key))
+            db_n = int(db_service_bucket_increment(uid, bucket_key))
+            if db_n >= 1:
+                return db_n
+            if db_n == 0:
+                logger.warning(
+                    "plan_limits: bucket increment DB=0 user=%s key=%s — local fallback",
+                    uid,
+                    bucket_key[:80],
+                )
     except Exception as e:
         logger.debug("plan_limits db incr: %s", e)
     return _local_bucket_incr(uid, bucket_key)
