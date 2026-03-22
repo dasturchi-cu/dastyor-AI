@@ -162,12 +162,12 @@ def increment_file_count(user_id, service_name=None):
         _save_profiles()
 
 
-def record_service_completion(user_id, service_name=None):
-    """Muvaffaqiyatli xizmatdan keyin: kunlik hisob + files_processed."""
-    from bot.services.usage_tracker import increment_usage
+def record_service_completion(user_id, category: str, service_name=None):
+    """Muvaffaqiyatli xizmatdan keyin: tarif bo'yicha kategoriya + files_processed."""
+    from bot.services.plan_limits import record_category_use
 
-    increment_usage(int(user_id), service_name or "service")
-    increment_file_count(int(user_id), service_name)
+    record_category_use(int(user_id), category)
+    increment_file_count(int(user_id), service_name or category)
 
 def set_ban_status(user_id, is_banned=True, reason=None):
     """Ban or Unban user (Admin action)"""

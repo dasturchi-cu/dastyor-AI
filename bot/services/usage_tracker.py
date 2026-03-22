@@ -100,30 +100,11 @@ def has_paid_active_plan(user_id: int) -> bool:
         return False
 
 
-def can_use(user_id: int) -> bool:
-    """Bepul foydalanuvchi: kunlik limit ichida; to'lovli: har doim True."""
-    cap = get_effective_daily_cap()
-    if cap <= 0:
-        return True
-    if has_paid_active_plan(user_id):
-        return True
-    return get_user_usage(user_id) < cap
-
-
-def get_remaining(user_id: int) -> int:
-    """Bugun qolgan bepul urinishlar (to'lovli: katta son)."""
-    cap = get_effective_daily_cap()
-    if cap <= 0 or has_paid_active_plan(user_id):
-        return 999
-    used = get_user_usage(user_id)
-    return max(0, cap - used)
-
-
 def get_tariff_snapshot(user_id: int) -> dict:
     """
-    Bot va /api/me uchun: tarif kodi, o'zbekcha nom, kunlik limit va qoldiq.
-    JSON/API uchun dict (None = cheksiz tarifda shu maydonlar yo'q).
+    Bot va /api/me: tarif + har xizmat bo'yicha limit / ishlatilgan / qoldi.
     """
+    from bot.services.plan_limits import user_limits_breakdown
     from bot.services.settings_service import (
         get_active_plan_code,
         get_active_subscription_expires_display,
@@ -136,72 +117,73 @@ def get_tariff_snapshot(user_id: int) -> dict:
         "standard": "Standard",
         "premium": "Premium",
     }
-    cap = get_effective_daily_cap()
-    paid = has_paid_active_plan(uid)
-    unlimited = cap <= 0 or paid
-    used = get_user_usage(uid)
-    rem = get_remaining(uid)
+    breakdown = user_limits_breakdown(uid)
+    subs = (
+        get_active_subscription_expires_display(uid)
+        if plan in ("standard", "premium")
+        else None
+    )
     return {
         "plan": plan,
         "plan_label": labels.get(plan, plan),
-        "unlimited": bool(unlimited),
-        "daily_limit": None if unlimited else cap,
-        "used_today": None if unlimited else used,
-        "remaining": None if unlimited else rem,
-        "subscription_ends": (
-            get_active_subscription_expires_display(uid)
-            if plan in ("standard", "premium")
-            else None
+        "subscription_ends": subs,
+        "limits_breakdown": breakdown,
+        # Eski mobil mijozlar uchun (app.js): yakka «cheksiz» faqat hammasi cheksiz yoki bloklangan bo'lsa
+        "unlimited": all(
+            bool(b.get("unlimited")) or bool(b.get("blocked")) for b in breakdown
         ),
+        "daily_limit": None,
+        "used_today": None,
+        "remaining": None,
     }
 
 
 def format_tariff_status_html(user_id: int) -> str:
     """Telegram HTML (/start, /menu)."""
     s = get_tariff_snapshot(user_id)
-    if s["unlimited"]:
-        lines = [f"📦 <b>Tarif:</b> {s['plan_label']} — <b>cheksiz</b>"]
-        if s.get("subscription_ends"):
-            lines.append(f"📅 <b>Obuna tugashi:</b> {s['subscription_ends']}")
-        return "\n".join(lines)
-    dl = int(s["daily_limit"] or 0)
-    ut = int(s["used_today"] or 0)
-    rm = 0 if s["remaining"] is None else int(s["remaining"])
-    return (
-        f"📦 <b>Tarif:</b> {s['plan_label']}\n"
-        f"📊 <b>Bugun:</b> {ut}/{dl} · <b>Qoldi:</b> {rm}"
-    )
+    lines = [
+        f"📦 <b>Tarif:</b> {s['plan_label']}",
+        "📋 Har xizmat alohida: <b>necha marta berilgan</b> / <b>limit</b> / <b>qancha qoldi</b> yoki <b>cheksiz</b>.",
+        "👉 To'liq jadval: <b>Balans 💰</b> tugmasi.",
+    ]
+    if s.get("subscription_ends"):
+        lines.insert(2, f"📅 <b>Obuna tugashi:</b> {s['subscription_ends']}")
+    return "\n".join(lines)
 
 
 def format_tariff_status_markdown(user_id: int) -> str:
     """Markdown (Balans va boshqa * matnlar)."""
     s = get_tariff_snapshot(user_id)
-    if s["unlimited"]:
-        lines = [f"📦 *Tarif:* {s['plan_label']} — *cheksiz*"]
-        if s.get("subscription_ends"):
-            lines.append(f"📅 *Obuna tugashi:* `{s['subscription_ends']}`")
-        return "\n".join(lines)
-    dl = int(s["daily_limit"] or 0)
-    ut = int(s["used_today"] or 0)
-    rm = 0 if s["remaining"] is None else int(s["remaining"])
-    return (
-        f"📦 *Tarif:* {s['plan_label']}\n"
-        f"📊 *Bugun:* {ut}/{dl} · *qoldi:* {rm}"
-    )
+    lines = [
+        f"📦 *Tarif:* {s['plan_label']}",
+        "📋 Har xizmat: *berilgan / limit / qoldi* yoki *cheksiz* — quyida.",
+    ]
+    if s.get("subscription_ends"):
+        lines.append(f"📅 *Obuna tugashi:* `{s['subscription_ends']}`")
+    return "\n".join(lines)
 
 
-async def _send_quota_blocked_message(bot, chat_id: int, user_id: int, lang: str = "uz_lat") -> None:
+async def _send_quota_blocked_message(
+    bot,
+    chat_id: int,
+    user_id: int,
+    lang: str = "uz_lat",
+    category: str | None = None,
+) -> None:
     from telegram import InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo
     from config import WEBAPP_BASE
+    from bot.services.plan_limits import block_reason_for_user_uz
 
     uid = int(user_id)
-    cap = get_effective_daily_cap()
-    used = get_user_usage(uid)
+    reason = (
+        block_reason_for_user_uz(uid, category)
+        if category
+        else "⛔️ Bu xizmat uchun limit tugadi yoki tarif mos emas."
+    )
     text = (
-        "⛔️ <b>Kunlik limit tugadi.</b>\n\n"
-        f"Bugun: <b>{used}</b> / <b>{cap}</b> ta bepul urinish ishlatildi.\n\n"
-        "💎 <b>Standard</b> yoki <b>Premium</b> obuna oling — cheksiz foydalanish.\n\n"
-        "👇 Quyidagi tugma orqali tariflarni oching:"
+        f"{reason}\n\n"
+        "💎 <b>Standard</b> yoki <b>Premium</b> — batafsil tariflar:\n\n"
+        "👇 Quyidagi tugma:"
     )
     url = f"{WEBAPP_BASE.rstrip('/')}/premium.html?telegram_id={uid}&lang={lang}"
     kb = InlineKeyboardMarkup(
@@ -210,23 +192,37 @@ async def _send_quota_blocked_message(bot, chat_id: int, user_id: int, lang: str
     await bot.send_message(chat_id=chat_id, text=text, parse_mode="HTML", reply_markup=kb)
 
 
-async def ensure_can_use_or_notify(bot, chat_id: int, user_id: int, lang: str = "uz_lat") -> bool:
+async def ensure_can_use_or_notify(
+    bot,
+    chat_id: int,
+    user_id: int,
+    *,
+    category: str,
+    lang: str = "uz_lat",
+) -> bool:
     """
     True — xizmatni boshlash mumkin.
-    False — limit tugagan, foydalanuvchiga xabar yuborildi.
+    False — limit yo'q / tarifda yo'q, xabar yuborildi.
     """
     from bot.services.admin_service import is_admin
+    from bot.services.plan_limits import can_use_category
 
     uid = int(user_id)
     if is_admin(uid):
         return True
-    if can_use(uid):
+    if can_use_category(uid, category):
         return True
-    await _send_quota_blocked_message(bot, chat_id, uid, lang)
+    await _send_quota_blocked_message(bot, chat_id, uid, lang, category)
     return False
 
 
-async def reply_if_daily_quota_blocked(update: "Update", user_id: int, lang: str = "uz_lat") -> bool:
+async def reply_if_daily_quota_blocked(
+    update: "Update",
+    user_id: int,
+    *,
+    category: str,
+    lang: str = "uz_lat",
+) -> bool:
     """
     Limit tugagan bo'lsa xabar yuboradi va True qaytaradi (handler return qilishi kerak).
     Admin cheksiz.
@@ -234,6 +230,6 @@ async def reply_if_daily_quota_blocked(update: "Update", user_id: int, lang: str
     uid = int(user_id)
     bot = update.get_bot()
     cid = update.effective_chat.id if update.effective_chat else uid
-    if await ensure_can_use_or_notify(bot, cid, uid, lang):
+    if await ensure_can_use_or_notify(bot, cid, uid, category=category, lang=lang):
         return False
     return True

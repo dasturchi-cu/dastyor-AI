@@ -8,6 +8,7 @@ from bot.keyboards.inline_keyboards import (
 )
 from bot.keyboards.reply_keyboards import get_image_to_pdf_keyboard, get_main_menu
 from bot.handlers.ocr_to_word import perform_ocr_and_send
+from bot.services.plan_limits import CAT_OCR, CAT_TRANSCRIBE, CAT_TRANSLATE
 from bot.services.user_service import get_user_lang, record_service_completion
 from bot.services.usage_tracker import ensure_can_use_or_notify
 from bot.services.ai_service import transcribe_audio
@@ -103,7 +104,11 @@ async def smart_callback_handler(update: Update, context: ContextTypes.DEFAULT_T
         # === 1. OCR (Rasm -> Word) — run in background so bot stays responsive ===
         if data == "smart_ocr":
             if not await ensure_can_use_or_notify(
-                context.bot, chat_id, user_id, get_user_lang(user_id)
+                context.bot,
+                chat_id,
+                user_id,
+                category=CAT_OCR,
+                lang=get_user_lang(user_id),
             ):
                 try:
                     await query.message.delete()
@@ -154,7 +159,11 @@ async def smart_callback_handler(update: Update, context: ContextTypes.DEFAULT_T
         # === 3. Transcribe (Audio -> Text) ===
         elif data == "smart_transcribe":
             if not await ensure_can_use_or_notify(
-                context.bot, chat_id, user_id, get_user_lang(user_id)
+                context.bot,
+                chat_id,
+                user_id,
+                category=CAT_TRANSCRIBE,
+                lang=get_user_lang(user_id),
             ):
                 try:
                     await query.message.delete()
@@ -179,7 +188,7 @@ async def smart_callback_handler(update: Update, context: ContextTypes.DEFAULT_T
                 parse_mode="Markdown",
                 reply_markup=get_main_menu(update.effective_user.id if update.effective_user else None)
             )
-            record_service_completion(user_id, "Smart Transcribe")
+            record_service_completion(user_id, CAT_TRANSCRIBE, "Smart Transcribe")
             return
 
         # === 4. Obyektivka (Audio -> Obyektivka) ===
@@ -235,7 +244,11 @@ async def smart_callback_handler(update: Update, context: ContextTypes.DEFAULT_T
                 return
 
             if not await ensure_can_use_or_notify(
-                context.bot, chat_id, user_id, get_user_lang(user_id)
+                context.bot,
+                chat_id,
+                user_id,
+                category=CAT_TRANSLATE,
+                lang=get_user_lang(user_id),
             ):
                 try:
                     await query.message.delete()
@@ -293,7 +306,7 @@ async def smart_callback_handler(update: Update, context: ContextTypes.DEFAULT_T
                                 ),
                                 parse_mode="HTML"
                             )
-                    record_service_completion(user_id, "Smart Translate DOC")
+                    record_service_completion(user_id, CAT_TRANSLATE, "Smart Translate DOC")
                 else:
                     await query.message.edit_text(
                         "❌ Tarjima qilishda xatolik yuz berdi.\n"

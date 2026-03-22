@@ -538,6 +538,28 @@
 
 <script src="app.js"></script>
 <script>
+  function _daEsc(s) {
+    return String(s || "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+  }
+
+  function _daFeatIcon(cat) {
+    const m = {
+      translit: "🔤",
+      image_pdf: "🖼",
+      translate: "🌐",
+      obyektivka: "📄",
+      cv: "📋",
+      ocr: "🤖",
+      spell: "✏️",
+      transcribe: "🎙️",
+    };
+    return m[cat] || "📌";
+  }
+
   function applyPremiumPageLiveTariff(me) {
     const box = document.getElementById("userLiveTariff");
     const sumEl = document.getElementById("ultSummary");
@@ -554,48 +576,89 @@
 
     box.classList.remove("hidden");
     const label = me.plan_label || me.plan || "—";
+    const br = me.limits_breakdown;
 
-    if (me.unlimited) {
-      sumEl.innerHTML =
-        "<span style='color:var(--gold2)'>" +
-        label +
-        "</span> — barcha asosiy xizmatlar uchun <b>cheksiz</b> (kunlik limit yo'q).";
-      badge.textContent = me.plan === "premium" ? "Premium" : "Obuna";
-      badge.className = "plan-badge " + (me.plan === "premium" ? "badge-top" : "badge-std");
-      let html =
-        "<div class='feat-row'><span class='feat-name'>Kunlik limit</span><span class='feat-val v-inf'>♾ cheksiz</span></div>";
-      if (me.subscription_ends) {
-        html +=
-          "<div class='feat-row'><span class='feat-name'>Obuna tugashi</span><span class='feat-val v-yes'>" +
-          me.subscription_ends +
-          "</span></div>";
+    if (!Array.isArray(br) || !br.length) {
+      sumEl.textContent = label + " — limit ma'lumoti yuklanmadi.";
+      badge.textContent = "—";
+      badge.className = "plan-badge badge-free";
+      feats.innerHTML = "";
+      if (freePool) freePool.textContent = "—";
+      return;
+    }
+
+    const sub = me.subscription_ends
+      ? " Obuna tugashi: " + _daEsc(me.subscription_ends) + "."
+      : "";
+    sumEl.innerHTML =
+      "<span style='color:var(--gold2)'>" +
+      _daEsc(label) +
+      "</span> — har xizmat alohida: <b>ishlatilgan / limit / qoldi</b> yoki <b>cheksiz</b>." +
+      (sub ? "<br/><span style='opacity:.9'>" + sub + "</span>" : "");
+
+    if (me.plan === "premium") {
+      badge.textContent = "Premium";
+      badge.className = "plan-badge badge-top";
+    } else if (me.plan === "standard") {
+      badge.textContent = "Standard";
+      badge.className = "plan-badge badge-std";
+    } else {
+      badge.textContent = "Oddiy";
+      badge.className = "plan-badge badge-free";
+    }
+
+    let html =
+      "<div class='feat-row'><span class='feat-name'>📌 Kunlik umumiy (bot + web)</span>" +
+      "<span class='feat-val v-num'>har bir xizmat — quyida</span></div>";
+
+    for (const row of br) {
+      const ic = _daFeatIcon(row.category);
+      const name = ic + " " + _daEsc(row.label || row.category || "");
+      let valClass = "v-num";
+      let valInner = "";
+      if (row.unlimited) {
+        valClass = "v-inf";
+        valInner = "♾ cheksiz";
+      } else if (row.blocked) {
+        valClass = "v-no";
+        valInner = "—";
+      } else {
+        const used = row.used != null ? row.used : 0;
+        const lim = row.limit != null ? row.limit : "—";
+        const rem = row.remaining != null ? row.remaining : 0;
+        const pn = row.period ? _daEsc(row.period) : "";
+        if (rem > 0) {
+          valClass = "v-yes";
+          valInner =
+            "limit ichida · " + used + "/" + lim + " (" + pn + ") · qoldi " + rem;
+        } else {
+          valClass = "v-no";
+          valInner = "limit tugadi · " + used + "/" + lim + " (" + pn + ")";
+        }
       }
       html +=
-        "<div class='feat-row'><span class='feat-name'>Pastdagi tariflar</span><span class='feat-val v-num'>yangilash / uzaytirish</span></div>";
-      feats.innerHTML = html;
-      if (freePool) freePool.textContent = "♾ cheksiz";
-    } else {
-      const cap = me.daily_limit != null ? me.daily_limit : "—";
-      const u = me.used_today != null ? me.used_today : "—";
-      const r = me.remaining != null ? me.remaining : "—";
-      sumEl.textContent =
-        label + " — bugun " + u + "/" + cap + " ishlatilgan, yana " + r + " ta qoldi.";
-      badge.textContent = "Bepul";
-      badge.className = "plan-badge badge-free";
-      feats.innerHTML =
-        "<div class='feat-row'><span class='feat-name'>Kunlik limit (barcha xizmatlar)</span><span class='feat-val v-num'>" +
-        cap +
-        " ta</span></div>" +
-        "<div class='feat-row'><span class='feat-name'>Bugun ishlatilgan</span><span class='feat-val v-num'>" +
-        u +
-        " / " +
-        cap +
-        "</span></div>" +
-        "<div class='feat-row'><span class='feat-name'>Qoldi</span><span class='feat-val v-inf-b'>" +
-        r +
-        " ta</span></div>" +
-        "<div class='feat-row'><span class='feat-name'>Pastdagi kartalar</span><span class='feat-val v-num'>Standart / Premium — cheksiz</span></div>";
-      if (freePool) freePool.textContent = u + "/" + cap + " · qoldi " + r;
+        "<div class='feat-row'><span class='feat-name'>" +
+        name +
+        "</span><span class='feat-val " +
+        valClass +
+        "'>" +
+        valInner +
+        "</span></div>";
+    }
+
+    html +=
+      "<div class='feat-row'><span class='feat-name'>Pastdagi tariflar</span>" +
+      "<span class='feat-val v-num'>yangilash / uzaytirish</span></div>";
+
+    feats.innerHTML = html;
+
+    if (freePool) {
+      const short = br
+        .map((row) => row.display || "")
+        .filter(Boolean)
+        .slice(0, 3)
+        .join(" · ");
+      freePool.textContent = short || "—";
     }
   }
 

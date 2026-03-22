@@ -10,7 +10,8 @@ from bot.services.ai_service import (
     extract_obyektivka_data,
     is_valid_transcription_text,
 )
-from bot.services.user_service import get_user_lang, record_service_completion
+from bot.services.plan_limits import CAT_OBYEKTIVKA
+from bot.services.user_service import get_user_lang
 from bot.services.usage_tracker import ensure_can_use_or_notify
 from config import WEBAPP_BASE, WEBAPP_VERSION
 import json
@@ -24,7 +25,11 @@ async def process_obyektivka_from_audio_path(context, audio_path, chat_id, user_
     Core logic: Transcribe -> Extract Data -> Generate DOCX -> Send
     """
     if not await ensure_can_use_or_notify(
-        context.bot, chat_id, user_id, get_user_lang(user_id)
+        context.bot,
+        chat_id,
+        user_id,
+        category=CAT_OBYEKTIVKA,
+        lang=get_user_lang(user_id),
     ):
         return
     # Initial Progress
@@ -98,8 +103,6 @@ async def process_obyektivka_from_audio_path(context, audio_path, chat_id, user_
             ),
             reply_markup=InlineKeyboardMarkup(kb),
         )
-        record_service_completion(user_id, "Obyektivka Voice")
-
         await progress_msg.delete()
         
     except Exception as e:

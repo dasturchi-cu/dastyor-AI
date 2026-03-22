@@ -22,6 +22,7 @@ from telegram.constants import ChatAction
 from bot.keyboards.reply_keyboards import get_back_button
 from bot.utils.delivery import send_docx_with_confirmation
 from bot.services.transliterate_service import transliterate
+from bot.services.plan_limits import CAT_TRANSLIT
 from bot.services.user_service import get_user_lang, record_service_completion
 from bot.services.usage_tracker import reply_if_daily_quota_blocked
 
@@ -118,7 +119,7 @@ async def translit_direction_callback(update: Update, context: ContextTypes.DEFA
     uid = query.from_user.id
     lang = get_user_lang(uid)
 
-    if await reply_if_daily_quota_blocked(update, uid, lang):
+    if await reply_if_daily_quota_blocked(update, uid, category=CAT_TRANSLIT, lang=lang):
         return
 
     trl_text   = context.user_data.pop("trl_text", None)
@@ -150,7 +151,7 @@ async def translit_direction_callback(update: Update, context: ContextTypes.DEFA
             text=result,
             reply_markup=get_back_button(lang),
         )
-        record_service_completion(uid, "Transliterate Text")
+        record_service_completion(uid, CAT_TRANSLIT, "Transliterate Text")
         return
 
     # ── Document conversion ───────────────────────────────────────────────────
@@ -232,7 +233,7 @@ async def translit_direction_callback(update: Update, context: ContextTypes.DEFA
                         caption="✅ Tayyor!",
                         reply_markup=get_back_button(lang),
                     )
-            record_service_completion(uid, f"Transliterate {ext.upper()}")
+            record_service_completion(uid, CAT_TRANSLIT, f"Transliterate {ext.upper()}")
             await status_msg.delete()
 
         except Exception as e:

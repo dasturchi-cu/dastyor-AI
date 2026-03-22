@@ -7,13 +7,8 @@ from bot.services.settings_service import (
     get_premium_status,
     get_premium_expiry,
 )
-from bot.services.usage_tracker import (
-    format_tariff_status_markdown,
-    get_effective_daily_cap,
-    get_remaining,
-    get_user_usage,
-    has_paid_active_plan,
-)
+from bot.services.plan_limits import user_limits_breakdown
+from bot.services.usage_tracker import format_tariff_status_markdown
 from bot.utils.i18n import t
 
 async def balance_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -35,19 +30,8 @@ async def balance_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         status = t("status_free", lang)
 
-    if has_paid_active_plan(user_id):
-        limit_text = t("limit_unlim", lang)
-    else:
-        cap = get_effective_daily_cap()
-        if cap <= 0:
-            limit_text = t("limit_unlim", lang)
-        else:
-            used = get_user_usage(user_id)
-            rem = get_remaining(user_id)
-            limit_text = (
-                f"{t('limit_daily', lang, limit=cap)} "
-                f"— bugun: {used}/{cap}, qoldi: {rem}"
-            )
+    breakdown = user_limits_breakdown(user_id)
+    limit_text = "\n".join(f"• {row['display']}" for row in breakdown)
 
     premium_btn = t("btn_premium", lang)
 

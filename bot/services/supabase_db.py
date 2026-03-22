@@ -417,6 +417,73 @@ def db_reset_daily_usage(user_id: int) -> bool:
         return False
 
 
+# ── service_usage_buckets (tarif bo'yicha kategoriyalar) ────────────────────
+def db_service_bucket_get(user_id: int, bucket_key: str) -> int:
+    c = _get_client()
+    if not c:
+        return 0
+    try:
+        r = (
+            c.table("service_usage_buckets")
+            .select("count")
+            .eq("user_id", int(user_id))
+            .eq("bucket_key", bucket_key)
+            .limit(1)
+            .execute()
+        )
+        if r.data:
+            return int(r.data[0].get("count", 0))
+        return 0
+    except Exception as e:
+        _mark_temporarily_unavailable(e)
+        logger.debug("db_service_bucket_get: %s", e)
+        return 0
+
+
+def db_service_bucket_increment(user_id: int, bucket_key: str) -> int:
+    c = _get_client()
+    if not c:
+        return 0
+    uid = int(user_id)
+    try:
+        r = (
+            c.table("service_usage_buckets")
+            .select("id,count")
+            .eq("user_id", uid)
+            .eq("bucket_key", bucket_key)
+            .limit(1)
+            .execute()
+        )
+        if r.data:
+            new_c = int(r.data[0].get("count", 0)) + 1
+            c.table("service_usage_buckets").update({"count": new_c}).eq("id", r.data[0]["id"]).execute()
+            return new_c
+        c.table("service_usage_buckets").insert(
+            {"user_id": uid, "bucket_key": bucket_key, "count": 1}
+        ).execute()
+        return 1
+    except Exception as e:
+        _mark_temporarily_unavailable(e)
+        logger.debug("db_service_bucket_increment: %s", e)
+        try:
+            cur = db_service_bucket_get(uid, bucket_key)
+            new_c = cur + 1
+            r2 = (
+                c.table("service_usage_buckets")
+                .select("id")
+                .eq("user_id", uid)
+                .eq("bucket_key", bucket_key)
+                .limit(1)
+                .execute()
+            )
+            if r2.data:
+                c.table("service_usage_buckets").update({"count": new_c}).eq("id", r2.data[0]["id"]).execute()
+            return new_c
+        except Exception as e2:
+            _log_write_error("db_service_bucket_increment", e2)
+            return 0
+
+
 def db_log_usage(user_id: int, action: str, metadata: dict | None = None) -> bool:
     """usage_logs jadvaliga audit (ustunlar bo'lmasa — sessiz o'tkaziladi)."""
     c = _get_client()

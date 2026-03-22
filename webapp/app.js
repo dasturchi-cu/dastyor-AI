@@ -192,7 +192,16 @@ const DastyorAI = (() => {
     }
 
     function _pickTariffFields(obj) {
-        const keys = ['plan', 'plan_label', 'unlimited', 'daily_limit', 'used_today', 'remaining', 'subscription_ends'];
+        const keys = [
+            'plan',
+            'plan_label',
+            'unlimited',
+            'daily_limit',
+            'used_today',
+            'remaining',
+            'subscription_ends',
+            'limits_breakdown',
+        ];
         const o = {};
         keys.forEach((k) => {
             if (obj[k] !== undefined && obj[k] !== null) o[k] = obj[k];
@@ -211,7 +220,14 @@ const DastyorAI = (() => {
         if (!u || !u.telegram_id || !u.plan) return;
 
         let line;
-        if (u.unlimited) {
+        const br = u.limits_breakdown;
+        if (Array.isArray(br) && br.length) {
+            const bits = br.map((row) => row.display || row.label || '').filter(Boolean);
+            line = `${u.plan_label || u.plan || ''}`;
+            if (u.subscription_ends) line += ` · obuna ${u.subscription_ends}`;
+            line += ` · ${bits.join(' · ')}`;
+            if (line.length > 240) line = `${line.slice(0, 237)}…`;
+        } else if (u.unlimited) {
             line = `${u.plan_label || u.plan} · cheksiz`;
             if (u.subscription_ends) line += ` · obuna ${u.subscription_ends}`;
         } else if (u.daily_limit != null && u.used_today != null && u.remaining != null) {

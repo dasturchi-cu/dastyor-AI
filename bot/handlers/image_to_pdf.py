@@ -7,6 +7,7 @@ from telegram.ext import ContextTypes
 from telegram.constants import ParseMode, ChatAction
 from bot.keyboards.reply_keyboards import get_main_menu, get_image_to_pdf_keyboard
 from bot.services.pdf_service import images_to_pdf
+from bot.services.plan_limits import CAT_IMAGE_PDF
 from bot.services.user_service import get_user_lang, record_service_completion
 from bot.services.usage_tracker import ensure_can_use_or_notify
 from bot.utils.helpers import is_back_button, sanitize_filename
@@ -97,7 +98,8 @@ async def collect_pdf_images(update: Update, context: ContextTypes.DEFAULT_TYPE)
                     context.bot,
                     message.chat_id,
                     uid_pdf,
-                    get_user_lang(uid_pdf),
+                    category=CAT_IMAGE_PDF,
+                    lang=get_user_lang(uid_pdf),
                 ):
                     try:
                         await status_msg.delete()
@@ -148,7 +150,7 @@ async def collect_pdf_images(update: Update, context: ContextTypes.DEFAULT_TYPE)
                         ),
                         reply_markup=get_image_to_pdf_keyboard(),
                     )
-                record_service_completion(uid_pdf, "Image to PDF")
+                record_service_completion(uid_pdf, CAT_IMAGE_PDF, "Image to PDF")
                 await status_msg.delete()
                 logger.info("PDF created for user_id=%s images=%s", message.from_user.id, len(downloaded_paths))
             except Exception as e:

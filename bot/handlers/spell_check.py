@@ -13,6 +13,7 @@ from telegram.ext import ContextTypes
 from telegram.constants import ChatAction
 from bot.keyboards.reply_keyboards import get_back_button
 from bot.services.ai_service import check_spelling_gemini, check_spelling_pptx, check_spelling_text
+from bot.services.plan_limits import CAT_SPELL
 from bot.services.user_service import get_user_lang, record_service_completion
 from bot.services.usage_tracker import reply_if_daily_quota_blocked
 
@@ -50,7 +51,9 @@ async def process_spell_check(update: Update, context: ContextTypes.DEFAULT_TYPE
     if not update.message.document:
         if update.message.text and update.message.text.strip():
             uid = update.effective_user.id
-            if await reply_if_daily_quota_blocked(update, uid, get_user_lang(uid)):
+            if await reply_if_daily_quota_blocked(
+                update, uid, category=CAT_SPELL, lang=get_user_lang(uid)
+            ):
                 return
             status = await update.message.reply_text("⏳ Matn tekshirilmoqda...")
             corrected, fixes = await check_spelling_text(update.message.text)
@@ -79,7 +82,7 @@ async def process_spell_check(update: Update, context: ContextTypes.DEFAULT_TYPE
             except Exception:
                 pass
             await update.message.reply_text("📎 Tuzatilgan fayl yuborildi.", reply_markup=get_back_button())
-            record_service_completion(uid, "Spell Check Text")
+            record_service_completion(uid, CAT_SPELL, "Spell Check Text")
             context.user_data.pop('waiting_for', None)
             return
 
@@ -100,7 +103,9 @@ async def process_spell_check(update: Update, context: ContextTypes.DEFAULT_TYPE
         return
 
     uid = update.effective_user.id
-    if await reply_if_daily_quota_blocked(update, uid, get_user_lang(uid)):
+    if await reply_if_daily_quota_blocked(
+        update, uid, category=CAT_SPELL, lang=get_user_lang(uid)
+    ):
         return
 
     status_msg = await update.message.reply_text(
@@ -154,7 +159,7 @@ async def process_spell_check(update: Update, context: ContextTypes.DEFAULT_TYPE
         file_sent = True
         await status_msg.delete()
         await update.message.reply_text("📎 Tuzatilgan fayl yuborildi.", reply_markup=get_back_button())
-        record_service_completion(uid, f"Spell Check {ext.upper()}")
+        record_service_completion(uid, CAT_SPELL, f"Spell Check {ext.upper()}")
         
     except Exception as e:
         logger.error(f"Spell check handler error: {e}", exc_info=True)
@@ -177,7 +182,7 @@ async def process_spell_check(update: Update, context: ContextTypes.DEFAULT_TYPE
                 await status_msg.delete()
                 await update.message.reply_text("📎 Tuzatilgan fayl yuborildi.", reply_markup=get_back_button())
                 file_sent = True
-                record_service_completion(uid, f"Spell Check {ext.upper()} (fallback)")
+                record_service_completion(uid, CAT_SPELL, f"Spell Check {ext.upper()} (fallback)")
             except Exception:
                 pass
         if not file_sent:
