@@ -574,6 +574,39 @@ def db_service_bucket_increment(user_id: int, bucket_key: str) -> int:
             return 0
 
 
+def db_service_bucket_try_increment(user_id: int, bucket_key: str, cap: int) -> int:
+    """
+    Kategoriya bucket +1 faqat count < cap bo‘lsa. Yangi qiymat yoki 0 (limit to‘ldi).
+    Parallel so‘rovlar uchun DB tomonda qulflash (try_increment_service_bucket RPC).
+    """
+    c = _get_client()
+    if not c:
+        return 0
+    uid = int(user_id)
+    icap = int(cap)
+    if icap < 1:
+        return 0
+    try:
+        r = c.rpc(
+            "try_increment_service_bucket",
+            {"p_user_id": uid, "p_bucket_key": bucket_key, "p_cap": icap},
+        ).execute()
+        n = _rpc_scalar_int(r)
+        if n is not None:
+            return max(0, int(n))
+    except Exception as e:
+        logger.debug("try_increment_service_bucket rpc: %s", e)
+    try:
+        cur = db_service_bucket_get(uid, bucket_key)
+        if cur >= icap:
+            return 0
+        return db_service_bucket_increment(uid, bucket_key)
+    except Exception as e2:
+        _mark_temporarily_unavailable(e2)
+        logger.debug("db_service_bucket_try_increment fallback: %s", e2)
+        return 0
+
+
 def db_log_usage(user_id: int, action: str, metadata: dict | None = None) -> bool:
     """usage_logs jadvaliga audit (ustunlar bo'lmasa — sessiz o'tkaziladi)."""
     c = _get_client()

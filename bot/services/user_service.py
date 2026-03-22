@@ -192,7 +192,11 @@ def increment_file_count(user_id, service_name=None):
 
 
 def record_service_completion(user_id, category: str, service_name=None):
-    """Muvaffaqiyatli xizmatdan keyin: tarif bo'yicha kategoriya + files_processed + Supabase audit."""
+    """Muvaffaqiyatli xizmatdan keyin: tarif bo'yicha kategoriya + files_processed + Supabase audit.
+
+    Barcha xizmatlar (bot va /api) shu funksiyadan o'tadi; limitlar plan_limits.record_category_use
+    orqali bitta joyda (CV / OCR / tarjima farqi yo'q).
+    """
     from bot.services.plan_limits import category_status, record_category_use
 
     uid = int(user_id)

@@ -189,7 +189,7 @@
     body.modal-open{overflow:hidden}
   </style>
 </head>
-<body>
+<body data-disable-mobile-nav="true">
 
 <div id="loading-overlay">
   <div class="loader-ring"></div>
@@ -407,6 +407,40 @@ else if(window.DastyorAI&&window.DastyorAI.BASE)API_URL=window.DastyorAI.BASE;
 else if(window.location.protocol==='file:')API_URL='https://dastyor-ai.onrender.com';
 else if(/localhost|127\.0\.0\.1/.test(window.location.origin))API_URL='http://localhost:8000';
 else API_URL=window.location.origin;
+
+function getDastyorSessionToken(){
+  try { if (window.DastyorAI && window.DastyorAI.getToken) return window.DastyorAI.getToken() || null; } catch (_) {}
+  try { return sessionStorage.getItem('tg_token'); } catch (_) { return null; }
+}
+
+/** FastAPI xatolik tanasi: detail matnini olish (429 da "Server 429" o'rniga). Tanani bir marta o'qiydi. */
+async function dastyorReadApiError(res){
+  var status = res.status;
+  var raw = '';
+  try { raw = await res.text(); } catch (e) { raw = ''; }
+  if (raw) {
+    try {
+      var j = JSON.parse(raw);
+      if (typeof j.detail === 'string' && j.detail.trim()) return j.detail.trim();
+      if (Array.isArray(j.detail) && j.detail.length) {
+        var line = j.detail.map(function (x) {
+          if (!x) return '';
+          if (typeof x === 'string') return x;
+          return (x.msg || x.message || '');
+        }).filter(Boolean).join(' ');
+        if (line.trim()) return line.trim();
+      }
+      if (j.message && String(j.message).trim()) return String(j.message).trim();
+    } catch (_) {
+      if (raw.length < 800) return raw.trim();
+    }
+  }
+  if (status === 429) {
+    return "⛔ Bu xizmat uchun limit tugagan yoki joriy tarifda mavjud emas. Balans yetarli emas — Standard yoki Premium tarifni tanlang.";
+  }
+  if (status === 401) return "Foydalanuvchi aniqlanmadi. Bot orqali qayta kiring.";
+  return "Server " + status;
+}
 
 var uzbRegions={"And":"Andijon viloyati","Bux":"Buxoro viloyati","Far":"Farg'ona viloyati","Jiz":"Jizzax viloyati","Xor":"Xorazm viloyati","Nam":"Namangan viloyati","Nav":"Navoiy viloyati","Qas":"Qashqadaryo viloyati","Sam":"Samarqand viloyati","Sir":"Sirdaryo viloyati","Sur":"Surxondaryo viloyati","Tos":"Toshkent shahri","Qor":"Qoraqalpog'iston Respublikasi"};
 
@@ -654,13 +688,16 @@ async function sendObyektivkaViaApi(fmt){
     }),
     photo_data: payload.photo_data || ''
   };
+  var tok = getDastyorSessionToken();
+  if (tok) req.token = tok;
   var res = await fetch(API_URL + '/api/export_obyektivka', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(req)
   });
   if (!res.ok) {
-    throw new Error('Server ' + res.status);
+    var errMsg = await dastyorReadApiError(res);
+    throw new Error(errMsg);
   }
 }
 
@@ -685,7 +722,9 @@ async function sendObyektivkaToBot(fmt){
       setTimeout(function () { try { tg.close(); } catch (_) {} }, 600);
     }
   }catch(e){
-    alert("❌ Yuborishda xatolik: " + (e.message||String(e)).slice(0,80));
+    var em = (e && e.message) ? String(e.message) : String(e);
+    if (em.length > 500) em = em.slice(0, 500) + '…';
+    alert("❌ Yuborishda xatolik:\n\n" + em);
   }finally{
     if(btn)btn.disabled=false;
   }
@@ -918,8 +957,13 @@ async function generateObyektivkaViaApi(){
     awards:toCurrentScript(v('awards')),deputy:toCurrentScript(v('deputy')),
     current_job:cj,current_job_year:cy,work_experience:works,relatives:relPayload,photo_data:photoData
   };
+  var tok2 = getDastyorSessionToken();
+  if (tok2) payload.token = tok2;
   var res=await fetch(API_URL+'/api/export_obyektivka',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
-  if(!res.ok)throw new Error('Server '+res.status);
+  if(!res.ok){
+    var err2 = await dastyorReadApiError(res);
+    throw new Error(err2);
+  }
   var blob=await res.blob();
   var sn=(v('fullname')||'Obyektivka').replace(/\s+/g,'_').replace(/[^a-zA-Z0-9_\-]/g,'').slice(0,30)||'Obyektivka';
   var url=URL.createObjectURL(blob);var a=document.createElement('a');a.href=url;a.download='DASTYOR_Obyektivka_'+sn+'.docx';document.body.appendChild(a);a.click();setTimeout(function(){URL.revokeObjectURL(url);a.remove();},2000);

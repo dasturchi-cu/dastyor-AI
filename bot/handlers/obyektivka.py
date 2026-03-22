@@ -10,9 +10,6 @@ from bot.services.ai_service import (
     extract_obyektivka_data,
     is_valid_transcription_text,
 )
-from bot.services.plan_limits import CAT_OBYEKTIVKA
-from bot.services.user_service import get_user_lang, record_service_completion
-from bot.services.usage_tracker import ensure_can_use_or_notify
 from config import WEBAPP_BASE, WEBAPP_VERSION
 import json
 
@@ -22,16 +19,10 @@ logger = logging.getLogger(__name__)
 
 async def process_obyektivka_from_audio_path(context, audio_path, chat_id, user_id):
     """
-    Core logic: Transcribe -> Extract Data -> Generate DOCX -> Send
+    Core logic: Transcribe -> Extract Data -> WebApp link (prefill).
+    Kvota bu yerda yemaydi — foydalanuvchi avval formani ko‘rib, Word/PDF yuklashda
+    /api va sendData orqali limit tekshiriladi.
     """
-    if not await ensure_can_use_or_notify(
-        context.bot,
-        chat_id,
-        user_id,
-        category=CAT_OBYEKTIVKA,
-        lang=get_user_lang(user_id),
-    ):
-        return
     # Initial Progress
     progress_msg = await send_progress(context, chat_id, "Audio tahlil qilinmoqda...")
     try:
@@ -88,8 +79,6 @@ async def process_obyektivka_from_audio_path(context, audio_path, chat_id, user_
         except Exception:
             pass
 
-        record_service_completion(int(user_id), CAT_OBYEKTIVKA, "Obyektivka Voice")
-
         # 4. Give webapp link (form opens with autoload=1 → fields prefilled from API)
         kb = [[InlineKeyboardButton(
             "📋 Obyektivkani ochish",
@@ -101,7 +90,8 @@ async def process_obyektivka_from_audio_path(context, audio_path, chat_id, user_
             chat_id=chat_id,
             text=(
                 (f"👤 {fn}\n\n" if fn else "")
-                + "✅ Obyektivka to'ldirildi — formada ma'lumotlarni tekshirib, Word/PDF yuklab oling."
+                + "✅ Obyektivka to'ldirildi — formada ma'lumotlarni tekshirib, Word/PDF yuklab oling.\n\n"
+                + "💡 Word/PDF faylni botga yuborish tarif bo‘yicha; formani avval bepul ko‘rib chiqishingiz mumkin."
             ),
             reply_markup=InlineKeyboardMarkup(kb),
         )

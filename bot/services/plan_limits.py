@@ -1,6 +1,10 @@
 """
 Tarif bo'yicha xizmat limitlari (premium.html kartalariga mos).
 Kunlik / oylik / obuna davri bo'yicha bucket hisoblanadi.
+
+Barcha kategoriyalar (CV, obyektivka, OCR, tarjima, imlo, …) uchun bir xil yo'l:
+record_service_completion → record_category_use → try_increment (limitdan oshmaslik).
+CV ga maxsus alohida yo'l yo'q.
 """
 from __future__ import annotations
 
@@ -160,6 +164,18 @@ def _local_bucket_get(user_id: int, bucket_key: str) -> int:
         return 0
 
 
+def _local_bucket_try_incr(user_id: int, bucket_key: str, cap: int) -> int:
+    """Mahalliy fayl: cap dan oshmasin (bir serverda test; parallelda kichik race mumkin)."""
+    uid = int(user_id)
+    icap = int(cap)
+    if icap < 1:
+        return 0
+    cur = _local_bucket_get(uid, bucket_key)
+    if cur >= icap:
+        return 0
+    return _local_bucket_incr(uid, bucket_key)
+
+
 def _local_bucket_incr(user_id: int, bucket_key: str) -> int:
     data: dict[str, Any] = {}
     try:
@@ -212,6 +228,50 @@ def _incr_bucket(user_id: int, bucket_key: str) -> int:
     return _local_bucket_incr(uid, bucket_key)
 
 
+def _try_incr_bucket(user_id: int, bucket_key: str, cap: int) -> int:
+    """
+    Limit bilan atomik +1 (Supabase RPC). Admin emas foydalanuvchilar uchun —
+    parallel so‘rovlarda ishlatilgan soni limitdan oshmaydi.
+    """
+    import os
+
+    uid = int(user_id)
+    icap = int(cap)
+    if icap < 1:
+        return 0
+    try:
+        from bot.services.supabase_db import db_service_bucket_try_increment, has_db
+
+        if has_db():
+            db_n = int(db_service_bucket_try_increment(uid, bucket_key, icap))
+            if db_n >= 1:
+                return db_n
+            # 0 = limit to‘ldi yoki RPC yo‘q / xato; faqat haqiqiy nosozlikda error
+            cur_after = _get_bucket_count(uid, bucket_key)
+            if cur_after >= icap:
+                return 0
+            logger.error(
+                "plan_limits: bucket +1 limit bilan ishlamadi (user=%s key=%s cap=%s). "
+                "Supabase SQL: try_increment_service_bucket RPC (run_quota_setup_in_sql_editor.sql).",
+                uid,
+                bucket_key[:100],
+                icap,
+            )
+            if os.getenv("PLAN_QUOTA_LOCAL_FALLBACK_WITH_DB", "").strip().lower() in (
+                "1",
+                "true",
+                "yes",
+            ):
+                logger.warning(
+                    "plan_limits: PLAN_QUOTA_LOCAL_FALLBACK_WITH_DB=1 — mahalliy try (test)"
+                )
+                return _local_bucket_try_incr(uid, bucket_key, icap)
+            return 0
+    except Exception as e:
+        logger.debug("plan_limits db try_incr: %s", e)
+    return _local_bucket_try_incr(uid, bucket_key, icap)
+
+
 def _assemble_category_status(
     user_id: int,
     category: str,
@@ -259,9 +319,10 @@ def _assemble_category_status(
             "period_note": "obuna topilmadi",
         }
 
-    used = int(counts.get(bkey, 0))
+    used_raw = int(counts.get(bkey, 0))
     lim = int(cap or 0)
-    rem = max(0, lim - used)
+    rem = max(0, lim - used_raw)
+    used = min(used_raw, lim)
     if mode == "day":
         pnote = "kunlik"
     elif mode == "month":
@@ -275,6 +336,7 @@ def _assemble_category_status(
         "unlimited": False,
         "blocked": False,
         "used": used,
+        "used_raw": used_raw,
         "limit": lim,
         "remaining": rem,
         "period_note": pnote,
@@ -328,11 +390,11 @@ def can_use_category(user_id: int, category: str) -> bool:
 
 def record_category_use(user_id: int, category: str) -> bool:
     """
-    Muvaffaqiyatli xizmatdan keyin chaqiriladi.
+    Muvaffaqiyatli xizmatdan keyin chaqiriladi (har qanday CAT_* uchun bir xil).
     False = cheksiz/blocked yoki bucket yo'q (increment qilinmadi).
 
-    Eslatma: admin uchun ham bucket +1 (Balansdagi «ishlatilgan» soni ishonchli bo‘lsin).
-    Limit tekshiruvi can_use_category da admin uchun alohida «cheksiz».
+    Oddiy foydalanuvchi: limit bilan atomik +1 (_try_incr_bucket). Admin: audit uchun
+    cheksiz o‘sish (_incr_bucket). Balans matnida ishlatilgan ko‘rinishi: min(raw, limit).
     """
     uid = int(user_id)
     st = category_status(uid, category)
@@ -349,7 +411,13 @@ def record_category_use(user_id: int, category: str) -> bool:
     bkey = resolve_bucket_key(uid, category, mode)
     if not bkey:
         return False
-    inc = _incr_bucket(uid, bkey)
+    cap_int = int(cap or 0)
+    from bot.services.admin_service import is_admin
+
+    if is_admin(uid):
+        inc = _incr_bucket(uid, bkey)
+    else:
+        inc = _try_incr_bucket(uid, bkey, cap_int)
     if inc < 1:
         logger.error(
             "record_category_use: bucket yozilmadi (user=%s category=%s key=%s). "
