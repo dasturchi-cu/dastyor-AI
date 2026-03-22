@@ -1,6 +1,9 @@
 -- =============================================================================
 -- MAVJUD Supabase loyiha uchun (sizda allaqachon users, logs, payments va hokazo bor)
 -- Butun schema.sql ni QAYTA ishlatmang — faqat shu faylni bitta marta ishga tushiring.
+--
+-- Agar bot/API bazaga yozmasa: avvalo server .env da SUPABASE_SERVICE_ROLE_KEY,
+-- yoki rls_fix_backend_writes.sql (RLS o'chirish).
 -- =============================================================================
 
 -- Kod kutadigan users ustunlari (bor bo'lsa hech narsa qilmaydi)

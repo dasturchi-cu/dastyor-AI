@@ -8,7 +8,14 @@ import asyncio
 import os
 import tempfile
 import time
+import warnings
 from concurrent.futures import ThreadPoolExecutor
+
+warnings.filterwarnings(
+    "ignore",
+    message=".*google.generativeai.*",
+    category=DeprecationWarning,
+)
 
 import google.generativeai as genai
 from google.generativeai.types import HarmBlockThreshold, HarmCategory

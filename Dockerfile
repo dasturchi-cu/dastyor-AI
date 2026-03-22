@@ -33,6 +33,9 @@ RUN pip install --no-cache-dir --upgrade pip
 COPY requirements.txt /app/requirements.txt
 RUN pip install --no-cache-dir -r /app/requirements.txt
 
+# CV/Obyektivka PDF: Playwright Chromium build vaqtida (so'rovda "playwright install" 8–15s bermasligi uchun)
+RUN playwright install chromium
+
 COPY . /app
 
 # Default command is overridden in docker-compose.yml

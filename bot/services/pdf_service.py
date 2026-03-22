@@ -17,9 +17,10 @@ logger = logging.getLogger(__name__)
 _pdf_img_executor = ThreadPoolExecutor(max_workers=8, thread_name_prefix="pdfimg")
 
 # ── Compression settings ────────────────────────────────────────────────
-MAX_DIMENSION = 1920       # Max width or height in pixels
-JPEG_QUALITY = 82          # JPEG quality (1-100) for compressed images
-MAX_FILE_SIZE_MB = 10      # Skip images larger than this
+# Katta rasmlar PDF ni sekin qiladi — env bilan boshqarish mumkin
+MAX_DIMENSION = int(os.getenv("PDF_IMAGE_MAX_SIDE") or "1600")
+JPEG_QUALITY = int(os.getenv("PDF_JPEG_QUALITY") or "80")
+MAX_FILE_SIZE_MB = int(os.getenv("PDF_MAX_FILE_MB") or "12")
 
 
 def _compress_image(img: Image.Image) -> Image.Image:

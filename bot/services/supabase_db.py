@@ -1,6 +1,6 @@
 """
 Supabase DB — Ma'lumotlar bazasi bilan ishlash
-SUPABASE_URL va SUPABASE_ANON_KEY bo'lsa ishlatiladi.
+Serverda SUPABASE_SERVICE_ROLE_KEY tavsiya (RLS ostida yozish uchun).
 """
 import os
 import logging
@@ -11,9 +11,41 @@ from typing import Optional
 logger = logging.getLogger(__name__)
 
 _client = None
+_service_role_warned = False
 _disabled_until_ts = 0.0
 _last_disable_reason = ""
 _DB_DISABLE_SECONDS = int(os.getenv("SUPABASE_DISABLE_SECONDS", "300"))
+
+
+def _maybe_warn_service_role():
+    """Anon kalit bilan RLS yozuvlarni bloklaydi — bir marta ogohlantiramiz."""
+    global _service_role_warned
+    if _service_role_warned:
+        return
+    if os.getenv("SUPABASE_SERVICE_ROLE_KEY"):
+        return
+    if not os.getenv("SUPABASE_URL"):
+        return
+    _service_role_warned = True
+    logger.warning(
+        "SUPABASE_SERVICE_ROLE_KEY sozlanmagan. Agar jadvallarda RLS yoqilgan bo'lsa, "
+        "bot/Web API yozuvlari bazaga TUSHMAYDI. "
+        "Supabase → Settings → API → service_role kalitini server env ga qo'shing. "
+        "Yoki supabase/rls_fix_backend_writes.sql ni SQL Editor da ishga tushiring."
+    )
+
+
+def _log_write_error(context: str, exc: Exception) -> None:
+    msg = str(exc).lower()
+    if "row-level security" in msg or "42501" in msg or "permission denied" in msg or "pgrst" in msg:
+        logger.error(
+            "%s: %s — ehtimol RLS yoki noto'g'ri kalit. "
+            "Serverda SUPABASE_SERVICE_ROLE_KEY qo'ying yoki rls_fix_backend_writes.sql.",
+            context,
+            exc,
+        )
+    else:
+        logger.error("%s: %s", context, exc)
 
 
 def _get_client():
@@ -32,6 +64,7 @@ def _get_client():
         from supabase import create_client
         _client = create_client(url, key)
         logger.info("Supabase client initialized")
+        _maybe_warn_service_role()
         return _client
     except Exception as e:
         logger.warning(f"Supabase init failed: {e}")
@@ -45,17 +78,29 @@ def _mark_temporarily_unavailable(exc: Exception):
     """
     global _client, _disabled_until_ts, _last_disable_reason
     msg = str(exc or "").lower()
-    # Common DNS / network connectivity signatures.
+    # Faqat vaqtincha tarmoq uzilishlari — DNS (Name or service not known) ko'pincha
+    # noto'g'ri SUPABASE_URL / hostname bo'ladi; 300s o'chirish foydasiz va zararli.
     transient_markers = (
-        "name or service not known",
-        "temporary failure in name resolution",
-        "nodename nor servname provided",
-        "failed to resolve",
         "connection refused",
         "connect timeout",
         "network is unreachable",
         "timed out",
+        "connection reset",
+        "broken pipe",
     )
+    dns_markers = (
+        "name or service not known",
+        "temporary failure in name resolution",
+        "nodename nor servname provided",
+        "failed to resolve",
+    )
+    if any(m in msg for m in dns_markers):
+        logger.error(
+            "Supabase DNS/host xato — Railway .env da SUPABASE_URL to'g'rimi? (https://xxxx.supabase.co): %s",
+            exc,
+        )
+        return
+
     if any(marker in msg for marker in transient_markers):
         _client = None
         _disabled_until_ts = time.time() + _DB_DISABLE_SECONDS
@@ -106,7 +151,7 @@ def db_get_user(user_id: int | str) -> Optional[dict]:
         }
     except Exception as e:
         _mark_temporarily_unavailable(e)
-        logger.error(f"db_get_user: {e}")
+        _log_write_error("db_get_user", e)
         return None
 
 
@@ -140,7 +185,7 @@ def db_upsert_user(user_id: int, first_name: str = "", username: str = None,
                 c.table("users").update({"last_active": now}).eq("id", user_id).execute()
             except Exception as e:
                 _mark_temporarily_unavailable(e)
-                logger.error(f"db_upsert_user update failed: {e}")
+                _log_write_error("db_upsert_user update", e)
                 return False
 
         # optional sessions increment
@@ -155,9 +200,8 @@ def db_upsert_user(user_id: int, first_name: str = "", username: str = None,
                 pass
         return True
 
-    # 3) insert path (progressively more minimal payloads)
+    # 3) yangi foydalanuvchi: upsert (id conflictda yangilanadi) + minimal fallback
     payload_candidates = [
-        # Most complete payload (if columns exist)
         {
             "id": user_id,
             "first_name": first_name or "",
@@ -167,7 +211,6 @@ def db_upsert_user(user_id: int, first_name: str = "", username: str = None,
             "sessions": 1 if command == "start" else 0,
             "last_active": now,
         },
-        # Mid-level payload (remove any possibly-missing counters)
         {
             "id": user_id,
             "first_name": first_name or "",
@@ -175,20 +218,25 @@ def db_upsert_user(user_id: int, first_name: str = "", username: str = None,
             "chat_id": chat_id if chat_id is not None else user_id,
             "last_active": now,
         },
-        # Minimal payload: just ID
+        {"id": user_id, "last_active": now},
         {"id": user_id},
     ]
 
     for payload in payload_candidates:
         try:
-            c.table("users").insert(payload).execute()
+            c.table("users").upsert(payload).execute()
             return True
         except Exception as e:
             last_e = e
-            continue
+            try:
+                c.table("users").insert(payload).execute()
+                return True
+            except Exception as e2:
+                last_e = e2
+                continue
 
     _mark_temporarily_unavailable(last_e)
-    logger.error(f"db_upsert_user insert failed: {last_e}")
+    _log_write_error("db_upsert_user insert/upsert", last_e)
     return False
 
 
@@ -211,16 +259,21 @@ def db_increment_files(user_id: int, service_name: str = None) -> bool:
         return False
     try:
         r = c.table("users").select("files_processed").eq("id", user_id).execute()
+        if not r.data:
+            db_upsert_user(int(user_id), "", None, int(user_id), command=None)
+            r = c.table("users").select("files_processed").eq("id", user_id).execute()
         if r.data:
             count = r.data[0].get("files_processed", 0) + 1
             upd = {"files_processed": count}
             if service_name:
                 upd["last_service"] = service_name
             c.table("users").update(upd).eq("id", user_id).execute()
-        return True
+            return True
+        _log_write_error("db_increment_files", RuntimeError("users qatori topilmadi / yozilmadi"))
+        return False
     except Exception as e:
         _mark_temporarily_unavailable(e)
-        logger.error(f"db_increment_files: {e}")
+        _log_write_error("db_increment_files", e)
         return False
 
 
@@ -252,11 +305,16 @@ def db_increment_usage(user_id: int) -> int:
             new_count = r.data[0].get("count", 0) + 1
             c.table("daily_usage").update({"count": new_count}).eq("id", r.data[0]["id"]).execute()
             return new_count
-        c.table("daily_usage").insert({"user_id": user_id, "usage_date": today, "count": 1}).execute()
-        return 1
+        try:
+            c.table("daily_usage").insert({"user_id": user_id, "usage_date": today, "count": 1}).execute()
+            return 1
+        except Exception:
+            db_upsert_user(int(user_id), "", None, int(user_id), command=None)
+            c.table("daily_usage").insert({"user_id": user_id, "usage_date": today, "count": 1}).execute()
+            return 1
     except Exception as e:
         _mark_temporarily_unavailable(e)
-        logger.error(f"db_increment_usage: {e}")
+        _log_write_error("db_increment_usage", e)
         return 0
 
 
@@ -413,11 +471,29 @@ def db_insert_action_log(
     if metadata:
         attempts.insert(0, {**base, "created_at": ts, "metadata": metadata})
         attempts.insert(1, {**base, "metadata": metadata})
+    last_err: Exception | None = None
     for payload in attempts:
         try:
             c.table("logs").insert(payload).execute()
             return True
-        except Exception:
+        except Exception as e:
+            last_err = e
+            continue
+    # Ba'zi eski sxemalarda `action` ustuni bo'ladi, `action_type` emas
+    for base in (
+        {"user_id": uid, "action": at, "created_at": ts},
+        {"user_id": uid, "action": at},
+    ):
+        alt_log = dict(base)
+        if fn:
+            alt_log["file_name"] = fn
+        if metadata:
+            alt_log["metadata"] = metadata
+        try:
+            c.table("logs").insert(alt_log).execute()
+            return True
+        except Exception as e:
+            last_err = e
             continue
     try:
         alt = {"user_id": uid, "action": at, "created_at": ts}
@@ -426,8 +502,10 @@ def db_insert_action_log(
         c.table("usage_logs").insert(alt).execute()
         return True
     except Exception as e:
-        logger.debug("db_insert_action_log skip: %s", e)
-        return False
+        last_err = e
+    if last_err:
+        _log_write_error("db_insert_action_log", last_err)
+    return False
 
 
 # ── premium payments flow (webapp) ─────────────────────────────────────────────

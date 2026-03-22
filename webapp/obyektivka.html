@@ -6,7 +6,6 @@
   <title>Obyektivka | DASTYOR AI</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script src="app.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
@@ -397,9 +396,6 @@
 </div>
 
 <script>
-var SUPABASE_URL='https://iwqzwzdejkuvkbwxtxht.supabase.co';
-var SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml3cXp3emRlamt1dmtid3h0eGh0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY0MDUzNzYsImV4cCI6MjA4MTk4MTM3Nn0.upwRgSzbFwiHcUBBix3qZFV691f1YkchUJVkqkVccrM';
-var supabaseClient=window.supabase?window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY):null;
 var currentLang='uz_l',photoData='',photoReadyPromise=null,relatives=[],editingRelIndex=-1;
 var telegramId='';
 try{if(window.Telegram&&window.Telegram.WebApp&&window.Telegram.WebApp.initDataUnsafe&&window.Telegram.WebApp.initDataUnsafe.user)telegramId=String(window.Telegram.WebApp.initDataUnsafe.user.id);}catch(e){}

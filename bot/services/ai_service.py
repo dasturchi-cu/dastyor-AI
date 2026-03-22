@@ -6,8 +6,17 @@ import logging
 import json
 import asyncio
 import re
+import warnings
 from difflib import SequenceMatcher
 import shutil
+
+# Eski paket: google-generativeai; keyinroq google-genai ga ko'chirish mumkin
+warnings.filterwarnings(
+    "ignore",
+    message=".*google.generativeai.*",
+    category=DeprecationWarning,
+)
+
 import google.generativeai as genai
 from config import GOOGLE_API_KEY
 

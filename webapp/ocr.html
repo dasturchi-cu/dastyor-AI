@@ -216,14 +216,21 @@
     function getOcrBaseCandidates() {
         const qs = new URLSearchParams(location.search);
         const normalizeBase = (u) => String(u || "").trim().replace(/\/+$/, "");
-        return [
+        const order = [
             qs.get("api"),
+            location.origin,
             window.DastyorAI?.BASE,
             "https://dastyor-ai.onrender.com",
-            location.origin
-        ]
-            .map(normalizeBase)
-            .filter((v, i, arr) => v && arr.indexOf(v) === i);
+        ];
+        const seen = new Set();
+        const out = [];
+        for (const raw of order) {
+            const v = normalizeBase(raw);
+            if (!v || seen.has(v)) continue;
+            seen.add(v);
+            out.push(v);
+        }
+        return out;
     }
 
     async function pollOcrJob(base, jobId) {

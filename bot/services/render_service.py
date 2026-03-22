@@ -17,6 +17,7 @@ Pipeline
 from __future__ import annotations
 
 import logging
+import os
 from pathlib import Path
 
 from jinja2 import Environment, FileSystemLoader, select_autoescape
@@ -50,6 +51,15 @@ except Exception:
 
 _PW_INSTALL_ATTEMPTED = False
 
+# Production: WeasyPrint tez; Playwright og'ir. Railway'da build vaqtida chromium o'rnatish yaxshi.
+def _playwright_disabled() -> bool:
+    return os.getenv("DISABLE_PLAYWRIGHT_PDF", "").strip().lower() in ("1", "true", "yes", "on")
+
+
+def _playwright_auto_install_allowed() -> bool:
+    return os.getenv("PLAYWRIGHT_AUTO_INSTALL", "").strip().lower() in ("1", "true", "yes", "on")
+
+
 def _maybe_install_playwright_chromium() -> None:
     """
     Best-effort: ensure Playwright Chromium is installed.
@@ -57,7 +67,7 @@ def _maybe_install_playwright_chromium() -> None:
     which causes runtime 500s for PDF exports.
     """
     global _PW_INSTALL_ATTEMPTED
-    if _PW_INSTALL_ATTEMPTED:
+    if _PW_INSTALL_ATTEMPTED or not _playwright_auto_install_allowed():
         return
     _PW_INSTALL_ATTEMPTED = True
     try:
@@ -214,6 +224,8 @@ async def _pdf_bytes_weasy(html_str: str, base_url: str | None) -> bytes | None:
 
 async def _html_pdf_playwright(html_str: str) -> bytes | None:
     """Slower pixel-perfect path; shorter font wait than legacy 450ms."""
+    if _playwright_disabled():
+        return None
     if not PLAYWRIGHT_OK:
         return None
     font_wait_ms = 120
@@ -249,15 +261,17 @@ async def _html_pdf_playwright(html_str: str) -> bytes | None:
         logger.info("HTML→PDF generated via Playwright")
         return out
     except Exception as e:
-        logger.warning("Playwright PDF failed: %s — attempting chromium install + retry", e)
-        _maybe_install_playwright_chromium()
-        try:
-            out = await _once()
-            logger.info("HTML→PDF generated via Playwright (after install)")
-            return out
-        except Exception as e2:
-            logger.warning("Playwright retry failed: %s", e2)
-            return None
+        logger.warning("Playwright PDF failed: %s", e)
+        if _playwright_auto_install_allowed():
+            logger.warning("PLAYWRIGHT_AUTO_INSTALL=1 — chromium o'rnatishga urinilmoqda (sekin)")
+            _maybe_install_playwright_chromium()
+            try:
+                out = await _once()
+                logger.info("HTML→PDF generated via Playwright (after install)")
+                return out
+            except Exception as e2:
+                logger.warning("Playwright retry failed: %s", e2)
+        return None
 
 
 async def generate_cv_pdf(data: dict, base_url: str | None = None) -> bytes | None:
