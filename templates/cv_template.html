@@ -633,6 +633,32 @@
       page-break-inside: avoid;
     }
 
+    .lang-dots-row {
+      display: flex;
+      gap: 4px;
+      align-items: center;
+    }
+
+    .lang-dot {
+      display: inline-block;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      border: 2px solid var(--cv-accent);
+      box-sizing: border-box;
+      flex-shrink: 0;
+    }
+
+    .lang-dot.on {
+      opacity: 1;
+      background: var(--cv-accent);
+    }
+
+    .lang-dot.off {
+      opacity: 0.35;
+      background: transparent;
+    }
+
     @page {
       size: A4;
       margin: 0;
@@ -752,9 +778,9 @@
   {%- endmacro -%}
 
   {%- macro langLevelDots(level) -%}
-  <div style="display:flex;gap:4px;align-items:center;">
+  <div class="lang-dots-row">
     {%- for j in range(1, 7) -%}
-    <span style="display:inline-block;width:14px;height:14px;border-radius:50%;border:2px solid var(--cv-accent);{% if level >= j %}opacity:1;background:var(--cv-accent);{% else %}opacity:0.35;{% endif %}"></span>
+    <span class="lang-dot {% if level >= j %}on{% else %}off{% endif %}"></span>
     {%- endfor -%}
   </div>
   {%- endmacro -%}
@@ -804,7 +830,7 @@
         <div class="role">{{ d.role or '' }}</div>
         <div class="contact-wrap">
           {%- if d.phone -%}<span>📞 {{ d.phone }}</span>{%- endif -%}
-          {%- if d.email -%}<span>вњ‰пёЏ {{ d.email }}</span>{%- endif -%}
+          {%- if d.email -%}<span>📧 {{ d.email }}</span>{%- endif -%}
           {%- if d.loc -%}<span>📍 {{ d.loc }}</span>{%- endif -%}
         </div>
       </div>
@@ -830,7 +856,7 @@
       <div class="section">
         <div class="sec-title-side">{{ ll.contact }}</div>
         {%- if d.phone -%}<div class="contact-item">📞 {{ d.phone }}</div>{%- endif -%}
-        {%- if d.email -%}<div class="contact-item">вњ‰пёЏ {{ d.email }}</div>{%- endif -%}
+        {%- if d.email -%}<div class="contact-item">📧 {{ d.email }}</div>{%- endif -%}
         {%- if d.loc -%}<div class="contact-item">📍 {{ d.loc }}</div>{%- endif -%}
       </div>
       {%- if d.skills -%}
@@ -891,7 +917,7 @@
           {%- if d.phone or d.email -%}<div>
             {%- if d.phone -%}📞 {{ d.phone }}{%- endif -%}
             {%- if d.phone and d.email %} &nbsp;|&nbsp; {%- endif -%}
-            {%- if d.email -%}вњ‰пёЏ {{ d.email }}{%- endif -%}
+            {%- if d.email -%}📧 {{ d.email }}{%- endif -%}
           </div>{%- endif -%}
           {%- if d.loc -%}<div>📍 {{ d.loc }}</div>{%- endif -%}
         </div>
@@ -922,7 +948,7 @@
       <div class="role">{{ d.role or '' }}</div>
       <div class="contact-wrap">
         {%- if d.phone -%}<span>📞 {{ d.phone }}</span>{%- endif -%}
-        {%- if d.email -%}<span>вњ‰пёЏ {{ d.email }}</span>{%- endif -%}
+        {%- if d.email -%}<span>📧 {{ d.email }}</span>{%- endif -%}
         {%- if d.loc -%}<span>📍 {{ d.loc }}</span>{%- endif -%}
       </div>
     </div>
@@ -984,7 +1010,7 @@
       </div>
       <div class="contact-wrap">
         {%- if d.phone -%}<div>📞 {{ d.phone }}</div>{%- endif -%}
-        {%- if d.email -%}<div>вњ‰пёЏ {{ d.email }}</div>{%- endif -%}
+        {%- if d.email -%}<div>📧 {{ d.email }}</div>{%- endif -%}
         {%- if d.loc -%}<div>📍 {{ d.loc }}</div>{%- endif -%}
       </div>
     </div>
@@ -1015,7 +1041,7 @@
       <div class="section">
         <div class="sec-title sec-title-left">{{ ll.contact }}</div>
         {%- if d.phone -%}<div class="contact-item">📞 {{ d.phone }}</div>{%- endif -%}
-        {%- if d.email -%}<div class="contact-item">вњ‰пёЏ {{ d.email }}</div>{%- endif -%}
+        {%- if d.email -%}<div class="contact-item">📧 {{ d.email }}</div>{%- endif -%}
         {%- if d.loc -%}<div class="contact-item">📍 {{ d.loc }}</div>{%- endif -%}
       </div>
       {%- if d.skills -%}

@@ -61,6 +61,26 @@
     .scroller::-webkit-scrollbar-track { background: rgba(255,255,255,0.05); border-radius: 4px; }
     .scroller::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 4px; }
 
+    /* Jonli preview atrofi: qora “sahna” o‘rniga och fon */
+    #previewPane.preview-pane-light {
+      background: linear-gradient(135deg, #f1f5f9 0%, #f0f9ff 40%, #e0f2fe 100%);
+      border: 1px solid rgba(148, 163, 184, 0.35);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.75);
+    }
+    #previewPane.preview-pane-light::-webkit-scrollbar-track { background: #e2e8f0; border-radius: 4px; }
+    #previewPane.preview-pane-light::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+    #previewPane.preview-pane-light::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+    /* Tanlangan CV rangi — “Jonli ko‘rinish” sarlavhasi va preview qutisi bilan bir xil accent */
+    #cvLivePreviewCard { --preview-accent: #3b82f6; }
+    #cvLivePreviewCard .preview-heading-label {
+      box-shadow: inset 0 -3px 0 0 var(--preview-accent);
+      padding-bottom: 3px;
+    }
+    #cvLivePreviewCard #previewPane.preview-pane-light {
+      border-top: 3px solid var(--preview-accent);
+    }
+
     .hyper-emoji {
       display: inline-block; font-size: 1.5rem; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));
       transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.3s ease; cursor: pointer;
@@ -279,9 +299,9 @@
       </div>
     </div>
 
-    <div class="glass rounded-3xl p-6 shadow-2xl flex flex-col items-center relative">
+    <div id="cvLivePreviewCard" class="glass rounded-3xl p-6 shadow-2xl flex flex-col items-center relative" style="--preview-accent:#3b82f6">
       <div class="w-full flex flex-col sm:flex-row justify-between items-center mb-6 border-b border-slate-200 pb-4 gap-4">
-        <h2 class="font-display font-bold text-xl text-slate-800 flex items-center gap-2"><span class="hyper-emoji">📄</span> <span data-i18n="preview">Jonli Ko'rinish</span></h2>
+        <h2 class="font-display font-bold text-xl text-slate-800 flex items-center gap-2"><span class="hyper-emoji">📄</span> <span class="preview-heading-label" data-i18n="preview">Jonli Ko'rinish</span></h2>
         
         <div class="flex items-center gap-2 bg-white px-3 py-1.5 rounded-full shadow-sm border border-slate-200">
           <span class="text-xs font-bold text-slate-400 mr-1" data-i18n="cv_color">Rang:</span>
@@ -299,7 +319,7 @@
         </button>
       </div>
 
-      <div id="previewPane" class="w-full flex items-start justify-center p-4 sm:p-10 scroller overflow-y-auto rounded-2xl" style="background:linear-gradient(135deg,#0f0f1a 0%,#1a1a2e 100%);">
+      <div id="previewPane" class="preview-pane-light w-full flex items-start justify-center p-4 sm:p-10 scroller overflow-y-auto rounded-2xl">
         <div class="cv-canvas-wrapper" id="previewScaleWrapper">
           <iframe id="cv-preview-frame" title="CV preview" sandbox="allow-same-origin"
             class="bg-white mx-auto block border-0"
@@ -556,7 +576,16 @@
       document.getElementById('tpl-' + tpl).classList.add('tpl-active');
       if(shouldTrigger) triggerUpdate();
     }
-    function changeCvColor(color) { cvColor = color; triggerUpdate(); }
+    function syncPreviewAccentChrome() {
+      const card = document.getElementById('cvLivePreviewCard');
+      if (card && cvColor) card.style.setProperty('--preview-accent', cvColor);
+    }
+
+    function changeCvColor(color) {
+      cvColor = color;
+      syncPreviewAccentChrome();
+      triggerUpdate();
+    }
 
     // --- DYNAMIC LISTS ---
     function renderList(containerId, arr, type) {
@@ -726,6 +755,7 @@
             changeLang(cvLang, false);
             triggerUpdate(false);
         }
+        syncPreviewAccentChrome();
     }
 
     function clearAllData() {
