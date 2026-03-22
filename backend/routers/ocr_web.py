@@ -25,7 +25,7 @@ from backend.services.paddle_ocr_runtime import resize_for_ocr as paddle_resize
 from backend.services.temp_files import safe_remove, temp_image_path
 from backend.services.upload_io import EmptyUploadError, UploadTooLargeError, read_upload_limited
 from backend.services.user_resolve import resolve_telegram_uid, safe_filename_part
-from backend.services.web_quota import web_quota_after, web_quota_before
+from backend.services.web_quota import web_quota_commit_success
 from backend.settings import get_settings
 from bot.utils.delivery import send_docx_with_confirmation
 
@@ -53,10 +53,6 @@ async def api_ocr_extract(
 
     uid_str = resolve_telegram_uid(telegram_id, token)
     uid_int = int(uid_str) if uid_str else None
-    if uid_int:
-        from bot.services.plan_limits import CAT_OCR
-
-        web_quota_before(uid_int, CAT_OCR)
 
     try:
         raw = await read_upload_limited(file)
@@ -93,7 +89,7 @@ async def api_ocr_extract(
     if uid_int:
         from bot.services.plan_limits import CAT_OCR
 
-        quota = web_quota_after(uid_int, CAT_OCR, "Web OCR matn")
+        quota = web_quota_commit_success(uid_int, CAT_OCR, "Web OCR matn")
 
     plain = html_ocr_to_plain(html_text)
     return {"ok": True, "text": plain, "html": html_text, "quota": quota}
@@ -121,10 +117,6 @@ async def api_ocr_extract_docx(
 
     uid_str = resolve_telegram_uid(telegram_id, token)
     uid_int = int(uid_str) if uid_str else None
-    if uid_int:
-        from bot.services.plan_limits import CAT_OCR
-
-        web_quota_before(uid_int, CAT_OCR)
 
     try:
         raw = await read_upload_limited(file)
@@ -180,7 +172,7 @@ async def api_ocr_extract_docx(
     if uid_int:
         from bot.services.plan_limits import CAT_OCR
 
-        quota = web_quota_after(uid_int, CAT_OCR, "Web OCR Word")
+        quota = web_quota_commit_success(uid_int, CAT_OCR, "Web OCR Word")
 
     ts = int(time.time())
     fname = f"OCR_1to1_{ts}.docx"
@@ -230,10 +222,6 @@ async def ocr_paddle(
         raise HTTPException(status_code=400, detail="Invalid image")
 
     img = paddle_resize(img)
-    if uid_int:
-        from bot.services.plan_limits import CAT_OCR
-
-        web_quota_before(uid_int, CAT_OCR)
     loop = asyncio.get_running_loop()
     pool = get_ocr_thread_pool()
     want_layout = (layout or "").strip().lower() in ("1", "true", "yes", "full")
@@ -259,7 +247,7 @@ async def ocr_paddle(
     if uid_int and text:
         from bot.services.plan_limits import CAT_OCR
 
-        out["quota"] = web_quota_after(uid_int, CAT_OCR, "Web Paddle OCR")
+        out["quota"] = web_quota_commit_success(uid_int, CAT_OCR, "Web Paddle OCR")
     return out
 
 
@@ -529,10 +517,6 @@ async def api_pdf_direct(
         logger.info("[PDF API] Boshlandi. telegram_id=%s, files_count=%s", telegram_id, len(files))
         uid_pdf = resolve_telegram_uid(telegram_id, token)
         uid_int = int(uid_pdf) if uid_pdf else None
-        if uid_int:
-            from bot.services.plan_limits import CAT_IMAGE_PDF
-
-            web_quota_before(uid_int, CAT_IMAGE_PDF)
         os.makedirs("temp", exist_ok=True)
         img_paths: list[str] = []
         ts = int(time.time())
@@ -596,7 +580,7 @@ async def api_pdf_direct(
         if uid_int:
             from bot.services.plan_limits import CAT_IMAGE_PDF
 
-            quota_pdf = web_quota_after(uid_int, CAT_IMAGE_PDF, "Web Rasm→PDF")
+            quota_pdf = web_quota_commit_success(uid_int, CAT_IMAGE_PDF, "Web Rasm→PDF")
 
         tid_ok = telegram_id and telegram_id.strip().isdigit()
         if tid_ok:

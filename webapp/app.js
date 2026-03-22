@@ -256,6 +256,48 @@ const DastyorAI = (() => {
         return false;
     }
 
+    /**
+     * @param {string} category - plan_limits CAT_* slug (cv, ocr, translate, …)
+     * @param {{ warnId?: string, buttonIds?: string[], message?: string }} cfg
+     */
+    function applyServiceQuotaUi(category, cfg) {
+        const u = user && user.telegram_id ? user : null;
+        const blocked = isQuotaBlockedForCategory(u, category);
+        const msg =
+            (cfg && cfg.message) ||
+            '⛔ Limit tugadi. 💎 Premium / tariflar — tarifni yangilasangiz yoki obunani uzaytirsangiz, limitlar qayta hisoblanadi. Balans 💰 da batafsil.';
+        const wid = cfg && cfg.warnId;
+        if (wid) {
+            const w = document.getElementById(wid);
+            if (w) {
+                if (blocked) {
+                    w.classList.remove('hidden');
+                    w.textContent = msg;
+                } else {
+                    w.classList.add('hidden');
+                    w.textContent = '';
+                }
+            }
+        }
+        const ids = (cfg && cfg.buttonIds) || [];
+        ids.forEach((id) => {
+            const b = document.getElementById(id);
+            if (b) b.disabled = !!blocked;
+        });
+        const lockIds = (cfg && cfg.lockIds) || [];
+        lockIds.forEach((id) => {
+            const el = document.getElementById(id);
+            if (!el) return;
+            if (blocked) {
+                el.classList.add('pointer-events-none', 'opacity-50');
+                el.setAttribute('aria-disabled', 'true');
+            } else {
+                el.classList.remove('pointer-events-none', 'opacity-50');
+                el.removeAttribute('aria-disabled');
+            }
+        });
+    }
+
     function shouldShowTariffStrip() {
         try {
             return document.body && document.body.getAttribute('data-da-show-tariff-strip') === '1';
@@ -729,6 +771,7 @@ html[data-theme="dark"] .da-doc-loading-ring{border-color:#334155;border-top-col
         renderTariffBanner,
         refreshProfile,
         isQuotaBlockedForCategory,
+        applyServiceQuotaUi,
         shouldShowTariffStrip,
         getUser: () => user,
         getToken: () => token,

@@ -22,7 +22,7 @@ from backend.schemas.webapp import (
 )
 from backend.services.spellcheck_cache import spellcheck_cache_get, spellcheck_cache_key, spellcheck_cache_set
 from backend.services.user_resolve import resolve_telegram_uid
-from backend.services.web_quota import web_quota_after, web_quota_before
+from backend.services.web_quota import web_quota_commit_success
 from backend.settings import get_settings
 from backend.web_constants import (
     BOT_USERNAME,
@@ -115,10 +115,6 @@ async def api_translit(req: TranslitRequest):
         raise HTTPException(status_code=400, detail=f"Noto'g'ri yo'nalish: {req.direction}")
 
     uid = _resolve_web_uid_optional(req.telegram_id, req.token)
-    if uid:
-        from bot.services.plan_limits import CAT_TRANSLIT
-
-        web_quota_before(uid, CAT_TRANSLIT)
 
     quota = None
     try:
@@ -128,7 +124,7 @@ async def api_translit(req: TranslitRequest):
         if uid:
             from bot.services.plan_limits import CAT_TRANSLIT
 
-            quota = web_quota_after(uid, CAT_TRANSLIT, "Web translit")
+            quota = web_quota_commit_success(uid, CAT_TRANSLIT, "Web translit")
         return {"ok": True, "result": result, "direction": req.direction, "quota": quota}
     except HTTPException:
         raise
@@ -297,10 +293,6 @@ async def api_translate(req: TranslateRequest):
         raise HTTPException(status_code=400, detail=f"Noto'g'ri yo'nalish: {req.direction}")
 
     uid = _resolve_web_uid_optional(req.telegram_id, req.token)
-    if uid:
-        from bot.services.plan_limits import CAT_TRANSLATE
-
-        web_quota_before(uid, CAT_TRANSLATE)
 
     quota = None
     try:
@@ -312,7 +304,7 @@ async def api_translate(req: TranslateRequest):
         if uid:
             from bot.services.plan_limits import CAT_TRANSLATE
 
-            quota = web_quota_after(uid, CAT_TRANSLATE, "Web translate")
+            quota = web_quota_commit_success(uid, CAT_TRANSLATE, "Web translate")
         return {"ok": True, "translated_text": result, "direction": req.direction, "quota": quota}
     except HTTPException:
         raise
@@ -332,10 +324,6 @@ async def api_spellcheck(req: SpellcheckRequest):
         )
 
     uid = _resolve_web_uid_optional(req.telegram_id, req.token)
-    if uid:
-        from bot.services.plan_limits import CAT_SPELL
-
-        web_quota_before(uid, CAT_SPELL)
 
     quota = None
     try:
@@ -351,7 +339,7 @@ async def api_spellcheck(req: SpellcheckRequest):
             if uid:
                 from bot.services.plan_limits import CAT_SPELL
 
-                quota = web_quota_after(uid, CAT_SPELL, "Web spell text")
+                quota = web_quota_commit_success(uid, CAT_SPELL, "Web spell text")
             return {
                 "ok": True,
                 "corrected_text": corrected,
@@ -370,7 +358,7 @@ async def api_spellcheck(req: SpellcheckRequest):
         if uid:
             from bot.services.plan_limits import CAT_SPELL
 
-            quota = web_quota_after(uid, CAT_SPELL, "Web spell text")
+            quota = web_quota_commit_success(uid, CAT_SPELL, "Web spell text")
         return {
             "ok": True,
             "corrected_text": corrected,
@@ -405,10 +393,6 @@ async def api_spellcheck_file(
     if uid:
         do_notify = True
     uid_int = int(uid) if uid else None
-    if uid_int:
-        from bot.services.plan_limits import CAT_SPELL
-
-        web_quota_before(uid_int, CAT_SPELL)
     logger.info(
         "POST /api/spellcheck_file name=%s bytes=%s notify=%s uid=%s",
         file.filename,
@@ -456,7 +440,7 @@ async def api_spellcheck_file(
     if uid_int:
         from bot.services.plan_limits import CAT_SPELL
 
-        quota = web_quota_after(uid_int, CAT_SPELL, "Web spell file")
+        quota = web_quota_commit_success(uid_int, CAT_SPELL, "Web spell file")
     out = {
         "ok": True,
         "corrected_text": corrected,

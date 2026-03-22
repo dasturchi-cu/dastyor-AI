@@ -12,7 +12,7 @@ from backend.celery_app import celery_app
 from backend.jobs import create_job, get_job, update_job
 from backend.services.upload_io import EmptyUploadError, UploadTooLargeError, read_upload_limited
 from backend.services.user_resolve import resolve_telegram_uid
-from backend.services.web_quota import web_quota_after, web_quota_before
+from backend.services.web_quota import web_quota_commit_success
 
 
 router = APIRouter(prefix="/api", tags=["ocr"])
@@ -48,11 +48,6 @@ async def api_ocr(
         celery_app.send_task("ocr.extract_text", args=[raw], kwargs={}, task_id=job.job_id)
         return {"ok": True, "job_id": job.job_id}
 
-    if uid_int:
-        from bot.services.plan_limits import CAT_OCR
-
-        web_quota_before(uid_int, CAT_OCR)
-
     from backend.services.paddle_ocr_runtime import ocr_extract_text_from_bytes
 
     loop = __import__("asyncio").get_running_loop()
@@ -77,7 +72,7 @@ async def api_ocr(
     if uid_int and (payload.get("text") or "").strip():
         from bot.services.plan_limits import CAT_OCR
 
-        payload["quota"] = web_quota_after(uid_int, CAT_OCR, "Web API OCR")
+        payload["quota"] = web_quota_commit_success(uid_int, CAT_OCR, "Web API OCR")
     return payload
 
 

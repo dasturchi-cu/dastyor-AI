@@ -189,6 +189,10 @@ def format_tariff_status_html(user_id: int, snapshot: dict | None = None) -> str
         lines.append(
             "⚠️ <b>Ba'zi xizmatlar:</b> limit tugadi — quyidagi jadvalda qator oxirida ko'rsatilgan."
         )
+        lines.append(
+            "💡 <b>Yangilash:</b> mini-appda <b>💎 Premium / tariflar</b> — tarifni yangilasangiz yoki muddatni uzaytirsangiz, "
+            "limitlar yangi davr bo'yicha <b>qayta hisoblanadi</b>."
+        )
     return "\n".join(lines)
 
 
@@ -204,6 +208,10 @@ def format_tariff_status_markdown(user_id: int, snapshot: dict | None = None) ->
     if _snapshot_has_exhausted(s):
         lines.append(
             "⚠️ *Ba'zi xizmatlar:* limit tugadi — quyidagi jadvalda qator oxirida ko'rsatilgan."
+        )
+        lines.append(
+            "💡 *Yangilash:* mini-appda *💎 Premium / tariflar* — tarifni yangilasangiz yoki muddatni uzaytirsangiz, "
+            "limitlar yangi davr bo'yicha *qayta hisoblanadi*."
         )
     return "\n".join(lines)
 

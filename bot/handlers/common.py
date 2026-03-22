@@ -45,6 +45,7 @@ async def balance_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     head = format_tariff_status_markdown(user_id, snapshot=snap)
     msg = head + "\n\n" + t("balance_msg", lang, user_id=user_id, status=status, limit_text=limit_text, files=files, premium_btn=premium_btn)
+    msg += "\n\n" + t("balance_footer_hint", lang)
     exp_disp = snap.get("subscription_ends")
     if plan in ("standard", "premium") and exp_disp:
         msg += f"\n\n📅 Obuna tugashi: `{exp_disp}`"

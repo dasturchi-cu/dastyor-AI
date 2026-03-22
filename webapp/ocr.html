@@ -79,6 +79,8 @@
 <main class="flex-1 overflow-y-auto scroller relative flex flex-col">
     <div class="max-w-3xl w-full mx-auto p-4 md:p-6 flex flex-col h-full gap-4">
 
+        <div id="ocrQuotaWarn" class="hidden rounded-xl border border-red-200 bg-red-50 dark:bg-red-950/40 text-red-800 dark:text-red-200 text-xs font-semibold px-3 py-2 text-center" role="alert"></div>
+
         <!-- Upload Card -->
         <div class="flex flex-col bg-white dark:bg-[#151518] border border-black/5 dark:border-white/5 rounded-[24px] overflow-hidden shadow-sm animate-slide-up">
             <div class="flex items-center justify-between px-5 py-3 border-b border-black/5 dark:border-white/5 bg-black/[0.02] dark:bg-white/[0.02]">
@@ -154,6 +156,36 @@
         } catch (_) { /* ignore */ }
     }
 
+    function syncOcrQuotaUi() {
+        const DA = window.DastyorAI;
+        const blocked = DA && DA.isQuotaBlockedForCategory && DA.getUser && DA.isQuotaBlockedForCategory(DA.getUser(), "ocr");
+        const hasFile = !!selectedFile;
+        const c = document.getElementById("convertBtn");
+        const w = document.getElementById("wordBtn");
+        const warn = document.getElementById("ocrQuotaWarn");
+        const dz = document.getElementById("dropZone");
+        if (c) c.disabled = !!blocked || !hasFile;
+        if (w) w.disabled = !!blocked || !hasFile;
+        if (warn) {
+            if (blocked) {
+                warn.classList.remove("hidden");
+                warn.textContent = "⛔ AI skayner (OCR) limiti tugadi. Keyingi kun yoki tarifni yangilang.";
+            } else {
+                warn.classList.add("hidden");
+                warn.textContent = "";
+            }
+        }
+        if (dz) {
+            if (blocked) {
+                dz.classList.add("pointer-events-none", "opacity-50");
+                dz.setAttribute("aria-disabled", "true");
+            } else {
+                dz.classList.remove("pointer-events-none", "opacity-50");
+                dz.removeAttribute("aria-disabled");
+            }
+        }
+    }
+
     function showStatus(type, text) {
         const el = document.getElementById("status");
         const icon = type === "loading" ? "⏳" : (type === "success" ? "✅" : "⚠️");
@@ -176,6 +208,7 @@
         const wb = document.getElementById("wordBtn");
         if (wb) wb.disabled = false;
         document.getElementById("statsBadge").textContent = "1 fayl tanlandi";
+        syncOcrQuotaUi();
     }
     function clearSelection() {
         selectedFile = null;
@@ -196,6 +229,7 @@
         textOut.style.whiteSpace = "";
         textOut.classList.add("hidden");
         tg?.HapticFeedback?.impactOccurred?.("light");
+        syncOcrQuotaUi();
     }
 
     async function optimizeImageForOCR(file) {
@@ -337,6 +371,11 @@
 
     async function convertToWord() {
         if (!selectedFile) return;
+        const DA = window.DastyorAI;
+        if (DA && DA.isQuotaBlockedForCategory && DA.getUser && DA.isQuotaBlockedForCategory(DA.getUser(), "ocr")) {
+            showStatus("error", "AI skayner (OCR) limiti tugadi.");
+            return;
+        }
         showStatus("loading", "Rasm tayyorlanmoqda...");
         document.getElementById("convertBtn").disabled = true;
         const wordBtn = document.getElementById("wordBtn");
@@ -383,6 +422,11 @@
 
     async function downloadOcrWordOneToOne() {
         if (!selectedFile) return;
+        const DA = window.DastyorAI;
+        if (DA && DA.isQuotaBlockedForCategory && DA.getUser && DA.isQuotaBlockedForCategory(DA.getUser(), "ocr")) {
+            showStatus("error", "AI skayner (OCR) limiti tugadi.");
+            return;
+        }
         showStatus("loading", "Word hujjat tayyorlanmoqda (1:1)...");
         const wordBtn = document.getElementById("wordBtn");
         document.getElementById("convertBtn").disabled = true;
@@ -446,6 +490,16 @@
 
     document.addEventListener("DOMContentLoaded", function () {
         if (window.DastyorAI && window.DastyorAI.initUI) DastyorAI.initUI({ autoNavLinks: true });
+        void (async function () {
+            try {
+                if (window.DastyorAI && window.DastyorAI.init) await window.DastyorAI.init();
+                if (window.DastyorAI && window.DastyorAI.refreshProfile) await window.DastyorAI.refreshProfile();
+                syncOcrQuotaUi();
+            } catch (_) {}
+        })();
+        try {
+            window.addEventListener("dastyor:profile-updated", function () { syncOcrQuotaUi(); });
+        } catch (_) {}
         const drop = document.getElementById("dropZone");
         const input = document.getElementById("fileInput");
         drop.addEventListener("click", () => input.click());
