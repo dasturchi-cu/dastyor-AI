@@ -767,6 +767,7 @@
     /* Jonli preview = serverdagi cv_template.html (PDF bilan bir xil CSS/HTML) */
     let previewDebounceTimer = null;
     let previewAbort = null;
+    let previewRequestId = 0;
 
     function triggerUpdate(save = true) {
       if (save) saveToLocalStorage();
@@ -873,6 +874,7 @@
     async function fetchServerPreview() {
       const iframe = document.getElementById('cv-preview-frame');
       if (!iframe) return;
+      const reqId = ++previewRequestId;
       if (previewAbort) previewAbort.abort();
       previewAbort = new AbortController();
       const base = getCvApiBase();
@@ -888,16 +890,22 @@
         });
         if (!res.ok) throw new Error(String(res.status));
         const html = await res.text();
+        if (reqId !== previewRequestId) return;
         iframe.srcdoc = html;
         iframe.onload = function () {
+          if (reqId !== previewRequestId) return;
           try { resizePreviewIframe(); } catch (_) { /* ignore */ }
           autoScale();
         };
       } catch (e) {
         if (e.name === 'AbortError') return;
+        if (reqId !== previewRequestId) return;
         console.warn('[CV preview]', e);
         iframe.srcdoc = '<!DOCTYPE html><html><body style="font-family:system-ui,sans-serif;padding:24px;color:#b91c1c;font-size:14px">Preview: serverga ulanib bo‘lmadi. <code style="font-size:12px">' + String(base).replace(/</g, '') + '</code></body></html>';
-        iframe.onload = function () { autoScale(); };
+        iframe.onload = function () {
+          if (reqId !== previewRequestId) return;
+          autoScale();
+        };
       }
     }
 
