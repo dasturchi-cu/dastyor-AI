@@ -168,6 +168,13 @@ def get_tariff_snapshot(user_id: int) -> dict:
     return snap
 
 
+def _snapshot_has_exhausted(snapshot: dict) -> bool:
+    for b in snapshot.get("limits_breakdown") or []:
+        if b.get("exhausted"):
+            return True
+    return False
+
+
 def format_tariff_status_html(user_id: int, snapshot: dict | None = None) -> str:
     """Telegram HTML (/start, /menu)."""
     s = snapshot if snapshot is not None else get_tariff_snapshot(user_id)
@@ -178,6 +185,10 @@ def format_tariff_status_html(user_id: int, snapshot: dict | None = None) -> str
     ]
     if s.get("subscription_ends"):
         lines.insert(2, f"📅 <b>Obuna tugashi:</b> {s['subscription_ends']}")
+    if _snapshot_has_exhausted(s):
+        lines.append(
+            "⚠️ <b>Ba'zi xizmatlar:</b> limit tugadi — quyidagi jadvalda qator oxirida ko'rsatilgan."
+        )
     return "\n".join(lines)
 
 
@@ -190,6 +201,10 @@ def format_tariff_status_markdown(user_id: int, snapshot: dict | None = None) ->
     ]
     if s.get("subscription_ends"):
         lines.append(f"📅 *Obuna tugashi:* `{s['subscription_ends']}`")
+    if _snapshot_has_exhausted(s):
+        lines.append(
+            "⚠️ *Ba'zi xizmatlar:* limit tugadi — quyidagi jadvalda qator oxirida ko'rsatilgan."
+        )
     return "\n".join(lines)
 
 

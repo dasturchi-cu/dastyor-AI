@@ -638,25 +638,21 @@
       const name = ic + " " + _daEsc(row.label || row.category || "");
       let valClass = "v-num";
       let valInner = "";
+      const fullDisp = (row.display || "").trim();
+      const afterColon = fullDisp.indexOf(": ");
+      const rest =
+        afterColon >= 0 ? fullDisp.slice(afterColon + 2) : fullDisp;
       if (row.unlimited) {
         valClass = "v-inf";
-        valInner = "♾ cheksiz";
+        valInner = _daEsc(rest || "♾ cheksiz");
       } else if (row.blocked) {
         valClass = "v-no";
-        valInner = "—";
+        valInner = _daEsc(rest || "—");
       } else {
-        const used = row.used != null ? row.used : 0;
-        const lim = row.limit != null ? row.limit : "—";
-        const rem = row.remaining != null ? row.remaining : 0;
-        const pn = row.period ? _daEsc(row.period) : "";
-        if (rem > 0) {
-          valClass = "v-yes";
-          valInner =
-            "limit ichida · " + used + "/" + lim + " (" + pn + ") · qoldi " + rem;
-        } else {
-          valClass = "v-no";
-          valInner = "limit tugadi · " + used + "/" + lim + " (" + pn + ")";
-        }
+        const rem = row.remaining != null ? Number(row.remaining) : 0;
+        const exhausted = row.exhausted === true || rem <= 0;
+        valClass = exhausted ? "v-no" : "v-yes";
+        valInner = _daEsc(rest || "—");
       }
       html +=
         "<div class='feat-row'><span class='feat-name'>" +

@@ -273,7 +273,9 @@ const DastyorAI = (() => {
             line = `${u.plan_label || u.plan} · cheksiz`;
             if (u.subscription_ends) line += ` · obuna ${u.subscription_ends}`;
         } else if (u.daily_limit != null && u.used_today != null && u.remaining != null) {
-            line = `${u.plan_label || u.plan} · bugun ${u.used_today}/${u.daily_limit} · qoldi ${u.remaining}`;
+            const rem = Number(u.remaining);
+            const tail = rem <= 0 ? ' — ⚠️ limit tugadi' : '';
+            line = `${u.plan_label || u.plan} · bugun ${u.used_today}/${u.daily_limit} · qoldi ${u.remaining}${tail}`;
         } else {
             line = `${u.plan_label || u.plan}`;
         }
