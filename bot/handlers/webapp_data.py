@@ -9,6 +9,9 @@ from bot.services.doc_generator import generate_obyektivka_docx, generate_cv_doc
 import asyncio
 from bot.services.ai_service import check_spelling_text
 from bot.handlers.premium import premium_handler
+from bot.services.plan_limits import CAT_CV, CAT_OBYEKTIVKA, CAT_SPELL
+from bot.services.usage_tracker import ensure_can_use_or_notify
+from bot.services.user_service import get_user_lang, record_service_completion
 
 logger = logging.getLogger(__name__)
 
@@ -32,6 +35,15 @@ async def web_app_data_handler(update: Update, context: ContextTypes.DEFAULT_TYP
         if action == "generate_obyektivka":
             # Ob'yektivka bu bo'limda faqat Word (DOCX) ko'rinishida yuboriladi.
             fmt = "word"
+            uid_oby = update.effective_user.id
+            if not await ensure_can_use_or_notify(
+                context.bot,
+                chat_id,
+                uid_oby,
+                category=CAT_OBYEKTIVKA,
+                lang=get_user_lang(uid_oby),
+            ):
+                return
             msg = await update.message.reply_text(f"⏳ Obyektivka ({fmt.upper()}) tayyorlanmoqda...")
             out_dir = _generated_dir()
             
@@ -107,6 +119,15 @@ async def web_app_data_handler(update: Update, context: ContextTypes.DEFAULT_TYP
                 pass
 
         elif action == "generate_cv":
+            uid_cv = update.effective_user.id
+            if not await ensure_can_use_or_notify(
+                context.bot,
+                chat_id,
+                uid_cv,
+                category=CAT_CV,
+                lang=get_user_lang(uid_cv),
+            ):
+                return
             msg = await update.message.reply_text(f"⏳ CV rezyume ({fmt.upper()}) tayyorlanmoqda...")
             out_dir = _generated_dir()
             temp_file = await asyncio.to_thread(generate_cv_docx, payload, out_dir)
@@ -139,6 +160,15 @@ async def web_app_data_handler(update: Update, context: ContextTypes.DEFAULT_TYP
             if not txt:
                 await update.message.reply_text("Iltimos, tekshirish uchun matn yuboring.")
                 return
+            uid_sp = update.effective_user.id
+            if not await ensure_can_use_or_notify(
+                context.bot,
+                chat_id,
+                uid_sp,
+                category=CAT_SPELL,
+                lang=get_user_lang(uid_sp),
+            ):
+                return
             msg = await update.message.reply_text("⏳ Matn tekshirilmoqda...")
             corrected, fixes = await check_spelling_text(txt)
             await msg.delete()
@@ -147,6 +177,7 @@ async def web_app_data_handler(update: Update, context: ContextTypes.DEFAULT_TYP
                 f"📊 Tuzatilgan: {fixes} ta o'zgarish\n\n"
                 f"{corrected}"
             )
+            record_service_completion(uid_sp, CAT_SPELL, "Spell WebApp sendData")
             return
             
         elif action == "start_img2pdf":
@@ -283,6 +314,10 @@ async def web_app_data_handler(update: Update, context: ContextTypes.DEFAULT_TYP
 
         if ok:
             await msg.delete()
+            if action == "generate_cv":
+                record_service_completion(update.effective_user.id, CAT_CV, "CV WebApp sendData")
+            elif action == "generate_obyektivka":
+                record_service_completion(update.effective_user.id, CAT_OBYEKTIVKA, "Obyektivka WebApp sendData")
 
         # Cleanup only transient webapp photo
         if action == "generate_obyektivka":
