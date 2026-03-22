@@ -6,12 +6,16 @@ Uses Supabase when SUPABASE_URL is set, else JSON file.
 import json
 import os
 import logging
+import time
 from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
 PROFILES_FILE = "user_profiles.json"
 profiles_cache = {}
+# Supabase: har xabarda yozmaslik — sekinlik va 429 oldini olish (0 = har safar)
+_SUPABASE_USER_SYNC_INTERVAL = float(os.getenv("USER_SUPABASE_SYNC_SECONDS", "35") or "35")
+_LAST_SUPABASE_USER_SYNC: dict[int, float] = {}
 
 def _load_profiles():
     global profiles_cache
@@ -52,24 +56,40 @@ def get_all_profiles():
         logger.debug(f"Supabase get_all_profiles fallback: {e}")
     return _load_profiles()
 
-def track_user_activity(user, command=None):
+def track_user_activity(user, command=None, chat_id=None):
     """
     Called on every update to track activity.
     Also handles initial registration.
+
+    chat_id: shaxsiy chat uchun Telegram chat id. None bo'lsa user.id.
     """
     if not user:
         return
+    uid_int = int(user.id)
+    cid = int(chat_id) if chat_id is not None else uid_int
+    now_ts = time.time()
+    force_supa = (
+        command in ("start", "web_auth")
+        or _SUPABASE_USER_SYNC_INTERVAL <= 0
+    )
+    skip_supa = False
+    if not force_supa and _SUPABASE_USER_SYNC_INTERVAL > 0:
+        last = _LAST_SUPABASE_USER_SYNC.get(uid_int, 0.0)
+        if now_ts - last < _SUPABASE_USER_SYNC_INTERVAL:
+            skip_supa = True
+
     try:
         from bot.services.supabase_db import has_db, db_upsert_user
-        if has_db():
+
+        if has_db() and not skip_supa:
             db_upsert_user(
-                user.id,
+                uid_int,
                 first_name=user.first_name or "",
                 username=user.username,
-                chat_id=user.id,
-                command=command
+                chat_id=cid,
+                command=command,
             )
-            return
+            _LAST_SUPABASE_USER_SYNC[uid_int] = now_ts
     except Exception as e:
         logger.debug(f"Supabase track_user_activity fallback: {e}")
 
@@ -82,7 +102,7 @@ def track_user_activity(user, command=None):
             "id": user.id,
             "first_name": user.first_name,
             "username": user.username,
-            "chat_id": user.id,   # For Telegram, user.id == chat_id for private chats
+            "chat_id": cid,
             "joined_at": now_str,
             "last_active": now_str,
             "activtiy_count": 1,
@@ -100,6 +120,7 @@ def track_user_activity(user, command=None):
         p = data[uid]
         p["first_name"] = user.first_name
         p["username"] = user.username
+        p["chat_id"] = cid
         p["last_active"] = now_str
         p["activtiy_count"] = p.get("activtiy_count", 0) + 1
         p["blocked_bot"] = False # If they are active, they haven't blocked bot

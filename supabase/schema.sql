@@ -8,8 +8,11 @@
 -- =============================================================================
 
 -- Users: id = Telegram user id (bigint)
+-- DIQQAT: Pastdagi ustunlar ro'yxatini (masalan telegram_id ...) alohida SQL deb ISHLATMANG.
+-- Mavjud bazada telegram_id kerak bo'lsa: patch_users_telegram_id.sql yoki migrate_safe_for_existing_db.sql
 CREATE TABLE IF NOT EXISTS public.users (
   id bigint PRIMARY KEY,
+  telegram_id bigint NOT NULL,
   first_name text DEFAULT '',
   username text DEFAULT '',
   chat_id bigint,

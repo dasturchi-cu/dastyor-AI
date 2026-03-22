@@ -42,7 +42,7 @@ router = APIRouter(tags=["web-api"])
 async def api_auth(req: AuthRequest):
     try:
         from bot.services.session_service import create_session
-        from bot.services.user_service import save_chat_id, track_user_activity
+        from bot.services.user_service import track_user_activity
 
         token = create_session(
             telegram_id=req.telegram_id,
@@ -56,8 +56,9 @@ async def api_auth(req: AuthRequest):
             first_name = req.first_name
             username = req.username
 
-        track_user_activity(_FakeUser(), command="web_auth")
-        save_chat_id(req.telegram_id, req.telegram_id)
+        track_user_activity(
+            _FakeUser(), command="web_auth", chat_id=int(req.telegram_id)
+        )
         return {"ok": True, "token": token, "telegram_id": req.telegram_id}
     except Exception as e:
         logger.error("/api/auth error: %s", e, exc_info=True)

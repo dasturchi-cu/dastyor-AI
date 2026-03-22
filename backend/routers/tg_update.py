@@ -14,7 +14,7 @@ router = APIRouter(tags=["telegram-webhook"])
 @router.post("/webhook")
 async def webhook(request: Request):
     try:
-        logger.info("Telegram webhook hit path=%s method=%s", request.url.path, request.method)
+        logger.debug("Telegram webhook hit path=%s method=%s", request.url.path, request.method)
         ptb = request.app.state.ptb_application
         data = await request.json()
         update = Update.de_json(data, ptb.bot)

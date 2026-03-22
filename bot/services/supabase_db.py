@@ -135,6 +135,7 @@ def db_save_pending_oby(user_id: int, data: dict) -> bool:
             c.table("users").insert(
                 {
                     "id": uid,
+                    "telegram_id": uid,
                     "first_name": "",
                     "username": "",
                     "chat_id": uid,
@@ -225,28 +226,36 @@ def db_upsert_user(user_id: int, first_name: str = "", username: str = None,
     fn = ((first_name or "").strip() or "User")[:200]
     un = ("" if username is None else str(username))[:200]
     cid = int(chat_id if chat_id is not None else user_id)
+    tid = int(user_id)
 
-    # 1) mavjudligini tekshir (agar select payload ustunlar bo'lmasa, keyin insert fallback bo'ladi)
+    # 1) qator bormi? (faqat id — sessions ustuni bo'lmasa ham ishlaydi)
+    r = None
     try:
-        r = c.table("users").select("id,sessions").eq("id", user_id).execute()
-        exists = bool(r.data)
+        r = c.table("users").select("id,sessions").eq("id", tid).limit(1).execute()
     except Exception:
-        r = None
-        exists = False
+        try:
+            r = c.table("users").select("id").eq("id", tid).limit(1).execute()
+        except Exception:
+            r = None
+    exists = bool(r and r.data)
 
     # 2) update path
     if exists:
         try:
-            upd = {"first_name": fn, "last_active": now}
+            upd = {
+                "first_name": fn,
+                "last_active": now,
+                "telegram_id": tid,
+            }
             if username is not None:
                 upd["username"] = un
             if chat_id is not None:
                 upd["chat_id"] = cid
-            c.table("users").update(upd).eq("id", user_id).execute()
+            c.table("users").update(upd).eq("id", tid).execute()
         except Exception:
             # If some columns like chat_id/sessions don't exist, still keep row alive.
             try:
-                c.table("users").update({"last_active": now}).eq("id", user_id).execute()
+                c.table("users").update({"last_active": now, "telegram_id": tid}).eq("id", tid).execute()
             except Exception as e:
                 _mark_temporarily_unavailable(e)
                 _log_write_error("db_upsert_user update", e)
@@ -258,7 +267,7 @@ def db_upsert_user(user_id: int, first_name: str = "", username: str = None,
                 sess = 0
                 if r and r.data and isinstance(r.data, list) and len(r.data) > 0:
                     sess = r.data[0].get("sessions", 0) or 0
-                c.table("users").update({"sessions": int(sess) + 1}).eq("id", user_id).execute()
+                c.table("users").update({"sessions": int(sess) + 1}).eq("id", tid).execute()
             except Exception:
                 # ignore sessions column drift
                 pass
@@ -266,41 +275,25 @@ def db_upsert_user(user_id: int, first_name: str = "", username: str = None,
 
     # 3) yangi foydalanuvchi: har bir urinishda first_name/username/chat_id bo'lishi SHART
     # (oldingi {"id", "last_active"} fallback NOT NULL first_name ni buzgan)
+    # Kam urinish — har biri 2 ta HTTP (upsert+insert) bo'lmasligi uchun avvalo eng to'liq, keyin minimal
+    base = {
+        "id": tid,
+        "telegram_id": tid,
+        "first_name": fn,
+        "username": un,
+        "chat_id": cid,
+        "last_active": now,
+    }
     payload_candidates = [
         {
-            "id": user_id,
-            "first_name": fn,
-            "username": un,
-            "chat_id": cid,
-            "lang": "uz_lat",
+            **base,
             "activity_count": 1,
             "sessions": 1 if command == "start" else 0,
-            "last_active": now,
         },
-        {
-            "id": user_id,
-            "first_name": fn,
-            "username": un,
-            "chat_id": cid,
-            "activity_count": 1,
-            "sessions": 1 if command == "start" else 0,
-            "last_active": now,
-        },
-        {
-            "id": user_id,
-            "first_name": fn,
-            "username": un,
-            "chat_id": cid,
-            "last_active": now,
-        },
-        {
-            "id": user_id,
-            "first_name": fn,
-            "username": un,
-            "chat_id": cid,
-        },
+        dict(base),
     ]
 
+    last_e: Exception | None = None
     for payload in payload_candidates:
         try:
             c.table("users").upsert(payload).execute()
@@ -314,8 +307,9 @@ def db_upsert_user(user_id: int, first_name: str = "", username: str = None,
                 last_e = e2
                 continue
 
-    _mark_temporarily_unavailable(last_e)
-    _log_write_error("db_upsert_user insert/upsert", last_e)
+    if last_e:
+        _mark_temporarily_unavailable(last_e)
+        _log_write_error("db_upsert_user insert/upsert", last_e)
     return False
 
 
