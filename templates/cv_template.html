@@ -2,6 +2,7 @@
 <html lang="uz">
 
 <head>
+  {%- set d = data -%}
   <meta charset="UTF-8">
   <title>CV | DASTYOR AI</title>
   <link
@@ -11,6 +12,10 @@
     href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;600;700&subset=latin,cyrillic&display=swap"
     rel="stylesheet">
   <style>
+    :root {
+      --cv-accent: {{ d.accent_color | default('#3b82f6') | e }};
+    }
+
     * {
       box-sizing: border-box;
       margin: 0;
@@ -75,7 +80,7 @@
 
     .tpl-minimal .role {
       font-size: 14pt;
-      color: #3b82f6;
+      color: var(--cv-accent);
       font-weight: 600;
       margin-bottom: 15px;
     }
@@ -94,10 +99,12 @@
     .tpl-minimal .sec-title {
       font-size: 13pt;
       font-weight: 700;
-      color: #0f172a;
+      color: var(--cv-accent);
       text-transform: uppercase;
       letter-spacing: 1px;
       margin-bottom: 12px;
+      padding-bottom: 6px;
+      border-bottom: 2px solid var(--cv-accent);
     }
 
     .tpl-minimal .text {
@@ -114,7 +121,7 @@
     }
 
     .tpl-split .sidebar {
-      width: 32%;
+      width: 35%;
       background: #0f172a;
       color: #e2e8f0;
       padding: 20mm 10mm;
@@ -127,27 +134,28 @@
     }
 
     .tpl-split .avatar {
-      width: 35mm;
-      height: 35mm;
+      width: 40mm;
+      height: 40mm;
       border-radius: 50%;
       object-fit: cover;
-      border: 3px solid #334155;
-      margin-bottom: 20px;
+      border: 3px solid var(--cv-accent);
+      margin: 0 auto 20px auto;
+      display: block;
     }
 
-    .tpl-split .name {
-      font-size: 24pt;
+    .tpl-split .main>.name {
+      font-size: 26pt;
       font-weight: 800;
-      color: #e2e8f0;
-      line-height: 1.2;
+      color: var(--cv-accent);
+      line-height: 1.1;
       margin-bottom: 8px;
     }
 
-    .tpl-split .role {
-      font-size: 12pt;
-      color: #3b82f6;
+    .tpl-split .main>.role {
+      font-size: 14pt;
+      color: #334155;
       font-weight: 500;
-      margin-bottom: 30px;
+      margin-bottom: 20px;
     }
 
     .tpl-split .sec-title-main {
@@ -189,7 +197,7 @@
     }
 
     .tpl-modern .header {
-      background: #1e293b;
+      background: var(--cv-accent);
       color: white;
       padding: 20mm;
       display: flex;
@@ -241,9 +249,11 @@
     .tpl-modern .sec-title {
       font-size: 14pt;
       font-weight: 800;
-      color: #0f172a;
+      color: var(--cv-accent);
       margin-bottom: 15px;
       text-transform: uppercase;
+      border-bottom: 1px solid #e2e8f0;
+      padding-bottom: 6px;
     }
 
     /* TPL 4: ATS SAFE */
@@ -265,6 +275,7 @@
       font-weight: bold;
       margin-bottom: 4px;
       text-transform: uppercase;
+      color: var(--cv-accent);
     }
 
     .tpl-ats .role {
@@ -309,7 +320,7 @@
       font-size: 32pt;
       font-variant: small-caps;
       letter-spacing: 2px;
-      color: #111;
+      color: var(--cv-accent);
       margin-bottom: 5px;
     }
 
@@ -343,10 +354,10 @@
     .tpl-elegant .sec-title {
       font-size: 14pt;
       padding-bottom: 5px;
-      border-bottom: 1px dashed #ccc;
+      border-bottom: 1px dashed var(--cv-accent);
       margin-bottom: 15px;
       text-transform: uppercase;
-      color: #222;
+      color: var(--cv-accent);
       font-weight: bold;
     }
 
@@ -360,7 +371,7 @@
     }
 
     .tpl-corporate .header {
-      background: #2563eb;
+      background: var(--cv-accent);
       color: #fff;
       padding: 20mm;
       display: flex;
@@ -405,10 +416,11 @@
     .tpl-corporate .sec-title {
       font-size: 13pt;
       font-weight: bold;
-      color: #1e3a8a;
+      color: var(--cv-accent);
       margin-bottom: 15px;
       text-transform: uppercase;
-      border-bottom: 2px solid #bfdbfe;
+      border-bottom: 2px solid var(--cv-accent);
+      opacity: 0.95;
       padding-bottom: 4px;
     }
 
@@ -422,9 +434,9 @@
 
     .tpl-creative .left {
       width: 35%;
-      background: #fdf2f8;
+      background: #f8fafc;
       padding: 20mm 15mm;
-      border-right: 2px solid #fbcfe8;
+      border-right: 1px solid #e2e8f0;
       flex-shrink: 0;
     }
 
@@ -435,19 +447,21 @@
     }
 
     .tpl-creative .avatar {
-      width: 40mm;
-      height: 40mm;
-      border-radius: 20mm;
+      width: 45mm;
+      height: 45mm;
+      border-radius: 20px;
       object-fit: cover;
       margin: 0 auto 20px auto;
       display: block;
-      border: 4px solid #f9a8d4;
+      transform: rotate(-3deg);
+      box-shadow: 4px 4px 0 var(--cv-accent);
+      border: 2px solid var(--cv-accent);
     }
 
     .tpl-creative .name {
       font-size: 24pt;
       font-weight: 900;
-      color: #db2777;
+      color: var(--cv-accent);
       text-align: center;
       line-height: 1.1;
       margin-bottom: 10px;
@@ -455,7 +469,7 @@
 
     .tpl-creative .role {
       font-size: 12pt;
-      color: #9d174d;
+      color: #334155;
       text-align: center;
       margin-bottom: 30px;
       font-weight: 600;
@@ -464,19 +478,19 @@
     .tpl-creative .contact-item {
       font-size: 10pt;
       margin-bottom: 12px;
-      color: #831843;
+      color: #475569;
     }
 
     .tpl-creative .sec-title {
       font-size: 14pt;
       font-weight: 800;
-      color: #be185d;
+      color: var(--cv-accent);
       text-transform: uppercase;
       margin-bottom: 15px;
     }
 
     .tpl-creative .sec-title-left {
-      border-bottom: 2px solid #f9a8d4;
+      border-bottom: 2px solid var(--cv-accent);
       margin-bottom: 15px;
       padding-bottom: 5px;
     }
@@ -492,7 +506,7 @@
 
     .tpl-prof .left-strip {
       width: 50px;
-      background: #0f172a;
+      background: var(--cv-accent);
     }
 
     .tpl-prof .content {
@@ -522,7 +536,7 @@
 
     .tpl-prof .role {
       font-size: 14pt;
-      color: #0284c7;
+      color: var(--cv-accent);
       letter-spacing: 2px;
       text-transform: uppercase;
     }
@@ -538,8 +552,8 @@
     .tpl-prof .sec-title {
       font-size: 15pt;
       font-weight: 700;
-      color: #0f172a;
-      border-bottom: 3px solid #0f172a;
+      color: var(--cv-accent);
+      border-bottom: 3px solid var(--cv-accent);
       padding-bottom: 5px;
       margin-bottom: 20px;
     }
@@ -571,7 +585,7 @@
       font-size: 10.5pt;
       font-weight: 500;
       font-style: italic;
-      color: #3b82f6;
+      color: var(--cv-accent);
       margin-bottom: 5px;
     }
 
@@ -588,12 +602,27 @@
     }
 
     .badge {
-      background: #e2e8f0;
-      color: #0f172a;
       padding: 4px 10px;
       border-radius: 4px;
       font-size: 9pt;
       font-weight: 600;
+      background: #e2e8f0;
+      color: #0f172a;
+      border: 1px solid #cbd5e1;
+    }
+
+    @supports (background: color-mix(in srgb, red, white)) {
+      .badge {
+        background: color-mix(in srgb, var(--cv-accent) 14%, #f1f5f9);
+        color: var(--cv-accent);
+        border: 1px solid color-mix(in srgb, var(--cv-accent) 28%, #e2e8f0);
+      }
+    }
+
+    .tpl-split .sidebar .badge {
+      background: rgba(255, 255, 255, 0.12);
+      color: #e2e8f0;
+      border: 1px solid rgba(255, 255, 255, 0.22);
     }
 
     /* Page Break controls for PDF Output */
@@ -612,7 +641,6 @@
 </head>
 
 <body>
-  {%- set d = data -%}
   {%- set tpl = d.template | default('minimal') -%}
 
   {#в”Ђв”Ђ MULTI-LANG LABELS в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ#}
@@ -723,19 +751,29 @@
   {%- endif -%}
   {%- endmacro -%}
 
+  {%- macro langLevelDots(level) -%}
+  <div style="display:flex;gap:4px;align-items:center;">
+    {%- for j in range(1, 7) -%}
+    <span style="display:inline-block;width:14px;height:14px;border-radius:50%;border:2px solid var(--cv-accent);{% if level >= j %}opacity:1;background:var(--cv-accent);{% else %}opacity:0.35;{% endif %}"></span>
+    {%- endfor -%}
+  </div>
+  {%- endmacro -%}
+
   {%- macro langLevelsBlock(ll, title_class='sec-title') -%}
   {%- if d.language_levels -%}
   <div class="section">
     <div class="{{ title_class }}">{{ ll.languages_title }}</div>
     {%- for L in d.language_levels -%}
-    <div class="item-row" style="margin-bottom:14px;">
-      <div class="item-title">{{ L.lang }}</div>
-      <div class="item-desc" style="margin-top:6px;line-height:1.65;">
-        <div>{{ ll.lbl_listen }} &nbsp;{{ L.listen }}/6</div>
-        <div>{{ ll.lbl_read }} &nbsp;{{ L.read }}/6</div>
-        <div>{{ ll.lbl_speak }} &nbsp;{{ L.speak }}/6</div>
-        <div>{{ ll.lbl_write }} &nbsp;{{ L.write }}/6</div>
-      </div>
+    <div class="item-row" style="margin-bottom:15px;">
+      <strong style="display:block;margin-bottom:8px;font-size:11pt;color:var(--cv-accent);">{{ L.lang }}</strong>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;font-size:9pt;">
+        <span style="width:75px;flex-shrink:0;">{{ ll.lbl_listen }}</span>{{ langLevelDots(L.listen) }}</div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;font-size:9pt;">
+        <span style="width:75px;flex-shrink:0;">{{ ll.lbl_read }}</span>{{ langLevelDots(L.read) }}</div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;font-size:9pt;">
+        <span style="width:75px;flex-shrink:0;">{{ ll.lbl_speak }}</span>{{ langLevelDots(L.speak) }}</div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;font-size:9pt;">
+        <span style="width:75px;flex-shrink:0;">{{ ll.lbl_write }}</span>{{ langLevelDots(L.write) }}</div>
     </div>
     {%- endfor -%}
   </div>

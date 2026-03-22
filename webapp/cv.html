@@ -101,51 +101,7 @@
     .lang-preview-dot { width: 14px; height: 14px; border-radius: 50%; border: 2px solid; opacity: 0.3; display: inline-block; margin-right: 4px; }
     .lang-preview-dot.fill { opacity: 1; }
 
-    /* CV TEMPLATES CSS */
-    .tpl-minimal{padding:20mm}
-    .tpl-minimal .header{display:flex;gap:20px;border-bottom:2px solid #e2e8f0;padding-bottom:15px;margin-bottom:20px}
-    .tpl-minimal .avatar{width:35mm;height:35mm;border-radius:8px;object-fit:cover}
-    .tpl-minimal .name{font-size:24pt;font-weight:800;color:#0f172a}
-    .tpl-minimal .role{font-size:14pt;font-weight:600;margin-bottom:10px}
-    
-    .tpl-split{display:flex;padding:0;min-height:297mm}
-    .tpl-split .sidebar{width:35%;background:#0f172a;color:#e2e8f0;padding:20mm 10mm}
-    .tpl-split .main{flex:1;padding:20mm 15mm;background:#fff}
-    .tpl-split .avatar{width:40mm;height:40mm;border-radius:50%;object-fit:cover;border:3px solid #3b82f6;margin:0 auto 20px;display:block}
-    
-    .tpl-modern{padding:0;min-height:297mm}
-    .tpl-modern .header{background:#1e293b;color:white;padding:20mm;display:flex;align-items:center;gap:30px}
-    .tpl-modern .avatar{width:40mm;height:40mm;border-radius:12px;object-fit:cover;border:2px solid #fff}
-    
-    .tpl-ats{padding:20mm;font-family:Arial,sans-serif}
-    .tpl-ats .header{text-align:center;border-bottom:1px solid #000;padding-bottom:15px;margin-bottom:20px}
-    .tpl-ats .avatar{width:30mm;height:30mm;border-radius:50%;object-fit:cover;margin:0 auto 10px;display:block}
-    
-    .tpl-elegant{padding:20mm;font-family:Georgia,serif}
-    .tpl-elegant .header{display:flex;flex-direction:column;align-items:center;text-align:center;margin-bottom:30px}
-    .tpl-elegant .avatar{width:35mm;height:35mm;border-radius:50%;object-fit:cover;margin-bottom:15px;box-shadow:0 4px 10px rgba(0,0,0,0.1)}
-    
-    .tpl-corporate{padding:0;display:flex;flex-direction:column;min-height:297mm}
-    .tpl-corporate .header{color:#fff;padding:20mm;display:flex;align-items:center;gap:25px}
-    .tpl-corporate .avatar{width:35mm;height:35mm;border-radius:4px;object-fit:cover;border:2px solid #fff}
-    
-    .tpl-creative{padding:0;display:flex;min-height:297mm}
-    .tpl-creative .left{width:35%;padding:20mm 15mm;border-right:1px solid #e2e8f0;background:#f8fafc}
-    .tpl-creative .right{flex:1;padding:20mm 15mm;background:#fff}
-    .tpl-creative .avatar{width:45mm;height:45mm;border-radius:20px;object-fit:cover;margin:0 auto 20px;display:block;transform:rotate(-3deg);box-shadow:4px 4px 0 #3b82f6}
-    
-    .tpl-prof{display:flex;padding:0;min-height:297mm;background:#fff}
-    .tpl-prof .left-strip{width:40px;background:#0f172a}
-    .tpl-prof .content{flex:1;padding:20mm}
-    .tpl-prof .avatar{width:35mm;height:35mm;object-fit:cover;border-radius:50%;margin-right:20px}
-
-    /* Resume Item Styles */
-    .sec-title{font-size:14pt;font-weight:700;text-transform:uppercase;margin-bottom:15px;border-bottom:2px solid;padding-bottom:5px;}
-    .item-row{margin-bottom:15px}
-    .item-head{display:flex;justify-content:space-between;font-weight:700}
-    .item-sub{font-style:italic;font-size:10.5pt;margin-bottom:5px}
-    .item-desc{font-size:10pt;color:#475569;line-height:1.5}
-    .badge{display:inline-block;padding:4px 10px;border-radius:4px;font-size:9pt;margin:0 5px 5px 0}
+    /* CV matni endi iframe ichida server shabloni (cv_template.html) — bu yerdagi eski tpl-* stillar olib tashlandi */
   </style>
 </head>
 
@@ -345,7 +301,9 @@
 
       <div id="previewPane" class="w-full flex items-start justify-center p-4 sm:p-10 scroller overflow-y-auto rounded-2xl" style="background:linear-gradient(135deg,#0f0f1a 0%,#1a1a2e 100%);">
         <div class="cv-canvas-wrapper" id="previewScaleWrapper">
-          <div class="cv-canvas tpl-minimal" id="cv-box"></div>
+          <iframe id="cv-preview-frame" title="CV preview" sandbox="allow-same-origin"
+            class="bg-white mx-auto block border-0"
+            style="width:210mm;min-height:297mm;background:#fff;vertical-align:top;"></iframe>
         </div>
       </div>
       
@@ -765,15 +723,14 @@
     // --- ZOOM LOGIC ---
     function autoScale() {
       const pane = document.getElementById('previewPane');
-      const box = document.getElementById('cv-box');
+      const box = document.getElementById('cv-preview-frame');
       if (!pane || !box) return;
       const paneWidth = Math.max(0, pane.clientWidth - 24);
       const actualWidth = Math.max(1, box.offsetWidth);
       const scale = Math.min(paneWidth / actualWidth, 1);
-      
+
       const wrap = document.getElementById('previewScaleWrapper');
       wrap.style.transform = `scale(${scale})`;
-      // Keep container height synced with scaled content (prevents horizontal scroll + jumpiness)
       const h = Math.max(1, box.offsetHeight);
       wrap.style.height = `${h * scale}px`;
     }
@@ -807,137 +764,16 @@
       }, true);
     })();
 
-    // --- UPDATE PREVIEW ---
+    /* Jonli preview = serverdagi cv_template.html (PDF bilan bir xil CSS/HTML) */
+    let previewDebounceTimer = null;
+    let previewAbort = null;
+
     function triggerUpdate(save = true) {
-      const d = {
-        name: document.getElementById('f_name').value || dict[currentLang].name_ph,
-        role: document.getElementById('f_role').value || '', phone: document.getElementById('f_phone').value || '',
-        email: document.getElementById('f_email').value || '', loc: document.getElementById('f_loc').value || '',
-        about: document.getElementById('f_about').value || '', img: avatarUrl
-      };
-
-      const t_ab = dict[currentLang].about; const t_ed = dict[currentLang].edu_title;
-      const t_ex = dict[currentLang].exp_title; const t_sk = dict[currentLang].skills_title.split(' ')[0];
-      const t_ac = dict[currentLang].ach_title.split(' ')[0];
-      const t_lng = dict[currentLang].lang_title || "Tillar";
-
-      const html_edu = eduData.map(x=>`<div class="item-row"><div class="item-head"><span>${x.title}</span><span style="font-size:9pt;color:#64748b">${x.date}</span></div><div class="item-sub" style="color:${cvColor}">${x.place}</div></div>`).join('');
-      const html_exp = expData.map(x=>`<div class="item-row"><div class="item-head"><span>${x.title}</span><span style="font-size:9pt;color:#64748b">${x.date}</span></div><div class="item-sub" style="color:${cvColor}">${x.place}</div></div>`).join('');
-      const html_ach = achData.map(x=>`<div class="item-desc" style="margin-bottom:6px; display:flex; justify-content:space-between;">
-        <span><strong>${x.type}:</strong> ${x.title}</span>
-        ${x.year ? `<span style="color:#64748b; font-size:9pt;">${x.year}</span>` : ''}
-      </div>`).join('');
-      
-      const html_ski = skillsData.map(x=>`<span class="badge" style="background:${cvColor}20; color:${cvColor}; border:1px solid ${cvColor}40">${x}</span>`).join('');
-
-      const html_lang = langData.map(x => {
-        let h = `<div style="margin-bottom:15px;">
-          <strong style="display:block;margin-bottom:8px;font-size:11pt;color:${cvColor}">${x.lang || dict[currentLang].select_lang}</strong>`;
-        const s_map = [ {n: dict[currentLang].listen, v: x.listen}, {n: dict[currentLang].read, v: x.read}, {n: dict[currentLang].speak, v: x.speak}, {n: dict[currentLang].write, v: x.write} ];
-        s_map.forEach(s => {
-          h += `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;font-size:9pt;">
-            <span style="width:75px;">${s.n}</span>
-            <div style="display:flex;gap:4px;">`;
-          for(let j=1; j<=6; j++){
-             h += `<div class="lang-preview-dot ${s.v >= j ? 'fill' : ''}" style="border-color:${cvColor}; ${s.v >= j ? `background:${cvColor};` : ''}"></div>`;
-          }
-          h += `</div></div>`;
-        });
-        h += `</div>`;
-        return h;
-      }).join('');
-
-      const box = document.getElementById('cv-box');
-      
-      const templates = {
-        minimal: `<div class="header"><img src="${d.img}" class="avatar"><div><div class="name">${d.name}</div><div class="role" style="color:${cvColor}">${d.role}</div><div style="font-size:10pt;color:#64748b;display:flex;gap:15px"><span>${d.phone}</span><span>${d.email}</span><span>${d.loc}</span></div></div></div>
-          ${d.about?`<div class="sec-title" style="color:${cvColor};border-color:${cvColor}">${t_ab}</div><div class="item-desc" style="margin-bottom:20px">${d.about}</div>`:''}
-          ${skillsData.length?`<div class="sec-title" style="color:${cvColor};border-color:${cvColor}">${t_sk}</div><div style="margin-bottom:20px">${html_ski}</div>`:''}
-          ${expData.length?`<div class="sec-title" style="color:${cvColor};border-color:${cvColor}">${t_ex}</div>${html_exp}`:''}
-          ${eduData.length?`<div class="sec-title" style="color:${cvColor};border-color:${cvColor}">${t_ed}</div>${html_edu}`:''}
-          ${langData.length?`<div class="sec-title" style="color:${cvColor};border-color:${cvColor}">${t_lng}</div>${html_lang}`:''}
-          ${achData.length?`<div class="sec-title" style="color:${cvColor};border-color:${cvColor}">${t_ac}</div>${html_ach}`:''}`,
-          
-        split: `<div class="sidebar"><img src="${d.img}" class="avatar" style="border-color:${cvColor}">
-          <div style="font-size:10pt;line-height:1.8;margin-bottom:20px"><div>${d.phone}</div><div>${d.email}</div><div>${d.loc}</div></div>
-          ${skillsData.length?`<div class="sec-title" style="color:#fff;border-color:#334155;font-size:11pt">${t_sk}</div><div style="margin-bottom:20px">${skillsData.map(s=>`<span class="badge" style="background:rgba(255,255,255,0.1)">${s}</span>`).join('')}</div>`:''}
-          ${langData.length?`<div class="sec-title" style="color:#fff;border-color:#334155;font-size:11pt;margin-top:20px;">${t_lng}</div>${html_lang}`:''}
-          </div><div class="main"><div style="font-size:26pt;font-weight:800;color:${cvColor};line-height:1.1">${d.name}</div><div style="font-size:14pt;margin-bottom:20px">${d.role}</div>
-          ${d.about?`<div class="sec-title" style="border-color:#e2e8f0">${t_ab}</div><div class="item-desc" style="margin-bottom:20px">${d.about}</div>`:''}
-          ${expData.length?`<div class="sec-title" style="border-color:#e2e8f0">${t_ex}</div>${html_exp}`:''}
-          ${eduData.length?`<div class="sec-title" style="border-color:#e2e8f0">${t_ed}</div>${html_edu}`:''}
-          ${achData.length?`<div class="sec-title" style="border-color:#e2e8f0">${t_ac}</div>${html_ach}`:''}</div>`,
-
-        modern: `<div class="header" style="background:${cvColor}"><img src="${d.img}" class="avatar"><div><div style="font-size:28pt;font-weight:800">${d.name}</div><div style="font-size:14pt;opacity:0.9">${d.role}</div><div style="font-size:10pt;opacity:0.8;margin-top:10px">${d.phone} | ${d.email} | ${d.loc}</div></div></div>
-          <div style="display:flex;padding:20mm;gap:30px;"><div style="flex:2">
-          ${d.about?`<div class="sec-title" style="color:${cvColor};border-color:#e2e8f0">${t_ab}</div><div class="item-desc" style="margin-bottom:20px">${d.about}</div>`:''}
-          ${expData.length?`<div class="sec-title" style="color:${cvColor};border-color:#e2e8f0">${t_ex}</div>${html_exp}`:''}
-          ${langData.length?`<div class="sec-title" style="color:${cvColor};border-color:#e2e8f0">${t_lng}</div>${html_lang}`:''}
-          </div><div style="flex:1">
-          ${eduData.length?`<div class="sec-title" style="color:${cvColor};border-color:#e2e8f0">${t_ed}</div>${html_edu}`:''}
-          ${skillsData.length?`<div class="sec-title" style="color:${cvColor};border-color:#e2e8f0">${t_sk}</div><div>${html_ski}</div><br>`:''}
-          ${achData.length?`<div class="sec-title" style="color:${cvColor};border-color:#e2e8f0">${t_ac}</div>${html_ach}`:''}
-          </div></div>`,
-
-        ats: `<div class="header"><img src="${d.img}" class="avatar"><div style="font-size:24pt;font-weight:bold;text-transform:uppercase;color:${cvColor}">${d.name}</div><div style="font-size:12pt;margin-bottom:5px">${d.role}</div><div style="font-size:10pt">${d.phone} | ${d.email} | ${d.loc}</div></div>
-          ${d.about?`<div class="sec-title" style="border-color:#000;font-size:12pt">${t_ab}</div><div class="item-desc" style="margin-bottom:15px">${d.about}</div>`:''}
-          ${expData.length?`<div class="sec-title" style="border-color:#000;font-size:12pt">${t_ex}</div>${html_exp}`:''}
-          ${eduData.length?`<div class="sec-title" style="border-color:#000;font-size:12pt">${t_ed}</div>${html_edu}`:''}
-          ${skillsData.length?`<div class="sec-title" style="border-color:#000;font-size:12pt">${t_sk}</div><div style="font-size:10pt;margin-bottom:15px">${skillsData.join(', ')}</div>`:''}
-          ${langData.length?`<div class="sec-title" style="border-color:#000;font-size:12pt">${t_lng}</div>${html_lang}`:''}
-          ${achData.length?`<div class="sec-title" style="border-color:#000;font-size:12pt">${t_ac}</div>${html_ach}`:''}`,
-
-        elegant: `<div class="header"><img src="${d.img}" class="avatar"><div style="font-size:30pt;color:${cvColor};font-variant:small-caps">${d.name}</div><div style="font-style:italic;color:#555;margin-bottom:10px">${d.role}</div><div style="font-size:10pt;color:#666">${d.phone} • ${d.email} • ${d.loc}</div></div>
-          <div style="display:flex;gap:30px"><div style="flex:2">
-          ${d.about?`<div class="sec-title" style="color:${cvColor};border-bottom:1px dashed #ccc">${t_ab}</div><div class="item-desc" style="margin-bottom:20px">${d.about}</div>`:''}
-          ${expData.length?`<div class="sec-title" style="color:${cvColor};border-bottom:1px dashed #ccc">${t_ex}</div>${html_exp}`:''}
-          ${langData.length?`<div class="sec-title" style="color:${cvColor};border-bottom:1px dashed #ccc">${t_lng}</div>${html_lang}`:''}
-          </div><div style="flex:1;border-left:1px solid #eee;padding-left:20px">
-          ${eduData.length?`<div class="sec-title" style="color:${cvColor};border-bottom:1px dashed #ccc">${t_ed}</div>${html_edu}`:''}
-          ${skillsData.length?`<div class="sec-title" style="color:${cvColor};border-bottom:1px dashed #ccc">${t_sk}</div><div>${html_ski}</div><br>`:''}
-          ${achData.length?`<div class="sec-title" style="color:${cvColor};border-bottom:1px dashed #ccc">${t_ac}</div>${html_ach}`:''}
-          </div></div>`,
-
-        corporate: `<div class="header" style="background:${cvColor}"><img src="${d.img}" class="avatar"><div style="flex:1"><div style="font-size:26pt;font-weight:bold">${d.name}</div><div style="font-size:14pt">${d.role}</div></div><div style="text-align:right;font-size:10pt">${d.phone}<br>${d.email}<br>${d.loc}</div></div>
-          <div style="display:flex;padding:20mm;gap:30px"><div style="flex:7">
-          ${d.about?`<div class="sec-title" style="color:${cvColor}">${t_ab}</div><div class="item-desc" style="margin-bottom:20px">${d.about}</div>`:''}
-          ${expData.length?`<div class="sec-title" style="color:${cvColor}">${t_ex}</div>${html_exp}`:''}
-          ${langData.length?`<div class="sec-title" style="color:${cvColor}">${t_lng}</div>${html_lang}`:''}
-          </div><div style="flex:3">
-          ${eduData.length?`<div class="sec-title" style="color:${cvColor}">${t_ed}</div>${html_edu}`:''}
-          ${skillsData.length?`<div class="sec-title" style="color:${cvColor}">${t_sk}</div><div>${html_ski}</div><br>`:''}
-          ${achData.length?`<div class="sec-title" style="color:${cvColor}">${t_ac}</div>${html_ach}`:''}
-          </div></div>`,
-
-        creative: `<div class="left"><img src="${d.img}" class="avatar" style="border-color:${cvColor}"><div style="font-size:24pt;font-weight:900;text-align:center;color:${cvColor};line-height:1.1">${d.name}</div><div style="text-align:center;font-weight:bold;margin-bottom:20px">${d.role}</div>
-          <div style="font-size:10pt;line-height:2;margin-bottom:20px">📞 ${d.phone}<br>📧 ${d.email}<br>📍 ${d.loc}</div>
-          ${skillsData.length?`<div class="sec-title" style="color:${cvColor};border-color:${cvColor};font-size:12pt">${t_sk}</div><div>${html_ski}</div>`:''}
-          ${langData.length?`<div class="sec-title" style="color:${cvColor};border-color:${cvColor};font-size:12pt;margin-top:20px;">${t_lng}</div>${html_lang}`:''}
-          </div><div class="right">
-          ${d.about?`<div class="sec-title" style="color:${cvColor}">${t_ab}</div><div class="item-desc" style="margin-bottom:20px">${d.about}</div>`:''}
-          ${expData.length?`<div class="sec-title" style="color:${cvColor}">${t_ex}</div>${html_exp}`:''}
-          ${eduData.length?`<div class="sec-title" style="color:${cvColor}">${t_ed}</div>${html_edu}`:''}
-          ${achData.length?`<div class="sec-title" style="color:${cvColor}">${t_ac}</div>${html_ach}`:''}</div>`,
-
-        prof: `<div class="left-strip" style="background:${cvColor}"></div><div class="content">
-          <div style="display:flex;align-items:center;margin-bottom:30px"><img src="${d.img}" class="avatar"><div><div style="font-size:28pt;color:#0f172a">${d.name.split(' ').map((n,i)=>i===0?`<strong>${n}</strong>`:n).join(' ')}</div><div style="font-size:12pt;color:${cvColor};letter-spacing:1px;text-transform:uppercase">${d.role}</div><div style="font-size:10pt;color:#64748b;margin-top:10px">${d.phone} • ${d.email} • ${d.loc}</div></div></div>
-          ${d.about?`<div class="sec-title" style="border-color:${cvColor}">${t_ab}</div><div class="item-desc" style="margin-bottom:20px">${d.about}</div>`:''}
-          <div style="display:flex;gap:30px"><div style="flex:2">
-          ${expData.length?`<div class="sec-title" style="border-color:${cvColor}">${t_ex}</div>${html_exp}`:''}
-          ${langData.length?`<div class="sec-title" style="border-color:${cvColor}">${t_lng}</div>${html_lang}`:''}
-          ${achData.length?`<div class="sec-title" style="border-color:${cvColor}">${t_ac}</div>${html_ach}`:''}
-          </div><div style="flex:1">
-          ${eduData.length?`<div class="sec-title" style="border-color:${cvColor}">${t_ed}</div>${html_edu}`:''}
-          ${skillsData.length?`<div class="sec-title" style="border-color:${cvColor}">${t_sk}</div><div>${html_ski}</div>`:''}
-          </div></div></div>`
-      };
-
-      box.className = `cv-canvas tpl-${activeTpl}`;
-      box.innerHTML = templates[activeTpl];
-      
-      autoScale();
-      
-      if(save) saveToLocalStorage();
+      if (save) saveToLocalStorage();
+      clearTimeout(previewDebounceTimer);
+      previewDebounceTimer = setTimeout(function () {
+        fetchServerPreview();
+      }, 320);
     }
 
     // --- PDF EXPORT ---
@@ -960,7 +796,14 @@
       wrap.style.transform = 'scale(1)';
 
       try {
-        await html2pdf().set(opt).from(document.getElementById('cv-box')).save();
+        const iframe = document.getElementById('cv-preview-frame');
+        const doc = iframe && iframe.contentDocument;
+        const root = doc && (doc.querySelector('.cv-canvas') || doc.body);
+        if (!root) {
+          alert("Avval preview yuklanishini kuting yoki formani tekshiring.");
+          return;
+        }
+        await html2pdf().set(opt).from(root).save();
       } catch (err) {
         alert("Xatolik yuz berdi!");
       }
@@ -1006,7 +849,56 @@
           year: x.year || '',
         })),
         img: avatarUrl || '',
+        accent_color: cvColor,
       };
+    }
+
+    function getCvApiBase() {
+      try {
+        const b = window.DastyorAI && window.DastyorAI.BASE;
+        if (b && String(b).trim()) return String(b).trim().replace(/\/+$/, '');
+      } catch (_) { /* ignore */ }
+      return API_URL;
+    }
+
+    function resizePreviewIframe() {
+      const iframe = document.getElementById('cv-preview-frame');
+      if (!iframe || !iframe.contentDocument || !iframe.contentDocument.body) return;
+      const body = iframe.contentDocument.body;
+      const html = iframe.contentDocument.documentElement;
+      const h = Math.max(body.scrollHeight, body.offsetHeight, html.scrollHeight, 1123);
+      iframe.style.height = Math.ceil(h) + 'px';
+    }
+
+    async function fetchServerPreview() {
+      const iframe = document.getElementById('cv-preview-frame');
+      if (!iframe) return;
+      if (previewAbort) previewAbort.abort();
+      previewAbort = new AbortController();
+      const base = getCvApiBase();
+      try {
+        const payload = Object.assign({}, buildCvPayload('pdf'));
+        delete payload.action;
+        payload.accent_color = cvColor;
+        const res = await fetch(base + '/api/cv_preview_html', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+          signal: previewAbort.signal,
+        });
+        if (!res.ok) throw new Error(String(res.status));
+        const html = await res.text();
+        iframe.srcdoc = html;
+        iframe.onload = function () {
+          try { resizePreviewIframe(); } catch (_) { /* ignore */ }
+          autoScale();
+        };
+      } catch (e) {
+        if (e.name === 'AbortError') return;
+        console.warn('[CV preview]', e);
+        iframe.srcdoc = '<!DOCTYPE html><html><body style="font-family:system-ui,sans-serif;padding:24px;color:#b91c1c;font-size:14px">Preview: serverga ulanib bo‘lmadi. <code style="font-size:12px">' + String(base).replace(/</g, '') + '</code></body></html>';
+        iframe.onload = function () { autoScale(); };
+      }
     }
 
     /** Shrink huge camera photos so JSON body / Telegram limits stay safe */
@@ -1061,7 +953,7 @@
         token: sessionToken || undefined,
       });
       console.info('[CV] export_cv: bytes≈', JSON.stringify(req).length, 'tpl=', payload.template, 'has_img=', !!(payload.img && payload.img.length > 64));
-      const res = await fetch(API_URL + '/api/export_cv', {
+      const res = await fetch(getCvApiBase() + '/api/export_cv', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(req),

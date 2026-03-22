@@ -73,6 +73,7 @@ class CVRequest(BaseModel):
     skills: str = ""
     languages_list: list = Field(default_factory=list)
     achievements_list: list = Field(default_factory=list)
+    accent_color: str = "#3b82f6"
 
 
 class ObyektivkaRequest(BaseModel):
@@ -128,6 +129,7 @@ class ExportCVRequest(BaseModel):
     img: str = ""
     languages_list: list = Field(default_factory=list)
     achievements_list: list = Field(default_factory=list)
+    accent_color: str = "#3b82f6"
 
 
 class ExportObyektivkaRequest(BaseModel):

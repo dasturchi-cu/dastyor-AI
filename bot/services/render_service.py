@@ -18,7 +18,15 @@ from __future__ import annotations
 
 import logging
 import os
+import re
 from pathlib import Path
+
+_HEX_ACCENT_RE = re.compile(r"^#[0-9A-Fa-f]{3,8}$")
+
+
+def _sanitize_hex_accent(raw: dict) -> str:
+    ac = str(raw.get("accent_color") or raw.get("cvColor") or "#3b82f6").strip()
+    return ac if _HEX_ACCENT_RE.match(ac) else "#3b82f6"
 
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
@@ -205,6 +213,7 @@ def build_cv_context(raw: dict) -> dict:
         "education":   _parse_items(edu_raw),
         "language_levels": _normalize_language_levels(lang_raw if isinstance(lang_raw, list) else []),
         "achievements": _normalize_cv_achievements(ach_raw if isinstance(ach_raw, list) else []),
+        "accent_color": _sanitize_hex_accent(raw),
     }
 
 
@@ -332,21 +341,34 @@ async def _html_pdf_playwright(html_str: str) -> bytes | None:
 async def generate_cv_pdf(data: dict, base_url: str | None = None) -> bytes | None:
     """
     Render CV template → PDF bytes.
-    Order: WeasyPrint first (fast production default), then Playwright for layout fidelity.
+    Default: Playwright (Chromium) first — veb-preview (iframe) bilan bir xil dvigatel, 1:1 yaqin.
+    WeasyPrint: CV_PDF_PLAYWRIGHT_FIRST=0 bo'lsa birinchi yoki Playwright muvaffaqiyatsiz bo'lsa.
     """
     html_str = render_cv_html(data)
 
-    if base_url and "<head>" in html_str:
-        html_str = html_str.replace("<head>", f"<head><base href='{base_url}'>")
+    bu = (base_url or "").strip().rstrip("/")
+    if bu and "<head>" in html_str:
+        html_str = html_str.replace("<head>", f"<head><base href='{bu}/'>")
 
-    pdf_fast = await _pdf_bytes_weasy(html_str, base_url)
-    if pdf_fast:
-        logger.info("CV PDF generated via WeasyPrint (fast path)")
-        return pdf_fast
+    pw_first = os.getenv("CV_PDF_PLAYWRIGHT_FIRST", "1").strip().lower() in ("1", "true", "yes", "on")
 
-    pdf_pw = await _html_pdf_playwright(html_str)
-    if pdf_pw:
-        return pdf_pw
+    if pw_first:
+        pdf_pw = await _html_pdf_playwright(html_str)
+        if pdf_pw:
+            logger.info("CV PDF generated via Playwright (preview bilan moslashtirilgan)")
+            return pdf_pw
+        pdf_fast = await _pdf_bytes_weasy(html_str, bu or None)
+        if pdf_fast:
+            logger.info("CV PDF generated via WeasyPrint (fallback)")
+            return pdf_fast
+    else:
+        pdf_fast = await _pdf_bytes_weasy(html_str, bu or None)
+        if pdf_fast:
+            logger.info("CV PDF generated via WeasyPrint (fast path)")
+            return pdf_fast
+        pdf_pw = await _html_pdf_playwright(html_str)
+        if pdf_pw:
+            return pdf_pw
 
     logger.error("All PDF backends failed for CV")
     return None

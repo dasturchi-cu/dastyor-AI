@@ -24,12 +24,27 @@ from backend.schemas.webapp import (
 from backend.services.temp_files import safe_remove
 from backend.services.user_resolve import resolve_telegram_uid, safe_filename_part
 from backend.web_constants import SITE_BASE_URL
-from bot.services.render_service import generate_cv_pdf, safe_filename
+from bot.services.render_service import generate_cv_pdf, render_cv_html, safe_filename
 from bot.utils.delivery import send_docx_with_confirmation
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["web-documents"])
+
+
+@router.post("/api/cv_preview_html")
+async def api_cv_preview_html(req: ExportCVRequest) -> HTMLResponse:
+    """
+    Veb jonli ko‘rinish va PDF bilan bir xil HTML (cv_template.html + bir xil CSS).
+    Limit yemaydi — faqat render.
+    """
+    try:
+        data = req.dict(exclude={"telegram_id", "token", "send_only", "format"})
+        html = render_cv_html(data)
+    except Exception as e:
+        logger.exception("cv_preview_html")
+        raise HTTPException(status_code=500, detail=f"Preview render xatosi: {str(e)[:200]}") from e
+    return HTMLResponse(content=html, media_type="text/html; charset=utf-8")
 
 
 def _assert_category_quota_web(uid_int: int, category: str) -> None:
