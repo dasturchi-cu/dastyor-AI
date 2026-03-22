@@ -221,6 +221,10 @@ def db_upsert_user(user_id: int, first_name: str = "", username: str = None,
     if not c:
         return False
     now = datetime.utcnow().isoformat()
+    # Supabase users.first_name ko'pincha NOT NULL — hech qachon null yubormaymiz
+    fn = ((first_name or "").strip() or "User")[:200]
+    un = ("" if username is None else str(username))[:200]
+    cid = int(chat_id if chat_id is not None else user_id)
 
     # 1) mavjudligini tekshir (agar select payload ustunlar bo'lmasa, keyin insert fallback bo'ladi)
     try:
@@ -233,11 +237,11 @@ def db_upsert_user(user_id: int, first_name: str = "", username: str = None,
     # 2) update path
     if exists:
         try:
-            upd = {"first_name": first_name or "", "last_active": now}
+            upd = {"first_name": fn, "last_active": now}
             if username is not None:
-                upd["username"] = username
+                upd["username"] = un
             if chat_id is not None:
-                upd["chat_id"] = chat_id
+                upd["chat_id"] = cid
             c.table("users").update(upd).eq("id", user_id).execute()
         except Exception:
             # If some columns like chat_id/sessions don't exist, still keep row alive.
@@ -260,26 +264,41 @@ def db_upsert_user(user_id: int, first_name: str = "", username: str = None,
                 pass
         return True
 
-    # 3) yangi foydalanuvchi: upsert (id conflictda yangilanadi) + minimal fallback
+    # 3) yangi foydalanuvchi: har bir urinishda first_name/username/chat_id bo'lishi SHART
+    # (oldingi {"id", "last_active"} fallback NOT NULL first_name ni buzgan)
     payload_candidates = [
         {
             "id": user_id,
-            "first_name": first_name or "",
-            "username": username or "",
-            "chat_id": chat_id if chat_id is not None else user_id,
+            "first_name": fn,
+            "username": un,
+            "chat_id": cid,
+            "lang": "uz_lat",
             "activity_count": 1,
             "sessions": 1 if command == "start" else 0,
             "last_active": now,
         },
         {
             "id": user_id,
-            "first_name": first_name or "",
-            "username": username or "",
-            "chat_id": chat_id if chat_id is not None else user_id,
+            "first_name": fn,
+            "username": un,
+            "chat_id": cid,
+            "activity_count": 1,
+            "sessions": 1 if command == "start" else 0,
             "last_active": now,
         },
-        {"id": user_id, "last_active": now},
-        {"id": user_id},
+        {
+            "id": user_id,
+            "first_name": fn,
+            "username": un,
+            "chat_id": cid,
+            "last_active": now,
+        },
+        {
+            "id": user_id,
+            "first_name": fn,
+            "username": un,
+            "chat_id": cid,
+        },
     ]
 
     for payload in payload_candidates:

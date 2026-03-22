@@ -17,6 +17,11 @@ ALTER TABLE public.users ADD COLUMN IF NOT EXISTS limit_count integer;
 ALTER TABLE public.users ADD COLUMN IF NOT EXISTS pending_oby_json jsonb;
 ALTER TABLE public.users ADD COLUMN IF NOT EXISTS pending_oby_updated_at timestamptz;
 
+-- first_name NOT NULL xatosi (23502): bo'sh qatorlar va default
+UPDATE public.users SET first_name = COALESCE(first_name, '') WHERE first_name IS NULL;
+UPDATE public.users SET username = COALESCE(username, '') WHERE username IS NULL;
+ALTER TABLE public.users ALTER COLUMN first_name SET DEFAULT '';
+
 -- logs: Python db_insert_action_log uchun
 ALTER TABLE public.logs ADD COLUMN IF NOT EXISTS action_type text;
 ALTER TABLE public.logs ADD COLUMN IF NOT EXISTS file_name text;
