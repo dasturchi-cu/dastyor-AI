@@ -203,6 +203,9 @@ const DastyorAI = (() => {
     function renderTariffBanner(subject) {
         const u = subject || user;
         try {
+            if (document.body && document.body.getAttribute('data-da-skip-tariff-strip') === '1') return;
+        } catch (_) {}
+        try {
             document.querySelectorAll('#da-tariff-strip').forEach((el) => el.remove());
         } catch (_) {}
         if (!u || !u.telegram_id || !u.plan) return;

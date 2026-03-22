@@ -317,9 +317,20 @@
       background: var(--gold); color: #000;
       box-shadow: 0 4px 14px rgba(245,158,11,.4);
     }
+
+    /* Jonli tarif / balans (server bilan bir xil) */
+    .plan.live-tariff {
+      border-color: rgba(34, 211, 160, 0.35);
+      box-shadow: 0 0 36px -10px rgba(34, 211, 160, 0.2), 0 16px 50px rgba(0,0,0,.5);
+    }
+    .plan.live-tariff::before {
+      background: linear-gradient(90deg, transparent, var(--success), transparent);
+      opacity: .45;
+    }
+    .live-tariff .plan-price { font-size: 15px; font-weight: 700; line-height: 1.35; }
   </style>
 </head>
-<body>
+<body data-da-skip-tariff-strip="1">
 
 <div class="bg"></div>
 <div class="orb o1"></div>
@@ -338,6 +349,19 @@
     </div>
   </div>
 
+  <!-- Serverdagi haqiqiy tarif va limit (botdagi «Balans» bilan bir xil) -->
+  <div id="userLiveTariff" class="plan live-tariff hidden" aria-live="polite">
+    <div class="plan-head">
+      <div>
+        <div class="plan-label">Sizning holatingiz</div>
+        <div class="plan-price" id="ultSummary">Yuklanmoqda…</div>
+      </div>
+      <span class="plan-badge badge-free" id="ultBadge">—</span>
+    </div>
+    <div class="plan-div"></div>
+    <div class="plan-features" id="ultFeatures"></div>
+  </div>
+
   <section id="plansSection">
   <!-- ── FREE ── -->
   <div class="plan">
@@ -351,16 +375,20 @@
     <div class="plan-div"></div>
     <div class="plan-features">
       <div class="feat-row">
+        <span class="feat-name">📌 Kunlik umumiy (bot + web)</span>
+        <span class="feat-val v-num" id="featFreePool">—</span>
+      </div>
+      <div class="feat-row">
         <span class="feat-name">🔤 Krill ↔ Lotin</span>
-        <span class="feat-val v-num">5 ta / kun</span>
+        <span class="feat-val v-yes">limit ichida</span>
       </div>
       <div class="feat-row">
         <span class="feat-name">🖼 Rasm → PDF</span>
-        <span class="feat-val v-num">5 ta / kun</span>
+        <span class="feat-val v-yes">limit ichida</span>
       </div>
       <div class="feat-row">
         <span class="feat-name">🌐 Tarjima</span>
-        <span class="feat-val v-num">1 ta / kun</span>
+        <span class="feat-val v-yes">limit ichida</span>
       </div>
       <div class="feat-row">
         <span class="feat-name">📄 Obyektivka</span>
@@ -510,10 +538,76 @@
 
 <script src="app.js"></script>
 <script>
-  document.addEventListener('DOMContentLoaded', () => {
-    if (window.DastyorAI?.initUI) DastyorAI.initUI({ autoNavLinks: true });
+  function applyPremiumPageLiveTariff(me) {
+    const box = document.getElementById("userLiveTariff");
+    const sumEl = document.getElementById("ultSummary");
+    const badge = document.getElementById("ultBadge");
+    const feats = document.getElementById("ultFeatures");
+    const freePool = document.getElementById("featFreePool");
+    if (!box || !sumEl || !badge || !feats) return;
+
+    if (!me || !me.telegram_id) {
+      box.classList.add("hidden");
+      if (freePool) freePool.textContent = "Kirish kerak";
+      return;
+    }
+
+    box.classList.remove("hidden");
+    const label = me.plan_label || me.plan || "—";
+
+    if (me.unlimited) {
+      sumEl.innerHTML =
+        "<span style='color:var(--gold2)'>" +
+        label +
+        "</span> — barcha asosiy xizmatlar uchun <b>cheksiz</b> (kunlik limit yo'q).";
+      badge.textContent = me.plan === "premium" ? "Premium" : "Obuna";
+      badge.className = "plan-badge " + (me.plan === "premium" ? "badge-top" : "badge-std");
+      let html =
+        "<div class='feat-row'><span class='feat-name'>Kunlik limit</span><span class='feat-val v-inf'>♾ cheksiz</span></div>";
+      if (me.subscription_ends) {
+        html +=
+          "<div class='feat-row'><span class='feat-name'>Obuna tugashi</span><span class='feat-val v-yes'>" +
+          me.subscription_ends +
+          "</span></div>";
+      }
+      html +=
+        "<div class='feat-row'><span class='feat-name'>Pastdagi tariflar</span><span class='feat-val v-num'>yangilash / uzaytirish</span></div>";
+      feats.innerHTML = html;
+      if (freePool) freePool.textContent = "♾ cheksiz";
+    } else {
+      const cap = me.daily_limit != null ? me.daily_limit : "—";
+      const u = me.used_today != null ? me.used_today : "—";
+      const r = me.remaining != null ? me.remaining : "—";
+      sumEl.textContent =
+        label + " — bugun " + u + "/" + cap + " ishlatilgan, yana " + r + " ta qoldi.";
+      badge.textContent = "Bepul";
+      badge.className = "plan-badge badge-free";
+      feats.innerHTML =
+        "<div class='feat-row'><span class='feat-name'>Kunlik limit (barcha xizmatlar)</span><span class='feat-val v-num'>" +
+        cap +
+        " ta</span></div>" +
+        "<div class='feat-row'><span class='feat-name'>Bugun ishlatilgan</span><span class='feat-val v-num'>" +
+        u +
+        " / " +
+        cap +
+        "</span></div>" +
+        "<div class='feat-row'><span class='feat-name'>Qoldi</span><span class='feat-val v-inf-b'>" +
+        r +
+        " ta</span></div>" +
+        "<div class='feat-row'><span class='feat-name'>Pastdagi kartalar</span><span class='feat-val v-num'>Standart / Premium — cheksiz</span></div>";
+      if (freePool) freePool.textContent = u + "/" + cap + " · qoldi " + r;
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', async () => {
     window.Telegram?.WebApp?.ready?.();
     window.Telegram?.WebApp?.expand?.();
+    if (window.DastyorAI?.initUI) {
+      await window.DastyorAI.initUI({
+        autoNavLinks: true,
+        onUser: (me) => applyPremiumPageLiveTariff(me),
+      });
+    }
   });
 
   let selectedPlan = "premium";

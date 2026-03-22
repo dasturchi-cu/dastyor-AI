@@ -504,8 +504,29 @@ def _parse_ts(val) -> Optional[datetime]:
         return None
 
 
+def _sort_subscription_rows(rows: list) -> list:
+    """
+    Yangi yozuvlar avval (created_at bo'yicha).
+    id — UUID yoki int bo'lishi mumkin; int() bilan sort qilinmasin.
+    """
+    def sort_key(row: dict) -> tuple:
+        t = _parse_ts(row.get("created_at")) or _parse_ts(row.get("inserted_at"))
+        prim = t.timestamp() if t else -1.0
+        rid = row.get("id")
+        if isinstance(rid, int):
+            sec: tuple = (0, rid)
+        else:
+            try:
+                sec = (0, int(rid))
+            except (TypeError, ValueError):
+                sec = (1, str(rid or ""))
+        return (prim, sec)
+
+    return sorted(rows or [], key=sort_key, reverse=True)
+
+
 def _db_fetch_subscription_rows(user_id: int) -> list:
-    """premium_subscriptions qatorlari (id bo'yicha yangiroq avval)."""
+    """premium_subscriptions qatorlari (created_at bo'yicha yangiroq avval)."""
     c = _get_client()
     if not c:
         return []
@@ -514,18 +535,14 @@ def _db_fetch_subscription_rows(user_id: int) -> list:
         try:
             r = (
                 c.table("premium_subscriptions")
-                .select("id,plan_type,status,expire_date,end_date")
+                .select("id,plan_type,status,expire_date,end_date,created_at")
                 .eq("user_id", uid)
                 .limit(40)
                 .execute()
             )
         except Exception:
             r = c.table("premium_subscriptions").select("*").eq("user_id", uid).limit(40).execute()
-        return sorted(
-            r.data or [],
-            key=lambda x: int(x.get("id") or 0),
-            reverse=True,
-        )
+        return _sort_subscription_rows(r.data or [])
     except Exception as e:
         _mark_temporarily_unavailable(e)
         logger.error(f"_db_fetch_subscription_rows: {e}")
