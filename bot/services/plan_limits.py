@@ -475,16 +475,21 @@ def user_limits_breakdown(user_id: int, plan: str | None = None) -> list[dict[st
             "period": st.get("period_note"),
         }
         if st["unlimited"]:
+            line["exhausted"] = False
             line["display"] = f"{st['label']}: ♾ cheksiz"
         elif st["blocked"]:
+            line["exhausted"] = False
             line["display"] = f"{st['label']}: — (tarifda yo'q)"
         else:
             u = st.get("used", 0)
             l = st.get("limit", 0)
             r = st.get("remaining", 0)
             pn = st.get("period_note", "")
+            exhausted = int(r or 0) <= 0
+            line["exhausted"] = exhausted
+            tail = " — ⚠️ limit tugadi" if exhausted else ""
             line["display"] = (
-                f"{st['label']}: ishlatilgan {u}, limit {l} ({pn}), qoldi {r}"
+                f"{st['label']}: ishlatilgan {u}, limit {l} ({pn}), qoldi {r}{tail}"
             )
         out.append(line)
     return out
