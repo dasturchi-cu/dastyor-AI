@@ -209,11 +209,22 @@ const DastyorAI = (() => {
         return o;
     }
 
-    function renderTariffBanner(subject) {
-        const u = subject || user;
+    function shouldShowTariffStrip() {
         try {
-            if (document.body && document.body.getAttribute('data-da-skip-tariff-strip') === '1') return;
-        } catch (_) {}
+            return document.body && document.body.getAttribute('data-da-show-tariff-strip') === '1';
+        } catch (_) {
+            return false;
+        }
+    }
+
+    function renderTariffBanner(subject) {
+        if (!shouldShowTariffStrip()) {
+            try {
+                document.querySelectorAll('#da-tariff-strip').forEach((el) => el.remove());
+            } catch (_) {}
+            return;
+        }
+        const u = subject || user;
         try {
             document.querySelectorAll('#da-tariff-strip').forEach((el) => el.remove());
         } catch (_) {}
@@ -264,7 +275,7 @@ const DastyorAI = (() => {
         if (!identity) return null;
 
         if (token && user && String(user.telegram_id) === String(identity.telegram_id)) {
-            renderTariffBanner(user);
+            if (shouldShowTariffStrip()) renderTariffBanner(user);
             void (async () => {
                 try {
                     const r = await apiFetch(
@@ -274,7 +285,7 @@ const DastyorAI = (() => {
                         const p = await r.json();
                         Object.assign(user, _pickTariffFields(p));
                         persistSession(user, token);
-                        renderTariffBanner(user);
+                        if (shouldShowTariffStrip()) renderTariffBanner(user);
                     }
                 } catch (_) { /* ignore */ }
             })();
@@ -296,7 +307,7 @@ const DastyorAI = (() => {
                 ..._pickTariffFields(profile),
             };
             persistSession(fullUser, authResp.token);
-            renderTariffBanner(fullUser);
+            if (shouldShowTariffStrip()) renderTariffBanner(fullUser);
             return fullUser;
         } catch (_) {
             user = { ...identity, is_premium: false, files_processed: 0 };
@@ -304,9 +315,50 @@ const DastyorAI = (() => {
                 const mr = await apiFetch(`/api/me?telegram_id=${identity.telegram_id}`);
                 if (mr.ok) Object.assign(user, _pickTariffFields(await mr.json()));
             } catch (e2) { /* ignore */ }
-            renderTariffBanner(user);
+            if (shouldShowTariffStrip()) renderTariffBanner(user);
             return user;
         }
+    }
+
+    async function refreshProfile() {
+        const identity = readIdentity();
+        if (!identity) return user;
+        const t = token || (() => {
+            try {
+                return sessionStorage.getItem('tg_token');
+            } catch (_) {
+                return null;
+            }
+        })();
+        try {
+            if (t) {
+                const r = await apiFetch(
+                    `/api/me?telegram_id=${identity.telegram_id}&token=${encodeURIComponent(t)}`,
+                );
+                if (r.ok) {
+                    const p = await r.json();
+                    if (!user) user = { telegram_id: identity.telegram_id };
+                    Object.assign(user, _pickTariffFields(p));
+                    persistSession(user, t);
+                    token = t;
+                }
+            } else {
+                const r = await apiFetch(`/api/me?telegram_id=${identity.telegram_id}`);
+                if (r.ok) {
+                    const p = await r.json();
+                    if (!user) user = { telegram_id: identity.telegram_id };
+                    Object.assign(user, _pickTariffFields(p));
+                    try {
+                        sessionStorage.setItem(SS_USER, JSON.stringify(user));
+                    } catch (_) {}
+                }
+            }
+        } catch (_) { /* ignore */ }
+        if (shouldShowTariffStrip()) renderTariffBanner(user);
+        try {
+            window.dispatchEvent(new CustomEvent('dastyor:profile-updated', { detail: user }));
+        } catch (_) {}
+        return user;
     }
 
     function navigate(page) {
@@ -350,16 +402,48 @@ const DastyorAI = (() => {
     }
 
     async function translateText(text, direction) {
-        const r = await apiFetch('/api/translate', { method: 'POST', body: JSON.stringify({ text, direction }) });
+        const tid = getTelegramId();
+        const tok = token || (() => {
+            try {
+                return sessionStorage.getItem('tg_token');
+            } catch (_) {
+                return null;
+            }
+        })();
+        const body = {
+            text,
+            direction,
+            ...(tid && /^\d+$/.test(String(tid))
+                ? { telegram_id: parseInt(String(tid), 10), token: tok || null }
+                : {}),
+        };
+        const r = await apiFetch('/api/translate', { method: 'POST', body: JSON.stringify(body) });
         const data = await r.json();
         if (!r.ok) throw new Error(data.detail || 'Translation failed');
+        void refreshProfile();
         return data.translated_text;
     }
 
     async function translit(text, direction) {
-        const r = await apiFetch('/api/translit', { method: 'POST', body: JSON.stringify({ text, direction }) });
+        const tid = getTelegramId();
+        const tok = token || (() => {
+            try {
+                return sessionStorage.getItem('tg_token');
+            } catch (_) {
+                return null;
+            }
+        })();
+        const body = {
+            text,
+            direction,
+            ...(tid && /^\d+$/.test(String(tid))
+                ? { telegram_id: parseInt(String(tid), 10), token: tok || null }
+                : {}),
+        };
+        const r = await apiFetch('/api/translit', { method: 'POST', body: JSON.stringify(body) });
         const data = await r.json();
         if (!r.ok) throw new Error(data.detail || 'Translit failed');
+        void refreshProfile();
         return data.result;
     }
 
@@ -526,6 +610,8 @@ const DastyorAI = (() => {
         init,
         initUI,
         renderTariffBanner,
+        refreshProfile,
+        shouldShowTariffStrip,
         getUser: () => user,
         getToken: () => token,
         getTelegramId,

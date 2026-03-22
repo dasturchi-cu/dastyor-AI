@@ -330,7 +330,7 @@
     .live-tariff .plan-price { font-size: 15px; font-weight: 700; line-height: 1.35; }
   </style>
 </head>
-<body data-da-skip-tariff-strip="1">
+<body>
 
 <div class="bg"></div>
 <div class="orb o1"></div>
@@ -662,6 +662,12 @@
     }
   }
 
+  async function refreshPremiumLivePanel() {
+    if (!window.DastyorAI?.refreshProfile) return;
+    const me = await window.DastyorAI.refreshProfile();
+    if (me) applyPremiumPageLiveTariff(me);
+  }
+
   document.addEventListener('DOMContentLoaded', async () => {
     window.Telegram?.WebApp?.ready?.();
     window.Telegram?.WebApp?.expand?.();
@@ -671,6 +677,13 @@
         onUser: (me) => applyPremiumPageLiveTariff(me),
       });
     }
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') void refreshPremiumLivePanel();
+    });
+    window.addEventListener('dastyor:profile-updated', () => {
+      const me = window.DastyorAI?.getUser?.();
+      if (me) applyPremiumPageLiveTariff(me);
+    });
   });
 
   let selectedPlan = "premium";

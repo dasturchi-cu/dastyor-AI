@@ -448,9 +448,40 @@
             document.getElementById('outText').value = dir === 'k2l' ? cyrillicToLatin(src) : latinToCyrillic(src);
         }
 
-        function convert() {
+        async function convert() {
             const src = document.getElementById('srcText').value.trim();
             if (!src) { showStatus('error', '⚠️', 'Matn kiriting!'); return; }
+            const apiDir = dir === 'k2l' ? 'krill_to_lotin' : 'lotin_to_krill';
+            const DA = window.DastyorAI;
+            const tok = (DA?.getToken?.() || sessionStorage.getItem('tg_token') || '') || null;
+            if (tid && /^\d+$/.test(String(tid))) {
+                try {
+                    const apiBase = location.protocol === 'file:' ? 'https://dastyor-ai.onrender.com' : location.origin;
+                    const r = await fetch(apiBase + '/api/translit', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            text: src,
+                            direction: apiDir,
+                            telegram_id: parseInt(String(tid), 10),
+                            token: tok,
+                        }),
+                    });
+                    const data = await r.json().catch(() => ({}));
+                    if (!r.ok) {
+                        throw new Error((data && data.detail) ? String(data.detail) : ('HTTP ' + r.status));
+                    }
+                    document.getElementById('outText').value = data.result || '';
+                    showStatus('success', '✅', 'Matn muvaffaqiyatli o\'girildi.');
+                    void DA?.refreshProfile?.();
+                    tg?.HapticFeedback?.notificationOccurred('success');
+                    return;
+                } catch (e) {
+                    showStatus('error', '❌', (e && e.message) ? e.message : 'Server xatosi');
+                    tg?.HapticFeedback?.notificationOccurred('error');
+                    return;
+                }
+            }
             convertNow();
             showStatus('success', '✅', 'Matn muvaffaqiyatli o\'girildi.');
             tg?.HapticFeedback?.notificationOccurred('success');

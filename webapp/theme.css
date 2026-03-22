@@ -234,7 +234,7 @@ input::placeholder, textarea::placeholder { color: var(--text-muted); }
 }
 @keyframes da-spin { to { transform: rotate(360deg); } }
 
-/* Tarif / limit — barcha webapp sahifalarida (app.js → renderTariffBanner) */
+/* Tarif chizig‘i — faqat body[data-da-show-tariff-strip="1"] bo‘lsa (app.js) */
 .da-tariff-strip {
     position: sticky;
     top: 0;

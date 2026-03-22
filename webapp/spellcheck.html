@@ -258,10 +258,16 @@
       try {
         const qs = new URLSearchParams(location.search);
         const apiBase = qs.get("api") || (location.protocol === "file:" ? "https://dastyor-ai.onrender.com" : location.origin);
+        const DA = window.DastyorAI;
+        const tidQ = DA?.getTelegramId?.() || new URLSearchParams(location.search).get('telegram_id') || sessionStorage.getItem('tg_id');
+        const tokQ = DA?.getToken?.() || sessionStorage.getItem('tg_token');
+        const quotaBody = (tidQ && /^\d+$/.test(String(tidQ)))
+          ? { telegram_id: parseInt(String(tidQ), 10), token: tokQ || null }
+          : {};
         const res = await fetch(apiBase + "/api/spellcheck", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ text })
+          body: JSON.stringify({ text, ...quotaBody })
         });
         if (!res.ok) {
           let msg = "Imlo tekshirish xatosi";
@@ -275,6 +281,7 @@
         const wc = data.word_count != null ? data.word_count : '—';
         const ec = data.error_count != null ? data.error_count : (data.fixed ?? 0);
         showStatus('statusText', 'success', `✅ So‘zlar: ${wc} · Tuzatishlar: ${ec}`);
+        void window.DastyorAI?.refreshProfile?.();
         tg?.HapticFeedback?.notificationOccurred?.('success');
         btn.disabled = false;
         return;
@@ -369,6 +376,7 @@
         document.getElementById('fileResultMeta').textContent = `So‘zlar: ${wc} · Tuzatishlar: ${ec}`;
         document.getElementById('btnDlTxt').classList.remove('hidden');
         showStatus('statusFile', 'success', notify ? '✅ Tayyor. Natija chatga ham yuborilishi mumkin.' : '✅ Tayyor.');
+        void window.DastyorAI?.refreshProfile?.();
         tg?.HapticFeedback?.notificationOccurred?.('success');
       } catch (e) {
         showStatus('statusFile', 'error', e?.message || 'Xatolik');

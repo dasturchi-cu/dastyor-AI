@@ -22,6 +22,7 @@ from backend.schemas.webapp import (
 )
 from backend.services.spellcheck_cache import spellcheck_cache_get, spellcheck_cache_key, spellcheck_cache_set
 from backend.services.user_resolve import resolve_telegram_uid
+from backend.services.web_quota import web_quota_after, web_quota_before
 from backend.settings import get_settings
 from backend.web_constants import (
     BOT_USERNAME,
@@ -36,6 +37,11 @@ from backend.web_constants import (
 logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["web-api"])
+
+
+def _resolve_web_uid_optional(telegram_id: Optional[int], token: Optional[str]) -> Optional[int]:
+    uid = resolve_telegram_uid(str(telegram_id) if telegram_id is not None else None, token)
+    return int(uid) if uid else None
 
 
 @router.post("/api/auth")
@@ -108,11 +114,23 @@ async def api_translit(req: TranslitRequest):
     if req.direction not in valid:
         raise HTTPException(status_code=400, detail=f"Noto'g'ri yo'nalish: {req.direction}")
 
+    uid = _resolve_web_uid_optional(req.telegram_id, req.token)
+    if uid:
+        from bot.services.plan_limits import CAT_TRANSLIT
+
+        web_quota_before(uid, CAT_TRANSLIT)
+
     try:
         from bot.services.transliterate_service import transliterate
 
         result = transliterate(req.text, req.direction)  # type: ignore[arg-type]
+        if uid:
+            from bot.services.plan_limits import CAT_TRANSLIT
+
+            web_quota_after(uid, CAT_TRANSLIT, "Web translit")
         return {"ok": True, "result": result, "direction": req.direction}
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error("/api/translit error: %s", e, exc_info=True)
         raise HTTPException(status_code=500, detail=str(e)[:200])
@@ -277,12 +295,22 @@ async def api_translate(req: TranslateRequest):
     if req.direction not in valid_dirs:
         raise HTTPException(status_code=400, detail=f"Noto'g'ri yo'nalish: {req.direction}")
 
+    uid = _resolve_web_uid_optional(req.telegram_id, req.token)
+    if uid:
+        from bot.services.plan_limits import CAT_TRANSLATE
+
+        web_quota_before(uid, CAT_TRANSLATE)
+
     try:
         from bot.services.ai_service import translate_text
 
         result = await translate_text(req.text, req.direction)
         if not result or result.startswith("Tarjimada xato") or result.startswith("AI model"):
             raise HTTPException(status_code=502, detail=result or "Tarjima bo'sh qaytdi")
+        if uid:
+            from bot.services.plan_limits import CAT_TRANSLATE
+
+            web_quota_after(uid, CAT_TRANSLATE, "Web translate")
         return {"ok": True, "translated_text": result, "direction": req.direction}
     except HTTPException:
         raise
@@ -301,6 +329,12 @@ async def api_spellcheck(req: SpellcheckRequest):
             detail=f"Matn {SPELLCHECK_MAX_CHARS} belgidan oshmasligi kerak",
         )
 
+    uid = _resolve_web_uid_optional(req.telegram_id, req.token)
+    if uid:
+        from bot.services.plan_limits import CAT_SPELL
+
+        web_quota_before(uid, CAT_SPELL)
+
     try:
         from bot.services.ai_service import check_spelling_text, count_words_text
 
@@ -311,6 +345,10 @@ async def api_spellcheck(req: SpellcheckRequest):
         if hit is not None:
             corrected, fixes = hit
             fc = int(fixes or 0)
+            if uid:
+                from bot.services.plan_limits import CAT_SPELL
+
+                web_quota_after(uid, CAT_SPELL, "Web spell text")
             return {
                 "ok": True,
                 "corrected_text": corrected,
@@ -325,6 +363,10 @@ async def api_spellcheck(req: SpellcheckRequest):
 
         spellcheck_cache_set(key, corrected, int(fixes or 0))
         fc = int(fixes or 0)
+        if uid:
+            from bot.services.plan_limits import CAT_SPELL
+
+            web_quota_after(uid, CAT_SPELL, "Web spell text")
         return {
             "ok": True,
             "corrected_text": corrected,
@@ -357,6 +399,11 @@ async def api_spellcheck_file(
     do_notify = str(notify_telegram).lower() in ("1", "true", "yes", "on")
     if uid:
         do_notify = True
+    uid_int = int(uid) if uid else None
+    if uid_int:
+        from bot.services.plan_limits import CAT_SPELL
+
+        web_quota_before(uid_int, CAT_SPELL)
     logger.info(
         "POST /api/spellcheck_file name=%s bytes=%s notify=%s uid=%s",
         file.filename,
@@ -408,6 +455,11 @@ async def api_spellcheck_file(
         "word_count": wc,
         "filename": file.filename or "document",
     }
+
+    if uid_int:
+        from bot.services.plan_limits import CAT_SPELL
+
+        web_quota_after(uid_int, CAT_SPELL, "Web spell file")
 
     if do_notify and uid:
         try:

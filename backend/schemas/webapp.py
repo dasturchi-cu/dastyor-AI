@@ -16,6 +16,8 @@ class AuthRequest(BaseModel):
 class TranslitRequest(BaseModel):
     text: str
     direction: str
+    telegram_id: Optional[int] = None
+    token: Optional[str] = None
 
 
 class NotifyRequest(BaseModel):
@@ -34,10 +36,14 @@ class SupportRequest(BaseModel):
 class TranslateRequest(BaseModel):
     text: str
     direction: str
+    telegram_id: Optional[int] = None
+    token: Optional[str] = None
 
 
 class SpellcheckRequest(BaseModel):
     text: str
+    telegram_id: Optional[int] = None
+    token: Optional[str] = None
 
 
 class ObjectiveRequest(BaseModel):

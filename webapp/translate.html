@@ -326,6 +326,18 @@
             tg?.HapticFeedback?.notificationOccurred('success');
         }
 
+        function webAuthQuotaPayload() {
+            const DA = window.DastyorAI;
+            const tid = DA?.getTelegramId?.()
+                || new URLSearchParams(location.search).get('telegram_id')
+                || sessionStorage.getItem('tg_id');
+            const tok = DA?.getToken?.() || sessionStorage.getItem('tg_token');
+            if (tid && /^\d+$/.test(String(tid))) {
+                return { telegram_id: parseInt(String(tid), 10), token: tok || null };
+            }
+            return {};
+        }
+
         async function tryGeminiAPI(text, src, tgt) {
             if (location.protocol === 'file:') return null;
             const dirKey = src + '_' + tgt;
@@ -339,7 +351,7 @@
                 const res = await fetch(apiBase + '/api/translate', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ text, direction: dirKey }),
+                    body: JSON.stringify({ text, direction: dirKey, ...webAuthQuotaPayload() }),
                     signal: ctrl.signal,
                 });
                 clearTimeout(timeout);
@@ -412,6 +424,7 @@
                     setEngine(result.engine);
                     showStatus('success', '✅', t('translate_done', 'Tarjima qilindi'));
                     tg?.HapticFeedback?.notificationOccurred('success');
+                    void window.DastyorAI?.refreshProfile?.();
                     btn.innerHTML = t('translate_action', '⚡ Tarjima Qilish');
                     btn.disabled = false;
                     btn.classList.remove('opacity-70');

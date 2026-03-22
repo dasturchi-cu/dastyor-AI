@@ -354,6 +354,10 @@
             if (tid) {
                 formData.append('telegram_id', tid);
                 formData.append('send_only', 'true');
+                try {
+                    const tok = DA?.getToken?.() || sessionStorage.getItem('tg_token');
+                    if (tok) formData.append('token', tok);
+                } catch (_) {}
             }
             selectedFiles.forEach(f => formData.append('files', f));
 
@@ -375,6 +379,7 @@
                 if (tid && ct.indexOf('application/json') >= 0) {
                     await res.json().catch(function () { return {}; });
                     document.getElementById('resultSub').textContent = '✅ PDF tayyor va botga yuborildi. Chatni ochib faylni oling.';
+                    void DA?.refreshProfile?.();
                 } else {
                     const blob = await res.blob();
                     const url = window.URL.createObjectURL(blob);
@@ -390,6 +395,7 @@
                         a.click();
                         setTimeout(function () { a.remove(); window.URL.revokeObjectURL(url); }, 2000);
                     } catch (e) { }
+                    if (tid) void DA?.refreshProfile?.();
                 }
 
                 hideStatus();
