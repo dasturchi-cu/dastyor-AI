@@ -137,6 +137,23 @@
     let selectedFile = null;
     let optimizedFile = null;
 
+    function ocrTelegramId() {
+        const raw = window.DastyorAI?.getTelegramId?.()
+            || new URLSearchParams(location.search).get("telegram_id")
+            || sessionStorage.getItem("tg_id")
+            || tg?.initDataUnsafe?.user?.id;
+        return raw != null ? String(raw) : "";
+    }
+
+    function ocrAppendAuth(fd) {
+        const tid = ocrTelegramId();
+        if (tid && /^\d+$/.test(tid)) fd.append("telegram_id", tid);
+        try {
+            const tok = window.DastyorAI?.getToken?.() || sessionStorage.getItem("tg_token");
+            if (tok) fd.append("token", tok);
+        } catch (_) { /* ignore */ }
+    }
+
     function showStatus(type, text) {
         const el = document.getElementById("status");
         const icon = type === "loading" ? "⏳" : (type === "success" ? "✅" : "⚠️");
@@ -216,10 +233,14 @@
     function getOcrBaseCandidates() {
         const qs = new URLSearchParams(location.search);
         const normalizeBase = (u) => String(u || "").trim().replace(/\/+$/, "");
+        let origin = "";
+        try {
+            if (location.protocol !== "file:") origin = normalizeBase(location.origin);
+        } catch (_) { /* ignore */ }
         const order = [
-            qs.get("api"),
-            location.origin,
-            window.DastyorAI?.BASE,
+            normalizeBase(window.DastyorAI?.BASE),
+            normalizeBase(qs.get("api")),
+            origin,
             "https://dastyor-ai.onrender.com",
         ];
         const seen = new Set();
@@ -268,17 +289,30 @@
                 try {
                     const fd = new FormData();
                     fd.append("file", file);
+                    ocrAppendAuth(fd);
                     const r = await fetch(base + step.path, { method: "POST", body: fd });
                     if (r.status === 404) continue;
                     if (!r.ok) {
-                        try {
-                            const err = await r.json();
-                            lastDetail = err.detail || err.error || lastDetail;
-                        } catch (_) {}
+                        let err = null;
+                        try { err = await r.json(); } catch (_) { /* ignore */ }
+                        const detail = String(err?.detail || err?.error || "").trim();
+                        if (r.status === 429) {
+                            throw new Error(detail || "Limit tugadi. Premium yoki Standart tarifni oling.");
+                        }
+                        if (r.status === 503 && step.name === "gemini") {
+                            lastDetail = detail || lastDetail;
+                        } else if (detail) {
+                            lastDetail = detail;
+                        }
                         continue;
                     }
                     const data = await r.json();
                     let text = String(data?.text || "").trim();
+                    if (!text && data?.html) {
+                        const tmp = document.createElement("div");
+                        tmp.innerHTML = String(data.html);
+                        text = (tmp.textContent || tmp.innerText || "").trim();
+                    }
                     let usedBase = base;
                     if (!text && data?.job_id) {
                         const result = await pollOcrJob(base, String(data.job_id));
@@ -316,6 +350,7 @@
             const label = engine === "gemini" ? "Matn ajratildi (AI — botdagi kabi)" : "Matn ajratildi (zaxira OCR)";
             showStatus("success", label);
             tg?.HapticFeedback?.notificationOccurred?.("success");
+            try { void window.DastyorAI?.refreshProfile?.(); } catch (_) { /* ignore */ }
         } catch (e) {
             showStatus("error", e.message || "Xatolik yuz berdi");
             tg?.HapticFeedback?.notificationOccurred?.("error");
@@ -342,7 +377,16 @@
                 try {
                     const fd = new FormData();
                     fd.append("file", file);
+                    ocrAppendAuth(fd);
                     const r = await fetch(base + "/api/ocr_extract_docx", { method: "POST", body: fd });
+                    if (r.status === 429) {
+                        let d = "";
+                        try {
+                            const j = await r.json();
+                            d = String(j.detail || "").trim();
+                        } catch (_) { /* ignore */ }
+                        throw new Error(d || "Limit tugadi. Premium yoki Standart tarifni oling.");
+                    }
                     if (!r.ok || r.status === 404) continue;
                     const blob = await r.blob();
                     if (!blob || blob.size < 100) continue;
@@ -357,6 +401,7 @@
                     ok = true;
                     showStatus("success", "Word fayl yuklandi");
                     tg?.HapticFeedback?.notificationOccurred?.("success");
+                    try { void window.DastyorAI?.refreshProfile?.(); } catch (_) { /* ignore */ }
                     break;
                 } catch (_) {}
             }

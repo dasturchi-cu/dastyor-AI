@@ -110,15 +110,13 @@ def get_alignment(element):
 
 def add_html_to_docx(doc, html_content):
     """Parses HTML and maps it to Word layout (tables, widths, alignment, inline fonts, lists)"""
-    
-    # Set Narrow Margins (1.27 cm) for better 1:1 fit
-    if doc.sections:
-        section = doc.sections[0]
-        section.left_margin = Cm(1.27)
-        section.right_margin = Cm(1.27)
-        section.top_margin = Cm(1.27)
-        section.bottom_margin = Cm(1.27)
-    
+    # python-docx Document doim kamida bitta section beradi — jadval kengligi uchun shart
+    section = doc.sections[0]
+    section.left_margin = Cm(1.27)
+    section.right_margin = Cm(1.27)
+    section.top_margin = Cm(1.27)
+    section.bottom_margin = Cm(1.27)
+
     soup = BeautifulSoup(html_content, 'html.parser')
     root = soup.body if soup.body else soup
     

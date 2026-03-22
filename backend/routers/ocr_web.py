@@ -6,6 +6,7 @@ import io
 import logging
 import os
 import time
+from functools import partial
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile
@@ -33,7 +34,29 @@ router = APIRouter(tags=["web-ocr"])
 
 
 @router.post("/api/ocr_extract")
-async def api_ocr_extract(file: UploadFile = File(...)):
+async def api_ocr_extract(
+    file: UploadFile = File(...),
+    telegram_id: Optional[str] = Form(None),
+    token: Optional[str] = Form(None),
+):
+    from config import GOOGLE_API_KEY
+
+    if not (GOOGLE_API_KEY or "").strip():
+        raise HTTPException(
+            status_code=503,
+            detail=(
+                "OCR ishlamayapti: serverda GOOGLE_API_KEY sozlanmagan. "
+                "Admin .env / Render Environment ga kalit qo'shsin."
+            ),
+        )
+
+    uid_str = resolve_telegram_uid(telegram_id, token)
+    uid_int = int(uid_str) if uid_str else None
+    if uid_int:
+        from bot.services.plan_limits import CAT_OCR
+
+        web_quota_before(uid_int, CAT_OCR)
+
     try:
         raw = await read_upload_limited(file)
     except EmptyUploadError:
@@ -57,17 +80,56 @@ async def api_ocr_extract(file: UploadFile = File(...)):
             raise HTTPException(status_code=502, detail=f"OCR xatosi: {str(e)[:200]}")
 
     if not html_text or not html_text.strip():
-        raise HTTPException(status_code=422, detail="Rasmdan matn ajratib bo'lmadi")
+        raise HTTPException(
+            status_code=422,
+            detail=(
+                "Rasmdan matn ajratilmadi. Rasmni aniqroq yuklang; yoki vaqtincha AI javob bermadi — "
+                "keyinroq qayta urinib ko'ring."
+            ),
+        )
+
+    if uid_int:
+        from bot.services.plan_limits import CAT_OCR
+
+        web_quota_after(uid_int, CAT_OCR, "Web OCR matn")
+        try:
+            from bot.services.supabase_db import db_insert_action_log
+
+            db_insert_action_log(uid_int, "ocr_web", file.filename or "image")
+        except Exception:
+            pass
 
     plain = html_ocr_to_plain(html_text)
     return {"ok": True, "text": plain, "html": html_text}
 
 
 @router.post("/api/ocr_extract_docx")
-async def api_ocr_extract_docx(file: UploadFile = File(...)):
+async def api_ocr_extract_docx(
+    file: UploadFile = File(...),
+    telegram_id: Optional[str] = Form(None),
+    token: Optional[str] = Form(None),
+):
     """
     Bot bilan bir xil: Gemini → HTML → python-docx (1:1 layout).
     """
+    from config import GOOGLE_API_KEY
+
+    if not (GOOGLE_API_KEY or "").strip():
+        raise HTTPException(
+            status_code=503,
+            detail=(
+                "OCR ishlamayapti: serverda GOOGLE_API_KEY sozlanmagan. "
+                "Admin .env / Render Environment ga kalit qo'shsin."
+            ),
+        )
+
+    uid_str = resolve_telegram_uid(telegram_id, token)
+    uid_int = int(uid_str) if uid_str else None
+    if uid_int:
+        from bot.services.plan_limits import CAT_OCR
+
+        web_quota_before(uid_int, CAT_OCR)
+
     try:
         raw = await read_upload_limited(file)
     except EmptyUploadError:
@@ -91,7 +153,12 @@ async def api_ocr_extract_docx(file: UploadFile = File(...)):
             raise HTTPException(status_code=502, detail=f"OCR xatosi: {str(e)[:200]}")
 
     if not html_text or not html_text.strip():
-        raise HTTPException(status_code=422, detail="Rasmdan matn ajratib bo'lmadi")
+        raise HTTPException(
+            status_code=422,
+            detail=(
+                "Rasmdan matn ajratilmadi. Rasmni aniqroq yuklang yoki keyinroq qayta urinib ko'ring."
+            ),
+        )
 
     try:
         from docx import Document
@@ -112,6 +179,17 @@ async def api_ocr_extract_docx(file: UploadFile = File(...)):
     except Exception as e:
         logger.error("api_ocr_extract_docx DOCX xatosi: %s", e, exc_info=True)
         raise HTTPException(status_code=500, detail=f"Word yaratishda xato: {str(e)[:200]}")
+
+    if uid_int:
+        from bot.services.plan_limits import CAT_OCR
+
+        web_quota_after(uid_int, CAT_OCR, "Web OCR Word")
+        try:
+            from bot.services.supabase_db import db_insert_action_log
+
+            db_insert_action_log(uid_int, "ocr_web_docx", file.filename or "image")
+        except Exception:
+            pass
 
     ts = int(time.time())
     fname = f"OCR_1to1_{ts}.docx"
@@ -480,7 +558,12 @@ async def api_pdf_direct(
             from bot.services.pdf_service import images_to_pdf
 
             loop = asyncio.get_running_loop()
-            await loop.run_in_executor(None, images_to_pdf, img_paths, pdf_path)
+            web_max = int(os.getenv("PDF_WEB_MAX_SIDE", "1280"))
+            web_res = float(os.getenv("PDF_WEB_RESOLUTION", "85"))
+            await loop.run_in_executor(
+                None,
+                partial(images_to_pdf, img_paths, pdf_path, max_dimension=web_max, pdf_resolution=web_res),
+            )
         except Exception as build_err:
             logger.error("[PDF API] PDF yaralishda xato: %s", build_err, exc_info=True)
             safe_remove(*img_paths)
@@ -499,6 +582,12 @@ async def api_pdf_direct(
             from bot.services.plan_limits import CAT_IMAGE_PDF
 
             web_quota_after(uid_int, CAT_IMAGE_PDF, "Web Rasm→PDF")
+            try:
+                from bot.services.supabase_db import db_insert_action_log
+
+                db_insert_action_log(uid_int, "pdf_web", f"{n_files}_images.pdf")
+            except Exception:
+                pass
 
         tid_ok = telegram_id and telegram_id.strip().isdigit()
         if tid_ok:
@@ -517,12 +606,6 @@ async def api_pdf_direct(
                             f"📄 {n_merge} ta rasm birlashtirildi."
                         ),
                     )
-                    try:
-                        from bot.services.supabase_db import db_insert_action_log
-
-                        db_insert_action_log(chat_id, "pdf", buf.name or "merged.pdf")
-                    except Exception:
-                        pass
                 except Exception as tg_err:
                     logger.error("[PDF API Background] Telegram xatosi: %s", tg_err, exc_info=True)
 

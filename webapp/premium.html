@@ -81,6 +81,25 @@
     }
     .header-text p { font-size: 12px; color: var(--muted2); margin-top: 3px; }
 
+    .limits-toggle-btn {
+      width: 100%;
+      margin: -6px 0 16px;
+      padding: 12px 16px;
+      border-radius: 14px;
+      border: 1px solid var(--border2);
+      background: var(--card2);
+      color: var(--b4);
+      font-size: 14px;
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+      transition: background .2s, border-color .2s;
+    }
+    .limits-toggle-btn:hover {
+      background: rgba(59,130,246,.12);
+      border-color: var(--b5);
+    }
+
     /* ── PLAN CARD ── */
     .plan {
       background: var(--card);
@@ -349,6 +368,10 @@
     </div>
   </div>
 
+  <button type="button" id="btnPremiumLimits" class="limits-toggle-btn" aria-expanded="false" aria-controls="userLiveTariff" onclick="togglePremiumLimitsPanel()">
+    📊 Mening limitlarim
+  </button>
+
   <!-- Serverdagi haqiqiy tarif va limit (botdagi «Balans» bilan bir xil) -->
   <div id="userLiveTariff" class="plan live-tariff hidden" aria-live="polite">
     <div class="plan-head">
@@ -574,7 +597,6 @@
       return;
     }
 
-    box.classList.remove("hidden");
     const label = me.plan_label || me.plan || "—";
     const br = me.limits_breakdown;
 
@@ -663,10 +685,29 @@
   }
 
   async function refreshPremiumLivePanel() {
+    const box = document.getElementById("userLiveTariff");
+    if (!box || box.classList.contains("hidden")) return;
     if (!window.DastyorAI?.refreshProfile) return;
     const me = await window.DastyorAI.refreshProfile();
     if (me) applyPremiumPageLiveTariff(me);
   }
+
+  window.togglePremiumLimitsPanel = function () {
+    const box = document.getElementById("userLiveTariff");
+    const btn = document.getElementById("btnPremiumLimits");
+    if (!box || !btn) return;
+    const opening = box.classList.contains("hidden");
+    if (opening) {
+      box.classList.remove("hidden");
+      btn.textContent = "▲ Limitlarni yashirish";
+      btn.setAttribute("aria-expanded", "true");
+      void refreshPremiumLivePanel();
+    } else {
+      box.classList.add("hidden");
+      btn.textContent = "📊 Mening limitlarim";
+      btn.setAttribute("aria-expanded", "false");
+    }
+  };
 
   document.addEventListener('DOMContentLoaded', async () => {
     window.Telegram?.WebApp?.ready?.();
@@ -678,7 +719,9 @@
       });
     }
     document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'visible') void refreshPremiumLivePanel();
+      if (document.visibilityState !== 'visible') return;
+      const live = document.getElementById('userLiveTariff');
+      if (live && !live.classList.contains('hidden')) void refreshPremiumLivePanel();
     });
     window.addEventListener('dastyor:profile-updated', () => {
       const me = window.DastyorAI?.getUser?.();
