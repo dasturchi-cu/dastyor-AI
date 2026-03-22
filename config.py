@@ -25,6 +25,10 @@ SUPABASE_ANON_KEY = os.getenv("SUPABASE_ANON_KEY")
 # Daily free usage limit per user (0 = unlimited)
 DAILY_FREE_LIMIT = int(os.getenv("DAILY_FREE_LIMIT", "10"))
 
+# WebApp (Telegram Mini App) — bot va backend bir xil domenga ishora qilishi kerak
+WEBAPP_BASE = os.getenv("WEBAPP_BASE", "https://dastyor-ai.onrender.com/webapp").rstrip("/")
+WEBAPP_VERSION = os.getenv("WEBAPP_VERSION", "20260322")
+
 if not BOT_TOKEN:
     logger.critical("BOT_TOKEN is missing! Please create a .env file with BOT_TOKEN=your_token_here")
 

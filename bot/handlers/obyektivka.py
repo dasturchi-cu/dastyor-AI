@@ -5,11 +5,14 @@ import os
 import time
 import logging
 from bot.utils.progress import send_progress, update_progress
-from bot.services.ai_service import transcribe_audio, extract_obyektivka_data
+from bot.services.ai_service import (
+    transcribe_audio,
+    extract_obyektivka_data,
+    is_valid_transcription_text,
+)
+from config import WEBAPP_BASE, WEBAPP_VERSION
 import json
 
-WEBAPP_BASE = os.getenv("WEBAPP_BASE", "https://dastyor-ai.onrender.com/webapp")
-WEBAPP_VERSION = os.getenv("WEBAPP_VERSION", "20260311")
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 logger = logging.getLogger(__name__)
@@ -26,12 +29,10 @@ async def process_obyektivka_from_audio_path(context, audio_path, chat_id, user_
         # 1. Transcribe
         transcribed_text = await transcribe_audio(audio_path)
         
-        # Cleanup audio (optional, but good practice here if it was temp)
-        # But caller might want to keep it. Let's not delete audio here. Or maybe we should?
-        # Let caller handle audio deletion.
-        
-        if not transcribed_text:
-            await progress_msg.edit_text("❌ Audio tushunarsiz. Iltimos, aniqroq gapiring.")
+        if not is_valid_transcription_text(transcribed_text):
+            await progress_msg.edit_text(
+                "❌ Audio tushunarsiz yoki STT xatosi. Iltimos, qisqa ovozli xabar yuboring (o'zbek tilida, aniq gapiring)."
+            )
             return
 
         await update_progress(context, progress_msg, 50, "Ma'lumotlar ajratilmoqda (AI)...")
@@ -62,11 +63,16 @@ async def process_obyektivka_from_audio_path(context, audio_path, chat_id, user_
         try:
             from bot.services.supabase_db import db_insert_action_log
 
+            tr = (transcribed_text or "").strip()
             db_insert_action_log(
                 int(user_id),
                 "obyektivka_voice",
                 None,
-                {"fullname": (extracted_data.get("fullname") or "")[:80]},
+                {
+                    "fullname": (extracted_data.get("fullname") or "")[:120],
+                    "transcript_preview": tr[:2000],
+                    "transcript_chars": len(tr),
+                },
             )
         except Exception:
             pass

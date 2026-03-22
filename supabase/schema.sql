@@ -28,7 +28,9 @@ CREATE TABLE IF NOT EXISTS public.users (
   usage_count int DEFAULT 0,
   limit_count int,
   daily_limit int DEFAULT 10,
-  used_count int DEFAULT 0
+  used_count int DEFAULT 0,
+  pending_oby_json jsonb,
+  pending_oby_updated_at timestamptz
 );
 
 CREATE INDEX IF NOT EXISTS idx_users_user_plan ON public.users (user_plan);

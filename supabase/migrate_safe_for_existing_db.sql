@@ -13,6 +13,10 @@ ALTER TABLE public.users ADD COLUMN IF NOT EXISTS used_count integer DEFAULT 0;
 ALTER TABLE public.users ADD COLUMN IF NOT EXISTS usage_count integer DEFAULT 0;
 ALTER TABLE public.users ADD COLUMN IF NOT EXISTS limit_count integer;
 
+-- Ovozli obyektivka: Web App /api/get_oby_data uchun (bir nechta worker ham ishlashi mumkin)
+ALTER TABLE public.users ADD COLUMN IF NOT EXISTS pending_oby_json jsonb;
+ALTER TABLE public.users ADD COLUMN IF NOT EXISTS pending_oby_updated_at timestamptz;
+
 -- logs: Python db_insert_action_log uchun
 ALTER TABLE public.logs ADD COLUMN IF NOT EXISTS action_type text;
 ALTER TABLE public.logs ADD COLUMN IF NOT EXISTS file_name text;

@@ -108,6 +108,27 @@ def _set_pptx_paragraph_text(para, text: str):
         para.add_run().text = text
 
 
+_STT_FAILURE_SUBSTRINGS = (
+    "Audio yuklashda xatolik",
+    "qayta ishlashda xatolik",
+    "AI model xatosi",
+    "Audio tanilmadi",
+    "Bo'sh javob",
+    "transkripsiya xatoligi",
+)
+
+
+def is_valid_transcription_text(text: str) -> bool:
+    """True agar matn haqiqiy transkripsiya bo'lsa (xato xabari emas)."""
+    t = (text or "").strip()
+    if len(t) < 2:
+        return False
+    u = t.upper()
+    if u in ("[EMPTY]", "[BO'SH]", "[BOSH]"):
+        return False
+    return not any(s in t for s in _STT_FAILURE_SUBSTRINGS)
+
+
 async def transcribe_audio(audio_file_path: str) -> str:
     """
     Transcribe audio using Gemini 3 Flash (Multimodal) asynchronously
@@ -149,7 +170,15 @@ async def transcribe_audio(audio_file_path: str) -> str:
         if not model: return "AI model xatosi."
         
         result = await _gcall(model.generate_content_async(
-            [myfile, "Transcribe the speech in this audio to text accurately. Do not add any description, just the transcript."]
+            [
+                myfile,
+                (
+                    "Transcribe the speech in this audio to plain text. "
+                    "Preserve Uzbek (Latin or Cyrillic) as spoken; do not translate to English. "
+                    "If the audio is silent or unintelligible, reply with exactly: [EMPTY]. "
+                    "Otherwise output only the transcript, no labels or commentary."
+                ),
+            ]
         ))
 
         # Cleanup (non-blocking)
@@ -161,7 +190,10 @@ async def transcribe_audio(audio_file_path: str) -> str:
         if not result or not result.candidates:
             return "Audio tanilmadi."
 
-        return result.text if result.text else "Bo'sh javob."
+        raw = (result.text or "").strip()
+        if raw.upper() in ("[EMPTY]", "[BO'SH]", "[BOSH]"):
+            return ""
+        return raw if raw else "Bo'sh javob."
 
     except Exception as e:
         logger.error(f"Gemini Async Transcription error: {e}", exc_info=True)
@@ -589,6 +621,35 @@ async def generate_objective(role: str, experience: str = "junior", extra: str =
         return f"Xatolik: {str(e)[:200]}"
 
 
+def _oby_extract_has_content(d: dict) -> bool:
+    """Hech bo'lmaganda bitta mazmunli maydon bor-yo'qligini tekshirish."""
+    if not d:
+        return False
+    skip = {"", "yo'q", "yoq", "yok", "нет", "no", "none"}
+    for k, v in d.items():
+        if k == "relatives" and isinstance(v, list):
+            for r in v:
+                if isinstance(r, dict) and any(
+                    str(x).strip() for x in r.values() if x is not None
+                ):
+                    return True
+            continue
+        if k == "work_experience" and isinstance(v, list):
+            for w in v:
+                if not isinstance(w, dict):
+                    continue
+                for x in w.values():
+                    s = str(x).strip().lower() if x is not None else ""
+                    if s and s not in skip:
+                        return True
+            continue
+        if isinstance(v, str):
+            s = v.strip().lower()
+            if s and s not in skip:
+                return True
+    return False
+
+
 async def extract_obyektivka_data(text: str) -> dict:
     """
     Extract structured data from text using Gemini asynchronously
@@ -597,12 +658,21 @@ async def extract_obyektivka_data(text: str) -> dict:
     if not model: return {}
     
     prompt = f"""
-    Quyidagi matndan shaxsiy ma'lumotlarni ajratib ber JSON formatida.
+    Quyidagi matn ovozli obyektivka yoki qo'lda yozilgan shaxsiy ma'lumot bo'lishi mumkin.
+    Matn to'liq bo'lmasa ham, aytilgan har bir faktni mos maydonga joylashtir.
+    Agar faqat ism/familiya, yosh, kasb, tajriba, ko'nikmalar aytilgan bo'lsa:
+    - ism+familiyani "fullname" ga birlashtir (Familiya Ism Sharif tartibida, sharif bo'lmasa ikkita so'z yetarli)
+    - yosh yoki tug'ilgan yilni "birthdate" ga KK.OO.YYYY yoki taxminiy yil bilan yoz
+    - kasb/mutaxassislikni "specialty" ga
+    - ish tajribasini "work_experience" ro'yxatiga (year: davr yoki yil, position: lavozim va joy)
+    - ko'nikmalarni "languages" yoki "graduated"/"education" qatoriga qisqa qilib joylashtir (agar til bo'lmasa)
+
     Matn: {text}
-    JSON struktura (HECH QANDAY MARKDOWNSIZ):
+
+    Faqat bitta JSON qaytar (markdown, ``` yo'q):
     {{
         "fullname": "Familiya Ism Sharif",
-        "birthdate": "KK.OO.YYYY",
+        "birthdate": "KK.OO.YYYY yoki bo'sh",
         "birthplace": "Viloyat, Tuman",
         "nation": "Millati",
         "party": "Partiyaviyligi",
@@ -613,7 +683,7 @@ async def extract_obyektivka_data(text: str) -> dict:
         "scientific_title": "Ilmiy unvoni",
         "languages": "Tillar",
         "military_rank": "Harbiy unvoni",
-        "awards": "Mukofotlari", 
+        "awards": "Mukofotlari",
         "deputy": "Deputatligi",
         "work_experience": [{{"year": "Yillar", "position": "Ish joyi"}}],
         "relatives": [{{"degree": "Qarindoshligi", "fullname": "F.I.SH", "birth_year_place": "Tug'ilgan yili va joyi", "work_place": "Ish joyi", "address": "Yashash manzili"}}]
@@ -629,7 +699,10 @@ async def extract_obyektivka_data(text: str) -> dict:
         end = cleaned.rfind('}') + 1
         if start != -1 and end != -1:
             cleaned = cleaned[start:end]
-        return json.loads(cleaned)
+        parsed = json.loads(cleaned)
+        if isinstance(parsed, dict) and _oby_extract_has_content(parsed):
+            return parsed
+        return {}
 
     except Exception as e:
         logger.error(f"Async Data extraction error: {e}")

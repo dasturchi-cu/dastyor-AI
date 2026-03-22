@@ -118,6 +118,66 @@ def has_db() -> bool:
     return _get_client() is not None
 
 
+# ── pending obyektivka (voice → /api/get_oby_data) ───────────────────────────
+def db_save_pending_oby(user_id: int, data: dict) -> bool:
+    """Saqlangan JSON Web App forma avto-to'ldirish uchun (Supabase bo'lsa)."""
+    c = _get_client()
+    if not c or not isinstance(data, dict):
+        return False
+    uid = int(user_id)
+    now = datetime.utcnow().isoformat()
+    payload = {"pending_oby_json": data, "pending_oby_updated_at": now}
+    try:
+        chk = c.table("users").select("id").eq("id", uid).limit(1).execute()
+        if chk.data:
+            c.table("users").update(payload).eq("id", uid).execute()
+        else:
+            c.table("users").insert(
+                {
+                    "id": uid,
+                    "first_name": "",
+                    "username": "",
+                    "chat_id": uid,
+                    **payload,
+                }
+            ).execute()
+        return True
+    except Exception as e:
+        _log_write_error("db_save_pending_oby", e)
+        return False
+
+
+def db_get_pending_oby(user_id: int) -> Optional[dict]:
+    c = _get_client()
+    if not c:
+        return None
+    try:
+        r = c.table("users").select("pending_oby_json").eq("id", int(user_id)).limit(1).execute()
+        if not r.data:
+            return None
+        raw = r.data[0].get("pending_oby_json")
+        if isinstance(raw, dict) and raw:
+            return raw
+        return None
+    except Exception as e:
+        _log_write_error("db_get_pending_oby", e)
+        return None
+
+
+def db_clear_pending_oby(user_id: int) -> bool:
+    c = _get_client()
+    if not c:
+        return False
+    try:
+        c.table("users").update(
+            {"pending_oby_json": None, "pending_oby_updated_at": None}
+        ).eq("id", int(user_id)).execute()
+        return True
+    except Exception as e:
+        _log_write_error("db_clear_pending_oby", e)
+        return False
+
+
 # ── users ────────────────────────────────────────────────────────────────────
 def db_get_user(user_id: int | str) -> Optional[dict]:
     c = _get_client()

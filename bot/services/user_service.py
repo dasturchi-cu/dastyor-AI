@@ -251,25 +251,49 @@ def log_premium_transaction(user_id, days, admin_id="Admin"):
         _save_profiles()
 
 def save_pending_oby_data(user_id, data: dict):
-    """Save AI-extracted obyektivka data to user profile (persistent storage)."""
-    profiles = _load_profiles()
+    """Save AI-extracted obyektivka data (Supabase + mahalliy JSON fallback)."""
     uid = str(user_id)
+    try:
+        from bot.services.supabase_db import has_db, db_save_pending_oby
+
+        if has_db():
+            db_save_pending_oby(int(user_id), data)
+    except Exception as e:
+        logger.debug("save_pending_oby_data Supabase: %s", e)
+
+    profiles = _load_profiles()
     if uid not in profiles:
         profiles[uid] = {}
-    profiles[uid]['pending_oby_data'] = data
+    profiles[uid]["pending_oby_data"] = data
     _save_profiles()
 
-def get_pending_oby_data(user_id) -> dict:
+def get_pending_oby_data(user_id):
     """Return saved pending obyektivka data or None."""
+    try:
+        from bot.services.supabase_db import has_db, db_get_pending_oby
+
+        if has_db():
+            row = db_get_pending_oby(int(user_id))
+            if row:
+                return row
+    except Exception as e:
+        logger.debug("get_pending_oby_data Supabase: %s", e)
     profiles = _load_profiles()
-    return profiles.get(str(user_id), {}).get('pending_oby_data')
+    return profiles.get(str(user_id), {}).get("pending_oby_data")
 
 def clear_pending_oby_data(user_id):
     """Remove pending obyektivka data after use."""
+    try:
+        from bot.services.supabase_db import has_db, db_clear_pending_oby
+
+        if has_db():
+            db_clear_pending_oby(int(user_id))
+    except Exception as e:
+        logger.debug("clear_pending_oby_data Supabase: %s", e)
     profiles = _load_profiles()
     uid = str(user_id)
-    if uid in profiles and 'pending_oby_data' in profiles[uid]:
-        del profiles[uid]['pending_oby_data']
+    if uid in profiles and "pending_oby_data" in profiles[uid]:
+        del profiles[uid]["pending_oby_data"]
         _save_profiles()
 
 def get_daily_crm_stats():
