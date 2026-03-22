@@ -563,7 +563,12 @@ def db_service_bucket_increment(user_id: int, bucket_key: str) -> int:
             )
             if r2.data:
                 c.table("service_usage_buckets").update({"count": new_c}).eq("id", r2.data[0]["id"]).execute()
-            return new_c
+                return new_c
+            # Qator yo'q edi — faqat return qilish xato (DB 0 qolardi)
+            c.table("service_usage_buckets").insert(
+                {"user_id": uid, "bucket_key": bucket_key, "count": 1}
+            ).execute()
+            return 1
         except Exception as e2:
             _log_write_error("db_service_bucket_increment", e2)
             return 0

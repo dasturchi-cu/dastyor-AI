@@ -180,12 +180,12 @@ def _local_bucket_incr(user_id: int, bucket_key: str) -> int:
 
 def _incr_bucket(user_id: int, bucket_key: str) -> int:
     """
-    Supabase yozuvi muvaffaqiyatsiz bo'lsa (RPC yo'q, RLS, va h.k.)
-    db_service_bucket_increment ba'zan 0 qaytaradi — shunda mahalliy faylga
-    ham +1 (o'qishda max(db, local) birlashtiriladi).
+    Supabase yoqilgan bo'lsa — faqat DB (bot va API turli server/daemonda bo'lsa ham bir xil raqam).
+    DB 0 qaytarsa mahalliy fayl yolg'on +1 beradi (faqat ixtiyoriy env bilan).
     """
+    import os
+
     uid = int(user_id)
-    db_n = 0
     try:
         from bot.services.supabase_db import has_db, db_service_bucket_increment
 
@@ -193,12 +193,20 @@ def _incr_bucket(user_id: int, bucket_key: str) -> int:
             db_n = int(db_service_bucket_increment(uid, bucket_key))
             if db_n >= 1:
                 return db_n
-            if db_n == 0:
-                logger.warning(
-                    "plan_limits: bucket increment DB=0 user=%s key=%s — local fallback",
-                    uid,
-                    bucket_key[:80],
-                )
+            logger.error(
+                "plan_limits: Supabase bucket +1 ishlamadi (user=%s key=%s). "
+                "Supabase SQL Editor: supabase/service_usage_buckets.sql va supabase/rpc_quota_atomic.sql",
+                uid,
+                bucket_key[:100],
+            )
+            if os.getenv("PLAN_QUOTA_LOCAL_FALLBACK_WITH_DB", "").strip().lower() in (
+                "1",
+                "true",
+                "yes",
+            ):
+                logger.warning("plan_limits: PLAN_QUOTA_LOCAL_FALLBACK_WITH_DB=1 — faqat bitta serverda test uchun")
+                return _local_bucket_incr(uid, bucket_key)
+            return 0
     except Exception as e:
         logger.debug("plan_limits db incr: %s", e)
     return _local_bucket_incr(uid, bucket_key)
@@ -322,12 +330,11 @@ def record_category_use(user_id: int, category: str) -> bool:
     """
     Muvaffaqiyatli xizmatdan keyin chaqiriladi.
     False = cheksiz/blocked yoki bucket yo'q (increment qilinmadi).
-    """
-    from bot.services.admin_service import is_admin
 
+    Eslatma: admin uchun ham bucket +1 (Balansdagi «ishlatilgan» soni ishonchli bo‘lsin).
+    Limit tekshiruvi can_use_category da admin uchun alohida «cheksiz».
+    """
     uid = int(user_id)
-    if is_admin(uid):
-        return True
     st = category_status(uid, category)
     if st.get("unlimited"):
         return True
@@ -342,7 +349,16 @@ def record_category_use(user_id: int, category: str) -> bool:
     bkey = resolve_bucket_key(uid, category, mode)
     if not bkey:
         return False
-    _incr_bucket(uid, bkey)
+    inc = _incr_bucket(uid, bkey)
+    if inc < 1:
+        logger.error(
+            "record_category_use: bucket yozilmadi (user=%s category=%s key=%s). "
+            "Supabase jadval/RPC yoki PLAN_QUOTA_LOCAL_FALLBACK_WITH_DB=1 (faqat test).",
+            uid,
+            category,
+            bkey[:100],
+        )
+        return False
     try:
         from bot.services.supabase_db import db_log_usage
 
