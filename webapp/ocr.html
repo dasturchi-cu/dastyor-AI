@@ -312,6 +312,19 @@
         throw new Error("OCR juda uzoq davom etdi. Keyinroq urinib ko'ring.");
     }
 
+    function isGoodLayoutHtml(html) {
+        const h = String(html || "").trim();
+        if (h.length < 80) return false;
+        const tmp = document.createElement("div");
+        tmp.innerHTML = h;
+        const txt = (tmp.textContent || tmp.innerText || "").replace(/\s+/g, " ").trim();
+        if (txt.length < 40) return false;
+        const qmarks = (txt.match(/\?/g) || []).length;
+        const numbered = (txt.match(/\b\d{1,2}\.\s/g) || []).length;
+        if (qmarks >= 4 && numbered <= 1) return false;
+        return true;
+    }
+
     /**
      * Avval Paddle layout (bbox + HTML), keyin Gemini (/api/ocr_extract), keyin oddiy Paddle, /api/ocr.
      */
@@ -350,8 +363,9 @@
                     let text = String(data?.text || "").trim();
                     const htmlLayout = String(data?.html_layout || "").trim();
                     const apiHtml = String(data?.html || "").trim();
-                    // Word 1:1 uchun layoutni ustun qilamiz: raqamlar/joylashuv yaxshiroq saqlanadi
-                    const docHtml = htmlLayout || apiHtml || "";
+                    const goodLayout = isGoodLayoutHtml(htmlLayout);
+                    // Layout sifati past bo'lsa, Word uchun Gemini HTML'ni ustun qilamiz.
+                    const docHtml = (goodLayout ? htmlLayout : "") || apiHtml || htmlLayout || "";
                     if (!text && data?.html) {
                         const tmp = document.createElement("div");
                         tmp.innerHTML = String(data.html);
@@ -363,6 +377,10 @@
                         text = String(result?.text || "").trim();
                     }
                     if (text && htmlLayout) {
+                        if (step.name === "paddle_layout" && !goodLayout) {
+                            lastDetail = "Paddle layout sifati past — Gemini fallback";
+                            continue;
+                        }
                         return { text, html_layout: htmlLayout, docHtml, base: usedBase, engine: step.name, raw: data };
                     }
                     if (text) {

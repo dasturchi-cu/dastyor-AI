@@ -6,6 +6,7 @@ Uses a dedicated thread pool so OCR never blocks other bot features.
 import logging
 import asyncio
 import os
+import re
 import tempfile
 import time
 import warnings
@@ -121,6 +122,25 @@ def _extract_layout_with_paddle_sync(image_path: str) -> str:
         return ""
 
 
+def _layout_html_quality_ok(layout_html: str) -> bool:
+    """
+    Heuristic gate:
+    - Agar savolnoma/list hujjatda raqamlar tushib qolsa, Paddle layoutni rad etib Gemini'ga o'tamiz.
+    """
+    h = (layout_html or "").strip()
+    if len(h) < 80:
+        return False
+    txt = re.sub(r"<[^>]+>", " ", h)
+    txt = re.sub(r"\s+", " ", txt).strip()
+    if len(txt) < 40:
+        return False
+    qmarks = txt.count("?")
+    numbered = len(re.findall(r"\b\d{1,2}\.\s", txt))
+    if qmarks >= 4 and numbered <= 1:
+        return False
+    return True
+
+
 async def extract_text_from_image(image_path: str) -> str:
     """
     Extracts text from an image file using Gemini asynchronously.
@@ -143,9 +163,11 @@ async def extract_text_from_image(image_path: str) -> str:
             paddle_html = await loop.run_in_executor(
                 _ocr_executor, _extract_layout_with_paddle_sync, image_path
             )
-            if paddle_html:
+            if paddle_html and _layout_html_quality_ok(paddle_html):
                 logger.info("OCR done via Paddle layout in %.1fs path=%s", time.perf_counter() - t0, image_path)
                 return paddle_html
+            if paddle_html:
+                logger.info("Paddle layout quality low, fallback to Gemini path=%s", image_path)
 
         myfile = await loop.run_in_executor(_ocr_executor, _blocking_upload_path, image_path)
         if not myfile or myfile.state.name == "FAILED":
