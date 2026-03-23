@@ -486,6 +486,14 @@ async def check_spelling_text(text: str) -> tuple[str, int]:
                     out.append(ins)
                 elif len(ins) <= 5 and not any(ch.isalnum() for ch in ins):
                     out.append(ins)
+                elif len(ins) <= 3 and ins.isalpha():
+                    # Spellcheckda eng ko'p holat: so'z ichiga 1-3 ta harf yetishmaydi
+                    # (masalan: "beramdi" -> "beradimi"). Buni ruxsat beramiz,
+                    # lekin faqat so'z ichida bo'lsa.
+                    prev_ch = s[i1 - 1] if i1 > 0 else ""
+                    next_ch = s[i1] if i1 < len(s) else ""
+                    if prev_ch.isalpha() and next_ch.isalpha():
+                        out.append(ins)
                 else:
                     # Ignore letter/number insertions.
                     pass
@@ -493,8 +501,14 @@ async def check_spelling_text(text: str) -> tuple[str, int]:
 
         merged = "".join(out)
         # Final sanity guard.
-        if SequenceMatcher(None, s, merged).ratio() < 0.55:
+        merged_ratio = SequenceMatcher(None, s, merged).ratio()
+        if merged_ratio < 0.55:
             return s
+        # Agar konservativ merge juda ko'p narsani kesib yuborsa, lekin candidate juda yaqin bo'lsa,
+        # candidate'ni qabul qilamiz (real typo-fixlar yo'qolib ketmasin).
+        cand_ratio = SequenceMatcher(None, s, c).ratio()
+        if merged == s and cand_ratio >= 0.92 and abs(len(c) - len(s)) <= max(6, int(len(s) * 0.2)):
+            return c
         return merged
 
     def _count_fixes(source: str, corrected: str) -> int:
