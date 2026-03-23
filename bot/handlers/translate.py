@@ -146,6 +146,19 @@ async def process_translation(update: Update, context: ContextTypes.DEFAULT_TYPE
             # - others: extract text -> translate -> return .txt
             if ext == ".docx":
                 translated_path = await translate_document_gemini(temp_path, target_lang)
+                if not translated_path or not os.path.exists(translated_path):
+                    # Reliable fallback: extract text and return translated .txt
+                    with open(temp_path, "rb") as rf:
+                        raw = rf.read()
+                    src_text = extract_plain_text_from_bytes(file_name, raw)
+                    if not (src_text or "").strip():
+                        raise Exception("Fayldan matn ajratilmadi")
+                    translated_text = await translate_text(src_text, direction)
+                    if not translated_text or translated_text.startswith("Tarjimada xato") or translated_text.startswith("AI model"):
+                        raise Exception(translated_text or "Tarjima bo'sh qaytdi")
+                    translated_path = temp_path.replace(ext, f"_translated_{target_lang}.txt")
+                    with open(translated_path, "w", encoding="utf-8") as wf:
+                        wf.write(translated_text)
             else:
                 with open(temp_path, "rb") as rf:
                     raw = rf.read()

@@ -35,6 +35,7 @@ from backend.web_constants import (
 )
 
 logger = logging.getLogger(__name__)
+SPELLCHECK_FILE_MAX_CHARS = int(os.getenv("SPELLCHECK_FILE_MAX_CHARS", "150000"))
 
 router = APIRouter(tags=["web-api"])
 
@@ -429,10 +430,10 @@ async def api_spellcheck_file(
         raise HTTPException(status_code=422, detail="Fayldan matn ajratilmadi")
 
     src = text.strip()
-    if len(src) > SPELLCHECK_MAX_CHARS:
+    if len(src) > SPELLCHECK_FILE_MAX_CHARS:
         raise HTTPException(
             status_code=400,
-            detail=f"Matn {SPELLCHECK_MAX_CHARS} belgidan oshmasligi kerak",
+            detail=f"Fayldan olingan matn {SPELLCHECK_FILE_MAX_CHARS} belgidan oshmasligi kerak",
         )
 
     from bot.services.ai_service import check_spelling_text, count_words_text

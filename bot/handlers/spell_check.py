@@ -129,11 +129,29 @@ async def process_spell_check(update: Update, context: ContextTypes.DEFAULT_TYPE
         temp_path = f"temp_spell_{update.effective_user.id}_{int(time.time())}{ext}"
         await file.download_to_drive(temp_path)
         
+        async def _plain_fallback_from_file(path: str, name_hint: str) -> tuple[str, int, int]:
+            with open(path, "rb") as rf:
+                raw = rf.read()
+            source_text = extract_plain_text_from_bytes(name_hint, raw)
+            if not (source_text or "").strip():
+                raise Exception("Fayldan matn ajratilmadi")
+            corrected_text, fixed_local = await check_spelling_text(source_text)
+            out_path = path.replace(ext, "_checked.txt")
+            with open(out_path, "w", encoding="utf-8") as wf:
+                wf.write(corrected_text)
+            return out_path, int(fixed_local or 0), int(fixed_local or 0)
+
         # Choose correct spell checker
         if ext == '.pptx':
-            output_path, errors, fixed = await check_spelling_pptx(temp_path)
+            try:
+                output_path, errors, fixed = await check_spelling_pptx(temp_path)
+            except Exception:
+                output_path, errors, fixed = await _plain_fallback_from_file(temp_path, file_name)
         elif ext == '.docx':
-            output_path, errors, fixed = await check_spelling_gemini(temp_path)
+            try:
+                output_path, errors, fixed = await check_spelling_gemini(temp_path)
+            except Exception:
+                output_path, errors, fixed = await _plain_fallback_from_file(temp_path, file_name)
         else:
             if ext == ".txt":
                 source_text = _read_text_file(temp_path)
