@@ -297,11 +297,13 @@ async def api_translate(req: TranslateRequest):
 
     quota = None
     try:
-        from bot.services.ai_service import translate_text
+        from bot.services.ai_service import is_meaningfully_changed, translate_text
 
         result = await translate_text(req.text, req.direction)
         if not result or result.startswith("Tarjimada xato") or result.startswith("AI model"):
             raise HTTPException(status_code=502, detail=result or "Tarjima bo'sh qaytdi")
+        if not is_meaningfully_changed(req.text, result):
+            raise HTTPException(status_code=422, detail="Tarjima natijasi original bilan bir xil chiqdi")
         if uid:
             from bot.services.plan_limits import CAT_TRANSLATE
 
@@ -328,7 +330,7 @@ async def api_spellcheck(req: SpellcheckRequest):
 
     quota = None
     try:
-        from bot.services.ai_service import check_spelling_text, count_words_text
+        from bot.services.ai_service import check_spelling_text, count_words_text, is_meaningfully_changed
 
         src = req.text.strip()
         wc = count_words_text(src)
@@ -353,6 +355,8 @@ async def api_spellcheck(req: SpellcheckRequest):
         corrected, fixes = await check_spelling_text(src)
         if corrected is None:
             raise HTTPException(status_code=502, detail="Natija bo'sh qaytdi")
+        if int(fixes or 0) == 0 and is_meaningfully_changed(src, corrected):
+            fixes = 1
 
         spellcheck_cache_set(key, corrected, int(fixes or 0))
         fc = int(fixes or 0)
@@ -436,7 +440,7 @@ async def api_spellcheck_file(
             detail=f"Fayldan olingan matn {SPELLCHECK_FILE_MAX_CHARS} belgidan oshmasligi kerak",
         )
 
-    from bot.services.ai_service import check_spelling_text, count_words_text
+    from bot.services.ai_service import check_spelling_text, count_words_text, is_meaningfully_changed
 
     wc = count_words_text(src)
     key = spellcheck_cache_key(src)
@@ -447,6 +451,8 @@ async def api_spellcheck_file(
         corrected, fixes = await check_spelling_text(src)
         if corrected is None:
             raise HTTPException(status_code=502, detail="Natija bo'sh qaytdi")
+        if int(fixes or 0) == 0 and is_meaningfully_changed(src, corrected):
+            fixes = 1
         spellcheck_cache_set(key, corrected, int(fixes or 0))
 
     fc = int(fixes or 0)

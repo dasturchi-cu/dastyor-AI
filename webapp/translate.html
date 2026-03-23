@@ -345,6 +345,16 @@
                 return fallback || key;
             } catch (_) { return fallback || key; }
         }
+        function normalizeCompare(s) {
+            return String(s || '')
+                .trim()
+                .toLowerCase()
+                .replace(/[’`ʻʼʹ]/g, "'")
+                .replace(/\s+/g, ' ');
+        }
+        function isMeaningfullyChanged(source, candidate) {
+            return normalizeCompare(source) !== normalizeCompare(candidate);
+        }
         function copyResult() {
             const t = document.getElementById('outText').value;
             if (!t) return;
@@ -458,6 +468,9 @@
             try {
                 const result = await tryGeminiAPI(srcText, srcLang, tgtLang);
                 if (result) {
+                    if (!isMeaningfullyChanged(srcText, result.text)) {
+                        throw new Error("Tarjima natijasi original bilan bir xil chiqdi");
+                    }
                     outText.value = result.text;
                     outText.classList.remove('loading-shimmer');
                     setEngine(result.engine);
@@ -486,6 +499,9 @@
             try {
                 const result = await tryGoogleTranslate(srcText, srcLang, tgtLang);
                 if (result) {
+                    if (!isMeaningfullyChanged(srcText, result.text)) {
+                        throw new Error("Tarjima natijasi original bilan bir xil chiqdi");
+                    }
                     outText.value = result.text;
                     outText.classList.remove('loading-shimmer');
                     setEngine(result.engine);

@@ -11,6 +11,7 @@ import subprocess
 import tempfile
 import warnings
 from difflib import SequenceMatcher
+from difflib import get_close_matches
 import shutil
 
 # Eski paket: google-generativeai; keyinroq google-genai ga ko'chirish mumkin
@@ -368,7 +369,12 @@ async def translate_text(text: str, direction: str = "uz_en") -> str:
         resp = await _gcall(model.generate_content_async(prompt))
         if resp is None:
             return "Tarjima vaqti o'tdi. Iltimos, qayta urinib ko'ring."
-        return resp.text.strip() if resp.text else "Natija bo'sh."
+        out = resp.text.strip() if resp.text else ""
+        if not out:
+            return "Natija bo'sh."
+        if not is_meaningfully_changed(text, out):
+            return "Tarjima natijasi original bilan bir xil chiqdi."
+        return out
     except Exception as e:
         logger.error(f"translate_text error: {e}")
         return f"Tarjimada xato: {e}"
@@ -380,6 +386,28 @@ def count_words_text(text: str) -> int:
     if not s:
         return 0
     return len(re.findall(r"\S+", s))
+
+
+def _normalize_for_compare(text: str) -> str:
+    s = (text or "").strip().lower()
+    # Normalize common apostrophe variants and whitespace.
+    s = (
+        s.replace("’", "'")
+        .replace("`", "'")
+        .replace("ʻ", "'")
+        .replace("ʼ", "'")
+        .replace("ʹ", "'")
+    )
+    s = re.sub(r"\s+", " ", s)
+    return s
+
+
+def is_meaningfully_changed(source: str, candidate: str) -> bool:
+    a = _normalize_for_compare(source)
+    b = _normalize_for_compare(candidate)
+    if not a and not b:
+        return False
+    return a != b
 
 
 async def check_spelling_text(text: str) -> tuple[str, int]:
@@ -427,6 +455,66 @@ async def check_spelling_text(text: str) -> tuple[str, int]:
             if n:
                 out = new_out
                 changes += int(n)
+        return out, changes
+
+    uz_typo_map = {
+        "bugn": "bugun",
+        "bormadimn": "bormadim",
+        "maktabgaa": "maktabga",
+        "qacchon": "qachon",
+        "xam": "ham",
+        "bilanam": "bilan ham",
+    }
+
+    uz_dictionary = {
+        "men", "sen", "u", "biz", "siz", "ular", "bugun", "kecha", "ertaga",
+        "maktabga", "maktab", "bormadim", "bordim", "boraman", "kelaman", "keldim",
+        "uyga", "ishga", "kitob", "daftar", "yozdim", "o'qidim", "dars", "darsga",
+        "rahmat", "iltimos", "qanday", "yaxshi", "yomon", "bo'ldi", "bo'lmadi",
+        "do'stim", "do'stlarim", "o'zim", "o'zimni", "o'qib", "ko'chada", "o'ynab",
+        "yurganimda", "yomg'ir", "yog'ib", "uchun", "haqiqiy", "natija", "xato",
+        "tekshiruv", "imlo", "tarjima", "matn", "fayl",
+    }
+
+    def _preserve_case(src_word: str, rep_word: str) -> str:
+        if src_word.isupper():
+            return rep_word.upper()
+        if src_word[:1].isupper():
+            return rep_word[:1].upper() + rep_word[1:]
+        return rep_word
+
+    def _apply_uz_dictionary_pass(s: str) -> tuple[str, int]:
+        """
+        Lightweight Uzbek latin spell pass with typo map + close match.
+        Conservative by design to avoid semantic rewrites.
+        """
+        pattern = re.compile(r"[A-Za-zO'oʻʼ`’ʻ]+", flags=re.UNICODE)
+        changes = 0
+
+        def repl(m: re.Match) -> str:
+            nonlocal changes
+            word = m.group(0)
+            wnorm = _normalize_for_compare(word)
+            # Fast exact-known typo fixes.
+            direct = uz_typo_map.get(wnorm)
+            if direct:
+                changes += 1
+                return _preserve_case(word, direct)
+            # Skip short tokens and known dictionary words.
+            if len(wnorm) < 4 or wnorm in uz_dictionary:
+                return word
+            # Conservative nearest dictionary lookup.
+            cands = get_close_matches(wnorm, uz_dictionary, n=1, cutoff=0.86)
+            if not cands:
+                return word
+            best = cands[0]
+            # Avoid aggressive replacements for much longer/shorter words.
+            if abs(len(best) - len(wnorm)) > 2:
+                return word
+            changes += 1
+            return _preserve_case(word, best)
+
+        out = pattern.sub(repl, s)
         return out, changes
 
     def _mask_sensitive_tokens(s: str) -> tuple[str, dict[str, str]]:
@@ -548,6 +636,10 @@ async def check_spelling_text(text: str) -> tuple[str, int]:
             if hfix > 0:
                 src = htxt
                 heuristic_fixes += int(hfix)
+            dtext, dfix = _apply_uz_dictionary_pass(src)
+            if dfix > 0:
+                src = dtext
+                heuristic_fixes += int(dfix)
 
         # 1) Deterministic spell correction for Russian (if LanguageTool is available).
         # This reduces wrong “LLM hallucination” corrections for ru text.
@@ -676,7 +768,8 @@ async def check_spelling_text(text: str) -> tuple[str, int]:
 
     except Exception as e:
         logger.error(f"check_spelling_text error: {e}", exc_info=True)
-        return src, 0
+        fallback_fixes = max(int(heuristic_fixes), _count_fixes(original_src, src))
+        return src, int(fallback_fixes)
 
 
 async def generate_objective(role: str, experience: str = "junior", extra: str = "", lang: str = "uz") -> str:

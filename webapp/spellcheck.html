@@ -232,6 +232,16 @@
       el.className = `flex items-center gap-2 p-3 rounded-xl text-sm font-semibold border ${cls}`;
       el.innerHTML = `<span>${icon}</span><span>${text}</span>`;
     }
+    function normalizeCompare(s) {
+      return String(s || '')
+        .trim()
+        .toLowerCase()
+        .replace(/[’`ʻʼʹ]/g, "'")
+        .replace(/\s+/g, ' ');
+    }
+    function isMeaningfullyChanged(source, candidate) {
+      return normalizeCompare(source) !== normalizeCompare(candidate);
+    }
 
     function onInput() {
       const v = document.getElementById('inText').value || '';
@@ -291,7 +301,10 @@
         document.getElementById('outText').value = lastCorrectedText;
         document.getElementById('resultWrap').classList.remove('hidden');
         const wc = data.word_count != null ? data.word_count : '—';
-        const ec = data.error_count != null ? data.error_count : (data.fixed ?? 0);
+        let ec = data.error_count != null ? data.error_count : (data.fixed ?? 0);
+        if ((Number(ec) || 0) === 0 && isMeaningfullyChanged(text, lastCorrectedText)) {
+          ec = 1;
+        }
         showStatus('statusText', 'success', `✅ So‘zlar: ${wc} · Tuzatishlar: ${ec}`);
         void window.DastyorAI?.refreshProfile?.();
         tg?.HapticFeedback?.notificationOccurred?.('success');
@@ -411,7 +424,7 @@
         const data = await res.json();
         lastCorrectedText = data.corrected_text || '';
         const wc = data.word_count != null ? data.word_count : '—';
-        const ec = data.error_count != null ? data.error_count : (data.fixed ?? 0);
+        let ec = data.error_count != null ? data.error_count : (data.fixed ?? 0);
         document.getElementById('fileResultMeta').textContent = `So‘zlar: ${wc} · Tuzatishlar: ${ec}`;
         document.getElementById('btnDlTxt').classList.remove('hidden');
         showStatus('statusFile', 'success', notify ? '✅ Tayyor. Tuzatilgan fayl botga yuborildi.' : '✅ Tayyor.');

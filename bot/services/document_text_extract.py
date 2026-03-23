@@ -35,6 +35,19 @@ def extract_plain_text_from_bytes(filename: str, raw: bytes) -> str:
                 cells = [c.text.strip() for c in row.cells if c.text.strip()]
                 if cells:
                     parts.append("\t".join(cells))
+        for section in getattr(doc, "sections", []):
+            for part in (getattr(section, "header", None), getattr(section, "footer", None)):
+                if not part:
+                    continue
+                for p in getattr(part, "paragraphs", []):
+                    t = (getattr(p, "text", "") or "").strip()
+                    if t:
+                        parts.append(t)
+                for table in getattr(part, "tables", []):
+                    for row in table.rows:
+                        cells = [c.text.strip() for c in row.cells if c.text.strip()]
+                        if cells:
+                            parts.append("\t".join(cells))
         return "\n".join(parts)
 
     if ext == "pptx":
@@ -42,10 +55,30 @@ def extract_plain_text_from_bytes(filename: str, raw: bytes) -> str:
 
         prs = Presentation(io.BytesIO(raw))
         parts: list[str] = []
+        def _walk_shapes(shapes):
+            for shape in shapes:
+                yield shape
+                nested = getattr(shape, "shapes", None)
+                if nested:
+                    try:
+                        yield from _walk_shapes(nested)
+                    except Exception:
+                        pass
         for slide in prs.slides:
-            for shape in slide.shapes:
+            for shape in _walk_shapes(slide.shapes):
                 if hasattr(shape, "text") and shape.text.strip():
                     parts.append(shape.text.strip())
+                if getattr(shape, "has_table", False) and shape.has_table:
+                    for row in shape.table.rows:
+                        for cell in row.cells:
+                            t = (cell.text or "").strip()
+                            if t:
+                                parts.append(t)
+            notes_slide = getattr(slide, "notes_slide", None)
+            if notes_slide:
+                for shape in _walk_shapes(notes_slide.shapes):
+                    if hasattr(shape, "text") and shape.text.strip():
+                        parts.append(shape.text.strip())
         return "\n".join(parts)
 
     if ext == "pdf":

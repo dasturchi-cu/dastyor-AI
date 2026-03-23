@@ -5,7 +5,7 @@ from telegram import Update, InputFile
 from telegram.ext import ContextTypes
 from telegram.constants import ChatAction
 from bot.keyboards.reply_keyboards import get_translate_menu, get_back_button
-from bot.services.ai_service import translate_document_gemini, translate_text
+from bot.services.ai_service import is_meaningfully_changed, translate_document_gemini, translate_text
 from bot.services.document_text_extract import extract_plain_text_from_bytes
 from bot.services.plan_limits import CAT_TRANSLATE
 from bot.services.user_service import get_user_lang, record_service_completion
@@ -92,6 +92,8 @@ async def process_translation(update: Update, context: ContextTypes.DEFAULT_TYPE
         try:
             import html as html_mod
             result = await translate_text(text_in, direction)
+            if not is_meaningfully_changed(text_in, result):
+                raise Exception("Tarjima natijasi original bilan bir xil chiqdi")
             escaped_result = html_mod.escape(result)
             await status_msg.delete()
             await message.reply_text(
@@ -156,6 +158,8 @@ async def process_translation(update: Update, context: ContextTypes.DEFAULT_TYPE
                     translated_text = await translate_text(src_text, direction)
                     if not translated_text or translated_text.startswith("Tarjimada xato") or translated_text.startswith("AI model"):
                         raise Exception(translated_text or "Tarjima bo'sh qaytdi")
+                    if not is_meaningfully_changed(src_text, translated_text):
+                        raise Exception("Tarjima natijasi original bilan bir xil chiqdi")
                     translated_path = temp_path.replace(ext, f"_translated_{target_lang}.txt")
                     with open(translated_path, "w", encoding="utf-8") as wf:
                         wf.write(translated_text)
@@ -168,6 +172,8 @@ async def process_translation(update: Update, context: ContextTypes.DEFAULT_TYPE
                 translated_text = await translate_text(src_text, direction)
                 if not translated_text or translated_text.startswith("Tarjimada xato") or translated_text.startswith("AI model"):
                     raise Exception(translated_text or "Tarjima bo'sh qaytdi")
+                if not is_meaningfully_changed(src_text, translated_text):
+                    raise Exception("Tarjima natijasi original bilan bir xil chiqdi")
                 translated_path = temp_path.replace(ext, f"_translated_{target_lang}.txt")
                 with open(translated_path, "w", encoding="utf-8") as wf:
                     wf.write(translated_text)
