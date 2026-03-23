@@ -6,6 +6,7 @@ from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
 from bot.keyboards.reply_keyboards import get_back_button
 from bot.services.settings_service import get_premium_status, get_premium_expiry, add_premium
+from bot.services.plan_limits import reset_plan_quotas_on_activation
 from bot.handlers.admin import is_admin
 import bot.services.user_service as crm
 from bot.services.premium_purchase_db import (
@@ -265,6 +266,7 @@ async def premium_payment_review_callback(update: Update, context: ContextTypes.
                         status="active",
                     )
                     db_reset_daily_usage(uid)
+                    reset_plan_quotas_on_activation(uid, plan)
 
                     meta = pay.get("metadata") if isinstance(pay.get("metadata"), dict) else {}
                     pname = (meta.get("first_name") or "").strip() or "User"
@@ -347,6 +349,7 @@ async def premium_payment_review_callback(update: Update, context: ContextTypes.
                 db_reset_daily_usage(uid)
         except Exception:
             pass
+        reset_plan_quotas_on_activation(uid, plan)
 
         start_dt = datetime.utcnow()
         expire_dt = start_dt + timedelta(days=days)

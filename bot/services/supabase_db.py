@@ -452,6 +452,26 @@ def db_service_bucket_get_many(user_id: int, bucket_keys: list[str]) -> dict[str
         return {k: 0 for k in uniq}
 
 
+def db_service_buckets_delete_many(user_id: int, bucket_keys: list[str]) -> bool:
+    """Berilgan bucket kalitlarini foydalanuvchi uchun o'chiradi (reset)."""
+    uid = int(user_id)
+    if not bucket_keys:
+        return True
+    keys = [str(k).strip() for k in bucket_keys if str(k).strip()]
+    if not keys:
+        return True
+    c = _get_client()
+    if not c:
+        return False
+    try:
+        c.table("service_usage_buckets").delete().eq("user_id", uid).in_("bucket_key", list(dict.fromkeys(keys))).execute()
+        return True
+    except Exception as e:
+        _mark_temporarily_unavailable(e)
+        logger.debug("db_service_buckets_delete_many: %s", e)
+        return False
+
+
 def _rpc_scalar_int(res) -> Optional[int]:
     """PostgREST RPC integer qaytishi (skalyar yoki bitta elementli ro'yxat)."""
     d = getattr(res, "data", None)

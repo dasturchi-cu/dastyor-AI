@@ -486,6 +486,12 @@ async def approve_premium_command(update: Update, context: ContextTypes.DEFAULT_
     try:
         end_date = add_premium(uid, days=days, name=name, username=username)
         crm.log_premium_transaction(uid, days, str(update.effective_user.id))
+        try:
+            from bot.services.plan_limits import reset_plan_quotas_on_activation
+
+            reset_plan_quotas_on_activation(uid, ptype)
+        except Exception:
+            pass
     except Exception as e:
         await update.message.reply_text(f"❌ Premium tasdiqlashda xatolik: {e}")
         return

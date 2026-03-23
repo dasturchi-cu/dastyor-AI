@@ -509,3 +509,51 @@ def block_reason_for_user_uz(user_id: int, category: str) -> str:
         f"Berilgan: {st.get('used', 0)}/{st.get('limit', 0)}. "
         "Tarifni yangilang yoki keyingi davrni kuting."
     )
+
+
+def reset_plan_quotas_on_activation(user_id: int, plan: str | None = None) -> None:
+    """
+    Yangi tarif/obuna aktivatsiyasida joriy davr bucketlarini 0ga tushiradi.
+    Asosan day/month bucketlar uchun (masalan OCR kunlik limiti).
+    subscription bucketlar yangi subscription id bilan baribir yangilanadi.
+    """
+    from bot.services.settings_service import get_active_plan_code
+
+    uid = int(user_id)
+    p = (plan or get_active_plan_code(uid) or "free").strip().lower()
+    limits = _plan_limits(p)
+
+    keys: list[str] = []
+    for cat, (mode, cap) in limits.items():
+        if mode in ("day", "month") and int(cap or 0) > 0:
+            bk = resolve_bucket_key(uid, cat, mode)
+            if bk:
+                keys.append(bk)
+    if not keys:
+        return
+
+    # Local fallback bucket file reset
+    try:
+        if os.path.exists(LOCAL_BUCKETS_FILE):
+            with open(LOCAL_BUCKETS_FILE, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            changed = False
+            for bk in keys:
+                k = f"{uid}|{bk}"
+                if k in data:
+                    data.pop(k, None)
+                    changed = True
+            if changed:
+                with open(LOCAL_BUCKETS_FILE, "w", encoding="utf-8") as f:
+                    json.dump(data, f, ensure_ascii=False, indent=0)
+    except Exception as e:
+        logger.debug("reset_plan_quotas_on_activation local: %s", e)
+
+    # Supabase bucket reset
+    try:
+        from bot.services.supabase_db import has_db, db_service_buckets_delete_many
+
+        if has_db():
+            db_service_buckets_delete_many(uid, keys)
+    except Exception as e:
+        logger.debug("reset_plan_quotas_on_activation db: %s", e)
