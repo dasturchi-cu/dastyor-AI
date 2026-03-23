@@ -5,6 +5,7 @@ approximate font size from bbox height, ink color from darkest pixels in each re
 from __future__ import annotations
 
 import html as html_lib
+import statistics
 from typing import Any
 
 import numpy as np
@@ -98,6 +99,7 @@ def build_absolute_layout_html(
         f"margin:0 auto;background:#ffffff;overflow:hidden;"
         f'-webkit-text-size-adjust:100%;text-size-adjust:100%;">'
     ]
+    nodes: list[dict[str, Any]] = []
     for item in line_items:
         text = (item.get("text") or "").strip()
         box = item.get("bbox")
@@ -120,17 +122,106 @@ def build_absolute_layout_html(
         tp = 100.0 * y / ih
         wp = 100.0 * w / iw
         hp = 100.0 * h / ih
-        # 1cqh = konteyner balandligining 1%; H*fs/ih = shrift px ekvivalenti
-        cqh_mul = 100.0 * fs / ih
+        nodes.append(
+            {
+                "text": et,
+                "x": x,
+                "y": y,
+                "w": w,
+                "h": h,
+                "fs": fs,
+                "color": color,
+                "lp": lp,
+                "tp": tp,
+                "wp": wp,
+                "hp": hp,
+            }
+        )
+    if not nodes:
+        parts.append("</div>")
+        return "\n".join(parts)
+
+    # 1) Column detection (2-column docs): split by largest x gap between centers.
+    # If no reliable split, keep a single column.
+    col_boundary = None
+    if len(nodes) >= 6:
+        centers = sorted((n["x"] + n["w"] * 0.5) for n in nodes)
+        gaps = [(centers[i + 1] - centers[i], i) for i in range(len(centers) - 1)]
+        if gaps:
+            max_gap, idx = max(gaps, key=lambda t: t[0])
+            left_count = idx + 1
+            right_count = len(centers) - left_count
+            if max_gap > iw * 0.18 and left_count >= 2 and right_count >= 2:
+                col_boundary = (centers[idx] + centers[idx + 1]) * 0.5
+
+    for n in nodes:
+        center_x = n["x"] + n["w"] * 0.5
+        n["col"] = 0 if (col_boundary is None or center_x <= col_boundary) else 1
+
+    # 2) Paragraph detection inside each column via vertical gap.
+    grouped: list[tuple[int, list[dict[str, Any]]]] = []
+    for col in (0, 1):
+        col_nodes = [n for n in nodes if n["col"] == col]
+        if not col_nodes:
+            continue
+        col_nodes.sort(key=lambda n: (n["y"], n["x"]))
+        hs = [n["h"] for n in col_nodes if n["h"] > 0.1]
+        median_h = statistics.median(hs) if hs else 14.0
+        new_para_gap = max(8.0, median_h * 0.9)
+
+        current: list[dict[str, Any]] = []
+        last_bottom = None
+        for n in col_nodes:
+            if not current:
+                current = [n]
+                last_bottom = n["y"] + n["h"]
+                continue
+            gap = n["y"] - float(last_bottom or n["y"])
+            if gap > new_para_gap:
+                grouped.append((col, current))
+                current = [n]
+            else:
+                current.append(n)
+            last_bottom = max(float(last_bottom or 0.0), n["y"] + n["h"])
+        if current:
+            grouped.append((col, current))
+
+    # 3) Render grouped paragraphs with absolute coordinates.
+    for _, para_nodes in sorted(grouped, key=lambda t: (t[0], min(n["y"] for n in t[1]), min(n["x"] for n in t[1]))):
+        p_x = min(n["x"] for n in para_nodes)
+        p_y = min(n["y"] for n in para_nodes)
+        p_r = max(n["x"] + n["w"] for n in para_nodes)
+        p_b = max(n["y"] + n["h"] for n in para_nodes)
+        p_w = max(1.0, p_r - p_x)
+        p_h = max(1.0, p_b - p_y)
+        p_lp = 100.0 * p_x / iw
+        p_tp = 100.0 * p_y / ih
+        p_wp = 100.0 * p_w / iw
+        p_hp = 100.0 * p_h / ih
+
+        p_fs = statistics.median([n["fs"] for n in para_nodes]) if para_nodes else 12.0
+        p_cqh = 100.0 * p_fs / ih
+        p_color = para_nodes[0]["color"] if para_nodes else "#1a1a1a"
+
+        line_html: list[str] = []
+        para_nodes = sorted(para_nodes, key=lambda n: (n["y"], n["x"]))
+        prev_y = None
+        for n in para_nodes:
+            if prev_y is not None:
+                dy = n["y"] - prev_y
+                if dy > max(2.0, n["h"] * 0.33):
+                    line_html.append("<br>")
+            line_html.append(n["text"])
+            prev_y = n["y"]
+
         parts.append(
-            f'<div style="position:absolute;left:{lp:.5f}%;top:{tp:.5f}%;'
-            f"width:{wp:.5f}%;min-height:{hp:.5f}%;"
+            f'<div style="position:absolute;left:{p_lp:.5f}%;top:{p_tp:.5f}%;'
+            f"width:{p_wp:.5f}%;min-height:{p_hp:.5f}%;"
             f"box-sizing:border-box;margin:0;padding:0;"
-            f"font-size:{fs:.2f}px;"
-            f"font-size:calc(1cqh * {cqh_mul:.6f});"
-            f"line-height:1.02;color:{color};white-space:pre-wrap;word-break:break-word;"
-            f"font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;"
-            f'overflow:hidden;">{et}</div>'
+            f"font-size:{p_fs:.2f}px;font-size:calc(1cqh * {p_cqh:.6f});"
+            f"line-height:1.15;color:{p_color};white-space:pre-wrap;word-break:break-word;"
+            f"font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;overflow:hidden;"
+            f'">{"".join(line_html)}</div>'
         )
     parts.append("</div>")
     return "\n".join(parts)

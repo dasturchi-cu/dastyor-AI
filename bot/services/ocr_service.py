@@ -105,6 +105,22 @@ def _normalize_image_to_png_sync(src_path: str) -> str | None:
         return None
 
 
+def _extract_layout_with_paddle_sync(image_path: str) -> str:
+    """Best-effort: local Paddle layout HTML for stronger 1:1 numbering/placement."""
+    try:
+        from backend.services.paddle_ocr_runtime import ocr_extract_text_from_bytes
+    except Exception:
+        return ""
+    try:
+        with open(image_path, "rb") as f:
+            raw = f.read()
+        out = ocr_extract_text_from_bytes(raw) or {}
+        return str(out.get("html_layout") or "").strip()
+    except Exception as e:
+        logger.info("Paddle layout OCR unavailable/fail path=%s: %s", image_path, e)
+        return ""
+
+
 async def extract_text_from_image(image_path: str) -> str:
     """
     Extracts text from an image file using Gemini asynchronously.
@@ -120,6 +136,16 @@ async def extract_text_from_image(image_path: str) -> str:
         logger.info("OCR extract started path=%s", image_path)
 
         loop = asyncio.get_running_loop()
+        prefer_paddle_layout = os.getenv("OCR_BOT_PREFER_PADDLE_LAYOUT", "1").strip().lower() not in {
+            "0", "false", "no", "off",
+        }
+        if prefer_paddle_layout:
+            paddle_html = await loop.run_in_executor(
+                _ocr_executor, _extract_layout_with_paddle_sync, image_path
+            )
+            if paddle_html:
+                logger.info("OCR done via Paddle layout in %.1fs path=%s", time.perf_counter() - t0, image_path)
+                return paddle_html
 
         myfile = await loop.run_in_executor(_ocr_executor, _blocking_upload_path, image_path)
         if not myfile or myfile.state.name == "FAILED":

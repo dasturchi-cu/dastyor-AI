@@ -350,7 +350,8 @@
                     let text = String(data?.text || "").trim();
                     const htmlLayout = String(data?.html_layout || "").trim();
                     const apiHtml = String(data?.html || "").trim();
-                    const docHtml = apiHtml || htmlLayout || "";
+                    // Word 1:1 uchun layoutni ustun qilamiz: raqamlar/joylashuv yaxshiroq saqlanadi
+                    const docHtml = htmlLayout || apiHtml || "";
                     if (!text && data?.html) {
                         const tmp = document.createElement("div");
                         tmp.innerHTML = String(data.html);
