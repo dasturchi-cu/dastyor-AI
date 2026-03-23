@@ -20,6 +20,7 @@ from bot.utils.progress import send_progress, update_progress
 from bot.utils.delivery import send_docx_with_confirmation
 
 from docx.shared import Cm
+from docx.shared import Inches
 from docx.shared import Pt
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 
@@ -377,11 +378,30 @@ async def perform_ocr_and_send(context, image_path, chat_id, user_id):
         await update_progress(context, progress_msg, 70, "Word hujjat shakllantirilmoqda...")
         # Create Word Document asynchronously so we don't block the loop
         doc_path = f"Ocr_Natija_{user_id}_{int(time.time())}_@DastyorAiBot.docx"
-        
+        strict_scan = os.getenv("OCR_WORD_STRICT_SCAN_MODE", "1").strip().lower() in ("1", "true", "yes", "on")
+
         def create_and_save_doc(html_text, path):
             doc = Document()
             try:
-                add_html_to_docx(doc, html_text)
+                if strict_scan:
+                    # Visual copy mode: original rasm birinchi sahifada 1:1 ga yaqin.
+                    sec = doc.sections[0]
+                    sec.top_margin = Inches(0.4)
+                    sec.bottom_margin = Inches(0.4)
+                    sec.left_margin = Inches(0.4)
+                    sec.right_margin = Inches(0.4)
+                    p = doc.add_paragraph()
+                    p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                    p.add_run().add_picture(image_path, width=Inches(7.2))
+                    plain = BeautifulSoup(str(html_text or ""), "html.parser").get_text("\n", strip=True)
+                    if plain:
+                        doc.add_page_break()
+                        for line in plain.splitlines():
+                            line = line.strip()
+                            if line:
+                                doc.add_paragraph(line)
+                else:
+                    add_html_to_docx(doc, html_text)
             except Exception as parse_err:
                 logger.error(f"HTML Parse error: {parse_err}")
                 doc.add_paragraph(str(html_text))
@@ -532,11 +552,25 @@ async def _perform_ocr_batch_and_send(context, bot, chat_id: int, user_id: int, 
         await update_progress(context, progress_msg, 90, "Word yaratilmoqda...")
         merged_html = "<body>" + "\n".join(html_parts) + "</body>"
         doc_path = f"Ocr_Natija_{user_id}_{int(time.time())}_@DastyorAiBot.docx"
+        strict_scan = os.getenv("OCR_WORD_STRICT_SCAN_MODE", "1").strip().lower() in ("1", "true", "yes", "on")
 
         def _create_doc():
             doc = Document()
             try:
-                add_html_to_docx(doc, merged_html)
+                if strict_scan:
+                    sec = doc.sections[0]
+                    sec.top_margin = Inches(0.4)
+                    sec.bottom_margin = Inches(0.4)
+                    sec.left_margin = Inches(0.4)
+                    sec.right_margin = Inches(0.4)
+                    for idx, img_path in enumerate(temp_paths):
+                        p = doc.add_paragraph()
+                        p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                        p.add_run().add_picture(img_path, width=Inches(7.2))
+                        if idx < len(temp_paths) - 1:
+                            doc.add_page_break()
+                else:
+                    add_html_to_docx(doc, merged_html)
             except Exception as parse_err:
                 logger.error("Batch HTML parse error: %s", parse_err)
                 doc.add_paragraph(merged_html.replace("<br>", "\n").replace("</p>", "\n"))

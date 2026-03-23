@@ -104,6 +104,7 @@ async def api_ocr_extract_docx(
     telegram_id: Optional[str] = Form(None),
     token: Optional[str] = Form(None),
     html: Optional[str] = Form(None),
+    strict_scan: Optional[str] = Form(None),
     send_to_bot: Optional[str] = Form(None),
     ptb=Depends(get_ptb_application),
 ):
@@ -118,6 +119,18 @@ async def api_ocr_extract_docx(
     uid_str = resolve_telegram_uid(telegram_id, token)
     uid_int = int(uid_str) if uid_str else None
 
+    strict_default = os.getenv("OCR_DOCX_STRICT_SCAN_DEFAULT", "1").strip().lower() in ("1", "true", "yes", "on")
+    want_strict = strict_default
+    if strict_scan is not None:
+        want_strict = str(strict_scan).strip().lower() in ("1", "true", "yes", "on")
+
+    try:
+        raw = await read_upload_limited(file)
+    except EmptyUploadError:
+        raise HTTPException(status_code=400, detail="Fayl bo'sh")
+    except UploadTooLargeError:
+        raise HTTPException(status_code=400, detail="Fayl juda katta")
+
     html_text = (html or "").strip()
     if html_text:
         if len(html_text) > _MAX_CLIENT_HTML_CHARS:
@@ -131,13 +144,6 @@ async def api_ocr_extract_docx(
                     "Admin .env / Render Environment ga kalit qo'shsin."
                 ),
             )
-
-        try:
-            raw = await read_upload_limited(file)
-        except EmptyUploadError:
-            raise HTTPException(status_code=400, detail="Fayl bo'sh")
-        except UploadTooLargeError:
-            raise HTTPException(status_code=400, detail="Fayl juda katta")
 
         with temp_image_path(suffix=safe_filename_part(file.filename or "", ".jpg")) as img_path:
             try:
@@ -171,6 +177,11 @@ async def api_ocr_extract_docx(
 
         def _build():
             doc = Document()
+            if want_strict:
+                # Visual copy: birinchi sahifaga original rasm, keyin OCR matni.
+                from backend.services.paddle_ocr_runtime import docx_image_then_text
+                plain = html_ocr_to_plain(html_text)
+                return docx_image_then_text(raw, plain)
             add_html_to_docx(doc, html_text)
             buf = io.BytesIO()
             doc.save(buf)
