@@ -117,10 +117,10 @@
                 <button id="convertBtn"
                     class="mt-4 w-full py-4 rounded-2xl bg-apple-blue hover:brightness-110 active:scale-[0.98] text-white font-bold text-lg shadow-[0_8px_30px_rgba(37,99,235,0.30)] transition-all flex justify-center items-center gap-2"
                     disabled>
-                    <span>⚡ Matnni ajratish</span>
+                    <span>📄 Rasm → Word (1:1)</span>
                 </button>
                 <button id="wordBtn" type="button"
-                    class="mt-2 w-full py-3 rounded-2xl border-2 border-apple-blue/40 text-apple-blue font-bold text-sm hover:bg-apple-blue/5 transition-all disabled:opacity-40 disabled:pointer-events-none"
+                    class="hidden mt-2 w-full py-3 rounded-2xl border-2 border-apple-blue/40 text-apple-blue font-bold text-sm hover:bg-apple-blue/5 transition-all disabled:opacity-40 disabled:pointer-events-none"
                     disabled>
                     📄 Word (1:1 — bot bilan bir xil)
                 </button>
@@ -463,6 +463,21 @@
                     window.DastyorAI.showDocumentLoading("Hujjat tayyorlanmoqda...", "Word fayl yaratilmoqda");
                 }
             } catch (_) {}
+            if (!optimizedFile) {
+                optimizedFile = await optimizeImageForOCR(selectedFile);
+            }
+            if (!lastOcrDocxHtml || lastOcrDocxHtml.length <= 40) {
+                showStatus("loading", "Ko'rinish ajratilmoqda (1:1)...");
+                const file = optimizedFile || selectedFile;
+                const { text, html_layout, docHtml } = await runOcrPipeline(file);
+                if (!text) throw new Error("Rasmdan matn topilmadi");
+                lastOcrDocxHtml = (docHtml && docHtml.length > 40) ? docHtml : "";
+                const textOut = document.getElementById("ocrText");
+                if (html_layout) {
+                    textOut.innerHTML = "<div class=\"ocr-scroll-wrap\" style=\"overflow:auto;max-width:100%;-webkit-overflow-scrolling:touch\">" + html_layout + "</div>";
+                    textOut.classList.remove("hidden");
+                }
+            }
             const bases = getOcrBaseCandidates();
             let ok = false;
             for (const base of bases) {
@@ -470,6 +485,7 @@
                     const fd = new FormData();
                     const fileForWord = selectedFile || optimizedFile;
                     fd.append("file", fileForWord);
+                    fd.append("send_to_bot", "1");
                     if (lastOcrDocxHtml && lastOcrDocxHtml.length > 40) {
                         fd.append("html", lastOcrDocxHtml);
                     }
@@ -505,7 +521,7 @@
                 throw new Error(
                     lastOcrDocxHtml
                         ? "Word yaratib bo‘lmadi. Internet yoki serverni tekshiring."
-                        : "Word yaratib bo‘lmadi. Avval «Matnni ajratish» ni bosing (1:1 uchun) yoki serverda GOOGLE_API_KEY borligini tekshiring."
+                        : "Word yaratib bo‘lmadi. Serverni tekshiring yoki qayta urinib ko‘ring."
                 );
             }
         } catch (e) {
@@ -543,7 +559,7 @@
             drop.classList.remove("ring-2", "ring-apple-blue/40", "bg-apple-blue/5");
             if (e.dataTransfer.files?.[0]) bindFile(e.dataTransfer.files[0]);
         });
-        document.getElementById("convertBtn").addEventListener("click", convertToWord);
+        document.getElementById("convertBtn").addEventListener("click", downloadOcrWordOneToOne);
         const wb = document.getElementById("wordBtn");
         if (wb) wb.addEventListener("click", downloadOcrWordOneToOne);
         document.getElementById("backBtn").onclick = (e) => {

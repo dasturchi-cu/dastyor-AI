@@ -104,6 +104,8 @@ async def api_ocr_extract_docx(
     telegram_id: Optional[str] = Form(None),
     token: Optional[str] = Form(None),
     html: Optional[str] = Form(None),
+    send_to_bot: Optional[str] = Form(None),
+    ptb=Depends(get_ptb_application),
 ):
     """
     Bot bilan bir xil: Gemini → HTML → python-docx (1:1 layout).
@@ -185,6 +187,31 @@ async def api_ocr_extract_docx(
         from bot.services.plan_limits import CAT_OCR
 
         quota = web_quota_commit_success(uid_int, CAT_OCR, "Web OCR Word")
+
+    tid_ok = bool(telegram_id and telegram_id.strip().isdigit())
+    auto_send_default = os.getenv("OCR_DOCX_AUTO_SEND_BOT", "1").strip().lower() in ("1", "true", "yes", "on")
+    want_send_bot = auto_send_default
+    if send_to_bot is not None:
+        want_send_bot = str(send_to_bot).strip().lower() in ("1", "true", "yes", "on")
+    if want_send_bot and tid_ok:
+        chat_id = int(uid_int or int((telegram_id or "0").strip()))
+        ts_bg = int(time.time())
+
+        async def _send_docx_bg():
+            try:
+                buf = io.BytesIO(docx_bytes)
+                buf.name = f"OCR_1to1_{ts_bg}.docx"
+                await send_docx_with_confirmation(
+                    ptb.bot,
+                    chat_id,
+                    buf,
+                    filename=buf.name,
+                    caption="✅ OCR Word tayyor va botga yuborildi.",
+                )
+            except Exception as tg_err:
+                logger.error("api_ocr_extract_docx bot send error: %s", tg_err, exc_info=True)
+
+        asyncio.create_task(_send_docx_bg())
 
     ts = int(time.time())
     fname = f"OCR_1to1_{ts}.docx"
