@@ -20,11 +20,132 @@ from bot.utils.progress import send_progress, update_progress
 from bot.utils.delivery import send_docx_with_confirmation
 
 from docx.shared import Cm
+from docx.shared import Pt
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 
 logger = logging.getLogger(__name__)
 
 from bs4.element import NavigableString, Tag
+
+
+def _style_dict(style_text: str) -> dict[str, str]:
+    out: dict[str, str] = {}
+    for chunk in (style_text or "").split(";"):
+        if ":" not in chunk:
+            continue
+        k, v = chunk.split(":", 1)
+        key = (k or "").strip().lower()
+        val = (v or "").strip()
+        if key:
+            out[key] = val
+    return out
+
+
+def _parse_percent(raw: str) -> float | None:
+    s = (raw or "").strip().lower()
+    if not s or "%" not in s:
+        return None
+    try:
+        return float(s.replace("%", "").strip())
+    except Exception:
+        return None
+
+
+def _parse_px(raw: str) -> float | None:
+    s = (raw or "").strip().lower()
+    if not s:
+        return None
+    if s.startswith("calc("):
+        return None
+    if s.endswith("px"):
+        s = s[:-2].strip()
+    try:
+        return float(s)
+    except Exception:
+        return None
+
+
+def _add_layout_html_to_docx(doc, layout_root) -> bool:
+    """
+    data-ocr-layout HTML ni DOCX ga approximate joylashuv bilan o‘tkazadi.
+    Absolute CSS to‘liq qo‘llanmasa ham, line/indent/spacing saqlanadi.
+    """
+    nodes = []
+    for el in layout_root.find_all("div", recursive=False):
+        text = (el.get_text(" ", strip=False) or "").replace("\xa0", " ")
+        if not text.strip():
+            continue
+        st = _style_dict(el.get("style", ""))
+        left = _parse_percent(st.get("left", ""))
+        top = _parse_percent(st.get("top", ""))
+        width = _parse_percent(st.get("width", ""))
+        font_px = _parse_px(st.get("font-size", ""))
+        if left is None or top is None:
+            continue
+        nodes.append(
+            {
+                "text": text.strip(),
+                "left": left,
+                "top": top,
+                "width": width if width is not None else 100.0,
+                "font_px": font_px,
+            }
+        )
+
+    if not nodes:
+        return False
+
+    nodes.sort(key=lambda n: (n["top"], n["left"]))
+    heights = [max(6.0, float(n["font_px"] or 11.0) * 1.15) for n in nodes]
+    median_h = sorted(heights)[len(heights) // 2] if heights else 12.0
+    top_gap_threshold = max(0.75, median_h * 0.06)
+
+    lines = []
+    current = []
+    cur_top = None
+    for n in nodes:
+        if not current:
+            current = [n]
+            cur_top = n["top"]
+            continue
+        if abs(float(n["top"]) - float(cur_top)) <= top_gap_threshold:
+            current.append(n)
+            cur_top = (float(cur_top) + float(n["top"])) / 2.0
+        else:
+            lines.append(current)
+            current = [n]
+            cur_top = n["top"]
+    if current:
+        lines.append(current)
+
+    section = doc.sections[0]
+    content_width_cm = float(section.page_width - section.left_margin - section.right_margin) / 360000.0
+    prev_line_top = None
+    for line in lines:
+        line = sorted(line, key=lambda n: n["left"])
+        p = doc.add_paragraph()
+        min_left = max(0.0, min(float(n["left"]) for n in line))
+        p.paragraph_format.left_indent = Cm(content_width_cm * (min_left / 100.0))
+
+        if prev_line_top is not None:
+            dy = max(0.0, float(line[0]["top"]) - float(prev_line_top))
+            if dy > 1.8:
+                p.paragraph_format.space_before = Pt(min(28.0, dy * 0.95))
+        prev_line_top = float(line[0]["top"])
+
+        prev_right = min_left
+        for idx, n in enumerate(line):
+            gap = max(0.0, float(n["left"]) - float(prev_right))
+            if idx > 0 and gap > 3.0:
+                tab_count = max(1, int(gap / 7.5))
+                for _ in range(tab_count):
+                    p.add_run("\t")
+            run = p.add_run(str(n["text"]))
+            fsz = n.get("font_px")
+            if fsz:
+                run.font.size = Pt(max(8.0, min(28.0, float(fsz))))
+            prev_right = float(n["left"]) + float(n.get("width", 0.0))
+    return True
 
 
 def _schedule_ocr_auto_process(
@@ -126,6 +247,10 @@ def add_html_to_docx(doc, html_content):
 
     soup = BeautifulSoup(html_content, 'html.parser')
     root = soup.body if soup.body else soup
+
+    layout_root = root.find(attrs={"data-ocr-layout": "1"}) or root.find("div", class_="ocr-visual")
+    if layout_root is not None and _add_layout_html_to_docx(doc, layout_root):
+        return
     
     def apply_align(p, align_str):
         if not align_str: return
