@@ -507,7 +507,7 @@ async def check_spelling_text(text: str) -> tuple[str, int]:
         # Agar konservativ merge juda ko'p narsani kesib yuborsa, lekin candidate juda yaqin bo'lsa,
         # candidate'ni qabul qilamiz (real typo-fixlar yo'qolib ketmasin).
         cand_ratio = SequenceMatcher(None, s, c).ratio()
-        if merged == s and cand_ratio >= 0.92 and abs(len(c) - len(s)) <= max(6, int(len(s) * 0.2)):
+        if merged == s and cand_ratio >= 0.85 and abs(len(c) - len(s)) <= max(8, int(len(s) * 0.25)):
             return c
         return merged
 
@@ -578,7 +578,12 @@ async def check_spelling_text(text: str) -> tuple[str, int]:
                 ),
                 timeout=spell_timeout,
             )
-            return (resp.text if resp and resp.text else "")
+            txt = (resp.text if resp and resp.text else "") or ""
+            # Safety: remove wrappers if model returns formatted block.
+            txt = txt.replace("```text", "").replace("```", "").strip()
+            if len(txt) >= 2 and txt[0] == txt[-1] and txt[0] in ("'", '"'):
+                txt = txt[1:-1].strip()
+            return txt
 
         # For long texts, split into chunks and process concurrently (larger batches = fewer round-trips).
         if len(src) > 2000:

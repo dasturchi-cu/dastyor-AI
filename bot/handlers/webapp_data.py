@@ -152,7 +152,7 @@ async def web_app_data_handler(update: Update, context: ContextTypes.DEFAULT_TYP
             
         elif action == "start_spellcheck":
             context.user_data['waiting_for'] = 'spellcheck_file'
-            await update.message.reply_text("✏️ **Imlo tekshirish**: Menga matn, DOCX, yoki PPTX fayl yuboring. Xatolarni to'g'irlab beraman.", parse_mode="Markdown")
+            await update.message.reply_text("✏️ **Imlo tekshirish**: Menga matn, TXT, DOCX, PPTX yoki PDF fayl yuboring. Xatolarni to'g'irlab beraman.", parse_mode="Markdown")
             return
 
         elif action == "spellcheck_text":
@@ -193,7 +193,7 @@ async def web_app_data_handler(update: Update, context: ContextTypes.DEFAULT_TYP
             context.user_data['waiting_for'] = 'translate_file'
             
             dir_str = direction.replace("_", " -> ").upper()
-            await update.message.reply_text(f"🌐 **Tarjima fayl ({dir_str})**: \nMenga Word, PowerPoint yoki Excel fayl yuboring.", parse_mode="Markdown")
+            await update.message.reply_text(f"🌐 **Tarjima fayl ({dir_str})**: \nMenga DOCX, TXT, PPTX yoki PDF fayl yuboring.", parse_mode="Markdown")
             return
 
         elif action == "premium_buy":

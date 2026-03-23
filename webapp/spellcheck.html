@@ -251,7 +251,7 @@
     async function checkText() {
       const DA = window.DastyorAI;
       if (DA && DA.isQuotaBlockedForCategory && DA.getUser && DA.isQuotaBlockedForCategory(DA.getUser(), 'spell')) {
-        showStatus('statusText', 'error', 'Imlo tekshirish limiti tugadi.');
+        showStatus('statusText', 'error', 'Bu xizmat pullik. Premium/Pro tarifni oling.');
         return;
       }
       const text = (document.getElementById('inText').value || '').trim();
@@ -376,7 +376,7 @@
       }
       const DAq = window.DastyorAI;
       if (DAq && DAq.isQuotaBlockedForCategory && DAq.getUser && DAq.isQuotaBlockedForCategory(DAq.getUser(), 'spell')) {
-        showStatus('statusFile', 'error', 'Imlo tekshirish limiti tugadi.');
+        showStatus('statusFile', 'error', 'Bu xizmat pullik. Premium/Pro tarifni oling.');
         return;
       }
       const btn = document.getElementById('btnSpellFile');
@@ -473,28 +473,29 @@
       showStatus('statusFile', 'success', '«Tekshirish va natija» ni bosing.');
     });
 
-    document.addEventListener('DOMContentLoaded', function() {
-      if (window.DastyorAI && window.DastyorAI.initUI) DastyorAI.initUI({ autoNavLinks: true });
-      void (async function () {
-        try {
-          if (window.DastyorAI && window.DastyorAI.init) await window.DastyorAI.init();
-          if (window.DastyorAI && window.DastyorAI.refreshProfile) await window.DastyorAI.refreshProfile();
-          if (window.DastyorAI && window.DastyorAI.applyServiceQuotaUi) {
-            window.DastyorAI.applyServiceQuotaUi('spell', {
-              warnId: 'spellQuotaWarn',
-              buttonIds: ['btnCheck', 'btnSpellFile'],
-              message: '⛔ Imlo tekshirish limiti tugadi. Keyingi kun yoki tarifni yangilang.',
-            });
-          }
-        } catch (_) {}
-      })();
+    document.addEventListener('DOMContentLoaded', async function() {
+      try {
+        if (window.DastyorAI && window.DastyorAI.initUI) {
+          await window.DastyorAI.initUI({ autoNavLinks: true });
+        }
+        if (window.DastyorAI && window.DastyorAI.refreshProfile) {
+          await window.DastyorAI.refreshProfile();
+        }
+        if (window.DastyorAI && window.DastyorAI.applyServiceQuotaUi) {
+          window.DastyorAI.applyServiceQuotaUi('spell', {
+            warnId: 'spellQuotaWarn',
+            buttonIds: ['btnCheck', 'btnSpellFile'],
+            message: '⛔ Bu xizmat pullik. Davom etish uchun Premium/Pro tarifni oling.',
+          });
+        }
+      } catch (_) {}
       try {
         window.addEventListener('dastyor:profile-updated', function () {
           if (window.DastyorAI && window.DastyorAI.applyServiceQuotaUi) {
             window.DastyorAI.applyServiceQuotaUi('spell', {
               warnId: 'spellQuotaWarn',
               buttonIds: ['btnCheck', 'btnSpellFile'],
-              message: '⛔ Imlo tekshirish limiti tugadi. Keyingi kun yoki tarifni yangilang.',
+              message: '⛔ Bu xizmat pullik. Davom etish uchun Premium/Pro tarifni oling.',
             });
           }
         });

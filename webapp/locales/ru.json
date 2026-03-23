@@ -28,6 +28,13 @@
   "tools_title": "AI инструменты",
   "tools_desc": "Перевод, OCR и другие инструменты",
   "translate_title": "Перевод AI",
+  "translate_input_placeholder": "Введите текст здесь...",
+  "translate_output_placeholder": "Перевод появится здесь...",
+  "translate_action": "⚡ Перевести",
+  "translate_quota": "Эта функция платная. Нужен тариф Premium/Pro.",
+  "translate_wait": "Подождите...",
+  "translate_done": "Перевод готов",
+  "quick_phrases": "Быстрые фразы",
   "translit_title": "Кирилл / Латиница",
   "ocr_title": "Изображение -> Word",
   "pdf_title": "Изображение -> PDF"

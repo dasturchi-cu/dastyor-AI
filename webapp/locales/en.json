@@ -28,6 +28,13 @@
   "tools_title": "AI Tools",
   "tools_desc": "Translation, OCR and more",
   "translate_title": "AI Translate",
+  "translate_input_placeholder": "Enter text here...",
+  "translate_output_placeholder": "Translation appears here...",
+  "translate_action": "⚡ Translate",
+  "translate_quota": "This feature is paid. Please get a Premium/Pro plan.",
+  "translate_wait": "Please wait...",
+  "translate_done": "Translation complete",
+  "quick_phrases": "Quick phrases",
   "translit_title": "Cyrillic / Latin",
   "ocr_title": "Image -> Word",
   "pdf_title": "Image -> PDF"

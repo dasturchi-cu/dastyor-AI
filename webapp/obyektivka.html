@@ -426,7 +426,7 @@ async function dastyorReadApiError(res){
     }
   }
   if (status === 429) {
-    return "⛔ Bu xizmat uchun limit tugagan yoki joriy tarifda mavjud emas. Balans yetarli emas — Standard yoki Premium tarifni tanlang.";
+    return "⛔ Bu xizmat pullik. Davom etish uchun Premium/Pro tarifni oling.";
   }
   if (status === 401) return "Foydalanuvchi aniqlanmadi. Bot orqali qayta kiring.";
   return "Server " + status;
@@ -652,7 +652,7 @@ function syncObyQuotaUi() {
   if (warn) {
     if (blocked) {
       warn.classList.remove('hidden');
-      warn.textContent = '⛔ Obyektivka limiti tugadi. Keyingi oy yoki tarifni yangilang. Balans 💰 tugmasida batafsil.';
+      warn.textContent = '⛔ Bu xizmat pullik. Davom etish uchun Premium/Pro tarifni oling.';
     } else {
       warn.classList.add('hidden');
       warn.textContent = '';
@@ -726,7 +726,7 @@ async function sendObyektivkaToBot(fmt){
     return;
   }
   if (window.DastyorAI && window.DastyorAI.isQuotaBlockedForCategory(window.DastyorAI.getUser(), 'obyektivka')) {
-    alert('⛔ Obyektivka limiti tugadi. Keyingi oy yoki tarifni yangilang.');
+    alert('⛔ Bu xizmat pullik. Premium/Pro tarifni oling.');
     return;
   }
   var btn=document.getElementById('dlBtn');

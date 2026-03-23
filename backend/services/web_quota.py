@@ -25,7 +25,7 @@ def web_quota_consume_or_raise(uid: int, category: str) -> bool:
     if not record_category_use(u, category):
         raise HTTPException(
             status_code=429,
-            detail=block_reason_for_user_uz(u, category) or "Limit tugadi. Tarifni yangilang.",
+            detail=block_reason_for_user_uz(u, category) or "Bu xizmat pullik. Standard yoki Premium tarifni oling.",
         )
     return True
 
@@ -42,7 +42,7 @@ def web_quota_commit_success(uid: int, category: str, service_label: str) -> dic
     if not record_category_use(u, category):
         raise HTTPException(
             status_code=429,
-            detail=block_reason_for_user_uz(u, category) or "Limit tugadi. Tarifni yangilang.",
+            detail=block_reason_for_user_uz(u, category) or "Bu xizmat pullik. Standard yoki Premium tarifni oling.",
         )
     record_service_completion(u, category, service_label, skip_quota=True)
     return category_quota_for_response(u, category)

@@ -211,7 +211,7 @@
                         window.DastyorAI.applyServiceQuotaUi('translit', {
                             warnId: 'translitQuotaWarn',
                             buttonIds: ['cvBtn'],
-                            message: '⛔ Krill ↔ Lotin uchun limit tugadi. Keyingi kun yoki tarifni yangilang.',
+                            message: '⛔ Bu xizmat pullik. Davom etish uchun Premium/Pro tarifni oling.',
                         });
                     }
                 } catch (_) {}
@@ -223,7 +223,7 @@
                     window.DastyorAI.applyServiceQuotaUi('translit', {
                         warnId: 'translitQuotaWarn',
                         buttonIds: ['cvBtn'],
-                        message: '⛔ Krill ↔ Lotin uchun limit tugadi. Keyingi kun yoki tarifni yangilang.',
+                        message: '⛔ Bu xizmat pullik. Davom etish uchun Premium/Pro tarifni oling.',
                     });
                 }
             });
@@ -477,7 +477,7 @@
         async function convert() {
             const DA = window.DastyorAI;
             if (DA && DA.isQuotaBlockedForCategory && DA.getUser && DA.isQuotaBlockedForCategory(DA.getUser(), 'translit')) {
-                showStatus('error', '⛔', 'Krill ↔ Lotin limiti tugadi.');
+                showStatus('error', '⛔', 'Bu xizmat pullik. Premium/Pro tarifni oling.');
                 return;
             }
             const src = document.getElementById('srcText').value.trim();

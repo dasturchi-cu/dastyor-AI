@@ -405,10 +405,23 @@ async def api_spellcheck_file(
     if len(raw) > max_b:
         raise HTTPException(status_code=413, detail="Fayl juda katta")
 
+    # Filename fallback by content-type (ba'zi klientlar filename ni noto'g'ri yuboradi)
+    fname = file.filename or "upload.txt"
+    if "." not in fname:
+        ct = (file.content_type or "").lower()
+        if "wordprocessingml" in ct:
+            fname = fname + ".docx"
+        elif "presentationml" in ct or "powerpoint" in ct:
+            fname = fname + ".pptx"
+        elif "pdf" in ct:
+            fname = fname + ".pdf"
+        elif "text" in ct:
+            fname = fname + ".txt"
+
     try:
         from bot.services.document_text_extract import extract_plain_text_from_bytes
 
-        text = extract_plain_text_from_bytes(file.filename or "upload.txt", raw)
+        text = extract_plain_text_from_bytes(fname, raw)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e)) from e
 

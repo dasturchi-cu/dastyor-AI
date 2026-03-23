@@ -6,6 +6,7 @@ from telegram.ext import ContextTypes
 from telegram.constants import ChatAction
 from bot.keyboards.reply_keyboards import get_translate_menu, get_back_button
 from bot.services.ai_service import translate_document_gemini, translate_text
+from bot.services.document_text_extract import extract_plain_text_from_bytes
 from bot.services.plan_limits import CAT_TRANSLATE
 from bot.services.user_service import get_user_lang, record_service_completion
 from bot.services.usage_tracker import reply_if_daily_quota_blocked
@@ -28,7 +29,7 @@ TARGET_LANG = {
     'ru_en': 'en',
 }
 
-SUPPORTED_EXTENSIONS = ('.docx',)  # Extend later: '.pptx', '.xlsx'
+SUPPORTED_EXTENSIONS = ('.docx', '.txt', '.pptx', '.pdf')
 
 
 async def translate_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -111,9 +112,9 @@ async def process_translation(update: Update, context: ContextTypes.DEFAULT_TYPE
 
         if ext not in SUPPORTED_EXTENSIONS:
             await message.reply_text(
-                f"❌ <b>{ext}</b> formati hozircha qo'llab-quvvatlanmaydi.\n"
-                "Faqat <b>.docx</b> (Word) fayllar qabul qilinadi.",
-                parse_mode="HTML"
+                f"❌ <b>{ext}</b> formati qo'llab-quvvatlanmaydi.\n"
+                "Faqat <b>.docx, .txt, .pptx, .pdf</b> fayllar qabul qilinadi.",
+                parse_mode="HTML",
             )
             return
 
@@ -140,13 +141,29 @@ async def process_translation(update: Update, context: ContextTypes.DEFAULT_TYPE
             tg_file = await doc.get_file()
             await tg_file.download_to_drive(temp_path)
 
-            # Translate
-            translated_path = await translate_document_gemini(temp_path, target_lang)
+            # Translate:
+            # - .docx: keep original format
+            # - others: extract text -> translate -> return .txt
+            if ext == ".docx":
+                translated_path = await translate_document_gemini(temp_path, target_lang)
+            else:
+                with open(temp_path, "rb") as rf:
+                    raw = rf.read()
+                src_text = extract_plain_text_from_bytes(file_name, raw)
+                if not (src_text or "").strip():
+                    raise Exception("Fayldan matn ajratilmadi")
+                translated_text = await translate_text(src_text, direction)
+                if not translated_text or translated_text.startswith("Tarjimada xato") or translated_text.startswith("AI model"):
+                    raise Exception(translated_text or "Tarjima bo'sh qaytdi")
+                translated_path = temp_path.replace(ext, f"_translated_{target_lang}.txt")
+                with open(translated_path, "w", encoding="utf-8") as wf:
+                    wf.write(translated_text)
 
             if translated_path and os.path.exists(translated_path):
                 # Build output filename with @DastyorAiBot suffix
                 base_name = os.path.splitext(file_name)[0]
-                out_name = f"{base_name}_{target_lang}_@DastyorAiBot{ext}"
+                out_ext = ext if ext == ".docx" else ".txt"
+                out_name = f"{base_name}_{target_lang}_@DastyorAiBot{out_ext}"
 
                 await status_msg.edit_text("✅ Tarjima tayyor! Fayl yuklanmoqda...")
                 with open(translated_path, "rb") as fp:

@@ -217,7 +217,7 @@
                             warnId: 'img2pdfQuotaWarn',
                             buttonIds: ['addMoreBtn'],
                             lockIds: ['uploadZone'],
-                            message: '⛔ Rasm → PDF limiti tugadi. Keyingi kun yoki tarifni yangilang.',
+                            message: '⛔ Bu xizmat pullik. Davom etish uchun Premium/Pro tarifni oling.',
                         });
                     }
                 } catch (_) {}
@@ -229,7 +229,7 @@
                             warnId: 'img2pdfQuotaWarn',
                             buttonIds: ['addMoreBtn'],
                             lockIds: ['uploadZone'],
-                            message: '⛔ Rasm → PDF limiti tugadi. Keyingi kun yoki tarifni yangilang.',
+                            message: '⛔ Bu xizmat pullik. Davom etish uchun Premium/Pro tarifni oling.',
                         });
                     }
                 });
@@ -375,7 +375,7 @@
         async function startImgToPdf() {
             if (selectedFiles.length === 0) return;
             if (tid && DA && DA.isQuotaBlockedForCategory && DA.getUser && DA.isQuotaBlockedForCategory(DA.getUser(), 'image_pdf')) {
-                showStatus('error', '⛔', 'Rasm → PDF limiti tugadi.');
+                showStatus('error', '⛔', 'Bu xizmat pullik. Premium/Pro tarifni oling.');
                 tg?.HapticFeedback?.notificationOccurred('error');
                 return;
             }

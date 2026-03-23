@@ -171,7 +171,7 @@
         if (warn) {
             if (blocked) {
                 warn.classList.remove("hidden");
-                warn.textContent = "⛔ AI skayner (OCR) limiti tugadi. Keyingi kun yoki tarifni yangilang.";
+                warn.textContent = "⛔ Bu xizmat pullik. Davom etish uchun Premium/Pro tarifni oling.";
             } else {
                 warn.classList.add("hidden");
                 warn.textContent = "";
@@ -398,7 +398,7 @@
         if (!selectedFile) return;
         const DA = window.DastyorAI;
         if (DA && DA.isQuotaBlockedForCategory && DA.getUser && DA.isQuotaBlockedForCategory(DA.getUser(), "ocr")) {
-            showStatus("error", "AI skayner (OCR) limiti tugadi.");
+            showStatus("error", "Bu xizmat pullik. Premium/Pro tarifni oling.");
             return;
         }
         showStatus("loading", "Rasm tayyorlanmoqda...");
@@ -450,7 +450,7 @@
         if (!selectedFile) return;
         const DA = window.DastyorAI;
         if (DA && DA.isQuotaBlockedForCategory && DA.getUser && DA.isQuotaBlockedForCategory(DA.getUser(), "ocr")) {
-            showStatus("error", "AI skayner (OCR) limiti tugadi.");
+            showStatus("error", "Bu xizmat pullik. Premium/Pro tarifni oling.");
             return;
         }
         showStatus("loading", "Word hujjat tayyorlanmoqda (1:1)...");

@@ -1,7 +1,7 @@
 """
 Imlo Tekshirish (Spell Check) Handler
 Uses ai_service to check spelling asynchronously.
-Supports plain text, .txt, .docx and .pptx inputs.
+Supports plain text, .txt, .docx, .pptx and .pdf inputs.
 """
 import os
 import time
@@ -13,13 +13,14 @@ from telegram.ext import ContextTypes
 from telegram.constants import ChatAction
 from bot.keyboards.reply_keyboards import get_back_button
 from bot.services.ai_service import check_spelling_gemini, check_spelling_pptx, check_spelling_text
+from bot.services.document_text_extract import extract_plain_text_from_bytes
 from bot.services.plan_limits import CAT_SPELL
 from bot.services.user_service import get_user_lang, record_service_completion
 from bot.services.usage_tracker import reply_if_daily_quota_blocked
 
 logger = logging.getLogger(__name__)
 
-SUPPORTED_EXTS = ('.txt', '.docx', '.pptx')
+SUPPORTED_EXTS = ('.txt', '.docx', '.pptx', '.pdf')
 
 
 def _read_text_file(path: str) -> str:
@@ -36,7 +37,7 @@ async def spell_check_handler(update: Update, context: ContextTypes.DEFAULT_TYPE
     """Handle spell check request"""
     await update.message.reply_text(
         " **Imlo Tekshirish**\n\n"
-        "Oddiy matn, .txt, Word (.docx) yoki PowerPoint (.pptx) yuboring.\n"
+        "Oddiy matn, .txt, Word (.docx), PowerPoint (.pptx) yoki PDF yuboring.\n"
         "AI imlo xatolarini aniqlaydi va tuzatilgan faylni qaytaradi.\n\n"
         "💡 Hozircha o'zbek va rus tillarini qo'llab-quvvatlaydi.",
         reply_markup=get_back_button(),
@@ -97,7 +98,7 @@ async def process_spell_check(update: Update, context: ContextTypes.DEFAULT_TYPE
     
     if ext not in SUPPORTED_EXTS:
         await update.message.reply_text(
-            "❌ Faqat .TXT, .DOCX yoki .PPTX fayllar qabul qilinadi.",
+            "❌ Faqat .TXT, .DOCX, .PPTX yoki .PDF fayllar qabul qilinadi.",
             reply_markup=get_back_button()
         )
         return
@@ -134,9 +135,16 @@ async def process_spell_check(update: Update, context: ContextTypes.DEFAULT_TYPE
         elif ext == '.docx':
             output_path, errors, fixed = await check_spelling_gemini(temp_path)
         else:
-            source_text = _read_text_file(temp_path)
+            if ext == ".txt":
+                source_text = _read_text_file(temp_path)
+            else:
+                with open(temp_path, "rb") as rf:
+                    raw = rf.read()
+                source_text = extract_plain_text_from_bytes(file_name, raw)
+            if not (source_text or "").strip():
+                raise Exception("Fayldan matn ajratilmadi")
             corrected_text, fixed = await check_spelling_text(source_text)
-            output_path = temp_path.replace(".txt", "_checked.txt")
+            output_path = temp_path.replace(ext, "_checked.txt")
             with open(output_path, "w", encoding="utf-8") as f:
                 f.write(corrected_text)
             errors = fixed

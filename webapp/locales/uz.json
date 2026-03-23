@@ -28,6 +28,13 @@
   "tools_title": "AI Tools",
   "tools_desc": "Tarjima, OCR va boshqa vositalar",
   "translate_title": "Tarjima AI",
+  "translate_input_placeholder": "Matnni bu yerga kiriting...",
+  "translate_output_placeholder": "Tarjima shu yerda chiqadi...",
+  "translate_action": "⚡ Tarjima qilish",
+  "translate_quota": "Bu xizmat pullik. Premium/Pro tarifni oling.",
+  "translate_wait": "Kuting...",
+  "translate_done": "Tarjima qilindi",
+  "quick_phrases": "Tezkor iboralar",
   "translit_title": "Krill / Lotin",
   "ocr_title": "Rasm -> Word",
   "pdf_title": "Rasm -> PDF"

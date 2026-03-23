@@ -231,7 +231,7 @@ async def _send_quota_blocked_message(
     reason = (
         block_reason_for_user_uz(uid, category)
         if category
-        else "⛔️ Bu xizmat uchun limit tugadi yoki tarif mos emas."
+        else "⛔️ Bu xizmat pullik. Standard yoki Premium tarifni oling."
     )
     text = (
         f"{reason}\n\n"

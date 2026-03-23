@@ -155,7 +155,7 @@ const DastyorAI = (() => {
 
         for (const url of candidates) {
             try {
-                const resp = await fetch(url, { cache: 'no-store' });
+                const resp = await fetch(url);
                 if (resp.ok) {
                     const data = await resp.json();
                     localeCache[safe] = data || {};
@@ -265,7 +265,7 @@ const DastyorAI = (() => {
         const blocked = isQuotaBlockedForCategory(u, category);
         const msg =
             (cfg && cfg.message) ||
-            '⛔ Limit tugadi. 💎 Premium / tariflar — tarifni yangilasangiz yoki obunani uzaytirsangiz, limitlar qayta hisoblanadi. Balans 💰 da batafsil.';
+            '⛔ Bu xizmat pullik. Davom etish uchun Premium/Pro tarifni oling.';
         const wid = cfg && cfg.warnId;
         if (wid) {
             const w = document.getElementById(wid);
