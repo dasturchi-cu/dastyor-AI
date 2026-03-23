@@ -485,7 +485,6 @@
                     const fd = new FormData();
                     const fileForWord = selectedFile || optimizedFile;
                     fd.append("file", fileForWord);
-                    fd.append("strict_scan", "1");
                     fd.append("send_to_bot", "1");
                     if (lastOcrDocxHtml && lastOcrDocxHtml.length > 40) {
                         fd.append("html", lastOcrDocxHtml);

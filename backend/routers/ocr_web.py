@@ -119,7 +119,7 @@ async def api_ocr_extract_docx(
     uid_str = resolve_telegram_uid(telegram_id, token)
     uid_int = int(uid_str) if uid_str else None
 
-    strict_default = os.getenv("OCR_DOCX_STRICT_SCAN_DEFAULT", "1").strip().lower() in ("1", "true", "yes", "on")
+    strict_default = os.getenv("OCR_DOCX_STRICT_SCAN_DEFAULT", "0").strip().lower() in ("1", "true", "yes", "on")
     want_strict = strict_default
     if strict_scan is not None:
         want_strict = str(strict_scan).strip().lower() in ("1", "true", "yes", "on")

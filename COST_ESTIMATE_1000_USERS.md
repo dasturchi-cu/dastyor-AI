@@ -108,16 +108,16 @@ Yoki soddaroq:
 
 ## 5) Sizning loyiha uchun tez xulosa
 
-- Hozir eng katta risk xarajat: **Gemini API** va **compute (OCR/PDF render)**.
+- Hozir eng katta risk xarajat: **Gemini API** va **Railway compute** (API + worker + PDF/OCR yuklama).
 - Supabase odatda barqaror ikkinchi xarajat.
 - 1000 user uchun amalda ko'p loyiha **$150–500/oy** diapazonda yuradi (o'rtacha trafikda).
-- Agar OCR/STT juda ko'p ishlatilsa, xarajat tez **$700+** ga chiqadi.
+- OCR oqimida **Paddle + Gemini** birga ishlatiladi; Paddle local CPU yeydi, Gemini esa API billing beradi.
 
 ---
 
 ## 6) Xarajatni tushirish bo'yicha amaliy yo'llar
 
-- OCR va tarjimada oldin local/Paddle, keyin Gemini fallback (sizda qisman bor).
+- OCRda avval Paddle, keyin Gemini fallback yo'lini qat'iy saqlash (sizda bor, davom ettirish kerak).
 - WebP/JPG siqish, image side limit (token va compute kamayadi).
 - Cache: bir xil faylga qayta OCR bo'lmasin.
 - Premium limitlarni qat'iy ushlash (sizda quota bucket bor).
@@ -125,10 +125,8 @@ Yoki soddaroq:
 
 ---
 
-## 7) Agar xohlasangiz keyingi qadam
+## 7) OCR natija sifati bo'yicha izoh
 
-Men sizga keyingi bosqichda **real kalkulyator jadval** ham chiqarib beraman:
-
-- Free / Standard / Premium user ulushi
-- har tarif bo'yicha o'rtacha usage
-- shundan aniqroq oylik P&L (daromad-xarajat) modeli.
+- Agar maqsad 100% ko'rinish bo'lsa, strict scan (rasmga yaqin) ishlatiladi, lekin matn kamroq editable bo'ladi.
+- Agar maqsad Word'da tahrirlash bo'lsa, editable layout rejimi kerak (rasm emas, matn+jadval).
+- Siz so'ragan flow: **rasmdagi matnni Wordga o'girish va tahrir qilsa bo'ladigan format** — default shu rejim bo'lishi kerak.

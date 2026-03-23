@@ -378,7 +378,7 @@ async def perform_ocr_and_send(context, image_path, chat_id, user_id):
         await update_progress(context, progress_msg, 70, "Word hujjat shakllantirilmoqda...")
         # Create Word Document asynchronously so we don't block the loop
         doc_path = f"Ocr_Natija_{user_id}_{int(time.time())}_@DastyorAiBot.docx"
-        strict_scan = os.getenv("OCR_WORD_STRICT_SCAN_MODE", "1").strip().lower() in ("1", "true", "yes", "on")
+        strict_scan = os.getenv("OCR_WORD_STRICT_SCAN_MODE", "0").strip().lower() in ("1", "true", "yes", "on")
 
         def create_and_save_doc(html_text, path):
             doc = Document()
@@ -552,7 +552,7 @@ async def _perform_ocr_batch_and_send(context, bot, chat_id: int, user_id: int, 
         await update_progress(context, progress_msg, 90, "Word yaratilmoqda...")
         merged_html = "<body>" + "\n".join(html_parts) + "</body>"
         doc_path = f"Ocr_Natija_{user_id}_{int(time.time())}_@DastyorAiBot.docx"
-        strict_scan = os.getenv("OCR_WORD_STRICT_SCAN_MODE", "1").strip().lower() in ("1", "true", "yes", "on")
+        strict_scan = os.getenv("OCR_WORD_STRICT_SCAN_MODE", "0").strip().lower() in ("1", "true", "yes", "on")
 
         def _create_doc():
             doc = Document()
