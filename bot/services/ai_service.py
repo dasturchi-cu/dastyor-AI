@@ -288,55 +288,47 @@ async def translate_document_gemini(file_path: str, target_language: str = "uz")
         lang_map = {"uz": "Uzbek", "ru": "Russian", "en": "English"}
         target_lang_name = lang_map.get(target_language, "Uzbek")
         
-        # Collect chunks
-        full_text_chunks = []
-        current_chunk = []
-        current_length = 0
-        
+        # Collect every non-empty paragraph separately (better structure preservation).
+        para_nodes = []
         for para in doc.paragraphs:
-            if not para.text.strip(): continue
-            if current_length + len(para.text) > 2000:
-                full_text_chunks.append(current_chunk)
-                current_chunk = []
-                current_length = 0
-            current_chunk.append(para)
-            current_length += len(para.text)
-            
-        if current_chunk: full_text_chunks.append(current_chunk)
-        
-        # Add table cells as chunks
+            if (para.text or "").strip():
+                para_nodes.append(para)
         for table in doc.tables:
             for row in table.rows:
                 for cell in row.cells:
                     for para in cell.paragraphs:
-                        if para.text.strip():
-                            full_text_chunks.append([para])
+                        if (para.text or "").strip():
+                            para_nodes.append(para)
 
-        logger.info(f"Translating doc: {len(full_text_chunks)} chunks to {target_lang_name}")
+        logger.info(f"Translating doc: {len(para_nodes)} paragraphs to {target_lang_name}")
 
-        async def translate_chunk(chunk):
-            text = "\n\n".join([p.text for p in chunk])
-            prompt = f"Translate to {target_lang_name}. Return ONLY text. Keep structure.\n\n{text}"
+        async def translate_one(src_text: str) -> str:
+            prompt = (
+                f"Translate the following text to {target_lang_name}.\n"
+                "Rules:\n"
+                "- Return ONLY translated text.\n"
+                "- Keep numbers, names, abbreviations, and punctuation.\n"
+                "- Do not add explanations.\n\n"
+                f"{src_text}"
+            )
             try:
                 resp = await _gcall(model.generate_content_async(prompt))
-                return (resp.text if resp else None), chunk
+                out = (resp.text if resp and resp.text else "").strip()
+                if out.startswith("```"):
+                    out = out.replace("```text", "").replace("```", "").strip()
+                return out or src_text
             except Exception as e:
-                logger.error(f"Chunk translation error: {e}")
-                return None, chunk
+                logger.error(f"Doc paragraph translation error: {e}")
+                return src_text
 
-        # Process in batches of 5
-        for i in range(0, len(full_text_chunks), 5):
-            batch = full_text_chunks[i:i+5]
-            results = await asyncio.gather(*[translate_chunk(c) for c in batch])
-
-            # Apply results — use _set_para_text (Paragraph.text has no setter in python-docx)
-            for translated_text, original_paras in results:
-                if translated_text and original_paras:
-                    _set_para_text(original_paras[0], translated_text)
-                    for p in original_paras[1:]:
-                        _set_para_text(p, "")
-
-            await asyncio.sleep(0.5)  # light pause to avoid rate limit
+        # Process paragraphs in moderate batches.
+        for i in range(0, len(para_nodes), 8):
+            batch_nodes = para_nodes[i:i + 8]
+            srcs = [p.text for p in batch_nodes]
+            outs = await asyncio.gather(*[translate_one(s) for s in srcs])
+            for p, out in zip(batch_nodes, outs):
+                _set_para_text(p, out)
+            await asyncio.sleep(0.15)
 
         # Save
         output_path = file_path.replace(".docx", f"_translated_{target_language}.docx")
@@ -398,6 +390,8 @@ async def check_spelling_text(text: str) -> tuple[str, int]:
     src = (text or "").strip()
     if not src:
         return "", 0
+    original_src = src
+    heuristic_fixes = 0
 
     # If there is nothing to fix (no letters), skip spell checking.
     if not any(ch.isalpha() for ch in src):
@@ -406,6 +400,34 @@ async def check_spelling_text(text: str) -> tuple[str, int]:
     def _is_cyrillic(s: str) -> bool:
         # Rough heuristic: detect Cyrillic blocks.
         return any(("\u0400" <= ch <= "\u04FF") or ("\u0500" <= ch <= "\u052F") for ch in (s or ""))
+
+    def _apply_uz_latin_heuristics(s: str) -> tuple[str, int]:
+        """
+        Fast deterministic fixes for common Uzbek-latin typos.
+        """
+        out = s
+        rules = [
+            (r"\bbugn\b", "bugun"),
+            (r"\bozimni\b", "o'zimni"),
+            (r"\bxis\b", "his"),
+            (r"\bqildm\b", "qildim"),
+            (r"\boqip\b", "o'qib"),
+            (r"\bbolgach\b", "bo'lgach"),
+            (r"\bqoydi\b", "qo'ydi"),
+            (r"\bdstlarim\b", "do'stlarim"),
+            (r"\bkochada\b", "ko'chada"),
+            (r"\boynab\b", "o'ynab"),
+            (r"\byurganmda\b", "yurganimda"),
+            (r"\byomgr\b", "yomg'ir"),
+            (r"\byogib\b", "yog'ib"),
+        ]
+        changes = 0
+        for pat, rep in rules:
+            new_out, n = re.subn(pat, rep, out, flags=re.IGNORECASE)
+            if n:
+                out = new_out
+                changes += int(n)
+        return out, changes
 
     def _mask_sensitive_tokens(s: str) -> tuple[str, dict[str, str]]:
         """
@@ -520,6 +542,13 @@ async def check_spelling_text(text: str) -> tuple[str, int]:
         return max(1, min(diff, 999)) if diff > 0 else 1
 
     try:
+        # 0) Quick deterministic Uzbek-latin typo pass.
+        if not _is_cyrillic(src):
+            htxt, hfix = _apply_uz_latin_heuristics(src)
+            if hfix > 0:
+                src = htxt
+                heuristic_fixes += int(hfix)
+
         # 1) Deterministic spell correction for Russian (if LanguageTool is available).
         # This reduces wrong “LLM hallucination” corrections for ru text.
         if _is_cyrillic(src):
@@ -538,7 +567,7 @@ async def check_spelling_text(text: str) -> tuple[str, int]:
                 async with _LANGTOOL_RU_LOCK:
                     corrected = await asyncio.to_thread(_LANGTOOL_RU.correct, src)
                 merged = _conservative_merge(src, corrected)
-                return merged, _count_fixes(src, merged)
+                return merged, max(int(heuristic_fixes), _count_fixes(original_src, merged))
             except Exception as e:
                 logger.warning(f"LanguageTool ru failed, falling back to Gemini: {e}")
 
@@ -551,7 +580,7 @@ async def check_spelling_text(text: str) -> tuple[str, int]:
         ])
         if not model:
             # No model and no local spell checker: best-effort (no changes).
-            return src, 0
+            return src, int(heuristic_fixes)
 
         spell_timeout = int((globals().get("GEMINI_SPELLCHECK_TIMEOUT") or 30))
 
@@ -642,7 +671,7 @@ async def check_spelling_text(text: str) -> tuple[str, int]:
             candidate = _unmask_sensitive_tokens(resp_text.strip(), mapping) if resp_text else src
             corrected = _conservative_merge(src, candidate)
 
-        fixes = _count_fixes(src, corrected)
+        fixes = max(int(heuristic_fixes), _count_fixes(original_src, corrected))
         return corrected, fixes
 
     except Exception as e:
