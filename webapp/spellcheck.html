@@ -350,6 +350,24 @@
       return qs.get('api') || (location.protocol === 'file:' ? 'https://dastyor-ai.onrender.com' : location.origin);
     }
 
+    function resolveWebAuth() {
+      const qs = new URLSearchParams(location.search);
+      const tid =
+        window.DastyorAI?.getTelegramId?.()
+        || qs.get('telegram_id')
+        || sessionStorage.getItem('tg_id')
+        || tg?.initDataUnsafe?.user?.id
+        || '';
+      const tok =
+        window.DastyorAI?.getToken?.()
+        || sessionStorage.getItem('tg_token')
+        || '';
+      return {
+        tid: tid != null ? String(tid).trim() : '',
+        tok: tok != null ? String(tok).trim() : '',
+      };
+    }
+
     async function runSpellcheckFile() {
       const f = fi.files && fi.files[0];
       if (!f) {
@@ -369,12 +387,9 @@
 
       const fd = new FormData();
       fd.append('file', f, f.name);
-      const tid = new URLSearchParams(location.search).get('telegram_id');
-      if (tid) fd.append('telegram_id', tid);
-      try {
-        const tok = sessionStorage.getItem('tg_token');
-        if (tok) fd.append('token', tok);
-      } catch (_) {}
+      const auth = resolveWebAuth();
+      if (auth.tid && /^\d+$/.test(auth.tid)) fd.append('telegram_id', auth.tid);
+      if (auth.tok) fd.append('token', auth.tok);
       const notify = document.getElementById('notifyTg').checked;
       fd.append('notify_telegram', notify ? 'true' : 'false');
 
@@ -399,7 +414,7 @@
         const ec = data.error_count != null ? data.error_count : (data.fixed ?? 0);
         document.getElementById('fileResultMeta').textContent = `So‘zlar: ${wc} · Tuzatishlar: ${ec}`;
         document.getElementById('btnDlTxt').classList.remove('hidden');
-        showStatus('statusFile', 'success', notify ? '✅ Tayyor. Natija chatga ham yuborilishi mumkin.' : '✅ Tayyor.');
+        showStatus('statusFile', 'success', notify ? '✅ Tayyor. Tuzatilgan fayl botga yuborildi.' : '✅ Tayyor.');
         void window.DastyorAI?.refreshProfile?.();
         tg?.HapticFeedback?.notificationOccurred?.('success');
       } catch (e) {
