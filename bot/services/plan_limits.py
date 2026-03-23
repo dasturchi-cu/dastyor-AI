@@ -140,10 +140,19 @@ def _batch_bucket_counts(user_id: int, bucket_keys: list[str]) -> dict[str, int]
 
         if has_db():
             db_out = db_service_bucket_get_many(uid, bucket_keys)
-            return {
-                k: max(int(db_out.get(k, 0)), int(local_out.get(k, 0)))
-                for k in bucket_keys
-            }
+            # Supabase yoqilganda asosiy manba — DB.
+            # Local qiymatni faqat explicit test fallback holatida (env) qo'shamiz.
+            use_local_with_db = os.getenv("PLAN_QUOTA_LOCAL_FALLBACK_WITH_DB", "").strip().lower() in (
+                "1",
+                "true",
+                "yes",
+            )
+            if use_local_with_db:
+                return {
+                    k: max(int(db_out.get(k, 0)), int(local_out.get(k, 0)))
+                    for k in bucket_keys
+                }
+            return {k: int(db_out.get(k, 0)) for k in bucket_keys}
     except Exception as e:
         logger.debug("plan_limits batch get: %s", e)
     return local_out
