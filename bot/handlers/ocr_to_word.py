@@ -162,7 +162,7 @@ def _schedule_ocr_auto_process(
 
     async def _job():
         try:
-            await asyncio.sleep(2.8)
+            await asyncio.sleep(1.2)
             if context.user_data.get("waiting_for") != "ocr_image":
                 return
             imgs = list(context.user_data.get("ocr_images") or [])
@@ -182,7 +182,7 @@ def _schedule_ocr_auto_process(
                 chat_id=chat_id,
                 text=(
                     f"⏳ {len(imgs)} ta rasm avtomatik qayta ishlanmoqda.\n"
-                    "Bir nechta rasm yuborganingizda, oxirgi rasmdan keyin ~3 soniya kutamiz."
+                    "Bir nechta rasm yuborganingizda, oxirgi rasmdan keyin ~1 soniya kutamiz."
                 ),
             )
         except asyncio.CancelledError:
@@ -378,30 +378,10 @@ async def perform_ocr_and_send(context, image_path, chat_id, user_id):
         await update_progress(context, progress_msg, 70, "Word hujjat shakllantirilmoqda...")
         # Create Word Document asynchronously so we don't block the loop
         doc_path = f"Ocr_Natija_{user_id}_{int(time.time())}_@DastyorAiBot.docx"
-        strict_scan = os.getenv("OCR_WORD_STRICT_SCAN_MODE", "0").strip().lower() in ("1", "true", "yes", "on")
-
         def create_and_save_doc(html_text, path):
             doc = Document()
             try:
-                if strict_scan:
-                    # Visual copy mode: original rasm birinchi sahifada 1:1 ga yaqin.
-                    sec = doc.sections[0]
-                    sec.top_margin = Inches(0.4)
-                    sec.bottom_margin = Inches(0.4)
-                    sec.left_margin = Inches(0.4)
-                    sec.right_margin = Inches(0.4)
-                    p = doc.add_paragraph()
-                    p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-                    p.add_run().add_picture(image_path, width=Inches(7.2))
-                    plain = BeautifulSoup(str(html_text or ""), "html.parser").get_text("\n", strip=True)
-                    if plain:
-                        doc.add_page_break()
-                        for line in plain.splitlines():
-                            line = line.strip()
-                            if line:
-                                doc.add_paragraph(line)
-                else:
-                    add_html_to_docx(doc, html_text)
+                add_html_to_docx(doc, html_text)
             except Exception as parse_err:
                 logger.error(f"HTML Parse error: {parse_err}")
                 doc.add_paragraph(str(html_text))
@@ -536,6 +516,55 @@ async def _perform_ocr_batch_and_send(context, bot, chat_id: int, user_id: int, 
             await progress_msg.edit_text("❌ Hech qanday rasm yuklanmadi.")
             return
 
+        # 1 ta rasm bo'lsa batch yo'lga tushirmaymiz — tezroq single oqim.
+        if len(temp_paths) == 1:
+            img_path = temp_paths[0]
+            await update_progress(context, progress_msg, 35, "AI matnni o'qimoqda...")
+            extracted_text = await extract_text_from_image(img_path)
+            if not extracted_text:
+                await progress_msg.edit_text("❌ Matn ajratilmadi.")
+                return
+            await update_progress(context, progress_msg, 80, "Word yaratilmoqda...")
+            doc_path = f"Ocr_Natija_{user_id}_{int(time.time())}_@DastyorAiBot.docx"
+            def _create_single_doc():
+                doc = Document()
+                add_html_to_docx(doc, extracted_text)
+                doc.save(doc_path)
+                return doc_path
+
+            build_timeout = max(15, int(os.getenv("OCR_DOCX_BUILD_TIMEOUT_SECONDS", "45")))
+            try:
+                await asyncio.wait_for(asyncio.to_thread(_create_single_doc), timeout=build_timeout)
+            except asyncio.TimeoutError:
+                logger.warning("OCR single-from-batch DOCX timeout (%ss), fallback plain-text user=%s", build_timeout, user_id)
+                def _fallback_single():
+                    doc = Document()
+                    plain = BeautifulSoup(str(extracted_text or ""), "html.parser").get_text("\n", strip=True)
+                    if plain:
+                        for line in plain.splitlines():
+                            line = line.strip()
+                            if line:
+                                doc.add_paragraph(line)
+                    doc.save(doc_path)
+                await asyncio.to_thread(_fallback_single)
+
+            await update_progress(context, progress_msg, 95, "Yuborilmoqda...")
+            with open(doc_path, "rb") as f:
+                ok_send = await send_docx_with_confirmation(
+                    bot, chat_id, f,
+                    filename=doc_path,
+                    caption="✅ **Word fayl tayyor.**",
+                    parse_mode=ParseMode.MARKDOWN,
+                    reply_markup=get_main_menu(user_id, get_user_lang(user_id)),
+                )
+            if ok_send:
+                record_service_completion(user_id, CAT_OCR, "OCR Single")
+            await progress_msg.delete()
+            if getattr(context, "user_data", None):
+                context.user_data.pop("waiting_for", None)
+                context.user_data.pop("ocr_images", None)
+            return
+
         html_parts = []
         for i, img_path in enumerate(temp_paths):
             pct = 20 + int(70 * (i + 1) / len(temp_paths))
@@ -552,25 +581,10 @@ async def _perform_ocr_batch_and_send(context, bot, chat_id: int, user_id: int, 
         await update_progress(context, progress_msg, 90, "Word yaratilmoqda...")
         merged_html = "<body>" + "\n".join(html_parts) + "</body>"
         doc_path = f"Ocr_Natija_{user_id}_{int(time.time())}_@DastyorAiBot.docx"
-        strict_scan = os.getenv("OCR_WORD_STRICT_SCAN_MODE", "0").strip().lower() in ("1", "true", "yes", "on")
-
         def _create_doc():
             doc = Document()
             try:
-                if strict_scan:
-                    sec = doc.sections[0]
-                    sec.top_margin = Inches(0.4)
-                    sec.bottom_margin = Inches(0.4)
-                    sec.left_margin = Inches(0.4)
-                    sec.right_margin = Inches(0.4)
-                    for idx, img_path in enumerate(temp_paths):
-                        p = doc.add_paragraph()
-                        p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-                        p.add_run().add_picture(img_path, width=Inches(7.2))
-                        if idx < len(temp_paths) - 1:
-                            doc.add_page_break()
-                else:
-                    add_html_to_docx(doc, merged_html)
+                add_html_to_docx(doc, merged_html)
             except Exception as parse_err:
                 logger.error("Batch HTML parse error: %s", parse_err)
                 doc.add_paragraph(merged_html.replace("<br>", "\n").replace("</p>", "\n"))
