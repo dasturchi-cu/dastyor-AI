@@ -79,14 +79,21 @@ def _add_run_with_style(paragraph_obj, element, bold=False, italic=False, underl
     
     for child in element.children:
         if isinstance(child, NavigableString):
-            text = str(child).replace('\n', ' ')
-            if not text.strip() and text:
-                text = ' '
-            if text:
-                run = paragraph_obj.add_run(text)
-                run.bold = is_bold
-                run.italic = is_italic
-                run.underline = is_underline
+            raw = str(child).replace('\r\n', '\n').replace('\r', '\n')
+            if not raw:
+                continue
+            parts = raw.split('\n')
+            for idx, part in enumerate(parts):
+                text = part
+                if not text.strip() and text:
+                    text = ' '
+                if text:
+                    run = paragraph_obj.add_run(text)
+                    run.bold = is_bold
+                    run.italic = is_italic
+                    run.underline = is_underline
+                if idx < len(parts) - 1:
+                    paragraph_obj.add_run().add_break()
         elif isinstance(child, Tag):
             # If we hit block elements inside text contexts, just add a line break
             if child.name in ['br', 'p', 'div'] and child.name != 'br':
@@ -129,9 +136,11 @@ def add_html_to_docx(doc, html_content):
 
     for element in root.children:
         if isinstance(element, NavigableString):
-            text = str(element).strip()
-            if text:
-                doc.add_paragraph(text)
+            raw = str(element).replace('\r\n', '\n').replace('\r', '\n').strip('\n')
+            if raw.strip():
+                for line in raw.split('\n'):
+                    if line.strip():
+                        doc.add_paragraph(line.strip())
             continue
             
         if element.name == 'table':
