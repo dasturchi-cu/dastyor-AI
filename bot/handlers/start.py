@@ -9,6 +9,8 @@ Oddiy /start: to'g'ridan-to'g'ri menuni ko'rsatadi.
 import asyncio
 import logging
 import os
+from io import BytesIO
+
 from telegram import InputFile, Update, WebAppInfo, InlineKeyboardMarkup, InlineKeyboardButton
 from telegram.ext import ContextTypes
 from bot.keyboards.reply_keyboards import get_main_menu
@@ -19,8 +21,15 @@ from config import WEBAPP_BASE
 logger = logging.getLogger(__name__)
 
 BOT_USERNAME = os.getenv("BOT_USERNAME", "DastyorAiBot")
-# Ixtiyoriy: faqat https://… (Telegram blob: yoki mahalliy fayl URL ishlamaydi)
-START_INTRO_PHOTO_URL = (os.getenv("START_INTRO_PHOTO_URL", "") or "").strip()
+# To‘g‘ridan-to‘g‘ri rasm URL (ibb.co sahifa emas — i.ibb.co … .jpg/.png).
+# Env bo‘lmasa — ImgBB’dagi default intro (faqat botda ishlatiladi, WebAppda emas).
+_DEFAULT_START_INTRO_URL = (
+    "https://i.ibb.co/XxFxhc1F/image-a640d915-8968-4912-aade-96b57ca803dc.jpg"
+)
+_raw_intro_url = os.getenv("START_INTRO_PHOTO_URL")
+START_INTRO_PHOTO_URL = (
+    _DEFAULT_START_INTRO_URL if _raw_intro_url is None else str(_raw_intro_url).strip()
+)
 # Default til — o'zbek lotin
 DEFAULT_LANG = "uz_lat"
 
@@ -44,7 +53,7 @@ def _hero_intro_photo_path() -> str | None:
 
 
 async def _send_start_intro_photo(message, first_name: str) -> bool:
-    """Telegram faqat https URL yoki yuklangan fayl qabul qiladi. Muvaffaqiyat → True."""
+    """Avval HTTPS URL, keyin mahalliy fayl (Telegram to‘g‘ri rasm havolasini talab qiladi)."""
     caption = (
         f"Assalomu alaykum, <b>{first_name}</b>! 👋\n\n"
         f"✨ <b>Siz yozasiz — DASTYOR AI bajaradi!</b>"
@@ -52,21 +61,29 @@ async def _send_start_intro_photo(message, first_name: str) -> bool:
     path = _hero_intro_photo_path()
     url = START_INTRO_PHOTO_URL
     try:
-        if path:
-            with open(path, "rb") as ph:
-                await message.reply_photo(
-                    photo=InputFile(ph, filename="dastyor-hero.png"),
-                    caption=caption,
-                    parse_mode="HTML",
-                )
-            return True
         if url.startswith("https://") or url.startswith("http://"):
-            await message.reply_photo(photo=url, caption=caption, parse_mode="HTML")
+            try:
+                await message.reply_photo(photo=url, caption=caption, parse_mode="HTML")
+                return True
+            except Exception as e:
+                logger.warning("Start intro URL rasm yuborilmadi, mahalliy fayl sinanadi: %s", e)
+        if path:
+            with open(path, "rb") as f:
+                data = f.read()
+            bio = BytesIO(data)
+            await message.reply_photo(
+                photo=InputFile(bio, filename="dastyor-hero.png"),
+                caption=caption,
+                parse_mode="HTML",
+            )
             return True
     except Exception as e:
         logger.warning("Start intro rasm yuborilmadi: %s", e)
     if not path and not (url.startswith("https://") or url.startswith("http://")):
-        logger.debug("Start intro: hero fayl topilmadi: webapp/assets/hero-dastyor.png")
+        logger.warning(
+            "Start intro: na URL, na webapp/assets/hero-dastyor.png. "
+            "START_INTRO_PHOTO_URL yoki fayl qo‘shing."
+        )
     return False
 
 
@@ -107,14 +124,18 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     action  = _ACTION_MAP.get(payload)
 
     if action:
-        # ── Deep-link: open specific tool directly ───────────────────
+        # ── Deep-link: avval intro rasm (URL), keyin xizmat ──────────
+        intro_ok = await _send_start_intro_photo(update.message, first_name)
         page_file, btn_label, description = action
         url = f"{WEBAPP_BASE}/{page_file}?telegram_id={uid}&lang={lang}"
 
-        text_base = (
-            f"Assalomu alaykum, {first_name}! 👋\n\n"
-            f"🚀 <b>{description}</b>:"
-        )
+        if intro_ok:
+            text_base = f"🚀 <b>{description}</b>:"
+        else:
+            text_base = (
+                f"Assalomu alaykum, {first_name}! 👋\n\n"
+                f"🚀 <b>{description}</b>:"
+            )
         keyboard = InlineKeyboardMarkup([[
             InlineKeyboardButton(btn_label, web_app=WebAppInfo(url=url))
         ]])
