@@ -22,7 +22,8 @@ USAGE_FILE = "usage_data.json"
 
 # Tarif jadvali (bir necha Supabase so'rovini birlashtiradi) — /start va balans tezligi.
 # Qisqa TTL — xizmatdan keyin Balans tez yangilansin (30s eski ko‘rinish qoldirardi)
-_TARIFF_SNAPSHOT_TTL = float(os.getenv("TARIFF_SNAPSHOT_CACHE_TTL_SECONDS", "8") or "8")
+# /start va menyu: bir necha Supabase chaqiruvini birlashtiradi — qisqa TTL sekinlik berardi.
+_TARIFF_SNAPSHOT_TTL = float(os.getenv("TARIFF_SNAPSHOT_CACHE_TTL_SECONDS", "45") or "45")
 _tariff_snapshot_cache: dict[int, tuple[float, dict]] = {}
 _tariff_cache_lock = threading.Lock()
 

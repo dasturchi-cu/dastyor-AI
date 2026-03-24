@@ -7,6 +7,7 @@ Deep-link format:  /start <action>
 Oddiy /start: to'g'ridan-to'g'ri menuni ko'rsatadi.
 """
 import asyncio
+import logging
 import os
 from telegram import Update, WebAppInfo, InlineKeyboardMarkup, InlineKeyboardButton
 from telegram.ext import ContextTypes
@@ -15,8 +16,10 @@ from bot.services.user_service import save_chat_id
 from bot.services.usage_tracker import format_tariff_status_html
 from config import WEBAPP_BASE
 
+logger = logging.getLogger(__name__)
+
 BOT_USERNAME = os.getenv("BOT_USERNAME", "DastyorAiBot")
-START_INTRO_PHOTO_URL = "blob:https://chatgpt.com/6b96f4aa-2dc8-424d-8bbe-9b67796ac69c"
+START_INTRO_PHOTO_URL = (os.getenv("START_INTRO_PHOTO_URL", "blob:https://chatgpt.com/6b96f4aa-2dc8-424d-8bbe-9b67796ac69c") or "").strip()
 # Default til — o'zbek lotin
 DEFAULT_LANG = "uz_lat"
 
@@ -30,6 +33,17 @@ _ACTION_MAP: dict[str, tuple[str, str, str]] = {
     "translate"  : ("translate.html",    "🌐 Tarjima",              "Matn tarjima qilish"),
     "premium"    : ("premium.html",      "💎 Premium",              "Premium tarif haqida ma'lumot"),
 }
+
+
+async def _merge_tariff_into_message(message, uid: int, reply_markup, *, prefix: str = "", suffix: str = ""):
+    """Tarif blokini thread-da yuklab, xabarni tahrirlaydi — /start javobini bloklamaydi."""
+    try:
+        tb = await asyncio.to_thread(format_tariff_status_html, uid)
+        parts = [p for p in (prefix.strip(), tb, suffix.strip()) if p]
+        text = "\n\n".join(parts)
+        await message.edit_text(text, reply_markup=reply_markup, parse_mode="HTML")
+    except Exception:
+        logger.debug("tariff merge edit skipped (user_id=%s)", uid, exc_info=True)
 
 
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -62,19 +76,15 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         page_file, btn_label, description = action
         url = f"{WEBAPP_BASE}/{page_file}?telegram_id={uid}&lang={lang}"
 
-        try:
-            tariff_block = await asyncio.to_thread(format_tariff_status_html, uid)
-        except Exception:
-            tariff_block = format_tariff_status_html(uid)
-        text = (
+        text_base = (
             f"Assalomu alaykum, {first_name}! 👋\n\n"
-            f"🚀 <b>{description}</b>:\n\n"
-            f"{tariff_block}"
+            f"🚀 <b>{description}</b>:"
         )
         keyboard = InlineKeyboardMarkup([[
             InlineKeyboardButton(btn_label, web_app=WebAppInfo(url=url))
         ]])
-        await update.message.reply_text(text, reply_markup=keyboard, parse_mode="HTML")
+        msg = await update.message.reply_text(text_base, reply_markup=keyboard, parse_mode="HTML")
+        asyncio.create_task(_merge_tariff_into_message(msg, uid, keyboard, prefix=text_base))
         return
 
     # ── Default /start — to'g'ridan-to'g'ri menuni ko'rsat ──────────
@@ -92,12 +102,6 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"• Rasmlarni PDFga birlashtirish\n\n"
         f"👇 Quyidagi menyudan xizmat tanlang:"
     )
-    try:
-        tariff_block = await asyncio.to_thread(format_tariff_status_html, uid)
-    except Exception:
-        tariff_block = format_tariff_status_html(uid)
-    welcome_text += f"\n\n{tariff_block}"
-
     keyboard = InlineKeyboardMarkup([
         [
             InlineKeyboardButton(
@@ -137,11 +141,12 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         ],
     ])
 
-    await update.message.reply_text(
+    msg = await update.message.reply_text(
         welcome_text,
         reply_markup=keyboard,
         parse_mode="HTML",
     )
+    asyncio.create_task(_merge_tariff_into_message(msg, uid, keyboard, prefix=welcome_text))
 
     await update.message.reply_text(
         "🚀 Appni ochish uchun pastdagi tugmani bosing:",
@@ -156,13 +161,10 @@ async def menu_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     uid = update.effective_user.id if update.effective_user else None
     if not uid:
         return
-    try:
-        tariff_block = await asyncio.to_thread(format_tariff_status_html, uid)
-    except Exception:
-        tariff_block = format_tariff_status_html(uid)
-    body = f"{tariff_block}\n\nMenyudan xizmat tanlang:"
-    await update.message.reply_text(
-        body,
-        reply_markup=get_main_menu(uid, DEFAULT_LANG),
+    kb = get_main_menu(uid, DEFAULT_LANG)
+    msg = await update.message.reply_text(
+        "Menyudan xizmat tanlang:",
+        reply_markup=kb,
         parse_mode="HTML",
     )
+    asyncio.create_task(_merge_tariff_into_message(msg, uid, kb, suffix="Menyudan xizmat tanlang:"))

@@ -21,6 +21,11 @@ from backend.schemas.webapp import (
     ObyektivkaRequest,
     PreviewObyektivkaRequest,
 )
+from backend.services.cv_preview_cache import (
+    cache_key_for_cv_preview,
+    cv_preview_cache_get,
+    cv_preview_cache_set,
+)
 from backend.services.temp_files import safe_remove
 from backend.services.user_resolve import resolve_telegram_uid, safe_filename_part
 from backend.services.web_quota import web_quota_consume_or_raise
@@ -41,7 +46,13 @@ async def api_cv_preview_html(req: ExportCVRequest) -> HTMLResponse:
     """
     try:
         data = req.dict(exclude={"telegram_id", "token", "send_only", "format"})
-        html = render_cv_html(data)
+        cache_key = cache_key_for_cv_preview(data)
+        cached = cv_preview_cache_get(cache_key)
+        if cached is not None:
+            return HTMLResponse(content=cached, media_type="text/html; charset=utf-8")
+        # Jinja sinxron — event loopni bloklamaslik uchun thread.
+        html = await asyncio.to_thread(render_cv_html, data)
+        cv_preview_cache_set(cache_key, html)
     except Exception as e:
         logger.exception("cv_preview_html")
         raise HTTPException(status_code=500, detail=f"Preview render xatosi: {str(e)[:200]}") from e
@@ -637,5 +648,5 @@ async def api_export_obyektivka(
 async def api_preview_obyektivka(req: PreviewObyektivkaRequest):
     from bot.services.render_service import render_obyektivka_html
 
-    html = render_obyektivka_html(req.dict())
+    html = await asyncio.to_thread(render_obyektivka_html, req.dict())
     return HTMLResponse(content=html)
