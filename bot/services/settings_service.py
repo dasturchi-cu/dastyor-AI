@@ -3,11 +3,37 @@ Settings Service (Enhanced)
 Manages dynamic bot settings including detailed Premium User management.
 """
 import json
-import os
 import logging
+import os
+import threading
+import time
 from datetime import datetime, timedelta
 
 logger = logging.getLogger(__name__)
+
+# Har xabarda Supabase bot_settings so‘rovi — qisqa TTL kesh (maintenance tekshiruvi).
+_MAINT_CACHE_TTL = float(os.getenv("MAINTENANCE_MODE_CACHE_TTL_SECONDS", "15") or "15")
+_maint_lock = threading.Lock()
+_maint_cache: tuple[float, bool] | None = None
+
+
+def invalidate_maintenance_mode_cache() -> None:
+    global _maint_cache
+    with _maint_lock:
+        _maint_cache = None
+
+
+def _read_maintenance_mode_uncached() -> bool:
+    try:
+        from bot.services.supabase_db import has_db, db_get_maintenance_mode
+
+        if has_db():
+            mode = db_get_maintenance_mode()
+            if mode is not None:
+                return bool(mode)
+    except Exception as e:
+        logger.debug(f"Supabase get_maintenance_mode fallback: {e}")
+    return bool(_load_settings().get("maintenance_mode", False))
 
 SETTINGS_FILE = "bot_settings.json"
 
@@ -214,15 +240,15 @@ def set_daily_limit(limit):
 
 
 def get_maintenance_mode() -> bool:
-    try:
-        from bot.services.supabase_db import has_db, db_get_maintenance_mode
-        if has_db():
-            mode = db_get_maintenance_mode()
-            if mode is not None:
-                return bool(mode)
-    except Exception as e:
-        logger.debug(f"Supabase get_maintenance_mode fallback: {e}")
-    return bool(_load_settings().get("maintenance_mode", False))
+    now = time.monotonic()
+    with _maint_lock:
+        hit = _maint_cache
+        if hit is not None and (now - hit[0]) < _MAINT_CACHE_TTL:
+            return hit[1]
+    val = _read_maintenance_mode_uncached()
+    with _maint_lock:
+        _maint_cache = (time.monotonic(), val)
+    return val
 
 
 def set_maintenance_mode(enabled: bool):
@@ -238,3 +264,4 @@ def set_maintenance_mode(enabled: bool):
     data = _load_settings()
     data["maintenance_mode"] = val
     _save_settings(data)
+    invalidate_maintenance_mode_cache()

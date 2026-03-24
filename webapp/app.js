@@ -174,8 +174,39 @@ const DastyorAI = (() => {
         return fallback || key;
     }
 
+    /** CV / obyektivka: o‘z ichki lug‘ati (changeLang, initApp). Global locales/*.json ularga tegmasin. */
+    function skipGlobalI18nOnThisPage() {
+        try {
+            if (document.body && document.body.getAttribute('data-da-skip-global-i18n') === '1') {
+                return true;
+            }
+            const p = (location.pathname || '').toLowerCase();
+            return p.includes('cv.html') || p.includes('obyektivka.html');
+        } catch (_) {
+            return false;
+        }
+    }
+
+    function elementSkipsGlobalI18n(el) {
+        try {
+            return !!(el && el.closest && el.closest('[data-da-skip-global-i18n="1"]'));
+        } catch (_) {
+            return false;
+        }
+    }
+
     function applyTranslations(root = document) {
+        const langAttr = currentLang === 'ru' ? 'ru' : currentLang === 'en' ? 'en' : 'uz';
+        if (skipGlobalI18nOnThisPage()) {
+            try {
+                document.documentElement.lang = langAttr;
+            } catch (_) {}
+            window.dispatchEvent(new CustomEvent('app:language-applied', { detail: { language: currentLang } }));
+            return;
+        }
+
         root.querySelectorAll('[data-i18n]').forEach((el) => {
+            if (elementSkipsGlobalI18n(el)) return;
             const key = el.getAttribute('data-i18n');
             const attr = el.getAttribute('data-i18n-attr');
             const fallback = el.getAttribute('data-i18n-fallback') || el.textContent.trim();
@@ -189,13 +220,15 @@ const DastyorAI = (() => {
         });
 
         root.querySelectorAll('[data-i18n-ph]').forEach((el) => {
+            if (elementSkipsGlobalI18n(el)) return;
             const key = el.getAttribute('data-i18n-ph');
             const fallback = el.getAttribute('placeholder') || '';
             el.setAttribute('placeholder', translate(key, fallback));
         });
 
-        const langAttr = currentLang === 'ru' ? 'ru' : currentLang === 'en' ? 'en' : 'uz';
-        document.documentElement.lang = langAttr;
+        try {
+            document.documentElement.lang = langAttr;
+        } catch (_) {}
         window.dispatchEvent(new CustomEvent('app:language-applied', { detail: { language: currentLang } }));
     }
 
@@ -827,7 +860,17 @@ html[data-theme="dark"] .da-doc-loading-ring{border-color:#334155;border-top-col
 
     // Early apply (before page scripts run)
     applyTheme(localStorage.getItem(THEME_KEY) || DEFAULT_THEME, false);
-    setLanguage(localStorage.getItem(LANGUAGE_KEY) || DEFAULT_LANG, false);
+    // Til: loadLocale asinxron — DOM bo‘lmasa yoki keyinroq CV parse bo‘lsa, applyTranslations noto‘g‘ri yozardi.
+    (function bootLanguageWhenDomReady() {
+        const run = () => {
+            void setLanguage(localStorage.getItem(LANGUAGE_KEY) || DEFAULT_LANG, false);
+        };
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', run, { once: true });
+        } else {
+            run();
+        }
+    })();
 
     // Ensure bottom nav exists even if a page forgets to call initUI().
     const _bootMobile = () => {
