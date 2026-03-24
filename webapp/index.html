@@ -27,6 +27,36 @@
     }
     .hero h1 { font-size: 28px; line-height: 1.12; margin-bottom: 8px; }
     .hero p { font-size: 15px; margin-bottom: 14px; }
+    .hero-illustration {
+      margin: 4px 0 14px;
+      border-radius: 16px;
+      overflow: hidden;
+      background: #fff;
+      border: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .hero-illustration img {
+      width: 100%;
+      height: auto;
+      max-height: min(240px, 42vw);
+      object-fit: contain;
+      object-position: center bottom;
+      display: block;
+    }
+    .hero .home-hero-lead {
+      font-size: 15px;
+      line-height: 1.45;
+      font-weight: 600;
+      color: var(--text-color);
+      margin-bottom: 8px;
+    }
+    .hero .home-hero-sub {
+      font-size: 14px;
+      color: var(--text-muted);
+      margin-bottom: 0;
+    }
     .hero-avatar {
       width: 40px;
       height: 40px;
@@ -218,12 +248,25 @@
 <body>
   <main class="page">
     <section class="hero">
-      <div class="section-title">Dastyor AI</div>
+      <div class="section-title" data-i18n="home_brand" data-i18n-fallback="DASTYOR AI">DASTYOR AI</div>
+      <div class="hero-illustration" aria-hidden="true">
+        <img
+          src="assets/hero-dastyor.png"
+          alt=""
+          width="520"
+          height="280"
+          decoding="async"
+          fetchpriority="high"
+        />
+      </div>
       <div class="hero-top">
         <h1 id="welcomeName" style="margin-bottom:0;">Salom 👋</h1>
         <div id="welcomeAvatar" class="hero-avatar" aria-label="User avatar"></div>
       </div>
-      <p>Barcha AI asboblaringiz bir joyda</p>
+      <p class="home-hero-lead" data-i18n="home_hero_lead" data-i18n-fallback="Siz yozasiz — DASTYOR AI bajaradi! DASTYOR yordamida har qanday hujjat bilan professional darajada ishlang.">
+        Siz yozasiz — DASTYOR AI bajaradi! DASTYOR yordamida har qanday hujjat bilan professional darajada ishlang.
+      </p>
+      <p class="home-hero-sub" data-i18n="home_hero_sub" data-i18n-fallback="Barcha AI asboblaringiz bir joyda">Barcha AI asboblaringiz bir joyda</p>
     </section>
 
     <section class="section" id="tools">
