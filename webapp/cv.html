@@ -142,7 +142,7 @@
       <h1 class="font-display font-bold text-lg text-slate-800 tracking-tight" data-i18n="app_title">CV Builder</h1>
     </div>
     <div class="flex items-center gap-3">
-      <select id="langSelect" onchange="changeLang(this.value)" class="bg-white border border-blue-200 text-slate-700 text-xs rounded-lg px-2 py-1.5 outline-none font-semibold cursor-pointer">
+      <select id="langSelect" onchange="setDocLang(this.value)" class="bg-white border border-blue-200 text-slate-700 text-xs rounded-lg px-2 py-1.5 outline-none font-semibold cursor-pointer">
         <option value="uz_lat">🇺🇿 O'zbek</option>
         <option value="uz_cyr">🇺🇿 Ўзбек</option>
         <option value="en">🇬🇧 English</option>
@@ -223,7 +223,7 @@
 
           <div>
             <label class="text-xs text-slate-500 font-bold mb-1 block" data-i18n="phone">Telefon</label>
-            <input type="tel" id="f_phone" class="input-premium w-full rounded-xl px-4 py-3 text-sm" value="+998 " placeholder="+998 90 123 45 67" oninput="formatPhone(this)">
+            <input type="tel" id="f_phone" class="input-premium w-full rounded-xl px-4 py-3 text-sm" value="+998 " placeholder="+998 90 123 45 67" data-i18n-ph="cv_phone_ph" oninput="formatPhone(this)">
           </div>
           <div>
             <label class="text-xs text-slate-500 font-bold mb-1 block" data-i18n="email">Email</label>
@@ -271,7 +271,7 @@
         <h3 class="font-bold text-slate-700 mb-3 flex items-center gap-2"><span class="hyper-emoji">⚡</span> <span data-i18n="skills_title">Ko'nikmalar (Skills)</span></h3>
         <div class="bg-blue-50 p-4 rounded-xl mb-8 border border-blue-100">
           <div class="flex gap-2 mb-3">
-            <input type="text" id="skillInput" class="input-premium flex-1 rounded-lg px-3 py-2 text-sm" placeholder="Masalan: Liderlik, Python..." onkeydown="if(event.key==='Enter')addSkill()">
+            <input type="text" id="skillInput" class="input-premium flex-1 rounded-lg px-3 py-2 text-sm" placeholder="Masalan: Liderlik, Python..." data-i18n-ph="cv_skills_ph" onkeydown="if(event.key==='Enter')addSkill()">
             <button onclick="addSkill()" class="bg-blue-600 text-white px-4 py-2 rounded-lg font-bold hover:bg-blue-700">+</button>
           </div>
           <div id="skillsWrap" class="flex flex-wrap gap-2 mb-3"></div>
@@ -286,9 +286,9 @@
           <div class="grid grid-cols-1 sm:grid-cols-4 gap-2 mb-3">
              <select id="achType" class="input-premium rounded-lg px-3 py-2 text-sm font-semibold sm:col-span-1 cursor-pointer">
                 </select>
-             <input type="text" id="achName" class="input-premium rounded-lg px-3 py-2 text-sm sm:col-span-2" placeholder="Nomi (masalan: IELTS 7.5)">
+             <input type="text" id="achName" class="input-premium rounded-lg px-3 py-2 text-sm sm:col-span-2" placeholder="Nomi (masalan: IELTS 7.5)" data-i18n-ph="cv_ach_name_ph">
              <div class="flex gap-2 sm:col-span-1">
-               <input type="number" id="achYear" class="input-premium w-full rounded-lg px-3 py-2 text-sm text-center" placeholder="Yili" min="1990" max="2030">
+               <input type="number" id="achYear" class="input-premium w-full rounded-lg px-3 py-2 text-sm text-center" placeholder="Yili" min="1990" max="2030" data-i18n-ph="cv_year_ph">
                <button onclick="addAchDetails()" class="bg-blue-600 text-white px-4 py-2 rounded-lg font-bold hover:bg-blue-700 w-12 shrink-0">+</button>
              </div>
           </div>
@@ -338,90 +338,94 @@
   </div>
 
   <script>
-    // --- DICTIONARY (i18n) ---
-    const dict = {
-      uz_lat: {
-        app_title: "CV Builder", step_1: "Shaxsiy", step_2: "Tajriba", step_3: "Yutuqlar",
-        upload_img: "Rasmni tanlang", drag_img: "yoki rasmni shu yerga tortib tashlang", 
-        name: "Ism Familiya", name_ph: "Ali Valiyev", role: "Kasb / Lavozim", role_ph: "Masalan: Dasturchi",
-        phone: "Telefon", email: "Email", location: "Manzil (Viloyat, Shahar)", loc_ph: "Masalan: Toshkent shahri",
-        about: "Men haqimda", about_ph: "Men...",
-        edu_title: "Ta'lim", add_edu: "+ Ta'lim qo'shish", exp_title: "Ish Tajribasi", add_exp: "+ Tajriba qo'shish",
-        lang_title: "Til Bilish", add_lang: "+ Til qo'shish",
-        skills_title: "Ko'nikmalar (Skills)", ach_title: "Yutuqlar va Qobiliyatlar", add_ach: "Qo'shish",
-        cv_color: "Rang:", preview: "Jonli Ko'rinish", download_pdf: "PDF botga yuborish",
-        next_btn: "Keyingisi", back_btn: "Orqaga", clear_data: "Ma'lumotlarni tozalash",
-        
-        // Dynamic List Labels
-        select_lang: "Til tanlang", lang_en: "Ingliz tili", lang_ru: "Rus tili", lang_de: "Nemis tili", lang_tr: "Turk tili", lang_other: "Boshqa",
-        listen: "Tinglash", read: "O'qish", speak: "Gapirish", write: "Yozish",
-        cert: "Sertifikat", dip: "Diplom", honor: "Faxriy yorliq", prize: "Sovrin",
-        ach_name_ph: "Nomi (masalan: IELTS 7.5)", year_ph: "Yili",
-        title_ph: "Sarlavha", place_ph: "Joy nomi", date_ph: "2020-2024",
-        quick_skills: "Tezkor tanlash:", skills_ph: "Masalan: Liderlik, Python...",
-        sug_skills: ["Microsoft Word", "Microsoft Excel", "PowerPoint", "Jamoaviy ishlash", "Muammoni hal qilish"]
-      },
-      uz_cyr: {
-        app_title: "CV Builder", step_1: "Шахсий", step_2: "Тажриба", step_3: "Ютуқлар",
-        upload_img: "Расмни танланг", drag_img: "ёки расмни шу ерга тортиб ташланг",
-        name: "Исм Фамилия", name_ph: "Али Валиев", role: "Касб / Лавозим", role_ph: "Масалан: Дастурчи",
-        phone: "Телефон", email: "Email", location: "Манзил (Вилоят, Шаҳар)", loc_ph: "Масалан: Тошкент шаҳри",
-        about: "Қисқача ўзингиз ҳақингизда", about_ph: "Мен ҳақимда...",
-        edu_title: "Таълим", add_edu: "+ Таълим қўшиш", exp_title: "Иш Тажрибаси", add_exp: "+ Тажриба қўшиш",
-        lang_title: "Тил Билиш", add_lang: "+ Тил қўшиш",
-        skills_title: "Кўникмалар (Skills)", ach_title: "Ютуқлар ва Қобилиятлар", add_ach: "Қўшиш",
-        cv_color: "Ранг:", preview: "Жонли Кўриниш", download_pdf: "PDF ботга юбориш",
-        next_btn: "Кейингиси", back_btn: "Орқага", clear_data: "Маълумотларни тозалаш",
-
-        select_lang: "Тил танланг", lang_en: "Инглиз тили", lang_ru: "Рус тили", lang_de: "Немис тили", lang_tr: "Турк тили", lang_other: "Бошқа",
-        listen: "Тинглаш", read: "Ўқиш", speak: "Гапириш", write: "Ёзиш",
-        cert: "Сертификат", dip: "Диплом", honor: "Фахрий ёрлиқ", prize: "Соврин",
-        ach_name_ph: "Номи (масалан: IELTS 7.5)", year_ph: "Йили",
-        title_ph: "Сарлавҳа", place_ph: "Жой номи", date_ph: "2020-2024",
-        quick_skills: "Тезкор танлаш:", skills_ph: "Масалан: Лидерлик, Python...",
-        sug_skills: ["Microsoft Word", "Microsoft Excel", "PowerPoint", "Жамоавий ишлаш", "Муаммони ҳал қилиш"]
-      },
-      en: {
-        app_title: "CV Builder", step_1: "Personal", step_2: "Experience", step_3: "Achievements",
-        upload_img: "Select Image", drag_img: "or drag and drop image here",
-        name: "Full Name", name_ph: "John Doe", role: "Profession / Role", role_ph: "e.g. Software Engineer",
-        phone: "Phone", email: "Email", location: "Location (City, State)", loc_ph: "e.g. New York",
-        about: "About Me", about_ph: "Brief info about me...",
-        edu_title: "Education", add_edu: "+ Add Education", exp_title: "Work Experience", add_exp: "+ Add Experience",
-        lang_title: "Languages", add_lang: "+ Add Language",
-        skills_title: "Skills", ach_title: "Achievements", add_ach: "Add",
-        cv_color: "Color:", preview: "Live Preview", download_pdf: "Send PDF to bot",
-        next_btn: "Next", back_btn: "Back", clear_data: "Clear Data",
-
-        select_lang: "Select Language", lang_en: "English", lang_ru: "Russian", lang_de: "German", lang_tr: "Turkish", lang_other: "Other",
-        listen: "Listening", read: "Reading", speak: "Speaking", write: "Writing",
-        cert: "Certificate", dip: "Diploma", honor: "Certificate of Honor", prize: "Award",
-        ach_name_ph: "Name (e.g., IELTS 7.5)", year_ph: "Year",
-        title_ph: "Title", place_ph: "Place / Company", date_ph: "2020-2024",
-        quick_skills: "Quick Select:", skills_ph: "e.g., Leadership, Python...",
-        sug_skills: ["Microsoft Word", "Microsoft Excel", "PowerPoint", "Teamwork", "Problem Solving"]
-      },
-      ru: {
-        app_title: "CV Builder", step_1: "Личное", step_2: "Опыт", step_3: "Достижения",
-        upload_img: "Выбрать фото", drag_img: "или перетащите фото сюда",
-        name: "Имя Фамилия", name_ph: "Иван Иванов", role: "Профессия / Должность", role_ph: "Например: Программист",
-        phone: "Телефон", email: "Email", location: "Адрес (Город, Область)", loc_ph: "Например: Москва",
-        about: "Обо мне", about_ph: "Кратко о себе...",
-        edu_title: "Образование", add_edu: "+ Добавить образование", exp_title: "Опыт работы", add_exp: "+ Добавить опыт",
-        lang_title: "Языки", add_lang: "+ Добавить язык",
-        skills_title: "Навыки", ach_title: "Достижения", add_ach: "Добавить",
-        cv_color: "Цвет:", preview: "Предпросмотр", download_pdf: "Отправить PDF в бота",
-        next_btn: "Далее", back_btn: "Назад", clear_data: "Очистить данные",
-
-        select_lang: "Выберите язык", lang_en: "Английский", lang_ru: "Русский", lang_de: "Немецкий", lang_tr: "Турецкий", lang_other: "Другое",
-        listen: "Аудирование", read: "Чтение", speak: "Говорение", write: "Письмо",
-        cert: "Сертификат", dip: "Диплом", honor: "Почетная грамота", prize: "Награда",
-        ach_name_ph: "Название (напр., IELTS 7.5)", year_ph: "Год",
-        title_ph: "Заголовок", place_ph: "Место / Компания", date_ph: "2020-2024",
-        quick_skills: "Быстрый выбор:", skills_ph: "Например: Лидерство, Python...",
-        sug_skills: ["Microsoft Word", "Microsoft Excel", "PowerPoint", "Командная работа", "Решение проблем"]
-      }
+    // --- UI: faqat hujjat tili (#langSelect / docLang); ilova sozlamalari tiliga bog‘lanmaydi ---
+    const cvDocPack = {
+      uz_lat: {"app_title":"CV Builder","step_1":"Shaxsiy","step_2":"Tajriba","step_3":"Yutuqlar","upload_img":"Rasmni tanlang","drag_img":"yoki rasmni shu yerga tortib tashlang","name":"Ism Familiya","name_ph":"Ali Valiyev","role":"Kasb / Lavozim","role_ph":"Masalan: Dasturchi","phone":"Telefon","cv_phone_ph":"+998 90 123 45 67","email":"Email","location":"Manzil (Viloyat, Shahar)","loc_ph":"Masalan: Toshkent shahri","about":"O'zingiz haqingizda","about_ph":"Men haqimda...","next_btn":"Keyingisi","back_btn":"Orqaga","edu_title":"Ta'lim","add_edu":"+ Ta'lim qo'shish","exp_title":"Ish tajribasi","add_exp":"+ Tajriba qo'shish","lang_title":"Til bilish","add_lang":"+ Til qo'shish","skills_title":"Ko'nikmalar (Skills)","ach_title":"Yutuqlar va qobiliyatlar","preview":"Jonli ko'rinish","cv_color":"Rang:","download_pdf":"PDF botga yuborish","clear_data":"Ma'lumotlarni tozalash","cv_clear_confirm":"Ishonchingiz komilmi?","cv_select_lang":"Til tanlang","cv_lang_en":"Ingliz tili","cv_lang_ru":"Rus tili","cv_lang_de":"Nemis tili","cv_lang_tr":"Turk tili","cv_lang_other":"Boshqa","cv_listen":"Tinglash","cv_read":"O'qish","cv_speak":"Gapirish","cv_write":"Yozish","cv_cert":"Sertifikat","cv_dip":"Diplom","cv_honor":"Faxriy yorliq","cv_prize":"Sovrin","cv_ach_name_ph":"Nomi (masalan: IELTS 7.5)","cv_year_ph":"Yili","cv_title_ph":"Sarlavha","cv_place_ph":"Joy nomi","cv_date_ph":"2020-2024","cv_quick_skills":"Tezkor tanlash:","cv_skills_ph":"Masalan: Liderlik, Python...","cv_sug_skills":"Microsoft Word, Microsoft Excel, PowerPoint, Jamoaviy ishlash, Muammoni hal qilish"},
+      uz_cyr: {"app_title":"CV Builder","step_1":"Шахсий","step_2":"Тажриба","step_3":"Ютуқлар","upload_img":"Расмни танланг","drag_img":"ёки расмни шу ерга тортиб ташланг","name":"Исм Фамилия","name_ph":"Али Валиев","role":"Касб / Лавозим","role_ph":"Масалан: Дастурчи","phone":"Телефон","cv_phone_ph":"+998 90 123 45 67","email":"Email","location":"Манзил (Вилоят, Шаҳар)","loc_ph":"Масалан: Тошкент шаҳри","about":"Қисқача ўзингиз ҳақингизда","about_ph":"Мен ҳақимда...","next_btn":"Кейингиси","back_btn":"Орқага","edu_title":"Таълим","add_edu":"+ Таълим қўшиш","exp_title":"Иш Тажрибаси","add_exp":"+ Тажриба қўшиш","lang_title":"Тил Билиш","add_lang":"+ Тил қўшиш","skills_title":"Кўникмалар (Skills)","ach_title":"Ютуқлар ва Қобилиятлар","preview":"Жонли Кўриниш","cv_color":"Ранг:","download_pdf":"PDF ботга юбориш","clear_data":"Маълумотларни тозалаш","cv_clear_confirm":"Ишончингиз комилми?","cv_select_lang":"Тил танланг","cv_lang_en":"Инглиз тили","cv_lang_ru":"Рус тили","cv_lang_de":"Немис тили","cv_lang_tr":"Турк тили","cv_lang_other":"Бошқа","cv_listen":"Тинглаш","cv_read":"Ўқиш","cv_speak":"Гапириш","cv_write":"Ёзиш","cv_cert":"Сертификат","cv_dip":"Диплом","cv_honor":"Фахрий ёрлиқ","cv_prize":"Соврин","cv_ach_name_ph":"Номи (масалан: IELTS 7.5)","cv_year_ph":"Йили","cv_title_ph":"Сарлавҳа","cv_place_ph":"Жой номи","cv_date_ph":"2020-2024","cv_quick_skills":"Тезкор танлаш:","cv_skills_ph":"Масалан: Лидерлик, Python...","cv_sug_skills":"Microsoft Word, Microsoft Excel, PowerPoint, Жамоавий ишлаш, Муаммони ҳал қилиш"},
+      en: {"app_title":"CV Builder","step_1":"Personal","step_2":"Experience","step_3":"Achievements","upload_img":"Select image","drag_img":"or drag and drop here","name":"Full name","name_ph":"John Doe","role":"Profession / Role","role_ph":"e.g. Software Engineer","phone":"Phone","cv_phone_ph":"+998 90 123 45 67","email":"Email","location":"Location (region, city)","loc_ph":"e.g. Tashkent","about":"About you","about_ph":"A few words about yourself...","next_btn":"Next","back_btn":"Back","edu_title":"Education","add_edu":"+ Add education","exp_title":"Work experience","add_exp":"+ Add experience","lang_title":"Languages","add_lang":"+ Add language","skills_title":"Skills","ach_title":"Achievements","preview":"Live preview","cv_color":"Color:","download_pdf":"Send PDF to bot","clear_data":"Clear data","cv_clear_confirm":"Are you sure?","cv_select_lang":"Select language","cv_lang_en":"English","cv_lang_ru":"Russian","cv_lang_de":"German","cv_lang_tr":"Turkish","cv_lang_other":"Other","cv_listen":"Listening","cv_read":"Reading","cv_speak":"Speaking","cv_write":"Writing","cv_cert":"Certificate","cv_dip":"Diploma","cv_honor":"Certificate of honor","cv_prize":"Award","cv_ach_name_ph":"Name (e.g. IELTS 7.5)","cv_year_ph":"Year","cv_title_ph":"Title","cv_place_ph":"Place / company","cv_date_ph":"2020–2024","cv_quick_skills":"Quick pick:","cv_skills_ph":"e.g. Leadership, Python...","cv_sug_skills":"Microsoft Word, Microsoft Excel, PowerPoint, Teamwork, Problem solving"},
+      ru: {"app_title":"Конструктор CV","step_1":"Личное","step_2":"Опыт","step_3":"Достижения","upload_img":"Выбрать фото","drag_img":"или перетащите фото сюда","name":"Имя Фамилия","name_ph":"Иван Иванов","role":"Профессия / Должность","role_ph":"Например: Разработчик","phone":"Телефон","cv_phone_ph":"+998 90 123 45 67","email":"Email","location":"Адрес (область, город)","loc_ph":"Например: Ташкент","about":"О себе","about_ph":"Кратко о себе...","next_btn":"Далее","back_btn":"Назад","edu_title":"Образование","add_edu":"+ Добавить образование","exp_title":"Опыт работы","add_exp":"+ Добавить опыт","lang_title":"Языки","add_lang":"+ Добавить язык","skills_title":"Навыки","ach_title":"Достижения","preview":"Предпросмотр","cv_color":"Цвет:","download_pdf":"Отправить PDF в бота","clear_data":"Очистить данные","cv_clear_confirm":"Вы уверены?","cv_select_lang":"Выберите язык","cv_lang_en":"Английский","cv_lang_ru":"Русский","cv_lang_de":"Немецкий","cv_lang_tr":"Турецкий","cv_lang_other":"Другой","cv_listen":"Аудирование","cv_read":"Чтение","cv_speak":"Говорение","cv_write":"Письмо","cv_cert":"Сертификат","cv_dip":"Диплом","cv_honor":"Почетная грамота","cv_prize":"Награда","cv_ach_name_ph":"Название (напр., IELTS 7.5)","cv_year_ph":"Год","cv_title_ph":"Заголовок","cv_place_ph":"Место / компания","cv_date_ph":"2020–2024","cv_quick_skills":"Быстрый выбор:","cv_skills_ph":"Например: Лидерство, Python...","cv_sug_skills":"Microsoft Word, Microsoft Excel, PowerPoint, Работа в команде, Решение проблем"}
     };
+    function cvDocStrings() { return cvDocPack[docLang] || cvDocPack.uz_lat; }
+    function cvT(key, fallback = '') {
+      const pack = cvDocStrings();
+      const v = pack[key];
+      if (typeof v === 'string' && v.trim()) return v;
+      return fallback || key;
+    }
+    function applyCvDocI18nToDom() {
+      const pack = cvDocStrings();
+      document.querySelectorAll('[data-i18n]').forEach((el) => {
+        const k = el.getAttribute('data-i18n');
+        if (k && pack[k]) el.textContent = pack[k];
+      });
+      document.querySelectorAll('[data-i18n-ph]').forEach((el) => {
+        const k = el.getAttribute('data-i18n-ph');
+        if (k && pack[k]) el.setAttribute('placeholder', pack[k]);
+      });
+    }
+    function cvLabels() {
+      return {
+        select_lang: cvT('cv_select_lang', 'Til tanlang'),
+        lang_en: cvT('cv_lang_en', 'Ingliz tili'),
+        lang_ru: cvT('cv_lang_ru', 'Rus tili'),
+        lang_de: cvT('cv_lang_de', 'Nemis tili'),
+        lang_tr: cvT('cv_lang_tr', 'Turk tili'),
+        lang_other: cvT('cv_lang_other', 'Boshqa'),
+        listen: cvT('cv_listen', 'Tinglash'),
+        read: cvT('cv_read', "O'qish"),
+        speak: cvT('cv_speak', 'Gapirish'),
+        write: cvT('cv_write', 'Yozish'),
+        year_ph: cvT('cv_year_ph', 'Yili'),
+        ach_name_ph: cvT('cv_ach_name_ph', 'Nomi (masalan: IELTS 7.5)'),
+        title_ph: cvT('cv_title_ph', 'Sarlavha'),
+        place_ph: cvT('cv_place_ph', 'Joy nomi'),
+        date_ph: cvT('cv_date_ph', '2020-2024'),
+        cert: cvT('cv_cert', 'Sertifikat'),
+        dip: cvT('cv_dip', 'Diplom'),
+        honor: cvT('cv_honor', 'Faxriy yorliq'),
+        prize: cvT('cv_prize', 'Sovrin'),
+      };
+    }
+    const CV_SUG_SKILLS_FALLBACK = ['Microsoft Word','Microsoft Excel','PowerPoint',"Jamoaviy ishlash",'Muammoni hal qilish'];
+    function parseSuggestedSkills() {
+      const s = cvT('cv_sug_skills', '').trim();
+      if (!s || s === 'cv_sug_skills') return CV_SUG_SKILLS_FALLBACK.slice();
+      return s.split(',').map((x) => x.trim()).filter(Boolean);
+    }
+    let docLang = 'uz_lat';
+    function setDocLang(lang, shouldTrigger = true) {
+      docLang = lang;
+      const sel = document.getElementById('langSelect');
+      if (sel && String(sel.value) !== String(lang)) sel.value = lang;
+      applyCvDocI18nToDom();
+      updateStaticTexts();
+      renderList('eduList', eduData, 'edu');
+      renderList('expList', expData, 'exp');
+      renderList('langList', langData, 'lang');
+      renderList('achList', achData, 'ach');
+      renderSuggestedSkills();
+      if (shouldTrigger) triggerUpdate();
+    }
+    function updateStaticTexts() {
+      const d = cvLabels();
+      const achType = document.getElementById('achType');
+      if (achType) {
+        achType.innerHTML = `
+          <option value="${d.cert}">${d.cert}</option>
+          <option value="${d.dip}">${d.dip}</option>
+          <option value="${d.honor}">${d.honor}</option>
+          <option value="${d.prize}">${d.prize}</option>
+      `;
+      }
+      const an = document.getElementById('achName');
+      const ay = document.getElementById('achYear');
+      if (an) an.placeholder = d.ach_name_ph;
+      if (ay) ay.placeholder = d.year_ph;
+      const si = document.getElementById('skillInput');
+      if (si) si.placeholder = cvT('cv_skills_ph', 'Masalan: Liderlik, Python...');
+      const ql = document.getElementById('quickSelectLabel');
+      if (ql) ql.innerText = cvT('cv_quick_skills', 'Tezkor tanlash:');
+    }
 
     // --- EXTENDED DATA LISTS ---
     const DB = {
@@ -469,47 +473,6 @@
       else if (/localhost|127\.0\.0\.1/.test(window.location.origin)) API_URL = 'http://localhost:8000';
       else API_URL = window.location.origin.replace(/\/+$/, '');
     })();
-
-    let currentLang = 'uz_lat';
-    
-    function changeLang(lang, shouldTrigger = true) {
-      currentLang = lang;
-      const d = dict[lang];
-
-      // Update basic texts and placeholders
-      document.querySelectorAll('[data-i18n]').forEach(el => {
-        const key = el.getAttribute('data-i18n');
-        if (d && d[key]) el.innerText = d[key];
-      });
-      document.querySelectorAll('[data-i18n-ph]').forEach(el => {
-        const key = el.getAttribute('data-i18n-ph');
-        if (d && d[key]) el.placeholder = d[key];
-      });
-
-      // Update static selects and lists
-      updateStaticTexts();
-      renderList('eduList', eduData, 'edu');
-      renderList('expList', expData, 'exp');
-      renderList('langList', langData, 'lang');
-      renderList('achList', achData, 'ach');
-      renderSuggestedSkills();
-
-      if(shouldTrigger) triggerUpdate();
-    }
-
-    function updateStaticTexts() {
-      const d = dict[currentLang];
-      document.getElementById('achType').innerHTML = `
-          <option value="${d.cert}">${d.cert}</option>
-          <option value="${d.dip}">${d.dip}</option>
-          <option value="${d.honor}">${d.honor}</option>
-          <option value="${d.prize}">${d.prize}</option>
-      `;
-      document.getElementById('achName').placeholder = d.ach_name_ph;
-      document.getElementById('achYear').placeholder = d.year_ph;
-      document.getElementById('skillInput').placeholder = d.skills_ph;
-      document.getElementById('quickSelectLabel').innerText = d.quick_skills;
-    }
 
     // --- STATE & DATA ---
     let avatarUrl = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjOTRhM2I4IiBzdHJva2Utd2lkdGg9IjIiPjxjaXJjbGUgY3g9IjEyIiBjeT0iOCIgcj0iNSIvPjxwYXRoIGQ9Ik0yMCAyMWE4IDggMCAwIDAtMTYgMCIvPjwvc3ZnPg==';
@@ -603,7 +566,7 @@
 
     // --- DYNAMIC LISTS ---
     function renderList(containerId, arr, type) {
-      const d = dict[currentLang];
+      const d = cvLabels();
       if (type === 'lang') {
         document.getElementById(containerId).innerHTML = arr.map((item, i) => `
           <div class="entry-card relative !mb-2 !p-3">
@@ -703,11 +666,12 @@
     }
 
     function renderSuggestedSkills() {
-       const d = dict[currentLang];
+       const skills = parseSuggestedSkills();
        const container = document.getElementById('suggestedSkills');
-       container.innerHTML = d.sug_skills.map(skill => {
+       container.innerHTML = skills.map(skill => {
           const isSelected = skillsData.includes(skill);
-          return `<button onclick="toggleSuggestedSkill('${skill}')" class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${isSelected ? 'bg-blue-500 text-white shadow-md border border-blue-600' : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'}">${skill}</button>`;
+          const safe = String(skill).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+          return `<button onclick="toggleSuggestedSkill('${safe}')" class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${isSelected ? 'bg-blue-500 text-white shadow-md border border-blue-600' : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'}">${skill.replace(/</g, '&lt;')}</button>`;
        }).join('');
     }
 
@@ -723,7 +687,7 @@
             f_name: document.getElementById('f_name').value, f_role: document.getElementById('f_role').value,
             f_phone: document.getElementById('f_phone').value, f_email: document.getElementById('f_email').value,
             f_loc: document.getElementById('f_loc').value, f_about: document.getElementById('f_about').value,
-            avatarUrl, activeTpl, cvColor, eduData, expData, achData, skillsData, langData, currentLang
+            avatarUrl, activeTpl, cvColor, eduData, expData, achData, skillsData, langData, currentLang: docLang
         };
         localStorage.setItem('cvBuilderData', JSON.stringify(data));
     }
@@ -748,25 +712,24 @@
             eduData = data.eduData || []; expData = data.expData || [];
             achData = data.achData || []; skillsData = data.skillsData || [];
             langData = data.langData || [];
-            currentLang = data.currentLang || 'uz_lat';
+            docLang = data.currentLang || data.docLang || 'uz_lat';
             
-            document.getElementById('langSelect').value = currentLang; changeLang(currentLang, false);
+            document.getElementById('langSelect').value = docLang; setDocLang(docLang, false);
             
             renderSkills(); 
             triggerUpdate(false);
         } else {
-            // Global WebApp tili (Sozlamalar UZ/RU/EN) CV forma matnlariga tegmasin — faqat #langSelect.
             const cvLang = 'uz_lat';
             const sel = document.getElementById('langSelect');
             if (sel) sel.value = cvLang;
-            changeLang(cvLang, false);
+            setDocLang(cvLang, false);
             triggerUpdate(false);
         }
         syncPreviewAccentChrome();
     }
 
     function clearAllData() {
-        if(confirm(dict[currentLang].clear_data + " Ishonchingiz komilmi?")) { localStorage.removeItem('cvBuilderData'); location.reload(); }
+        if(confirm(cvT('clear_data', "Ma'lumotlarni tozalash") + ' ' + cvT('cv_clear_confirm', 'Ishonchingiz komilmi?'))) { localStorage.removeItem('cvBuilderData'); location.reload(); }
     }
 
     // --- ZOOM LOGIC ---
@@ -863,7 +826,7 @@
 
     function buildCvPayload(fmt) {
       const sel = document.getElementById('langSelect');
-      const langFromUi = sel && sel.value ? sel.value : currentLang;
+      const langFromUi = sel && sel.value ? sel.value : docLang;
       return {
         action: 'generate_cv',
         format: 'pdf',

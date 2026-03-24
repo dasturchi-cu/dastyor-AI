@@ -174,39 +174,20 @@ const DastyorAI = (() => {
         return fallback || key;
     }
 
-    /** CV / obyektivka: o‘z ichki lug‘ati (changeLang, initApp). Global locales/*.json ularga tegmasin. */
-    function skipGlobalI18nOnThisPage() {
-        try {
-            if (document.body && document.body.getAttribute('data-da-skip-global-i18n') === '1') {
-                return true;
-            }
-            const p = (location.pathname || '').toLowerCase();
-            return p.includes('cv.html') || p.includes('obyektivka.html');
-        } catch (_) {
-            return false;
-        }
-    }
-
-    function elementSkipsGlobalI18n(el) {
-        try {
-            return !!(el && el.closest && el.closest('[data-da-skip-global-i18n="1"]'));
-        } catch (_) {
-            return false;
-        }
-    }
-
     function applyTranslations(root = document) {
+        try {
+            if (
+                root === document &&
+                document.body &&
+                document.body.getAttribute('data-da-skip-global-i18n') === '1'
+            ) {
+                return;
+            }
+        } catch (_) {}
+
         const langAttr = currentLang === 'ru' ? 'ru' : currentLang === 'en' ? 'en' : 'uz';
-        if (skipGlobalI18nOnThisPage()) {
-            try {
-                document.documentElement.lang = langAttr;
-            } catch (_) {}
-            window.dispatchEvent(new CustomEvent('app:language-applied', { detail: { language: currentLang } }));
-            return;
-        }
 
         root.querySelectorAll('[data-i18n]').forEach((el) => {
-            if (elementSkipsGlobalI18n(el)) return;
             const key = el.getAttribute('data-i18n');
             const attr = el.getAttribute('data-i18n-attr');
             const fallback = el.getAttribute('data-i18n-fallback') || el.textContent.trim();
@@ -220,7 +201,6 @@ const DastyorAI = (() => {
         });
 
         root.querySelectorAll('[data-i18n-ph]').forEach((el) => {
-            if (elementSkipsGlobalI18n(el)) return;
             const key = el.getAttribute('data-i18n-ph');
             const fallback = el.getAttribute('placeholder') || '';
             el.setAttribute('placeholder', translate(key, fallback));
