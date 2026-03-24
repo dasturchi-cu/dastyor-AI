@@ -27,24 +27,6 @@
     }
     .hero h1 { font-size: 28px; line-height: 1.12; margin-bottom: 8px; }
     .hero p { font-size: 15px; margin-bottom: 14px; }
-    .hero-illustration {
-      margin: 4px 0 14px;
-      border-radius: 16px;
-      overflow: hidden;
-      background: #fff;
-      border: 1px solid var(--border-color);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    .hero-illustration img {
-      width: 100%;
-      height: auto;
-      max-height: min(240px, 42vw);
-      object-fit: contain;
-      object-position: center bottom;
-      display: block;
-    }
     .hero .home-hero-lead {
       font-size: 15px;
       line-height: 1.45;
@@ -249,16 +231,6 @@
   <main class="page">
     <section class="hero">
       <div class="section-title" data-i18n="home_brand" data-i18n-fallback="DASTYOR AI">DASTYOR AI</div>
-      <div class="hero-illustration" aria-hidden="true">
-        <img
-          src="assets/hero-dastyor.png"
-          alt=""
-          width="520"
-          height="280"
-          decoding="async"
-          fetchpriority="high"
-        />
-      </div>
       <div class="hero-top">
         <h1 id="welcomeName" style="margin-bottom:0;">Salom 👋</h1>
         <div id="welcomeAvatar" class="hero-avatar" aria-label="User avatar"></div>
@@ -412,7 +384,7 @@
       const avatarEl = document.getElementById("welcomeAvatar");
       if (!avatarEl) return;
       const safe = (photoUrl || "").trim() || defaultAvatarData();
-      avatarEl.innerHTML = `<img src="${safe}" alt="Profile" referrerpolicy="no-referrer">`;
+      avatarEl.innerHTML = `<img src="${safe}" alt="" referrerpolicy="no-referrer">`;
     }
 
     document.addEventListener("DOMContentLoaded", function () {
