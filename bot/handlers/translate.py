@@ -5,7 +5,12 @@ from telegram import Update, InputFile
 from telegram.ext import ContextTypes
 from telegram.constants import ChatAction
 from bot.keyboards.reply_keyboards import get_translate_menu, get_back_button
-from bot.services.ai_service import is_meaningfully_changed, translate_document_gemini, translate_text
+from bot.services.ai_service import (
+    is_meaningfully_changed,
+    translate_document_gemini,
+    translate_pptx,
+    translate_text,
+)
 from bot.services.document_text_extract import extract_plain_text_from_bytes
 from bot.services.plan_limits import CAT_TRANSLATE
 from bot.services.user_service import get_user_lang, record_service_completion
@@ -144,8 +149,9 @@ async def process_translation(update: Update, context: ContextTypes.DEFAULT_TYPE
             await tg_file.download_to_drive(temp_path)
 
             # Translate:
-            # - .docx: keep original format
-            # - others: extract text -> translate -> return .txt
+            # - .docx: keep DOCX
+            # - .pptx: keep PPTX
+            # - .txt/.pdf: translate extracted text -> return TXT
             if ext == ".docx":
                 translated_path = await translate_document_gemini(temp_path, target_lang)
                 if not translated_path or not os.path.exists(translated_path):
@@ -163,6 +169,22 @@ async def process_translation(update: Update, context: ContextTypes.DEFAULT_TYPE
                     translated_path = temp_path.replace(ext, f"_translated_{target_lang}.txt")
                     with open(translated_path, "w", encoding="utf-8") as wf:
                         wf.write(translated_text)
+            elif ext == ".pptx":
+                translated_path = await translate_pptx(temp_path, direction, target_lang)
+                if not translated_path or not os.path.exists(translated_path):
+                    with open(temp_path, "rb") as rf:
+                        raw = rf.read()
+                    src_text = extract_plain_text_from_bytes(file_name, raw)
+                    if not (src_text or "").strip():
+                        raise Exception("Fayldan matn ajratilmadi")
+                    translated_text = await translate_text(src_text, direction)
+                    if not translated_text or translated_text.startswith("Tarjima vaqtincha mavjud emas."):
+                        raise Exception("Tarjima vaqtincha mavjud emas.")
+                    if not is_meaningfully_changed(src_text, translated_text):
+                        raise Exception("Tarjima natijasi original bilan bir xil chiqdi")
+                    translated_path = temp_path.replace(ext, f"_translated_{target_lang}.txt")
+                    with open(translated_path, "w", encoding="utf-8") as wf:
+                        wf.write(translated_text)
             else:
                 with open(temp_path, "rb") as rf:
                     raw = rf.read()
@@ -170,8 +192,8 @@ async def process_translation(update: Update, context: ContextTypes.DEFAULT_TYPE
                 if not (src_text or "").strip():
                     raise Exception("Fayldan matn ajratilmadi")
                 translated_text = await translate_text(src_text, direction)
-                if not translated_text or translated_text.startswith("Tarjimada xato") or translated_text.startswith("AI model"):
-                    raise Exception(translated_text or "Tarjima bo'sh qaytdi")
+                if not translated_text or translated_text.startswith("Tarjima vaqtincha mavjud emas."):
+                    raise Exception("Tarjima vaqtincha mavjud emas.")
                 if not is_meaningfully_changed(src_text, translated_text):
                     raise Exception("Tarjima natijasi original bilan bir xil chiqdi")
                 translated_path = temp_path.replace(ext, f"_translated_{target_lang}.txt")
@@ -181,7 +203,7 @@ async def process_translation(update: Update, context: ContextTypes.DEFAULT_TYPE
             if translated_path and os.path.exists(translated_path):
                 # Build output filename with @DastyorAiBot suffix
                 base_name = os.path.splitext(file_name)[0]
-                out_ext = ext if ext == ".docx" else ".txt"
+                out_ext = os.path.splitext(translated_path)[1].lower() or ".txt"
                 out_name = f"{base_name}_{target_lang}_@DastyorAiBot{out_ext}"
 
                 await status_msg.edit_text("✅ Tarjima tayyor! Fayl yuklanmoqda...")
@@ -206,7 +228,9 @@ async def process_translation(update: Update, context: ContextTypes.DEFAULT_TYPE
 
         except Exception as e:
             logger.error(f"Document translation error: {e}", exc_info=True)
-            await status_msg.edit_text(f"❌ Kutilmagan xatolik: {str(e)[:100]}")
+            await status_msg.edit_text(
+                "❌ Tarjima vaqtincha bajarilmadi. Iltimos keyinroq qayta urinib ko'ring."
+            )
         finally:
             for p in [temp_path, translated_path]:
                 if p and os.path.exists(p):

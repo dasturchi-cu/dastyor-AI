@@ -7,6 +7,7 @@ import json
 import asyncio
 import os
 import re
+import httpx
 import subprocess
 import tempfile
 import warnings
@@ -346,10 +347,6 @@ async def translate_text(text: str, direction: str = "uz_en") -> str:
     Translate plain text using Gemini. Used by /api/translate web endpoint.
     direction: uz_en | en_uz | ru_uz | uz_ru | ru_en | en_ru
     """
-    model = await get_model()
-    if not model:
-        return "AI model mavjud emas."
-
     lang_map = {
         "uz_en": ("O'zbek", "English"),
         "en_uz": ("English", "O'zbek"),
@@ -359,6 +356,39 @@ async def translate_text(text: str, direction: str = "uz_en") -> str:
         "en_ru": ("English", "Russian"),
     }
     src, tgt = lang_map.get(direction, ("O'zbek", "English"))
+    code_map = {
+        "uz_en": ("uz", "en"),
+        "en_uz": ("en", "uz"),
+        "ru_uz": ("ru", "uz"),
+        "uz_ru": ("uz", "ru"),
+        "ru_en": ("ru", "en"),
+        "en_ru": ("en", "ru"),
+    }
+    sl, tl = code_map.get(direction, ("uz", "en"))
+
+    async def _google_fallback_translate(src_text: str, source_lang: str, target_lang: str) -> str:
+        # Public translate endpoint fallback to keep service alive when Gemini quota is exhausted.
+        url = "https://translate.googleapis.com/translate_a/single"
+        params = {
+            "client": "gtx",
+            "sl": source_lang,
+            "tl": target_lang,
+            "dt": "t",
+            "q": src_text,
+        }
+        timeout = httpx.Timeout(12.0)
+        async with httpx.AsyncClient(timeout=timeout) as client:
+            resp = await client.get(url, params=params)
+            resp.raise_for_status()
+            data = resp.json()
+        parts = []
+        if isinstance(data, list) and data and isinstance(data[0], list):
+            for item in data[0]:
+                if isinstance(item, list) and item:
+                    parts.append(str(item[0] or ""))
+        return "".join(parts).strip()
+
+    model = await get_model()
 
     prompt = (
         f"Translate the following {src} text to {tgt}.\n"
@@ -366,18 +396,80 @@ async def translate_text(text: str, direction: str = "uz_en") -> str:
         f"{text}"
     )
     try:
-        resp = await _gcall(model.generate_content_async(prompt))
-        if resp is None:
-            return "Tarjima vaqti o'tdi. Iltimos, qayta urinib ko'ring."
-        out = resp.text.strip() if resp.text else ""
+        if model:
+            resp = await _gcall(model.generate_content_async(prompt))
+            out = resp.text.strip() if resp and resp.text else ""
+        else:
+            out = ""
         if not out:
-            return "Natija bo'sh."
+            out = await _google_fallback_translate(text, sl, tl)
         if not is_meaningfully_changed(text, out):
             return "Tarjima natijasi original bilan bir xil chiqdi."
         return out
     except Exception as e:
-        logger.error(f"translate_text error: {e}")
-        return f"Tarjimada xato: {e}"
+        logger.warning("Gemini translate failed, using fallback: %s", e)
+        try:
+            out = await _google_fallback_translate(text, sl, tl)
+            if not out:
+                return "Tarjima vaqtincha mavjud emas."
+            if not is_meaningfully_changed(text, out):
+                return "Tarjima natijasi original bilan bir xil chiqdi."
+            return out
+        except Exception as e2:
+            logger.error("translate_text fallback error: %s", e2, exc_info=True)
+            return "Tarjima vaqtincha mavjud emas."
+
+
+async def translate_pptx(file_path: str, direction: str = "uz_en", target_language: str = "uz") -> str:
+    """
+    Translate PPTX text in-place and save as translated PPTX.
+    Keeps slide layout, only replacing paragraph text.
+    """
+    try:
+        from pptx import Presentation
+
+        loop = asyncio.get_running_loop()
+        prs = await loop.run_in_executor(None, Presentation, file_path)
+
+        def _walk_shapes(shapes):
+            for shape in shapes:
+                yield shape
+                nested = getattr(shape, "shapes", None)
+                if nested:
+                    try:
+                        yield from _walk_shapes(nested)
+                    except Exception:
+                        pass
+
+        paragraphs = []
+        for slide in prs.slides:
+            for shape in _walk_shapes(slide.shapes):
+                if getattr(shape, "has_text_frame", False) and shape.has_text_frame:
+                    for para in shape.text_frame.paragraphs:
+                        if (para.text or "").strip():
+                            paragraphs.append(para)
+                if getattr(shape, "has_table", False) and shape.has_table:
+                    for row in shape.table.rows:
+                        for cell in row.cells:
+                            for para in cell.text_frame.paragraphs:
+                                if (para.text or "").strip():
+                                    paragraphs.append(para)
+
+        for i in range(0, len(paragraphs), 6):
+            batch = paragraphs[i:i + 6]
+            srcs = [p.text for p in batch]
+            outs = await asyncio.gather(*[translate_text(s, direction) for s in srcs])
+            for para, out in zip(batch, outs):
+                if out and not out.startswith("Tarjima vaqtincha mavjud emas."):
+                    _set_pptx_paragraph_text(para, out)
+            await asyncio.sleep(0.1)
+
+        output_path = file_path.replace(".pptx", f"_translated_{target_language}.pptx")
+        await loop.run_in_executor(None, prs.save, output_path)
+        return output_path
+    except Exception as e:
+        logger.error("translate_pptx failed: %s", e, exc_info=True)
+        return ""
 
 
 def count_words_text(text: str) -> int:
@@ -666,8 +758,8 @@ async def check_spelling_text(text: str) -> tuple[str, int]:
         # 2) Gemini fallback for Uzbek and/or when LanguageTool fails.
         # Spellcheck should prioritize speed: try fastest models first.
         model = await get_model(preferred_models=[
-            "gemini-2.0-flash",
             "gemini-2.5-flash",
+            "gemini-2.0-flash",
             "gemini-1.5-flash-latest",
         ])
         if not model:
