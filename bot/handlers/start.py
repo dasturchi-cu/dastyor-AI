@@ -81,6 +81,8 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     welcome_text = (
         f"Assalomu alaykum, <b>{first_name}</b>! 👋\n\n"
         f"🤖 <b>DASTYOR AI</b> — hujjat tayyorlash assistantingiz!\n\n"
+        f"✨ <b>Siz yozasiz — DASTYOR AI bajaradi!</b>\n"
+        f"DASTYOR yordamida har qanday hujjat bilan professional darajada ishlang.\n\n"
         f"📋 <b>Nima qila olaman:</b>\n"
         f"• Obyektivka tayyorlash\n"
         f"• CV (rezyume) yaratish\n"
