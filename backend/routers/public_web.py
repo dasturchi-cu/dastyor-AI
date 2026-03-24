@@ -1,6 +1,7 @@
 """WebApp JSON APIs: auth, profile, messaging, transliteration, translate, spellcheck, objective."""
 from __future__ import annotations
 
+import asyncio
 import html as html_lib
 import io
 import logging
@@ -20,6 +21,12 @@ from backend.schemas.webapp import (
     SupportRequest,
     TranslateRequest,
     TranslitRequest,
+)
+from backend.services.redis_json_cache import (
+    api_me_cache_key,
+    redis_cache_delete,
+    redis_cache_get_json,
+    redis_cache_set_json,
 )
 from backend.services.spellcheck_cache import spellcheck_cache_get, spellcheck_cache_key, spellcheck_cache_set
 from backend.services.user_resolve import resolve_telegram_uid
@@ -103,21 +110,15 @@ async def api_auth(req: AuthRequest):
         track_user_activity(
             _FakeUser(), command="web_auth", chat_id=int(req.telegram_id)
         )
+        await redis_cache_delete(api_me_cache_key(str(req.telegram_id)))
         return {"ok": True, "token": token, "telegram_id": req.telegram_id}
     except Exception as e:
         logger.error("/api/auth error: %s", e, exc_info=True)
         raise HTTPException(status_code=500, detail=str(e)[:200])
 
 
-@router.get("/api/me")
-async def api_me(
-    token: Optional[str] = Query(None),
-    telegram_id: Optional[str] = Query(None),
-):
-    uid = resolve_telegram_uid(telegram_id, token)
-    if not uid:
-        raise HTTPException(status_code=401, detail="Foydalanuvchi aniqlanmadi")
-
+def _build_api_me_payload(uid: str) -> dict:
+    """Sync DB/file work — run in a thread pool so the event loop stays responsive."""
     from bot.services.session_service import get_session_by_telegram_id
     from bot.services.settings_service import is_premium
     from bot.services.user_service import get_user_profile
@@ -139,6 +140,28 @@ async def api_me(
         "last_active": profile.get("last_active", ""),
         **tariff,
     }
+
+
+@router.get("/api/me")
+async def api_me(
+    token: Optional[str] = Query(None),
+    telegram_id: Optional[str] = Query(None),
+):
+    uid = resolve_telegram_uid(telegram_id, token)
+    if not uid:
+        raise HTTPException(status_code=401, detail="Foydalanuvchi aniqlanmadi")
+
+    cache_ttl = int(os.getenv("API_ME_CACHE_TTL_SECONDS", "15") or "15")
+    ck = api_me_cache_key(uid)
+    if cache_ttl > 0:
+        hit = await redis_cache_get_json(ck)
+        if hit is not None:
+            return hit
+
+    body = await asyncio.to_thread(_build_api_me_payload, uid)
+    if cache_ttl > 0:
+        await redis_cache_set_json(ck, body, cache_ttl)
+    return body
 
 
 @router.post("/api/translit")

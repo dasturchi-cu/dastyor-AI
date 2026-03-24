@@ -314,7 +314,13 @@ def setup_application():
         logger.error("BOT_TOKEN is missing!")
         return None
 
-    application = ApplicationBuilder().token(BOT_TOKEN).connection_pool_size(8).build()
+    application = (
+        ApplicationBuilder()
+        .token(BOT_TOKEN)
+        .connection_pool_size(int(__import__("os").getenv("PTB_POOL_SIZE", "20") or "20"))
+        .pool_timeout(30.0)
+        .build()
+    )
     
     # 1. CRM Middleware (Tracks + Checks Ban)
     application.add_handler(TypeHandler(Update, track_user), group=-1)

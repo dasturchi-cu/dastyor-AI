@@ -16,6 +16,9 @@ from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from starlette.middleware.gzip import GZipMiddleware
+
+from backend.middleware.performance import PerformanceMiddleware
 
 from backend.paths import webapp_dir, webapp_index_path
 from backend.exception_handlers import register_exception_handlers
@@ -118,6 +121,10 @@ def create_webhook_app() -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+    # JSON/HTML responses: kamroq tarmoq va tezroq yuklash (WebApp API).
+    app.add_middleware(GZipMiddleware, minimum_size=512)
+    # So‘rov vaqti: X-Process-Time-ms + sekin yo‘llar uchun log.
+    app.add_middleware(PerformanceMiddleware)
     register_webapp_middleware(app)
     register_exception_handlers(app)
 
