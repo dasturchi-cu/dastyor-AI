@@ -9,7 +9,7 @@ Oddiy /start: to'g'ridan-to'g'ri menuni ko'rsatadi.
 import asyncio
 import logging
 import os
-from telegram import Update, WebAppInfo, InlineKeyboardMarkup, InlineKeyboardButton
+from telegram import InputFile, Update, WebAppInfo, InlineKeyboardMarkup, InlineKeyboardButton
 from telegram.ext import ContextTypes
 from bot.keyboards.reply_keyboards import get_main_menu
 from bot.services.user_service import save_chat_id
@@ -19,7 +19,8 @@ from config import WEBAPP_BASE
 logger = logging.getLogger(__name__)
 
 BOT_USERNAME = os.getenv("BOT_USERNAME", "DastyorAiBot")
-START_INTRO_PHOTO_URL = (os.getenv("START_INTRO_PHOTO_URL", "blob:https://chatgpt.com/6b96f4aa-2dc8-424d-8bbe-9b67796ac69c") or "").strip()
+# Ixtiyoriy: faqat https://… (Telegram blob: yoki mahalliy fayl URL ishlamaydi)
+START_INTRO_PHOTO_URL = (os.getenv("START_INTRO_PHOTO_URL", "") or "").strip()
 # Default til — o'zbek lotin
 DEFAULT_LANG = "uz_lat"
 
@@ -33,6 +34,40 @@ _ACTION_MAP: dict[str, tuple[str, str, str]] = {
     "translate"  : ("translate.html",    "🌐 Tarjima",              "Matn tarjima qilish"),
     "premium"    : ("premium.html",      "💎 Premium",              "Premium tarif haqida ma'lumot"),
 }
+
+
+def _hero_intro_photo_path() -> str | None:
+    """Loyihadagi webapp hero rasmi (deployda repo ildizida bo‘lishi kerak)."""
+    root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+    p = os.path.join(root, "webapp", "assets", "hero-dastyor.png")
+    return p if os.path.isfile(p) else None
+
+
+async def _send_start_intro_photo(message, first_name: str) -> bool:
+    """Telegram faqat https URL yoki yuklangan fayl qabul qiladi. Muvaffaqiyat → True."""
+    caption = (
+        f"Assalomu alaykum, <b>{first_name}</b>! 👋\n\n"
+        f"✨ <b>Siz yozasiz — DASTYOR AI bajaradi!</b>"
+    )
+    path = _hero_intro_photo_path()
+    url = START_INTRO_PHOTO_URL
+    try:
+        if path:
+            with open(path, "rb") as ph:
+                await message.reply_photo(
+                    photo=InputFile(ph, filename="dastyor-hero.png"),
+                    caption=caption,
+                    parse_mode="HTML",
+                )
+            return True
+        if url.startswith("https://") or url.startswith("http://"):
+            await message.reply_photo(photo=url, caption=caption, parse_mode="HTML")
+            return True
+    except Exception as e:
+        logger.warning("Start intro rasm yuborilmadi: %s", e)
+    if not path and not (url.startswith("https://") or url.startswith("http://")):
+        logger.debug("Start intro: hero fayl topilmadi: webapp/assets/hero-dastyor.png")
+    return False
 
 
 async def _merge_tariff_into_message(message, uid: int, reply_markup, *, prefix: str = "", suffix: str = ""):
@@ -87,13 +122,22 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         asyncio.create_task(_merge_tariff_into_message(msg, uid, keyboard, prefix=text_base))
         return
 
-    # ── Default /start — to'g'ridan-to'g'ri menuni ko'rsat ──────────
+    # ── Default /start — avval intro rasm, keyin matn + tugmalar ────
+    intro_photo_ok = await _send_start_intro_photo(update.message, first_name)
+
+    salom_block = (
+        ""
+        if intro_photo_ok
+        else (
+            f"Assalomu alaykum, <b>{first_name}</b>! 👋\n\n"
+            f"✨ <b>Siz yozasiz — DASTYOR AI bajaradi!</b>\n"
+            f"DASTYOR yordamida har qanday hujjat bilan professional darajada ishlang.\n\n"
+        )
+    )
     welcome_text = (
-        f"Assalomu alaykum, <b>{first_name}</b>! 👋\n\n"
-        f"🤖 <b>DASTYOR AI</b> — hujjat tayyorlash assistantingiz!\n\n"
-        f"✨ <b>Siz yozasiz — DASTYOR AI bajaradi!</b>\n"
-        f"DASTYOR yordamida har qanday hujjat bilan professional darajada ishlang.\n\n"
-        f"📋 <b>Nima qila olaman:</b>\n"
+        salom_block
+        + f"🤖 <b>DASTYOR AI</b> — hujjat tayyorlash assistantingiz!\n\n"
+        + f"📋 <b>Nima qila olaman:</b>\n"
         f"• Obyektivka tayyorlash\n"
         f"• CV (rezyume) yaratish\n"
         f"• Rasmdan matn ajratish (OCR)\n"
