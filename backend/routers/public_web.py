@@ -5,6 +5,7 @@ import html as html_lib
 import io
 import logging
 import os
+import tempfile
 from typing import Optional
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile
@@ -43,6 +44,42 @@ router = APIRouter(tags=["web-api"])
 def _resolve_web_uid_optional(telegram_id: Optional[int], token: Optional[str]) -> Optional[int]:
     uid = resolve_telegram_uid(str(telegram_id) if telegram_id is not None else None, token)
     return int(uid) if uid else None
+
+
+def _build_pdf_from_text(text: str, out_path: str) -> None:
+    """Create a simple UTF-8 safe-ish PDF from plain text."""
+    from reportlab.lib.pagesizes import A4
+    from reportlab.pdfbase import pdfmetrics
+    from reportlab.pdfbase.ttfonts import TTFont
+    from reportlab.pdfgen import canvas
+
+    # Try to register a Unicode font for Uzbek/Cyrillic support.
+    try:
+        font_path = os.path.join(os.getcwd(), "assets", "fonts", "DejaVuSans.ttf")
+        if os.path.exists(font_path):
+            pdfmetrics.registerFont(TTFont("DejaVuSans", font_path))
+            font_name = "DejaVuSans"
+        else:
+            font_name = "Helvetica"
+    except Exception:
+        font_name = "Helvetica"
+
+    c = canvas.Canvas(out_path, pagesize=A4)
+    width, height = A4
+    left = 40
+    top = height - 50
+    line_h = 15
+    y = top
+    c.setFont(font_name, 11)
+    for raw_line in (text or "").splitlines() or [""]:
+        line = (raw_line or "").replace("\t", "    ")
+        if y < 50:
+            c.showPage()
+            c.setFont(font_name, 11)
+            y = top
+        c.drawString(left, y, line[:1800])
+        y -= line_h
+    c.save()
 
 
 @router.post("/api/auth")
@@ -474,17 +511,66 @@ async def api_spellcheck_file(
     if do_notify and uid:
         try:
             from bot.services.user_service import get_chat_id
+            from bot.services.ai_service import check_spelling_gemini, check_spelling_pptx
 
             chat_id = get_chat_id(int(uid)) or int(uid)
             summary = f"✅ Imlo tekshiruvi (WebApp)\nSo'zlar: {wc}\nTopilgan xatolar: {fc}"
             await ptb.bot.send_message(chat_id=chat_id, text=summary)
-            raw_txt = (corrected or "").encode("utf-8")
-            buf = io.BytesIO(raw_txt)
-            await ptb.bot.send_document(
-                chat_id=chat_id,
-                document=InputFile(buf, filename="imlo_tuzatilgan.txt"),
-                caption="Tuzatilgan matn (TXT)",
-            )
+            base_name, ext = os.path.splitext(fname)
+            ext = ext.lower() if ext else ".txt"
+            send_name = f"{base_name}_imlo_tuzatilgan{ext}"
+            data_buf: io.BytesIO | None = None
+            tmp_in = None
+            tmp_out = None
+
+            if ext == ".docx":
+                fd_in, tmp_in = tempfile.mkstemp(suffix=".docx", prefix="web_spell_")
+                os.close(fd_in)
+                with open(tmp_in, "wb") as wf:
+                    wf.write(raw)
+                tmp_out, _, _ = await check_spelling_gemini(tmp_in)
+                if not tmp_out or not os.path.exists(tmp_out):
+                    # Fallback to plain text file if docx build failed.
+                    send_name = f"{base_name}_imlo_tuzatilgan.txt"
+                    data_buf = io.BytesIO((corrected or "").encode("utf-8"))
+            elif ext == ".pptx":
+                fd_in, tmp_in = tempfile.mkstemp(suffix=".pptx", prefix="web_spell_")
+                os.close(fd_in)
+                with open(tmp_in, "wb") as wf:
+                    wf.write(raw)
+                tmp_out, _, _ = await check_spelling_pptx(tmp_in)
+                if not tmp_out or not os.path.exists(tmp_out):
+                    send_name = f"{base_name}_imlo_tuzatilgan.txt"
+                    data_buf = io.BytesIO((corrected or "").encode("utf-8"))
+            elif ext == ".pdf":
+                fd_out, tmp_out = tempfile.mkstemp(suffix=".pdf", prefix="web_spell_")
+                os.close(fd_out)
+                _build_pdf_from_text(corrected or "", tmp_out)
+            else:
+                send_name = f"{base_name}_imlo_tuzatilgan.txt"
+                data_buf = io.BytesIO((corrected or "").encode("utf-8"))
+
+            if tmp_out and os.path.exists(tmp_out):
+                with open(tmp_out, "rb") as fp:
+                    await ptb.bot.send_document(
+                        chat_id=chat_id,
+                        document=InputFile(fp, filename=send_name),
+                        caption=f"Tuzatilgan fayl ({ext[1:].upper() if ext.startswith('.') else ext.upper()})",
+                    )
+            else:
+                buf = data_buf or io.BytesIO((corrected or "").encode("utf-8"))
+                buf.seek(0)
+                await ptb.bot.send_document(
+                    chat_id=chat_id,
+                    document=InputFile(buf, filename=send_name),
+                    caption="Tuzatilgan matn (TXT)",
+                )
+            for p in (tmp_in, tmp_out):
+                if p and os.path.exists(p):
+                    try:
+                        os.remove(p)
+                    except Exception:
+                        pass
         except Exception as e:
             logger.warning("spellcheck_file Telegram: %s", e)
 

@@ -16,7 +16,7 @@ from bot.services.usage_tracker import format_tariff_status_html
 from config import WEBAPP_BASE
 
 BOT_USERNAME = os.getenv("BOT_USERNAME", "DastyorAiBot")
-
+START_INTRO_PHOTO_URL = "blob:https://chatgpt.com/6b96f4aa-2dc8-424d-8bbe-9b67796ac69c"
 # Default til — o'zbek lotin
 DEFAULT_LANG = "uz_lat"
 
