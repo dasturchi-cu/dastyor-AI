@@ -87,12 +87,26 @@ async def collect_pdf_images(update: Update, context: ContextTypes.DEFAULT_TYPE)
         context.user_data.pop("pdf_images", None)
 
         async def _pdf_background():
+            t0 = time.perf_counter()
             temp_dir = "temp"
             os.makedirs(temp_dir, exist_ok=True)
             downloaded_paths = []
             pdf_path = None
             base_ts = int(time.time())
             uid_pdf = message.from_user.id
+            try:
+                from bot.utils.system_tracker import track_event_fire_and_forget
+
+                track_event_fire_and_forget(
+                    telegram_id=int(uid_pdf),
+                    username=(message.from_user.username if message.from_user else None),
+                    event_type="START",
+                    action_name="bot:image_to_pdf",
+                    status="ok",
+                    metadata={"images": len(images or [])},
+                )
+            except Exception:
+                pass
             try:
                 if not await ensure_can_use_or_notify(
                     context.bot,
@@ -153,9 +167,38 @@ async def collect_pdf_images(update: Update, context: ContextTypes.DEFAULT_TYPE)
                 record_service_completion(uid_pdf, CAT_IMAGE_PDF, "Image to PDF")
                 await status_msg.delete()
                 logger.info("PDF created for user_id=%s images=%s", message.from_user.id, len(downloaded_paths))
+                try:
+                    from bot.utils.system_tracker import track_event_fire_and_forget
+
+                    track_event_fire_and_forget(
+                        telegram_id=int(uid_pdf),
+                        username=(message.from_user.username if message.from_user else None),
+                        event_type="END",
+                        action_name="bot:image_to_pdf",
+                        status="success",
+                        execution_time_ms=int((time.perf_counter() - t0) * 1000),
+                        metadata={"images": len(downloaded_paths or [])},
+                    )
+                except Exception:
+                    pass
             except Exception as e:
                 logger.error("PDF build error: %s", e, exc_info=True)
                 await status_msg.edit_text(f"❌ PDF yaratishda xatolik: {e}")
+                try:
+                    from bot.utils.system_tracker import track_event_fire_and_forget
+
+                    track_event_fire_and_forget(
+                        telegram_id=int(uid_pdf),
+                        username=(message.from_user.username if message.from_user else None),
+                        event_type="ERROR",
+                        action_name="bot:image_to_pdf",
+                        status="failed",
+                        error_message=str(e)[:2000],
+                        execution_time_ms=int((time.perf_counter() - t0) * 1000),
+                        metadata={"images": len(images or [])},
+                    )
+                except Exception:
+                    pass
             finally:
                 for path in downloaded_paths:
                     try:

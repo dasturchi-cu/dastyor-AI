@@ -155,6 +155,43 @@ def db_insert_action_log_v2(
         return False
 
 
+# ── system_logs (observability) ────────────────────────────────────────────────
+def db_insert_system_log(
+    telegram_id: int | None,
+    username: str | None,
+    event_type: str,
+    action_name: str,
+    status: str | None = None,
+    error_message: str | None = None,
+    execution_time_ms: int | None = None,
+    metadata: dict | None = None,
+) -> bool:
+    """
+    Insert into public.system_logs.
+    Safe: returns False on any error.
+    """
+    c = _get_client()
+    if not c:
+        return False
+    try:
+        payload = {
+            "telegram_id": int(telegram_id) if telegram_id is not None else None,
+            "username": (username or "")[:128] if username is not None else None,
+            "event_type": str(event_type or "")[:40],
+            "action_name": str(action_name or "")[:160],
+            "status": (status or "")[:40] if status is not None else None,
+            "error_message": (error_message or "")[:2000] if error_message is not None else None,
+            "execution_time_ms": int(execution_time_ms) if execution_time_ms is not None else None,
+            "metadata": metadata if isinstance(metadata, dict) else None,
+        }
+        c.table("system_logs").insert(payload).execute()
+        return True
+    except Exception as e:
+        _mark_temporarily_unavailable(e)
+        _log_write_error("db_insert_system_log", e)
+        return False
+
+
 # ── pending obyektivka (voice → /api/get_oby_data) ───────────────────────────
 def db_save_pending_oby(user_id: int, data: dict) -> bool:
     """Saqlangan JSON Web App forma avto-to'ldirish uchun (Supabase bo'lsa)."""

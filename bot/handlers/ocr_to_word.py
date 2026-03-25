@@ -490,11 +490,38 @@ async def _perform_ocr_batch_and_send(context, bot, chat_id: int, user_id: int, 
     t0 = time.perf_counter()
     n = len(file_ids)
     logger.info("OCR batch started user_id=%s chat_id=%s count=%s", user_id, chat_id, n)
+    try:
+        from bot.utils.system_tracker import track_event_fire_and_forget
+
+        track_event_fire_and_forget(
+            telegram_id=user_id,
+            username=None,
+            event_type="START",
+            action_name="bot:ocr_batch",
+            status="ok",
+            metadata={"images": n},
+        )
+    except Exception:
+        pass
 
     progress_msg = None
     temp_paths = []
     doc_path = None
     try:
+        try:
+            from bot.utils.system_tracker import track_span
+
+            async with track_span(
+                telegram_id=user_id,
+                username=None,
+                action_name="bot:ocr_batch",
+                metadata={"images": n},
+            ):
+                pass
+        except Exception:
+            # span created in background; ignore
+            pass
+
         progress_msg = await send_progress(context, chat_id, f"0/{n} — Yuklanmoqda...")
         temp_dir = "temp"
         os.makedirs(temp_dir, exist_ok=True)
@@ -609,8 +636,37 @@ async def _perform_ocr_batch_and_send(context, bot, chat_id: int, user_id: int, 
             context.user_data.pop("waiting_for", None)
             context.user_data.pop("ocr_images", None)
         logger.info("OCR batch completed in %.1fs user_id=%s count=%s", time.perf_counter() - t0, user_id, n)
+        try:
+            from bot.utils.system_tracker import track_event_fire_and_forget
+
+            track_event_fire_and_forget(
+                telegram_id=user_id,
+                username=None,
+                event_type="END",
+                action_name="bot:ocr_batch",
+                status="success",
+                execution_time_ms=int((time.perf_counter() - t0) * 1000),
+                metadata={"images": n},
+            )
+        except Exception:
+            pass
     except Exception as e:
         logger.error("OCR batch error user_id=%s: %s", user_id, e, exc_info=True)
+        try:
+            from bot.utils.system_tracker import track_event_fire_and_forget
+
+            track_event_fire_and_forget(
+                telegram_id=user_id,
+                username=None,
+                event_type="ERROR",
+                action_name="bot:ocr_batch",
+                status="failed",
+                error_message=str(e)[:2000],
+                execution_time_ms=int((time.perf_counter() - t0) * 1000),
+                metadata={"images": n},
+            )
+        except Exception:
+            pass
         try:
             if progress_msg:
                 await progress_msg.edit_text(f"❌ **Xatolik:** {str(e)}")
