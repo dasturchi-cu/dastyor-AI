@@ -139,34 +139,42 @@ async def obyektivka_handler(update: Update, context: ContextTypes.DEFAULT_TYPE)
         reply_markup=get_back_button(),
         parse_mode="MarkdownV2"
     )
-
-    # Send example audio file
-    # File is located in bot/handlers/ folder (same dir as this file)
-    HANDLERS_DIR = os.path.dirname(os.path.abspath(__file__))
-    audio_candidates = [
-        os.path.join(HANDLERS_DIR, "speech (1).mp3"),   # bot/handlers/speech (1).mp3
-        os.path.join(HANDLERS_DIR, "namuna.mp3"),        # bot/handlers/namuna.mp3
-        os.path.join(BASE_DIR, "namuna.mp3"),            # project root fallback
-    ]
-    sent = False
-    for path in audio_candidates:
-        if os.path.exists(path):
-            try:
-                with open(path, 'rb') as af:
-                    await update.message.reply_audio(
-                        audio=InputFile(af, filename="namuna_audio.mp3"),
-                        caption="🎙 *Namuna audio* — shunday qilib o'qib yuboring",
-                        parse_mode="Markdown"
-                    )
-                sent = True
-            except Exception as e:
-                logger.warning(f"Could not send example audio ({path}): {e}")
-            break
-    if not sent:
-        logger.warning(f"Example audio not found. Checked: {audio_candidates}")
-
-    # Set user state
+    # Set user state ASAP (don't wait for any heavy ops)
     context.user_data['waiting_for'] = 'obyektivka_audio'
+
+    # Send example audio in background (Telegram upload can be slow).
+    async def _send_example_audio_bg(chat_id: int):
+        try:
+            HANDLERS_DIR = os.path.dirname(os.path.abspath(__file__))
+            audio_candidates = [
+                os.path.join(HANDLERS_DIR, "speech (1).mp3"),   # bot/handlers/speech (1).mp3
+                os.path.join(HANDLERS_DIR, "namuna.mp3"),        # bot/handlers/namuna.mp3
+                os.path.join(BASE_DIR, "namuna.mp3"),            # project root fallback
+            ]
+            for path in audio_candidates:
+                if not path or not os.path.exists(path):
+                    continue
+                try:
+                    # InputFile can accept a file path; avoids keeping file handles open.
+                    await context.bot.send_audio(
+                        chat_id=chat_id,
+                        audio=InputFile(path, filename="namuna_audio.mp3"),
+                        caption="🎙 *Namuna audio* — shunday qilib o'qib yuboring",
+                        parse_mode="Markdown",
+                    )
+                    return
+                except Exception as e:
+                    logger.warning("Could not send example audio path=%s err=%s", path, e, exc_info=True)
+                    return
+            logger.warning("Example audio not found. Checked=%s", audio_candidates)
+        except Exception:
+            logger.debug("Example audio background send failed", exc_info=True)
+
+    try:
+        if update.effective_chat:
+            asyncio.create_task(_send_example_audio_bg(update.effective_chat.id))
+    except Exception:
+        pass
 
 
 async def handle_obyektivka_audio(update: Update, context: ContextTypes.DEFAULT_TYPE):
