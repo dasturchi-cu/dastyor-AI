@@ -107,6 +107,12 @@ async def obyektivka_handler(update: Update, context: ContextTypes.DEFAULT_TYPE)
     """
     Handle Obyektivka AI module entry point.
     """
+    # Immediate feedback (avoid waiting on Telegram parse/upload)
+    try:
+        await update.message.reply_text("⏳ Obyektivka ochilmoqda... (yo‘riqnoma va namuna audio yuborilmoqda)")
+    except Exception:
+        pass
+
     instruction_text = (
         "📌 **Obyektivka tayyorlash uchun quyidagi ma'lumotlarni audiodagi kabi o'qib jo'nating:**\n\n"
         "1\\. F\\.I\\.Sh\\. \\(Familiyasi, ismi, sharifi\\)\n"
@@ -134,17 +140,24 @@ async def obyektivka_handler(update: Update, context: ContextTypes.DEFAULT_TYPE)
         "🎙 *Quyidagi audio namunaga o'xshab o'qib yuboring:*"
     )
 
-    await update.message.reply_text(
-        instruction_text,
-        reply_markup=get_back_button(),
-        parse_mode="MarkdownV2"
-    )
     # Set user state ASAP (don't wait for any heavy ops)
     context.user_data['waiting_for'] = 'obyektivka_audio'
 
-    # Send example audio in background (Telegram upload can be slow).
-    async def _send_example_audio_bg(chat_id: int):
+    # Send instruction + example audio in background (Telegram can be slow).
+    async def _send_instruction_and_audio_bg(chat_id: int):
         try:
+            # 1) Instruction text (long MarkdownV2 can be slow; don't block the click)
+            try:
+                await context.bot.send_message(
+                    chat_id=chat_id,
+                    text=instruction_text,
+                    reply_markup=get_back_button(),
+                    parse_mode="MarkdownV2",
+                )
+            except Exception:
+                logger.debug("Could not send instruction text", exc_info=True)
+
+            # 2) Example audio
             HANDLERS_DIR = os.path.dirname(os.path.abspath(__file__))
             audio_candidates = [
                 os.path.join(HANDLERS_DIR, "speech (1).mp3"),   # bot/handlers/speech (1).mp3
@@ -168,11 +181,11 @@ async def obyektivka_handler(update: Update, context: ContextTypes.DEFAULT_TYPE)
                     return
             logger.warning("Example audio not found. Checked=%s", audio_candidates)
         except Exception:
-            logger.debug("Example audio background send failed", exc_info=True)
+            logger.debug("Instruction/audio background send failed", exc_info=True)
 
     try:
         if update.effective_chat:
-            asyncio.create_task(_send_example_audio_bg(update.effective_chat.id))
+            asyncio.create_task(_send_instruction_and_audio_bg(update.effective_chat.id))
     except Exception:
         pass
 
