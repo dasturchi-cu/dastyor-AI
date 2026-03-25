@@ -155,7 +155,11 @@ const DastyorAI = (() => {
 
         for (const url of candidates) {
             try {
-                const resp = await fetch(url);
+                // Telegram WebView sometimes hangs on fetch; use a short timeout.
+                const ac = ('AbortController' in window) ? new AbortController() : null;
+                const t = ac ? setTimeout(() => { try { ac.abort(); } catch (_) {} }, 3000) : null;
+                const resp = await fetch(url, ac ? { signal: ac.signal } : undefined);
+                if (t) clearTimeout(t);
                 if (resp.ok) {
                     const data = await resp.json();
                     localeCache[safe] = data || {};
@@ -214,10 +218,22 @@ const DastyorAI = (() => {
 
     async function setLanguage(lang, persist = true) {
         currentLang = normalizeLang(lang);
-        if (persist) localStorage.setItem(LANGUAGE_KEY, currentLang);
-        localeMap = await loadLocale(currentLang);
-        applyTranslations(document);
-        window.dispatchEvent(new CustomEvent('app:language-changed', { detail: { language: currentLang } }));
+        try {
+            if (persist) localStorage.setItem(LANGUAGE_KEY, currentLang);
+        } catch (_) {}
+
+        // Immediate apply (even if locale fetch is slow/hangs, at least update <html lang> and events)
+        try { applyTranslations(document); } catch (_) {}
+
+        try {
+            localeMap = await loadLocale(currentLang);
+        } catch (_) {
+            localeMap = {};
+        }
+        try { applyTranslations(document); } catch (_) {}
+        try {
+            window.dispatchEvent(new CustomEvent('app:language-changed', { detail: { language: currentLang } }));
+        } catch (_) {}
         return currentLang;
     }
 
