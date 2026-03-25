@@ -124,18 +124,14 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     action  = _ACTION_MAP.get(payload)
 
     if action:
-        # ── Deep-link: avval intro rasm (URL), keyin xizmat ──────────
-        intro_ok = await _send_start_intro_photo(update.message, first_name)
+        # ── Deep-link: rasm yubormaymiz (foydalanuvchi so'ragan) ─────
         page_file, btn_label, description = action
         url = f"{WEBAPP_BASE}/{page_file}?telegram_id={uid}&lang={lang}"
 
-        if intro_ok:
-            text_base = f"🚀 <b>{description}</b>:"
-        else:
-            text_base = (
-                f"Assalomu alaykum, {first_name}! 👋\n\n"
-                f"🚀 <b>{description}</b>:"
-            )
+        text_base = (
+            f"Assalomu alaykum, <b>{first_name}</b>! 👋\n\n"
+            f"🚀 <b>{description}</b>:"
+        )
         keyboard = InlineKeyboardMarkup([[
             InlineKeyboardButton(btn_label, web_app=WebAppInfo(url=url))
         ]])
@@ -143,21 +139,12 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         asyncio.create_task(_merge_tariff_into_message(msg, uid, keyboard, prefix=text_base))
         return
 
-    # ── Default /start — avval intro rasm, keyin matn + tugmalar ────
-    intro_photo_ok = await _send_start_intro_photo(update.message, first_name)
-
-    salom_block = (
-        ""
-        if intro_photo_ok
-        else (
-            f"Assalomu alaykum, <b>{first_name}</b>! 👋\n\n"
-            f"✨ <b>Siz yozasiz — DASTYOR AI bajaradi!</b>\n"
-            f"DASTYOR yordamida har qanday hujjat bilan professional darajada ishlang.\n\n"
-        )
-    )
+    # ── Default /start — rasm yubormaymiz, 1 ta xabar + reply menu ──
     welcome_text = (
-        salom_block
-        + f"🤖 <b>DASTYOR AI</b> — hujjat tayyorlash assistantingiz!\n\n"
+        f"Assalomu alaykum, <b>{first_name}</b>! 👋\n\n"
+        f"✨ <b>Siz yozasiz — DASTYOR AI bajaradi!</b>\n"
+        f"DASTYOR yordamida har qanday hujjat bilan professional darajada ishlang.\n\n"
+        f"🤖 <b>DASTYOR AI</b> — hujjat tayyorlash assistantingiz!\n\n"
         + f"📋 <b>Nima qila olaman:</b>\n"
         f"• Obyektivka tayyorlash\n"
         f"• CV (rezyume) yaratish\n"
@@ -167,56 +154,10 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"• Rasmlarni PDFga birlashtirish\n\n"
         f"👇 Quyidagi menyudan xizmat tanlang:"
     )
-    keyboard = InlineKeyboardMarkup([
-        [
-            InlineKeyboardButton(
-                "📋 Obyektivka",
-                web_app=WebAppInfo(url=f"{WEBAPP_BASE}/obyektivka.html?telegram_id={uid}&lang={lang}")
-            ),
-            InlineKeyboardButton(
-                "📄 CV yaratish",
-                web_app=WebAppInfo(url=f"{WEBAPP_BASE}/cv.html?telegram_id={uid}&lang={lang}")
-            ),
-        ],
-        [
-            InlineKeyboardButton(
-                "🔤 Krill ↔ Lotin",
-                web_app=WebAppInfo(url=f"{WEBAPP_BASE}/translit.html?telegram_id={uid}&lang={lang}")
-            ),
-            InlineKeyboardButton(
-                "🌐 Tarjima",
-                web_app=WebAppInfo(url=f"{WEBAPP_BASE}/translate.html?telegram_id={uid}&lang={lang}")
-            ),
-        ],
-        [
-            InlineKeyboardButton(
-                "📸 Rasm → Word",
-                web_app=WebAppInfo(url=f"{WEBAPP_BASE}/ocr.html?telegram_id={uid}&lang={lang}")
-            ),
-            InlineKeyboardButton(
-                "🖼 Rasm → PDF",
-                web_app=WebAppInfo(url=f"{WEBAPP_BASE}/img2pdf.html?telegram_id={uid}&lang={lang}")
-            ),
-        ],
-        [
-            InlineKeyboardButton(
-                "💎 Premium",
-                web_app=WebAppInfo(url=f"{WEBAPP_BASE}/premium.html?telegram_id={uid}&lang={lang}")
-            ),
-        ],
-    ])
 
-    msg = await update.message.reply_text(
-        welcome_text,
-        reply_markup=keyboard,
-        parse_mode="HTML",
-    )
-    asyncio.create_task(_merge_tariff_into_message(msg, uid, keyboard, prefix=welcome_text))
-
-    await update.message.reply_text(
-        "🚀 Appni ochish uchun pastdagi tugmani bosing:",
-        reply_markup=get_main_menu(uid, lang),
-    )
+    kb = get_main_menu(uid, lang)
+    msg = await update.message.reply_text(welcome_text, reply_markup=kb, parse_mode="HTML")
+    asyncio.create_task(_merge_tariff_into_message(msg, uid, kb, prefix=welcome_text))
 
 
 async def menu_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
