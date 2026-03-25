@@ -144,6 +144,15 @@ async def back_to_main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except Exception:
         pass
 
+    async def _delete_ack_later(chat_id: int, ack_message_id: int | None, delay_s: float):
+        if not ack_message_id:
+            return
+        try:
+            await asyncio.sleep(delay_s)
+            await context.bot.delete_message(chat_id=chat_id, message_id=int(ack_message_id))
+        except Exception:
+            pass
+
     async def _send_menu_bg(chat_id: int, ack_message_id: int | None):
         try:
             uid = update.effective_user.id if update.effective_user else None
@@ -160,7 +169,10 @@ async def back_to_main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 pass
 
     try:
-        asyncio.create_task(_send_menu_bg(update.effective_chat.id, ack_mid))
+        chat_id = int(update.effective_chat.id)
+        asyncio.create_task(_send_menu_bg(chat_id, ack_mid))
+        # Fallback: if delete fails in bg flow, remove after a short delay anyway.
+        asyncio.create_task(_delete_ack_later(chat_id, ack_mid, 5.0))
     except Exception:
         # Fallback: if task can't be created, do the normal slow send
         await update.message.reply_text(
