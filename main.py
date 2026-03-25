@@ -282,6 +282,28 @@ async def button_callback_handler(update: Update, context: ContextTypes.DEFAULT_
 
 async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> None:
     logger.error(msg="Exception while handling an update:", exc_info=context.error)
+    # Fire-and-forget telemetry to Supabase logs (if available)
+    try:
+        from bot.utils.action_logger import log_action_fire_and_forget
+
+        uid = None
+        uname = None
+        if isinstance(update, Update) and update.effective_user:
+            uid = update.effective_user.id
+            uname = update.effective_user.username
+        if uid:
+            log_action_fire_and_forget(
+                telegram_id=int(uid),
+                username=uname,
+                action_type="ERROR",
+                details="bot:update_handler",
+                metadata={
+                    "error": str(getattr(context, "error", "") or "")[:500],
+                    "update_type": type(update).__name__,
+                },
+            )
+    except Exception:
+        pass
 
 async def _webapp_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE, action: str):
     """Generic handler: sends inline button opening the correct webapp page."""

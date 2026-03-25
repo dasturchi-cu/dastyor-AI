@@ -19,6 +19,7 @@ from fastapi.staticfiles import StaticFiles
 from starlette.middleware.gzip import GZipMiddleware
 
 from backend.middleware.performance import PerformanceMiddleware
+from backend.middleware.maintenance import register_maintenance_middleware
 
 from backend.paths import webapp_dir, webapp_index_path
 from backend.exception_handlers import register_exception_handlers
@@ -126,6 +127,8 @@ def create_webhook_app() -> FastAPI:
     # So‘rov vaqti: X-Process-Time-ms + sekin yo‘llar uchun log.
     app.add_middleware(PerformanceMiddleware)
     register_webapp_middleware(app)
+    # Maintenance must be early: block web/api fast.
+    register_maintenance_middleware(app)
     register_exception_handlers(app)
 
     # Order: specific routes before static mount
