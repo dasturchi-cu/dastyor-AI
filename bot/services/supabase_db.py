@@ -118,6 +118,43 @@ def has_db() -> bool:
     return _get_client() is not None
 
 
+# ── action_logs (v2) ───────────────────────────────────────────────────────────
+def db_insert_action_log_v2(
+    telegram_id: int,
+    username: str | None,
+    action_type: str,
+    details: str | None = None,
+    metadata: dict | None = None,
+) -> bool:
+    """
+    Insert into public.action_logs (uuid id).
+    Safe: returns False on any error.
+    """
+    c = _get_client()
+    if not c:
+        return False
+    try:
+        payload = {
+            "telegram_id": int(telegram_id),
+            "username": (username or "")[:128] if username is not None else None,
+            "action_type": str(action_type or "")[:120],
+            "details": (details or "")[:2000] if details is not None else None,
+            "metadata": metadata if isinstance(metadata, dict) else None,
+        }
+        # Prefer the new table name; fall back to existing deployments.
+        try:
+            c.table("logs_v2").insert(payload).execute()
+            return True
+        except Exception:
+            # Many existing Supabase projects already have action_logs.
+            c.table("action_logs").insert(payload).execute()
+            return True
+    except Exception as e:
+        _mark_temporarily_unavailable(e)
+        _log_write_error("db_insert_action_log_v2", e)
+        return False
+
+
 # ── pending obyektivka (voice → /api/get_oby_data) ───────────────────────────
 def db_save_pending_oby(user_id: int, data: dict) -> bool:
     """Saqlangan JSON Web App forma avto-to'ldirish uchun (Supabase bo'lsa)."""

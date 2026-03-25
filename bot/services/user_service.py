@@ -235,6 +235,22 @@ def record_service_completion(user_id, category: str, service_name=None, *, skip
             )
     except Exception:
         pass
+    # v2 complete logging (uuid table) — fire-and-forget, does not slow down handlers
+    try:
+        from bot.utils.action_logger import log_action_fire_and_forget
+
+        log_action_fire_and_forget(
+            telegram_id=uid,
+            username=(get_user_profile(uid) or {}).get("username"),
+            action_type=str(category)[:120],
+            details=(service_name or category or "")[:300],
+            metadata={
+                "event": "service_completion",
+                "service_label": (service_name or category or "")[:500],
+            },
+        )
+    except Exception:
+        pass
     try:
         invalidate_user_profile_cache(int(user_id))
         from bot.services.usage_tracker import invalidate_tariff_snapshot_cache

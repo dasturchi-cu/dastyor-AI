@@ -186,6 +186,18 @@ async def api_translit(req: TranslitRequest):
             from bot.services.plan_limits import CAT_TRANSLIT
 
             quota = web_quota_commit_success(uid, CAT_TRANSLIT, "Web translit")
+            try:
+                from bot.utils.action_logger import log_action_fire_and_forget
+
+                log_action_fire_and_forget(
+                    telegram_id=int(uid),
+                    username=None,
+                    action_type="TRANSLIT",
+                    details=f"web:{req.direction}",
+                    metadata={"direction": req.direction, "chars": len(req.text or "")},
+                )
+            except Exception:
+                pass
         return {"ok": True, "result": result, "direction": req.direction, "quota": quota}
     except HTTPException:
         raise
@@ -266,6 +278,18 @@ async def api_notify(
             text=req.message,
             parse_mode="HTML",
         )
+        try:
+            from bot.utils.action_logger import log_action_fire_and_forget
+
+            log_action_fire_and_forget(
+                telegram_id=int(uid),
+                username=None,
+                action_type="NOTIFY",
+                details="web:notify",
+                metadata={"chars": len(req.message or "")},
+            )
+        except Exception:
+            pass
         return {"ok": True}
     except Exception as e:
         logger.warning("/api/notify failed for %s: %s", uid, e)
@@ -368,6 +392,18 @@ async def api_translate(req: TranslateRequest):
             from bot.services.plan_limits import CAT_TRANSLATE
 
             quota = web_quota_commit_success(uid, CAT_TRANSLATE, "Web translate")
+            try:
+                from bot.utils.action_logger import log_action_fire_and_forget
+
+                log_action_fire_and_forget(
+                    telegram_id=int(uid),
+                    username=None,
+                    action_type="TRANSLATE",
+                    details=f"web:{req.direction}",
+                    metadata={"direction": req.direction, "chars": len(req.text or "")},
+                )
+            except Exception:
+                pass
         return {"ok": True, "translated_text": result, "direction": req.direction, "quota": quota}
     except HTTPException:
         raise
@@ -403,6 +439,18 @@ async def api_spellcheck(req: SpellcheckRequest):
                 from bot.services.plan_limits import CAT_SPELL
 
                 quota = web_quota_commit_success(uid, CAT_SPELL, "Web spell text")
+                try:
+                    from bot.utils.action_logger import log_action_fire_and_forget
+
+                    log_action_fire_and_forget(
+                        telegram_id=int(uid),
+                        username=None,
+                        action_type="SPELL",
+                        details="web:text(cache_hit)",
+                        metadata={"chars": len(src or ""), "word_count": wc, "fixed": fc},
+                    )
+                except Exception:
+                    pass
             return {
                 "ok": True,
                 "corrected_text": corrected,
@@ -424,6 +472,18 @@ async def api_spellcheck(req: SpellcheckRequest):
             from bot.services.plan_limits import CAT_SPELL
 
             quota = web_quota_commit_success(uid, CAT_SPELL, "Web spell text")
+            try:
+                from bot.utils.action_logger import log_action_fire_and_forget
+
+                log_action_fire_and_forget(
+                    telegram_id=int(uid),
+                    username=None,
+                    action_type="SPELL",
+                    details="web:text",
+                    metadata={"chars": len(src or ""), "word_count": wc, "fixed": fc},
+                )
+            except Exception:
+                pass
         return {
             "ok": True,
             "corrected_text": corrected,
@@ -521,6 +581,18 @@ async def api_spellcheck_file(
         from bot.services.plan_limits import CAT_SPELL
 
         quota = web_quota_commit_success(uid_int, CAT_SPELL, "Web spell file")
+        try:
+            from bot.utils.action_logger import log_action_fire_and_forget
+
+            log_action_fire_and_forget(
+                telegram_id=int(uid_int),
+                username=None,
+                action_type="SPELL",
+                details=f"web:file:{os.path.splitext(fname)[1].lower() or 'unknown'}",
+                metadata={"filename": fname, "bytes": len(raw), "word_count": wc, "fixed": fc},
+            )
+        except Exception:
+            pass
     out = {
         "ok": True,
         "corrected_text": corrected,
@@ -623,6 +695,20 @@ async def api_objective(req: ObjectiveRequest):
             raise HTTPException(status_code=502, detail=text or "AI javobi bo'sh")
         if text.startswith("Xatolik"):
             raise HTTPException(status_code=502, detail=text)
+        try:
+            uid = _resolve_web_uid_optional(req.telegram_id, req.token)
+            if uid:
+                from bot.utils.action_logger import log_action_fire_and_forget
+
+                log_action_fire_and_forget(
+                    telegram_id=int(uid),
+                    username=None,
+                    action_type="OBJECTIVE",
+                    details=f"web:{(req.lang or 'uz')}",
+                    metadata={"role": role[:120], "has_extra": bool(req.extra)},
+                )
+        except Exception:
+            pass
         return {"ok": True, "text": text}
     except HTTPException:
         raise
