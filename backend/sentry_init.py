@@ -29,8 +29,11 @@ def init_sentry(*, service_name: str) -> None:
     profiles = _f("SENTRY_PROFILES_SAMPLE_RATE", "0.0")
 
     import sentry_sdk
+    from sentry_sdk.integrations.celery import CeleryIntegration
     from sentry_sdk.integrations.fastapi import FastApiIntegration
+    from sentry_sdk.integrations.httpx import HttpxIntegration
     from sentry_sdk.integrations.logging import LoggingIntegration
+    from sentry_sdk.integrations.redis import RedisIntegration
 
     logging_integration = LoggingIntegration(
         level=None,        # keep existing log level
@@ -46,6 +49,17 @@ def init_sentry(*, service_name: str) -> None:
         enable_tracing=(traces > 0.0),
         traces_sample_rate=max(0.0, min(1.0, traces)),
         profiles_sample_rate=max(0.0, min(1.0, profiles)),
-        integrations=[FastApiIntegration(), logging_integration],
+        integrations=[
+            # Backend + WebApp
+            FastApiIntegration(),
+            # Outbound calls
+            HttpxIntegration(),
+            # Background jobs
+            CeleryIntegration(),
+            # Cache/queue
+            RedisIntegration(),
+            # Python logging -> Sentry events
+            logging_integration,
+        ],
     )
 
