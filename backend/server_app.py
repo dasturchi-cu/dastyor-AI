@@ -16,6 +16,7 @@ from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from fastapi.responses import PlainTextResponse
 from starlette.middleware.gzip import GZipMiddleware
 
 from backend.middleware.performance import PerformanceMiddleware
@@ -137,6 +138,13 @@ def create_webhook_app() -> FastAPI:
     # Maintenance must be early: block web/api fast.
     register_maintenance_middleware(app)
     register_exception_handlers(app)
+
+    # Sentry verify endpoint (only when SENTRY_DSN is set)
+    @app.get("/sentry-debug", include_in_schema=False)
+    async def sentry_debug():
+        if not (os.getenv("SENTRY_DSN") or "").strip():
+            return PlainTextResponse("SENTRY_DSN is not set", status_code=404)
+        1 / 0  # noqa: B018 (intentional)
 
     # Order: specific routes before static mount
     app.include_router(site_router)
