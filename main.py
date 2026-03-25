@@ -87,6 +87,48 @@ from bot.services.settings_service import is_premium
 from bot.services.settings_service import get_maintenance_mode
 from bot.handlers.start import DEFAULT_LANG
 from bot.services.admin_service import is_admin as is_admin_user
+from bot.utils.system_tracker import track_span
+
+
+def _span_meta(update: Update) -> dict:
+    md: dict = {}
+    try:
+        if update and getattr(update, "effective_chat", None):
+            md["chat_id"] = getattr(update.effective_chat, "id", None)
+            md["chat_type"] = getattr(update.effective_chat, "type", None)
+        if update and getattr(update, "effective_message", None):
+            md["message_id"] = getattr(update.effective_message, "message_id", None)
+        if update and getattr(update, "callback_query", None) and update.callback_query:
+            md["callback_data"] = (str(update.callback_query.data or "")[:180]) or None
+    except Exception:
+        pass
+    return md
+
+
+def spanify(action_name: str, fn):
+    """
+    Wrap a PTB handler to emit START/END/ERROR spans into system_logs.
+    Does not change behavior: exceptions still propagate to PTB error_handler.
+    """
+
+    async def _wrapped(update: Update, context: ContextTypes.DEFAULT_TYPE, *args, **kwargs):
+        uid = None
+        uname = None
+        try:
+            if update and update.effective_user:
+                uid = int(update.effective_user.id)
+                uname = update.effective_user.username
+        except Exception:
+            pass
+        async with track_span(
+            telegram_id=uid,
+            username=uname,
+            action_name=action_name,
+            metadata=_span_meta(update),
+        ):
+            return await fn(update, context, *args, **kwargs)
+
+    return _wrapped
 
 async def back_to_main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not update.effective_chat or update.effective_chat.type != "private":
@@ -356,88 +398,93 @@ def setup_application():
     # 1. CRM Middleware (Tracks + Checks Ban)
     application.add_handler(TypeHandler(Update, track_user), group=-1)
     # 1.1 Support group strict router (ignore all other bot features there)
-    application.add_handler(MessageHandler(filters.Chat(chat_id=SUPPORT_GROUP_ID), support_group_router), group=0)
+    application.add_handler(
+        MessageHandler(filters.Chat(chat_id=SUPPORT_GROUP_ID), spanify("bot:support_group_router", support_group_router)),
+        group=0,
+    )
 
     # 2. Core Commands
-    application.add_handler(CommandHandler("start",       start_command))
-    application.add_handler(CommandHandler("menu",        menu_command))
-    application.add_handler(CommandHandler("help",        help_command))
+    application.add_handler(CommandHandler("start",       spanify("bot:cmd_start", start_command)))
+    application.add_handler(CommandHandler("menu",        spanify("bot:cmd_menu", menu_command)))
+    application.add_handler(CommandHandler("help",        spanify("bot:cmd_help", help_command)))
     # ── Feature shortcut commands (open the matching webapp page directly) ──
-    application.add_handler(CommandHandler("cv",          cmd_cv))
-    application.add_handler(CommandHandler("obyektivka",  cmd_obyektivka))
-    application.add_handler(CommandHandler("ocr",         cmd_ocr))
-    application.add_handler(CommandHandler("pdf",         cmd_pdf))
-    application.add_handler(CommandHandler("translit",    cmd_translit))
-    application.add_handler(CommandHandler("translate",   cmd_translate))
-    application.add_handler(CommandHandler("premium",     cmd_premium))
+    application.add_handler(CommandHandler("cv",          spanify("bot:cmd_cv", cmd_cv)))
+    application.add_handler(CommandHandler("obyektivka",  spanify("bot:cmd_obyektivka", cmd_obyektivka)))
+    application.add_handler(CommandHandler("ocr",         spanify("bot:cmd_ocr", cmd_ocr)))
+    application.add_handler(CommandHandler("pdf",         spanify("bot:cmd_pdf", cmd_pdf)))
+    application.add_handler(CommandHandler("translit",    spanify("bot:cmd_translit", cmd_translit)))
+    application.add_handler(CommandHandler("translate",   spanify("bot:cmd_translate", cmd_translate)))
+    application.add_handler(CommandHandler("premium",     spanify("bot:cmd_premium", cmd_premium)))
 
     # Track bot block/unblock
-    application.add_handler(ChatMemberHandler(chat_member_updated, ChatMemberHandler.MY_CHAT_MEMBER))
+    application.add_handler(
+        ChatMemberHandler(spanify("bot:chat_member_updated", chat_member_updated), ChatMemberHandler.MY_CHAT_MEMBER)
+    )
     
     # Admin Commands
-    application.add_handler(CommandHandler("admin", admin_panel_command))
-    application.add_handler(CommandHandler("stats", stats_command))
-    application.add_handler(CommandHandler("send", broadcast_command))
-    application.add_handler(CommandHandler("user_info", user_info_command))
-    application.add_handler(CommandHandler("users", user_info_command)) 
-    application.add_handler(CommandHandler("top", top_users_command))
-    application.add_handler(CommandHandler("search", search_command))
-    application.add_handler(CommandHandler("ban", ban_user_command))
-    application.add_handler(CommandHandler("unban", unban_user_command))
+    application.add_handler(CommandHandler("admin", spanify("bot:cmd_admin", admin_panel_command)))
+    application.add_handler(CommandHandler("stats", spanify("bot:cmd_stats", stats_command)))
+    application.add_handler(CommandHandler("send", spanify("bot:cmd_send", broadcast_command)))
+    application.add_handler(CommandHandler("user_info", spanify("bot:cmd_user_info", user_info_command)))
+    application.add_handler(CommandHandler("users", spanify("bot:cmd_users", user_info_command)))
+    application.add_handler(CommandHandler("top", spanify("bot:cmd_top", top_users_command)))
+    application.add_handler(CommandHandler("search", spanify("bot:cmd_search", search_command)))
+    application.add_handler(CommandHandler("ban", spanify("bot:cmd_ban", ban_user_command)))
+    application.add_handler(CommandHandler("unban", spanify("bot:cmd_unban", unban_user_command)))
     
-    application.add_handler(CommandHandler("add_channel", add_channel_command))
-    application.add_handler(CommandHandler("remove_channel", remove_channel_command))
-    application.add_handler(CommandHandler("add_premium", add_premium_command))
-    application.add_handler(CommandHandler("remove_premium", remove_premium_command))
-    application.add_handler(CommandHandler("approve", approve_premium_command))
-    application.add_handler(CommandHandler("maintenance_on", maintenance_on_command))
-    application.add_handler(CommandHandler("maintenance_off", maintenance_off_command))
-    application.add_handler(CommandHandler("maintenance_status", maintenance_status_command))
-    application.add_handler(CommandHandler("set_limit", set_limit_command))
-    application.add_handler(CommandHandler("add_admin", add_admin_command))
-    application.add_handler(CommandHandler("remove_admin", remove_admin_command))
+    application.add_handler(CommandHandler("add_channel", spanify("bot:cmd_add_channel", add_channel_command)))
+    application.add_handler(CommandHandler("remove_channel", spanify("bot:cmd_remove_channel", remove_channel_command)))
+    application.add_handler(CommandHandler("add_premium", spanify("bot:cmd_add_premium", add_premium_command)))
+    application.add_handler(CommandHandler("remove_premium", spanify("bot:cmd_remove_premium", remove_premium_command)))
+    application.add_handler(CommandHandler("approve", spanify("bot:cmd_approve", approve_premium_command)))
+    application.add_handler(CommandHandler("maintenance_on", spanify("bot:cmd_maintenance_on", maintenance_on_command)))
+    application.add_handler(CommandHandler("maintenance_off", spanify("bot:cmd_maintenance_off", maintenance_off_command)))
+    application.add_handler(CommandHandler("maintenance_status", spanify("bot:cmd_maintenance_status", maintenance_status_command)))
+    application.add_handler(CommandHandler("set_limit", spanify("bot:cmd_set_limit", set_limit_command)))
+    application.add_handler(CommandHandler("add_admin", spanify("bot:cmd_add_admin", add_admin_command)))
+    application.add_handler(CommandHandler("remove_admin", spanify("bot:cmd_remove_admin", remove_admin_command)))
 
     # 3. Callback Queries
     application.add_handler(CallbackQueryHandler(
-        premium_callback_handler,
+        spanify("bot:cb_premium", premium_callback_handler),
         pattern="^prem_"
     ))
     application.add_handler(CallbackQueryHandler(
-        premium_purchase_callback,
+        spanify("bot:cb_premium_buy", premium_purchase_callback),
         pattern="^buy_"
     ))
     application.add_handler(CallbackQueryHandler(
-        premium_payment_review_callback,
+        spanify("bot:cb_premium_review", premium_payment_review_callback),
         pattern=r"^prempay_(approve|reject)_\d+$"
     ))
     
     # Language callback handler removed — bot uses Uzbek by default
     
-    application.add_handler(CallbackQueryHandler(smart_callback_handler, pattern="^smart_"))
-    application.add_handler(CallbackQueryHandler(translit_direction_callback, pattern="^trl_"))
-    application.add_handler(CallbackQueryHandler(support_panel_callback, pattern="^support_"))
-    application.add_handler(CallbackQueryHandler(button_callback_handler))
+    application.add_handler(CallbackQueryHandler(spanify("bot:cb_smart", smart_callback_handler), pattern="^smart_"))
+    application.add_handler(CallbackQueryHandler(spanify("bot:cb_translit_dir", translit_direction_callback), pattern="^trl_"))
+    application.add_handler(CallbackQueryHandler(spanify("bot:cb_support_panel", support_panel_callback), pattern="^support_"))
+    application.add_handler(CallbackQueryHandler(spanify("bot:cb_default", button_callback_handler)))
 
     # 4. Text Menu Navigation — Asosiy tugmalar
-    application.add_handler(MessageHandler(filters.Regex(get_regex_for_key("back_to_menu")), back_to_main_menu))
-    application.add_handler(MessageHandler(filters.Regex("^(🔙 Orqaga|🔙 Назад|🔙 Back|🔙 Оркага)$"), back_to_main_menu))
-    application.add_handler(MessageHandler(filters.Regex(get_regex_for_key("btn_more")) & filters.ChatType.PRIVATE, more_menu_handler))
-    application.add_handler(MessageHandler(filters.Regex(get_regex_for_key("btn_cv")) & filters.ChatType.PRIVATE, cv_handler))
+    application.add_handler(MessageHandler(filters.Regex(get_regex_for_key("back_to_menu")), spanify("bot:ui_back_to_menu", back_to_main_menu)))
+    application.add_handler(MessageHandler(filters.Regex("^(🔙 Orqaga|🔙 Назад|🔙 Back|🔙 Оркага)$"), spanify("bot:ui_back_to_menu2", back_to_main_menu)))
+    application.add_handler(MessageHandler(filters.Regex(get_regex_for_key("btn_more")) & filters.ChatType.PRIVATE, spanify("bot:ui_more_menu", more_menu_handler)))
+    application.add_handler(MessageHandler(filters.Regex(get_regex_for_key("btn_cv")) & filters.ChatType.PRIVATE, spanify("bot:ui_open_cv", cv_handler)))
     
     admin_buttons = "^(📊 Statistika|📨 Xabar yuborish|📢 Kanallar|💎 Premium Boshqaruv|⚙️ Sozlamalar|👥 Foydalanuvchilar|➕ Admin qo'shish|❌ Admin o'chirish|🆘 Support so'rovlar|🚪 Panelni yopish)$"
-    application.add_handler(MessageHandler(filters.Regex(admin_buttons), handle_admin_text))
+    application.add_handler(MessageHandler(filters.Regex(admin_buttons), spanify("bot:admin_text", handle_admin_text)))
 
-    application.add_handler(MessageHandler(filters.Regex(get_regex_for_key("btn_ocr")), ocr_handler))
-    application.add_handler(MessageHandler(filters.Regex(get_regex_for_key("btn_oby")) & filters.ChatType.PRIVATE, obyektivka_handler))
-    application.add_handler(MessageHandler(filters.Regex(get_regex_for_key("btn_translit")), transliterate_handler))
-    application.add_handler(MessageHandler(filters.Regex(get_regex_for_key("btn_translate")), translate_handler))
-    application.add_handler(MessageHandler(filters.Regex(get_regex_for_key("btn_pdf")), image_to_pdf_handler))
-    application.add_handler(MessageHandler(filters.Regex(get_regex_for_key("btn_spell")), spell_check_handler))
-    application.add_handler(MessageHandler(filters.Regex(get_regex_for_key("btn_premium")) & filters.ChatType.PRIVATE, premium_info_handler))
-    application.add_handler(MessageHandler(filters.Regex("^Premium sotib olish$") & filters.ChatType.PRIVATE, premium_info_handler))
+    application.add_handler(MessageHandler(filters.Regex(get_regex_for_key("btn_ocr")), spanify("bot:ui_ocr", ocr_handler)))
+    application.add_handler(MessageHandler(filters.Regex(get_regex_for_key("btn_oby")) & filters.ChatType.PRIVATE, spanify("bot:ui_obyektivka", obyektivka_handler)))
+    application.add_handler(MessageHandler(filters.Regex(get_regex_for_key("btn_translit")), spanify("bot:ui_translit", transliterate_handler)))
+    application.add_handler(MessageHandler(filters.Regex(get_regex_for_key("btn_translate")), spanify("bot:ui_translate", translate_handler)))
+    application.add_handler(MessageHandler(filters.Regex(get_regex_for_key("btn_pdf")), spanify("bot:ui_pdf", image_to_pdf_handler)))
+    application.add_handler(MessageHandler(filters.Regex(get_regex_for_key("btn_spell")), spanify("bot:ui_spellcheck", spell_check_handler)))
+    application.add_handler(MessageHandler(filters.Regex(get_regex_for_key("btn_premium")) & filters.ChatType.PRIVATE, spanify("bot:ui_premium", premium_info_handler)))
+    application.add_handler(MessageHandler(filters.Regex("^Premium sotib olish$") & filters.ChatType.PRIVATE, spanify("bot:ui_premium2", premium_info_handler)))
     
-    application.add_handler(MessageHandler(filters.Regex("^(🔡 Kirill → Lotin|🔡 Кирилл → Лотин)$"), krill_to_lotin_handler))
-    application.add_handler(MessageHandler(filters.Regex("^(🔠 Lotin → Kirill|🔠 Лотин → Кирилл)$"), lotin_to_krill_handler))
+    application.add_handler(MessageHandler(filters.Regex("^(🔡 Kirill → Lotin|🔡 Кирилл → Лотин)$"), spanify("bot:ui_kirill_to_lotin", krill_to_lotin_handler)))
+    application.add_handler(MessageHandler(filters.Regex("^(🔠 Lotin → Kirill|🔠 Лотин → Кирилл)$"), spanify("bot:ui_lotin_to_kirill", lotin_to_krill_handler)))
 
     async def go_translate(update: Update, context: ContextTypes.DEFAULT_TYPE):
         text = update.message.text
@@ -453,23 +500,23 @@ def setup_application():
 
     application.add_handler(MessageHandler(
         filters.Regex("(O'zbek → Ingliz|Ingliz → O'zbek|Rus → O'zbek|O'zbek → Rus|Rus → Ingliz)"),
-        go_translate
+        spanify("bot:ui_translate_direction", go_translate)
     ))
     
-    application.add_handler(MessageHandler(filters.Regex(get_regex_for_key("btn_balance")) & filters.ChatType.PRIVATE, balance_handler))
-    application.add_handler(MessageHandler(filters.Regex(get_regex_for_key("btn_contact")), start_feedback))
-    application.add_handler(MessageHandler(filters.Regex(get_regex_for_key("btn_help")), help_button_handler))
+    application.add_handler(MessageHandler(filters.Regex(get_regex_for_key("btn_balance")) & filters.ChatType.PRIVATE, spanify("bot:ui_balance", balance_handler)))
+    application.add_handler(MessageHandler(filters.Regex(get_regex_for_key("btn_contact")), spanify("bot:ui_contact", start_feedback)))
+    application.add_handler(MessageHandler(filters.Regex(get_regex_for_key("btn_help")), spanify("bot:ui_help", help_button_handler)))
 
-    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_router_text))
-    application.add_handler(MessageHandler(filters.Document.ALL, handle_router_doc))
-    application.add_handler(MessageHandler(filters.PHOTO, handle_router_photo))
-    application.add_handler(MessageHandler(filters.VOICE | filters.AUDIO, handle_router_audio))
-    application.add_handler(MessageHandler(filters.StatusUpdate.WEB_APP_DATA, web_app_data_handler))
+    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, spanify("bot:router_text", handle_router_text)))
+    application.add_handler(MessageHandler(filters.Document.ALL, spanify("bot:router_doc", handle_router_doc)))
+    application.add_handler(MessageHandler(filters.PHOTO, spanify("bot:router_photo", handle_router_photo)))
+    application.add_handler(MessageHandler(filters.VOICE | filters.AUDIO, spanify("bot:router_audio", handle_router_audio)))
+    application.add_handler(MessageHandler(filters.StatusUpdate.WEB_APP_DATA, spanify("bot:web_app_data", web_app_data_handler)))
 
     async def handle_router_other(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if not await unified_router_check(update, context): return
         if await process_admin_state_input(update, context): return
-    application.add_handler(MessageHandler(filters.ALL & ~filters.COMMAND, handle_router_other))
+    application.add_handler(MessageHandler(filters.ALL & ~filters.COMMAND, spanify("bot:router_other", handle_router_other)))
 
     application.add_error_handler(error_handler)
     return application
