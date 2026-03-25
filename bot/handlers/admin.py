@@ -522,7 +522,18 @@ async def remove_premium_command(update: Update, context: ContextTypes.DEFAULT_T
     try:
         if remove_premium(context.args[0]): await update.message.reply_text(f"✅ O'chirildi: {context.args[0]}")
         else: await update.message.reply_text("❌ Topilmadi.")
-    except: pass
+    except Exception as e:
+        try:
+            import sentry_sdk
+
+            sentry_sdk.capture_exception(e)
+        except Exception:
+            pass
+        logger.exception("remove_premium_command failed")
+        try:
+            await update.message.reply_text("❌ Xatolik yuz berdi (premium o‘chirish).")
+        except Exception:
+            pass
 
 async def set_limit_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not await is_admin(update.effective_user.id): return
@@ -530,7 +541,18 @@ async def set_limit_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         set_daily_limit(int(context.args[0]))
         await update.message.reply_text(f"✅ Limit: {context.args[0]}")
-    except: pass
+    except Exception as e:
+        try:
+            import sentry_sdk
+
+            sentry_sdk.capture_exception(e)
+        except Exception:
+            pass
+        logger.exception("set_limit_command failed")
+        try:
+            await update.message.reply_text("❌ Xatolik yuz berdi (limit o‘rnatish).")
+        except Exception:
+            pass
 
 
 async def maintenance_on_command(update: Update, context: ContextTypes.DEFAULT_TYPE):

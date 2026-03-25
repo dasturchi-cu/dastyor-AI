@@ -21,7 +21,9 @@ from telegram.ext import (
 
 try:
     load_dotenv()
-except: pass
+except Exception:
+    # dotenv is optional; never crash the bot for it
+    pass
 
 try:
     from backend.sentry_init import init_sentry

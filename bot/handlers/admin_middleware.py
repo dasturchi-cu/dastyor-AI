@@ -17,6 +17,17 @@ async def track_user(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Middleware: ban tekshiruvi + CRM (fon-da, javobni sekinlatmaydi)."""
     if update.effective_user:
         uid = update.effective_user.id
+        # Enrich Sentry scope for bot errors (who/what update)
+        try:
+            import sentry_sdk
+
+            with sentry_sdk.configure_scope() as scope:
+                scope.set_user({"id": int(uid), "username": update.effective_user.username})
+                scope.set_tag("tg.update_type", type(update).__name__)
+                if update.effective_chat:
+                    scope.set_tag("tg.chat_type", getattr(update.effective_chat, "type", None))
+        except Exception:
+            pass
         # Global maintenance mode: block EVERYTHING for non-admins (bot-wide).
         # This runs before all handlers (group=-1 TypeHandler in main.py).
         try:

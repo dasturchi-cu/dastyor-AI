@@ -244,8 +244,10 @@ async def transcribe_audio(audio_file_path: str) -> str:
 
         # Cleanup (non-blocking)
         async def cleanup():
-            try: genai.delete_file(myfile.name)
-            except: pass
+            try:
+                genai.delete_file(myfile.name)
+            except Exception:
+                logger.debug("genai.delete_file failed name=%s", getattr(myfile, "name", None), exc_info=True)
         asyncio.create_task(cleanup())
 
         if not result or not result.candidates:

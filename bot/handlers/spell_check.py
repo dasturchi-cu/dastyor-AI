@@ -218,7 +218,9 @@ async def process_spell_check(update: Update, context: ContextTypes.DEFAULT_TYPE
         # Cleanup
         for p in [temp_path, output_path]:
             if p and os.path.exists(p):
-                try: os.remove(p)
-                except: pass
+                try:
+                    os.remove(p)
+                except Exception:
+                    logger.debug("Cleanup failed (spell_check) path=%s", p, exc_info=True)
         
         context.user_data.pop('waiting_for', None)

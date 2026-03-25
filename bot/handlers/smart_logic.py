@@ -319,8 +319,10 @@ async def smart_callback_handler(update: Update, context: ContextTypes.DEFAULT_T
             finally:
                 for p in [temp_path, translated_path]:
                     if p and os.path.exists(p):
-                        try: os.remove(p)
-                        except: pass
+                        try:
+                            os.remove(p)
+                        except Exception:
+                            logger.debug("Cleanup failed (smart translate) path=%s", p, exc_info=True)
             return
 
         # ... other handlers ...
@@ -334,5 +336,7 @@ async def smart_callback_handler(update: Update, context: ContextTypes.DEFAULT_T
     finally:
         # Cleanup
         if temp_path and os.path.exists(temp_path):
-            try: os.remove(temp_path)
-            except: pass
+            try:
+                os.remove(temp_path)
+            except Exception:
+                logger.debug("Cleanup failed (smart callback) path=%s", temp_path, exc_info=True)

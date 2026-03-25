@@ -21,6 +21,7 @@ from starlette.middleware.gzip import GZipMiddleware
 
 from backend.middleware.performance import PerformanceMiddleware
 from backend.middleware.maintenance import register_maintenance_middleware
+from backend.middleware.sentry_context import register_sentry_context_middleware
 
 from backend.paths import webapp_dir, webapp_index_path
 from backend.exception_handlers import register_exception_handlers
@@ -137,6 +138,8 @@ def create_webhook_app() -> FastAPI:
     register_webapp_middleware(app)
     # Maintenance must be early: block web/api fast.
     register_maintenance_middleware(app)
+    # Sentry scope enrichment (user_id, endpoint, UA, query)
+    register_sentry_context_middleware(app)
     register_exception_handlers(app)
 
     # Sentry verify endpoint (only when SENTRY_DSN is set)

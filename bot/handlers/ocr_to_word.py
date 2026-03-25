@@ -298,8 +298,11 @@ def add_html_to_docx(doc, html_content):
                             percent = int(width_attr)
                             width_val = total_width * (percent / 100)
                             for r_idx in range(len(rows)):
-                                try: table.cell(r_idx, j).width = width_val
-                                except: pass
+                                try:
+                                    table.cell(r_idx, j).width = width_val
+                                except Exception:
+                                    # Non-fatal; Word table width can fail for merged cells etc.
+                                    logger.debug("DOCX cell width set failed r=%s c=%s", r_idx, j, exc_info=True)
 
                 # Fill data
                 for i, row in enumerate(rows):
@@ -423,7 +426,8 @@ async def perform_ocr_and_send(context, image_path, chat_id, user_id):
         try:
             if doc_path and os.path.exists(doc_path):
                 os.remove(doc_path)
-        except Exception: pass
+        except Exception:
+            logger.debug("OCR cleanup failed path=%s", doc_path, exc_info=True)
 
 
 async def ocr_to_word_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
