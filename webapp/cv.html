@@ -551,7 +551,7 @@
       activeTpl = tpl;
       document.querySelectorAll('.tpl-card').forEach(el => el.classList.remove('tpl-active'));
       document.getElementById('tpl-' + tpl).classList.add('tpl-active');
-      if(shouldTrigger) triggerUpdate();
+      if(shouldTrigger) triggerUpdate(true, { immediatePreview: true });
     }
     function syncPreviewAccentChrome() {
       const card = document.getElementById('cvLivePreviewCard');
@@ -561,7 +561,7 @@
     function changeCvColor(color) {
       cvColor = color;
       syncPreviewAccentChrome();
-      triggerUpdate();
+      triggerUpdate(true, { immediatePreview: true });
     }
 
     // --- DYNAMIC LISTS ---
@@ -781,12 +781,17 @@
     let previewAbort = null;
     let previewRequestId = 0;
 
-    function triggerUpdate(save = true) {
+    function triggerUpdate(save = true, opts = null) {
       if (save) saveToLocalStorage();
+      const immediate = !!(opts && opts.immediatePreview);
       clearTimeout(previewDebounceTimer);
+      if (immediate) {
+        fetchServerPreview();
+        return;
+      }
       previewDebounceTimer = setTimeout(function () {
         fetchServerPreview();
-      }, 420);
+      }, 100);
     }
 
     // --- PDF EXPORT ---
