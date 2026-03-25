@@ -40,6 +40,13 @@ try:
 except Exception:
     pass
 
+try:
+    from backend.sentry_init import init_sentry
+
+    init_sentry(service_name="backend")
+except Exception:
+    pass
+
 
 def create_webhook_app() -> FastAPI:
     from main import setup_application

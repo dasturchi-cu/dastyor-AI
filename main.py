@@ -23,6 +23,13 @@ try:
     load_dotenv()
 except: pass
 
+try:
+    from backend.sentry_init import init_sentry
+
+    init_sentry(service_name="bot")
+except Exception:
+    pass
+
 from config import BOT_TOKEN, logger
 
 # Handlers
