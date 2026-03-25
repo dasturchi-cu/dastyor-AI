@@ -108,8 +108,12 @@ async def obyektivka_handler(update: Update, context: ContextTypes.DEFAULT_TYPE)
     Handle Obyektivka AI module entry point.
     """
     # Immediate feedback (avoid waiting on Telegram parse/upload)
+    ack_msg_id = None
     try:
-        await update.message.reply_text("⏳ Obyektivka ochilmoqda... (yo‘riqnoma va namuna audio yuborilmoqda)")
+        ack = await update.message.reply_text(
+            "⏳ Obyektivka ochilmoqda... (yo‘riqnoma va namuna audio yuborilmoqda)"
+        )
+        ack_msg_id = getattr(ack, "message_id", None)
     except Exception:
         pass
 
@@ -144,16 +148,22 @@ async def obyektivka_handler(update: Update, context: ContextTypes.DEFAULT_TYPE)
     context.user_data['waiting_for'] = 'obyektivka_audio'
 
     # Send instruction + example audio in background (Telegram can be slow).
-    async def _send_instruction_and_audio_bg(chat_id: int):
+    async def _send_instruction_and_audio_bg(chat_id: int, ack_mid: int | None):
         try:
             # 1) Instruction text (long MarkdownV2 can be slow; don't block the click)
             try:
-                await context.bot.send_message(
+                sent_msg = await context.bot.send_message(
                     chat_id=chat_id,
                     text=instruction_text,
                     reply_markup=get_back_button(),
                     parse_mode="MarkdownV2",
                 )
+                # Delete the temporary "opening..." message to keep chat clean.
+                try:
+                    if ack_mid:
+                        await context.bot.delete_message(chat_id=chat_id, message_id=int(ack_mid))
+                except Exception:
+                    pass
             except Exception:
                 logger.debug("Could not send instruction text", exc_info=True)
 
@@ -185,7 +195,7 @@ async def obyektivka_handler(update: Update, context: ContextTypes.DEFAULT_TYPE)
 
     try:
         if update.effective_chat:
-            asyncio.create_task(_send_instruction_and_audio_bg(update.effective_chat.id))
+            asyncio.create_task(_send_instruction_and_audio_bg(update.effective_chat.id, ack_msg_id))
     except Exception:
         pass
 

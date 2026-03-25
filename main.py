@@ -135,7 +135,38 @@ async def back_to_main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
     context.user_data.clear()
     lang = DEFAULT_LANG
-    await update.message.reply_text(t("or_menu", lang), reply_markup=get_main_menu(update.effective_user.id if update.effective_user else None, lang))
+
+    # Instant UX: send a tiny ack, then render menu in background.
+    ack_mid = None
+    try:
+        ack = await update.message.reply_text("⏳ ...")
+        ack_mid = getattr(ack, "message_id", None)
+    except Exception:
+        pass
+
+    async def _send_menu_bg(chat_id: int, ack_message_id: int | None):
+        try:
+            uid = update.effective_user.id if update.effective_user else None
+            await context.bot.send_message(
+                chat_id=chat_id,
+                text=t("or_menu", lang),
+                reply_markup=get_main_menu(uid, lang),
+            )
+        finally:
+            try:
+                if ack_message_id:
+                    await context.bot.delete_message(chat_id=chat_id, message_id=int(ack_message_id))
+            except Exception:
+                pass
+
+    try:
+        asyncio.create_task(_send_menu_bg(update.effective_chat.id, ack_mid))
+    except Exception:
+        # Fallback: if task can't be created, do the normal slow send
+        await update.message.reply_text(
+            t("or_menu", lang),
+            reply_markup=get_main_menu(update.effective_user.id if update.effective_user else None, lang),
+        )
 
 async def more_menu_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Show 'Boshqa xizmatlar' sub-menu"""
