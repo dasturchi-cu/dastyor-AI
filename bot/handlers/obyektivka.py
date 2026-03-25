@@ -4,6 +4,7 @@ from bot.keyboards.reply_keyboards import get_back_button
 import os
 import time
 import logging
+import asyncio
 from bot.utils.progress import send_progress, update_progress
 from bot.services.ai_service import (
     transcribe_audio,
@@ -190,22 +191,34 @@ async def handle_obyektivka_audio(update: Update, context: ContextTypes.DEFAULT_
         
         audio_path = f"temp_oby_{update.effective_user.id}_{int(time.time())}.{ext}"
         await audio_file.download_to_drive(audio_path)
-        
-        await msg.delete()
-        
-        # Process
-        await process_obyektivka_from_audio_path(context, audio_path, update.effective_chat.id, update.effective_user.id)
+        await msg.edit_text("⏳ Audio qabul qilindi. Qayta ishlanmoqda...")
+
+        async def _bg(path: str):
+            try:
+                await process_obyektivka_from_audio_path(
+                    context, path, update.effective_chat.id, update.effective_user.id
+                )
+            finally:
+                try:
+                    if path and os.path.exists(path):
+                        os.remove(path)
+                except Exception:
+                    pass
+
+        asyncio.create_task(_bg(audio_path))
+        return
         
     except Exception as e:
         logger.error(f"Upload Error: {e}")
         await msg.edit_text(f"❌ Yuklashda xato: {e}")
         
     finally:
-        # Cleanup audio
-        try:
-            if audio_path and os.path.exists(audio_path):
+        # Cleanup handled in background task; if we error before task creation, remove file.
+        if audio_path and os.path.exists(audio_path):
+            try:
                 os.remove(audio_path)
-        except: pass
+            except Exception:
+                pass
         
         # Clear state handles by logic inside or caller?
         # Let's keep state unless back button pressed. BUT user might want to try again.
@@ -239,13 +252,22 @@ async def auto_voice_obyektivka_from_message(update: Update, context: ContextTyp
 
         audio_path = f"temp/auto_oby_{update.effective_user.id}_{int(time.time())}.{ext}"
         await audio_file.download_to_drive(audio_path)
-        try:
-            await msg.delete()
-        except Exception:
-            pass
-        await process_obyektivka_from_audio_path(
-            context, audio_path, update.effective_chat.id, update.effective_user.id
-        )
+        await msg.edit_text("⏳ Ovoz qabul qilindi. Qayta ishlanmoqda...")
+
+        async def _bg(path: str):
+            try:
+                await process_obyektivka_from_audio_path(
+                    context, path, update.effective_chat.id, update.effective_user.id
+                )
+            finally:
+                try:
+                    if path and os.path.exists(path):
+                        os.remove(path)
+                except Exception:
+                    pass
+
+        asyncio.create_task(_bg(audio_path))
+        return
     except Exception as e:
         logger.error("auto_voice_obyektivka: %s", e, exc_info=True)
         try:
@@ -253,8 +275,5 @@ async def auto_voice_obyektivka_from_message(update: Update, context: ContextTyp
         except Exception:
             pass
     finally:
-        try:
-            if audio_path and os.path.exists(audio_path):
-                os.remove(audio_path)
-        except Exception:
-            pass
+        # Cleanup handled in background task
+        pass

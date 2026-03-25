@@ -1113,6 +1113,23 @@ function updatePreview(){
   scaleLivePreview();
 }
 
+// --- PERF: debounce preview updates (0.1s) ---
+// updatePreview() is heavy (DOM build + layout). Many inputs call it per keystroke.
+// We wrap it to run at most once per 100ms.
+(function(){
+  try{
+    var _now = updatePreview;
+    var t = null;
+    updatePreview = function(){
+      if(t) clearTimeout(t);
+      t = setTimeout(function(){
+        t = null;
+        try{ _now(); }catch(e){}
+      }, 100);
+    };
+  }catch(e){}
+})();
+
 function scaleLivePreview(){
   try{
     var holder=document.getElementById('preview-holder');
