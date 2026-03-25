@@ -155,10 +155,10 @@ async def obyektivka_handler(update: Update, context: ContextTypes.DEFAULT_TYPE)
                 if not path or not os.path.exists(path):
                     continue
                 try:
-                    # InputFile can accept a file path; avoids keeping file handles open.
+                    # Pass file path directly: PTB uploads reliably and Telegram detects audio.
                     await context.bot.send_audio(
                         chat_id=chat_id,
-                        audio=InputFile(path, filename="namuna_audio.mp3"),
+                        audio=path,
                         caption="🎙 *Namuna audio* — shunday qilib o'qib yuboring",
                         parse_mode="Markdown",
                     )
