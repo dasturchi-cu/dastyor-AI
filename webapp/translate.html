@@ -116,9 +116,9 @@
                     <select
                         class="lang-select w-full bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 text-sm font-bold text-black dark:text-white rounded-xl px-4 py-3 outline-none transition-colors cursor-pointer"
                         id="srcLang">
-                        <option value="uz">🇺🇿 O'zbekcha</option>
-                        <option value="en">🇬🇧 Inglizcha</option>
-                        <option value="ru">🇷🇺 Ruscha</option>
+                        <option value="uz" data-i18n="lang_uz" data-i18n-fallback="🇺🇿 O'zbekcha">🇺🇿 O'zbekcha</option>
+                        <option value="en" data-i18n="lang_en" data-i18n-fallback="🇬🇧 Inglizcha">🇬🇧 Inglizcha</option>
+                        <option value="ru" data-i18n="lang_ru" data-i18n-fallback="🇷🇺 Ruscha">🇷🇺 Ruscha</option>
                     </select>
                     <div class="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none opacity-50">▼</div>
                 </div>
@@ -133,9 +133,9 @@
                     <select
                         class="lang-select w-full bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 text-sm font-bold text-black dark:text-white rounded-xl px-4 py-3 outline-none transition-colors cursor-pointer"
                         id="tgtLang">
-                        <option value="en" selected>🇬🇧 Inglizcha</option>
-                        <option value="uz">🇺🇿 O'zbekcha</option>
-                        <option value="ru">🇷🇺 Ruscha</option>
+                        <option value="en" selected data-i18n="lang_en" data-i18n-fallback="🇬🇧 Inglizcha">🇬🇧 Inglizcha</option>
+                        <option value="uz" data-i18n="lang_uz" data-i18n-fallback="🇺🇿 O'zbekcha">🇺🇿 O'zbekcha</option>
+                        <option value="ru" data-i18n="lang_ru" data-i18n-fallback="🇷🇺 Ruscha">🇷🇺 Ruscha</option>
                     </select>
                     <div class="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none opacity-50">▼</div>
                 </div>
@@ -171,8 +171,8 @@
                         <span class="text-[11px] font-bold text-apple-blue uppercase tracking-widest"
                             id="tgtLangLabel">Inglizcha</span>
                         <button onclick="copyResult()"
-                            class="text-black/30 dark:text-white/30 hover:text-apple-blue transition-colors">📋
-                            Nusxa</button>
+                            class="text-black/30 dark:text-white/30 hover:text-apple-blue transition-colors"
+                            data-i18n="translate_copy" data-i18n-fallback="📋 Nusxa">📋 Nusxa</button>
                     </div>
                     <textarea
                         class="w-full flex-1 bg-transparent border-none p-5 text-base font-semibold resize-none outline-none text-black dark:text-white placeholder-black/30 dark:placeholder-white/30 leading-relaxed"
@@ -203,16 +203,16 @@
                 <div class="flex flex-wrap gap-2">
                     <button
                         class="px-4 py-2 rounded-full border border-black/10 dark:border-white/10 bg-white/50 dark:bg-white/5 hover:bg-black/5 dark:hover:bg-white/10 text-xs font-semibold transition-colors"
-                        onclick="setPhrase(this)">Salom, ahvollar qanday?</button>
+                        onclick="setPhrase(this)" data-i18n="translate_phrase_1" data-i18n-fallback="Salom, ahvollar qanday?">Salom, ahvollar qanday?</button>
                     <button
                         class="px-4 py-2 rounded-full border border-black/10 dark:border-white/10 bg-white/50 dark:bg-white/5 hover:bg-black/5 dark:hover:bg-white/10 text-xs font-semibold transition-colors"
-                        onclick="setPhrase(this)">Katta Rahmat!</button>
+                        onclick="setPhrase(this)" data-i18n="translate_phrase_2" data-i18n-fallback="Katta Rahmat!">Katta Rahmat!</button>
                     <button
                         class="px-4 py-2 rounded-full border border-black/10 dark:border-white/10 bg-white/50 dark:bg-white/5 hover:bg-black/5 dark:hover:bg-white/10 text-xs font-semibold transition-colors"
-                        onclick="setPhrase(this)">Iltimos, menga xabar bering</button>
+                        onclick="setPhrase(this)" data-i18n="translate_phrase_3" data-i18n-fallback="Iltimos, menga xabar bering">Iltimos, menga xabar bering</button>
                     <button
                         class="px-4 py-2 rounded-full border border-black/10 dark:border-white/10 bg-white/50 dark:bg-white/5 hover:bg-black/5 dark:hover:bg-white/10 text-xs font-semibold transition-colors"
-                        onclick="setPhrase(this)">Uchrashuvni bekor qila olasizmi?</button>
+                        onclick="setPhrase(this)" data-i18n="translate_phrase_4" data-i18n-fallback="Uchrashuvni bekor qila olasizmi?">Uchrashuvni bekor qila olasizmi?</button>
                 </div>
             </div>
 
