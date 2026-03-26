@@ -211,6 +211,7 @@ async def handle_obyektivka_audio(update: Update, context: ContextTypes.DEFAULT_
     msg = await message.reply_text("⏳ Audio yuklanmoqda...")
     audio_path = None
     
+    bg_started = False
     try:
         # Get audio file
         if message.voice:
@@ -220,7 +221,8 @@ async def handle_obyektivka_audio(update: Update, context: ContextTypes.DEFAULT_
             audio_file = await message.audio.get_file()
             ext = "mp3"
         
-        audio_path = f"temp_oby_{update.effective_user.id}_{int(time.time())}.{ext}"
+        os.makedirs("temp", exist_ok=True)
+        audio_path = f"temp/temp_oby_{update.effective_user.id}_{int(time.time())}.{ext}"
         await audio_file.download_to_drive(audio_path)
         await msg.edit_text("⏳ Audio qabul qilindi. Qayta ishlanmoqda...")
 
@@ -237,6 +239,7 @@ async def handle_obyektivka_audio(update: Update, context: ContextTypes.DEFAULT_
                     pass
 
         asyncio.create_task(_bg(audio_path))
+        bg_started = True
         return
         
     except Exception as e:
@@ -244,8 +247,8 @@ async def handle_obyektivka_audio(update: Update, context: ContextTypes.DEFAULT_
         await msg.edit_text(f"❌ Yuklashda xato: {e}")
         
     finally:
-        # Cleanup handled in background task; if we error before task creation, remove file.
-        if audio_path and os.path.exists(audio_path):
+        # Cleanup handled in background task; if bg wasn't started, remove file here.
+        if (not bg_started) and audio_path and os.path.exists(audio_path):
             try:
                 os.remove(audio_path)
             except Exception:
@@ -281,6 +284,7 @@ async def auto_voice_obyektivka_from_message(update: Update, context: ContextTyp
             await msg.edit_text("❌ Faqat ovozli xabar yuboring.")
             return
 
+        os.makedirs("temp", exist_ok=True)
         audio_path = f"temp/auto_oby_{update.effective_user.id}_{int(time.time())}.{ext}"
         await audio_file.download_to_drive(audio_path)
         await msg.edit_text("⏳ Ovoz qabul qilindi. Qayta ishlanmoqda...")

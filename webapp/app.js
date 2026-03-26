@@ -41,6 +41,7 @@ const DastyorAI = (() => {
     const BASE = resolveApiBase();
     const THEME_KEY = 'theme';
     const LANGUAGE_KEY = 'language';
+    const SS_LANG = 'tg_lang';
     const SUPPORTED_LANGS = ['uz', 'ru', 'en'];
     const DEFAULT_THEME = 'light';
     const DEFAULT_LANG = 'uz';
@@ -62,6 +63,13 @@ const DastyorAI = (() => {
         if (raw === 'uz_lat' || raw === 'uz_cyr') return 'uz';
         if (SUPPORTED_LANGS.includes(raw)) return raw;
         return DEFAULT_LANG;
+    }
+
+    function pickLangCandidate(raw) {
+        const s = String(raw || '').trim().toLowerCase();
+        if (!s) return '';
+        if (s === 'uz_lat' || s === 'uz_cyr') return 'uz';
+        return SUPPORTED_LANGS.includes(s) ? s : '';
     }
 
     function normalizeTheme(theme) {
@@ -219,7 +227,14 @@ const DastyorAI = (() => {
     async function setLanguage(lang, persist = true) {
         currentLang = normalizeLang(lang);
         try {
-            if (persist) localStorage.setItem(LANGUAGE_KEY, currentLang);
+            if (persist) {
+                localStorage.setItem(LANGUAGE_KEY, currentLang);
+                sessionStorage.setItem(SS_LANG, currentLang);
+            }
+            // Keep current language in URL so reopening this page keeps same language.
+            const u = new URL(window.location.href);
+            u.searchParams.set('lang', currentLang);
+            history.replaceState(null, '', u.toString());
         } catch (_) {}
 
         // Immediate apply (even if locale fetch is slow/hangs, at least update <html lang> and events)
@@ -239,7 +254,10 @@ const DastyorAI = (() => {
 
     async function initPreferences() {
         const savedTheme = normalizeTheme(localStorage.getItem(THEME_KEY) || DEFAULT_THEME);
-        const savedLang = normalizeLang(localStorage.getItem(LANGUAGE_KEY) || DEFAULT_LANG);
+        const urlLang = pickLangCandidate(new URLSearchParams(location.search || '').get('lang'));
+        const ssLang = pickLangCandidate(sessionStorage.getItem(SS_LANG));
+        const lsLang = pickLangCandidate(localStorage.getItem(LANGUAGE_KEY));
+        const savedLang = normalizeLang(urlLang || ssLang || lsLang || DEFAULT_LANG);
         applyTheme(savedTheme, false);
         await setLanguage(savedLang, false);
     }
@@ -485,6 +503,7 @@ const DastyorAI = (() => {
         const tid = getTelegramId();
         const abs = new URL(page, window.location.href);
         if (tid) abs.searchParams.set('telegram_id', tid);
+        abs.searchParams.set('lang', currentLang || DEFAULT_LANG);
         location.href = abs.toString();
     }
 
@@ -859,7 +878,10 @@ html[data-theme="dark"] .da-doc-loading-ring{border-color:#334155;border-top-col
     // Til: loadLocale asinxron — DOM bo‘lmasa yoki keyinroq CV parse bo‘lsa, applyTranslations noto‘g‘ri yozardi.
     (function bootLanguageWhenDomReady() {
         const run = () => {
-            void setLanguage(localStorage.getItem(LANGUAGE_KEY) || DEFAULT_LANG, false);
+            const qsLang = pickLangCandidate(new URLSearchParams(location.search || '').get('lang'));
+            const ssLang = pickLangCandidate(sessionStorage.getItem(SS_LANG));
+            const lsLang = pickLangCandidate(localStorage.getItem(LANGUAGE_KEY));
+            void setLanguage(qsLang || ssLang || lsLang || DEFAULT_LANG, false);
         };
         if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', run, { once: true });
