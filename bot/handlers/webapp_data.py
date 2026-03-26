@@ -9,6 +9,7 @@ from bot.services.doc_generator import generate_obyektivka_docx, generate_cv_doc
 import asyncio
 from bot.services.ai_service import check_spelling_text
 from bot.handlers.premium import premium_handler
+from bot.constants.states import WaitingState
 from bot.services.plan_limits import CAT_CV, CAT_OBYEKTIVKA, CAT_SPELL
 from bot.services.usage_tracker import ensure_can_use_or_notify
 from bot.services.user_service import get_user_lang, record_service_completion
@@ -339,12 +340,12 @@ async def web_app_data_handler(update: Update, context: ContextTypes.DEFAULT_TYP
             return
 
         elif action == "start_ocr":
-            context.user_data['waiting_for'] = 'ocr_image'
+            context.user_data['waiting_for'] = WaitingState.OCR_IMAGE
             await update.message.reply_text("🖼 **Rasm→Word**: Menga rasm (yoki bir nechta rasm) yuboring. Men uni Word fayl qilib beraman.", parse_mode="Markdown")
             return
             
         elif action == "start_spellcheck":
-            context.user_data['waiting_for'] = 'spellcheck_file'
+            context.user_data['waiting_for'] = WaitingState.SPELLCHECK_FILE
             await update.message.reply_text("✏️ **Imlo tekshirish**: Menga matn, TXT, DOCX, PPTX yoki PDF fayl yuboring. Xatolarni to'g'irlab beraman.", parse_mode="Markdown")
             return
 
@@ -374,7 +375,7 @@ async def web_app_data_handler(update: Update, context: ContextTypes.DEFAULT_TYP
             return
             
         elif action == "start_img2pdf":
-            context.user_data['waiting_for'] = 'pdf_images'
+            context.user_data['waiting_for'] = WaitingState.PDF_IMAGES
             context.user_data['pdf_images'] = []
             reply_markup = ReplyKeyboardMarkup([["✅ Tayyor", "❌ Bekor qilish"]], resize_keyboard=True)
             await update.message.reply_text("🖼 **Rasm→PDF**: Menga rasmlarni yuboring. Tugatgach, '✅ Tayyor' tugmasini bosing.", parse_mode="Markdown", reply_markup=reply_markup)
@@ -383,7 +384,7 @@ async def web_app_data_handler(update: Update, context: ContextTypes.DEFAULT_TYP
         elif action == "start_translate":
             direction = payload.get("direction", "uz_en")
             context.user_data['translate_direction'] = direction
-            context.user_data['waiting_for'] = 'translate_file'
+            context.user_data['waiting_for'] = WaitingState.TRANSLATE_FILE
             
             dir_str = direction.replace("_", " -> ").upper()
             await update.message.reply_text(f"🌐 **Tarjima fayl ({dir_str})**: \nMenga DOCX, TXT, PPTX yoki PDF fayl yuboring.", parse_mode="Markdown")
@@ -395,7 +396,7 @@ async def web_app_data_handler(update: Update, context: ContextTypes.DEFAULT_TYP
             if plan not in ("standard", "premium"):
                 plan = "premium"
             context.user_data["premium_plan"] = plan
-            context.user_data["waiting_for"] = "premium_payment_screenshot"
+            context.user_data["waiting_for"] = WaitingState.PREMIUM_PAYMENT_SCREENSHOT
             await premium_handler(update, context)
             return
             
@@ -403,7 +404,7 @@ async def web_app_data_handler(update: Update, context: ContextTypes.DEFAULT_TYP
             direction = payload.get("direction", "k2l")
             d_map = {"k2l": "Kirill → Lotin", "l2k": "Lotin → Kirill"}
             context.user_data['translit_direction'] = direction
-            context.user_data['waiting_for'] = 'translit_file'
+            context.user_data['waiting_for'] = WaitingState.TRANSLIT_FILE
             await update.message.reply_text(f"🔤 **Krill-Lotin ({d_map.get(direction, 'Kirill → Lotin')})**:\nMenga matn yoki hujjat yuboring.", parse_mode="Markdown")
             return
             

@@ -1,11 +1,10 @@
 import logging
-import os
-import time
 
 from telegram import Update
 from telegram.ext import ContextTypes
 
 from bot.services.ai_service import transcribe_audio
+from bot.utils.temp_files import safe_unlink, temp_file_path
 
 logger = logging.getLogger(__name__)
 
@@ -28,7 +27,7 @@ async def process_user_input(update: Update, context: ContextTypes.DEFAULT_TYPE)
     if not media:
         return ""
 
-    temp_path = f"temp_input_{message.from_user.id}_{int(time.time())}.ogg"
+    temp_path = temp_file_path("input_audio", message.from_user.id, "ogg")
     try:
         tg_file = await media.get_file()
         await tg_file.download_to_drive(temp_path)
@@ -40,8 +39,4 @@ async def process_user_input(update: Update, context: ContextTypes.DEFAULT_TYPE)
         logger.error("process_user_input voice/audio error: %s", e, exc_info=True)
         return ""
     finally:
-        if os.path.exists(temp_path):
-            try:
-                os.remove(temp_path)
-            except Exception:
-                pass
+        safe_unlink(temp_path)

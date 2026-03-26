@@ -13,6 +13,8 @@ from bot.services.ai_service import (
 )
 from config import WEBAPP_BASE, WEBAPP_VERSION
 import json
+from bot.constants.states import WaitingState
+from bot.utils.temp_files import safe_unlink, temp_file_path, ensure_temp_dir
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -53,7 +55,7 @@ async def process_obyektivka_from_audio_path(context, audio_path, chat_id, user_
         from bot.services.user_service import save_pending_oby_data
         save_pending_oby_data(user_id, extracted_data)
 
-        os.makedirs("temp", exist_ok=True)
+        ensure_temp_dir()
         json_path = f"temp/oby_data_{user_id}.json"
         try:
             with open(json_path, "w", encoding="utf-8") as f:
@@ -145,7 +147,7 @@ async def obyektivka_handler(update: Update, context: ContextTypes.DEFAULT_TYPE)
     )
 
     # Set user state ASAP (don't wait for any heavy ops)
-    context.user_data['waiting_for'] = 'obyektivka_audio'
+    context.user_data['waiting_for'] = WaitingState.OBYEKTIVKA_AUDIO
 
     # Send instruction + example audio in background (Telegram can be slow).
     async def _send_instruction_and_audio_bg(chat_id: int, ack_mid: int | None):
@@ -221,8 +223,7 @@ async def handle_obyektivka_audio(update: Update, context: ContextTypes.DEFAULT_
             audio_file = await message.audio.get_file()
             ext = "mp3"
         
-        os.makedirs("temp", exist_ok=True)
-        audio_path = f"temp/temp_oby_{update.effective_user.id}_{int(time.time())}.{ext}"
+        audio_path = temp_file_path("temp_oby", update.effective_user.id, ext)
         await audio_file.download_to_drive(audio_path)
         await msg.edit_text("⏳ Audio qabul qilindi. Qayta ishlanmoqda...")
 
@@ -232,11 +233,7 @@ async def handle_obyektivka_audio(update: Update, context: ContextTypes.DEFAULT_
                     context, path, update.effective_chat.id, update.effective_user.id
                 )
             finally:
-                try:
-                    if path and os.path.exists(path):
-                        os.remove(path)
-                except Exception:
-                    pass
+                safe_unlink(path)
 
         asyncio.create_task(_bg(audio_path))
         bg_started = True
@@ -248,11 +245,8 @@ async def handle_obyektivka_audio(update: Update, context: ContextTypes.DEFAULT_
         
     finally:
         # Cleanup handled in background task; if bg wasn't started, remove file here.
-        if (not bg_started) and audio_path and os.path.exists(audio_path):
-            try:
-                os.remove(audio_path)
-            except Exception:
-                pass
+        if not bg_started:
+            safe_unlink(audio_path)
         
         # Clear state handles by logic inside or caller?
         # Let's keep state unless back button pressed. BUT user might want to try again.
@@ -284,8 +278,7 @@ async def auto_voice_obyektivka_from_message(update: Update, context: ContextTyp
             await msg.edit_text("❌ Faqat ovozli xabar yuboring.")
             return
 
-        os.makedirs("temp", exist_ok=True)
-        audio_path = f"temp/auto_oby_{update.effective_user.id}_{int(time.time())}.{ext}"
+        audio_path = temp_file_path("auto_oby", update.effective_user.id, ext)
         await audio_file.download_to_drive(audio_path)
         await msg.edit_text("⏳ Ovoz qabul qilindi. Qayta ishlanmoqda...")
 
@@ -295,11 +288,7 @@ async def auto_voice_obyektivka_from_message(update: Update, context: ContextTyp
                     context, path, update.effective_chat.id, update.effective_user.id
                 )
             finally:
-                try:
-                    if path and os.path.exists(path):
-                        os.remove(path)
-                except Exception:
-                    pass
+                safe_unlink(path)
 
         asyncio.create_task(_bg(audio_path))
         return

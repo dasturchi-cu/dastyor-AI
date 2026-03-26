@@ -15,6 +15,7 @@ from bot.services.document_text_extract import extract_plain_text_from_bytes
 from bot.services.plan_limits import CAT_TRANSLATE
 from bot.services.user_service import get_user_lang, record_service_completion
 from bot.services.usage_tracker import reply_if_daily_quota_blocked
+from bot.constants.states import WaitingState
 
 logger = logging.getLogger(__name__)
 
@@ -50,7 +51,7 @@ async def translate_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def set_translation_direction(update: Update, context: ContextTypes.DEFAULT_TYPE, direction: str):
     """Store direction and prompt user to send text or file"""
     context.user_data['translate_direction'] = direction
-    context.user_data['waiting_for'] = 'translate_input'
+    context.user_data['waiting_for'] = WaitingState.TRANSLATE_INPUT
 
     label = DIRECTION_MAP.get(direction, "Tarjima")
     await update.message.reply_text(

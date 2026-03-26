@@ -155,6 +155,16 @@ const DastyorAI = (() => {
     async function loadLocale(lang) {
         const safe = normalizeLang(lang);
         if (localeCache[safe]) return localeCache[safe];
+        try {
+            const cached = sessionStorage.getItem(`da_locale_${safe}`);
+            if (cached) {
+                const parsed = JSON.parse(cached);
+                if (parsed && typeof parsed === 'object') {
+                    localeCache[safe] = parsed;
+                    return parsed;
+                }
+            }
+        } catch (_) {}
         const candidates = [
             `locales/${safe}.json`,
             `/webapp/locales/${safe}.json`,
@@ -171,6 +181,9 @@ const DastyorAI = (() => {
                 if (resp.ok) {
                     const data = await resp.json();
                     localeCache[safe] = data || {};
+                    try {
+                        sessionStorage.setItem(`da_locale_${safe}`, JSON.stringify(localeCache[safe]));
+                    } catch (_) {}
                     return localeCache[safe];
                 }
             } catch (_) {}

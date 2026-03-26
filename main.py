@@ -4,6 +4,7 @@ Main Bot Entry Point (with Ban Check Middleware).
 OCR / WebApp HTTP API: run `uvicorn api_webhook:app` (or `uvicorn backend.app:app`).
 """
 import os
+import asyncio
 
 # ── Paddle / PaddleOCR stability flags (handlers may load OCR lazily) ─────
 os.environ.setdefault("FLAGS_enable_pir_api", "0")
@@ -82,6 +83,8 @@ from bot.handlers.smart_logic import (
 )
 from bot.handlers.webapp_data import web_app_data_handler
 from bot.utils.input_processing import process_user_input
+from bot.constants.states import WaitingState
+from bot.utils.safe_exec import safe_execute
 
 # Services
 from bot.services.settings_service import is_premium
@@ -227,68 +230,58 @@ async def handle_router_text(update: Update, context: ContextTypes.DEFAULT_TYPE)
     
     state = context.user_data.get('waiting_for')
     text = (update.message.text or "").strip().lower()
-    
-    # 1. State-based routing
-    if state == 'ocr_image' and text and 'tayyor' in text:
-        if await process_ocr_tayyor(update, context):
+
+    async def _run():
+        # 1. State-based routing
+        if state == WaitingState.OCR_IMAGE and text and 'tayyor' in text:
+            if await process_ocr_tayyor(update, context):
+                return
+            await update.message.reply_text("❌ Hech qanday rasm yuklanmagan. Avval rasmlar yuboring.")
             return
-        await update.message.reply_text("❌ Hech qanday rasm yuklanmagan. Avval rasmlar yuboring.")
-        return
-    if state in ['transliterate_text', 'translit_content'] or context.user_data.get('transliterate_direction'):
-         await process_transliterate(update, context)
-         return
-    elif state == 'translate_input' or context.user_data.get('translate_direction'):
-         await process_translate_doc(update, context)
-         return
-    elif state == 'spell_check_doc' or state == 'spellcheck_file':
-         await process_spell_check(update, context)
-         return
-    elif state == 'ocr_image' and context.user_data.get('ocr_images') and text and 'tayyor' in text:
-         if await process_ocr_tayyor(update, context):
-             return
-    elif state == 'pdf_images':
-         await process_image_to_pdf(update, context)
-         return
-    elif state == 'feedback':
-         await handle_feedback(update, context)
-         return
 
-    # 2. NLP / Keyword Routing
-    import re
-    # Obyektivka (obyektivga, obyektovka, obyektvka, abyektiv)
-    uid = update.effective_user.id
-    lang = DEFAULT_LANG
-    if re.search(r'(obyektiv|obyektov|abyektiv|obekt|resume|rezume|sivi|ma\'lumotnoma)', text):
-        await update.message.reply_text(t("opening_service", lang, service="Obyektivka"))
-        await obyektivka_handler(update, context)
-        return
+        if state in [WaitingState.TRANSLITERATE_TEXT, WaitingState.TRANSLIT_CONTENT] or context.user_data.get('transliterate_direction'):
+            await process_transliterate(update, context)
+            return
+        if state == WaitingState.TRANSLATE_INPUT or context.user_data.get('translate_direction'):
+            await process_translate_doc(update, context)
+            return
+        if state in [WaitingState.SPELL_CHECK_DOC, WaitingState.SPELLCHECK_FILE]:
+            await process_spell_check(update, context)
+            return
+        if state == WaitingState.PDF_IMAGES:
+            await process_image_to_pdf(update, context)
+            return
+        if state == WaitingState.FEEDBACK:
+            await handle_feedback(update, context)
+            return
 
-    # OCR / Word (docx, doc, dox, vord, ocr, textga)
-    elif re.search(r'(ocr|word|vord|docx|doc|dox|matn|textga|oqib ber)', text) or (('rasm' in text or 'skan' in text) and ('o\'qi' in text or 'qil' in text)):
-        await update.message.reply_text(t("opening_service", lang, service="Rasm -> Word"))
-        await ocr_handler(update, context)
-        return
+        # 2. NLP / Keyword Routing
+        import re
+        uid = update.effective_user.id
+        lang = DEFAULT_LANG
+        if re.search(r"(obyektiv|obyektov|abyektiv|obekt|resume|rezume|sivi|ma'lumotnoma)", text):
+            await update.message.reply_text(t("opening_service", lang, service="Obyektivka"))
+            await obyektivka_handler(update, context)
+            return
+        if re.search(r"(ocr|word|vord|docx|doc|dox|matn|textga|oqib ber)", text) or (('rasm' in text or 'skan' in text) and ("o'qi" in text or 'qil' in text)):
+            await update.message.reply_text(t("opening_service", lang, service="Rasm -> Word"))
+            await ocr_handler(update, context)
+            return
+        if 'pdf' in text and ("rasm" in text or "qo'sh" in text or 'birlash' in text):
+            await update.message.reply_text(t("opening_service", lang, service="Rasm -> PDF"))
+            await image_to_pdf_handler(update, context)
+            return
+        if re.search(r"(tarjima|perevod|pervod|translate|tarjma|o'gir)", text):
+            await update.message.reply_text(t("opening_service", lang, service="Tarjima"))
+            await translate_handler(update, context)
+            return
+        if re.search(r"(imlo|xato|tekshir|grammatika)", text):
+            await update.message.reply_text(t("opening_service", lang, service="Imlo tekshirish"))
+            await spell_check_handler(update, context)
+            return
+        await update.message.reply_text(t("unknown_cmd", lang), reply_markup=get_main_menu(uid, lang))
 
-    # Image 2 PDF (rasm... pdf)
-    elif 'pdf' in text and ('rasm' in text or 'qo\'sh' in text or 'birlash' in text):
-        await update.message.reply_text(t("opening_service", lang, service="Rasm -> PDF"))
-        await image_to_pdf_handler(update, context)
-        return
-
-    # Translate (tarjima, pervod, perevod, translate)
-    elif re.search(r'(tarjima|perevod|pervod|translate|tarjma|o\'gir)', text):
-        await update.message.reply_text(t("opening_service", lang, service="Tarjima"))
-        await translate_handler(update, context)
-        return
-    
-    # Spell Check (imlo, xato, grammatika)
-    elif re.search(r'(imlo|xato|tekshir|grammatika)', text):
-        await update.message.reply_text(t("opening_service", lang, service="Imlo tekshirish"))
-        await spell_check_handler(update, context)
-        return
-
-    # 3. Fallback
-    await update.message.reply_text(t("unknown_cmd", lang), reply_markup=get_main_menu(uid, lang))
+    await safe_execute(update, context, _run, log_message="router_text failure")
 
 async def handle_router_doc(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not update.effective_chat or update.effective_chat.type != "private":
@@ -301,25 +294,26 @@ async def handle_router_doc(update: Update, context: ContextTypes.DEFAULT_TYPE):
     state = context.user_data.get('waiting_for')
     transliterate_dir = context.user_data.get('transliterate_direction')
     translate_dir = context.user_data.get('translate_direction')  # e.g. 'ru_uz', 'uz_en'
-    uid = update.effective_user.id
-    
-    # Transliterate mode
-    if state == 'translit_content' or transliterate_dir:
-        await process_transliterate(update, context)
-        return
-    # Translate mode — detected by presence of translate_direction key
-    elif translate_dir or state == 'translate_input':
-        await process_translate_doc(update, context)
-    elif state == 'spell_check_doc' or state == 'spellcheck_file':
-        await process_spell_check(update, context)
-    elif state == 'ocr_image' or state == 'ocr_image_doc':
-        # Some users send images as documents
-        await process_ocr_image(update, context)
-    elif state == 'feedback':
-        await handle_feedback(update, context)
-    else:
-        # Smart Logic
+
+    async def _run():
+        if state == WaitingState.TRANSLIT_CONTENT or transliterate_dir:
+            await process_transliterate(update, context)
+            return
+        if translate_dir or state == WaitingState.TRANSLATE_INPUT:
+            await process_translate_doc(update, context)
+            return
+        if state in [WaitingState.SPELL_CHECK_DOC, WaitingState.SPELLCHECK_FILE]:
+            await process_spell_check(update, context)
+            return
+        if state in [WaitingState.OCR_IMAGE, WaitingState.OCR_IMAGE_DOC]:
+            await process_ocr_image(update, context)
+            return
+        if state == WaitingState.FEEDBACK:
+            await handle_feedback(update, context)
+            return
         await handle_smart_document(update, context)
+
+    await safe_execute(update, context, _run, log_message="router_doc failure")
 
 async def handle_router_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not update.effective_chat or update.effective_chat.type != "private":
@@ -331,11 +325,11 @@ async def handle_router_photo(update: Update, context: ContextTypes.DEFAULT_TYPE
     
     state = context.user_data.get('waiting_for')
 
-    if state == 'ocr_image':
+    if state == WaitingState.OCR_IMAGE:
         await process_ocr_image(update, context)
-    elif state == 'pdf_images':
+    elif state == WaitingState.PDF_IMAGES:
         await process_image_to_pdf(update, context)
-    elif state == 'feedback':
+    elif state == WaitingState.FEEDBACK:
         await handle_feedback(update, context)
     else:
         # Smart Logic (Photo)
@@ -348,8 +342,8 @@ async def handle_router_audio(update: Update, context: ContextTypes.DEFAULT_TYPE
     if await process_admin_state_input(update, context): return
     
     state = context.user_data.get('waiting_for')
-    try:
-        if state in ['transliterate_text', 'translit_content'] or context.user_data.get('transliterate_direction'):
+    async def _run():
+        if state in [WaitingState.TRANSLITERATE_TEXT, WaitingState.TRANSLIT_CONTENT] or context.user_data.get('transliterate_direction'):
             text_input = await process_user_input(update, context)
             if not text_input:
                 await update.message.reply_text("❌ Ovoz matnga o'girilolmadi. Iltimos matn yuboring.")
@@ -357,7 +351,7 @@ async def handle_router_audio(update: Update, context: ContextTypes.DEFAULT_TYPE
             context.user_data["_normalized_text_input"] = text_input
             await process_transliterate(update, context)
             return
-        elif state == 'translate_input' or context.user_data.get('translate_direction'):
+        elif state == WaitingState.TRANSLATE_INPUT or context.user_data.get('translate_direction'):
             text_input = await process_user_input(update, context)
             if not text_input:
                 await update.message.reply_text("❌ Ovoz matnga o'girilolmadi. Iltimos matn yuboring.")
@@ -366,18 +360,13 @@ async def handle_router_audio(update: Update, context: ContextTypes.DEFAULT_TYPE
             await process_translate_doc(update, context)
             return
 
-        if state == 'obyektivka_audio':
+        if state == WaitingState.OBYEKTIVKA_AUDIO:
             await process_obyektivka_audio(update, context)
-        elif state == 'feedback':
+        elif state == WaitingState.FEEDBACK:
             await handle_feedback(update, context)
         else:
             await auto_voice_obyektivka_from_message(update, context)
-    except Exception as e:
-        logger.error("Audio router processing error: %s", e, exc_info=True)
-        try:
-            await update.message.reply_text("⚠️ Xatolik yuz berdi, qayta urinib ko'ring.")
-        except Exception:
-            pass
+    await safe_execute(update, context, _run, log_message="router_audio failure")
 
 async def button_callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not await unified_router_check(update, context): return

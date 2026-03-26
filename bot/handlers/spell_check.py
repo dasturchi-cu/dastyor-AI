@@ -17,6 +17,7 @@ from bot.services.document_text_extract import extract_plain_text_from_bytes
 from bot.services.plan_limits import CAT_SPELL
 from bot.services.user_service import get_user_lang, record_service_completion
 from bot.services.usage_tracker import reply_if_daily_quota_blocked
+from bot.constants.states import WaitingState
 
 logger = logging.getLogger(__name__)
 
@@ -43,7 +44,7 @@ async def spell_check_handler(update: Update, context: ContextTypes.DEFAULT_TYPE
         reply_markup=get_back_button(),
         parse_mode="Markdown"
     )
-    context.user_data['waiting_for'] = 'spell_check_doc'
+    context.user_data['waiting_for'] = WaitingState.SPELL_CHECK_DOC
 
 
 async def process_spell_check(update: Update, context: ContextTypes.DEFAULT_TYPE):

@@ -15,6 +15,7 @@ _service_role_warned = False
 _disabled_until_ts = 0.0
 _last_disable_reason = ""
 _DB_DISABLE_SECONDS = int(os.getenv("SUPABASE_DISABLE_SECONDS", "300"))
+_pending_oby_column_warned = False
 
 
 def _maybe_warn_service_role():
@@ -46,6 +47,29 @@ def _log_write_error(context: str, exc: Exception) -> None:
         )
     else:
         logger.error("%s: %s", context, exc)
+
+
+def _is_missing_pending_oby_column(exc: Exception) -> bool:
+    msg = str(exc or "").lower()
+    # Handles both old and new column names in production schemas.
+    return (
+        "column" in msg
+        and ("pending_oby_data" in msg or "pending_oby_json" in msg)
+        and ("does not exist" in msg or "could not find" in msg)
+    )
+
+
+def _warn_missing_pending_oby_column_once(exc: Exception) -> None:
+    global _pending_oby_column_warned
+    if _pending_oby_column_warned:
+        return
+    _pending_oby_column_warned = True
+    logger.warning(
+        "users jadvalida pending obyektivka ustuni topilmadi (%s). "
+        "DB pending save/read o'chirildi, local fallback ishlaydi. "
+        "Schema yangilang: pending_oby_json jsonb, pending_oby_updated_at timestamptz.",
+        exc,
+    )
 
 
 def _get_client():
@@ -218,6 +242,9 @@ def db_save_pending_oby(user_id: int, data: dict) -> bool:
             ).execute()
         return True
     except Exception as e:
+        if _is_missing_pending_oby_column(e):
+            _warn_missing_pending_oby_column_once(e)
+            return False
         _log_write_error("db_save_pending_oby", e)
         return False
 
@@ -235,6 +262,9 @@ def db_get_pending_oby(user_id: int) -> Optional[dict]:
             return raw
         return None
     except Exception as e:
+        if _is_missing_pending_oby_column(e):
+            _warn_missing_pending_oby_column_once(e)
+            return None
         _log_write_error("db_get_pending_oby", e)
         return None
 
@@ -249,6 +279,9 @@ def db_clear_pending_oby(user_id: int) -> bool:
         ).eq("id", int(user_id)).execute()
         return True
     except Exception as e:
+        if _is_missing_pending_oby_column(e):
+            _warn_missing_pending_oby_column_once(e)
+            return False
         _log_write_error("db_clear_pending_oby", e)
         return False
 
