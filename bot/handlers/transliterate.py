@@ -63,49 +63,56 @@ async def process_transliteration(update: Update, context: ContextTypes.DEFAULT_
     Called by handle_router_text / handle_router_doc.
     Stores the content and shows direction inline buttons.
     """
-    msg = update.message
+    try:
+        msg = update.message
 
-    # ── Text input ──────────────────────────────────────────────────────────
-    if msg.text:
-        text = msg.text.strip()
-        if not text:
-            return
+        # ── Text input (or normalized transcribed input) ───────────────────────
+        text_input = (context.user_data.pop("_normalized_text_input", None) or "").strip()
+        if msg.text or text_input:
+            text = (msg.text or text_input).strip()
+            if not text:
+                return
 
-        context.user_data["trl_text"] = text
-        context.user_data.pop("trl_file_id", None)
-        context.user_data.pop("trl_file_name", None)
+            context.user_data["trl_text"] = text
+            context.user_data.pop("trl_file_id", None)
+            context.user_data.pop("trl_file_name", None)
 
-        # Store the prompt message id so we can delete it later
-        sent = await msg.reply_text(
-            "↔️ Yo'nalishni tanlang:",
-            reply_markup=_direction_keyboard(),
-        )
-        context.user_data["trl_prompt_id"] = sent.message_id
-        return
-
-    # ── Document input ───────────────────────────────────────────────────────
-    if msg.document:
-        file_name = msg.document.file_name or "document.docx"
-        ext = os.path.splitext(file_name)[1].lower()
-        if ext not in (".docx", ".pptx"):
-            await msg.reply_text(
-                "❌ Faqat *.DOCX* yoki *.PPTX* fayl qabul qilinadi.",
-                parse_mode="Markdown",
-                reply_markup=get_back_button(),
+            sent = await msg.reply_text(
+                "↔️ Yo'nalishni tanlang:",
+                reply_markup=_direction_keyboard(),
             )
+            context.user_data["trl_prompt_id"] = sent.message_id
             return
 
-        context.user_data["trl_file_id"] = msg.document.file_id
-        context.user_data["trl_file_name"] = file_name
-        context.user_data.pop("trl_text", None)
+        # ── Document input ───────────────────────────────────────────────────────
+        if msg.document:
+            file_name = msg.document.file_name or "document.docx"
+            ext = os.path.splitext(file_name)[1].lower()
+            if ext not in (".docx", ".pptx"):
+                await msg.reply_text(
+                    "❌ Faqat *.DOCX* yoki *.PPTX* fayl qabul qilinadi.",
+                    parse_mode="Markdown",
+                    reply_markup=get_back_button(),
+                )
+                return
 
-        sent = await msg.reply_text(
-            f"📄 *{file_name}* qabul qilindi.\n\n↔️ Yo'nalishni tanlang:",
-            parse_mode="Markdown",
-            reply_markup=_direction_keyboard(),
-        )
-        context.user_data["trl_prompt_id"] = sent.message_id
-        return
+            context.user_data["trl_file_id"] = msg.document.file_id
+            context.user_data["trl_file_name"] = file_name
+            context.user_data.pop("trl_text", None)
+
+            sent = await msg.reply_text(
+                f"📄 *{file_name}* qabul qilindi.\n\n↔️ Yo'nalishni tanlang:",
+                parse_mode="Markdown",
+                reply_markup=_direction_keyboard(),
+            )
+            context.user_data["trl_prompt_id"] = sent.message_id
+            return
+    except Exception as e:
+        logger.error("process_transliteration error: %s", e, exc_info=True)
+        try:
+            await update.message.reply_text("⚠️ Xatolik yuz berdi. Iltimos qayta urinib ko'ring.")
+        except Exception:
+            pass
 
 
 # ── Step 3: Direction chosen via inline callback ──────────────────────────────

@@ -81,6 +81,7 @@ from bot.handlers.smart_logic import (
     handle_smart_photo, handle_smart_document, smart_callback_handler
 )
 from bot.handlers.webapp_data import web_app_data_handler
+from bot.utils.input_processing import process_user_input
 
 # Services
 from bot.services.settings_service import is_premium
@@ -347,13 +348,36 @@ async def handle_router_audio(update: Update, context: ContextTypes.DEFAULT_TYPE
     if await process_admin_state_input(update, context): return
     
     state = context.user_data.get('waiting_for')
+    try:
+        if state in ['transliterate_text', 'translit_content'] or context.user_data.get('transliterate_direction'):
+            text_input = await process_user_input(update, context)
+            if not text_input:
+                await update.message.reply_text("❌ Ovoz matnga o'girilolmadi. Iltimos matn yuboring.")
+                return
+            context.user_data["_normalized_text_input"] = text_input
+            await process_transliterate(update, context)
+            return
+        elif state == 'translate_input' or context.user_data.get('translate_direction'):
+            text_input = await process_user_input(update, context)
+            if not text_input:
+                await update.message.reply_text("❌ Ovoz matnga o'girilolmadi. Iltimos matn yuboring.")
+                return
+            context.user_data["_normalized_text_input"] = text_input
+            await process_translate_doc(update, context)
+            return
 
-    if state == 'obyektivka_audio':
-        await process_obyektivka_audio(update, context)
-    elif state == 'feedback':
-        await handle_feedback(update, context)
-    else:
-        await auto_voice_obyektivka_from_message(update, context)
+        if state == 'obyektivka_audio':
+            await process_obyektivka_audio(update, context)
+        elif state == 'feedback':
+            await handle_feedback(update, context)
+        else:
+            await auto_voice_obyektivka_from_message(update, context)
+    except Exception as e:
+        logger.error("Audio router processing error: %s", e, exc_info=True)
+        try:
+            await update.message.reply_text("⚠️ Xatolik yuz berdi, qayta urinib ko'ring.")
+        except Exception:
+            pass
 
 async def button_callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not await unified_router_check(update, context): return

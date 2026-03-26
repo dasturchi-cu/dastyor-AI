@@ -14,13 +14,13 @@ logger = logging.getLogger(__name__)
 # Har xabarda Supabase bot_settings so‘rovi — qisqa TTL kesh (maintenance tekshiruvi).
 _MAINT_CACHE_TTL = float(os.getenv("MAINTENANCE_MODE_CACHE_TTL_SECONDS", "15") or "15")
 _maint_lock = threading.Lock()
-_maint_cache: tuple[float, bool] | None = None
+_maint_cache = {"ts": 0.0, "value": None}
 
 
 def invalidate_maintenance_mode_cache() -> None:
-    global _maint_cache
     with _maint_lock:
-        _maint_cache = None
+        _maint_cache["ts"] = 0.0
+        _maint_cache["value"] = None
 
 
 def _read_maintenance_mode_uncached() -> bool:
@@ -242,12 +242,14 @@ def set_daily_limit(limit):
 def get_maintenance_mode() -> bool:
     now = time.monotonic()
     with _maint_lock:
-        hit = _maint_cache
-        if hit is not None and (now - hit[0]) < _MAINT_CACHE_TTL:
-            return hit[1]
+        hit_ts = float(_maint_cache.get("ts") or 0.0)
+        hit_val = _maint_cache.get("value")
+        if hit_val is not None and (now - hit_ts) < _MAINT_CACHE_TTL:
+            return bool(hit_val)
     val = _read_maintenance_mode_uncached()
     with _maint_lock:
-        _maint_cache = (time.monotonic(), val)
+        _maint_cache["ts"] = time.monotonic()
+        _maint_cache["value"] = bool(val)
     return val
 
 
