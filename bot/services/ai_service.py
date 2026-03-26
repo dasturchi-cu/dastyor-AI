@@ -81,6 +81,9 @@ async def get_model(preferred_models: list[str] | None = None):
 
 
 GEMINI_TIMEOUT = 90  # seconds per API call
+STT_FILE_PROCESS_MAX_WAIT_SECONDS = float(os.getenv("STT_FILE_PROCESS_MAX_WAIT_SECONDS", "45") or "45")
+STT_FILE_PROCESS_POLL_SECONDS = float(os.getenv("STT_FILE_PROCESS_POLL_SECONDS", "0.5") or "0.5")
+STT_SKIP_AUDIO_NORMALIZE = str(os.getenv("STT_SKIP_AUDIO_NORMALIZE", "0") or "0").strip().lower() in ("1", "true", "yes")
 
 async def _gcall(coro, timeout: int = GEMINI_TIMEOUT):
     """Wrap generate_content_async with a hard timeout so the bot never hangs."""
@@ -194,17 +197,21 @@ async def transcribe_audio(audio_file_path: str) -> str:
         return ""
     
     loop = asyncio.get_running_loop()
-    upload_path, temp_conv = _normalize_audio_for_gemini(audio_file_path)
+    upload_path, temp_conv = (
+        (audio_file_path, False)
+        if STT_SKIP_AUDIO_NORMALIZE
+        else _normalize_audio_for_gemini(audio_file_path)
+    )
 
     def blocking_upload(path: str):
         import time
 
         try:
             myfile = genai.upload_file(path)
-            waited = 0
-            while getattr(myfile.state, "name", str(myfile.state)) == "PROCESSING" and waited < 90:
-                time.sleep(1)
-                waited += 1
+            waited = 0.0
+            while getattr(myfile.state, "name", str(myfile.state)) == "PROCESSING" and waited < STT_FILE_PROCESS_MAX_WAIT_SECONDS:
+                time.sleep(STT_FILE_PROCESS_POLL_SECONDS)
+                waited += STT_FILE_PROCESS_POLL_SECONDS
                 try:
                     myfile = genai.get_file(myfile.name)
                 except Exception:
@@ -958,18 +965,20 @@ async def extract_obyektivka_data(text: str) -> dict:
     """
     Extract structured data from text using Gemini asynchronously
     """
-    model = await get_model()
+    model = await get_model(preferred_models=[
+        "gemini-2.0-flash",
+        "gemini-1.5-flash-latest",
+        "gemini-2.5-flash",
+    ])
     if not model: return {}
     
     prompt = f"""
-    Quyidagi matn ovozli obyektivka yoki qo'lda yozilgan shaxsiy ma'lumot bo'lishi mumkin.
-    Matn to'liq bo'lmasa ham, aytilgan har bir faktni mos maydonga joylashtir.
-    Agar faqat ism/familiya, yosh, kasb, tajriba, ko'nikmalar aytilgan bo'lsa:
-    - ism+familiyani "fullname" ga birlashtir (Familiya Ism Sharif tartibida, sharif bo'lmasa ikkita so'z yetarli)
-    - yosh yoki tug'ilgan yilni "birthdate" ga KK.OO.YYYY yoki taxminiy yil bilan yoz
-    - kasb/mutaxassislikni "specialty" ga
-    - ish tajribasini "work_experience" ro'yxatiga (year: davr yoki yil, position: lavozim va joy)
-    - ko'nikmalarni "languages" yoki "graduated"/"education" qatoriga qisqa qilib joylashtir (agar til bo'lmasa)
+    Quyidagi matndan obyektivka uchun faktlarni JSONga ajrat.
+    Qoidalar:
+    - Faqat aniq aytilgan ma'lumotni joylashtir, qolgani bo'sh.
+    - fullname: "Familiya Ism Sharif" (imkon qadar).
+    - work_experience va relatives ro'yxat bo'lsin.
+    - Javob faqat JSON bo'lsin (markdownsiz).
 
     Matn: {text}
 
@@ -995,7 +1004,7 @@ async def extract_obyektivka_data(text: str) -> dict:
     """
     
     try:
-        response = await _gcall(model.generate_content_async(prompt))
+        response = await _gcall(model.generate_content_async(prompt), timeout=35)
         if not response or not response.text:
             return {}
         cleaned = response.text.replace('```json', '').replace('```', '').strip()
