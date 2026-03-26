@@ -93,8 +93,8 @@ async def process_obyektivka_from_audio_path(context, audio_path, chat_id, user_
             chat_id=chat_id,
             text=(
                 (f"👤 {fn}\n\n" if fn else "")
-                + "✅ Obyektivka to'ldirildi — formada ma'lumotlarni tekshirib, Word/PDF yuklab oling.\n\n"
-                + "💡 Word/PDF faylni botga yuborish tarif bo‘yicha; formani avval bepul ko‘rib chiqishingiz mumkin."
+                + "✅ Obyektivka to'ldirildi — formada ma'lumotlarni tekshirib, Word yuklab oling.\n\n"
+                + "💡 Word faylni botga yuborish tarif bo‘yicha; formani avval bepul ko‘rib chiqishingiz mumkin."
             ),
             reply_markup=InlineKeyboardMarkup(kb),
         )
