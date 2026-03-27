@@ -20,6 +20,10 @@ logger = logging.getLogger(__name__)
 
 USAGE_FILE = "usage_data.json"
 
+# Quota paywall marketing: rate-limit (avoid spam / blocks)
+_PAYWALL_COOLDOWN_SECONDS = int(os.getenv("PAYWALL_MARKETING_COOLDOWN_SECONDS", "86400") or "86400")
+_paywall_last_sent: dict[int, float] = {}
+
 # Tarif jadvali (bir necha Supabase so'rovini birlashtiradi) — /start va balans tezligi.
 # Qisqa TTL — xizmatdan keyin Balans tez yangilansin (30s eski ko‘rinish qoldirardi)
 # /start va menyu: bir necha Supabase chaqiruvini birlashtiradi — qisqa TTL sekinlik berardi.
@@ -239,25 +243,34 @@ async def _send_quota_blocked_message(
     )
 
     uid = int(user_id)
+    now_ts = time.time()
+    last = float(_paywall_last_sent.get(uid, 0.0))
+    cooldown_ok = (now_ts - last) >= max(10, _PAYWALL_COOLDOWN_SECONDS)
+    if cooldown_ok:
+        _paywall_last_sent[uid] = now_ts
     reason = (
         block_reason_for_user_uz(uid, category)
         if category
         else "⛔️ Bu xizmat pullik. Standard yoki Premium tarifni oling."
     )
     dl = promo_deadline_display()
-    promo_line = (
-        f"🔥 <b>{PROMO_LABEL}:</b> faqat shu hafta {format_uzs(STANDARD_PRICE_UZS)} / {format_uzs(PREMIUM_PRICE_UZS)} so'm."
-        + (f" (deadline: {dl})" if dl else "")
-    )
+    promo_line = ""
+    if cooldown_ok:
+        promo_line = (
+            f"🔥 <b>{PROMO_LABEL}:</b> faqat shu hafta {format_uzs(STANDARD_PRICE_UZS)} / {format_uzs(PREMIUM_PRICE_UZS)} so'm."
+            + (f" (deadline: {dl})" if dl else "")
+        )
 
     # Referral pitch (we keep it simple; DB decides actual eligibility)
     disc_std = apply_percent_discount(STANDARD_PRICE_UZS, REFERRAL_DISCOUNT_PERCENT)
     disc_pre = apply_percent_discount(PREMIUM_PRICE_UZS, REFERRAL_DISCOUNT_PERCENT)
-    ref_line = (
-        f"🎁 <b>Referal bonus:</b> {REFERRAL_REQUIRED_INVITES} ta do'st taklif qilsangiz — "
-        f"Standard/Premiumga <b>{REFERRAL_DISCOUNT_PERCENT}%</b> chegirma "
-        f"(Standard {format_uzs(disc_std)} so'm, Premium {format_uzs(disc_pre)} so'm)."
-    )
+    ref_line = ""
+    if cooldown_ok:
+        ref_line = (
+            f"🎁 <b>Referal bonus:</b> {REFERRAL_REQUIRED_INVITES} ta do'st taklif qilsangiz — "
+            f"Standard/Premiumga <b>{REFERRAL_DISCOUNT_PERCENT}%</b> chegirma "
+            f"(Standard {format_uzs(disc_std)} so'm, Premium {format_uzs(disc_pre)} so'm)."
+        )
 
     text = (
         f"{reason}\n\n"
@@ -265,9 +278,9 @@ async def _send_quota_blocked_message(
         f"- Standard: <b>{format_uzs(STANDARD_PRICE_UZS)} so'm</b> / 7 kun — Tarjima + PDF + Translit cheksiz\n"
         f"- Premium: <b>{format_uzs(PREMIUM_PRICE_UZS)} so'm</b> / 30 kun — hammasi cheksiz + Obyektivka/CV oyiga 6 ta\n"
         "⏱ 1 obyektivka ≈ 30–60 daqiqa vaqt tejaydi.\n\n"
-        f"{promo_line}\n"
-        f"{ref_line}\n\n"
-        "👇 Tanlang:"
+        + (f"{promo_line}\n" if promo_line else "")
+        + (f"{ref_line}\n\n" if ref_line else "\n")
+        + "👇 Tanlang:"
     )
 
     base = WEBAPP_BASE.rstrip("/")

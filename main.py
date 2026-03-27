@@ -239,20 +239,23 @@ async def handle_router_text(update: Update, context: ContextTypes.DEFAULT_TYPE)
             await update.message.reply_text("❌ Hech qanday rasm yuklanmagan. Avval rasmlar yuboring.")
             return
 
+        # Direction-flag overrides (keep existing behavior)
         if state in [WaitingState.TRANSLITERATE_TEXT, WaitingState.TRANSLIT_CONTENT] or context.user_data.get('transliterate_direction'):
             await process_transliterate(update, context)
             return
         if state == WaitingState.TRANSLATE_INPUT or context.user_data.get('translate_direction'):
             await process_translate_doc(update, context)
             return
-        if state in [WaitingState.SPELL_CHECK_DOC, WaitingState.SPELLCHECK_FILE]:
-            await process_spell_check(update, context)
-            return
-        if state == WaitingState.PDF_IMAGES:
-            await process_image_to_pdf(update, context)
-            return
-        if state == WaitingState.FEEDBACK:
-            await handle_feedback(update, context)
+
+        dispatch_map = {
+            WaitingState.SPELL_CHECK_DOC: process_spell_check,
+            WaitingState.SPELLCHECK_FILE: process_spell_check,
+            WaitingState.PDF_IMAGES: process_image_to_pdf,
+            WaitingState.FEEDBACK: handle_feedback,
+        }
+        handler = dispatch_map.get(state)
+        if handler:
+            await handler(update, context)
             return
 
         # 2. NLP / Keyword Routing
@@ -296,20 +299,24 @@ async def handle_router_doc(update: Update, context: ContextTypes.DEFAULT_TYPE):
     translate_dir = context.user_data.get('translate_direction')  # e.g. 'ru_uz', 'uz_en'
 
     async def _run():
+        # Direction-flag overrides (keep existing behavior)
         if state == WaitingState.TRANSLIT_CONTENT or transliterate_dir:
             await process_transliterate(update, context)
             return
         if translate_dir or state == WaitingState.TRANSLATE_INPUT:
             await process_translate_doc(update, context)
             return
-        if state in [WaitingState.SPELL_CHECK_DOC, WaitingState.SPELLCHECK_FILE]:
-            await process_spell_check(update, context)
-            return
-        if state in [WaitingState.OCR_IMAGE, WaitingState.OCR_IMAGE_DOC]:
-            await process_ocr_image(update, context)
-            return
-        if state == WaitingState.FEEDBACK:
-            await handle_feedback(update, context)
+
+        dispatch_map = {
+            WaitingState.SPELL_CHECK_DOC: process_spell_check,
+            WaitingState.SPELLCHECK_FILE: process_spell_check,
+            WaitingState.OCR_IMAGE: process_ocr_image,
+            WaitingState.OCR_IMAGE_DOC: process_ocr_image,
+            WaitingState.FEEDBACK: handle_feedback,
+        }
+        handler = dispatch_map.get(state)
+        if handler:
+            await handler(update, context)
             return
         await handle_smart_document(update, context)
 
@@ -325,15 +332,21 @@ async def handle_router_photo(update: Update, context: ContextTypes.DEFAULT_TYPE
     
     state = context.user_data.get('waiting_for')
 
-    if state == WaitingState.OCR_IMAGE:
-        await process_ocr_image(update, context)
-    elif state == WaitingState.PDF_IMAGES:
-        await process_image_to_pdf(update, context)
-    elif state == WaitingState.FEEDBACK:
-        await handle_feedback(update, context)
-    else:
+    async def _run():
+        dispatch_map = {
+            WaitingState.OCR_IMAGE: process_ocr_image,
+            WaitingState.PDF_IMAGES: process_image_to_pdf,
+            WaitingState.FEEDBACK: handle_feedback,
+        }
+        handler = dispatch_map.get(state)
+        if handler:
+            await handler(update, context)
+            return
+
         # Smart Logic (Photo)
         await handle_smart_photo(update, context)
+
+    await safe_execute(update, context, _run, log_message="router_photo failure")
 
 async def handle_router_audio(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not update.effective_chat or update.effective_chat.type != "private":
@@ -389,6 +402,14 @@ async def button_callback_handler(update: Update, context: ContextTypes.DEFAULT_
 
 async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> None:
     logger.error(msg="Exception while handling an update:", exc_info=context.error)
+    try:
+        # Ensure Sentry gets the full exception even if handlers swallow errors.
+        import sentry_sdk  # type: ignore
+
+        if getattr(context, "error", None):
+            sentry_sdk.capture_exception(context.error)
+    except Exception:
+        pass
     # Fire-and-forget telemetry to Supabase logs (if available)
     try:
         from bot.utils.action_logger import log_action_fire_and_forget

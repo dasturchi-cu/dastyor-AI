@@ -16,6 +16,8 @@ _disabled_until_ts = 0.0
 _last_disable_reason = ""
 _DB_DISABLE_SECONDS = int(os.getenv("SUPABASE_DISABLE_SECONDS", "300"))
 _pending_oby_column_warned = False
+_referrals_cache: dict[int, tuple[float, list[dict]]] = {}
+_REFERRALS_CACHE_TTL = float(os.getenv("REFERRALS_CACHE_TTL_SECONDS", "30") or "30")
 
 
 def _maybe_warn_service_role():
@@ -190,6 +192,13 @@ def db_get_referrals_for_inviter(inviter_id: int, limit: int = 20) -> list[dict]
     if not c:
         return []
     try:
+        now = time.monotonic()
+        hit = _referrals_cache.get(int(inviter_id))
+        if hit and (now - hit[0]) < _REFERRALS_CACHE_TTL:
+            return hit[1][: max(1, min(50, int(limit)))]
+    except Exception:
+        pass
+    try:
         lim = max(1, min(50, int(limit)))
         r = (
             c.table("referrals")
@@ -219,6 +228,10 @@ def db_get_referrals_for_inviter(inviter_id: int, limit: int = 20) -> list[dict]
                     "created_at": row.get("created_at"),
                 }
             )
+        try:
+            _referrals_cache[int(inviter_id)] = (time.monotonic(), out)
+        except Exception:
+            pass
         return out
     except Exception as e:
         _mark_temporarily_unavailable(e)
