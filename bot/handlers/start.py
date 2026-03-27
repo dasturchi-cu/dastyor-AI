@@ -195,8 +195,8 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"• Krill ↔ Lotin aylantirish\n"
         f"• Matn tarjima qilish\n"
         f"• Rasmlarni PDFga birlashtirish\n\n"
-        f"🎁 <b>Referal bonus:</b> {REFERRAL_REQUIRED_INVITES} ta do'st kirsa — <b>{REFERRAL_DISCOUNT_PERCENT}%</b> chegirma.\n"
-        f"🔗 Link olish uchun: <b>/ref</b>\n\n"
+        f"🎁 Referal bonus: {REFERRAL_REQUIRED_INVITES} ta do'st kirsa — {REFERRAL_DISCOUNT_PERCENT}% chegirma.\n"
+        f"🔗 Referal link olish: /ref\n\n"
         f"👇 Quyidagi menyudan xizmat tanlang:"
     )
 
