@@ -446,7 +446,8 @@ async def api_paid_doc_submit_screenshot(
         raise HTTPException(status_code=400, detail="screenshot decode xato")
 
     # Create a payment row so we can reuse existing admin callback (prempay_approve/reject).
-    plan_type = "cv_single" if k == "cv" else "obyektivka_single"
+    # Keep plan_type schema-compatible; identify single-doc flow via metadata.
+    plan_type = "premium"
     pid = db_create_payment(
         int(uid),
         plan_type,

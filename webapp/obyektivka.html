@@ -744,6 +744,16 @@ async function sendObyektivkaToBot(fmt){
     alert("Faqat Telegram WebApp ichida ishlaydi!");
     return;
   }
+  try{ if(window.DastyorAI&&window.DastyorAI.refreshProfile) await window.DastyorAI.refreshProfile(); }catch(_){}
+  var uNow = window.DastyorAI&&window.DastyorAI.getUser?window.DastyorAI.getUser():null;
+  var blockedNow = window.DastyorAI&&window.DastyorAI.isQuotaBlockedForCategory
+    ? window.DastyorAI.isQuotaBlockedForCategory(uNow,'obyektivka')
+    : false;
+  if(blockedNow){
+    syncObyQuotaUi();
+    alert("⛔ Limit tugagan. Pastdagi '5 000 so'm to'lash' tugmasidan foydalaning.");
+    return;
+  }
   var btn=document.getElementById('dlBtn');
   if(btn)btn.disabled=true;
   try{
@@ -1341,6 +1351,7 @@ function runAutoloadObyData(){
 
 window.addEventListener('resize',function(){try{scaleLivePreview();}catch(e){}});
 document.addEventListener('DOMContentLoaded',function(){
+  try{ syncObyQuotaUi(); }catch(e){}
   void (async function(){
     try{
       if(window.DastyorAI&&typeof window.DastyorAI.init==='function'){

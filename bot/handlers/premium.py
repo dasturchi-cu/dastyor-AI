@@ -150,7 +150,8 @@ async def handle_premium_screenshot(update: Update, context: ContextTypes.DEFAUL
             }
             plan_type = plan
             if is_paid_doc:
-                plan_type = "cv_single" if paid_kind == "cv" else "obyektivka_single"
+                # Keep payments.plan_type schema-compatible; single-doc is detected by metadata.
+                plan_type = "premium"
                 meta["paid_doc_request_id"] = int(paid_rid) if str(paid_rid).isdigit() else None
                 meta["paid_doc_kind"] = paid_kind
             pid = db_create_payment(
@@ -168,7 +169,7 @@ async def handle_premium_screenshot(update: Update, context: ContextTypes.DEFAUL
     if request_id is None:
         request_id = create_payment_request(
             user_id=int(user.id),
-            plan_type=("cv_single" if paid_kind == "cv" else "obyektivka_single") if is_paid_doc else plan,
+            plan_type=("premium" if is_paid_doc else plan),
             username=user.username or "",
             first_name=user.first_name or "",
         )
@@ -298,10 +299,11 @@ async def premium_payment_review_callback(update: Update, context: ContextTypes.
                     # Mark payment approved
                     db_set_payment_status(request_id, "approved", reviewed_by=int(query.from_user.id))
 
-                    # If this is a paid single-doc request, generate and deliver file instead of subscription.
-                    if plan in {"cv_single", "obyektivka_single"}:
+                    meta = pay.get("metadata") if isinstance(pay.get("metadata"), dict) else {}
+                    is_single_doc = bool(meta.get("paid_doc_request_id")) or (str(meta.get("paid_doc_kind") or "").strip().lower() in {"cv", "obyektivka"})
+                    # If this is a paid single-doc request, do NOT activate subscription.
+                    if is_single_doc:
                         db_set_payment_status(request_id, "approved", reviewed_by=int(query.from_user.id))
-                        meta = pay.get("metadata") if isinstance(pay.get("metadata"), dict) else {}
                         doc_rid = meta.get("paid_doc_request_id")
                         try:
                             from bot.services.supabase_db import db_get_paid_doc_request, db_set_paid_doc_request_status

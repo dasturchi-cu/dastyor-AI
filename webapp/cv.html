@@ -1077,6 +1077,16 @@
         alert("Faqat Telegram WebApp ichida ishlaydi!");
         return;
       }
+      try { if (window.DastyorAI && window.DastyorAI.refreshProfile) await window.DastyorAI.refreshProfile(); } catch (_) {}
+      const uNow = window.DastyorAI && window.DastyorAI.getUser ? window.DastyorAI.getUser() : null;
+      const blockedNow = window.DastyorAI && window.DastyorAI.isQuotaBlockedForCategory
+        ? window.DastyorAI.isQuotaBlockedForCategory(uNow, 'cv')
+        : false;
+      if (blockedNow) {
+        syncCvQuotaUi();
+        alert("⛔ Limit tugagan. Pastdagi '5 000 so'm to'lash' tugmasidan foydalaning.");
+        return;
+      }
       try {
         try {
           if (window.DastyorAI && window.DastyorAI.showDocumentLoading) {
@@ -1211,6 +1221,8 @@
 
     // --- INIT ---
     document.addEventListener('DOMContentLoaded', async () => {
+      // Show blocked state ASAP from current cache, then refresh.
+      try { syncCvQuotaUi(); } catch (_) {}
       try {
         if (window.DastyorAI && window.DastyorAI.init) await window.DastyorAI.init();
         if (window.DastyorAI && window.DastyorAI.refreshProfile) await window.DastyorAI.refreshProfile();
