@@ -344,9 +344,7 @@
           <button type="button" id="cvPaySendBtn" class="px-3 py-2 rounded-lg bg-emerald-600 text-white text-xs font-semibold disabled:opacity-50" disabled>📤 Yuborish</button>
         </div>
         <div id="cvPayStatus" class="text-xs text-slate-700">Skrenshot tanlang va yuboring.</div>
-        <div class="mt-3">
-          <button type="button" id="cvPayDownloadBtn" class="hidden px-3 py-2 rounded-lg bg-blue-600 text-white text-xs font-semibold">📄 PDFni yuborish</button>
-        </div>
+        <div class="mt-3"></div>
       </div>
 
       <div id="previewPane" class="preview-pane-light w-full flex items-start justify-center p-4 sm:p-10 scroller overflow-y-auto rounded-2xl">
@@ -1056,6 +1054,8 @@
       return { ok: true, status: 'download' };
     }
 
+    let _cvApprovedRequestId = 0;
+
     function syncCvQuotaUi() {
       const u = window.DastyorAI && window.DastyorAI.getUser ? window.DastyorAI.getUser() : null;
       const btn = document.getElementById('cvSendBotBtn');
@@ -1066,18 +1066,20 @@
         ? window.DastyorAI.isQuotaBlockedForCategory(u, 'cv')
         : false;
       if (btn) {
-        btn.disabled = !!blocked;
+        btn.disabled = !!blocked && !_cvApprovedRequestId;
       }
       if (payBtn) {
-        if (blocked) payBtn.classList.remove('hidden');
+        if (blocked && !_cvApprovedRequestId) payBtn.classList.remove('hidden');
         else payBtn.classList.add('hidden');
       }
       if (warn) {
         if (blocked) {
           warn.classList.remove('hidden');
-          warn.textContent = isPrem
+          warn.textContent = _cvApprovedRequestId
+            ? "✅ To'lov tasdiqlangan. Endi yuqoridagi 'PDF botga yuborish' tugmasi ochiq."
+            : (isPrem
             ? '⛔ Limit tugabti. Xohlasangiz 5 000 so‘mga CV olishingiz mumkin yoki Premiumni yangilang.'
-            : '⛔ Bu xizmat pullik. Xohlasangiz 5 000 so‘mga CV olishingiz mumkin yoki Premium sotib oling.';
+            : '⛔ Bu xizmat pullik. Xohlasangiz 5 000 so‘mga CV olishingiz mumkin yoki Premium sotib oling.');
         } else {
           warn.classList.add('hidden');
           warn.textContent = '';
@@ -1096,9 +1098,19 @@
       const blockedNow = window.DastyorAI && window.DastyorAI.isQuotaBlockedForCategory
         ? window.DastyorAI.isQuotaBlockedForCategory(uNow, 'cv')
         : false;
-      if (blockedNow) {
+      if (blockedNow && !_cvApprovedRequestId) {
         syncCvQuotaUi();
         alert("⛔ Limit tugagan. Pastdagi '5 000 so'm to'lash' tugmasidan foydalaning.");
+        return;
+      }
+      if (blockedNow && _cvApprovedRequestId) {
+        const token = (window.DastyorAI && window.DastyorAI.getToken) ? window.DastyorAI.getToken() : (sessionStorage.getItem('tg_token') || "");
+        const qs = new URLSearchParams({ request_id: String(_cvApprovedRequestId) });
+        if (telegramId) qs.set('telegram_id', String(parseInt(telegramId, 10)));
+        if (token) qs.set('token', String(token));
+        const dl = getCvApiBase() + '/api/paid_doc_download?' + qs.toString();
+        try { tg.openLink ? tg.openLink(dl) : window.open(dl, '_blank'); } catch (_) { window.open(dl, '_blank'); }
+        setTimeout(() => { try { tg.close(); } catch (_) {} }, 900);
         return;
       }
       try {
@@ -1132,7 +1144,6 @@
       const cardInfo = document.getElementById('cvPayCardInfo');
       const status = document.getElementById('cvPayStatus');
       const sendBtn = document.getElementById('cvPaySendBtn');
-      const dlBtn = document.getElementById('cvPayDownloadBtn');
       const shotInput = document.getElementById('cvPayShotInput');
       const copyBtn = document.getElementById('cvCopyCardBtn');
       try {
@@ -1157,7 +1168,6 @@
         if (_cvPayState.pollTimer) { clearInterval(_cvPayState.pollTimer); _cvPayState.pollTimer = null; }
 
         if (panel) panel.classList.remove('hidden');
-        if (dlBtn) dlBtn.classList.add('hidden');
         if (sendBtn) sendBtn.disabled = true;
         if (status) status.textContent = "Skrenshot tanlang va yuboring.";
 
@@ -1210,9 +1220,13 @@
               if (status) status.textContent = "Xatolik: " + (d || ('Server ' + r2.status));
               return;
             }
-            if (status) status.textContent = "✅ Yuborildi. Admin tasdiqlashini kuting.";
+            if (status) status.textContent = "🔄 Yuborilmoqda...";
+            if (sendBtn) { sendBtn.disabled = true; sendBtn.textContent = "Yuborilmoqda..."; }
+            const spin = setInterval(() => {
+              if (!status) return;
+              status.textContent = status.textContent.endsWith("...") ? "🔄 Yuborilmoqda." : (status.textContent.endsWith(".") ? "🔄 Yuborilmoqda.." : "🔄 Yuborilmoqda...");
+            }, 450);
             if (sendBtn) sendBtn.disabled = true;
-
             _cvPayState.pollTimer = setInterval(async () => {
               const p = new URLSearchParams({ request_id: String(_cvPayState.requestId) });
               if (_cvPayState.telegramId) p.set('telegram_id', String(_cvPayState.telegramId));
@@ -1223,18 +1237,13 @@
                 const js = await st.json();
                 const s = String(js.status || '');
                 if (s === 'approved' || s === 'delivered') {
+                  clearInterval(spin);
                   clearInterval(_cvPayState.pollTimer);
                   _cvPayState.pollTimer = null;
-                  if (status) status.textContent = "✅ Admin tasdiqladi. Endi PDFni yuborishingiz mumkin.";
-                  if (dlBtn) {
-                    dlBtn.classList.remove('hidden');
-                    dlBtn.textContent = "📄 PDFni yuborish";
-                    dlBtn.onclick = () => {
-                      const dl = base + '/api/paid_doc_download?' + p.toString();
-                      try { tg.openLink ? tg.openLink(dl) : window.open(dl, '_blank'); } catch (_) { window.open(dl, '_blank'); }
-                      setTimeout(() => { try { tg.close(); } catch (_) {} }, 1200);
-                    };
-                  }
+                  _cvApprovedRequestId = _cvPayState.requestId;
+                  try { localStorage.setItem('cv_paid_request_id', String(_cvApprovedRequestId)); } catch (_) {}
+                  if (status) status.textContent = "✅ Admin tasdiqladi. Endi yuqoridagi 'PDF botga yuborish' tugmasi ochildi.";
+                  syncCvQuotaUi();
                 }
               } catch (_) {}
             }, 3000);
@@ -1248,6 +1257,7 @@
     // --- INIT ---
     document.addEventListener('DOMContentLoaded', async () => {
       // Show blocked state ASAP from current cache, then refresh.
+      try { _cvApprovedRequestId = Number(localStorage.getItem('cv_paid_request_id') || 0); } catch (_) {}
       try { syncCvQuotaUi(); } catch (_) {}
       try {
         if (window.DastyorAI && window.DastyorAI.init) await window.DastyorAI.init();

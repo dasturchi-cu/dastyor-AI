@@ -343,9 +343,7 @@
           <button type="button" class="btn btn-primary" id="obyPaySendBtn" disabled style="opacity:.6">📤 Yuborish</button>
         </div>
         <div id="obyPayStatus" style="font-size:12px;color:#334155;">Skrenshot tanlang va yuboring.</div>
-        <div style="margin-top:8px;">
-          <button type="button" class="btn btn-primary" id="obyPayDownloadBtn" style="display:none;">📝 Wordni yuborish</button>
-        </div>
+        <div style="margin-top:8px;"></div>
       </div>
     </form>
 
@@ -666,6 +664,8 @@ function buildObyPayload(fmt){
   };
 }
 
+var _obyApprovedRequestId = 0;
+
 function syncObyQuotaUi() {
   var u = window.DastyorAI && window.DastyorAI.getUser ? window.DastyorAI.getUser() : null;
   var btn = document.getElementById('dlBtn');
@@ -675,17 +675,19 @@ function syncObyQuotaUi() {
   var blocked = window.DastyorAI && window.DastyorAI.isQuotaBlockedForCategory
     ? window.DastyorAI.isQuotaBlockedForCategory(u, 'obyektivka')
     : false;
-  if (btn) btn.disabled = !!blocked;
+  if (btn) btn.disabled = !!blocked && !_obyApprovedRequestId;
   if (payBtn) {
-    if (blocked) payBtn.classList.remove('hidden');
+    if (blocked && !_obyApprovedRequestId) payBtn.classList.remove('hidden');
     else payBtn.classList.add('hidden');
   }
   if (warn) {
     if (blocked) {
       warn.classList.remove('hidden');
-      warn.textContent = isPrem
+      warn.textContent = _obyApprovedRequestId
+        ? "✅ To'lov tasdiqlangan. Endi yuqoridagi 'Word botga yuborish' tugmasi ochiq."
+        : (isPrem
         ? '⛔ Limit tugabti. Xohlasangiz 5 000 so‘mga Obyektivka olishingiz mumkin yoki Premiumni yangilang.'
-        : '⛔ Bu xizmat pullik. Xohlasangiz 5 000 so‘mga Obyektivka olishingiz mumkin yoki Premium sotib oling.';
+        : '⛔ Bu xizmat pullik. Xohlasangiz 5 000 so‘mga Obyektivka olishingiz mumkin yoki Premium sotib oling.');
     } else {
       warn.classList.add('hidden');
       warn.textContent = '';
@@ -763,9 +765,19 @@ async function sendObyektivkaToBot(fmt){
   var blockedNow = window.DastyorAI&&window.DastyorAI.isQuotaBlockedForCategory
     ? window.DastyorAI.isQuotaBlockedForCategory(uNow,'obyektivka')
     : false;
-  if(blockedNow){
+  if(blockedNow && !_obyApprovedRequestId){
     syncObyQuotaUi();
     alert("⛔ Limit tugagan. Pastdagi '5 000 so'm to'lash' tugmasidan foydalaning.");
+    return;
+  }
+  if(blockedNow && _obyApprovedRequestId){
+    var token = getDastyorSessionToken();
+    var p = new URLSearchParams({ request_id:String(_obyApprovedRequestId) });
+    if(telegramId) p.set('telegram_id', String(parseInt(telegramId,10)));
+    if(token) p.set('token', String(token));
+    var dl = API_URL + '/api/paid_doc_download?' + p.toString();
+    try{ if(tg.openLink) tg.openLink(dl); else window.open(dl,'_blank'); }catch(_){ window.open(dl,'_blank'); }
+    setTimeout(function(){ try{ tg.close(); }catch(_){} }, 900);
     return;
   }
   var btn=document.getElementById('dlBtn');
@@ -800,7 +812,6 @@ async function payObySingle(fmt){
   var cardInfo=document.getElementById('obyPayCardInfo');
   var statusEl=document.getElementById('obyPayStatus');
   var sendBtn=document.getElementById('obyPaySendBtn');
-  var dlBtn=document.getElementById('obyPayDownloadBtn');
   var shotInput=document.getElementById('obyPayShotInput');
   var copyBtn=document.getElementById('obyCopyCardBtn');
   try{
@@ -848,7 +859,6 @@ async function payObySingle(fmt){
 
     if(panel) panel.classList.remove('hidden');
     if(sendBtn) sendBtn.disabled = true;
-    if(dlBtn) dlBtn.style.display = 'none';
     if(statusEl) statusEl.textContent = "Skrenshot tanlang va yuboring.";
 
     try{
@@ -890,8 +900,12 @@ async function payObySingle(fmt){
         if(_obyPayState.token) qs.set('token', String(_obyPayState.token));
         var r2=await fetch(API_URL + '/api/paid_doc_submit_screenshot?' + qs.toString(), { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ screenshot:_obyPayState.screenshot }) });
         if(!r2.ok){ var err=await dastyorReadApiError(r2); if(statusEl) statusEl.textContent = "Xatolik: "+err; return; }
-        if(statusEl) statusEl.textContent = "✅ Yuborildi. Admin tasdiqlashini kuting.";
-        if(sendBtn) sendBtn.disabled = true;
+        if(statusEl) statusEl.textContent = "🔄 Yuborilmoqda...";
+        if(sendBtn){ sendBtn.disabled = true; sendBtn.textContent = "Yuborilmoqda..."; }
+        var spin = setInterval(function(){
+          if(!statusEl) return;
+          statusEl.textContent = statusEl.textContent.indexOf("...")>-1 ? "🔄 Yuborilmoqda." : (statusEl.textContent.indexOf("..")>-1 ? "🔄 Yuborilmoqda..." : "🔄 Yuborilmoqda..");
+        }, 450);
 
         _obyPayState.pollTimer = setInterval(async function(){
           var p = new URLSearchParams({ request_id:String(_obyPayState.requestId) });
@@ -903,18 +917,13 @@ async function payObySingle(fmt){
             var js=await st.json();
             var s=String(js.status||'');
             if(s==='approved'||s==='delivered'){
+              clearInterval(spin);
               clearInterval(_obyPayState.pollTimer);
               _obyPayState.pollTimer = null;
-              if(statusEl) statusEl.textContent = "✅ Admin tasdiqladi. Endi Wordni yuborishingiz mumkin.";
-              if(dlBtn){
-                dlBtn.style.display='inline-flex';
-                dlBtn.textContent = "📝 Wordni yuborish";
-                dlBtn.onclick = function(){
-                  var dl=API_URL + '/api/paid_doc_download?' + p.toString();
-                  try{ if(tg.openLink) tg.openLink(dl); else window.open(dl,'_blank'); }catch(_){ window.open(dl,'_blank'); }
-                  setTimeout(function(){ try{ tg.close(); }catch(_){} }, 1200);
-                };
-              }
+              _obyApprovedRequestId = _obyPayState.requestId;
+              try{ localStorage.setItem('oby_paid_request_id', String(_obyApprovedRequestId)); }catch(e){}
+              if(statusEl) statusEl.textContent = "✅ Admin tasdiqladi. Endi yuqoridagi 'Word botga yuborish' tugmasi ochildi.";
+              syncObyQuotaUi();
             }
           }catch(e){}
         }, 3000);
@@ -1387,6 +1396,7 @@ function runAutoloadObyData(){
 
 window.addEventListener('resize',function(){try{scaleLivePreview();}catch(e){}});
 document.addEventListener('DOMContentLoaded',function(){
+  try{ _obyApprovedRequestId = Number(localStorage.getItem('oby_paid_request_id') || 0); }catch(e){}
   try{ syncObyQuotaUi(); }catch(e){}
   void (async function(){
     try{
