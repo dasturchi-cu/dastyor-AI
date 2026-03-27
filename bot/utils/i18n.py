@@ -111,10 +111,10 @@ _DICT = {
     },
 
     "balance_msg": {
-        "uz_lat": "💰 **Sizning Balansingiz**\n\n👤 ID: `{user_id}`\n📊 Status: **{status}**\n📋 **Har xizmat:**\n{limit_text}\n📄 Ishlangan fayllar: **{files}** ta\n\nPremium olish uchun: '{premium_btn}' tugmasini bosing.",
-        "uz_cyr": "💰 **Сизнинг Балансингиз**\n\n👤 ID: `{user_id}`\n📊 Status: **{status}**\n📋 **Ҳар хизмат:**\n{limit_text}\n📄 Ишланган файллар: **{files}** та\n\nPremium олиш учун: '{premium_btn}' тугмасини босинг.",
-        "en": "💰 **Your Balance**\n\n👤 ID: `{user_id}`\n📊 Status: **{status}**\n📋 **Per service:**\n{limit_text}\n📄 Processed files: **{files}**\n\nTo get Premium: Click '{premium_btn}'.",
-        "ru": "💰 **Ваш баланс**\n\n👤 ID: `{user_id}`\n📊 Статус: **{status}**\n📋 **По услугам:**\n{limit_text}\n📄 Обработано файлов: **{files}** шт\n\nДля Premium: кнопка '{premium_btn}'."
+        "uz_lat": "💰 **Sizning Balansingiz**\n\n👤 ID: `{user_id}`\n📊 Status: **{status}**\n📋 **Har xizmat:**\n{limit_text}\n📄 Ishlangan fayllar: **{files}** ta",
+        "uz_cyr": "💰 **Сизнинг Балансингиз**\n\n👤 ID: `{user_id}`\n📊 Status: **{status}**\n📋 **Ҳар хизмат:**\n{limit_text}\n📄 Ишланган файллар: **{files}** та",
+        "en": "💰 **Your Balance**\n\n👤 ID: `{user_id}`\n📊 Status: **{status}**\n📋 **Per service:**\n{limit_text}\n📄 Processed files: **{files}**",
+        "ru": "💰 **Ваш баланс**\n\n👤 ID: `{user_id}`\n📊 Статус: **{status}**\n📋 **По услугам:**\n{limit_text}\n📄 Обработано файлов: **{files}** шт"
     },
     "balance_footer_hint": {
         "uz_lat": "💡 Premium va tariflarni Web mini-appdagi **💎 Premium** sahifasidan olasiz.",

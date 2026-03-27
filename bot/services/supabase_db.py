@@ -1245,7 +1245,8 @@ def db_create_payment(
         return None
     try:
         plan = (plan_type or "premium").strip().lower()
-        if plan not in ("standard", "premium"):
+        # Allow special paid single-doc products too.
+        if plan not in ("standard", "premium", "cv_single", "obyektivka_single"):
             plan = "premium"
         meta = metadata or {}
         payload = {

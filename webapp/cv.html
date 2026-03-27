@@ -1129,7 +1129,7 @@
           return;
         }
 
-        // Blocked → paid single purchase flow (5 000 so'm): create request, then jump to bot for screenshot.
+        // Blocked → paid single purchase flow (5 000 so'm): create request, upload screenshot in WebApp, then download.
         const payload = buildCvPayload(fmt);
         if (payload.img && String(payload.img).startsWith('data:image')) {
           payload.img = await maybeCompressDataUrl(payload.img);
@@ -1155,10 +1155,60 @@
         }
         const data = await res.json();
         tg.HapticFeedback && tg.HapticFeedback.notificationOccurred && tg.HapticFeedback.notificationOccurred('success');
-        alert((data && data.message) ? data.message : "✅ So'rov qabul qilindi. To'lovni tasdiqlagach fayl botga keladi.");
-        try {
-          if (data && data.pay_link && tg.openTelegramLink) tg.openTelegramLink(String(data.pay_link));
-        } catch (_) {}
+        const rid = data && data.request_id ? Number(data.request_id) : 0;
+        alert((data && data.message) ? data.message : "✅ So'rov qabul qilindi. Endi to'lov skrenshotini yuklang.");
+        if (!rid) return;
+
+        // pick screenshot
+        const pick = document.createElement('input');
+        pick.type = 'file';
+        pick.accept = 'image/*';
+        pick.onchange = async () => {
+          const f = pick.files && pick.files[0];
+          if (!f) return;
+          const reader = new FileReader();
+          reader.onload = async () => {
+            const screenshot = String(reader.result || '');
+            const qs = new URLSearchParams({ request_id: String(rid), kind: 'cv' });
+            if (req.telegram_id) qs.set('telegram_id', String(req.telegram_id));
+            if (req.token) qs.set('token', String(req.token));
+            const r2 = await fetch(getCvApiBase() + '/api/paid_doc_submit_screenshot?' + qs.toString(), {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ screenshot }),
+            });
+            if (!r2.ok) {
+              let d = '';
+              try { const j = await r2.json(); d = j.detail || j.message || ''; } catch (_) {}
+              alert("❌ Skrenshot yuborilmadi: " + (d || ('Server ' + r2.status)));
+              return;
+            }
+            alert("✅ Skrenshot yuborildi. Admin tasdiqlasa, shu sahifadan yuklab olasiz.");
+
+            // Poll status
+            const pollBase = getCvApiBase();
+            const pollQs = new URLSearchParams({ request_id: String(rid) });
+            if (req.telegram_id) pollQs.set('telegram_id', String(req.telegram_id));
+            if (req.token) pollQs.set('token', String(req.token));
+            const started = Date.now();
+            const timer = setInterval(async () => {
+              if (Date.now() - started > 5 * 60 * 1000) { clearInterval(timer); return; }
+              try {
+                const st = await fetch(pollBase + '/api/paid_doc_status?' + pollQs.toString());
+                if (!st.ok) return;
+                const js = await st.json();
+                const s = String(js.status || '');
+                if (s === 'approved' || s === 'delivered') {
+                  clearInterval(timer);
+                  const dl = pollBase + '/api/paid_doc_download?' + pollQs.toString();
+                  try { tg.openLink ? tg.openLink(dl) : window.open(dl, '_blank'); } catch (_) { window.open(dl, '_blank'); }
+                }
+              } catch (_) {}
+            }, 3000);
+          };
+          reader.readAsDataURL(f);
+        };
+        pick.click();
       } catch (e) {
         alert("❌ Yuborishda xatolik: " + (e.message || String(e)).slice(0, 80));
       } finally {

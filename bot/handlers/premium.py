@@ -309,70 +309,20 @@ async def premium_payment_review_callback(update: Update, context: ContextTypes.
                             req_row = db_get_paid_doc_request(int(doc_rid)) if str(doc_rid).isdigit() else None
                             if not req_row or int(req_row.get("user_id") or 0) != uid:
                                 raise RuntimeError("paid_doc_request topilmadi")
+                            # WebApp will provide download after this.
                             db_set_paid_doc_request_status(int(req_row["id"]), "approved")
-                            payload = req_row.get("payload") if isinstance(req_row.get("payload"), dict) else {}
-                            if plan == "cv_single":
-                                from bot.services.doc_generator import generate_cv_docx
-
-                                loop = asyncio.get_running_loop()
-                                docx_path = await loop.run_in_executor(None, generate_cv_docx, payload)
-                                if not docx_path or not os.path.exists(docx_path):
-                                    raise RuntimeError("CV docx yaratilmadi")
-                                with open(docx_path, "rb") as fh:
-                                    raw = fh.read()
-                                safe_remove(docx_path)
-                                buf = io.BytesIO(raw)
-                                nm = (payload.get("name") or "CV").replace(" ", "_")[:30]
-                                buf.name = f"DASTYOR_CV_{nm}_{int(time.time())}_@DastyorAiBot.docx"
-                                await send_docx_with_confirmation(
-                                    context.bot,
-                                    uid,
-                                    buf,
-                                    filename=buf.name,
-                                    caption="✅ <b>CV tayyor!</b>",
-                                    parse_mode="HTML",
+                            try:
+                                await context.bot.send_message(
+                                    chat_id=uid,
+                                    text="✅ To'lov tasdiqlandi. Web mini-appga qayting — u yerdan faylni yuklab olasiz.",
                                 )
-                            else:
-                                from bot.services.doc_generator import generate_obyektivka_docx
-
-                                # payload already matches ObyektivkaRequest fields
-                                doc_data = dict(payload)
-                                # Photo is in payload.photo_base64 (as in API), pass through temp file if present
-                                photo_path = None
-                                try:
-                                    ph = payload.get("photo_base64") or payload.get("photo") or ""
-                                    if isinstance(ph, str) and ph.startswith("data:image"):
-                                        head, b64 = ph.split(",", 1)
-                                        raw = base64.b64decode(b64)
-                                        os.makedirs("temp", exist_ok=True)
-                                        photo_path = os.path.join("temp", f"oby_photo_{uid}_{int(time.time())}.jpg")
-                                        with open(photo_path, "wb") as f:
-                                            f.write(raw)
-                                except Exception:
-                                    photo_path = None
-                                loop = asyncio.get_running_loop()
-                                docx_path = await loop.run_in_executor(None, generate_obyektivka_docx, doc_data, photo_path)
-                                if not docx_path or not os.path.exists(docx_path):
-                                    raise RuntimeError("Obyektivka docx yaratilmadi")
-                                with open(docx_path, "rb") as fh:
-                                    raw = fh.read()
-                                safe_remove(docx_path, photo_path)
-                                buf = io.BytesIO(raw)
-                                nm = (payload.get("fullname") or "Obyektivka").replace(" ", "_")[:30]
-                                buf.name = f"DASTYOR_Obyektivka_{nm}_{int(time.time())}_@DastyorAiBot.docx"
-                                await send_docx_with_confirmation(
-                                    context.bot,
-                                    uid,
-                                    buf,
-                                    filename=buf.name,
-                                    caption="✅ <b>Obyektivka tayyor!</b>",
-                                    parse_mode="HTML",
-                                )
+                            except Exception:
+                                pass
 
                         except Exception as e:
                             logger.error("paid_doc approve failed: %s", e, exc_info=True)
                             try:
-                                await context.bot.send_message(chat_id=uid, text="⚠️ To'lov tasdiqlandi, lekin fayl yaratishda xato bo'ldi. Supportga yozing.")
+                                await context.bot.send_message(chat_id=uid, text="⚠️ To'lov tasdiqlandi, lekin so'rov topilmadi. Supportga yozing.")
                             except Exception:
                                 pass
 

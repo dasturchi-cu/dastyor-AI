@@ -37,6 +37,9 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["web-documents"])
 
+SINGLE_DOC_PRICE_UZS = int(os.getenv("SINGLE_DOC_PRICE_UZS", "5000") or "5000")
+PREMIUM_ADMIN_GROUP_ID = int(os.getenv("PREMIUM_ADMIN_GROUP_ID", "-1003457224552") or "-1003457224552")
+
 
 @router.post("/api/cv_preview_html")
 async def api_cv_preview_html(req: ExportCVRequest) -> HTMLResponse:
@@ -201,7 +204,7 @@ async def api_request_paid_cv(req: CVRequest):
         "ok": True,
         "request_id": rid,
         "pay_link": pay_link,
-        "message": "✅ So'rov qabul qilindi. 5 000 so'm to'lov qiling va skrenshot yuboring — admin tasdiqlagach CV fayl botga keladi.",
+        "message": "✅ So'rov qabul qilindi. 5 000 so'm to'lov qiling va skrenshotni shu sahifadan yuboring — admin tasdiqlagach faylni yuklab olasiz.",
     }
 
 
@@ -385,8 +388,186 @@ async def api_request_paid_obyektivka(req: ObyektivkaRequest):
         "ok": True,
         "request_id": rid,
         "pay_link": pay_link,
-        "message": "✅ So'rov qabul qilindi. 5 000 so'm to'lov qiling va skrenshot yuboring — admin tasdiqlagach Obyektivka fayl botga keladi.",
+        "message": "✅ So'rov qabul qilindi. 5 000 so'm to'lov qiling va skrenshotni shu sahifadan yuboring — admin tasdiqlagach faylni yuklab olasiz.",
     }
+
+
+@router.post("/api/paid_doc_submit_screenshot")
+async def api_paid_doc_submit_screenshot(
+    request_id: int = Query(..., ge=1),
+    kind: str = Query(..., description="cv|obyektivka"),
+    token: Optional[str] = Query(None),
+    telegram_id: Optional[str] = Query(None),
+    ptb=Depends(get_ptb_application),
+    body: dict | None = None,
+):
+    """
+    WebApp uploads payment screenshot (base64 data URL).
+    Backend forwards it to admin group with approve/reject buttons.
+    """
+    uid = resolve_telegram_uid(telegram_id, token)
+    if not uid:
+        raise HTTPException(status_code=401, detail="Foydalanuvchi aniqlanmadi")
+    k = (kind or "").strip().lower()
+    if k not in {"cv", "obyektivka"}:
+        raise HTTPException(status_code=400, detail="kind noto'g'ri")
+
+    from bot.services.supabase_db import has_db, db_get_paid_doc_request, db_set_paid_doc_request_status, db_create_payment
+
+    if not has_db():
+        raise HTTPException(status_code=503, detail="DB ishlamayapti")
+    req_row = db_get_paid_doc_request(int(request_id))
+    if not req_row or int(req_row.get("user_id") or 0) != int(uid):
+        raise HTTPException(status_code=404, detail="So'rov topilmadi")
+
+    b = body or {}
+    data_url = str(b.get("screenshot") or "").strip()
+    if not data_url.startswith("data:image"):
+        raise HTTPException(status_code=400, detail="screenshot kerak (data:image/..;base64,...)")
+    try:
+        _head, b64 = data_url.split(",", 1)
+        raw = base64.b64decode(b64)
+    except Exception:
+        raise HTTPException(status_code=400, detail="screenshot decode xato")
+
+    # Create a payment row so we can reuse existing admin callback (prempay_approve/reject).
+    plan_type = "cv_single" if k == "cv" else "obyektivka_single"
+    pid = db_create_payment(
+        int(uid),
+        plan_type,
+        float(SINGLE_DOC_PRICE_UZS),
+        screenshot_url=None,
+        metadata={"paid_doc_request_id": int(request_id), "paid_doc_kind": k, "source": "webapp"},
+    )
+    if not pid:
+        raise HTTPException(status_code=500, detail="payment yozilmadi")
+
+    try:
+        db_set_paid_doc_request_status(int(request_id), "payment_submitted")
+    except Exception:
+        pass
+
+    from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+
+    kb = InlineKeyboardMarkup(
+        [[
+            InlineKeyboardButton("✅ Tasdiqlash", callback_data=f"prempay_approve_{pid}"),
+            InlineKeyboardButton("❌ Rad etish", callback_data=f"prempay_reject_{pid}"),
+        ]]
+    )
+    caption = (
+        "💰 <b>Yangi to‘lov (single)</b>\n\n"
+        f"Payment ID: <code>{pid}</code>\n"
+        f"User ID: <code>{uid}</code>\n"
+        f"Xizmat: <b>{'CV' if k == 'cv' else 'Obyektivka'}</b>\n"
+        f"Narx: <b>{SINGLE_DOC_PRICE_UZS} so'm</b>\n"
+        f"Doc request: <code>{request_id}</code>"
+    )
+    try:
+        buf = io.BytesIO(raw)
+        buf.name = f"payment_{uid}_{int(time.time())}.jpg"
+        await ptb.bot.send_photo(
+            chat_id=int(PREMIUM_ADMIN_GROUP_ID),
+            photo=InputFile(buf),
+            caption=caption,
+            parse_mode="HTML",
+            reply_markup=kb,
+        )
+    except Exception as e:
+        logger.error("paid_doc screenshot forward failed: %s", e, exc_info=True)
+        raise HTTPException(status_code=500, detail="Admin guruhga yuborilmadi")
+    return {"ok": True, "payment_id": pid, "status": "sent_to_admin"}
+
+
+@router.get("/api/paid_doc_status")
+async def api_paid_doc_status(
+    request_id: int = Query(..., ge=1),
+    token: Optional[str] = Query(None),
+    telegram_id: Optional[str] = Query(None),
+):
+    uid = resolve_telegram_uid(telegram_id, token)
+    if not uid:
+        raise HTTPException(status_code=401, detail="Foydalanuvchi aniqlanmadi")
+    from bot.services.supabase_db import has_db, db_get_paid_doc_request
+
+    if not has_db():
+        raise HTTPException(status_code=503, detail="DB ishlamayapti")
+    row = db_get_paid_doc_request(int(request_id))
+    if not row or int(row.get("user_id") or 0) != int(uid):
+        raise HTTPException(status_code=404, detail="So'rov topilmadi")
+    return {"ok": True, "request_id": int(request_id), "status": str(row.get("status") or "")}
+
+
+@router.get("/api/paid_doc_download")
+async def api_paid_doc_download(
+    request_id: int = Query(..., ge=1),
+    token: Optional[str] = Query(None),
+    telegram_id: Optional[str] = Query(None),
+):
+    uid = resolve_telegram_uid(telegram_id, token)
+    if not uid:
+        raise HTTPException(status_code=401, detail="Foydalanuvchi aniqlanmadi")
+    from bot.services.supabase_db import has_db, db_get_paid_doc_request
+
+    if not has_db():
+        raise HTTPException(status_code=503, detail="DB ishlamayapti")
+    row = db_get_paid_doc_request(int(request_id))
+    if not row or int(row.get("user_id") or 0) != int(uid):
+        raise HTTPException(status_code=404, detail="So'rov topilmadi")
+    if str(row.get("status") or "") not in {"approved", "delivered"}:
+        raise HTTPException(status_code=409, detail="Hali tasdiqlanmagan")
+
+    payload = row.get("payload") if isinstance(row.get("payload"), dict) else {}
+    kind = str(row.get("kind") or "").strip().lower()
+    ts = int(time.time())
+    if kind == "cv":
+        from bot.services.doc_generator import generate_cv_docx
+
+        loop = asyncio.get_running_loop()
+        docx_path = await loop.run_in_executor(None, generate_cv_docx, payload)
+        if not docx_path or not os.path.exists(docx_path):
+            raise HTTPException(status_code=500, detail="CV docx yaratilmadi")
+        with open(docx_path, "rb") as fh:
+            raw = fh.read()
+        safe_remove(docx_path)
+        safe_name = (payload.get("name") or "CV").replace(" ", "_")[:30]
+        filename = f"DASTYOR_CV_{safe_name}_{ts}.docx"
+        return StreamingResponse(
+            io.BytesIO(raw),
+            media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+        )
+
+    # obyektivka
+    from bot.services.doc_generator import generate_obyektivka_docx
+
+    photo_path = None
+    try:
+        ph = payload.get("photo_data") or payload.get("photo_base64") or ""
+        if isinstance(ph, str) and ph.startswith("data:image"):
+            _h, b64 = ph.split(",", 1)
+            raw = base64.b64decode(b64)
+            os.makedirs("temp", exist_ok=True)
+            photo_path = os.path.join("temp", f"oby_photo_{uid}_{ts}.jpg")
+            with open(photo_path, "wb") as f:
+                f.write(raw)
+    except Exception:
+        photo_path = None
+    loop = asyncio.get_running_loop()
+    docx_path = await loop.run_in_executor(None, generate_obyektivka_docx, payload, photo_path)
+    if not docx_path or not os.path.exists(docx_path):
+        safe_remove(photo_path)
+        raise HTTPException(status_code=500, detail="Obyektivka docx yaratilmadi")
+    with open(docx_path, "rb") as fh:
+        raw = fh.read()
+    safe_remove(docx_path, photo_path)
+    safe_name = (payload.get("fullname") or "Obyektivka").replace(" ", "_")[:30]
+    filename = f"DASTYOR_Obyektivka_{safe_name}_{ts}.docx"
+    return StreamingResponse(
+        io.BytesIO(raw),
+        media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
 
 
 @router.post("/api/export_cv")

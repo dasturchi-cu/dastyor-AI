@@ -791,7 +791,7 @@ async function sendObyektivkaToBot(fmt){
       return;
     }
 
-    // Blocked → paid single purchase flow (5 000 so'm): create request, then jump to bot for screenshot.
+    // Blocked → paid single purchase flow (5 000 so'm): create request, upload screenshot in WebApp, then download.
     try {
       if (window.DastyorAI && window.DastyorAI.showDocumentLoading) {
         window.DastyorAI.showDocumentLoading('So‘rov yuborilmoqda...', 'To‘lovdan keyin fayl botga keladi');
@@ -844,17 +844,57 @@ async function sendObyektivkaToBot(fmt){
     }
     var data = await res.json();
     tg.HapticFeedback&&tg.HapticFeedback.notificationOccurred&&tg.HapticFeedback.notificationOccurred('success');
-    var doneMsg = (data && data.message) ? data.message : "✅ So'rov qabul qilindi. To'lov tasdiqlangach fayl chatga keladi.";
-    if (typeof tg.showAlert === 'function') {
-      tg.showAlert(doneMsg, function () {
-        try { if (data && data.pay_link && tg.openTelegramLink) tg.openTelegramLink(String(data.pay_link)); } catch (_) {}
-        try { tg.close(); } catch (_) {}
-      });
-    } else {
-      alert(doneMsg);
-      try { if (data && data.pay_link && tg.openTelegramLink) tg.openTelegramLink(String(data.pay_link)); } catch (_) {}
-      setTimeout(function () { try { tg.close(); } catch (_) {} }, 600);
-    }
+    var rid = data && data.request_id ? Number(data.request_id) : 0;
+    var doneMsg = (data && data.message) ? data.message : "✅ So'rov qabul qilindi. Endi to'lov skrenshotini yuklang.";
+    alert(doneMsg);
+    if(!rid) return;
+
+    var pick = document.createElement('input');
+    pick.type='file';
+    pick.accept='image/*';
+    pick.onchange = function(){
+      var f = pick.files && pick.files[0];
+      if(!f) return;
+      var reader = new FileReader();
+      reader.onload = async function(){
+        var screenshot = String(reader.result||'');
+        var qs = new URLSearchParams({ request_id: String(rid), kind: 'obyektivka' });
+        if (req.telegram_id) qs.set('telegram_id', String(req.telegram_id));
+        if (req.token) qs.set('token', String(req.token));
+        var r2 = await fetch(API_URL + '/api/paid_doc_submit_screenshot?' + qs.toString(), {
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({ screenshot: screenshot })
+        });
+        if(!r2.ok){
+          var err = await dastyorReadApiError(r2);
+          alert("❌ Skrenshot yuborilmadi:\n\n" + err);
+          return;
+        }
+        alert("✅ Skrenshot yuborildi. Admin tasdiqlasa, shu sahifadan yuklab olasiz.");
+
+        var pollQs = new URLSearchParams({ request_id: String(rid) });
+        if (req.telegram_id) pollQs.set('telegram_id', String(req.telegram_id));
+        if (req.token) pollQs.set('token', String(req.token));
+        var started = Date.now();
+        var timer = setInterval(async function(){
+          if(Date.now()-started>5*60*1000){ clearInterval(timer); return; }
+          try{
+            var st = await fetch(API_URL + '/api/paid_doc_status?' + pollQs.toString());
+            if(!st.ok) return;
+            var js = await st.json();
+            var s = String(js.status||'');
+            if(s==='approved'||s==='delivered'){
+              clearInterval(timer);
+              var dl = API_URL + '/api/paid_doc_download?' + pollQs.toString();
+              try{ if(tg.openLink) tg.openLink(dl); else window.open(dl,'_blank'); }catch(_){ window.open(dl,'_blank'); }
+            }
+          }catch(e){}
+        }, 3000);
+      };
+      reader.readAsDataURL(f);
+    };
+    pick.click();
   }catch(e){
     var em = (e && e.message) ? String(e.message) : String(e);
     if (em.length > 500) em = em.slice(0, 500) + '…';
