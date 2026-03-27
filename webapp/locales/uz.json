@@ -134,6 +134,7 @@
   "ref_banner_title": "🎁 Referal bonus",
   "ref_banner_loading": "Tekshirilmoqda…",
   "ref_banner_active": "Sizda 30% chegirma bor!",
+  "ref_banner_active_prices": "Sizda {pct}% chegirma bor! Standard: {s_from} → {s_to}. Premium: {p_from} → {p_to}.",
   "ref_banner_use_on_buy": "Standard/Premium sotib olishda qo'llanadi.",
   "ref_banner_progress_prefix": "Taklif qilganlar:",
   "ref_banner_progress_suffix": "5 taga yetsa — 30% chegirma.",

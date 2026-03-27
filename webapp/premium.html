@@ -726,10 +726,19 @@
     if (active && pct > 0) {
       box.classList.remove("hidden");
       badge.textContent = (pct || 30) + "%";
-      textEl.textContent =
-        (window.DA?.t?.("ref_banner_active") || "Sizda chegirma bor!") +
-        " " +
-        (window.DA?.t?.("ref_banner_use_on_buy") || "Standard/Premium sotib olishda qo'llanadi.");
+      const baseStd = 9999;
+      const basePre = 29999;
+      const discStd = Math.round(baseStd * (100 - pct) / 100);
+      const discPre = Math.round(basePre * (100 - pct) / 100);
+      const tpl =
+        window.DA?.t?.("ref_banner_active_prices") ||
+        "Sizda {pct}% chegirma bor! Standard: {s_from} → {s_to}. Premium: {p_from} → {p_to}.";
+      textEl.textContent = tpl
+        .replace("{pct}", String(pct || 30))
+        .replace("{s_from}", _fmtUzs(baseStd))
+        .replace("{s_to}", _fmtUzs(discStd))
+        .replace("{p_from}", _fmtUzs(basePre))
+        .replace("{p_to}", _fmtUzs(discPre));
       return;
     }
 

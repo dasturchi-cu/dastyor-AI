@@ -134,6 +134,7 @@
   "ref_banner_title": "🎁 Реферальный бонус",
   "ref_banner_loading": "Проверяем…",
   "ref_banner_active": "У вас скидка 30%!",
+  "ref_banner_active_prices": "У вас скидка {pct}! Standard: {s_from} → {s_to}. Premium: {p_from} → {p_to}.",
   "ref_banner_use_on_buy": "Применится при покупке Standard/Premium.",
   "ref_banner_progress_prefix": "Приглашено:",
   "ref_banner_progress_suffix": "Дойдёт до 5 — будет скидка 30%.",

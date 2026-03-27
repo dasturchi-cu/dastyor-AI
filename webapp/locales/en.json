@@ -133,6 +133,7 @@
   "ref_banner_title": "🎁 Referral bonus",
   "ref_banner_loading": "Checking…",
   "ref_banner_active": "You have a 30% discount!",
+  "ref_banner_active_prices": "You have {pct}% off! Standard: {s_from} → {s_to}. Premium: {p_from} → {p_to}.",
   "ref_banner_use_on_buy": "Applies to Standard/Premium purchase.",
   "ref_banner_progress_prefix": "Invited:",
   "ref_banner_progress_suffix": "Reach 5 — get 30% off.",
