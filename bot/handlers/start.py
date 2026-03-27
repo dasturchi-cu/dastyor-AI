@@ -195,6 +195,8 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"• Krill ↔ Lotin aylantirish\n"
         f"• Matn tarjima qilish\n"
         f"• Rasmlarni PDFga birlashtirish\n\n"
+        f"🎁 <b>Referal bonus:</b> {REFERRAL_REQUIRED_INVITES} ta do'st kirsa — <b>{REFERRAL_DISCOUNT_PERCENT}%</b> chegirma.\n"
+        f"🔗 Link olish uchun: <b>/ref</b>\n\n"
         f"👇 Quyidagi menyudan xizmat tanlang:"
     )
 
@@ -237,11 +239,17 @@ async def referral_link_command(update: Update, context: ContextTypes.DEFAULT_TY
     disc_std = apply_percent_discount(STANDARD_PRICE_UZS, pct)
     disc_pre = apply_percent_discount(PREMIUM_PRICE_UZS, pct)
 
-    status = (
-        f"✅ Bonus tayyor: <b>{pct}%</b> (Standard {format_uzs(disc_std)} so'm, Premium {format_uzs(disc_pre)} so'm)."
-        if active and pct > 0
-        else f"⏳ Hali yo'q. {REFERRAL_REQUIRED_INVITES} ta do'st kerak."
-    )
+    need = max(0, int(REFERRAL_REQUIRED_INVITES) - int(cnt))
+    if active and pct > 0:
+        status = f"✅ Bonus tayyor: <b>{pct}%</b> (Standard {format_uzs(disc_std)} so'm, Premium {format_uzs(disc_pre)} so'm)."
+    elif cnt >= int(REFERRAL_REQUIRED_INVITES):
+        # Count reached but flag not active yet (async job / DB lag) or already consumed.
+        status = (
+            "✅ Shart bajarilgan (5+). Bonus holati tekshirilmoqda — Premium sahifaga kirib ko'ring "
+            "yoki birozdan keyin yana urinib ko'ring."
+        )
+    else:
+        status = f"⏳ Yana kerak: <b>{need}</b> ta (jami {REFERRAL_REQUIRED_INVITES} bo'lsa — {REFERRAL_DISCOUNT_PERCENT}% chegirma)."
 
     text = (
         "🎁 <b>Referal link</b>\n\n"

@@ -773,21 +773,18 @@
     if (!stdNow || !stdWas || !premNow || !premWas) return;
     const baseStd = 9999;
     const basePre = 29999;
+    // UX: keep pricing simple — show ONLY one final price.
+    stdWas.style.display = "none";
+    premWas.style.display = "none";
     if (active && pct > 0) {
       const discStd = Math.round(baseStd * (100 - pct) / 100);
       const discPre = Math.round(basePre * (100 - pct) / 100);
-      stdWas.textContent = _fmtUzs(baseStd);
-      premWas.textContent = _fmtUzs(basePre);
-      stdWas.style.display = "inline";
-      premWas.style.display = "inline";
       stdNow.textContent = _fmtUzs(discStd);
       premNow.textContent = _fmtUzs(discPre);
-    } else {
-      stdWas.style.display = "none";
-      premWas.style.display = "none";
-      stdNow.textContent = _fmtUzs(baseStd);
-      premNow.textContent = _fmtUzs(basePre);
+      return;
     }
+    stdNow.textContent = _fmtUzs(baseStd);
+    premNow.textContent = _fmtUzs(basePre);
   }
 
   async function loadReferralInvitees() {
