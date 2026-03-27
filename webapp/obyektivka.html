@@ -322,7 +322,11 @@
             <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg>Tozalash
           </button>
           <button type="button" class="btn btn-primary" id="dlBtn" onclick="sendObyektivkaToBot('word')">
-            <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg><span id="btn_word_bot">💳 5 000 so'm to'lash / Word yuborish</span>
+            <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg><span id="btn_word_bot">Word botga yuborish</span>
+          </button>
+          <button type="button" class="btn btn-outline hidden" id="payBtn" onclick="payObySingle('word')">
+            <svg viewBox="0 0 24 24"><path d="M12 2v20"/><path d="M16 6a4 4 0 0 0-8 0c0 2.2 2 3.2 4 3.8s4 1.6 4 3.8a4 4 0 0 1-8 0"/></svg>
+            <span id="btn_pay_5000">💳 5 000 so'm to'lash</span>
           </button>
         </div>
       </div>
@@ -454,8 +458,9 @@ uz_l:{
   ui_step1:"Shaxsiy",ui_step2:"Qarindoshlar",ui_sec_basic:"Asosiy ma'lumotlar",ui_sec_edu_other:"Ta'lim va boshqalar",ui_photo:"Fotosurat",ui_upload_3x4:"YUKLASH\n3x4 sm",
   ui_add_work:"+ Yangi ish joyi qo'shish",ui_add_rel:"+ Qarindosh qo'shish",
   ui_next:"Keyingisi",ui_back:"Orqaga",ui_clear:"Tozalash",
-  ui_word_bot:"💳 5 000 so'm to'lash / Word yuborish",
-  ui_pay_help:"Limit tugasa shu tugmadan 5 000 so'm to'lab davom etasiz.",
+  ui_word_bot:"Word botga yuborish",
+  ui_pay_5000:"💳 5 000 so'm to'lash",
+  ui_pay_help:"Limit tugasa alohida '5 000 so'm to'lash' tugmasi orqali davom etasiz.",
   ui_rel_modal:"Qarindosh ma'lumotlari",ui_cancel:"Bekor qilish",ui_save:"Saqlash",
   ui_m_type:"Qarindoshligi",ui_m_name:"F.I.SH",ui_m_birth:"Tug'ilgan yili va joyi",ui_m_job:"Ish joyi va lavozimi",ui_m_job_custom:"Boshqa ish joyi / lavozimi",ui_m_addr:"Turar joyi"
 },
@@ -490,6 +495,7 @@ function applyUiLang(){
     btn_add_work:'ui_add_work',btn_add_rel:'ui_add_rel',
     btn_next_1:'ui_next',btn_back_2:'ui_back',btn_clear_1:'ui_clear',btn_clear_2:'ui_clear',
     btn_word_bot:'ui_word_bot',
+    btn_pay_5000:'ui_pay_5000',
     pay_help_oby:'ui_pay_help',
     m_title:'ui_rel_modal',m_btn_cancel:'ui_cancel',m_btn_save:'ui_save',
     m_lbl_type:'ui_m_type',m_lbl_name:'ui_m_name',m_lbl_birth:'ui_m_birth',m_lbl_job:'ui_m_job',m_lbl_job_custom:'ui_m_job_custom',m_lbl_addr:'ui_m_addr'
@@ -649,13 +655,17 @@ function buildObyPayload(fmt){
 function syncObyQuotaUi() {
   var u = window.DastyorAI && window.DastyorAI.getUser ? window.DastyorAI.getUser() : null;
   var btn = document.getElementById('dlBtn');
+  var payBtn = document.getElementById('payBtn');
   var warn = document.getElementById('obyQuotaWarn');
   var isPrem = !!(u && (u.is_premium || u.plan === 'premium' || u.user_plan === 'premium'));
   var blocked = window.DastyorAI && window.DastyorAI.isQuotaBlockedForCategory
     ? window.DastyorAI.isQuotaBlockedForCategory(u, 'obyektivka')
     : false;
-  // Do NOT disable — user can choose 5k single purchase or Premium.
-  if (btn) btn.disabled = false;
+  if (btn) btn.disabled = !!blocked;
+  if (payBtn) {
+    if (blocked) payBtn.classList.remove('hidden');
+    else payBtn.classList.add('hidden');
+  }
   if (warn) {
     if (blocked) {
       warn.classList.remove('hidden');
@@ -734,74 +744,35 @@ async function sendObyektivkaToBot(fmt){
     alert("Faqat Telegram WebApp ichida ishlaydi!");
     return;
   }
-  var u = (window.DastyorAI && window.DastyorAI.getUser) ? window.DastyorAI.getUser() : null;
-  var isPrem = !!(u && (u.is_premium || u.plan === 'premium' || u.user_plan === 'premium'));
-  var blocked = window.DastyorAI && window.DastyorAI.isQuotaBlockedForCategory
-    ? window.DastyorAI.isQuotaBlockedForCategory(u, 'obyektivka')
-    : false;
-
-  function _goPremium(){
-    try{
-      var qs=new URLSearchParams(location.search||'');
-      var tid=qs.get('telegram_id')||(u&&(u.telegram_id||u.id))||'';
-      var lang=qs.get('lang')||'uz_lat';
-      location.href='premium.html?telegram_id='+encodeURIComponent(String(tid))+'&lang='+encodeURIComponent(String(lang))+'&buy=premium';
-    }catch(_){
-      location.href='premium.html?buy=premium';
-    }
-  }
-
-  async function _askPayOrPremium(){
-    var msg = isPrem
-      ? "⛔ Limit tugabti.\n\nXohlasangiz 5 000 so‘mga Obyektivka olishingiz mumkin yoki Premiumni yangilang."
-      : "⛔ Bu xizmat pullik.\n\nXohlasangiz 5 000 so‘mga Obyektivka olishingiz mumkin yoki Premium sotib oling.";
-    if (tg && typeof tg.showPopup === 'function') {
-      return await new Promise(function(resolve){
-        tg.showPopup({
-          title: "Obyektivka",
-          message: msg,
-          buttons: [
-            { id: "pay", type: "default", text: "5 000 so‘m to‘lash" },
-            { id: "prem", type: "destructive", text: "Premium olish" },
-            { id: "cancel", type: "cancel", text: "Bekor" },
-          ]
-        }, function(id){ resolve(id||"cancel"); });
-      });
-    }
-    var ok = confirm(msg + "\n\nOK = 5 000 so‘m to‘lash\nCancel = Premium olish");
-    return ok ? "pay" : "prem";
-  }
-
-  if (blocked) {
-    var choice = await _askPayOrPremium();
-    if (choice === "prem") { _goPremium(); return; }
-    if (choice !== "pay") return;
-  }
   var btn=document.getElementById('dlBtn');
   if(btn)btn.disabled=true;
   try{
-    // If NOT blocked → normal premium/free flow (send via API, file comes to chat).
-    if (!blocked) {
-      await sendObyektivkaViaApi(fmt);
-      tg.HapticFeedback&&tg.HapticFeedback.notificationOccurred&&tg.HapticFeedback.notificationOccurred('success');
-      var doneMsg2 = (fmt === 'pdf')
-        ? "✅ Tayyor! PDF fayl chatga yuborildi. Chatni ochib faylni oling."
-        : "✅ Tayyor! Word fayl chatga yuborildi. Chatni ochib faylni oling.";
-      if (typeof tg.showAlert === 'function') {
-        tg.showAlert(doneMsg2, function () { try { tg.close(); } catch (_) {} });
-      } else {
-        alert(doneMsg2);
-        setTimeout(function () { try { tg.close(); } catch (_) {} }, 600);
-      }
-      return;
+    await sendObyektivkaViaApi(fmt);
+    tg.HapticFeedback&&tg.HapticFeedback.notificationOccurred&&tg.HapticFeedback.notificationOccurred('success');
+    var doneMsg2 = (fmt === 'pdf')
+      ? "✅ Tayyor! PDF fayl chatga yuborildi. Chatni ochib faylni oling."
+      : "✅ Tayyor! Word fayl chatga yuborildi. Chatni ochib faylni oling.";
+    if (typeof tg.showAlert === 'function') {
+      tg.showAlert(doneMsg2, function () { try { tg.close(); } catch (_) {} });
+    } else {
+      alert(doneMsg2);
+      setTimeout(function () { try { tg.close(); } catch (_) {} }, 600);
     }
+  }catch(e){
+    var em = (e && e.message) ? String(e.message) : String(e);
+    if (em.length > 500) em = em.slice(0, 500) + '…';
+    alert("❌ Yuborishda xatolik:\n\n" + em);
+  }finally{
+    try { if (window.DastyorAI && window.DastyorAI.hideDocumentLoading) window.DastyorAI.hideDocumentLoading(); } catch (_) {}
+    if(btn)btn.disabled=false;
+  }
+}
 
-    // Blocked → paid single purchase flow (5 000 so'm): create request, upload screenshot in WebApp, then download.
-    try {
-      if (window.DastyorAI && window.DastyorAI.showDocumentLoading) {
-        window.DastyorAI.showDocumentLoading('So‘rov yuborilmoqda...', 'To‘lovdan keyin fayl botga keladi');
-      }
-    } catch (_) {}
+async function payObySingle(fmt){
+  var tg=window.Telegram&&window.Telegram.WebApp?window.Telegram.WebApp:null;
+  if(!tg){ alert("Faqat Telegram WebApp ichida ishlaydi!"); return; }
+  try{
+    try { if (window.DastyorAI && window.DastyorAI.showDocumentLoading) window.DastyorAI.showDocumentLoading('To‘lov...', 'Karta va skrenshot'); } catch (_) {}
     var payload = buildObyPayload(fmt);
     var req = {
       telegram_id: telegramId ? parseInt(telegramId, 10) : null,
@@ -826,58 +797,34 @@ async function sendObyektivkaToBot(fmt){
         return { year: ((w.f || '') + ((w.f || w.t) ? '-' : '') + (w.t || '')).replace(/^-|-$/g,''), position: w.d || '' };
       }),
       relatives: (payload.rels || []).map(function(r){
-        return {
-          degree: r.type || '',
-          fullname: r.name || '',
-          birth_year_place: r.birth || '',
-          work_place: r.job || '',
-          address: r.addr || ''
-        };
+        return { degree:r.type||'', fullname:r.name||'', birth_year_place:r.birth||'', work_place:r.job||'', address:r.addr||'' };
       }),
       photo_data: payload.photo_data || ''
     };
     var tok = getDastyorSessionToken();
     if (tok) req.token = tok;
-    var res = await fetch(API_URL + '/api/request_paid_obyektivka', {
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body: JSON.stringify(req)
-    });
-    if(!res.ok){
-      var errMsg = await dastyorReadApiError(res);
-      throw new Error(errMsg);
-    }
+    var res = await fetch(API_URL + '/api/request_paid_obyektivka', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(req) });
+    if(!res.ok){ var errMsg = await dastyorReadApiError(res); throw new Error(errMsg); }
     var data = await res.json();
-    tg.HapticFeedback&&tg.HapticFeedback.notificationOccurred&&tg.HapticFeedback.notificationOccurred('success');
     var rid = data && data.request_id ? Number(data.request_id) : 0;
-    var doneMsg = (data && data.message) ? data.message : "✅ So'rov qabul qilindi. Endi to'lov skrenshotini yuklang.";
-    alert(doneMsg);
-    if(!rid) return;
+    if(!rid) throw new Error("request_id yo'q");
 
-    // Show card details (where to pay) + copy helper
+    // Card popup
     try{
-      var cardRes = await fetch(API_URL + '/api/payment_card', { cache: 'no-store' });
+      var cardRes = await fetch(API_URL + '/api/payment_card', { cache:'no-store' });
       if(cardRes.ok){
         var c = await cardRes.json();
         var cardNum = String(c.card_number||'');
         var owner = String(c.card_owner||'');
         var price = String(c.single_doc_price_uzs||5000);
-        var cardMsg =
-          "💳 To‘lov (" + price + " so‘m)\n\n" +
-          "Karta raqami: " + cardNum + "\n" +
-          "Karta egasi: " + owner + "\n\n" +
-          "To‘lov qilgach skrenshotni yuklang.";
+        var cardMsg = "💳 To‘lov ("+price+" so‘m)\n\nKarta raqami: "+cardNum+"\nKarta egasi: "+owner+"\n\nTo‘lov qilgach skrenshotni yuklang.";
         if(tg && typeof tg.showPopup === 'function'){
           await new Promise(function(resolve){
-            tg.showPopup({
-              title: "To‘lov",
-              message: cardMsg,
-              buttons: [
-                { id: "copy", type: "default", text: "Kartani nusxa olish" },
-                { id: "ok", type: "default", text: "Skrenshot yuklash" },
-                { id: "cancel", type: "cancel", text: "Bekor" }
-              ]
-            }, async function(id){
+            tg.showPopup({ title:"To‘lov", message: cardMsg, buttons:[
+              {id:"copy",type:"default",text:"Kartani nusxa olish"},
+              {id:"ok",type:"default",text:"Skrenshot yuklash"},
+              {id:"cancel",type:"cancel",text:"Bekor"},
+            ]}, async function(id){
               if(id==='copy'){
                 try{ await navigator.clipboard.writeText(cardNum); }catch(_){ try{ prompt("Karta raqami (nusxa oling):", cardNum); }catch(e){} }
                 resolve('ok'); return;
@@ -885,50 +832,38 @@ async function sendObyektivkaToBot(fmt){
               resolve(id||'cancel');
             });
           });
-        } else {
-          alert(cardMsg);
-        }
+        } else { alert(cardMsg); }
       }
     }catch(e){}
 
-    var pick = document.createElement('input');
-    pick.type='file';
-    pick.accept='image/*';
-    pick.onchange = function(){
-      var f = pick.files && pick.files[0];
-      if(!f) return;
-      var reader = new FileReader();
-      reader.onload = async function(){
-        var screenshot = String(reader.result||'');
-        var qs = new URLSearchParams({ request_id: String(rid), kind: 'obyektivka' });
-        if (req.telegram_id) qs.set('telegram_id', String(req.telegram_id));
-        if (req.token) qs.set('token', String(req.token));
-        var r2 = await fetch(API_URL + '/api/paid_doc_submit_screenshot?' + qs.toString(), {
-          method:'POST',
-          headers:{'Content-Type':'application/json'},
-          body: JSON.stringify({ screenshot: screenshot })
-        });
-        if(!r2.ok){
-          var err = await dastyorReadApiError(r2);
-          alert("❌ Skrenshot yuborilmadi:\n\n" + err);
-          return;
-        }
-        alert("✅ Skrenshot yuborildi. Admin tasdiqlasa, shu sahifadan yuklab olasiz.");
+    var pick=document.createElement('input');
+    pick.type='file'; pick.accept='image/*';
+    pick.onchange=function(){
+      var f=pick.files&&pick.files[0]; if(!f) return;
+      var reader=new FileReader();
+      reader.onload=async function(){
+        var screenshot=String(reader.result||'');
+        var qs=new URLSearchParams({ request_id:String(rid), kind:'obyektivka' });
+        if(req.telegram_id) qs.set('telegram_id', String(req.telegram_id));
+        if(req.token) qs.set('token', String(req.token));
+        var r2=await fetch(API_URL + '/api/paid_doc_submit_screenshot?' + qs.toString(), { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ screenshot:screenshot }) });
+        if(!r2.ok){ var err=await dastyorReadApiError(r2); alert("❌ Skrenshot yuborilmadi:\n\n"+err); return; }
+        alert("✅ Skrenshot yuborildi. Admin tasdiqlasa, fayl shu yerdan yuklanadi.");
 
-        var pollQs = new URLSearchParams({ request_id: String(rid) });
-        if (req.telegram_id) pollQs.set('telegram_id', String(req.telegram_id));
-        if (req.token) pollQs.set('token', String(req.token));
-        var started = Date.now();
-        var timer = setInterval(async function(){
+        var pollQs=new URLSearchParams({ request_id:String(rid) });
+        if(req.telegram_id) pollQs.set('telegram_id', String(req.telegram_id));
+        if(req.token) pollQs.set('token', String(req.token));
+        var started=Date.now();
+        var timer=setInterval(async function(){
           if(Date.now()-started>5*60*1000){ clearInterval(timer); return; }
           try{
-            var st = await fetch(API_URL + '/api/paid_doc_status?' + pollQs.toString());
+            var st=await fetch(API_URL + '/api/paid_doc_status?' + pollQs.toString(), { cache:'no-store' });
             if(!st.ok) return;
-            var js = await st.json();
-            var s = String(js.status||'');
+            var js=await st.json();
+            var s=String(js.status||'');
             if(s==='approved'||s==='delivered'){
               clearInterval(timer);
-              var dl = API_URL + '/api/paid_doc_download?' + pollQs.toString();
+              var dl=API_URL + '/api/paid_doc_download?' + pollQs.toString();
               try{ if(tg.openLink) tg.openLink(dl); else window.open(dl,'_blank'); }catch(_){ window.open(dl,'_blank'); }
             }
           }catch(e){}
@@ -938,12 +873,10 @@ async function sendObyektivkaToBot(fmt){
     };
     pick.click();
   }catch(e){
-    var em = (e && e.message) ? String(e.message) : String(e);
-    if (em.length > 500) em = em.slice(0, 500) + '…';
-    alert("❌ Yuborishda xatolik:\n\n" + em);
+    var em=(e&&e.message)?String(e.message):String(e);
+    alert("❌ To‘lovda xatolik:\n\n"+em);
   }finally{
     try { if (window.DastyorAI && window.DastyorAI.hideDocumentLoading) window.DastyorAI.hideDocumentLoading(); } catch (_) {}
-    if(btn)btn.disabled=false;
   }
 }
 
