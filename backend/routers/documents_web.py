@@ -39,6 +39,21 @@ router = APIRouter(tags=["web-documents"])
 
 SINGLE_DOC_PRICE_UZS = int(os.getenv("SINGLE_DOC_PRICE_UZS", "5000") or "5000")
 PREMIUM_ADMIN_GROUP_ID = int(os.getenv("PREMIUM_ADMIN_GROUP_ID", "-1003457224552") or "-1003457224552")
+PAYMENT_CARD_NUMBER = (os.getenv("PAYMENT_CARD_NUMBER", "9860 1201 7225 8424") or "9860 1201 7225 8424").strip()
+PAYMENT_CARD_OWNER = (os.getenv("PAYMENT_CARD_OWNER", "DILNOZA MOMINOVA") or "DILNOZA MOMINOVA").strip()
+
+
+@router.get("/api/payment_card")
+async def api_payment_card() -> dict:
+    """
+    Card details for manual payments (webapp).
+    """
+    return {
+        "ok": True,
+        "card_number": PAYMENT_CARD_NUMBER,
+        "card_owner": PAYMENT_CARD_OWNER,
+        "single_doc_price_uzs": SINGLE_DOC_PRICE_UZS,
+    }
 
 
 @router.post("/api/cv_preview_html")

@@ -1159,6 +1159,47 @@
         alert((data && data.message) ? data.message : "✅ So'rov qabul qilindi. Endi to'lov skrenshotini yuklang.");
         if (!rid) return;
 
+        // Show card details (where to pay) + copy helper
+        try {
+          const cardRes = await fetch(getCvApiBase() + '/api/payment_card', { cache: 'no-store' });
+          if (cardRes.ok) {
+            const c = await cardRes.json();
+            const cardNum = String(c.card_number || '');
+            const owner = String(c.card_owner || '');
+            const price = String(c.single_doc_price_uzs || 5000);
+            const cardMsg =
+              "💳 To‘lov (" + price + " so‘m)\n\n" +
+              "Karta raqami: " + cardNum + "\n" +
+              "Karta egasi: " + owner + "\n\n" +
+              "To‘lov qilgach skrenshotni yuklang.";
+            if (tg && typeof tg.showPopup === 'function') {
+              await new Promise((resolve) => {
+                tg.showPopup(
+                  {
+                    title: "To‘lov",
+                    message: cardMsg,
+                    buttons: [
+                      { id: "copy", type: "default", text: "Kartani nusxa olish" },
+                      { id: "ok", type: "default", text: "Skrenshot yuklash" },
+                      { id: "cancel", type: "cancel", text: "Bekor" },
+                    ],
+                  },
+                  async (id) => {
+                    if (id === "copy") {
+                      try { await navigator.clipboard.writeText(cardNum); } catch (_) { try { prompt("Karta raqami (nusxa oling):", cardNum); } catch (_) {} }
+                      resolve("ok");
+                      return;
+                    }
+                    resolve(id || "cancel");
+                  }
+                );
+              });
+            } else {
+              alert(cardMsg);
+            }
+          }
+        } catch (_) {}
+
         // pick screenshot
         const pick = document.createElement('input');
         pick.type = 'file';

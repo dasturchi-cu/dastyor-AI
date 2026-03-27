@@ -849,6 +849,43 @@ async function sendObyektivkaToBot(fmt){
     alert(doneMsg);
     if(!rid) return;
 
+    // Show card details (where to pay) + copy helper
+    try{
+      var cardRes = await fetch(API_URL + '/api/payment_card', { cache: 'no-store' });
+      if(cardRes.ok){
+        var c = await cardRes.json();
+        var cardNum = String(c.card_number||'');
+        var owner = String(c.card_owner||'');
+        var price = String(c.single_doc_price_uzs||5000);
+        var cardMsg =
+          "💳 To‘lov (" + price + " so‘m)\n\n" +
+          "Karta raqami: " + cardNum + "\n" +
+          "Karta egasi: " + owner + "\n\n" +
+          "To‘lov qilgach skrenshotni yuklang.";
+        if(tg && typeof tg.showPopup === 'function'){
+          await new Promise(function(resolve){
+            tg.showPopup({
+              title: "To‘lov",
+              message: cardMsg,
+              buttons: [
+                { id: "copy", type: "default", text: "Kartani nusxa olish" },
+                { id: "ok", type: "default", text: "Skrenshot yuklash" },
+                { id: "cancel", type: "cancel", text: "Bekor" }
+              ]
+            }, async function(id){
+              if(id==='copy'){
+                try{ await navigator.clipboard.writeText(cardNum); }catch(_){ try{ prompt("Karta raqami (nusxa oling):", cardNum); }catch(e){} }
+                resolve('ok'); return;
+              }
+              resolve(id||'cancel');
+            });
+          });
+        } else {
+          alert(cardMsg);
+        }
+      }
+    }catch(e){}
+
     var pick = document.createElement('input');
     pick.type='file';
     pick.accept='image/*';
