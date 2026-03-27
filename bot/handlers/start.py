@@ -141,7 +141,26 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 if inviter and inviter != int(uid):
                     from bot.services.supabase_db import has_db, db_register_referral
                     if has_db():
-                        db_register_referral(inviter, int(uid))
+                        res = db_register_referral(inviter, int(uid)) or {}
+                        inserted = bool(res.get("inserted"))
+                        cnt = int(res.get("referrals_count") or 0) if isinstance(res, dict) else 0
+                        # Notify inviter only if this invite was newly counted.
+                        if inserted:
+                            try:
+                                uname = f"@{user.username}" if user.username else ""
+                                nm = (user.first_name or "").strip()
+                                who = (nm + (" " + uname if uname else "")).strip() or "Do'stingiz"
+                                need = max(0, 5 - cnt)
+                                msg = (
+                                    "✅ <b>Referal hisoblandi!</b>\n\n"
+                                    f"👤 Yangi do'st: <b>{who}</b>\n"
+                                    f"👥 Jami: <b>{cnt}</b> ta\n"
+                                    + (f"⏳ Yana kerak: <b>{need}</b> ta (5 taga yetsa — 30% chegirma)\n" if need > 0 else "🎁 Bonus tayyor: <b>30% chegirma</b>!\n")
+                                )
+                                await context.bot.send_message(chat_id=int(inviter), text=msg, parse_mode="HTML")
+                            except Exception:
+                                # If inviter blocked the bot or Telegram fails, ignore.
+                                pass
     except Exception:
         logger.debug("referral start payload failed", exc_info=True)
 
