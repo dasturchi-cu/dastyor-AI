@@ -1057,14 +1057,75 @@
         alert("Faqat Telegram WebApp ichida ishlaydi!");
         return;
       }
+      const u = (window.DastyorAI && window.DastyorAI.getUser) ? window.DastyorAI.getUser() : null;
+      const isPrem = !!(u && (u.is_premium || u.plan === 'premium' || u.user_plan === 'premium'));
+      const blocked = window.DastyorAI && window.DastyorAI.isQuotaBlockedForCategory
+        ? window.DastyorAI.isQuotaBlockedForCategory(u, 'cv')
+        : false;
+
+      function _goPremium() {
+        try {
+          const qs = new URLSearchParams(location.search || '');
+          const tid = qs.get('telegram_id') || (u && (u.telegram_id || u.id)) || '';
+          const lang = qs.get('lang') || 'uz_lat';
+          location.href = 'premium.html?telegram_id=' + encodeURIComponent(String(tid)) + '&lang=' + encodeURIComponent(String(lang)) + '&buy=premium';
+        } catch (_) {
+          location.href = 'premium.html?buy=premium';
+        }
+      }
+
+      async function _askPayOrPremium() {
+        const msg = isPrem
+          ? "⛔ Limit tugabti.\n\nXohlasangiz 5 000 so‘mga CV olishingiz mumkin yoki Premiumni yangilang."
+          : "⛔ Bu xizmat pullik.\n\nXohlasangiz 5 000 so‘mga CV olishingiz mumkin yoki Premium sotib oling.";
+        // Prefer native TG popup with 2 buttons
+        if (tg && typeof tg.showPopup === 'function') {
+          return await new Promise((resolve) => {
+            tg.showPopup(
+              {
+                title: "CV",
+                message: msg,
+                buttons: [
+                  { id: "pay", type: "default", text: "5 000 so‘m to‘lash" },
+                  { id: "prem", type: "destructive", text: "Premium olish" },
+                  { id: "cancel", type: "cancel", text: "Bekor" },
+                ],
+              },
+              (id) => resolve(id || "cancel")
+            );
+          });
+        }
+        const ok = confirm(msg + "\n\nOK = 5 000 so‘m to‘lash\nCancel = Premium olish");
+        return ok ? "pay" : "prem";
+      }
+
+      if (blocked) {
+        const choice = await _askPayOrPremium();
+        if (choice === "prem") {
+          _goPremium();
+          return;
+        }
+        if (choice !== "pay") return;
+      }
+
       try {
         try {
           if (window.DastyorAI && window.DastyorAI.showDocumentLoading) {
-            window.DastyorAI.showDocumentLoading('So‘rov yuborilmoqda...', 'To‘lovdan keyin fayl botga keladi');
+            window.DastyorAI.showDocumentLoading(blocked ? 'So‘rov yuborilmoqda...' : 'Hujjat tayyorlanmoqda...', blocked ? 'To‘lovdan keyin fayl botga keladi' : 'Iltimos, 10–15 soniya kuting');
           }
         } catch (_) {}
 
-        // Paid single purchase flow (5 000 so'm): create request, then jump to bot for screenshot.
+        // If NOT blocked → normal premium/free flow (send via API, file comes to chat).
+        if (!blocked) {
+          const data = await sendCvViaApi(fmt);
+          tg.HapticFeedback && tg.HapticFeedback.notificationOccurred && tg.HapticFeedback.notificationOccurred('success');
+          const line = (data && data.message) ? data.message : "✅ Fayl botga yuborildi. Telegram chatda kuting.";
+          alert(line);
+          setTimeout(() => { try { tg.close(); } catch (_) {} }, 900);
+          return;
+        }
+
+        // Blocked → paid single purchase flow (5 000 so'm): create request, then jump to bot for screenshot.
         const payload = buildCvPayload(fmt);
         if (payload.img && String(payload.img).startsWith('data:image')) {
           payload.img = await maybeCompressDataUrl(payload.img);

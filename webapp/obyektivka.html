@@ -725,10 +725,69 @@ async function sendObyektivkaToBot(fmt){
     alert("Faqat Telegram WebApp ichida ishlaydi!");
     return;
   }
+  var u = (window.DastyorAI && window.DastyorAI.getUser) ? window.DastyorAI.getUser() : null;
+  var isPrem = !!(u && (u.is_premium || u.plan === 'premium' || u.user_plan === 'premium'));
+  var blocked = window.DastyorAI && window.DastyorAI.isQuotaBlockedForCategory
+    ? window.DastyorAI.isQuotaBlockedForCategory(u, 'obyektivka')
+    : false;
+
+  function _goPremium(){
+    try{
+      var qs=new URLSearchParams(location.search||'');
+      var tid=qs.get('telegram_id')||(u&&(u.telegram_id||u.id))||'';
+      var lang=qs.get('lang')||'uz_lat';
+      location.href='premium.html?telegram_id='+encodeURIComponent(String(tid))+'&lang='+encodeURIComponent(String(lang))+'&buy=premium';
+    }catch(_){
+      location.href='premium.html?buy=premium';
+    }
+  }
+
+  async function _askPayOrPremium(){
+    var msg = isPrem
+      ? "⛔ Limit tugabti.\n\nXohlasangiz 5 000 so‘mga Obyektivka olishingiz mumkin yoki Premiumni yangilang."
+      : "⛔ Bu xizmat pullik.\n\nXohlasangiz 5 000 so‘mga Obyektivka olishingiz mumkin yoki Premium sotib oling.";
+    if (tg && typeof tg.showPopup === 'function') {
+      return await new Promise(function(resolve){
+        tg.showPopup({
+          title: "Obyektivka",
+          message: msg,
+          buttons: [
+            { id: "pay", type: "default", text: "5 000 so‘m to‘lash" },
+            { id: "prem", type: "destructive", text: "Premium olish" },
+            { id: "cancel", type: "cancel", text: "Bekor" },
+          ]
+        }, function(id){ resolve(id||"cancel"); });
+      });
+    }
+    var ok = confirm(msg + "\n\nOK = 5 000 so‘m to‘lash\nCancel = Premium olish");
+    return ok ? "pay" : "prem";
+  }
+
+  if (blocked) {
+    var choice = await _askPayOrPremium();
+    if (choice === "prem") { _goPremium(); return; }
+    if (choice !== "pay") return;
+  }
   var btn=document.getElementById('dlBtn');
   if(btn)btn.disabled=true;
   try{
-    // Paid single purchase flow (5 000 so'm): create request, then jump to bot for screenshot.
+    // If NOT blocked → normal premium/free flow (send via API, file comes to chat).
+    if (!blocked) {
+      await sendObyektivkaViaApi(fmt);
+      tg.HapticFeedback&&tg.HapticFeedback.notificationOccurred&&tg.HapticFeedback.notificationOccurred('success');
+      var doneMsg2 = (fmt === 'pdf')
+        ? "✅ Tayyor! PDF fayl chatga yuborildi. Chatni ochib faylni oling."
+        : "✅ Tayyor! Word fayl chatga yuborildi. Chatni ochib faylni oling.";
+      if (typeof tg.showAlert === 'function') {
+        tg.showAlert(doneMsg2, function () { try { tg.close(); } catch (_) {} });
+      } else {
+        alert(doneMsg2);
+        setTimeout(function () { try { tg.close(); } catch (_) {} }, 600);
+      }
+      return;
+    }
+
+    // Blocked → paid single purchase flow (5 000 so'm): create request, then jump to bot for screenshot.
     try {
       if (window.DastyorAI && window.DastyorAI.showDocumentLoading) {
         window.DastyorAI.showDocumentLoading('So‘rov yuborilmoqda...', 'To‘lovdan keyin fayl botga keladi');
