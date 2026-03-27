@@ -334,6 +334,20 @@
       <div class="w-full text-center text-xs text-slate-500 -mt-3 mb-3" data-i18n="pay_help">
         Limit tugasa shu tugmadan 5 000 so'm to'lab davom etasiz.
       </div>
+      <div id="cvPayPanel" class="hidden w-full rounded-2xl border border-emerald-200 bg-emerald-50 p-4 mb-4">
+        <div class="text-sm font-bold text-emerald-800 mb-2">💳 To'lov (5 000 so'm)</div>
+        <div id="cvPayCardInfo" class="text-xs text-slate-700 whitespace-pre-line mb-3">Karta ma'lumotlari yuklanmoqda...</div>
+        <div class="flex flex-wrap gap-2 mb-3">
+          <button type="button" id="cvCopyCardBtn" class="px-3 py-2 rounded-lg bg-white border border-slate-300 text-slate-700 text-xs font-semibold">📋 Kartani nusxa olish</button>
+          <label for="cvPayShotInput" class="px-3 py-2 rounded-lg bg-white border border-slate-300 text-slate-700 text-xs font-semibold cursor-pointer">🖼 Skrenshot tanlash</label>
+          <input id="cvPayShotInput" type="file" accept="image/*" class="hidden" />
+          <button type="button" id="cvPaySendBtn" class="px-3 py-2 rounded-lg bg-emerald-600 text-white text-xs font-semibold disabled:opacity-50" disabled>📤 Yuborish</button>
+        </div>
+        <div id="cvPayStatus" class="text-xs text-slate-700">Skrenshot tanlang va yuboring.</div>
+        <div class="mt-3">
+          <button type="button" id="cvPayDownloadBtn" class="hidden px-3 py-2 rounded-lg bg-blue-600 text-white text-xs font-semibold">⬇️ Faylni yuklash</button>
+        </div>
+      </div>
 
       <div id="previewPane" class="preview-pane-light w-full flex items-start justify-center p-4 sm:p-10 scroller overflow-y-auto rounded-2xl">
         <div class="cv-canvas-wrapper" id="previewScaleWrapper">
@@ -1108,29 +1122,45 @@
       }
     }
 
+    let _cvPayState = { requestId: 0, token: "", telegramId: 0, screenshot: "", pollTimer: null, cardNumber: "" };
+
     async function payCvSingle(fmt) {
       const tg = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp : null;
       if (!tg) { alert("Faqat Telegram WebApp ichida ishlaydi!"); return; }
+      const base = getCvApiBase();
+      const panel = document.getElementById('cvPayPanel');
+      const cardInfo = document.getElementById('cvPayCardInfo');
+      const status = document.getElementById('cvPayStatus');
+      const sendBtn = document.getElementById('cvPaySendBtn');
+      const dlBtn = document.getElementById('cvPayDownloadBtn');
+      const shotInput = document.getElementById('cvPayShotInput');
+      const copyBtn = document.getElementById('cvCopyCardBtn');
       try {
-        try { if (window.DastyorAI && window.DastyorAI.showDocumentLoading) window.DastyorAI.showDocumentLoading('To‘lov...', 'Karta va skrenshot'); } catch (_) {}
         const payload = buildCvPayload(fmt);
         if (payload.img && String(payload.img).startsWith('data:image')) payload.img = await maybeCompressDataUrl(payload.img);
         let sessionToken = null;
         try { if (window.DastyorAI && window.DastyorAI.getToken) sessionToken = window.DastyorAI.getToken(); } catch (_) {}
         if (!sessionToken) { try { sessionToken = sessionStorage.getItem('tg_token'); } catch (_) {} }
-        const req = Object.assign({}, payload, {
-          telegram_id: telegramId ? parseInt(telegramId, 10) : null,
-          token: sessionToken || undefined,
-        });
+        const req = Object.assign({}, payload, { telegram_id: telegramId ? parseInt(telegramId, 10) : null, token: sessionToken || undefined });
         delete req.action; delete req.format;
-        const base = getCvApiBase();
+
         const res = await fetch(base + '/api/request_paid_cv', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(req) });
         if (!res.ok) { let d=''; try{const j=await res.json(); d=j.detail||j.message||'';}catch(_){} throw new Error(d||('Server '+res.status)); }
         const data = await res.json();
         const rid = data && data.request_id ? Number(data.request_id) : 0;
         if (!rid) throw new Error("request_id yo'q");
 
-        // Card popup
+        _cvPayState.requestId = rid;
+        _cvPayState.token = req.token || "";
+        _cvPayState.telegramId = req.telegram_id || 0;
+        _cvPayState.screenshot = "";
+        if (_cvPayState.pollTimer) { clearInterval(_cvPayState.pollTimer); _cvPayState.pollTimer = null; }
+
+        if (panel) panel.classList.remove('hidden');
+        if (dlBtn) dlBtn.classList.add('hidden');
+        if (sendBtn) sendBtn.disabled = true;
+        if (status) status.textContent = "Skrenshot tanlang va yuboring.";
+
         try {
           const cardRes = await fetch(base + '/api/payment_card', { cache:'no-store' });
           if (cardRes.ok) {
@@ -1138,84 +1168,79 @@
             const cardNum = String(c.card_number || '');
             const owner = String(c.card_owner || '');
             const price = String(c.single_doc_price_uzs || 5000);
-            const cardMsg =
-              "💳 To‘lov (" + price + " so‘m)\n\n" +
-              "Karta raqami: " + cardNum + "\n" +
-              "Karta egasi: " + owner + "\n\n" +
-              "To‘lov qilgach skrenshotni yuklang.";
-            if (tg && typeof tg.showPopup === 'function') {
-              await new Promise((resolve) => {
-                tg.showPopup({ title:"To‘lov", message: cardMsg, buttons:[
-                  {id:"copy",type:"default",text:"Kartani nusxa olish"},
-                  {id:"ok",type:"default",text:"Skrenshot yuklash"},
-                  {id:"cancel",type:"cancel",text:"Bekor"},
-                ]}, async (id)=>{
-                  if (id === "copy") {
-                    try { await navigator.clipboard.writeText(cardNum); } catch (_) { try { prompt("Karta raqami (nusxa oling):", cardNum); } catch (_) {} }
-                    resolve("ok"); return;
-                  }
-                  resolve(id || "cancel");
-                });
-              });
-            } else {
-              alert(cardMsg);
-            }
+            _cvPayState.cardNumber = cardNum;
+            if (cardInfo) cardInfo.textContent = "Karta: " + cardNum + "\nEga: " + owner + "\nNarx: " + price + " so'm";
           }
         } catch (_) {}
 
-        // Pick screenshot
-        const pick = document.createElement('input');
-        pick.type = 'file';
-        pick.accept = 'image/*';
-        pick.onchange = async () => {
-          const f = pick.files && pick.files[0];
-          if (!f) return;
-          const reader = new FileReader();
-          reader.onload = async () => {
-            const screenshot = String(reader.result || '');
-            const qs = new URLSearchParams({ request_id: String(rid), kind: 'cv' });
-            if (req.telegram_id) qs.set('telegram_id', String(req.telegram_id));
-            if (req.token) qs.set('token', String(req.token));
+        if (copyBtn) {
+          copyBtn.onclick = async () => {
+            const num = _cvPayState.cardNumber || "";
+            try { await navigator.clipboard.writeText(num); } catch (_) { try { prompt("Karta raqami (nusxa oling):", num); } catch (_) {} }
+          };
+        }
+        if (shotInput) {
+          shotInput.value = "";
+          shotInput.onchange = () => {
+            const f = shotInput.files && shotInput.files[0];
+            if (!f) return;
+            const rd = new FileReader();
+            rd.onload = () => {
+              _cvPayState.screenshot = String(rd.result || "");
+              if (sendBtn) sendBtn.disabled = !_cvPayState.screenshot;
+              if (status) status.textContent = "Skrenshot tayyor. 'Yuborish'ni bosing.";
+            };
+            rd.readAsDataURL(f);
+          };
+        }
+        if (sendBtn) {
+          sendBtn.onclick = async () => {
+            if (!_cvPayState.screenshot) return;
+            const qs = new URLSearchParams({ request_id: String(_cvPayState.requestId), kind: 'cv' });
+            if (_cvPayState.telegramId) qs.set('telegram_id', String(_cvPayState.telegramId));
+            if (_cvPayState.token) qs.set('token', String(_cvPayState.token));
             const r2 = await fetch(base + '/api/paid_doc_submit_screenshot?' + qs.toString(), {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ screenshot }),
+              body: JSON.stringify({ screenshot: _cvPayState.screenshot }),
             });
             if (!r2.ok) {
               let d = '';
               try { const j = await r2.json(); d = j.detail || j.message || ''; } catch (_) {}
-              alert("❌ Skrenshot yuborilmadi: " + (d || ('Server ' + r2.status)));
+              if (status) status.textContent = "Xatolik: " + (d || ('Server ' + r2.status));
               return;
             }
-            alert("✅ Skrenshot yuborildi. Admin tasdiqlasa, fayl shu yerdan yuklanadi.");
+            if (status) status.textContent = "✅ Yuborildi. Admin tasdiqlashini kuting.";
+            if (sendBtn) sendBtn.disabled = true;
 
-            // Poll status and download
-            const pollQs = new URLSearchParams({ request_id: String(rid) });
-            if (req.telegram_id) pollQs.set('telegram_id', String(req.telegram_id));
-            if (req.token) pollQs.set('token', String(req.token));
-            const started = Date.now();
-            const timer = setInterval(async () => {
-              if (Date.now() - started > 5 * 60 * 1000) { clearInterval(timer); return; }
+            _cvPayState.pollTimer = setInterval(async () => {
+              const p = new URLSearchParams({ request_id: String(_cvPayState.requestId) });
+              if (_cvPayState.telegramId) p.set('telegram_id', String(_cvPayState.telegramId));
+              if (_cvPayState.token) p.set('token', String(_cvPayState.token));
               try {
-                const st = await fetch(base + '/api/paid_doc_status?' + pollQs.toString(), { cache:'no-store' });
+                const st = await fetch(base + '/api/paid_doc_status?' + p.toString(), { cache:'no-store' });
                 if (!st.ok) return;
                 const js = await st.json();
                 const s = String(js.status || '');
                 if (s === 'approved' || s === 'delivered') {
-                  clearInterval(timer);
-                  const dl = base + '/api/paid_doc_download?' + pollQs.toString();
-                  try { tg.openLink ? tg.openLink(dl) : window.open(dl, '_blank'); } catch (_) { window.open(dl, '_blank'); }
+                  clearInterval(_cvPayState.pollTimer);
+                  _cvPayState.pollTimer = null;
+                  if (status) status.textContent = "✅ Admin tasdiqladi. Endi faylni yuklashingiz mumkin.";
+                  if (dlBtn) {
+                    dlBtn.classList.remove('hidden');
+                    dlBtn.onclick = () => {
+                      const dl = base + '/api/paid_doc_download?' + p.toString();
+                      try { tg.openLink ? tg.openLink(dl) : window.open(dl, '_blank'); } catch (_) { window.open(dl, '_blank'); }
+                      setTimeout(() => { try { tg.close(); } catch (_) {} }, 1200);
+                    };
+                  }
                 }
               } catch (_) {}
             }, 3000);
           };
-          reader.readAsDataURL(f);
-        };
-        pick.click();
+        }
       } catch (e) {
         alert("❌ To‘lovda xatolik: " + (e.message || String(e)).slice(0, 120));
-      } finally {
-        try { if (window.DastyorAI && window.DastyorAI.hideDocumentLoading) window.DastyorAI.hideDocumentLoading(); } catch (_) {}
       }
     }
 

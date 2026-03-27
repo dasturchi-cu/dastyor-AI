@@ -333,6 +333,20 @@
       <div style="margin:8px 0 0;color:#64748b;font-size:12px;font-weight:600;text-align:center" id="pay_help_oby">
         Limit tugasa shu tugmadan 5 000 so'm to'lab davom etasiz.
       </div>
+      <div id="obyPayPanel" class="hidden" style="margin-top:10px;border:1px solid #86efac;background:#ecfdf5;border-radius:12px;padding:12px 12px;">
+        <div style="font-size:13px;font-weight:800;color:#166534;margin-bottom:8px;">💳 To'lov (5 000 so'm)</div>
+        <div id="obyPayCardInfo" style="white-space:pre-line;font-size:12px;color:#334155;margin-bottom:8px;">Karta ma'lumotlari yuklanmoqda...</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;">
+          <button type="button" class="btn btn-outline" id="obyCopyCardBtn">📋 Kartani nusxa olish</button>
+          <label for="obyPayShotInput" class="btn btn-outline" style="cursor:pointer;">🖼 Skrenshot tanlash</label>
+          <input id="obyPayShotInput" type="file" accept="image/*" style="display:none" />
+          <button type="button" class="btn btn-primary" id="obyPaySendBtn" disabled style="opacity:.6">📤 Yuborish</button>
+        </div>
+        <div id="obyPayStatus" style="font-size:12px;color:#334155;">Skrenshot tanlang va yuboring.</div>
+        <div style="margin-top:8px;">
+          <button type="button" class="btn btn-primary" id="obyPayDownloadBtn" style="display:none;">⬇️ Faylni yuklash</button>
+        </div>
+      </div>
     </form>
 
     <!-- LIVE PREVIEW -->
@@ -778,11 +792,18 @@ async function sendObyektivkaToBot(fmt){
   }
 }
 
+var _obyPayState = { requestId:0, token:"", telegramId:0, screenshot:"", pollTimer:null, cardNumber:"" };
 async function payObySingle(fmt){
   var tg=window.Telegram&&window.Telegram.WebApp?window.Telegram.WebApp:null;
   if(!tg){ alert("Faqat Telegram WebApp ichida ishlaydi!"); return; }
+  var panel=document.getElementById('obyPayPanel');
+  var cardInfo=document.getElementById('obyPayCardInfo');
+  var statusEl=document.getElementById('obyPayStatus');
+  var sendBtn=document.getElementById('obyPaySendBtn');
+  var dlBtn=document.getElementById('obyPayDownloadBtn');
+  var shotInput=document.getElementById('obyPayShotInput');
+  var copyBtn=document.getElementById('obyCopyCardBtn');
   try{
-    try { if (window.DastyorAI && window.DastyorAI.showDocumentLoading) window.DastyorAI.showDocumentLoading('To‘lov...', 'Karta va skrenshot'); } catch (_) {}
     var payload = buildObyPayload(fmt);
     var req = {
       telegram_id: telegramId ? parseInt(telegramId, 10) : null,
@@ -819,7 +840,17 @@ async function payObySingle(fmt){
     var rid = data && data.request_id ? Number(data.request_id) : 0;
     if(!rid) throw new Error("request_id yo'q");
 
-    // Card popup
+    _obyPayState.requestId = rid;
+    _obyPayState.token = req.token || "";
+    _obyPayState.telegramId = req.telegram_id || 0;
+    _obyPayState.screenshot = "";
+    if(_obyPayState.pollTimer){ clearInterval(_obyPayState.pollTimer); _obyPayState.pollTimer=null; }
+
+    if(panel) panel.classList.remove('hidden');
+    if(sendBtn) sendBtn.disabled = true;
+    if(dlBtn) dlBtn.style.display = 'none';
+    if(statusEl) statusEl.textContent = "Skrenshot tanlang va yuboring.";
+
     try{
       var cardRes = await fetch(API_URL + '/api/payment_card', { cache:'no-store' });
       if(cardRes.ok){
@@ -827,66 +858,70 @@ async function payObySingle(fmt){
         var cardNum = String(c.card_number||'');
         var owner = String(c.card_owner||'');
         var price = String(c.single_doc_price_uzs||5000);
-        var cardMsg = "💳 To‘lov ("+price+" so‘m)\n\nKarta raqami: "+cardNum+"\nKarta egasi: "+owner+"\n\nTo‘lov qilgach skrenshotni yuklang.";
-        if(tg && typeof tg.showPopup === 'function'){
-          await new Promise(function(resolve){
-            tg.showPopup({ title:"To‘lov", message: cardMsg, buttons:[
-              {id:"copy",type:"default",text:"Kartani nusxa olish"},
-              {id:"ok",type:"default",text:"Skrenshot yuklash"},
-              {id:"cancel",type:"cancel",text:"Bekor"},
-            ]}, async function(id){
-              if(id==='copy'){
-                try{ await navigator.clipboard.writeText(cardNum); }catch(_){ try{ prompt("Karta raqami (nusxa oling):", cardNum); }catch(e){} }
-                resolve('ok'); return;
-              }
-              resolve(id||'cancel');
-            });
-          });
-        } else { alert(cardMsg); }
+        _obyPayState.cardNumber = cardNum;
+        if(cardInfo) cardInfo.textContent = "Karta: "+cardNum+"\nEga: "+owner+"\nNarx: "+price+" so'm";
       }
     }catch(e){}
 
-    var pick=document.createElement('input');
-    pick.type='file'; pick.accept='image/*';
-    pick.onchange=function(){
-      var f=pick.files&&pick.files[0]; if(!f) return;
-      var reader=new FileReader();
-      reader.onload=async function(){
-        var screenshot=String(reader.result||'');
-        var qs=new URLSearchParams({ request_id:String(rid), kind:'obyektivka' });
-        if(req.telegram_id) qs.set('telegram_id', String(req.telegram_id));
-        if(req.token) qs.set('token', String(req.token));
-        var r2=await fetch(API_URL + '/api/paid_doc_submit_screenshot?' + qs.toString(), { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ screenshot:screenshot }) });
-        if(!r2.ok){ var err=await dastyorReadApiError(r2); alert("❌ Skrenshot yuborilmadi:\n\n"+err); return; }
-        alert("✅ Skrenshot yuborildi. Admin tasdiqlasa, fayl shu yerdan yuklanadi.");
+    if(copyBtn){
+      copyBtn.onclick = async function(){
+        var n = _obyPayState.cardNumber || '';
+        try{ await navigator.clipboard.writeText(n); }catch(_){ try{ prompt("Karta raqami (nusxa oling):", n); }catch(e){} }
+      };
+    }
+    if(shotInput){
+      shotInput.value='';
+      shotInput.onchange = function(){
+        var f=shotInput.files&&shotInput.files[0]; if(!f) return;
+        var reader=new FileReader();
+        reader.onload=function(){
+          _obyPayState.screenshot = String(reader.result||'');
+          if(sendBtn) sendBtn.disabled = !_obyPayState.screenshot;
+          if(statusEl) statusEl.textContent = "Skrenshot tayyor. 'Yuborish'ni bosing.";
+        };
+        reader.readAsDataURL(f);
+      };
+    }
+    if(sendBtn){
+      sendBtn.onclick = async function(){
+        if(!_obyPayState.screenshot) return;
+        var qs=new URLSearchParams({ request_id:String(_obyPayState.requestId), kind:'obyektivka' });
+        if(_obyPayState.telegramId) qs.set('telegram_id', String(_obyPayState.telegramId));
+        if(_obyPayState.token) qs.set('token', String(_obyPayState.token));
+        var r2=await fetch(API_URL + '/api/paid_doc_submit_screenshot?' + qs.toString(), { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ screenshot:_obyPayState.screenshot }) });
+        if(!r2.ok){ var err=await dastyorReadApiError(r2); if(statusEl) statusEl.textContent = "Xatolik: "+err; return; }
+        if(statusEl) statusEl.textContent = "✅ Yuborildi. Admin tasdiqlashini kuting.";
+        if(sendBtn) sendBtn.disabled = true;
 
-        var pollQs=new URLSearchParams({ request_id:String(rid) });
-        if(req.telegram_id) pollQs.set('telegram_id', String(req.telegram_id));
-        if(req.token) pollQs.set('token', String(req.token));
-        var started=Date.now();
-        var timer=setInterval(async function(){
-          if(Date.now()-started>5*60*1000){ clearInterval(timer); return; }
+        _obyPayState.pollTimer = setInterval(async function(){
+          var p = new URLSearchParams({ request_id:String(_obyPayState.requestId) });
+          if(_obyPayState.telegramId) p.set('telegram_id', String(_obyPayState.telegramId));
+          if(_obyPayState.token) p.set('token', String(_obyPayState.token));
           try{
-            var st=await fetch(API_URL + '/api/paid_doc_status?' + pollQs.toString(), { cache:'no-store' });
+            var st=await fetch(API_URL + '/api/paid_doc_status?' + p.toString(), { cache:'no-store' });
             if(!st.ok) return;
             var js=await st.json();
             var s=String(js.status||'');
             if(s==='approved'||s==='delivered'){
-              clearInterval(timer);
-              var dl=API_URL + '/api/paid_doc_download?' + pollQs.toString();
-              try{ if(tg.openLink) tg.openLink(dl); else window.open(dl,'_blank'); }catch(_){ window.open(dl,'_blank'); }
+              clearInterval(_obyPayState.pollTimer);
+              _obyPayState.pollTimer = null;
+              if(statusEl) statusEl.textContent = "✅ Admin tasdiqladi. Endi faylni yuklashingiz mumkin.";
+              if(dlBtn){
+                dlBtn.style.display='inline-flex';
+                dlBtn.onclick = function(){
+                  var dl=API_URL + '/api/paid_doc_download?' + p.toString();
+                  try{ if(tg.openLink) tg.openLink(dl); else window.open(dl,'_blank'); }catch(_){ window.open(dl,'_blank'); }
+                  setTimeout(function(){ try{ tg.close(); }catch(_){} }, 1200);
+                };
+              }
             }
           }catch(e){}
         }, 3000);
       };
-      reader.readAsDataURL(f);
-    };
-    pick.click();
+    }
   }catch(e){
     var em=(e&&e.message)?String(e.message):String(e);
     alert("❌ To‘lovda xatolik:\n\n"+em);
-  }finally{
-    try { if (window.DastyorAI && window.DastyorAI.hideDocumentLoading) window.DastyorAI.hideDocumentLoading(); } catch (_) {}
   }
 }
 
