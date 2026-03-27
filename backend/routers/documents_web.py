@@ -601,6 +601,108 @@ async def api_paid_doc_download(
     )
 
 
+@router.post("/api/paid_doc_send_to_bot")
+async def api_paid_doc_send_to_bot(
+    request_id: int = Query(..., ge=1),
+    token: Optional[str] = Query(None),
+    telegram_id: Optional[str] = Query(None),
+    ptb=Depends(get_ptb_application),
+):
+    uid = resolve_telegram_uid(telegram_id, token)
+    if not uid:
+        raise HTTPException(status_code=401, detail="Foydalanuvchi aniqlanmadi")
+    from bot.services.supabase_db import (
+        has_db,
+        db_get_paid_doc_request,
+        db_set_paid_doc_request_status,
+    )
+
+    if not has_db():
+        raise HTTPException(status_code=503, detail="DB ishlamayapti")
+    row = db_get_paid_doc_request(int(request_id))
+    if not row or int(row.get("user_id") or 0) != int(uid):
+        raise HTTPException(status_code=404, detail="So'rov topilmadi")
+    if str(row.get("status") or "") not in {"approved", "delivered"}:
+        raise HTTPException(status_code=409, detail="Hali tasdiqlanmagan")
+
+    payload = row.get("payload") if isinstance(row.get("payload"), dict) else {}
+    kind = str(row.get("kind") or "").strip().lower()
+    chat_id = int(uid)
+    rid = int(request_id)
+
+    async def _generate_and_send() -> None:
+        ts = int(time.time())
+        try:
+            if kind == "cv":
+                safe_name = (payload.get("name") or "CV").replace(" ", "_")[:30]
+                filename = f"DASTYOR_CV_{safe_name}_{ts}_@DastyorAiBot.pdf"
+                pdf_bytes = await generate_cv_pdf(payload, base_url=SITE_BASE_URL)
+                if not pdf_bytes:
+                    raise RuntimeError("CV pdf yaratilmadi")
+                buf = io.BytesIO(pdf_bytes)
+                buf.name = filename
+                await ptb.bot.send_document(
+                    chat_id=chat_id,
+                    document=InputFile(buf, filename=filename),
+                    caption=f"✅ <b>CV tayyor!</b>\n📎 <code>{filename}</code>",
+                    parse_mode="HTML",
+                )
+            else:
+                from bot.services.doc_generator import generate_obyektivka_docx
+
+                photo_path = None
+                try:
+                    ph = payload.get("photo_data") or payload.get("photo_base64") or ""
+                    if isinstance(ph, str) and ph.startswith("data:image"):
+                        _h, b64 = ph.split(",", 1)
+                        raw_ph = base64.b64decode(b64)
+                        os.makedirs("temp", exist_ok=True)
+                        photo_path = os.path.join("temp", f"oby_photo_{chat_id}_{ts}.jpg")
+                        with open(photo_path, "wb") as f:
+                            f.write(raw_ph)
+                except Exception:
+                    photo_path = None
+
+                loop = asyncio.get_running_loop()
+                docx_path = await loop.run_in_executor(None, generate_obyektivka_docx, payload, photo_path)
+                if not docx_path or not os.path.exists(docx_path):
+                    safe_remove(photo_path)
+                    raise RuntimeError("Obyektivka docx yaratilmadi")
+                with open(docx_path, "rb") as fh:
+                    raw = fh.read()
+                safe_remove(docx_path, photo_path)
+                safe_name = (payload.get("fullname") or "Obyektivka").replace(" ", "_")[:30]
+                filename = f"DASTYOR_Obyektivka_{safe_name}_{ts}_@DastyorAiBot.docx"
+                buf = io.BytesIO(raw)
+                buf.name = filename
+                await send_docx_with_confirmation(
+                    ptb.bot,
+                    chat_id,
+                    buf,
+                    filename=filename,
+                    caption=f"✅ <b>Obyektivka tayyor!</b>\n📎 <code>{filename}</code>",
+                    parse_mode="HTML",
+                )
+
+            try:
+                db_set_paid_doc_request_status(rid, "delivered")
+            except Exception:
+                pass
+        except Exception as e:
+            logger.error("paid_doc_send_to_bot failed rid=%s: %s", rid, e, exc_info=True)
+            try:
+                await ptb.bot.send_message(chat_id=chat_id, text="❌ Hujjat yuborishda xatolik. Qayta urinib ko'ring.")
+            except Exception:
+                pass
+
+    asyncio.create_task(_generate_and_send())
+    return {
+        "ok": True,
+        "status": "queued_to_bot",
+        "message": "✅ Qabul qilindi. Hujjat tez orada bot chatiga yuboriladi.",
+    }
+
+
 @router.post("/api/export_cv")
 async def api_export_cv(
     req: ExportCVRequest,

@@ -1108,9 +1108,21 @@
         const qs = new URLSearchParams({ request_id: String(_cvApprovedRequestId) });
         if (telegramId) qs.set('telegram_id', String(parseInt(telegramId, 10)));
         if (token) qs.set('token', String(token));
-        const dl = getCvApiBase() + '/api/paid_doc_download?' + qs.toString();
-        try { tg.openLink ? tg.openLink(dl) : window.open(dl, '_blank'); } catch (_) { window.open(dl, '_blank'); }
-        setTimeout(() => { try { tg.close(); } catch (_) {} }, 900);
+        const sendUrl = getCvApiBase() + '/api/paid_doc_send_to_bot?' + qs.toString();
+        try {
+          const resp = await fetch(sendUrl, { method: 'POST' });
+          if (!resp.ok) {
+            let d = '';
+            try { const j = await resp.json(); d = j.detail || j.message || ''; } catch (_) {}
+            throw new Error(d || ('Server ' + resp.status));
+          }
+          let msg = "✅ So'rov yuborildi. PDF botga jo'natilmoqda.";
+          try { const j = await resp.json(); if (j && j.message) msg = String(j.message); } catch (_) {}
+          alert(msg);
+          setTimeout(() => { try { tg.close(); } catch (_) {} }, 500);
+        } catch (e) {
+          alert("❌ Yuborishda xatolik: " + ((e && e.message) ? e.message : String(e)));
+        }
         return;
       }
       try {
@@ -1220,11 +1232,11 @@
               if (status) status.textContent = "Xatolik: " + (d || ('Server ' + r2.status));
               return;
             }
-            if (status) status.textContent = "🔄 Yuborilmoqda...";
+            if (status) status.textContent = "✅ Chek yuborildi. Admin tasdiqlashini kuting...";
             if (sendBtn) { sendBtn.disabled = true; sendBtn.textContent = "Yuborilmoqda..."; }
             const spin = setInterval(() => {
               if (!status) return;
-              status.textContent = status.textContent.endsWith("...") ? "🔄 Yuborilmoqda." : (status.textContent.endsWith(".") ? "🔄 Yuborilmoqda.." : "🔄 Yuborilmoqda...");
+              status.textContent = status.textContent.endsWith("...") ? "⏳ Admin tekshirmoqda." : (status.textContent.endsWith(".") ? "⏳ Admin tekshirmoqda.." : "⏳ Admin tekshirmoqda...");
             }, 450);
             if (sendBtn) sendBtn.disabled = true;
             _cvPayState.pollTimer = setInterval(async () => {
@@ -1246,7 +1258,7 @@
                   syncCvQuotaUi();
                 }
               } catch (_) {}
-            }, 3000);
+            }, 1500);
           };
         }
       } catch (e) {
