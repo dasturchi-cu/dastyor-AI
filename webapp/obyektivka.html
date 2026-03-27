@@ -775,9 +775,27 @@ async function sendObyektivkaToBot(fmt){
     var p = new URLSearchParams({ request_id:String(_obyApprovedRequestId) });
     if(telegramId) p.set('telegram_id', String(parseInt(telegramId,10)));
     if(token) p.set('token', String(token));
-    var dl = API_URL + '/api/paid_doc_download?' + p.toString();
-    try{ if(tg.openLink) tg.openLink(dl); else window.open(dl,'_blank'); }catch(_){ window.open(dl,'_blank'); }
-    setTimeout(function(){ try{ tg.close(); }catch(_){} }, 900);
+    var sendUrl = API_URL + '/api/paid_doc_send_to_bot?' + p.toString();
+    try{
+      var resp = await fetch(sendUrl, { method:'POST' });
+      if(!resp.ok){
+        var errTxt = await dastyorReadApiError(resp);
+        throw new Error(errTxt || ('Server ' + resp.status));
+      }
+      _obyApprovedRequestId = 0;
+      try{ localStorage.removeItem('oby_paid_request_id'); }catch(e){}
+      syncObyQuotaUi();
+      var msg = "✅ So'rov yuborildi. Word botga jo'natilmoqda.";
+      try{
+        var j = await resp.json();
+        if(j && j.message) msg = String(j.message);
+      }catch(_){}
+      alert(msg);
+      setTimeout(function(){ try{ tg.close(); }catch(_){} }, 500);
+    }catch(e){
+      var em2 = (e && e.message) ? String(e.message) : String(e);
+      alert("❌ Yuborishda xatolik: " + em2);
+    }
     return;
   }
   var btn=document.getElementById('dlBtn');
