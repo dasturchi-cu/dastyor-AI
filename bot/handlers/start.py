@@ -252,5 +252,15 @@ async def referral_link_command(update: Update, context: ContextTypes.DEFAULT_TY
         f"{status}\n\n"
         "💡 Bonus 1 marta ishlaydi: tarif aktiv bo'lgach avtomatik o'chadi."
     )
-    kb = InlineKeyboardMarkup([[InlineKeyboardButton("🔗 Referal linkni ochish", url=link)]])
+    url_std = f"{WEBAPP_BASE}/premium.html?telegram_id={uid}&lang={DEFAULT_LANG}&buy=standard"
+    url_pre = f"{WEBAPP_BASE}/premium.html?telegram_id={uid}&lang={DEFAULT_LANG}&buy=premium"
+    kb = InlineKeyboardMarkup(
+        [
+            [InlineKeyboardButton("🔗 Referal linkni ochish", url=link)],
+            [
+                InlineKeyboardButton("✅ Standard sotib olish", web_app=WebAppInfo(url=url_std)),
+                InlineKeyboardButton("⭐ Premium sotib olish", web_app=WebAppInfo(url=url_pre)),
+            ],
+        ]
+    )
     await update.message.reply_text(text, parse_mode="HTML", reply_markup=kb)

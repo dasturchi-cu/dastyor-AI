@@ -138,6 +138,12 @@ def _build_api_me_payload(uid: str) -> dict:
         "files_processed": profile.get("files_processed", 0),
         "joined_at": profile.get("joined_at", ""),
         "last_active": profile.get("last_active", ""),
+        # Referral status (used by premium.html banner and pricing)
+        "referred_by": profile.get("referred_by"),
+        "referrals_count": int(profile.get("referrals_count") or 0),
+        "referral_discount_percent": int(profile.get("referral_discount_percent") or 0),
+        "referral_discount_active": bool(profile.get("referral_discount_active")),
+        "referral_discount_expires_at": profile.get("referral_discount_expires_at"),
         **tariff,
     }
 
