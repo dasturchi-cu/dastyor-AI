@@ -142,6 +142,29 @@ def has_db() -> bool:
     return _get_client() is not None
 
 
+# ── referrals / discounts ────────────────────────────────────────────────────
+def db_register_referral(inviter_id: int, invitee_id: int) -> dict | None:
+    """
+    Calls public.register_referral(inviter, invitee) RPC.
+    Returns JSON dict or None on failure.
+    """
+    c = _get_client()
+    if not c:
+        return None
+    try:
+        r = c.rpc("register_referral", {"inviter": int(inviter_id), "invitee": int(invitee_id)}).execute()
+        if isinstance(getattr(r, "data", None), dict):
+            return r.data
+        # supabase-py sometimes returns list
+        if isinstance(getattr(r, "data", None), list) and r.data:
+            return r.data[0] if isinstance(r.data[0], dict) else {"ok": True, "data": r.data[0]}
+        return None
+    except Exception as e:
+        _mark_temporarily_unavailable(e)
+        _log_write_error("db_register_referral", e)
+        return None
+
+
 # ── action_logs (v2) ───────────────────────────────────────────────────────────
 def db_insert_action_log_v2(
     telegram_id: int,

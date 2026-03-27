@@ -443,7 +443,7 @@
     <div class="plan-head">
       <div>
         <div class="plan-label" data-i18n="premium_standard_plan" data-i18n-fallback="Standart tarif">Standart tarif</div>
-        <div class="plan-price">10 000 <span class="plan-period" data-i18n="premium_period_7_days" data-i18n-fallback="so'm / 7 kun">so'm / 7 kun</span></div>
+        <div class="plan-price">9 999 <span class="plan-period" data-i18n="premium_period_7_days" data-i18n-fallback="so'm / 7 kun">so'm / 7 kun</span></div>
       </div>
       <span class="plan-badge badge-std" data-i18n="premium_badge_7_days" data-i18n-fallback="7 kun">7 kun</span>
     </div>
@@ -488,7 +488,7 @@
     <div class="plan-head">
       <div>
         <div class="plan-label" data-i18n="premium_premium_plan" data-i18n-fallback="Premium tarif">Premium tarif</div>
-        <div class="plan-price">30 000 <span class="plan-period" data-i18n="premium_period_month" data-i18n-fallback="so'm / oy">so'm / oy</span></div>
+        <div class="plan-price">29 999 <span class="plan-period" data-i18n="premium_period_month" data-i18n-fallback="so'm / oy">so'm / oy</span></div>
       </div>
       <span class="plan-badge badge-top" data-i18n="premium_badge_top" data-i18n-fallback="⭐ TOP">⭐ TOP</span>
     </div>
@@ -736,6 +736,14 @@
       const me = window.DastyorAI?.getUser?.();
       if (me) applyPremiumPageLiveTariff(me);
     });
+
+    // If opened from soft paywall: auto-open payment page.
+    try {
+      const buy = new URLSearchParams(location.search || '').get('buy');
+      if (buy === 'standard' || buy === 'premium') {
+        setTimeout(() => openPaymentPage(buy), 200);
+      }
+    } catch (_) {}
   });
 
   let selectedPlan = "premium";

@@ -227,6 +227,16 @@ async def _send_quota_blocked_message(
     from telegram import InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo
     from config import WEBAPP_BASE
     from bot.services.plan_limits import block_reason_for_user_uz
+    from bot.services.pricing import (
+        STANDARD_PRICE_UZS,
+        PREMIUM_PRICE_UZS,
+        REFERRAL_PREMIUM_DISCOUNT_PERCENT,
+        REFERRAL_REQUIRED_INVITES,
+        apply_percent_discount,
+        format_uzs,
+        promo_deadline_display,
+        PROMO_LABEL,
+    )
 
     uid = int(user_id)
     reason = (
@@ -234,15 +244,40 @@ async def _send_quota_blocked_message(
         if category
         else "⛔️ Bu xizmat pullik. Standard yoki Premium tarifni oling."
     )
+    dl = promo_deadline_display()
+    promo_line = (
+        f"🔥 <b>{PROMO_LABEL}:</b> faqat shu hafta {format_uzs(STANDARD_PRICE_UZS)} / {format_uzs(PREMIUM_PRICE_UZS)} so'm."
+        + (f" (deadline: {dl})" if dl else "")
+    )
+
+    # Referral pitch (we keep it simple; DB decides actual eligibility)
+    disc_price = apply_percent_discount(PREMIUM_PRICE_UZS, REFERRAL_PREMIUM_DISCOUNT_PERCENT)
+    ref_line = (
+        f"🎁 <b>Referal bonus:</b> {REFERRAL_REQUIRED_INVITES} ta do'st taklif qilsangiz — "
+        f"Premiumga <b>{REFERRAL_PREMIUM_DISCOUNT_PERCENT}%</b> chegirma "
+        f"({format_uzs(disc_price)} so'm)."
+    )
+
     text = (
         f"{reason}\n\n"
-        "💎 <b>Standard</b> yoki <b>Premium</b> — batafsil tariflar:\n\n"
-        "👇 Quyidagi tugma:"
+        "💡 <b>Taklif:</b>\n"
+        f"- Standard: <b>{format_uzs(STANDARD_PRICE_UZS)} so'm</b> / 7 kun — Tarjima + PDF + Translit cheksiz\n"
+        f"- Premium: <b>{format_uzs(PREMIUM_PRICE_UZS)} so'm</b> / 30 kun — hammasi cheksiz + Obyektivka/CV oyiga 6 ta\n"
+        "⏱ 1 obyektivka ≈ 30–60 daqiqa vaqt tejaydi.\n\n"
+        f"{promo_line}\n"
+        f"{ref_line}\n\n"
+        "👇 Tanlang:"
     )
-    url = f"{WEBAPP_BASE.rstrip('/')}/premium.html?telegram_id={uid}&lang={lang}"
-    kb = InlineKeyboardMarkup(
-        [[InlineKeyboardButton("💎 Tariflar (Premium/Standard)", web_app=WebAppInfo(url=url))]]
-    )
+
+    base = WEBAPP_BASE.rstrip("/")
+    url_std = f"{base}/premium.html?telegram_id={uid}&lang={lang}&buy=standard"
+    url_pre = f"{base}/premium.html?telegram_id={uid}&lang={lang}&buy=premium"
+    kb = InlineKeyboardMarkup([
+        [
+            InlineKeyboardButton(f"✅ Standard ({format_uzs(STANDARD_PRICE_UZS)})", web_app=WebAppInfo(url=url_std)),
+            InlineKeyboardButton(f"⭐ Premium ({format_uzs(PREMIUM_PRICE_UZS)})", web_app=WebAppInfo(url=url_pre)),
+        ]
+    ])
     await bot.send_message(chat_id=chat_id, text=text, parse_mode="HTML", reply_markup=kb)
 
 

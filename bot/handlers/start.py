@@ -121,6 +121,21 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     # ── Check payload ──────────────────────────────────────────────────
     payload = (context.args[0] if context.args else "").strip().lower()
+
+    # ── Referral deep-link: /start ref_<inviter_id> ─────────────────────
+    # Example: https://t.me/DastyorAiBot?start=ref_123456
+    try:
+        if payload.startswith("ref_") or payload.startswith("ref"):
+            raw = payload.replace("ref_", "").replace("ref", "").strip()
+            if raw.isdigit():
+                inviter = int(raw)
+                if inviter and inviter != int(uid):
+                    from bot.services.supabase_db import has_db, db_register_referral
+                    if has_db():
+                        db_register_referral(inviter, int(uid))
+    except Exception:
+        logger.debug("referral start payload failed", exc_info=True)
+
     action  = _ACTION_MAP.get(payload)
 
     if action:

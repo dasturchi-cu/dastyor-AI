@@ -15,6 +15,7 @@ from bot.services.premium_purchase_db import (
     set_payment_request_status,
     save_subscription,
 )
+from bot.services.pricing import STANDARD_PRICE_UZS, PREMIUM_PRICE_UZS, format_uzs
 
 CARD_NUMBER = "9860 1201 7225 8424"
 CARD_OWNER = "DILNOZA MOMINOVA"
@@ -36,6 +37,7 @@ def _premium_keyboard() -> InlineKeyboardMarkup:
 
 
 def _card_message(plan_title: str) -> str:
+    price = PREMIUM_PRICE_UZS if plan_title.lower() == "premium" else STANDARD_PRICE_UZS
     return (
         "💎 <b>Premium sotib olish</b>\n\n"
         "Premium olish uchun quyidagi kartaga to‘lov qiling.\n\n"
@@ -44,7 +46,8 @@ def _card_message(plan_title: str) -> str:
         "👤 <b>Karta egasi:</b>\n"
         f"<b>{CARD_OWNER}</b>\n\n"
         "To‘lov qilgandan keyin skrenshotni shu chatga yuboring.\n\n"
-        f"📦 Tarif: <b>{plan_title}</b>"
+        f"📦 Tarif: <b>{plan_title}</b>\n"
+        f"💰 Narx: <b>{format_uzs(price)} so'm</b>"
     )
 
 
