@@ -74,6 +74,7 @@ class CVRequest(BaseModel):
     languages_list: list = Field(default_factory=list)
     achievements_list: list = Field(default_factory=list)
     accent_color: str = "#3b82f6"
+    img: str = ""
 
 
 class ObyektivkaRequest(BaseModel):

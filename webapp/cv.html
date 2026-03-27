@@ -815,7 +815,7 @@
       }
       previewDebounceTimer = setTimeout(function () {
         fetchServerPreview();
-      }, 100);
+      }, 280);
     }
 
     // --- PDF EXPORT ---
@@ -1089,10 +1089,12 @@
 
     async function sendCvToBot(fmt) {
       const tg = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp : null;
+      const mainBtn = document.getElementById('cvSendBotBtn');
       if (!tg) {
         alert("Faqat Telegram WebApp ichida ishlaydi!");
         return;
       }
+      if (mainBtn) { mainBtn.disabled = true; }
       try { if (window.DastyorAI && window.DastyorAI.refreshProfile) await window.DastyorAI.refreshProfile(); } catch (_) {}
       const uNow = window.DastyorAI && window.DastyorAI.getUser ? window.DastyorAI.getUser() : null;
       const blockedNow = window.DastyorAI && window.DastyorAI.isQuotaBlockedForCategory
@@ -1116,12 +1118,11 @@
             try { const j = await resp.json(); d = j.detail || j.message || ''; } catch (_) {}
             throw new Error(d || ('Server ' + resp.status));
           }
-          let msg = "✅ So'rov yuborildi. PDF botga jo'natilmoqda.";
-          try { const j = await resp.json(); if (j && j.message) msg = String(j.message); } catch (_) {}
+          try { await resp.json(); } catch (_) {}
           _cvApprovedRequestId = 0;
           try { localStorage.removeItem('cv_paid_request_id'); } catch (_) {}
           syncCvQuotaUi();
-          alert(msg);
+          alert("✅ CV botga yuborildi.");
           setTimeout(() => { try { tg.close(); } catch (_) {} }, 500);
         } catch (e) {
           alert("❌ Yuborishda xatolik: " + ((e && e.message) ? e.message : String(e)));
@@ -1146,6 +1147,7 @@
         try {
           if (window.DastyorAI && window.DastyorAI.hideDocumentLoading) window.DastyorAI.hideDocumentLoading();
         } catch (_) {}
+        if (mainBtn) mainBtn.disabled = false;
       }
     }
 

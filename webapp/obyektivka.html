@@ -756,10 +756,12 @@ async function sendObyektivkaViaApi(fmt){
 
 async function sendObyektivkaToBot(fmt){
   var tg=window.Telegram&&window.Telegram.WebApp?window.Telegram.WebApp:null;
+  var btn=document.getElementById('dlBtn');
   if(!tg){
     alert("Faqat Telegram WebApp ichida ishlaydi!");
     return;
   }
+  if(btn) btn.disabled=true;
   try{ if(window.DastyorAI&&window.DastyorAI.refreshProfile) await window.DastyorAI.refreshProfile(); }catch(_){}
   var uNow = window.DastyorAI&&window.DastyorAI.getUser?window.DastyorAI.getUser():null;
   var blockedNow = window.DastyorAI&&window.DastyorAI.isQuotaBlockedForCategory
@@ -785,12 +787,8 @@ async function sendObyektivkaToBot(fmt){
       _obyApprovedRequestId = 0;
       try{ localStorage.removeItem('oby_paid_request_id'); }catch(e){}
       syncObyQuotaUi();
-      var msg = "✅ So'rov yuborildi. Word botga jo'natilmoqda.";
-      try{
-        var j = await resp.json();
-        if(j && j.message) msg = String(j.message);
-      }catch(_){}
-      alert(msg);
+      try{ await resp.json(); }catch(_){}
+      alert("✅ Word botga yuborildi.");
       setTimeout(function(){ try{ tg.close(); }catch(_){} }, 500);
     }catch(e){
       var em2 = (e && e.message) ? String(e.message) : String(e);
@@ -798,8 +796,6 @@ async function sendObyektivkaToBot(fmt){
     }
     return;
   }
-  var btn=document.getElementById('dlBtn');
-  if(btn)btn.disabled=true;
   try{
     await sendObyektivkaViaApi(fmt);
     tg.HapticFeedback&&tg.HapticFeedback.notificationOccurred&&tg.HapticFeedback.notificationOccurred('success');
@@ -918,11 +914,11 @@ async function payObySingle(fmt){
         if(_obyPayState.token) qs.set('token', String(_obyPayState.token));
         var r2=await fetch(API_URL + '/api/paid_doc_submit_screenshot?' + qs.toString(), { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ screenshot:_obyPayState.screenshot }) });
         if(!r2.ok){ var err=await dastyorReadApiError(r2); if(statusEl) statusEl.textContent = "Xatolik: "+err; return; }
-        if(statusEl) statusEl.textContent = "🔄 Yuborilmoqda...";
+        if(statusEl) statusEl.textContent = "✅ Chek yuborildi. Admin tasdiqlashini kuting...";
         if(sendBtn){ sendBtn.disabled = true; sendBtn.textContent = "Yuborilmoqda..."; }
         var spin = setInterval(function(){
           if(!statusEl) return;
-          statusEl.textContent = statusEl.textContent.indexOf("...")>-1 ? "🔄 Yuborilmoqda." : (statusEl.textContent.indexOf("..")>-1 ? "🔄 Yuborilmoqda..." : "🔄 Yuborilmoqda..");
+          statusEl.textContent = statusEl.textContent.indexOf("...")>-1 ? "⏳ Admin tekshirmoqda." : (statusEl.textContent.indexOf("..")>-1 ? "⏳ Admin tekshirmoqda..." : "⏳ Admin tekshirmoqda..");
         }, 450);
 
         _obyPayState.pollTimer = setInterval(async function(){
@@ -944,7 +940,7 @@ async function payObySingle(fmt){
               syncObyQuotaUi();
             }
           }catch(e){}
-        }, 3000);
+        }, 1500);
       };
     }
   }catch(e){

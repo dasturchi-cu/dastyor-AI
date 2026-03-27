@@ -652,7 +652,7 @@ async def api_paid_doc_send_to_bot(
 
                 photo_path = None
                 try:
-                    ph = payload.get("photo_data") or payload.get("photo_base64") or ""
+                    ph = payload.get("photo_data") or payload.get("img") or payload.get("photo_base64") or ""
                     if isinstance(ph, str) and ph.startswith("data:image"):
                         _h, b64 = ph.split(",", 1)
                         raw_ph = base64.b64decode(b64)

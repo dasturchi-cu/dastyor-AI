@@ -1,7 +1,7 @@
 import asyncio
 
 from telegram import Update
-from telegram.ext import ContextTypes
+from telegram.ext import ApplicationHandlerStop, ContextTypes
 
 import bot.services.user_service as crm
 from bot.services.admin_service import is_admin as is_admin_sync
@@ -55,7 +55,8 @@ async def track_user(update: Update, context: ContextTypes.DEFAULT_TYPE):
                                     pass
                 except Exception:
                     pass
-                return
+                # Hard-stop remaining handlers (commands, callbacks, message routers)
+                raise ApplicationHandlerStop
         except Exception:
             # fail open: do not block if settings read fails
             pass
@@ -64,7 +65,7 @@ async def track_user(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if banned:
             if not is_admin_sync(uid):
                 context.user_data["is_banned"] = True
-                return
+                raise ApplicationHandlerStop
 
         cmd = None
         if update.message and update.message.text:
