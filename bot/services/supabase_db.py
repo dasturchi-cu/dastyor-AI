@@ -151,12 +151,34 @@ def db_register_referral(inviter_id: int, invitee_id: int) -> dict | None:
     c = _get_client()
     if not c:
         return None
+    try:
+        r = c.rpc("register_referral", {"inviter": int(inviter_id), "invitee": int(invitee_id)}).execute()
+        if isinstance(getattr(r, "data", None), dict):
+            return r.data
+        if isinstance(getattr(r, "data", None), list) and r.data:
+            return r.data[0] if isinstance(r.data[0], dict) else {"ok": True, "data": r.data[0]}
+        return None
+    except Exception as e:
+        _mark_temporarily_unavailable(e)
+        _log_write_error("db_register_referral", e)
+        return None
 
 
 def db_consume_referral_discount(user_id: int) -> dict | None:
     """Calls public.consume_referral_discount(uid) RPC (1-time discount)."""
     c = _get_client()
     if not c:
+        return None
+    try:
+        r = c.rpc("consume_referral_discount", {"uid": int(user_id)}).execute()
+        if isinstance(getattr(r, "data", None), dict):
+            return r.data
+        if isinstance(getattr(r, "data", None), list) and r.data:
+            return r.data[0] if isinstance(r.data[0], dict) else {"ok": True, "data": r.data[0]}
+        return None
+    except Exception as e:
+        _mark_temporarily_unavailable(e)
+        _log_write_error("db_consume_referral_discount", e)
         return None
 
 
@@ -202,29 +224,6 @@ def db_get_referrals_for_inviter(inviter_id: int, limit: int = 20) -> list[dict]
         _mark_temporarily_unavailable(e)
         _log_write_error("db_get_referrals_for_inviter", e)
         return []
-    try:
-        r = c.rpc("consume_referral_discount", {"uid": int(user_id)}).execute()
-        if isinstance(getattr(r, "data", None), dict):
-            return r.data
-        if isinstance(getattr(r, "data", None), list) and r.data:
-            return r.data[0] if isinstance(r.data[0], dict) else {"ok": True, "data": r.data[0]}
-        return None
-    except Exception as e:
-        _mark_temporarily_unavailable(e)
-        _log_write_error("db_consume_referral_discount", e)
-        return None
-    try:
-        r = c.rpc("register_referral", {"inviter": int(inviter_id), "invitee": int(invitee_id)}).execute()
-        if isinstance(getattr(r, "data", None), dict):
-            return r.data
-        # supabase-py sometimes returns list
-        if isinstance(getattr(r, "data", None), list) and r.data:
-            return r.data[0] if isinstance(r.data[0], dict) else {"ok": True, "data": r.data[0]}
-        return None
-    except Exception as e:
-        _mark_temporarily_unavailable(e)
-        _log_write_error("db_register_referral", e)
-        return None
 
 
 # ── action_logs (v2) ───────────────────────────────────────────────────────────
