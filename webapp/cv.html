@@ -554,6 +554,9 @@
         const r = new FileReader();
         r.onload = e => {
           avatarUrl = e.target.result;
+          _previewImgSrc = "";
+          _previewImgOut = "";
+          _previewImgPromise = null;
           document.getElementById('photoPrev').innerHTML = `<img src="${avatarUrl}" class="w-full h-full object-cover">`;
           triggerUpdate();
         };
@@ -804,6 +807,9 @@
     let previewDebounceTimer = null;
     let previewAbort = null;
     let previewRequestId = 0;
+    let _previewImgSrc = "";
+    let _previewImgOut = "";
+    let _previewImgPromise = null;
 
     function triggerUpdate(save = true, opts = null) {
       if (save) saveToLocalStorage();
@@ -815,7 +821,26 @@
       }
       previewDebounceTimer = setTimeout(function () {
         fetchServerPreview();
-      }, 280);
+      }, 140);
+    }
+
+    async function getPreviewImageFast(src) {
+      if (!src || !String(src).startsWith('data:image')) return src || "";
+      if (src === _previewImgSrc && _previewImgOut) return _previewImgOut;
+      if (src === _previewImgSrc && _previewImgPromise) return await _previewImgPromise;
+      _previewImgSrc = src;
+      _previewImgPromise = maybeCompressDataUrl(src, 900000, 720)
+        .then((out) => {
+          _previewImgOut = out || src;
+          _previewImgPromise = null;
+          return _previewImgOut;
+        })
+        .catch(() => {
+          _previewImgOut = src;
+          _previewImgPromise = null;
+          return _previewImgOut;
+        });
+      return await _previewImgPromise;
     }
 
     // --- PDF EXPORT ---
@@ -934,9 +959,7 @@
         const payload = Object.assign({}, buildCvPayload('pdf'));
         delete payload.action;
         payload.accent_color = cvColor;
-        try {
-          payload.img = await maybeCompressDataUrl(payload.img);
-        } catch (_) { /* katta rasm — previewni bloklamaslik */ }
+        try { payload.img = await getPreviewImageFast(payload.img); } catch (_) { /* ignore */ }
         const res = await fetch(base + '/api/cv_preview_html', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -1232,6 +1255,8 @@
         if (sendBtn) {
           sendBtn.onclick = async () => {
             if (!_cvPayState.screenshot) return;
+            if (status) status.textContent = "🔄 Yuborilmoqda...";
+            if (sendBtn) { sendBtn.disabled = true; sendBtn.textContent = "Yuborilmoqda..."; }
             const qs = new URLSearchParams({ request_id: String(_cvPayState.requestId), kind: 'cv' });
             if (_cvPayState.telegramId) qs.set('telegram_id', String(_cvPayState.telegramId));
             if (_cvPayState.token) qs.set('token', String(_cvPayState.token));
@@ -1244,10 +1269,10 @@
               let d = '';
               try { const j = await r2.json(); d = j.detail || j.message || ''; } catch (_) {}
               if (status) status.textContent = "Xatolik: " + (d || ('Server ' + r2.status));
+              if (sendBtn) { sendBtn.disabled = false; sendBtn.textContent = "Yuborish"; }
               return;
             }
             if (status) status.textContent = "✅ Chek yuborildi. Admin tasdiqlashini kuting...";
-            if (sendBtn) { sendBtn.disabled = true; sendBtn.textContent = "Yuborilmoqda..."; }
             const spin = setInterval(() => {
               if (!status) return;
               status.textContent = status.textContent.endsWith("...") ? "⏳ Admin tekshirmoqda." : (status.textContent.endsWith(".") ? "⏳ Admin tekshirmoqda.." : "⏳ Admin tekshirmoqda...");
