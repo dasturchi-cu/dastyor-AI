@@ -1112,6 +1112,11 @@
         if (token) qs.set('token', String(token));
         const sendUrl = getCvApiBase() + '/api/paid_doc_send_to_bot?' + qs.toString();
         try {
+          try {
+            if (window.DastyorAI && window.DastyorAI.showDocumentLoading) {
+              window.DastyorAI.showDocumentLoading('Hujjat tayyorlanmoqda...', 'Iltimos, 10–15 soniya kuting');
+            }
+          } catch (_) {}
           const resp = await fetch(sendUrl, { method: 'POST' });
           if (!resp.ok) {
             let d = '';
@@ -1126,6 +1131,10 @@
           setTimeout(() => { try { tg.close(); } catch (_) {} }, 500);
         } catch (e) {
           alert("❌ Yuborishda xatolik: " + ((e && e.message) ? e.message : String(e)));
+        } finally {
+          try {
+            if (window.DastyorAI && window.DastyorAI.hideDocumentLoading) window.DastyorAI.hideDocumentLoading();
+          } catch (_) {}
         }
         return;
       }
