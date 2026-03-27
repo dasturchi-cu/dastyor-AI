@@ -645,14 +645,18 @@ function syncObyQuotaUi() {
   var u = window.DastyorAI && window.DastyorAI.getUser ? window.DastyorAI.getUser() : null;
   var btn = document.getElementById('dlBtn');
   var warn = document.getElementById('obyQuotaWarn');
+  var isPrem = !!(u && (u.is_premium || u.plan === 'premium' || u.user_plan === 'premium'));
   var blocked = window.DastyorAI && window.DastyorAI.isQuotaBlockedForCategory
     ? window.DastyorAI.isQuotaBlockedForCategory(u, 'obyektivka')
     : false;
-  if (btn) btn.disabled = !!blocked;
+  // Do NOT disable — user can choose 5k single purchase or Premium.
+  if (btn) btn.disabled = false;
   if (warn) {
     if (blocked) {
       warn.classList.remove('hidden');
-      warn.textContent = '⛔ Bu xizmat pullik. Davom etish uchun Premium/Pro tarifni oling.';
+      warn.textContent = isPrem
+        ? '⛔ Limit tugabti. Xohlasangiz 5 000 so‘mga Obyektivka olishingiz mumkin yoki Premiumni yangilang.'
+        : '⛔ Bu xizmat pullik. Xohlasangiz 5 000 so‘mga Obyektivka olishingiz mumkin yoki Premium sotib oling.';
     } else {
       warn.classList.add('hidden');
       warn.textContent = '';
