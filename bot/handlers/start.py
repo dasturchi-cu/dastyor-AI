@@ -226,10 +226,12 @@ async def referral_link_command(update: Update, context: ContextTypes.DEFAULT_TY
 
     text = (
         "🎁 <b>Referal link</b>\n\n"
-        f"Do'stlaringizga yuboring:\n<code>{link}</code>\n\n"
+        "Do'stlaringizga yuboring (bosib ochsa ham bo'ladi):\n"
+        f"{link}\n\n"
         f"👥 Taklif qilganlar: <b>{cnt}</b> ta\n"
         f"🎯 Shart: <b>{REFERRAL_REQUIRED_INVITES}</b> ta do'st kirsa — <b>{REFERRAL_DISCOUNT_PERCENT}%</b> chegirma (Standard/Premium)\n\n"
         f"{status}\n\n"
         "💡 Bonus 1 marta ishlaydi: tarif aktiv bo'lgach avtomatik o'chadi."
     )
-    await update.message.reply_text(text, parse_mode="HTML")
+    kb = InlineKeyboardMarkup([[InlineKeyboardButton("🔗 Referal linkni ochish", url=link)]])
+    await update.message.reply_text(text, parse_mode="HTML", reply_markup=kb)
