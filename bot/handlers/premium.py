@@ -300,11 +300,27 @@ async def premium_payment_review_callback(update: Update, context: ContextTypes.
                     db_set_payment_status(request_id, "approved", reviewed_by=int(query.from_user.id))
 
                     meta = pay.get("metadata") if isinstance(pay.get("metadata"), dict) else {}
-                    is_single_doc = bool(meta.get("paid_doc_request_id")) or (str(meta.get("paid_doc_kind") or "").strip().lower() in {"cv", "obyektivka"})
+                    admin_note = str(pay.get("admin_note") or "").strip()
+                    note_doc_rid = None
+                    note_doc_kind = ""
+                    if admin_note.startswith("paid_doc:"):
+                        try:
+                            _p, rid_s, kind_s = admin_note.split(":", 2)
+                            note_doc_rid = int(rid_s) if str(rid_s).isdigit() else None
+                            note_doc_kind = str(kind_s or "").strip().lower()
+                        except Exception:
+                            note_doc_rid = None
+                            note_doc_kind = ""
+
+                    is_single_doc = (
+                        bool(meta.get("paid_doc_request_id"))
+                        or (str(meta.get("paid_doc_kind") or "").strip().lower() in {"cv", "obyektivka"})
+                        or (note_doc_rid is not None and note_doc_kind in {"cv", "obyektivka"})
+                    )
                     # If this is a paid single-doc request, do NOT activate subscription.
                     if is_single_doc:
                         db_set_payment_status(request_id, "approved", reviewed_by=int(query.from_user.id))
-                        doc_rid = meta.get("paid_doc_request_id")
+                        doc_rid = meta.get("paid_doc_request_id") or note_doc_rid
                         try:
                             from bot.services.supabase_db import db_get_paid_doc_request, db_set_paid_doc_request_status
 

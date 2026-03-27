@@ -427,7 +427,13 @@ async def api_paid_doc_submit_screenshot(
     if k not in {"cv", "obyektivka"}:
         raise HTTPException(status_code=400, detail="kind noto'g'ri")
 
-    from bot.services.supabase_db import has_db, db_get_paid_doc_request, db_set_paid_doc_request_status, db_create_payment
+    from bot.services.supabase_db import (
+        has_db,
+        db_get_paid_doc_request,
+        db_set_paid_doc_request_status,
+        db_create_payment,
+        db_set_payment_status,
+    )
 
     if not has_db():
         raise HTTPException(status_code=503, detail="DB ishlamayapti")
@@ -457,6 +463,15 @@ async def api_paid_doc_submit_screenshot(
     )
     if not pid:
         raise HTTPException(status_code=500, detail="payment yozilmadi")
+    # Fallback marker even if `metadata` column is absent.
+    try:
+        db_set_payment_status(
+            int(pid),
+            "pending",
+            admin_note=f"paid_doc:{int(request_id)}:{k}",
+        )
+    except Exception:
+        pass
 
     try:
         db_set_paid_doc_request_status(int(request_id), "payment_submitted")
