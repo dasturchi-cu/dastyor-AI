@@ -258,6 +258,46 @@ async def api_stats(
     }
 
 
+@router.get("/api/referrals")
+async def api_referrals(
+    token: Optional[str] = Query(None),
+    telegram_id: Optional[str] = Query(None),
+    limit: int = Query(20, ge=1, le=50),
+):
+    """
+    Return referral progress and invitees list for the current user.
+    """
+    uid = resolve_telegram_uid(telegram_id, token)
+    if not uid:
+        raise HTTPException(status_code=401, detail="Foydalanuvchi aniqlanmadi")
+
+    # Prefer Supabase; fallback: no list
+    from bot.services.user_service import get_user_profile
+
+    profile = get_user_profile(uid) or {}
+    cnt = int(profile.get("referrals_count") or 0)
+    active = bool(profile.get("referral_discount_active"))
+    pct = int(profile.get("referral_discount_percent") or 0)
+
+    invites: list[dict] = []
+    try:
+        from bot.services.supabase_db import has_db, db_get_referrals_for_inviter
+
+        if has_db():
+            invites = db_get_referrals_for_inviter(int(uid), limit=limit)
+    except Exception:
+        invites = []
+
+    return {
+        "ok": True,
+        "telegram_id": uid,
+        "referrals_count": cnt,
+        "referral_discount_active": active,
+        "referral_discount_percent": pct,
+        "invitees": invites,
+    }
+
+
 @router.post("/api/notify")
 async def api_notify(
     req: NotifyRequest,

@@ -455,7 +455,11 @@
     <div class="plan-head">
       <div>
         <div class="plan-label" data-i18n="premium_standard_plan" data-i18n-fallback="Standart tarif">Standart tarif</div>
-        <div class="plan-price">9 999 <span class="plan-period" data-i18n="premium_period_7_days" data-i18n-fallback="so'm / 7 kun">so'm / 7 kun</span></div>
+        <div class="plan-price">
+          <span id="stdPriceNow">9 999</span>
+          <span id="stdPriceWas" style="margin-left:8px;font-size:12px;opacity:.8;text-decoration:line-through;display:none;">9 999</span>
+          <span class="plan-period" data-i18n="premium_period_7_days" data-i18n-fallback="so'm / 7 kun">so'm / 7 kun</span>
+        </div>
       </div>
       <span class="plan-badge badge-std" data-i18n="premium_badge_7_days" data-i18n-fallback="7 kun">7 kun</span>
     </div>
@@ -500,7 +504,11 @@
     <div class="plan-head">
       <div>
         <div class="plan-label" data-i18n="premium_premium_plan" data-i18n-fallback="Premium tarif">Premium tarif</div>
-        <div class="plan-price">29 999 <span class="plan-period" data-i18n="premium_period_month" data-i18n-fallback="so'm / oy">so'm / oy</span></div>
+        <div class="plan-price">
+          <span id="premPriceNow">29 999</span>
+          <span id="premPriceWas" style="margin-left:8px;font-size:12px;opacity:.8;text-decoration:line-through;display:none;">29 999</span>
+          <span class="plan-period" data-i18n="premium_period_month" data-i18n-fallback="so'm / oy">so'm / oy</span>
+        </div>
       </div>
       <span class="plan-badge badge-top" data-i18n="premium_badge_top" data-i18n-fallback="⭐ TOP">⭐ TOP</span>
     </div>
@@ -741,6 +749,76 @@
     box.classList.add("hidden");
   }
 
+  function _fmtUzs(n) {
+    const s = String(Math.round(Number(n || 0)));
+    return s.replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+  }
+
+  function applyReferralPricing(me) {
+    const active = !!me?.referral_discount_active;
+    const pct = Number(me?.referral_discount_percent || 0);
+    const stdNow = document.getElementById("stdPriceNow");
+    const stdWas = document.getElementById("stdPriceWas");
+    const premNow = document.getElementById("premPriceNow");
+    const premWas = document.getElementById("premPriceWas");
+    if (!stdNow || !stdWas || !premNow || !premWas) return;
+    const baseStd = 9999;
+    const basePre = 29999;
+    if (active && pct > 0) {
+      const discStd = Math.round(baseStd * (100 - pct) / 100);
+      const discPre = Math.round(basePre * (100 - pct) / 100);
+      stdWas.textContent = _fmtUzs(baseStd);
+      premWas.textContent = _fmtUzs(basePre);
+      stdWas.style.display = "inline";
+      premWas.style.display = "inline";
+      stdNow.textContent = _fmtUzs(discStd);
+      premNow.textContent = _fmtUzs(discPre);
+    } else {
+      stdWas.style.display = "none";
+      premWas.style.display = "none";
+      stdNow.textContent = _fmtUzs(baseStd);
+      premNow.textContent = _fmtUzs(basePre);
+    }
+  }
+
+  async function loadReferralInvitees() {
+    try {
+      const tid = window.DastyorAI?.getTelegramId?.();
+      const token = window.DastyorAI?.getToken?.() || sessionStorage.getItem("tg_token");
+      if (!tid) return null;
+      const base = String(window.DastyorAI?.BASE || location.origin || "").replace(/\/+$/, "");
+      const qs = new URLSearchParams({ telegram_id: String(tid), limit: "20" });
+      if (token) qs.set("token", String(token));
+      const r = await fetch(base + "/api/referrals?" + qs.toString());
+      if (!r.ok) return null;
+      return await r.json();
+    } catch (_) {
+      return null;
+    }
+  }
+
+  function renderInvitees(data) {
+    const box = document.getElementById("referralDiscountBanner");
+    const textEl = document.getElementById("refBannerText");
+    if (!box || !textEl || !data || !Array.isArray(data.invitees)) return;
+    const need = Math.max(0, 5 - Number(data.referrals_count || 0));
+    let list = data.invitees
+      .map((u) => {
+        const name = (u.first_name || "").trim();
+        const un = (u.username || "").trim();
+        const tag = un ? ("@" + un.replace(/^@/, "")) : "";
+        return (name || tag || ("ID " + u.invitee_id));
+      })
+      .filter(Boolean)
+      .slice(0, 12);
+    if (list.length) {
+      textEl.textContent = (window.DA?.t?.("ref_banner_progress_prefix") || "Taklif qilganlar:") + " " + list.join(", ");
+      if (need > 0) {
+        textEl.textContent += ". " + (window.DA?.t?.("ref_banner_need_more") || "Yana kerak:") + " " + need;
+      }
+    }
+  }
+
   async function refreshPremiumLivePanel() {
     const box = document.getElementById("userLiveTariff");
     if (!box || box.classList.contains("hidden")) return;
@@ -772,7 +850,13 @@
     if (window.DastyorAI?.initUI) {
       await window.DastyorAI.initUI({
         autoNavLinks: true,
-        onUser: (me) => { applyPremiumPageLiveTariff(me); applyReferralBanner(me); },
+        onUser: async (me) => {
+          applyPremiumPageLiveTariff(me);
+          applyReferralBanner(me);
+          applyReferralPricing(me);
+          const data = await loadReferralInvitees();
+          if (data) renderInvitees(data);
+        },
       });
     }
     document.addEventListener('visibilitychange', () => {
@@ -782,11 +866,11 @@
     });
     window.addEventListener('dastyor:profile-updated', () => {
       const me = window.DastyorAI?.getUser?.();
-      if (me) { applyPremiumPageLiveTariff(me); applyReferralBanner(me); }
+      if (me) { applyPremiumPageLiveTariff(me); applyReferralBanner(me); applyReferralPricing(me); }
     });
     window.addEventListener('app:language-applied', () => {
       const me = window.DastyorAI?.getUser?.();
-      if (me) { applyPremiumPageLiveTariff(me); applyReferralBanner(me); }
+      if (me) { applyPremiumPageLiveTariff(me); applyReferralBanner(me); applyReferralPricing(me); }
     });
 
     // If opened from soft paywall: auto-open payment page.

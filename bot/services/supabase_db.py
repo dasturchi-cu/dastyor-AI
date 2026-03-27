@@ -158,6 +158,50 @@ def db_consume_referral_discount(user_id: int) -> dict | None:
     c = _get_client()
     if not c:
         return None
+
+
+def db_get_referrals_for_inviter(inviter_id: int, limit: int = 20) -> list[dict]:
+    """
+    Return invitees list: [{invitee_id, first_name, username, created_at}, ...]
+    """
+    c = _get_client()
+    if not c:
+        return []
+    try:
+        lim = max(1, min(50, int(limit)))
+        r = (
+            c.table("referrals")
+            .select("invitee_id, created_at")
+            .eq("inviter_id", int(inviter_id))
+            .order("created_at", desc=True)
+            .limit(lim)
+            .execute()
+        )
+        ids = [row.get("invitee_id") for row in (r.data or []) if row.get("invitee_id") is not None]
+        if not ids:
+            return []
+        # Fetch user records for invitees
+        ur = c.table("users").select("id, first_name, username").in_("id", ids).execute()
+        by_id = {int(u["id"]): u for u in (ur.data or []) if u and u.get("id") is not None}
+        out: list[dict] = []
+        for row in (r.data or []):
+            iid = row.get("invitee_id")
+            if iid is None:
+                continue
+            u = by_id.get(int(iid), {}) if by_id else {}
+            out.append(
+                {
+                    "invitee_id": int(iid),
+                    "first_name": (u.get("first_name") or "")[:120],
+                    "username": (u.get("username") or "")[:120] if u.get("username") else "",
+                    "created_at": row.get("created_at"),
+                }
+            )
+        return out
+    except Exception as e:
+        _mark_temporarily_unavailable(e)
+        _log_write_error("db_get_referrals_for_inviter", e)
+        return []
     try:
         r = c.rpc("consume_referral_discount", {"uid": int(user_id)}).execute()
         if isinstance(getattr(r, "data", None), dict):
