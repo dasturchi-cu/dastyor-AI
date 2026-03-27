@@ -117,10 +117,10 @@ _DICT = {
         "ru": "💰 **Ваш баланс**\n\n👤 ID: `{user_id}`\n📊 Статус: **{status}**\n📋 **По услугам:**\n{limit_text}\n📄 Обработано файлов: **{files}** шт\n\nДля Premium: кнопка '{premium_btn}'."
     },
     "balance_footer_hint": {
-        "uz_lat": "💡 **Limit tugaganda:** mini-appda **💎 Premium / tariflar** bo‘limiga kiring, tarifni *yangilang* yoki obuna *muddatini uzaytiring* — to‘lovdan keyin limitlar tarifga mos **qayta hisoblanadi** (kunlik, oylik yoki boshqa — tarif kartasida ko‘rsatiladi).",
-        "uz_cyr": "💡 **Лимит тугаганда:** mini-appда **💎 Premium / тарифлар** бўлимига киринг, тарифни *янгиланг* ёки обуна *муддатини узайтиринг* — тўловдан кейин лимитлар тарифга мос **қайта ҳисобланади**.",
-        "en": "💡 **When a limit runs out:** open **💎 Premium / plans** in the mini app, renew or extend — after payment, limits are **reset** according to your plan (daily, monthly, etc.).",
-        "ru": "💡 **Если лимит исчерпан:** в мини-приложении откройте **💎 Premium / тарифы**, продлите или обновите подписку — после оплаты лимиты **считаются заново** по правилам тарифа."
+        "uz_lat": "💡 Premium va tariflarni Web mini-appdagi **💎 Premium** sahifasidan olasiz.",
+        "uz_cyr": "💡 Premium ва тарифларни Web mini-appдаги **💎 Premium** саҳифасидан оласиз.",
+        "en": "💡 You can buy Premium/plans in the Web mini app → **💎 Premium** page.",
+        "ru": "💡 Premium/тарифы можно купить в Web mini‑app → странице **💎 Premium**."
     },
     "status_prem": {
         "uz_lat": "💎 Premium", "uz_cyr": "💎 Premium", "en": "💎 Premium", "ru": "💎 Премиум"

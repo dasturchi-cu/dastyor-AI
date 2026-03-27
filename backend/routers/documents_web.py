@@ -171,6 +171,40 @@ async def api_generate_cv(
     )
 
 
+@router.post("/api/request_paid_cv")
+async def api_request_paid_cv(req: CVRequest):
+    """
+    Paid flow (CV): store request, return bot deep-link for screenshot payment.
+    Admin approves → bot generates and sends the file.
+    """
+    uid_str = resolve_telegram_uid(
+        str(req.telegram_id) if req.telegram_id else None,
+        req.token,
+    )
+    if not uid_str:
+        raise HTTPException(status_code=401, detail="Foydalanuvchi aniqlanmadi")
+    uid = int(uid_str)
+    payload = req.dict(exclude={"telegram_id", "token"})
+    rid = None
+    try:
+        from bot.services.supabase_db import has_db, db_create_paid_doc_request
+
+        if has_db():
+            rid = db_create_paid_doc_request(uid, "cv", payload)
+    except Exception:
+        rid = None
+    if not rid:
+        raise HTTPException(status_code=500, detail="So'rovni saqlab bo'lmadi (DB).")
+    bot_username = (os.getenv("BOT_USERNAME", "DastyorAiBot") or "DastyorAiBot").strip().lstrip("@")
+    pay_link = f"https://t.me/{bot_username}?start=paycv_{rid}"
+    return {
+        "ok": True,
+        "request_id": rid,
+        "pay_link": pay_link,
+        "message": "✅ So'rov qabul qilindi. 5 000 so'm to'lov qiling va skrenshot yuboring — admin tasdiqlagach CV fayl botga keladi.",
+    }
+
+
 @router.get("/api/get_oby_data")
 async def api_get_oby_data(
     token: Optional[str] = Query(None),
@@ -319,6 +353,40 @@ async def api_generate_obyektivka(
         media_type=mime,
         headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )
+
+
+@router.post("/api/request_paid_obyektivka")
+async def api_request_paid_obyektivka(req: ObyektivkaRequest):
+    """
+    Paid flow (Obyektivka): store request, return bot deep-link for screenshot payment.
+    Admin approves → bot generates and sends the file.
+    """
+    uid_str = resolve_telegram_uid(
+        str(req.telegram_id) if req.telegram_id else None,
+        req.token,
+    )
+    if not uid_str:
+        raise HTTPException(status_code=401, detail="Foydalanuvchi aniqlanmadi")
+    uid = int(uid_str)
+    payload = req.dict(exclude={"telegram_id", "token"})
+    rid = None
+    try:
+        from bot.services.supabase_db import has_db, db_create_paid_doc_request
+
+        if has_db():
+            rid = db_create_paid_doc_request(uid, "obyektivka", payload)
+    except Exception:
+        rid = None
+    if not rid:
+        raise HTTPException(status_code=500, detail="So'rovni saqlab bo'lmadi (DB).")
+    bot_username = (os.getenv("BOT_USERNAME", "DastyorAiBot") or "DastyorAiBot").strip().lstrip("@")
+    pay_link = f"https://t.me/{bot_username}?start=payoby_{rid}"
+    return {
+        "ok": True,
+        "request_id": rid,
+        "pay_link": pay_link,
+        "message": "✅ So'rov qabul qilindi. 5 000 so'm to'lov qiling va skrenshot yuboring — admin tasdiqlagach Obyektivka fayl botga keladi.",
+    }
 
 
 @router.post("/api/export_cv")

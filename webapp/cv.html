@@ -1057,21 +1057,43 @@
         alert("Faqat Telegram WebApp ichida ishlaydi!");
         return;
       }
-      if (window.DastyorAI && window.DastyorAI.isQuotaBlockedForCategory(window.DastyorAI.getUser(), 'cv')) {
-        alert('⛔ Bu xizmat pullik. Premium/Pro tarifni oling.');
-        return;
-      }
       try {
         try {
           if (window.DastyorAI && window.DastyorAI.showDocumentLoading) {
-            window.DastyorAI.showDocumentLoading('Hujjat tayyorlanmoqda...', 'Iltimos, 10–15 soniya kuting');
+            window.DastyorAI.showDocumentLoading('So‘rov yuborilmoqda...', 'To‘lovdan keyin fayl botga keladi');
           }
         } catch (_) {}
-        const data = await sendCvViaApi(fmt);
+
+        // Paid single purchase flow (5 000 so'm): create request, then jump to bot for screenshot.
+        const payload = buildCvPayload(fmt);
+        if (payload.img && String(payload.img).startsWith('data:image')) {
+          payload.img = await maybeCompressDataUrl(payload.img);
+        }
+        let sessionToken = null;
+        try { if (window.DastyorAI && window.DastyorAI.getToken) sessionToken = window.DastyorAI.getToken(); } catch (_) {}
+        if (!sessionToken) { try { sessionToken = sessionStorage.getItem('tg_token'); } catch (_) {} }
+        const req = Object.assign({}, payload, {
+          telegram_id: telegramId ? parseInt(telegramId, 10) : null,
+          token: sessionToken || undefined,
+        });
+        delete req.action;
+        delete req.format;
+        const res = await fetch(getCvApiBase() + '/api/request_paid_cv', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(req),
+        });
+        if (!res.ok) {
+          let d = '';
+          try { const j = await res.json(); d = j.detail || j.message || ''; } catch (_) {}
+          throw new Error(d || ('Server ' + res.status));
+        }
+        const data = await res.json();
         tg.HapticFeedback && tg.HapticFeedback.notificationOccurred && tg.HapticFeedback.notificationOccurred('success');
-        const line = (data && data.message) ? data.message : "✅ Fayl botga yuborilishi uchun navbatga qo‘yildi. Telegram chatda kuting.";
-        alert(line);
-        setTimeout(() => { try { tg.close(); } catch (_) {} }, 1200);
+        alert((data && data.message) ? data.message : "✅ So'rov qabul qilindi. To'lovni tasdiqlagach fayl botga keladi.");
+        try {
+          if (data && data.pay_link && tg.openTelegramLink) tg.openTelegramLink(String(data.pay_link));
+        } catch (_) {}
       } catch (e) {
         alert("❌ Yuborishda xatolik: " + (e.message || String(e)).slice(0, 80));
       } finally {

@@ -21,6 +21,10 @@ _REFERRALS_CACHE_TTL = float(os.getenv("REFERRALS_CACHE_TTL_SECONDS", "30") or "
 _paywall_shown_cache: dict[int, tuple[float, bool]] = {}
 _PAYWALL_SHOWN_CACHE_TTL = float(os.getenv("PAYWALL_SHOWN_CACHE_TTL_SECONDS", "120") or "120")
 
+# Paid single-document requests (CV / Obyektivka)
+_paid_doc_req_cache: dict[int, tuple[float, dict]] = {}
+_PAID_DOC_REQ_CACHE_TTL = float(os.getenv("PAID_DOC_REQUEST_CACHE_TTL_SECONDS", "10") or "10")
+
 
 def _maybe_warn_service_role():
     """Anon kalit bilan RLS yozuvlarni bloklaydi — bir marta ogohlantiramiz."""
@@ -581,6 +585,75 @@ def db_mark_paywall_shown(user_id: int) -> bool:
         except Exception:
             pass
         return ok
+    except Exception:
+        return False
+
+
+def db_create_paid_doc_request(user_id: int, kind: str, payload: dict) -> int | None:
+    """
+    Create a paid doc request row: paid_doc_requests(user_id, kind, payload, status).
+    Returns request id or None. Safe on missing table: returns None.
+    """
+    c = _get_client()
+    if not c:
+        return None
+    uid = int(user_id)
+    k = (kind or "").strip().lower()
+    if k not in {"cv", "obyektivka"}:
+        k = "cv"
+    try:
+        r = c.table("paid_doc_requests").insert(
+            {"user_id": uid, "kind": k, "payload": payload, "status": "pending_payment"}
+        ).execute()
+        if r.data and isinstance(r.data, list) and r.data[0].get("id"):
+            return int(r.data[0]["id"])
+        return None
+    except Exception:
+        return None
+
+
+def db_get_paid_doc_request(request_id: int) -> dict | None:
+    """
+    Returns dict with fields: id,user_id,kind,payload,status or None.
+    """
+    c = _get_client()
+    if not c:
+        return None
+    rid = int(request_id)
+    try:
+        now = time.monotonic()
+        hit = _paid_doc_req_cache.get(rid)
+        if hit and (now - hit[0]) < _PAID_DOC_REQ_CACHE_TTL:
+            return hit[1]
+    except Exception:
+        pass
+    try:
+        r = c.table("paid_doc_requests").select("*").eq("id", rid).limit(1).execute()
+        if not r.data:
+            return None
+        row = dict(r.data[0])
+        try:
+            _paid_doc_req_cache[rid] = (time.monotonic(), row)
+        except Exception:
+            pass
+        return row
+    except Exception:
+        return None
+
+
+def db_set_paid_doc_request_status(request_id: int, status: str) -> bool:
+    c = _get_client()
+    if not c:
+        return False
+    rid = int(request_id)
+    st = (status or "").strip().lower()[:40]
+    try:
+        c.table("paid_doc_requests").update({"status": st}).eq("id", rid).execute()
+        try:
+            _paid_doc_req_cache.pop(rid, None)
+        except Exception:
+            pass
+        return True
     except Exception:
         return False
     try:

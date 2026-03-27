@@ -27,6 +27,9 @@ PLAN_INFO = {
     "premium": {"title": "Premium", "days": 30},
 }
 
+# Single-doc paid products (manual approval)
+SINGLE_DOC_PRICE_UZS = int(os.getenv("SINGLE_DOC_PRICE_UZS", "5000") or "5000")
+
 
 def _premium_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
@@ -119,7 +122,8 @@ async def handle_premium_screenshot(update: Update, context: ContextTypes.DEFAUL
         return False
     if not update.effective_chat or update.effective_chat.type != "private":
         return False
-    if context.user_data.get("waiting_for") != "premium_payment_screenshot":
+    waiting = context.user_data.get("waiting_for")
+    if waiting not in {"premium_payment_screenshot", "paid_doc_payment_screenshot"}:
         return False
 
     has_media = bool(update.message.photo or update.message.document)
@@ -127,8 +131,11 @@ async def handle_premium_screenshot(update: Update, context: ContextTypes.DEFAUL
         await update.message.reply_text("❌ Iltimos, to'lov skrenshotini rasm yoki fayl ko'rinishida yuboring.")
         return True
 
+    is_paid_doc = waiting == "paid_doc_payment_screenshot"
     plan = str(context.user_data.get("premium_plan", "premium")).lower()
     plan_data = PLAN_INFO.get(plan, PLAN_INFO["premium"])
+    paid_kind = str(context.user_data.get("paid_doc_kind") or "").strip().lower()
+    paid_rid = context.user_data.get("paid_doc_request_id")
     user = update.effective_user
 
     request_id = None
@@ -136,16 +143,22 @@ async def handle_premium_screenshot(update: Update, context: ContextTypes.DEFAUL
         from bot.services.supabase_db import has_db, db_create_payment
 
         if has_db():
+            meta = {
+                "source": "telegram_screenshot",
+                "username": user.username or "",
+                "first_name": user.first_name or "",
+            }
+            plan_type = plan
+            if is_paid_doc:
+                plan_type = "cv_single" if paid_kind == "cv" else "obyektivka_single"
+                meta["paid_doc_request_id"] = int(paid_rid) if str(paid_rid).isdigit() else None
+                meta["paid_doc_kind"] = paid_kind
             pid = db_create_payment(
                 int(user.id),
-                plan,
-                0.0,
+                plan_type,
+                float(SINGLE_DOC_PRICE_UZS) if is_paid_doc else 0.0,
                 screenshot_url=None,
-                metadata={
-                    "source": "telegram_screenshot",
-                    "username": user.username or "",
-                    "first_name": user.first_name or "",
-                },
+                metadata=meta,
             )
             if pid is not None:
                 request_id = pid
@@ -155,7 +168,7 @@ async def handle_premium_screenshot(update: Update, context: ContextTypes.DEFAUL
     if request_id is None:
         request_id = create_payment_request(
             user_id=int(user.id),
-            plan_type=plan,
+            plan_type=("cv_single" if paid_kind == "cv" else "obyektivka_single") if is_paid_doc else plan,
             username=user.username or "",
             first_name=user.first_name or "",
         )
@@ -167,18 +180,34 @@ async def handle_premium_screenshot(update: Update, context: ContextTypes.DEFAUL
             InlineKeyboardButton("❌ Rad etish", callback_data=f"prempay_reject_{request_id}"),
         ]]
     )
-    caption = (
-        "💰 <b>Yangi premium to‘lov</b>\n\n"
-        f"So'rov ID: <code>{request_id}</code>\n"
-        f"Username: {uname}\n"
-        f"User ID: <code>{user.id}</code>\n"
-        f"Tarif: <b>{plan_data['title']}</b>\n"
-        f"Holat: <b>{plan_data['title']} uchun to'lov qildi</b>"
-    )
+    if is_paid_doc:
+        kind_title = "CV" if paid_kind == "cv" else "Obyektivka"
+        caption = (
+            "💰 <b>Yangi to‘lov (single)</b>\n\n"
+            f"So'rov ID: <code>{request_id}</code>\n"
+            f"Username: {uname}\n"
+            f"User ID: <code>{user.id}</code>\n"
+            f"Xizmat: <b>{kind_title}</b>\n"
+            f"Narx: <b>{format_uzs(SINGLE_DOC_PRICE_UZS)} so'm</b>\n"
+            f"Doc request: <code>{paid_rid}</code>"
+        )
+    else:
+        caption = (
+            "💰 <b>Yangi premium to‘lov</b>\n\n"
+            f"So'rov ID: <code>{request_id}</code>\n"
+            f"Username: {uname}\n"
+            f"User ID: <code>{user.id}</code>\n"
+            f"Tarif: <b>{plan_data['title']}</b>\n"
+            f"Holat: <b>{plan_data['title']} uchun to'lov qildi</b>"
+        )
 
     context.user_data.pop("waiting_for", None)
+    context.user_data.pop("paid_doc_kind", None)
+    context.user_data.pop("paid_doc_request_id", None)
     await update.message.reply_text(
-        "✅ Skrenshot qabul qilindi. Admin tasdiqlashini kuting — tasdiqdan keyin tarif darhol amal qiladi."
+        "✅ Skrenshot qabul qilindi. Admin tasdiqlashini kuting — tasdiqdan keyin fayl shu chatga keladi."
+        if is_paid_doc
+        else "✅ Skrenshot qabul qilindi. Admin tasdiqlashini kuting — tasdiqdan keyin tarif darhol amal qiladi."
     )
 
     bot = context.bot
@@ -268,6 +297,92 @@ async def premium_payment_review_callback(update: Update, context: ContextTypes.
                 if action == "approve":
                     # Mark payment approved
                     db_set_payment_status(request_id, "approved", reviewed_by=int(query.from_user.id))
+
+                    # If this is a paid single-doc request, generate and deliver file instead of subscription.
+                    if plan in {"cv_single", "obyektivka_single"}:
+                        db_set_payment_status(request_id, "approved", reviewed_by=int(query.from_user.id))
+                        meta = pay.get("metadata") if isinstance(pay.get("metadata"), dict) else {}
+                        doc_rid = meta.get("paid_doc_request_id")
+                        try:
+                            from bot.services.supabase_db import db_get_paid_doc_request, db_set_paid_doc_request_status
+
+                            req_row = db_get_paid_doc_request(int(doc_rid)) if str(doc_rid).isdigit() else None
+                            if not req_row or int(req_row.get("user_id") or 0) != uid:
+                                raise RuntimeError("paid_doc_request topilmadi")
+                            db_set_paid_doc_request_status(int(req_row["id"]), "approved")
+                            payload = req_row.get("payload") if isinstance(req_row.get("payload"), dict) else {}
+                            if plan == "cv_single":
+                                from bot.services.doc_generator import generate_cv_docx
+
+                                loop = asyncio.get_running_loop()
+                                docx_path = await loop.run_in_executor(None, generate_cv_docx, payload)
+                                if not docx_path or not os.path.exists(docx_path):
+                                    raise RuntimeError("CV docx yaratilmadi")
+                                with open(docx_path, "rb") as fh:
+                                    raw = fh.read()
+                                safe_remove(docx_path)
+                                buf = io.BytesIO(raw)
+                                nm = (payload.get("name") or "CV").replace(" ", "_")[:30]
+                                buf.name = f"DASTYOR_CV_{nm}_{int(time.time())}_@DastyorAiBot.docx"
+                                await send_docx_with_confirmation(
+                                    context.bot,
+                                    uid,
+                                    buf,
+                                    filename=buf.name,
+                                    caption="✅ <b>CV tayyor!</b>",
+                                    parse_mode="HTML",
+                                )
+                            else:
+                                from bot.services.doc_generator import generate_obyektivka_docx
+
+                                # payload already matches ObyektivkaRequest fields
+                                doc_data = dict(payload)
+                                # Photo is in payload.photo_base64 (as in API), pass through temp file if present
+                                photo_path = None
+                                try:
+                                    ph = payload.get("photo_base64") or payload.get("photo") or ""
+                                    if isinstance(ph, str) and ph.startswith("data:image"):
+                                        head, b64 = ph.split(",", 1)
+                                        raw = base64.b64decode(b64)
+                                        os.makedirs("temp", exist_ok=True)
+                                        photo_path = os.path.join("temp", f"oby_photo_{uid}_{int(time.time())}.jpg")
+                                        with open(photo_path, "wb") as f:
+                                            f.write(raw)
+                                except Exception:
+                                    photo_path = None
+                                loop = asyncio.get_running_loop()
+                                docx_path = await loop.run_in_executor(None, generate_obyektivka_docx, doc_data, photo_path)
+                                if not docx_path or not os.path.exists(docx_path):
+                                    raise RuntimeError("Obyektivka docx yaratilmadi")
+                                with open(docx_path, "rb") as fh:
+                                    raw = fh.read()
+                                safe_remove(docx_path, photo_path)
+                                buf = io.BytesIO(raw)
+                                nm = (payload.get("fullname") or "Obyektivka").replace(" ", "_")[:30]
+                                buf.name = f"DASTYOR_Obyektivka_{nm}_{int(time.time())}_@DastyorAiBot.docx"
+                                await send_docx_with_confirmation(
+                                    context.bot,
+                                    uid,
+                                    buf,
+                                    filename=buf.name,
+                                    caption="✅ <b>Obyektivka tayyor!</b>",
+                                    parse_mode="HTML",
+                                )
+
+                        except Exception as e:
+                            logger.error("paid_doc approve failed: %s", e, exc_info=True)
+                            try:
+                                await context.bot.send_message(chat_id=uid, text="⚠️ To'lov tasdiqlandi, lekin fayl yaratishda xato bo'ldi. Supportga yozing.")
+                            except Exception:
+                                pass
+
+                        await query.answer("Tasdiqlandi", show_alert=False)
+                        try:
+                            new_caption = (query.message.caption or "") + "\n\n✅ Tasdiqlandi"
+                            await query.message.edit_caption(caption=new_caption, parse_mode="HTML", reply_markup=None)
+                        except Exception:
+                            pass
+                        return
 
                     start_dt = datetime.utcnow()
                     expire_dt = start_dt + timedelta(days=days)

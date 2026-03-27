@@ -131,6 +131,26 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # ── Check payload ──────────────────────────────────────────────────
     payload = (context.args[0] if context.args else "").strip().lower()
 
+    # ── Paid doc payment deep-links: /start paycv_<reqId> | payoby_<reqId> ──
+    try:
+        if payload.startswith("paycv_") or payload.startswith("payoby_"):
+            raw = payload.split("_", 1)[-1].strip()
+            if raw.isdigit():
+                rid = int(raw)
+                kind = "cv" if payload.startswith("paycv_") else "obyektivka"
+                context.user_data["waiting_for"] = "paid_doc_payment_screenshot"
+                context.user_data["paid_doc_kind"] = kind
+                context.user_data["paid_doc_request_id"] = rid
+                await update.message.reply_text(
+                    "💳 <b>To'lov (5 000 so'm)</b>\n\n"
+                    "Quyidagi kartaga to'lov qiling va skrenshotni shu chatga yuboring.\n"
+                    "Admin tasdiqlagach faylingiz shu yerga keladi.",
+                    parse_mode="HTML",
+                )
+                return
+    except Exception:
+        pass
+
     # ── Referral deep-link: /start ref_<inviter_id> ─────────────────────
     # Example: https://t.me/DastyorAiBot?start=ref_123456
     try:

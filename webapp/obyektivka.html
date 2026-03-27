@@ -725,22 +725,71 @@ async function sendObyektivkaToBot(fmt){
     alert("Faqat Telegram WebApp ichida ishlaydi!");
     return;
   }
-  if (window.DastyorAI && window.DastyorAI.isQuotaBlockedForCategory(window.DastyorAI.getUser(), 'obyektivka')) {
-    alert('⛔ Bu xizmat pullik. Premium/Pro tarifni oling.');
-    return;
-  }
   var btn=document.getElementById('dlBtn');
   if(btn)btn.disabled=true;
   try{
-    await sendObyektivkaViaApi(fmt);
+    // Paid single purchase flow (5 000 so'm): create request, then jump to bot for screenshot.
+    try {
+      if (window.DastyorAI && window.DastyorAI.showDocumentLoading) {
+        window.DastyorAI.showDocumentLoading('So‘rov yuborilmoqda...', 'To‘lovdan keyin fayl botga keladi');
+      }
+    } catch (_) {}
+    var payload = buildObyPayload(fmt);
+    var req = {
+      telegram_id: telegramId ? parseInt(telegramId, 10) : null,
+      lang: payload.lang,
+      fullname: payload.fullname || '',
+      birthdate: payload.bdate || '',
+      birthplace: payload.bplace || '',
+      nation: payload.nation || '',
+      party: payload.party || '',
+      education: payload.edu || '',
+      graduated: payload.grad || '',
+      specialty: payload.spec || '',
+      degree: payload.deg || '',
+      scientific_title: payload.ttl || '',
+      languages: payload.langs || '',
+      military_rank: payload.mil || '',
+      awards: payload.award || '',
+      deputy: payload.dep || '',
+      current_job: payload.current_job || '',
+      current_job_year: payload.current_job_year || '',
+      work_experience: (payload.works || []).map(function(w){
+        return { year: ((w.f || '') + ((w.f || w.t) ? '-' : '') + (w.t || '')).replace(/^-|-$/g,''), position: w.d || '' };
+      }),
+      relatives: (payload.rels || []).map(function(r){
+        return {
+          degree: r.type || '',
+          fullname: r.name || '',
+          birth_year_place: r.birth || '',
+          work_place: r.job || '',
+          address: r.addr || ''
+        };
+      }),
+      photo_data: payload.photo_data || ''
+    };
+    var tok = getDastyorSessionToken();
+    if (tok) req.token = tok;
+    var res = await fetch(API_URL + '/api/request_paid_obyektivka', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify(req)
+    });
+    if(!res.ok){
+      var errMsg = await dastyorReadApiError(res);
+      throw new Error(errMsg);
+    }
+    var data = await res.json();
     tg.HapticFeedback&&tg.HapticFeedback.notificationOccurred&&tg.HapticFeedback.notificationOccurred('success');
-    var doneMsg = (fmt === 'pdf')
-      ? "✅ Tayyor! PDF fayl chatga yuborildi. Chatni ochib faylni oling."
-      : "✅ Tayyor! Word fayl chatga yuborildi. Chatni ochib faylni oling.";
+    var doneMsg = (data && data.message) ? data.message : "✅ So'rov qabul qilindi. To'lov tasdiqlangach fayl chatga keladi.";
     if (typeof tg.showAlert === 'function') {
-      tg.showAlert(doneMsg, function () { try { tg.close(); } catch (_) {} });
+      tg.showAlert(doneMsg, function () {
+        try { if (data && data.pay_link && tg.openTelegramLink) tg.openTelegramLink(String(data.pay_link)); } catch (_) {}
+        try { tg.close(); } catch (_) {}
+      });
     } else {
       alert(doneMsg);
+      try { if (data && data.pay_link && tg.openTelegramLink) tg.openTelegramLink(String(data.pay_link)); } catch (_) {}
       setTimeout(function () { try { tg.close(); } catch (_) {} }, 600);
     }
   }catch(e){
@@ -748,6 +797,7 @@ async function sendObyektivkaToBot(fmt){
     if (em.length > 500) em = em.slice(0, 500) + '…';
     alert("❌ Yuborishda xatolik:\n\n" + em);
   }finally{
+    try { if (window.DastyorAI && window.DastyorAI.hideDocumentLoading) window.DastyorAI.hideDocumentLoading(); } catch (_) {}
     if(btn)btn.disabled=false;
   }
 }
