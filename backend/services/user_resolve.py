@@ -21,8 +21,8 @@ def resolve_telegram_uid(
         from bot.services.session_service import resolve_telegram_id
 
         uid = resolve_telegram_id(session_token)
-        if uid:
-            return uid
+        if uid and str(uid).strip().isdigit():
+            return str(uid).strip()
     if telegram_id_param and telegram_id_param.strip().isdigit():
         return telegram_id_param.strip()
     return None
