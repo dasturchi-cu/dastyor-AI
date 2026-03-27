@@ -344,7 +344,7 @@
         </div>
         <div id="obyPayStatus" style="font-size:12px;color:#334155;">Skrenshot tanlang va yuboring.</div>
         <div style="margin-top:8px;">
-          <button type="button" class="btn btn-primary" id="obyPayDownloadBtn" style="display:none;">⬇️ Faylni yuklash</button>
+          <button type="button" class="btn btn-primary" id="obyPayDownloadBtn" style="display:none;">📝 Wordni yuborish</button>
         </div>
       </div>
     </form>
@@ -905,9 +905,10 @@ async function payObySingle(fmt){
             if(s==='approved'||s==='delivered'){
               clearInterval(_obyPayState.pollTimer);
               _obyPayState.pollTimer = null;
-              if(statusEl) statusEl.textContent = "✅ Admin tasdiqladi. Endi faylni yuklashingiz mumkin.";
+              if(statusEl) statusEl.textContent = "✅ Admin tasdiqladi. Endi Wordni yuborishingiz mumkin.";
               if(dlBtn){
                 dlBtn.style.display='inline-flex';
+                dlBtn.textContent = "📝 Wordni yuborish";
                 dlBtn.onclick = function(){
                   var dl=API_URL + '/api/paid_doc_download?' + p.toString();
                   try{ if(tg.openLink) tg.openLink(dl); else window.open(dl,'_blank'); }catch(_){ window.open(dl,'_blank'); }

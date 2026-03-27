@@ -345,7 +345,7 @@
         </div>
         <div id="cvPayStatus" class="text-xs text-slate-700">Skrenshot tanlang va yuboring.</div>
         <div class="mt-3">
-          <button type="button" id="cvPayDownloadBtn" class="hidden px-3 py-2 rounded-lg bg-blue-600 text-white text-xs font-semibold">⬇️ Faylni yuklash</button>
+          <button type="button" id="cvPayDownloadBtn" class="hidden px-3 py-2 rounded-lg bg-blue-600 text-white text-xs font-semibold">📄 PDFni yuborish</button>
         </div>
       </div>
 
@@ -1225,9 +1225,10 @@
                 if (s === 'approved' || s === 'delivered') {
                   clearInterval(_cvPayState.pollTimer);
                   _cvPayState.pollTimer = null;
-                  if (status) status.textContent = "✅ Admin tasdiqladi. Endi faylni yuklashingiz mumkin.";
+                  if (status) status.textContent = "✅ Admin tasdiqladi. Endi PDFni yuborishingiz mumkin.";
                   if (dlBtn) {
                     dlBtn.classList.remove('hidden');
+                    dlBtn.textContent = "📄 PDFni yuborish";
                     dlBtn.onclick = () => {
                       const dl = base + '/api/paid_doc_download?' + p.toString();
                       try { tg.openLink ? tg.openLink(dl) : window.open(dl, '_blank'); } catch (_) { window.open(dl, '_blank'); }
