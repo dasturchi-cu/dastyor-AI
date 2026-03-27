@@ -17,6 +17,15 @@ from bot.keyboards.reply_keyboards import get_main_menu
 from bot.services.user_service import save_chat_id
 from bot.services.usage_tracker import format_tariff_status_html
 from config import WEBAPP_BASE
+import bot.services.user_service as crm
+from bot.services.pricing import (
+    REFERRAL_REQUIRED_INVITES,
+    REFERRAL_DISCOUNT_PERCENT,
+    STANDARD_PRICE_UZS,
+    PREMIUM_PRICE_UZS,
+    apply_percent_discount,
+    format_uzs,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -189,3 +198,38 @@ async def menu_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         parse_mode="HTML",
     )
     asyncio.create_task(_merge_tariff_into_message(msg, uid, kb, suffix="Menyudan xizmat tanlang:"))
+
+
+async def referral_link_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """User clicks referral button or types /ref."""
+    if not update.effective_chat or update.effective_chat.type != "private":
+        return
+    if not update.effective_user:
+        return
+    uid = int(update.effective_user.id)
+    bot_username = (os.getenv("BOT_USERNAME", "DastyorAiBot") or "DastyorAiBot").strip().lstrip("@")
+    link = f"https://t.me/{bot_username}?start=ref_{uid}"
+
+    profile = crm.get_user_profile(uid) or {}
+    cnt = int(profile.get("referrals_count") or 0)
+    active = bool(profile.get("referral_discount_active"))
+    pct = int(profile.get("referral_discount_percent") or REFERRAL_DISCOUNT_PERCENT or 0)
+
+    disc_std = apply_percent_discount(STANDARD_PRICE_UZS, pct)
+    disc_pre = apply_percent_discount(PREMIUM_PRICE_UZS, pct)
+
+    status = (
+        f"✅ Bonus tayyor: <b>{pct}%</b> (Standard {format_uzs(disc_std)} so'm, Premium {format_uzs(disc_pre)} so'm)."
+        if active and pct > 0
+        else f"⏳ Hali yo'q. {REFERRAL_REQUIRED_INVITES} ta do'st kerak."
+    )
+
+    text = (
+        "🎁 <b>Referal link</b>\n\n"
+        f"Do'stlaringizga yuboring:\n<code>{link}</code>\n\n"
+        f"👥 Taklif qilganlar: <b>{cnt}</b> ta\n"
+        f"🎯 Shart: <b>{REFERRAL_REQUIRED_INVITES}</b> ta do'st kirsa — <b>{REFERRAL_DISCOUNT_PERCENT}%</b> chegirma (Standard/Premium)\n\n"
+        f"{status}\n\n"
+        "💡 Bonus 1 marta ishlaydi: tarif aktiv bo'lgach avtomatik o'chadi."
+    )
+    await update.message.reply_text(text, parse_mode="HTML")

@@ -2,7 +2,7 @@
 -- Maqsad:
 -- 1) /start ref_<id> orqali kelgan yangi user invitee bo'ladi
 -- 2) inviter_id uchun referrals_count oshadi
--- 3) 5 ta referral bo'lsa: premium uchun 30% discount flag yoqiladi
+-- 3) 5 ta referral bo'lsa: Standard/Premium uchun 30% discount flag yoqiladi
 
 alter table public.users add column if not exists referred_by bigint;
 alter table public.users add column if not exists referrals_count integer not null default 0;
@@ -66,6 +66,38 @@ begin
   return json_build_object('ok', true, 'inserted', inserted, 'referrals_count', cnt);
 end;
 $$;
+
+-- Discountni ishlatgandan keyin o'chirish (1 marta ishlasin)
+create or replace function public.consume_referral_discount(uid bigint)
+returns json
+language plpgsql
+security definer
+as $$
+declare
+  active boolean := false;
+  pct integer := 0;
+begin
+  if uid is null then
+    return json_build_object('ok', false, 'reason', 'missing');
+  end if;
+  select referral_discount_active, referral_discount_percent
+    into active, pct
+    from public.users where id = uid;
+
+  if not active or coalesce(pct, 0) <= 0 then
+    return json_build_object('ok', true, 'consumed', false);
+  end if;
+
+  update public.users
+    set referral_discount_active = false,
+        referral_discount_expires_at = now()
+    where id = uid;
+
+  return json_build_object('ok', true, 'consumed', true, 'percent', pct);
+end;
+$$;
+
+grant execute on function public.consume_referral_discount(bigint) to anon, authenticated;
 
 -- RLS bo'lsa: backend anon key bilan ishlashi uchun RPCga ruxsat bering.
 -- (Siz service_role ishlatsangiz ham bo'ladi.)

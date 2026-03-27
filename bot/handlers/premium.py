@@ -15,7 +15,7 @@ from bot.services.premium_purchase_db import (
     set_payment_request_status,
     save_subscription,
 )
-from bot.services.pricing import STANDARD_PRICE_UZS, PREMIUM_PRICE_UZS, format_uzs
+from bot.services.pricing import STANDARD_PRICE_UZS, PREMIUM_PRICE_UZS, format_uzs, apply_percent_discount, REFERRAL_DISCOUNT_PERCENT
 
 CARD_NUMBER = "9860 1201 7225 8424"
 CARD_OWNER = "DILNOZA MOMINOVA"
@@ -36,8 +36,9 @@ def _premium_keyboard() -> InlineKeyboardMarkup:
     )
 
 
-def _card_message(plan_title: str) -> str:
-    price = PREMIUM_PRICE_UZS if plan_title.lower() == "premium" else STANDARD_PRICE_UZS
+def _card_message(plan_title: str, *, discount_percent: int = 0) -> str:
+    base = PREMIUM_PRICE_UZS if plan_title.lower() == "premium" else STANDARD_PRICE_UZS
+    price = apply_percent_discount(base, discount_percent) if discount_percent else base
     return (
         "💎 <b>Premium sotib olish</b>\n\n"
         "Premium olish uchun quyidagi kartaga to‘lov qiling.\n\n"
@@ -47,7 +48,8 @@ def _card_message(plan_title: str) -> str:
         f"<b>{CARD_OWNER}</b>\n\n"
         "To‘lov qilgandan keyin skrenshotni shu chatga yuboring.\n\n"
         f"📦 Tarif: <b>{plan_title}</b>\n"
-        f"💰 Narx: <b>{format_uzs(price)} so'm</b>"
+        + (f"🎁 Referal chegirma: <b>{int(discount_percent)}%</b>\n" if discount_percent else "")
+        + f"💰 Narx: <b>{format_uzs(price)} so'm</b>"
     )
 
 
@@ -70,8 +72,15 @@ async def premium_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data["premium_plan"] = context.user_data.get("premium_plan") or "premium"
     context.user_data["waiting_for"] = "premium_payment_screenshot"
     plan_data = PLAN_INFO.get(str(context.user_data.get("premium_plan")).lower(), PLAN_INFO["premium"])
+    disc = 0
+    try:
+        profile = crm.get_user_profile(uid) or {}
+        if profile.get("referral_discount_active"):
+            disc = int(profile.get("referral_discount_percent") or REFERRAL_DISCOUNT_PERCENT or 0)
+    except Exception:
+        disc = 0
     await update.message.reply_text(
-        _card_message(plan_data["title"]),
+        _card_message(plan_data["title"], discount_percent=disc),
         parse_mode="HTML",
         reply_markup=_premium_keyboard(),
     )
@@ -246,6 +255,7 @@ async def premium_payment_review_callback(update: Update, context: ContextTypes.
             db_set_payment_status,
             db_activate_subscription,
             db_reset_daily_usage,
+            db_consume_referral_discount,
         )
         if supa_has_db():
             pay = db_get_payment(request_id)
@@ -270,6 +280,11 @@ async def premium_payment_review_callback(update: Update, context: ContextTypes.
                     )
                     db_reset_daily_usage(uid)
                     reset_plan_quotas_on_activation(uid, plan)
+                    # 1-time referral discount: consume after successful activation
+                    try:
+                        db_consume_referral_discount(uid)
+                    except Exception:
+                        pass
 
                     meta = pay.get("metadata") if isinstance(pay.get("metadata"), dict) else {}
                     pname = (meta.get("first_name") or "").strip() or "User"

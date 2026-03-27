@@ -75,7 +75,7 @@ from bot.handlers.transliterate import transliterate_handler, process_transliter
 from bot.handlers.translate import translate_handler, process_translation as process_translate_doc, set_translation_direction
 from bot.handlers.image_to_pdf import image_to_pdf_handler, collect_pdf_images as process_image_to_pdf
 from bot.handlers.spell_check import spell_check_handler, process_spell_check
-from bot.handlers.start import start_command, menu_command
+from bot.handlers.start import start_command, menu_command, referral_link_command
 from bot.keyboards.reply_keyboards import get_main_menu, get_back_button, get_more_menu
 from bot.utils.i18n import get_regex_for_key, t
 from bot.handlers.smart_logic import (
@@ -462,6 +462,7 @@ def setup_application():
     # 2. Core Commands
     application.add_handler(CommandHandler("start",       spanify("bot:cmd_start", start_command)))
     application.add_handler(CommandHandler("menu",        spanify("bot:cmd_menu", menu_command)))
+    application.add_handler(CommandHandler("ref",         spanify("bot:cmd_ref", referral_link_command)))
     application.add_handler(CommandHandler("help",        spanify("bot:cmd_help", help_command)))
     # ── Feature shortcut commands (open the matching webapp page directly) ──
     application.add_handler(CommandHandler("cv",          spanify("bot:cmd_cv", cmd_cv)))
@@ -562,6 +563,7 @@ def setup_application():
     application.add_handler(MessageHandler(filters.Regex(get_regex_for_key("btn_balance")) & filters.ChatType.PRIVATE, spanify("bot:ui_balance", balance_handler)))
     application.add_handler(MessageHandler(filters.Regex(get_regex_for_key("btn_contact")), spanify("bot:ui_contact", start_feedback)))
     application.add_handler(MessageHandler(filters.Regex(get_regex_for_key("btn_help")), spanify("bot:ui_help", help_button_handler)))
+    application.add_handler(MessageHandler(filters.Regex("^🎁 Referal link$") & filters.ChatType.PRIVATE, spanify("bot:ui_ref", referral_link_command)))
 
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, spanify("bot:router_text", handle_router_text)))
     application.add_handler(MessageHandler(filters.Document.ALL, spanify("bot:router_doc", handle_router_doc)))

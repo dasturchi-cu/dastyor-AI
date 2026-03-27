@@ -230,7 +230,7 @@ async def _send_quota_blocked_message(
     from bot.services.pricing import (
         STANDARD_PRICE_UZS,
         PREMIUM_PRICE_UZS,
-        REFERRAL_PREMIUM_DISCOUNT_PERCENT,
+        REFERRAL_DISCOUNT_PERCENT,
         REFERRAL_REQUIRED_INVITES,
         apply_percent_discount,
         format_uzs,
@@ -251,11 +251,12 @@ async def _send_quota_blocked_message(
     )
 
     # Referral pitch (we keep it simple; DB decides actual eligibility)
-    disc_price = apply_percent_discount(PREMIUM_PRICE_UZS, REFERRAL_PREMIUM_DISCOUNT_PERCENT)
+    disc_std = apply_percent_discount(STANDARD_PRICE_UZS, REFERRAL_DISCOUNT_PERCENT)
+    disc_pre = apply_percent_discount(PREMIUM_PRICE_UZS, REFERRAL_DISCOUNT_PERCENT)
     ref_line = (
         f"🎁 <b>Referal bonus:</b> {REFERRAL_REQUIRED_INVITES} ta do'st taklif qilsangiz — "
-        f"Premiumga <b>{REFERRAL_PREMIUM_DISCOUNT_PERCENT}%</b> chegirma "
-        f"({format_uzs(disc_price)} so'm)."
+        f"Standard/Premiumga <b>{REFERRAL_DISCOUNT_PERCENT}%</b> chegirma "
+        f"(Standard {format_uzs(disc_std)} so'm, Premium {format_uzs(disc_pre)} so'm)."
     )
 
     text = (

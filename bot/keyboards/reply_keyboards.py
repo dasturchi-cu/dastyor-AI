@@ -18,6 +18,9 @@ def get_main_menu(user_id=None, lang="uz_lat"):
             KeyboardButton(t("btn_balance", lang)),
             KeyboardButton(t("btn_more", lang)),
         ],
+        [
+            KeyboardButton("🎁 Referal link"),
+        ],
     ]
 
     return ReplyKeyboardMarkup(

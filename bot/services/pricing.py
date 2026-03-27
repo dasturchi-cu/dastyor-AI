@@ -5,9 +5,9 @@ from datetime import datetime, timezone
 STANDARD_PRICE_UZS = int(os.getenv("STANDARD_PRICE_UZS", "9999") or "9999")
 PREMIUM_PRICE_UZS = int(os.getenv("PREMIUM_PRICE_UZS", "29999") or "29999")
 
-# Referral discount (premium only)
+# Referral discount (standard + premium)
 REFERRAL_REQUIRED_INVITES = int(os.getenv("REFERRAL_REQUIRED_INVITES", "5") or "5")
-REFERRAL_PREMIUM_DISCOUNT_PERCENT = int(os.getenv("REFERRAL_PREMIUM_DISCOUNT_PERCENT", "30") or "30")
+REFERRAL_DISCOUNT_PERCENT = int(os.getenv("REFERRAL_DISCOUNT_PERCENT", "30") or "30")
 
 # Marketing promo copy
 PROMO_LABEL = (os.getenv("PROMO_LABEL", "Start promo") or "Start promo").strip()

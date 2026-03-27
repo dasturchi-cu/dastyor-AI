@@ -151,6 +151,24 @@ def db_register_referral(inviter_id: int, invitee_id: int) -> dict | None:
     c = _get_client()
     if not c:
         return None
+
+
+def db_consume_referral_discount(user_id: int) -> dict | None:
+    """Calls public.consume_referral_discount(uid) RPC (1-time discount)."""
+    c = _get_client()
+    if not c:
+        return None
+    try:
+        r = c.rpc("consume_referral_discount", {"uid": int(user_id)}).execute()
+        if isinstance(getattr(r, "data", None), dict):
+            return r.data
+        if isinstance(getattr(r, "data", None), list) and r.data:
+            return r.data[0] if isinstance(r.data[0], dict) else {"ok": True, "data": r.data[0]}
+        return None
+    except Exception as e:
+        _mark_temporarily_unavailable(e)
+        _log_write_error("db_consume_referral_discount", e)
+        return None
     try:
         r = c.rpc("register_referral", {"inviter": int(inviter_id), "invitee": int(invitee_id)}).execute()
         if isinstance(getattr(r, "data", None), dict):
@@ -339,6 +357,11 @@ def db_get_user(user_id: int | str) -> Optional[dict]:
             "user_plan": row.get("user_plan", "standard"),
             "usage_count": row.get("usage_count", 0),
             "limit_count": row.get("limit_count"),
+            "referred_by": row.get("referred_by"),
+            "referrals_count": row.get("referrals_count", 0),
+            "referral_discount_percent": row.get("referral_discount_percent", 0),
+            "referral_discount_active": row.get("referral_discount_active", False),
+            "referral_discount_expires_at": row.get("referral_discount_expires_at"),
         }
     except Exception as e:
         _mark_temporarily_unavailable(e)
