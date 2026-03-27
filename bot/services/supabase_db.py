@@ -18,6 +18,8 @@ _DB_DISABLE_SECONDS = int(os.getenv("SUPABASE_DISABLE_SECONDS", "300"))
 _pending_oby_column_warned = False
 _referrals_cache: dict[int, tuple[float, list[dict]]] = {}
 _REFERRALS_CACHE_TTL = float(os.getenv("REFERRALS_CACHE_TTL_SECONDS", "30") or "30")
+_paywall_shown_cache: dict[int, tuple[float, bool]] = {}
+_PAYWALL_SHOWN_CACHE_TTL = float(os.getenv("PAYWALL_SHOWN_CACHE_TTL_SECONDS", "120") or "120")
 
 
 def _maybe_warn_service_role():
@@ -418,6 +420,7 @@ def db_get_user(user_id: int | str) -> Optional[dict]:
             "referral_discount_percent": row.get("referral_discount_percent", 0),
             "referral_discount_active": row.get("referral_discount_active", False),
             "referral_discount_expires_at": row.get("referral_discount_expires_at"),
+            "paywall_shown_at": row.get("paywall_shown_at"),
         }
     except Exception as e:
         _mark_temporarily_unavailable(e)
@@ -534,6 +537,51 @@ def db_upsert_user(user_id: int, first_name: str = "", username: str = None,
 def db_update_user_field(user_id: int, **kwargs) -> bool:
     c = _get_client()
     if not c:
+        return False
+
+
+def db_get_paywall_shown(user_id: int) -> bool:
+    """
+    Returns True if paywall was already shown at least once (persisted in users.paywall_shown_at).
+    Safe on missing column / errors: returns False.
+    """
+    c = _get_client()
+    if not c:
+        return False
+    uid = int(user_id)
+    try:
+        now = time.monotonic()
+        hit = _paywall_shown_cache.get(uid)
+        if hit and (now - hit[0]) < _PAYWALL_SHOWN_CACHE_TTL:
+            return bool(hit[1])
+    except Exception:
+        pass
+    try:
+        r = c.table("users").select("paywall_shown_at").eq("id", uid).limit(1).execute()
+        shown = bool(r.data and r.data[0].get("paywall_shown_at"))
+        try:
+            _paywall_shown_cache[uid] = (time.monotonic(), shown)
+        except Exception:
+            pass
+        return shown
+    except Exception:
+        # Missing column or other PostgREST errors should not break bot flow.
+        return False
+
+
+def db_mark_paywall_shown(user_id: int) -> bool:
+    """
+    Persist paywall shown flag. Safe on missing column / errors: returns False.
+    """
+    uid = int(user_id)
+    try:
+        ok = db_update_user_field(uid, paywall_shown_at=datetime.utcnow().isoformat())
+        try:
+            _paywall_shown_cache[uid] = (time.monotonic(), True)
+        except Exception:
+            pass
+        return ok
+    except Exception:
         return False
     try:
         c.table("users").update(kwargs).eq("id", user_id).execute()

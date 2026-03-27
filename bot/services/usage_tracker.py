@@ -20,9 +20,14 @@ logger = logging.getLogger(__name__)
 
 USAGE_FILE = "usage_data.json"
 
-# Quota paywall marketing: rate-limit (avoid spam / blocks)
-_PAYWALL_COOLDOWN_SECONDS = int(os.getenv("PAYWALL_MARKETING_COOLDOWN_SECONDS", "86400") or "86400")
+# Quota paywall marketing:
+# - once_db (default): show full paywall ONLY ONCE per user (persisted in Supabase users.paywall_shown_at)
+# - once: show full paywall once per process
+# - cooldown: show full paywall by cooldown seconds
+_PAYWALL_MODE = (os.getenv("PAYWALL_MARKETING_MODE", "once_db") or "once_db").strip().lower()
+_PAYWALL_COOLDOWN_SECONDS = int(os.getenv("PAYWALL_MARKETING_COOLDOWN_SECONDS", "315360000") or "315360000")
 _paywall_last_sent: dict[int, float] = {}
+_paywall_sent_once: set[int] = set()
 
 # Tarif jadvali (bir necha Supabase so'rovini birlashtiradi) — /start va balans tezligi.
 # Qisqa TTL — xizmatdan keyin Balans tez yangilansin (30s eski ko‘rinish qoldirardi)
@@ -245,7 +250,29 @@ async def _send_quota_blocked_message(
     uid = int(user_id)
     now_ts = time.time()
     last = float(_paywall_last_sent.get(uid, 0.0))
-    cooldown_ok = (now_ts - last) >= max(10, _PAYWALL_COOLDOWN_SECONDS)
+
+    if _PAYWALL_MODE in ("once_db", "persist", "once_persist"):
+        cooldown_ok = True
+        try:
+            from bot.services.supabase_db import db_get_paywall_shown, db_mark_paywall_shown
+
+            if db_get_paywall_shown(uid):
+                cooldown_ok = False
+            else:
+                # mark immediately; even if sending fails we don't want spam retries
+                db_mark_paywall_shown(uid)
+        except Exception:
+            # If DB/column unavailable, fall back to once-per-process behavior.
+            cooldown_ok = uid not in _paywall_sent_once
+            if cooldown_ok:
+                _paywall_sent_once.add(uid)
+    elif _PAYWALL_MODE == "once":
+        cooldown_ok = uid not in _paywall_sent_once
+        if cooldown_ok:
+            _paywall_sent_once.add(uid)
+    else:
+        cooldown_ok = (now_ts - last) >= max(10, _PAYWALL_COOLDOWN_SECONDS)
+
     if cooldown_ok:
         _paywall_last_sent[uid] = now_ts
     reason = (
@@ -253,6 +280,14 @@ async def _send_quota_blocked_message(
         if category
         else "⛔️ Bu xizmat pullik. Standard yoki Premium tarifni oling."
     )
+
+    # If paywall already shown (once modes), don't spam conversion message again.
+    if not cooldown_ok and _PAYWALL_MODE in ("once_db", "persist", "once_persist", "once"):
+        try:
+            await bot.send_message(chat_id=chat_id, text=reason)
+        except Exception:
+            pass
+        return
     dl = promo_deadline_display()
     promo_line = ""
     if cooldown_ok:
