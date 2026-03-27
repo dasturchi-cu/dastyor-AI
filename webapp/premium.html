@@ -375,6 +375,18 @@
     <span data-i18n="premium_limits_hint" data-i18n-fallback="💡 Limit tugaganda shu sahifadan tarifni yangilang yoki muddatni uzaytiring — to‘lovdan keyin limitlar tarif qoidalariga qarab qayta hisoblanadi.">💡 Limit tugaganda shu sahifadan tarifni yangilang yoki muddatni uzaytiring — to‘lovdan keyin limitlar tarif qoidalariga qarab qayta hisoblanadi.</span>
   </p>
 
+  <div id="referralDiscountBanner" class="plan hidden" style="border-color:rgba(245,158,11,.35);margin-top:12px;">
+    <div class="plan-head" style="padding:14px 16px;">
+      <div>
+        <div class="plan-label" data-i18n="ref_banner_title" data-i18n-fallback="🎁 Referal bonus">🎁 Referal bonus</div>
+        <div class="plan-price" style="font-size:14px;font-weight:700;line-height:1.35;">
+          <span id="refBannerText" data-i18n="ref_banner_loading" data-i18n-fallback="Tekshirilmoqda…">Tekshirilmoqda…</span>
+        </div>
+      </div>
+      <span class="plan-badge badge-top" id="refBannerBadge">—</span>
+    </div>
+  </div>
+
   <!-- Serverdagi haqiqiy tarif va limit (botdagi «Balans» bilan bir xil) -->
   <div id="userLiveTariff" class="plan live-tariff hidden" aria-live="polite">
     <div class="plan-head">
@@ -689,6 +701,46 @@
     }
   }
 
+  function applyReferralBanner(me) {
+    const box = document.getElementById("referralDiscountBanner");
+    const textEl = document.getElementById("refBannerText");
+    const badge = document.getElementById("refBannerBadge");
+    if (!box || !textEl || !badge) return;
+
+    const cnt = Number(me?.referrals_count || 0);
+    const active = !!me?.referral_discount_active;
+    const pct = Number(me?.referral_discount_percent || 0);
+    if (!me?.telegram_id) {
+      box.classList.add("hidden");
+      return;
+    }
+
+    if (active && pct > 0) {
+      box.classList.remove("hidden");
+      badge.textContent = (pct || 30) + "%";
+      textEl.textContent =
+        (window.DA?.t?.("ref_banner_active") || "Sizda chegirma bor!") +
+        " " +
+        (window.DA?.t?.("ref_banner_use_on_buy") || "Standard/Premium sotib olishda qo'llanadi.");
+      return;
+    }
+
+    // Show progress if user already invited someone
+    if (cnt > 0) {
+      box.classList.remove("hidden");
+      badge.textContent = String(cnt);
+      textEl.textContent =
+        (window.DA?.t?.("ref_banner_progress_prefix") || "Taklif qilganlar:") +
+        " " +
+        String(cnt) +
+        ". " +
+        (window.DA?.t?.("ref_banner_progress_suffix") || "5 taga yetsa — 30% chegirma.");
+      return;
+    }
+
+    box.classList.add("hidden");
+  }
+
   async function refreshPremiumLivePanel() {
     const box = document.getElementById("userLiveTariff");
     if (!box || box.classList.contains("hidden")) return;
@@ -720,7 +772,7 @@
     if (window.DastyorAI?.initUI) {
       await window.DastyorAI.initUI({
         autoNavLinks: true,
-        onUser: (me) => applyPremiumPageLiveTariff(me),
+        onUser: (me) => { applyPremiumPageLiveTariff(me); applyReferralBanner(me); },
       });
     }
     document.addEventListener('visibilitychange', () => {
@@ -730,11 +782,11 @@
     });
     window.addEventListener('dastyor:profile-updated', () => {
       const me = window.DastyorAI?.getUser?.();
-      if (me) applyPremiumPageLiveTariff(me);
+      if (me) { applyPremiumPageLiveTariff(me); applyReferralBanner(me); }
     });
     window.addEventListener('app:language-applied', () => {
       const me = window.DastyorAI?.getUser?.();
-      if (me) applyPremiumPageLiveTariff(me);
+      if (me) { applyPremiumPageLiveTariff(me); applyReferralBanner(me); }
     });
 
     // If opened from soft paywall: auto-open payment page.

@@ -292,6 +292,12 @@ const DastyorAI = (() => {
             'remaining',
             'subscription_ends',
             'limits_breakdown',
+            // Referral marketing
+            'referred_by',
+            'referrals_count',
+            'referral_discount_percent',
+            'referral_discount_active',
+            'referral_discount_expires_at',
         ];
         const o = {};
         keys.forEach((k) => {
