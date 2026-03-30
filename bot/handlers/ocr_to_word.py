@@ -249,9 +249,14 @@ def add_html_to_docx(doc, html_content):
     soup = BeautifulSoup(html_content, 'html.parser')
     root = soup.body if soup.body else soup
 
-    layout_root = root.find(attrs={"data-ocr-layout": "1"}) or root.find("div", class_="ocr-visual")
-    if layout_root is not None and _add_layout_html_to_docx(doc, layout_root):
-        return
+    # IMPORTANT:
+    # Absolute-position layout HTML (data-ocr-layout) is hard to map 1:1 into DOCX and often "cho'zilib ketadi".
+    # Default: prefer semantic HTML (tables/paragraphs) which maps much better to Word.
+    use_layout = os.getenv("OCR_DOCX_USE_LAYOUT_HTML", "0").strip().lower() in ("1", "true", "yes", "on")
+    if use_layout:
+        layout_root = root.find(attrs={"data-ocr-layout": "1"}) or root.find("div", class_="ocr-visual")
+        if layout_root is not None and _add_layout_html_to_docx(doc, layout_root):
+            return
     
     def apply_align(p, align_str):
         if not align_str: return

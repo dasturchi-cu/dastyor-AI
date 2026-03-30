@@ -106,6 +106,42 @@ def _normalize_image_to_png_sync(src_path: str) -> str | None:
         return None
 
 
+def _enhance_image_for_ocr_sync(src_path: str) -> str | None:
+    """
+    Improve OCR accuracy by enhancing contrast/sharpness and upscaling.
+    This helps Gemini read faint lines, stamps, and small text.
+    """
+    try:
+        from PIL import ImageEnhance, ImageFilter, ImageOps
+    except Exception:
+        return None
+    try:
+        with Image.open(src_path) as im:
+            im = im.convert("RGB")
+            # Upscale (keeps small fonts readable)
+            try:
+                scale = float(os.getenv("OCR_UPSCALE", "1.8") or "1.8")
+            except Exception:
+                scale = 1.8
+            scale = max(1.0, min(3.0, scale))
+            if scale > 1.01:
+                w, h = im.size
+                im = im.resize((int(w * scale), int(h * scale)), Image.Resampling.LANCZOS)
+            # Auto-contrast and slight brightness boost
+            im = ImageOps.autocontrast(im, cutoff=1)
+            im = ImageEnhance.Contrast(im).enhance(1.35)
+            im = ImageEnhance.Brightness(im).enhance(1.04)
+            # Sharpen edges / lines
+            im = im.filter(ImageFilter.UnsharpMask(radius=2, percent=160, threshold=3))
+            fd, out = tempfile.mkstemp(suffix=".png", prefix="ocr_enh_")
+            os.close(fd)
+            im.save(out, "PNG", optimize=True)
+            return out
+    except Exception as e:
+        logger.info("OCR enhance skipped %s: %s", src_path, e)
+        return None
+
+
 def _extract_layout_with_paddle_sync(image_path: str) -> str:
     """Best-effort: local Paddle layout HTML for stronger 1:1 numbering/placement."""
     try:
@@ -156,7 +192,8 @@ async def extract_text_from_image(image_path: str) -> str:
         logger.info("OCR extract started path=%s", image_path)
 
         loop = asyncio.get_running_loop()
-        prefer_paddle_layout = os.getenv("OCR_BOT_PREFER_PADDLE_LAYOUT", "1").strip().lower() not in {
+        # Default OFF: Paddle layout often doesn't map 1:1 into DOCX (absolute divs stretch).
+        prefer_paddle_layout = os.getenv("OCR_BOT_PREFER_PADDLE_LAYOUT", "0").strip().lower() not in {
             "0", "false", "no", "off",
         }
         if prefer_paddle_layout:
@@ -169,7 +206,16 @@ async def extract_text_from_image(image_path: str) -> str:
             if paddle_html:
                 logger.info("Paddle layout quality low, fallback to Gemini path=%s", image_path)
 
-        myfile = await loop.run_in_executor(_ocr_executor, _blocking_upload_path, image_path)
+        # Enhance image for OCR (optional but ON by default)
+        enhance_on = os.getenv("OCR_ENHANCE_IMAGE", "1").strip().lower() not in {"0", "false", "no", "off"}
+        upload_path = image_path
+        enh_png: str | None = None
+        if enhance_on:
+            enh_png = await loop.run_in_executor(_ocr_executor, _enhance_image_for_ocr_sync, image_path)
+            if enh_png and os.path.exists(enh_png):
+                upload_path = enh_png
+
+        myfile = await loop.run_in_executor(_ocr_executor, _blocking_upload_path, upload_path)
         if not myfile or myfile.state.name == "FAILED":
             logger.warning("Gemini upload as-is failed, trying PNG normalize path=%s", image_path)
             myfile = None
@@ -235,6 +281,38 @@ CRITICAL RULES FOR 1:1 REPLICATION:
             logger.info("OCR done in %.1fs path=%s", time.perf_counter() - t0, image_path)
             return text
 
+        # Retry once with a stricter prompt for forms/tables (often fixes "cho'zilib ketdi" outputs)
+        retry_on = os.getenv("OCR_GEMINI_RETRY", "1").strip().lower() not in {"0", "false", "no", "off"}
+        if retry_on:
+            strict_prompt = (
+                prompt
+                + "\n\nEXTRA STRICT:\n"
+                + "- Prefer HTML <table> for ANY alignment/columns/forms.\n"
+                + "- Do NOT use absolute-positioned divs.\n"
+                + "- If there are borders/lines, represent them using table borders (style='border:1px solid #000').\n"
+                + "- Preserve exact spacing using empty table rows/cells and <br>.\n"
+            )
+
+            def _run_generation_strict(mf):
+                return model.generate_content(
+                    [mf, strict_prompt],
+                    safety_settings=_OCR_SAFETY,
+                    generation_config={"temperature": 0.0},
+                )
+
+            try:
+                result_s = await asyncio.wait_for(
+                    loop.run_in_executor(_ocr_executor, _run_generation_strict, myfile),
+                    timeout=OCR_TIMEOUT,
+                )
+            except asyncio.TimeoutError:
+                result_s = None
+            text_s = _extract_text_from_gemini_response(result_s)
+            if text_s:
+                text_s = text_s.replace("```html", "").replace("```", "").strip()
+                logger.info("OCR strict retry success in %.1fs path=%s", time.perf_counter() - t0, image_path)
+                return text_s
+
         # Birinchi muvaffaqiyatli upload asl fayl bo'lsa, lekin matn bo'sh — RGB PNG qayta urinish
         if not text and not upload_from_norm_only:
             if not norm_png:
@@ -264,5 +342,10 @@ CRITICAL RULES FOR 1:1 REPLICATION:
                 os.remove(norm_png)
             except Exception:
                 pass
+        try:
+            if "enh_png" in locals() and enh_png and os.path.isfile(enh_png):
+                os.remove(enh_png)
+        except Exception:
+            pass
 
     return ""
