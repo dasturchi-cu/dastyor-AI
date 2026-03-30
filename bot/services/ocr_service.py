@@ -31,7 +31,8 @@ logger = logging.getLogger(__name__)
 _ocr_executor = ThreadPoolExecutor(max_workers=4, thread_name_prefix="ocr")
 
 # OCR timeout (seconds) — prevents the bot from hanging on slow Gemini responses
-OCR_TIMEOUT = 120
+# Keep default lower to avoid "2 minutes stuck"; can be increased via env.
+OCR_TIMEOUT = max(25, int(os.getenv("OCR_TIMEOUT_SECONDS", "70")))
 
 # Hujjat OCR uchun — Gemini tez-tez xavfsizlik bilan bo'sh javob qaytaradi
 _OCR_SAFETY = [

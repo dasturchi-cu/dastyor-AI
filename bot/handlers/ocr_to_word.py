@@ -556,9 +556,45 @@ async def _perform_ocr_batch_and_send(context, bot, chat_id: int, user_id: int, 
         if len(temp_paths) == 1:
             img_path = temp_paths[0]
             await update_progress(context, progress_msg, 35, "AI matnni o'qimoqda...")
-            extracted_text = await extract_text_from_image(img_path)
+            extracted_text = ""
+            try:
+                extracted_text = await extract_text_from_image(img_path)
+            except Exception as e:
+                logger.warning("OCR extract failed; will fallback scan-docx user=%s err=%s", user_id, e)
+                extracted_text = ""
+
+            # If OCR failed/empty, still produce a DOCX with the original image (1:1 scan fallback).
             if not extracted_text:
-                await progress_msg.edit_text("❌ Matn ajratilmadi.")
+                await update_progress(context, progress_msg, 75, "Matn o'qilmadi — rasm Word'ga 1:1 joylanmoqda...")
+                doc_path = f"Ocr_Scan_{user_id}_{int(time.time())}_@DastyorAiBot.docx"
+
+                def _build_scan_doc():
+                    doc = Document()
+                    p = doc.add_paragraph()
+                    p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                    run = p.add_run()
+                    run.add_picture(img_path, width=Inches(6.8))
+                    doc.save(doc_path)
+                    return doc_path
+
+                await asyncio.to_thread(_build_scan_doc)
+                await update_progress(context, progress_msg, 95, "Yuborilmoqda...")
+                with open(doc_path, "rb") as f:
+                    ok_send = await send_docx_with_confirmation(
+                        bot,
+                        chat_id,
+                        f,
+                        filename=doc_path,
+                        caption="✅ **Word tayyor (rasm 1:1).**\n\nMatnni o‘qishning iloji bo‘lmadi, lekin hujjat scan ko‘rinishda berildi.",
+                        parse_mode=ParseMode.MARKDOWN,
+                        reply_markup=get_main_menu(user_id, get_user_lang(user_id)),
+                    )
+                if ok_send:
+                    record_service_completion(user_id, CAT_OCR, "OCR Scan Fallback")
+                await progress_msg.delete()
+                if getattr(context, "user_data", None):
+                    context.user_data.pop("waiting_for", None)
+                    context.user_data.pop("ocr_images", None)
                 return
             await update_progress(context, progress_msg, 80, "Word yaratilmoqda...")
             doc_path = f"Ocr_Natija_{user_id}_{int(time.time())}_@DastyorAiBot.docx"
