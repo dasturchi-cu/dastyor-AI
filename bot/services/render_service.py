@@ -19,6 +19,7 @@ from __future__ import annotations
 import logging
 import os
 import re
+import time
 from pathlib import Path
 
 _HEX_ACCENT_RE = re.compile(r"^#[0-9A-Fa-f]{3,8}$")
@@ -31,6 +32,54 @@ def _sanitize_hex_accent(raw: dict) -> str:
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
 logger = logging.getLogger(__name__)
+
+# Small TTL cache for generated CV PDFs (speedup on repeated sends)
+_CV_PDF_CACHE: dict[str, tuple[float, bytes]] = {}
+_CV_PDF_CACHE_TTL_SECONDS = float(os.getenv("CV_PDF_CACHE_TTL_SECONDS", "30") or "30")
+_CV_PDF_CACHE_MAX = int(os.getenv("CV_PDF_CACHE_MAX", "32") or "32")
+
+
+def _cv_pdf_cache_key(html_str: str, base_url: str | None) -> str:
+    import hashlib
+
+    h = hashlib.sha256()
+    h.update((base_url or "").encode("utf-8", "ignore"))
+    h.update(b"\n")
+    h.update(html_str.encode("utf-8", "ignore"))
+    return h.hexdigest()
+
+
+def _cv_pdf_cache_get(key: str) -> bytes | None:
+    if _CV_PDF_CACHE_TTL_SECONDS <= 0:
+        return None
+    try:
+        now = time.monotonic()
+        hit = _CV_PDF_CACHE.get(key)
+        if not hit:
+            return None
+        if (now - float(hit[0])) > _CV_PDF_CACHE_TTL_SECONDS:
+            _CV_PDF_CACHE.pop(key, None)
+            return None
+        return hit[1]
+    except Exception:
+        return None
+
+
+def _cv_pdf_cache_set(key: str, pdf: bytes) -> None:
+    if _CV_PDF_CACHE_TTL_SECONDS <= 0:
+        return
+    try:
+        if not pdf:
+            return
+        if len(_CV_PDF_CACHE) >= max(4, _CV_PDF_CACHE_MAX):
+            oldest = sorted(_CV_PDF_CACHE.items(), key=lambda kv: kv[1][0])[
+                : max(1, len(_CV_PDF_CACHE) - _CV_PDF_CACHE_MAX + 1)
+            ]
+            for k, _v in oldest:
+                _CV_PDF_CACHE.pop(k, None)
+        _CV_PDF_CACHE[key] = (time.monotonic(), pdf)
+    except Exception:
+        pass
 
 # ── Template environment ───────────────────────────────────────────────────
 TEMPLATES_DIR = Path(__file__).parent.parent.parent / "templates"
@@ -369,12 +418,19 @@ async def generate_cv_pdf(data: dict, base_url: str | None = None) -> bytes | No
     if bu and "<head>" in html_str:
         html_str = html_str.replace("<head>", f"<head><base href='{bu}/'>")
 
+    ck = _cv_pdf_cache_key(html_str, bu or None)
+    cached = _cv_pdf_cache_get(ck)
+    if cached:
+        logger.info("CV PDF cache hit (%s bytes)", len(cached))
+        return cached
+
     pw_first = os.getenv("CV_PDF_PLAYWRIGHT_FIRST", "1").strip().lower() in ("1", "true", "yes", "on")
 
     if pw_first:
         pdf_pw = await _html_pdf_playwright(html_str, cv_pdf=True)
         if pdf_pw:
             logger.info("CV PDF generated via Playwright (preview bilan moslashtirilgan)")
+            _cv_pdf_cache_set(ck, pdf_pw)
             return pdf_pw
         pdf_fast = await _pdf_bytes_weasy(html_str, bu or None)
         if pdf_fast:
@@ -384,14 +440,17 @@ async def generate_cv_pdf(data: dict, base_url: str | None = None) -> bytes | No
                 "Chromium o‘rnatilganini va DISABLE_PLAYWRIGHT_CV_PDF=0 ekanini tekshiring."
             )
             logger.info("CV PDF generated via WeasyPrint (fallback)")
+            _cv_pdf_cache_set(ck, pdf_fast)
             return pdf_fast
     else:
         pdf_fast = await _pdf_bytes_weasy(html_str, bu or None)
         if pdf_fast:
             logger.info("CV PDF generated via WeasyPrint (fast path)")
+            _cv_pdf_cache_set(ck, pdf_fast)
             return pdf_fast
         pdf_pw = await _html_pdf_playwright(html_str, cv_pdf=True)
         if pdf_pw:
+            _cv_pdf_cache_set(ck, pdf_pw)
             return pdf_pw
 
     logger.error("All PDF backends failed for CV")

@@ -14,6 +14,7 @@ import warnings
 from difflib import SequenceMatcher
 from difflib import get_close_matches
 import shutil
+from concurrent.futures import ThreadPoolExecutor
 
 # Eski paket: google-generativeai; keyinroq google-genai ga ko'chirish mumkin
 warnings.filterwarnings(
@@ -26,6 +27,12 @@ import google.generativeai as genai
 from config import GOOGLE_API_KEY
 
 logger = logging.getLogger(__name__)
+
+# Dedicated thread pool for blocking Gemini upload/ffmpeg/file I/O (keeps bot responsive)
+_ai_executor = ThreadPoolExecutor(
+    max_workers=int(os.getenv("AI_THREADPOOL_WORKERS", "4") or "4"),
+    thread_name_prefix="ai",
+)
 
 # Initialize Gemini
 if GOOGLE_API_KEY:
@@ -226,7 +233,7 @@ async def transcribe_audio(audio_file_path: str) -> str:
 
     try:
         logger.info("Uploading audio for STT: %s (normalized=%s)", upload_path, temp_conv)
-        myfile = await loop.run_in_executor(None, blocking_upload, upload_path)
+        myfile = await loop.run_in_executor(_ai_executor, blocking_upload, upload_path)
         
         if not myfile:
             return "Audio yuklashda xatolik."
