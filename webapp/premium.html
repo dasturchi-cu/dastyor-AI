@@ -716,29 +716,25 @@
     if (!box || !textEl || !badge) return;
 
     const cnt = Number(me?.referrals_count || 0);
-    const active = !!me?.referral_discount_active;
+    const activeStd = !!me?.referral_discount_standard_active;
+    const activePre = !!me?.referral_discount_premium_active;
     const pct = Number(me?.referral_discount_percent || 0);
     if (!me?.telegram_id) {
       box.classList.add("hidden");
       return;
     }
 
-    if (active && pct > 0) {
+    if ((activeStd || activePre) && pct > 0) {
       box.classList.remove("hidden");
       badge.textContent = (pct || 30) + "%";
       const baseStd = 9999;
       const basePre = 29999;
       const discStd = Math.round(baseStd * (100 - pct) / 100);
       const discPre = Math.round(basePre * (100 - pct) / 100);
-      const tpl =
-        window.DA?.t?.("ref_banner_active_prices") ||
-        "Sizda {pct}% chegirma bor! Standard: {s_from} → {s_to}. Premium: {p_from} → {p_to}.";
-      textEl.textContent = tpl
-        .replace("{pct}", String(pct || 30))
-        .replace("{s_from}", _fmtUzs(baseStd))
-        .replace("{s_to}", _fmtUzs(discStd))
-        .replace("{p_from}", _fmtUzs(basePre))
-        .replace("{p_to}", _fmtUzs(discPre));
+      const bits = [];
+      if (activeStd) bits.push("Standard: " + _fmtUzs(baseStd) + " → " + _fmtUzs(discStd));
+      if (activePre) bits.push("Premium: " + _fmtUzs(basePre) + " → " + _fmtUzs(discPre));
+      textEl.textContent = "Sizda " + String(pct || 30) + "% chegirma bor! " + bits.join(" · ");
       return;
     }
 
@@ -764,7 +760,8 @@
   }
 
   function applyReferralPricing(me) {
-    const active = !!me?.referral_discount_active;
+    const activeStd = !!me?.referral_discount_standard_active;
+    const activePre = !!me?.referral_discount_premium_active;
     const pct = Number(me?.referral_discount_percent || 0);
     const stdNow = document.getElementById("stdPriceNow");
     const stdWas = document.getElementById("stdPriceWas");
@@ -776,15 +773,10 @@
     // UX: keep pricing simple — show ONLY one final price.
     stdWas.style.display = "none";
     premWas.style.display = "none";
-    if (active && pct > 0) {
-      const discStd = Math.round(baseStd * (100 - pct) / 100);
-      const discPre = Math.round(basePre * (100 - pct) / 100);
-      stdNow.textContent = _fmtUzs(discStd);
-      premNow.textContent = _fmtUzs(discPre);
-      return;
-    }
-    stdNow.textContent = _fmtUzs(baseStd);
-    premNow.textContent = _fmtUzs(basePre);
+    const discStd = Math.round(baseStd * (100 - pct) / 100);
+    const discPre = Math.round(basePre * (100 - pct) / 100);
+    stdNow.textContent = (activeStd && pct > 0) ? _fmtUzs(discStd) : _fmtUzs(baseStd);
+    premNow.textContent = (activePre && pct > 0) ? _fmtUzs(discPre) : _fmtUzs(basePre);
   }
 
   async function loadReferralInvitees() {

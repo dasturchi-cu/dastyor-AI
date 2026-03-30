@@ -495,19 +495,29 @@ async def api_paid_doc_submit_screenshot(
         f"Doc request: <code>{request_id}</code>"
     )
     try:
-        buf = io.BytesIO(raw)
-        buf.name = f"payment_{uid}_{int(time.time())}.jpg"
-        await ptb.bot.send_photo(
-            chat_id=int(PREMIUM_ADMIN_GROUP_ID),
-            photo=InputFile(buf),
-            caption=caption,
-            parse_mode="HTML",
-            reply_markup=kb,
-        )
+        async def _forward_to_admins() -> None:
+            try:
+                buf = io.BytesIO(raw)
+                buf.name = f"payment_{uid}_{int(time.time())}.jpg"
+                await ptb.bot.send_photo(
+                    chat_id=int(PREMIUM_ADMIN_GROUP_ID),
+                    photo=InputFile(buf),
+                    caption=caption,
+                    parse_mode="HTML",
+                    reply_markup=kb,
+                )
+            except Exception as e:
+                logger.error("paid_doc screenshot forward failed: %s", e, exc_info=True)
+                try:
+                    # Keep request visible to the user as "submitted", but mark payment failed for admins.
+                    db_set_payment_status(int(pid), "failed", admin_note=f"paid_doc_forward_failed:{int(request_id)}:{k}")
+                except Exception:
+                    pass
+        asyncio.create_task(_forward_to_admins())
     except Exception as e:
         logger.error("paid_doc screenshot forward failed: %s", e, exc_info=True)
-        raise HTTPException(status_code=500, detail="Admin guruhga yuborilmadi")
-    return {"ok": True, "payment_id": pid, "status": "sent_to_admin"}
+        # Do not fail the user flow; screenshot is already recorded as submitted.
+    return {"ok": True, "payment_id": pid, "status": "queued_to_admin"}
 
 
 @router.get("/api/paid_doc_status")

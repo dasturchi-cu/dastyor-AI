@@ -709,6 +709,7 @@
     }
 
     // --- AUTO SAVE LOGIC ---
+    let _saveDebounceTimer = null;
     function saveToLocalStorage() {
         const data = {
             f_name: document.getElementById('f_name').value, f_role: document.getElementById('f_role').value,
@@ -717,6 +718,13 @@
             avatarUrl, activeTpl, cvColor, eduData, expData, achData, skillsData, langData, currentLang: docLang
         };
         localStorage.setItem('cvBuilderData', JSON.stringify(data));
+    }
+
+    function scheduleSaveToLocalStorage() {
+      clearTimeout(_saveDebounceTimer);
+      _saveDebounceTimer = setTimeout(function () {
+        try { saveToLocalStorage(); } catch (_) {}
+      }, 450);
     }
 
     function loadFromLocalStorage() {
@@ -812,7 +820,7 @@
     let _previewImgPromise = null;
 
     function triggerUpdate(save = true, opts = null) {
-      if (save) saveToLocalStorage();
+      if (save) scheduleSaveToLocalStorage();
       const immediate = !!(opts && opts.immediatePreview);
       clearTimeout(previewDebounceTimer);
       if (immediate) {

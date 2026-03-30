@@ -23,7 +23,8 @@ _PAYWALL_SHOWN_CACHE_TTL = float(os.getenv("PAYWALL_SHOWN_CACHE_TTL_SECONDS", "1
 
 # Paid single-document requests (CV / Obyektivka)
 _paid_doc_req_cache: dict[int, tuple[float, dict]] = {}
-_PAID_DOC_REQ_CACHE_TTL = float(os.getenv("PAID_DOC_REQUEST_CACHE_TTL_SECONDS", "10") or "10")
+# WebApp polls status frequently after admin approval — keep this TTL very low by default.
+_PAID_DOC_REQ_CACHE_TTL = float(os.getenv("PAID_DOC_REQUEST_CACHE_TTL_SECONDS", "1") or "1")
 
 
 def _maybe_warn_service_role():
@@ -172,13 +173,16 @@ def db_register_referral(inviter_id: int, invitee_id: int) -> dict | None:
         return None
 
 
-def db_consume_referral_discount(user_id: int) -> dict | None:
-    """Calls public.consume_referral_discount(uid) RPC (1-time discount)."""
+def db_consume_referral_discount(user_id: int, plan: str) -> dict | None:
+    """Calls public.consume_referral_discount(uid, plan) RPC (1-time per plan)."""
     c = _get_client()
     if not c:
         return None
     try:
-        r = c.rpc("consume_referral_discount", {"uid": int(user_id)}).execute()
+        p = (plan or "").strip().lower()
+        if p not in ("standard", "premium"):
+            p = "premium"
+        r = c.rpc("consume_referral_discount", {"uid": int(user_id), "plan": p}).execute()
         if isinstance(getattr(r, "data", None), dict):
             return r.data
         if isinstance(getattr(r, "data", None), list) and r.data:
@@ -424,6 +428,10 @@ def db_get_user(user_id: int | str) -> Optional[dict]:
             "referral_discount_percent": row.get("referral_discount_percent", 0),
             "referral_discount_active": row.get("referral_discount_active", False),
             "referral_discount_expires_at": row.get("referral_discount_expires_at"),
+            "referral_discount_standard_active": row.get("referral_discount_standard_active", False),
+            "referral_discount_premium_active": row.get("referral_discount_premium_active", False),
+            "referral_discount_standard_consumed_at": row.get("referral_discount_standard_consumed_at"),
+            "referral_discount_premium_consumed_at": row.get("referral_discount_premium_consumed_at"),
             "paywall_shown_at": row.get("paywall_shown_at"),
         }
     except Exception as e:

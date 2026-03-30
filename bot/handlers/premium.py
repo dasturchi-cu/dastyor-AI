@@ -78,8 +78,13 @@ async def premium_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     disc = 0
     try:
         profile = crm.get_user_profile(uid) or {}
-        if profile.get("referral_discount_active"):
-            disc = int(profile.get("referral_discount_percent") or REFERRAL_DISCOUNT_PERCENT or 0)
+        plan_key = str(context.user_data.get("premium_plan") or "premium").strip().lower()
+        if plan_key == "standard":
+            if profile.get("referral_discount_standard_active"):
+                disc = int(profile.get("referral_discount_percent") or REFERRAL_DISCOUNT_PERCENT or 0)
+        else:
+            if profile.get("referral_discount_premium_active"):
+                disc = int(profile.get("referral_discount_percent") or REFERRAL_DISCOUNT_PERCENT or 0)
     except Exception:
         disc = 0
     await update.message.reply_text(
@@ -363,9 +368,9 @@ async def premium_payment_review_callback(update: Update, context: ContextTypes.
                     )
                     db_reset_daily_usage(uid)
                     reset_plan_quotas_on_activation(uid, plan)
-                    # 1-time referral discount: consume after successful activation
+                    # 1-time referral discount (per plan): consume after successful activation
                     try:
-                        db_consume_referral_discount(uid)
+                        db_consume_referral_discount(uid, plan)
                     except Exception:
                         pass
 

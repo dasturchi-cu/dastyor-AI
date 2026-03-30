@@ -144,6 +144,11 @@ def _build_api_me_payload(uid: str) -> dict:
         "referral_discount_percent": int(profile.get("referral_discount_percent") or 0),
         "referral_discount_active": bool(profile.get("referral_discount_active")),
         "referral_discount_expires_at": profile.get("referral_discount_expires_at"),
+        # Per-plan referral discount (Standard/Premium separately)
+        "referral_discount_standard_active": bool(profile.get("referral_discount_standard_active")),
+        "referral_discount_premium_active": bool(profile.get("referral_discount_premium_active")),
+        "referral_discount_standard_consumed_at": profile.get("referral_discount_standard_consumed_at"),
+        "referral_discount_premium_consumed_at": profile.get("referral_discount_premium_consumed_at"),
         **tariff,
     }
 
