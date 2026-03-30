@@ -11,6 +11,7 @@ import tempfile
 import time
 import warnings
 from concurrent.futures import ThreadPoolExecutor
+from typing import Any
 
 warnings.filterwarnings(
     "ignore",
@@ -39,6 +40,154 @@ _OCR_SAFETY = [
     {"category": HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT, "threshold": HarmBlockThreshold.BLOCK_ONLY_HIGH},
     {"category": HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, "threshold": HarmBlockThreshold.BLOCK_ONLY_HIGH},
 ]
+
+def _bbox_poly_to_xyxy(box: Any) -> tuple[float, float, float, float]:
+    """
+    Paddle/Gemini OCR bbox can be quad polygon; normalize to axis-aligned xyxy.
+    Returns (x0, y0, x1, y1).
+    """
+    try:
+        pts = box or []
+        xs = [float(p[0]) for p in pts]
+        ys = [float(p[1]) for p in pts]
+        if not xs or not ys:
+            return 0.0, 0.0, 0.0, 0.0
+        return min(xs), min(ys), max(xs), max(ys)
+    except Exception:
+        return 0.0, 0.0, 0.0, 0.0
+
+
+def _cluster_positions(vals: list[float], tol: float) -> list[float]:
+    """1D clustering by proximity; returns sorted cluster centers."""
+    if not vals:
+        return []
+    s = sorted(float(v) for v in vals)
+    out: list[list[float]] = []
+    cur: list[float] = [s[0]]
+    for v in s[1:]:
+        if abs(v - cur[-1]) <= tol:
+            cur.append(v)
+        else:
+            out.append(cur)
+            cur = [v]
+    out.append(cur)
+    centers = [sum(g) / float(len(g)) for g in out if g]
+    centers.sort()
+    return centers
+
+
+def _nearest_index(centers: list[float], v: float) -> int:
+    if not centers:
+        return 0
+    # centers sorted; linear scan is fine (small N)
+    best_i = 0
+    best_d = abs(v - centers[0])
+    for i in range(1, len(centers)):
+        d = abs(v - centers[i])
+        if d < best_d:
+            best_d = d
+            best_i = i
+    return best_i
+
+
+def _build_grid_table_from_paddle_lines(lines: list[dict[str, Any]], img_w: int, img_h: int) -> str:
+    """
+    Heuristic: cluster bbox x/y to infer columns/rows, then map text into cells.
+    This is meant for ledger/forms where explicit grid exists.
+    """
+    if not lines:
+        return ""
+    iw = max(1, int(img_w))
+    ih = max(1, int(img_h))
+
+    items: list[tuple[float, float, float, float, str]] = []
+    for ln in lines:
+        text = str((ln.get("text") or "")).strip()
+        box = ln.get("bbox")
+        if not text or not box:
+            continue
+        x0, y0, x1, y1 = _bbox_poly_to_xyxy(box)
+        if x1 <= x0 or y1 <= y0:
+            continue
+        items.append((x0, y0, x1, y1, text))
+
+    if len(items) < 6:
+        return ""
+
+    # Cluster left edges for columns; top edges for rows.
+    # Tolerances are relative to image size; tuned for scanned tables.
+    x_tol = max(6.0, iw * 0.02)
+    y_tol = max(6.0, ih * 0.018)
+    col_centers = _cluster_positions([x0 for x0, _, _, _, _ in items], tol=x_tol)
+    row_centers = _cluster_positions([y0 for _, y0, _, _, _ in items], tol=y_tol)
+
+    # Plausibility gates (avoid breaking non-table docs).
+    if len(col_centers) < 2 or len(row_centers) < 2:
+        return ""
+    if len(col_centers) > 40 or len(row_centers) > 80:
+        return ""
+    if len(col_centers) * len(row_centers) > 600:
+        return ""
+
+    # Column widths (percent): based on distance between centers.
+    # Add a synthetic last boundary at image width for the last col.
+    col_edges = col_centers[:]
+    col_edges.sort()
+    # Ensure first edge is near 0 for nicer widths
+    if col_edges and col_edges[0] > iw * 0.05:
+        col_edges = [0.0] + col_edges
+    # Build approximate widths from consecutive edges; last to iw
+    widths_px: list[float] = []
+    for i in range(len(col_edges)):
+        left = col_edges[i]
+        right = col_edges[i + 1] if i + 1 < len(col_edges) else float(iw)
+        widths_px.append(max(10.0, right - left))
+    total_w = sum(widths_px) or float(iw)
+    widths_pct = [max(1.0, 100.0 * w / total_w) for w in widths_px]
+
+    n_rows = len(row_centers)
+    n_cols = len(widths_pct)
+
+    grid: list[list[str]] = [["" for _ in range(n_cols)] for _ in range(n_rows)]
+    for x0, y0, x1, y1, text in items:
+        ri = _nearest_index(row_centers, y0)
+        ci = _nearest_index(col_edges, x0)
+        if ri < 0 or ri >= n_rows or ci < 0 or ci >= n_cols:
+            continue
+        cur = grid[ri][ci]
+        grid[ri][ci] = (cur + ("\n" if cur else "") + text).strip()
+
+    # Render HTML with strict borders; keep line breaks.
+    parts: list[str] = []
+    parts.append(
+        '<table style="border-collapse:collapse;width:100%;table-layout:fixed;'
+        'font-family:Arial,Helvetica,sans-serif;font-size:11px;">'
+    )
+    for r in range(n_rows):
+        parts.append("<tr>")
+        for c in range(n_cols):
+            w_attr = ""
+            if r == 0:
+                w_attr = f' width="{widths_pct[c]:.2f}%"'
+            txt = (grid[r][c] or "").strip()
+            if txt:
+                safe = (
+                    txt.replace("&", "&amp;")
+                    .replace("<", "&lt;")
+                    .replace(">", "&gt;")
+                    .replace("\r\n", "\n")
+                    .replace("\r", "\n")
+                )
+                safe = "<br>".join(safe.split("\n"))
+            else:
+                safe = ""
+            parts.append(
+                f'<td{w_attr} style="border:1px solid #000;padding:2px 3px;'
+                f'vertical-align:top;white-space:pre-wrap;word-break:break-word;">{safe}</td>'
+            )
+        parts.append("</tr>")
+    parts.append("</table>")
+    return "\n".join(parts)
 
 
 def _extract_text_from_gemini_response(result) -> str:
@@ -212,6 +361,33 @@ async def extract_text_from_image(image_path: str) -> str:
         logger.info("OCR extract started path=%s", image_path)
 
         loop = asyncio.get_running_loop()
+        # Optional: strict table reconstruction from PaddleOCR boxes (no Gemini).
+        paddle_table_on = os.getenv("OCR_PADDLE_TABLE_GRID", "0").strip().lower() not in {
+            "0", "false", "no", "off",
+        }
+        if paddle_table_on:
+            try:
+                import cv2  # type: ignore
+
+                bgr = cv2.imread(image_path, cv2.IMREAD_COLOR)
+                if bgr is not None and getattr(bgr, "size", 0):
+                    from backend.services.paddle_ocr_runtime import paddle_extract_structured
+
+                    structured = await loop.run_in_executor(_ocr_executor, paddle_extract_structured, bgr)
+                    lines = (structured or {}).get("lines") or []
+                    iw = int((structured or {}).get("width") or bgr.shape[1])
+                    ih = int((structured or {}).get("height") or bgr.shape[0])
+                    html_table = _build_grid_table_from_paddle_lines(lines, iw, ih)
+                    if html_table:
+                        logger.info(
+                            "OCR table reconstructed via Paddle boxes in %.1fs path=%s",
+                            time.perf_counter() - t0,
+                            image_path,
+                        )
+                        return html_table
+            except Exception as pe:
+                logger.debug("Paddle table grid path failed: %s", pe)
+
         # Default OFF: Paddle layout often doesn't map 1:1 into DOCX (absolute divs stretch).
         prefer_paddle_layout = os.getenv("OCR_BOT_PREFER_PADDLE_LAYOUT", "0").strip().lower() not in {
             "0", "false", "no", "off",
