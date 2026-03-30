@@ -39,6 +39,10 @@ RUN playwright install chromium
 
 COPY . /app
 
+# OCR: warm up PaddleOCR models at build time to avoid first-request downloads/timeouts.
+# This makes OCR_PADDLE_TABLE_GRID usable within <5s at runtime.
+RUN python /app/scripts/warmup_paddle.py || true
+
 # Default command is overridden in docker-compose.yml
 CMD ["python", "-c", "print('Use docker-compose services')"]
 
