@@ -379,11 +379,16 @@ async def extract_text_from_image(image_path: str) -> str:
 
                 bgr = cv2.imread(image_path, cv2.IMREAD_COLOR)
                 if bgr is not None and getattr(bgr, "size", 0):
-                    from backend.services.paddle_ocr_runtime import paddle_extract_structured
+                    from backend.services.paddle_ocr_runtime import (
+                        paddle_extract_structured,
+                        warmup_paddle_engine_async,
+                    )
+                    # Warm up engine in background so next requests are fast.
+                    warmup_paddle_engine_async()
 
                     table_timeout = max(
                         3,
-                        int(os.getenv("OCR_PADDLE_TABLE_GRID_TIMEOUT_SECONDS", "12")),
+                        int(os.getenv("OCR_PADDLE_TABLE_GRID_TIMEOUT_SECONDS", "5")),
                     )
                     try:
                         structured = await asyncio.wait_for(

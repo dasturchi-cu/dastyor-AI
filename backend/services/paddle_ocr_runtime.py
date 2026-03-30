@@ -28,6 +28,8 @@ _OCR_POOL = ThreadPoolExecutor(max_workers=int(os.getenv("OCR_WORKERS", "4")), t
 _OCR_ENGINE = None
 _OCR_LOCK = threading.Lock()
 _OCR_PROFILE = "default"
+_WARMUP_FUTURE = None
+_WARMUP_LOCK = threading.Lock()
 
 
 def get_ocr_thread_pool() -> ThreadPoolExecutor:
@@ -121,6 +123,31 @@ def get_paddle_engine():
                 _OCR_ENGINE = None
                 continue
         raise RuntimeError(f"PaddleOCR init failed: {last_err}")
+
+
+def warmup_paddle_engine_async() -> bool:
+    """
+    Kick off PaddleOCR initialization in background (non-blocking).
+    Returns True if warmup was scheduled or already done; False if deps missing.
+    """
+    global _WARMUP_FUTURE
+    try:
+        import paddle  # noqa: F401
+        from paddleocr import PaddleOCR  # noqa: F401
+    except Exception:
+        return False
+    with _WARMUP_LOCK:
+        if _OCR_ENGINE is not None:
+            return True
+        if _WARMUP_FUTURE is not None:
+            return True
+        try:
+            _WARMUP_FUTURE = _OCR_POOL.submit(get_paddle_engine)
+            logger.info("PaddleOCR warmup scheduled")
+            return True
+        except Exception:
+            _WARMUP_FUTURE = None
+            return False
 
 
 def reinit_paddle_engine_fallback():
