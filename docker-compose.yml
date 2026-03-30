@@ -10,6 +10,7 @@ services:
     build: .
     environment:
       - ENV=prod
+      - PADDLEX_HOME=/app/.paddlex
       # Required for webhook app: same token as the Telegram bot
       - BOT_TOKEN=${BOT_TOKEN}
       - WEBHOOK_URL=${WEBHOOK_URL:-http://api:8000/webhook}
@@ -33,6 +34,7 @@ services:
     build: .
     environment:
       - ENV=prod
+      - PADDLEX_HOME=/app/.paddlex
       - REDIS_URL=redis://redis:6379/0
       - CELERY_BROKER_URL=redis://redis:6379/0
       - CELERY_RESULT_BACKEND=redis://redis:6379/0

@@ -1,7 +1,8 @@
 FROM python:3.12-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1
+    PYTHONUNBUFFERED=1 \
+    PADDLEX_HOME=/app/.paddlex
 
 WORKDIR /app
 
@@ -38,6 +39,9 @@ RUN pip install --no-cache-dir -r /app/requirements.txt
 RUN playwright install chromium
 
 COPY . /app
+
+# Ensure PaddleX model cache directory exists inside image
+RUN mkdir -p /app/.paddlex
 
 # OCR: warm up PaddleOCR models at build time to avoid first-request downloads/timeouts.
 # This makes OCR_PADDLE_TABLE_GRID usable within <5s at runtime.
