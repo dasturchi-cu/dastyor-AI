@@ -373,7 +373,22 @@ async def extract_text_from_image(image_path: str) -> str:
                 if bgr is not None and getattr(bgr, "size", 0):
                     from backend.services.paddle_ocr_runtime import paddle_extract_structured
 
-                    structured = await loop.run_in_executor(_ocr_executor, paddle_extract_structured, bgr)
+                    table_timeout = max(
+                        3,
+                        int(os.getenv("OCR_PADDLE_TABLE_GRID_TIMEOUT_SECONDS", "12")),
+                    )
+                    try:
+                        structured = await asyncio.wait_for(
+                            loop.run_in_executor(_ocr_executor, paddle_extract_structured, bgr),
+                            timeout=float(table_timeout),
+                        )
+                    except asyncio.TimeoutError:
+                        structured = None
+                        logger.info(
+                            "Paddle table grid timed out (%ss), fallback to Gemini path=%s",
+                            table_timeout,
+                            image_path,
+                        )
                     lines = (structured or {}).get("lines") or []
                     iw = int((structured or {}).get("width") or bgr.shape[1])
                     ih = int((structured or {}).get("height") or bgr.shape[0])
