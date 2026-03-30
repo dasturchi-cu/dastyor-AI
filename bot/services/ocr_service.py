@@ -129,10 +129,30 @@ def _enhance_image_for_ocr_sync(src_path: str) -> str | None:
                 im = im.resize((int(w * scale), int(h * scale)), Image.Resampling.LANCZOS)
             # Auto-contrast and slight brightness boost
             im = ImageOps.autocontrast(im, cutoff=1)
-            im = ImageEnhance.Contrast(im).enhance(1.35)
-            im = ImageEnhance.Brightness(im).enhance(1.04)
-            # Sharpen edges / lines
-            im = im.filter(ImageFilter.UnsharpMask(radius=2, percent=160, threshold=3))
+            im = ImageEnhance.Contrast(im).enhance(1.55)
+            im = ImageEnhance.Brightness(im).enhance(1.06)
+            # Mild denoise then sharpen edges / lines
+            im = im.filter(ImageFilter.MedianFilter(size=3))
+            im = im.filter(ImageFilter.UnsharpMask(radius=2, percent=190, threshold=2))
+
+            # Optional: binarize for handwriting/ledger tables (often improves digits)
+            bin_on = os.getenv("OCR_BINARIZE", "1").strip().lower() not in {"0", "false", "no", "off"}
+            if bin_on:
+                g = ImageOps.grayscale(im)
+                # Adaptive-ish threshold (fast): use histogram percentile
+                hist = g.histogram()
+                total = sum(hist) or 1
+                acc = 0
+                thr = 160
+                target = int(total * 0.62)
+                for i, v in enumerate(hist):
+                    acc += v
+                    if acc >= target:
+                        thr = i
+                        break
+                thr = max(90, min(200, int(thr)))
+                bw = g.point(lambda p: 255 if p > thr else 0, mode="1")
+                im = bw.convert("RGB")
             fd, out = tempfile.mkstemp(suffix=".png", prefix="ocr_enh_")
             os.close(fd)
             im.save(out, "PNG", optimize=True)
@@ -291,6 +311,8 @@ CRITICAL RULES FOR 1:1 REPLICATION:
                 + "- Do NOT use absolute-positioned divs.\n"
                 + "- If there are borders/lines, represent them using table borders (style='border:1px solid #000').\n"
                 + "- Preserve exact spacing using empty table rows/cells and <br>.\n"
+                + "- The image may contain HANDWRITTEN numbers. Read them carefully and put them into the correct cells.\n"
+                + "- If a cell is empty, keep it empty.\n"
             )
 
             def _run_generation_strict(mf):
