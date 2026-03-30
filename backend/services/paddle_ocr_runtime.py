@@ -150,6 +150,20 @@ def warmup_paddle_engine_async() -> bool:
             return False
 
 
+def is_paddle_engine_ready() -> bool:
+    return _OCR_ENGINE is not None
+
+
+def is_paddle_warmup_done() -> bool:
+    f = _WARMUP_FUTURE
+    if f is None:
+        return _OCR_ENGINE is not None
+    try:
+        return bool(f.done())
+    except Exception:
+        return False
+
+
 def reinit_paddle_engine_fallback():
     """After runtime/oneDNN crashes, force PP-OCRv4 profile."""
     global _OCR_ENGINE

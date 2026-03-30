@@ -382,9 +382,15 @@ async def extract_text_from_image(image_path: str) -> str:
                     from backend.services.paddle_ocr_runtime import (
                         paddle_extract_structured,
                         warmup_paddle_engine_async,
+                        is_paddle_engine_ready,
+                        is_paddle_warmup_done,
                     )
                     # Warm up engine in background so next requests are fast.
                     warmup_paddle_engine_async()
+                    # If models are still downloading / warmup not done, don't block user flow.
+                    # Keep OCR responsive (<5s) by skipping Paddle-table until engine is ready.
+                    if not is_paddle_engine_ready() and not is_paddle_warmup_done():
+                        raise TimeoutError("Paddle warmup in progress; skip table grid for now")
 
                     table_timeout = max(
                         3,
