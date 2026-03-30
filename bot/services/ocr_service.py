@@ -367,6 +367,14 @@ async def extract_text_from_image(image_path: str) -> str:
         }
         if paddle_table_on:
             try:
+                # PaddleOCR requires `paddle` (paddlepaddle). If missing, skip instantly.
+                try:
+                    import paddle  # type: ignore  # noqa: F401
+                except Exception:
+                    paddle = None
+                if paddle is None:
+                    raise ImportError("paddle (paddlepaddle) not installed")
+
                 import cv2  # type: ignore
 
                 bgr = cv2.imread(image_path, cv2.IMREAD_COLOR)

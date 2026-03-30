@@ -19,6 +19,7 @@ pypdf>=5.0.0
 numpy>=2.0.0
 opencv-python>=4.10.0
 paddleocr>=2.8.0
+paddlepaddle>=2.6.0
 celery>=5.4.0
 redis>=5.0.0
 # Render build fix: newer python-bidi versions may require Rust/maturin.
