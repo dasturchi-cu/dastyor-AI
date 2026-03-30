@@ -257,18 +257,49 @@ async def extract_text_from_image(image_path: str) -> str:
             logger.error("No Gemini model available for OCR.")
             return ""
 
-        prompt = """You are an advanced OCR AI specialized in EXTREME 1:1 Document Replication.
-Your task is to convert the provided image into a structured HTML document that EXACTLY matches the original layout, formatting, and text, no matter how blurry, faded, or complex the image is.
+        prompt = """You are an OCR engine. Your output MUST be a 1:1 replica of the document.
+Return ONLY valid HTML. No markdown fences. No explanations. No extra text.
 
-CRITICAL RULES FOR 1:1 REPLICATION:
-1. **Absolute Text Accuracy**: DO NOT hallucinate, summarize, or fix grammar. Extract every single word, number, punctuation mark, and character exactly as it appears. If text is blurry or hard to read, make your absolute best logical guess based on context, but NEVER skip it. Keep the original language.
-2. **Typography & Styling**: Use <b>/<strong> for bold, <i>/<em> for italics, <u> for underlines. If text is entirely uppercase in the image, output it in uppercase.
-3. **Alignment & Positioning**: Use <p align="center">, <p align="right">, <p align="justify">, or <h1 align="center">. Use standard html alignment attributes or inline styles like style="text-align: right" for any content that is centered, right-aligned, or justified.
-4. **Tables & Grids**: If you see ANY tabular data, grids, columns, side-by-side text, or form fields, ALWAYS use HTML <table>. Ensure the exact number of rows and columns. Never use tabs or spaces for spacing. Set approximate column widths on the first row: <td width="30%">. Empty cells must remain empty (<td></td>).
-5. **Structure**: Use <h1>, <h2>, <h3> for titles and headings based on their visual size. Use <p> for regular text paragraphs. Use <ul>, <ol>, <li> for lists.
-6. **Spacing & Gaps**: Use <br> to preserve exact vertical line breaks within blocks. Use empty paragraphs <p></p> or multiple <br> for large vertical gaps to match the exact vertical distances in the original image.
-7. **Signatures & Stamps**: If there is a signature, handwritten text, stamp, or seal, represent it with italicized text in brackets, e.g., <p><i>[Imzo]</i></p> or <p><i>[Muhr]</i></p>.
-8. **Clean Output**: Return ONLY valid HTML code. No markdown HTML blocks (like ```html), no conversational text, no explanations. Just the HTML elements."""
+NON-NEGOTIABLE:
+1) Do NOT summarize, translate, normalize, or "fix" anything.
+2) Copy EXACT characters (including commas vs dots in numbers), punctuation, casing, and symbols.
+3) Preserve the document structure and the relative placement of content.
+4) NEVER drop content. If unreadable: write [?] in that exact place.
+
+THIS DOCUMENT IS VERY LIKELY A LEDGER / TABLE:
+- If you see any grid/table/form: output HTML <table> (NEVER absolute-positioned divs).
+- The table MUST match the grid 1:1:
+  - exact number of columns and rows
+  - correct rowspan/colspan
+  - empty cells must remain empty: <td></td>
+  - handwritten values must go into the correct cell
+- You MUST show borders for EVERY cell so the grid looks like the source.
+
+REQUIRED HTML TEMPLATE (follow this style strictly):
+<table style="border-collapse:collapse;width:100%;table-layout:fixed;font-family:Arial,Helvetica,sans-serif;font-size:11px;">
+  <tr>
+    <td style="border:1px solid #000;padding:2px 3px;vertical-align:top;white-space:pre-wrap;word-break:break-word;">...</td>
+  </tr>
+</table>
+
+WIDTHS:
+- Set column widths on the first row using width="..%" or style="width:..%".
+- Keep widths consistent across rows.
+
+NUMBERS / HANDWRITING:
+- Handwritten digits are important. Read them carefully.
+- Keep decimals exactly as in the image (e.g., 12,5 vs 12.5).
+- Keep leading zeros and minus signs if present.
+- If a digit is ambiguous, keep the cell but use [?] for the ambiguous part (example: 1[?]3).
+
+TEXT RULES:
+- Keep line breaks inside a cell with <br>.
+- Use <b>/<i>/<u> ONLY if the source is bold/italic/underlined.
+- Use alignment styles ONLY when clearly visible.
+
+OUTPUT RULE:
+- Output HTML only. Start immediately with the first element. End after the last element.
+"""
 
         def _run_generation(mf):
             return model.generate_content(
@@ -306,13 +337,14 @@ CRITICAL RULES FOR 1:1 REPLICATION:
         if retry_on:
             strict_prompt = (
                 prompt
-                + "\n\nEXTRA STRICT:\n"
-                + "- Prefer HTML <table> for ANY alignment/columns/forms.\n"
-                + "- Do NOT use absolute-positioned divs.\n"
-                + "- If there are borders/lines, represent them using table borders (style='border:1px solid #000').\n"
-                + "- Preserve exact spacing using empty table rows/cells and <br>.\n"
-                + "- The image may contain HANDWRITTEN numbers. Read them carefully and put them into the correct cells.\n"
-                + "- If a cell is empty, keep it empty.\n"
+                + "\n\nEXTRA STRICT RETRY:\n"
+                + "- Output ONLY tables. No paragraphs unless the source has non-table text.\n"
+                + "- For grids: create the full table even if some cells are blank.\n"
+                + "- Use borders on EVERY cell (border:1px solid #000).\n"
+                + "- NEVER drop a row/column. If unsure: use [?] in that cell.\n"
+                + "- Preserve headers/side labels exactly where they appear.\n"
+                + "- Do NOT merge cells unless the grid visually merges (rowspan/colspan must match).\n"
+                + "- Prefer multiple tables (in order) ONLY if the source has clearly separated blocks/pages.\n"
             )
 
             def _run_generation_strict(mf):
