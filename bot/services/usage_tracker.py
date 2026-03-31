@@ -350,6 +350,30 @@ async def ensure_can_use_or_notify(
         return True
     if can_use_category(uid, category):
         return True
+
+    # 1-time CV bonus (requires DB persistence; enforced per telegram_id).
+    try:
+        from bot.services.plan_limits import CAT_CV
+        from bot.services.supabase_db import has_db, db_get_subscription_and_bonus, db_mark_cv_bonus_used
+        from bot.services.user_service import invalidate_user_profile_cache
+
+        if category == CAT_CV and has_db():
+            flags = db_get_subscription_and_bonus(uid) or {}
+            if not bool(flags.get("bonus_used", False)):
+                # Consume immediately to prevent abuse (multiple parallel CV requests).
+                db_mark_cv_bonus_used(uid)
+                invalidate_user_profile_cache(uid)
+                try:
+                    await bot.send_message(
+                        chat_id=chat_id,
+                        text="🎁 Bonus ishlatildi: 1 marta bepul CV tayyorlanadi.",
+                    )
+                except Exception:
+                    pass
+                return True
+    except Exception:
+        pass
+
     await _send_quota_blocked_message(bot, chat_id, uid, lang, category)
     return False
 

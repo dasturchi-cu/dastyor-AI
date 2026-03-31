@@ -6,6 +6,7 @@ from telegram.ext import ApplicationHandlerStop, ContextTypes
 import bot.services.user_service as crm
 from bot.services.admin_service import is_admin as is_admin_sync
 from bot.services.settings_service import get_maintenance_mode
+from bot.handlers.subscription_gate import enforce_subscription_or_block
 
 
 def _track_user_activity_job(user, cmd: str | None, dm_chat_id: int | None) -> None:
@@ -66,6 +67,15 @@ async def track_user(update: Update, context: ContextTypes.DEFAULT_TYPE):
             if not is_admin_sync(uid):
                 context.user_data["is_banned"] = True
                 raise ApplicationHandlerStop
+
+        # Channel subscription gate (blocks all interactions for non-admins).
+        try:
+            await enforce_subscription_or_block(update, context)
+        except ApplicationHandlerStop:
+            raise
+        except Exception:
+            # fail open
+            pass
 
         cmd = None
         if update.message and update.message.text:
