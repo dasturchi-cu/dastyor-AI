@@ -6,8 +6,6 @@ from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.constants import ChatMemberStatus
 from telegram.ext import ApplicationHandlerStop, CallbackQueryHandler, ContextTypes
 
-from bot.services.admin_service import is_admin
-
 logger = logging.getLogger(__name__)
 
 
@@ -82,8 +80,6 @@ async def enforce_subscription_or_block(update: Update, context: ContextTypes.DE
     if update.effective_chat.type != "private":
         return
     uid = int(update.effective_user.id)
-    if is_admin(uid):
-        return
     channels = _required_channels()
     ok = await _is_subscribed_to_all(context.bot, uid, channels)
     if ok:
