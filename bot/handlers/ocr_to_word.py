@@ -563,8 +563,18 @@ async def _perform_ocr_batch_and_send(context, bot, chat_id: int, user_id: int, 
                 logger.warning("OCR extract failed; will fallback scan-docx user=%s err=%s", user_id, e)
                 extracted_text = ""
 
-            # If OCR failed/empty, still produce a DOCX with the original image (1:1 scan fallback).
+            # If OCR failed/empty, default behavior: do NOT send "image-only" DOCX.
+            # (User expects table/text reconstruction. Scan fallback is optional via env flag.)
             if not extracted_text:
+                scan_fallback_on = os.getenv("OCR_SCAN_FALLBACK_DOCX", "0").strip().lower() in ("1", "true", "yes", "on")
+                if not scan_fallback_on:
+                    await progress_msg.edit_text(
+                        "❌ Matn ajratilmadi.\n\n"
+                        "Jadval uchun rasmni iloji boricha tekis, yaqinroq va yorug' joyda oling.\n"
+                        "Agar xohlasangiz, admin `OCR_SCAN_FALLBACK_DOCX=1` qilib qo'ysa, hech bo'lmasa rasm Word'ga 1:1 joylanib yuboriladi."
+                    )
+                    return
+
                 await update_progress(context, progress_msg, 75, "Matn o'qilmadi — rasm Word'ga 1:1 joylanmoqda...")
                 doc_path = f"Ocr_Scan_{user_id}_{int(time.time())}_@DastyorAiBot.docx"
 
@@ -585,7 +595,7 @@ async def _perform_ocr_batch_and_send(context, bot, chat_id: int, user_id: int, 
                         chat_id,
                         f,
                         filename=doc_path,
-                        caption="✅ **Word tayyor (rasm 1:1).**\n\nMatnni o‘qishning iloji bo‘lmadi, lekin hujjat scan ko‘rinishda berildi.",
+                        caption="✅ **Word tayyor (rasm 1:1).**\n\nMatn ajratilmadi — scan ko‘rinishda berildi.",
                         parse_mode=ParseMode.MARKDOWN,
                         reply_markup=get_main_menu(user_id, get_user_lang(user_id)),
                     )
