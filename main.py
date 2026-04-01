@@ -76,7 +76,6 @@ from bot.handlers.translate import translate_handler, process_translation as pro
 from bot.handlers.image_to_pdf import image_to_pdf_handler, collect_pdf_images as process_image_to_pdf
 from bot.handlers.spell_check import spell_check_handler, process_spell_check
 from bot.handlers.start import start_command, menu_command, referral_link_command
-from bot.handlers.subscription_gate import subscription_check_callback
 from bot.keyboards.reply_keyboards import get_main_menu, get_back_button, get_more_menu
 from bot.utils.i18n import get_regex_for_key, t
 from bot.handlers.smart_logic import (
@@ -539,9 +538,6 @@ def setup_application():
     application.add_handler(CommandHandler("remove_admin", spanify("bot:cmd_remove_admin", remove_admin_command)))
 
     # 3. Callback Queries
-    application.add_handler(
-        CallbackQueryHandler(spanify("bot:cb_subcheck", subscription_check_callback), pattern=r"^subcheck$")
-    )
     application.add_handler(CallbackQueryHandler(
         spanify("bot:cb_premium", premium_callback_handler),
         pattern="^prem_"

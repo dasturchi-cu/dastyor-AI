@@ -433,62 +433,11 @@ def db_get_user(user_id: int | str) -> Optional[dict]:
             "referral_discount_standard_consumed_at": row.get("referral_discount_standard_consumed_at"),
             "referral_discount_premium_consumed_at": row.get("referral_discount_premium_consumed_at"),
             "paywall_shown_at": row.get("paywall_shown_at"),
-            "is_subscribed": row.get("is_subscribed", False),
-            "bonus_used": row.get("bonus_used", False),
         }
     except Exception as e:
         _mark_temporarily_unavailable(e)
         _log_write_error("db_get_user", e)
         return None
-
-
-def db_set_subscription_status(user_id: int, *, is_subscribed: bool) -> bool:
-    c = _get_client()
-    if not c:
-        return False
-    try:
-        c.table("users").update({"is_subscribed": bool(is_subscribed)}).eq("id", int(user_id)).execute()
-        return True
-    except Exception as e:
-        _log_write_error("db_set_subscription_status", e)
-        return False
-
-
-def db_get_subscription_and_bonus(user_id: int) -> dict:
-    """
-    Returns {"is_subscribed": bool, "bonus_used": bool}. Safe fallback if columns missing.
-    """
-    c = _get_client()
-    if not c:
-        return {"is_subscribed": False, "bonus_used": False}
-    uid = int(user_id)
-    try:
-        r = c.table("users").select("is_subscribed,bonus_used").eq("id", uid).limit(1).execute()
-        rows = r.data or []
-        if not rows:
-            return {"is_subscribed": False, "bonus_used": False}
-        row = rows[0] or {}
-        return {
-            "is_subscribed": bool(row.get("is_subscribed", False)),
-            "bonus_used": bool(row.get("bonus_used", False)),
-        }
-    except Exception as e:
-        # Column drift or RLS — fail closed (no bonus).
-        _log_write_error("db_get_subscription_and_bonus", e)
-        return {"is_subscribed": False, "bonus_used": False}
-
-
-def db_mark_cv_bonus_used(user_id: int) -> bool:
-    c = _get_client()
-    if not c:
-        return False
-    uid = int(user_id)
-    try:
-        c.table("users").update({"bonus_used": True}).eq("id", uid).execute()
-        return True
-    except Exception as e:
-        _log_write_error("db_mark_cv_bonus_used", e)
-        return False
 
 
 def db_upsert_user(user_id: int, first_name: str = "", username: str = None,
