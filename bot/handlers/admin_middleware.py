@@ -57,7 +57,7 @@ async def track_user(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     pass
                 # Hard-stop remaining handlers (commands, callbacks, message routers)
                 raise ApplicationHandlerStop
-ищдвш        except ApplicationHandlerStop:
+        except ApplicationHandlerStop:
             raise
         except Exception:
             # fail open: do not block if settings read fails
