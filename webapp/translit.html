@@ -334,7 +334,8 @@
 
         /* ── UI INTERACTION ── */
         let dir = 'k2l';
-        let autoConverting = true;
+        // Avtomatik o‘girish yo‘q: faqat foydalanuvchi tugmani bosganda ishlasin.
+        let autoConverting = false;
         function t(key, fallback) {
             return window.DastyorAI?.t?.(key, fallback) || fallback;
         }
@@ -415,7 +416,7 @@
                 : t('translit_input_placeholder_l2k', 'Lotin matnini shu yerga kiriting...');
             renderSamples();
             buildCharMap();
-            if (document.getElementById('srcText').value.trim()) convertNow();
+            // direction almashganda ham avtomatik convert qilmaymiz
         }
 
         function setDir(newDir) {
@@ -432,7 +433,6 @@
             dir = dir === 'k2l' ? 'l2k' : 'k2l';
             if (prevOut) { src.value = prevOut; out.value = ''; }
             updateDirUI();
-            if (src.value.trim()) convertNow();
             tg?.HapticFeedback?.impactOccurred('medium');
         }
 
@@ -464,7 +464,6 @@
             document.getElementById('srcText').value = out;
             dir = dir === 'k2l' ? 'l2k' : 'k2l';
             updateDirUI();
-            convertNow();
             tg?.HapticFeedback?.impactOccurred('light');
         }
 
@@ -478,7 +477,13 @@
                 const detected = detectScript(text);
                 if (detected && detected !== dir) { dir = detected; updateDirUI(); }
             }
-            if (autoConverting) convertNow();
+            if (autoConverting) {
+                convertNow();
+                return;
+            }
+            // user tugmani bosmaguncha natijani ko‘rsatmaymiz
+            document.getElementById('outText').value = '';
+            hideStatus();
         }
 
         function convertNow() {
