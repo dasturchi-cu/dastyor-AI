@@ -3,6 +3,8 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+  <!-- Deploy: agar WebApp statik CDN da, API esa boshqa domen da bo‘lsa, shu yerga API ildizini yozing (masalan https://sizning-app.railway.app) -->
+  <meta name="dastyor-api-base" content=""/>
   <title data-i18n="premium_page_title" data-i18n-fallback="Premium | DASTYOR AI">Premium | DASTYOR AI</title>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
@@ -914,6 +916,81 @@
     }
   }
 
+  function collectPremiumReceiptApiBases() {
+    const bases = [];
+    const add = function (b) {
+      let s = String(b || "").trim().replace(/\/+$/, "");
+      if (!s || bases.indexOf(s) !== -1) return;
+      bases.push(s);
+    };
+    try {
+      var qs = new URLSearchParams(location.search || "");
+      var apiQ = qs.get("api");
+      if (apiQ) add(apiQ);
+    } catch (_) {}
+    try {
+      var m = document.querySelector('meta[name="dastyor-api-base"]');
+      var mc = m && m.getAttribute("content");
+      if (mc && String(mc).trim()) add(String(mc).trim());
+    } catch (_) {}
+    if (window.DastyorAI && window.DastyorAI.BASE) add(window.DastyorAI.BASE);
+    if (location.protocol !== "file:") {
+      try {
+        add(location.origin);
+      } catch (_) {}
+    }
+    if (location.protocol === "file:") {
+      add("https://dastyor-ai.onrender.com");
+    }
+    return bases;
+  }
+
+  function detailFromResponseJson(data) {
+    if (!data || typeof data !== "object") return "";
+    var d = data.detail;
+    if (typeof d === "string") return d;
+    if (Array.isArray(d)) {
+      return d
+        .map(function (x) {
+          return (x && (x.msg || x.message)) || "";
+        })
+        .filter(Boolean)
+        .join(" ");
+    }
+    if (data.error) return String(data.error);
+    return "";
+  }
+
+  function humanizePremiumUploadError(err, resp, data) {
+    var name = err && err.name;
+    var msg = String((err && err.message) || "").toLowerCase();
+    if (name === "AbortError" || msg.indexOf("abort") !== -1) {
+      return "So‘rov vaqti tugadi. Internetni tekshirib, qayta «Yuborish»ni bosing.";
+    }
+    if (name === "TypeError" && (msg.indexOf("fetch") !== -1 || msg.indexOf("failed") !== -1)) {
+      return (
+        "Serverga ulanib bo‘lmadi (internet yoki VPN). " +
+        "WebAppni yoping, botdan qayta oching yoki birozdan keyin urinib ko‘ring. " +
+        "Agar muammo davom etsa, <meta name=\"dastyor-api-base\"> yoki ?api= URL parametri orqali API manzilini tekshiring."
+      );
+    }
+    if (resp) {
+      if (resp.status === 401) {
+        return "Kirish muddati tugagan. WebAppni yoping va botdan qayta oching (/start).";
+      }
+      if (resp.status === 413) {
+        return "Rasm juda katta. Skrinshotni qisqartiring yoki boshqa rasm yuboring.";
+      }
+      if (resp.status >= 500) {
+        return "Server vaqtincha xato qaytardi. Bir necha daqiqadan keyin qayta urinib ko‘ring.";
+      }
+    }
+    var fromJson = detailFromResponseJson(data);
+    if (fromJson) return fromJson;
+    if (err && err.message) return err.message;
+    return "Noma'lum xatolik. Keyinroq qayta urinib ko‘ring.";
+  }
+
   async function submitScreenshot() {
     const input = document.getElementById("receiptInput");
     const st = document.getElementById("uploadStatus");
@@ -929,9 +1006,12 @@
     if (st) st.textContent = (window.DA?.t?.("premium_upload_sending_admin") || "⏳ Adminga yuborilmoqda...");
 
     try {
-      const fd = new FormData();
-      fd.append("file", file);
-      fd.append("plan", selectedPlan);
+      function buildFormData() {
+        const f = new FormData();
+        f.append("file", file);
+        f.append("plan", selectedPlan);
+        return f;
+      }
 
       function getTelegramIdSafe() {
         const fromApi = window.DastyorAI?.getTelegramId?.();
@@ -954,24 +1034,25 @@
       const token = getTokenSafe();
 
       if (!tid) {
-        if (st) st.textContent = "❌ Unauthorized: telegram_id topilmadi (identity).";
+        if (st) {
+          st.textContent =
+            "❌ Telegram hisobingiz aniqlanmadi. WebAppni faqat bot ichidan oching yoki havolada ?telegram_id=... bo‘lsin.";
+        }
         return;
       }
 
-      if (st) st.textContent = "⏳ Yuborilmoqda... telegram_id=" + tid;
-      fd.append("telegram_id", String(tid));
-      if (token) fd.append("token", String(token));
+      if (st) st.textContent = "⏳ Yuborilmoqda...";
 
-      const base = String((window.DastyorAI && window.DastyorAI.BASE) || location.origin || "").replace(/\/+$/, "");
-      const urlPrimary = base + "/api/premium_receipt";
-      const urlFallback =
-        location.protocol === "file:"
-          ? "https://dastyor-ai.onrender.com/api/premium_receipt"
-          : urlPrimary;
+      const bases = collectPremiumReceiptApiBases();
+      if (!bases.length) {
+        throw new Error("API manzili topilmadi");
+      }
 
       async function fetchWithTimeout(url, options, ms) {
         const ctrl = new AbortController();
-        const t = setTimeout(function () { ctrl.abort(); }, ms);
+        const t = setTimeout(function () {
+          ctrl.abort();
+        }, ms);
         try {
           return await fetch(url, Object.assign({}, options || {}, { signal: ctrl.signal }));
         } finally {
@@ -979,34 +1060,53 @@
         }
       }
 
+      const timeoutMs = 90000;
       let resp = null;
-      let lastErr = null;
-      try {
-        resp = await fetchWithTimeout(urlPrimary, { method: "POST", body: fd }, 45000);
-      } catch (e1) {
-        lastErr = e1;
+      let lastNetErr = null;
+      let lastUrl = "";
+
+      for (let bi = 0; bi < bases.length; bi++) {
+        const base = bases[bi];
+        const url = base + "/api/premium_receipt";
+        lastUrl = url;
         try {
-          if (urlFallback !== urlPrimary) {
-            resp = await fetchWithTimeout(urlFallback, { method: "POST", body: fd }, 45000);
+          const fd = buildFormData();
+          fd.append("telegram_id", String(tid));
+          if (token) fd.append("token", String(token));
+          resp = await fetchWithTimeout(url, { method: "POST", body: fd }, timeoutMs);
+          break;
+        } catch (e) {
+          lastNetErr = e;
+          resp = null;
+          if (bi < bases.length - 1) {
+            await new Promise(function (r) {
+              setTimeout(r, 400);
+            });
           }
-        } catch (e2) {
-          lastErr = e2;
         }
       }
+
       if (!resp) {
-        throw lastErr || new Error("failed to fetch");
+        throw lastNetErr || new Error("failed to fetch");
       }
 
       const data = await resp.json().catch(() => ({}));
       if (!resp.ok || !data.ok) {
-        throw new Error(data.detail || data.error || ("HTTP " + resp.status));
+        const errText = detailFromResponseJson(data) || data.error || "HTTP " + resp.status;
+        const fake = new Error(errText);
+        fake._resp = resp;
+        fake._data = data;
+        throw fake;
       }
       if (st) st.textContent = "✅ Yuborildi. Admin tasdiqlashini kuting.";
       window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred?.("success");
       if (input) input.value = "";
     } catch (e) {
-      if (st) st.textContent =
-        "❌ Xatolik: " + (e?.message || "noma'lum");
+      var resp = e && e._resp;
+      var data = e && e._data;
+      if (st) {
+        st.textContent = "❌ " + humanizePremiumUploadError(e, resp, data);
+      }
       window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred?.("error");
     }
   }

@@ -77,7 +77,10 @@ async def api_premium_receipt(
 ):
     uid = resolve_telegram_uid(telegram_id, token)
     if not uid:
-        raise HTTPException(status_code=401, detail="Unauthorized")
+        raise HTTPException(
+            status_code=401,
+            detail="Kirish aniqlanmadi. WebAppni yoping va botdan qayta oching (token yoki telegram_id).",
+        )
 
     safe_plan = (plan or "premium").strip().lower()
     if safe_plan not in ("standard", "premium"):
@@ -87,9 +90,12 @@ async def api_premium_receipt(
     try:
         content = await read_upload_limited(file)
     except EmptyUploadError:
-        raise HTTPException(status_code=400, detail="Empty file")
+        raise HTTPException(status_code=400, detail="Fayl bo‘sh. Boshqa rasm tanlang.")
     except UploadTooLargeError:
-        raise HTTPException(status_code=413, detail="File too large")
+        raise HTTPException(
+            status_code=413,
+            detail="Rasm juda katta. Skrinshotni qisqartiring yoki kichikroq fayl yuboring.",
+        )
 
     first_name = ""
     username = ""
@@ -179,4 +185,22 @@ async def api_premium_receipt(
         return {"ok": True}
     except Exception as e:
         logger.error("/api/premium_receipt error: %s", e, exc_info=True)
-        return {"ok": False, "error": str(e)[:300]}
+        msg = str(e).strip()[:400]
+        if "chat not found" in msg.lower() or "peer_id_invalid" in msg.lower():
+            detail = (
+                "Admin guruh/chat topilmadi (bot guruhga qo‘shilmagan yoki PREMIUM_ADMIN_GROUP_ID noto‘g‘ri). "
+                "Texnik xizmatga murojaat qiling."
+            )
+        elif "bot was blocked" in msg.lower() or "forbidden" in msg.lower():
+            detail = (
+                "Bot foydalanuvchi yoki guruh bilan xabar almasha olmayapti. "
+                "Botni guruhga qo‘shing va xabar yuborish huquqini tekshiring."
+            )
+        elif "wrong file" in msg.lower() or "can't use file" in msg.lower():
+            detail = "Rasm fayli yaroqsiz. Boshqa skrinshot yuboring (JPG/PNG)."
+        else:
+            detail = (
+                "Chek yuborishda texnik xatolik. Internetni tekshirib keyinroq qayta urinib ko‘ring. "
+                f"(tafsilot: {msg[:180]})" if msg else "Chek yuborishda texnik xatolik."
+            )
+        raise HTTPException(status_code=502, detail=detail) from e
