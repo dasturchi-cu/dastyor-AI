@@ -42,12 +42,14 @@ async def api_ocr_extract(
 ):
     from config import GOOGLE_API_KEY
 
-    if not (GOOGLE_API_KEY or "").strip():
+    _paddle_only = os.getenv("OCR_SKIP_GEMINI", "0").strip().lower() in ("1", "true", "yes", "on")
+    if not (GOOGLE_API_KEY or "").strip() and not _paddle_only:
         raise HTTPException(
             status_code=503,
             detail=(
                 "OCR ishlamayapti: serverda GOOGLE_API_KEY sozlanmagan. "
-                "Admin .env / Render Environment ga kalit qo'shsin."
+                "Yoki faqat lokal Paddle uchun `OCR_SKIP_GEMINI=1` qo'ying. "
+                "Admin .env / Render Environment ni tekshiring."
             ),
         )
 

@@ -3,6 +3,7 @@ OCR Service Module (Async Optimized)
 Handles Image-to-Text conversion using Gemini asynchronously to prevent blocking.
 Uses a dedicated thread pool so OCR never blocks other bot features.
 """
+import html
 import logging
 import asyncio
 import os
@@ -352,7 +353,10 @@ async def extract_text_from_image(image_path: str) -> str:
     Extracts text from an image file using Gemini asynchronously.
     Forces 1:1 HTML layout preservation. Does not block the event loop.
     """
-    if not GOOGLE_API_KEY:
+    skip_gemini = os.getenv("OCR_SKIP_GEMINI", "0").strip().lower() in {
+        "1", "true", "yes", "on",
+    }
+    if not GOOGLE_API_KEY and not skip_gemini:
         return ""
 
     t0 = time.perf_counter()
@@ -427,15 +431,54 @@ async def extract_text_from_image(image_path: str) -> str:
         prefer_paddle_layout = os.getenv("OCR_BOT_PREFER_PADDLE_LAYOUT", "0").strip().lower() not in {
             "0", "false", "no", "off",
         }
+        paddle_html_last = ""
         if prefer_paddle_layout:
-            paddle_html = await loop.run_in_executor(
+            paddle_html_last = await loop.run_in_executor(
                 _ocr_executor, _extract_layout_with_paddle_sync, image_path
             )
-            if paddle_html and _layout_html_quality_ok(paddle_html):
+            if paddle_html_last and _layout_html_quality_ok(paddle_html_last):
                 logger.info("OCR done via Paddle layout in %.1fs path=%s", time.perf_counter() - t0, image_path)
-                return paddle_html
-            if paddle_html:
+                return paddle_html_last
+            if paddle_html_last:
                 logger.info("Paddle layout quality low, fallback to Gemini path=%s", image_path)
+
+        if skip_gemini:
+            if not (paddle_html_last or "").strip():
+                paddle_html_last = (
+                    await loop.run_in_executor(
+                        _ocr_executor, _extract_layout_with_paddle_sync, image_path
+                    )
+                    or ""
+                )
+            if paddle_html_last and paddle_html_last.strip():
+                logger.info(
+                    "OCR skip_gemini: using Paddle layout (no quality gate) in %.1fs path=%s",
+                    time.perf_counter() - t0,
+                    image_path,
+                )
+                return paddle_html_last
+            try:
+                from backend.services.paddle_ocr_runtime import ocr_extract_text_from_bytes
+
+                def _paddle_plain() -> dict[str, Any]:
+                    with open(image_path, "rb") as f:
+                        return ocr_extract_text_from_bytes(f.read()) or {}
+
+                out = await loop.run_in_executor(_ocr_executor, _paddle_plain)
+                plain = (out.get("text") or "").strip()
+                if plain:
+                    logger.info(
+                        "OCR skip_gemini: plain Paddle text in %.1fs path=%s",
+                        time.perf_counter() - t0,
+                        image_path,
+                    )
+                    return (
+                        '<div class="ocr-plain" style="white-space:pre-wrap">'
+                        f"{html.escape(plain)}</div>"
+                    )
+            except Exception as pe:
+                logger.info("OCR skip_gemini paddle plain failed path=%s: %s", image_path, pe)
+            return ""
 
         # Enhance image for OCR (optional but ON by default)
         enhance_on = os.getenv("OCR_ENHANCE_IMAGE", "1").strip().lower() not in {"0", "false", "no", "off"}
