@@ -1334,17 +1334,37 @@ def db_try_create_payment(
         "screenshot_url": screenshot_url,
         "status": "pending",
     }
-    def _do_insert(pl: dict) -> Optional[int]:
-        if meta:
-            res = c.table("payments").insert({**pl, "metadata": meta}).execute()
-        else:
-            res = c.table("payments").insert(pl).execute()
+
+    def _missing_metadata_column(err_text: str) -> bool:
+        t = (err_text or "").lower()
+        return "metadata" in t and ("pgrst204" in t or "schema cache" in t or "column" in t)
+
+    def _do_insert_row(row: dict) -> Optional[int]:
+        res = c.table("payments").insert(row).execute()
         if res.data and len(res.data) > 0:
             return int(res.data[0]["id"])
         return None
 
+    def _insert_with_meta_option(pl: dict, use_meta: bool) -> Optional[int]:
+        if use_meta and meta:
+            return _do_insert_row({**pl, "metadata": meta})
+        return _do_insert_row(dict(pl))
+
     try:
-        new_id = _do_insert(payload)
+        new_id = None
+        if meta:
+            try:
+                new_id = _insert_with_meta_option(payload, True)
+            except Exception as e0:
+                e0s = str(e0).lower()
+                if _missing_metadata_column(e0s):
+                    logger.warning("payments.metadata ustuni yo'q — metadatasiz insert")
+                    new_id = _insert_with_meta_option(payload, False)
+                else:
+                    raise e0
+        else:
+            new_id = _insert_with_meta_option(payload, False)
+
         if new_id is not None:
             return new_id, None
         return None, "To‘lov yozilmadi (javob bo‘sh). Administratorga yozing."
@@ -1352,13 +1372,23 @@ def db_try_create_payment(
         err = str(e).lower()
         if "idx_payments_one_pending" in err or "unique" in err or "23505" in err:
             return None, PENDING_PAYMENT_USER_MESSAGE
-        # Eski sxema: plan_type faqat premium/standard — cv/objective qabul qilmasa, metadata bilan premium
+        # Eski sxema: plan_type faqat premium/standard — cv/objective qabul qilmasa, premium + metadata
         if plan in ("cv", "objective") and any(
             x in err for x in ("check", "constraint", "invalid input", "enum", "plan_type")
         ):
             try:
                 fb = {**payload, "plan_type": "premium"}
-                new_id = _do_insert(fb)
+                new_id = None
+                if meta:
+                    try:
+                        new_id = _insert_with_meta_option(fb, True)
+                    except Exception as e1:
+                        if _missing_metadata_column(str(e1)):
+                            new_id = _insert_with_meta_option(fb, False)
+                        else:
+                            raise e1
+                else:
+                    new_id = _insert_with_meta_option(fb, False)
                 if new_id is not None:
                     return new_id, None
             except Exception as e2:

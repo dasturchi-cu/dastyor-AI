@@ -8,6 +8,10 @@
 -- MUHIM: unique indeksdan OLDIN takroriy pending qatorlar bo‘lmasligi kerak.
 -- =============================================================================
 
+-- PostgREST PGRST204: 'metadata' column topilmasa — shu qatorni ishga tushiring (yoki alohida).
+ALTER TABLE public.payments ADD COLUMN IF NOT EXISTS metadata jsonb;
+COMMENT ON COLUMN public.payments.metadata IS 'To‘lov qo‘shimcha JSON (webapp / telegram)';
+
 -- Hujjat tarifi (admin tasdiqlagach bot/API tekshirishi mumkin)
 ALTER TABLE public.users ADD COLUMN IF NOT EXISTS has_cv_access boolean DEFAULT false NOT NULL;
 ALTER TABLE public.users ADD COLUMN IF NOT EXISTS has_objective_access boolean DEFAULT false NOT NULL;
