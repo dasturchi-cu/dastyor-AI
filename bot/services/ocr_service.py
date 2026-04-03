@@ -8,6 +8,7 @@ import logging
 import asyncio
 import os
 import re
+from functools import partial
 import tempfile
 import time
 import warnings
@@ -92,6 +93,34 @@ def _nearest_index(centers: list[float], v: float) -> int:
     return best_i
 
 
+def _paddle_grid_env_int(name: str, default: int, *, vmin: int, vmax: int) -> int:
+    try:
+        v = int(os.getenv(name, str(default)))
+        return max(vmin, min(vmax, v))
+    except Exception:
+        return max(vmin, min(vmax, default))
+
+
+def _column_band_index(xc: float, col_edges: list[float], iw: int) -> int:
+    """Map horizontal center to column using sorted left edges (bands to image width)."""
+    ce = col_edges or [0.0]
+    n = len(ce)
+    iw_f = float(max(1, iw))
+    if n == 1:
+        return 0
+    for i in range(n):
+        left = float(ce[i])
+        right = float(ce[i + 1]) if i + 1 < n else iw_f
+        if i == n - 1:
+            if xc >= left - 0.5:
+                return i
+        elif left <= xc < right:
+            return i
+    if xc < float(ce[0]):
+        return 0
+    return n - 1
+
+
 def _build_grid_table_from_paddle_lines(lines: list[dict[str, Any]], img_w: int, img_h: int) -> str:
     """
     Heuristic: cluster bbox x/y to infer columns/rows, then map text into cells.
@@ -113,22 +142,37 @@ def _build_grid_table_from_paddle_lines(lines: list[dict[str, Any]], img_w: int,
             continue
         items.append((x0, y0, x1, y1, text))
 
-    if len(items) < 6:
+    min_items = _paddle_grid_env_int("OCR_PADDLE_GRID_MIN_ITEMS", 4, vmin=2, vmax=80)
+    max_cols = _paddle_grid_env_int("OCR_PADDLE_GRID_MAX_COLS", 80, vmin=2, vmax=200)
+    max_rows = _paddle_grid_env_int("OCR_PADDLE_GRID_MAX_ROWS", 160, vmin=2, vmax=500)
+    max_cells = _paddle_grid_env_int("OCR_PADDLE_GRID_MAX_CELLS", 3000, vmin=100, vmax=80000)
+
+    if len(items) < min_items:
         return ""
 
     # Cluster left edges for columns; top edges for rows.
     # Tolerances are relative to image size; tuned for scanned tables.
-    x_tol = max(6.0, iw * 0.02)
-    y_tol = max(6.0, ih * 0.018)
+    try:
+        x_frac = float(os.getenv("OCR_PADDLE_GRID_X_TOL_FRAC", "0.02") or "0.02")
+    except Exception:
+        x_frac = 0.02
+    try:
+        y_frac = float(os.getenv("OCR_PADDLE_GRID_Y_TOL_FRAC", "0.018") or "0.018")
+    except Exception:
+        y_frac = 0.018
+    x_frac = max(0.004, min(0.08, x_frac))
+    y_frac = max(0.004, min(0.08, y_frac))
+    x_tol = max(6.0, iw * x_frac)
+    y_tol = max(6.0, ih * y_frac)
     col_centers = _cluster_positions([x0 for x0, _, _, _, _ in items], tol=x_tol)
     row_centers = _cluster_positions([y0 for _, y0, _, _, _ in items], tol=y_tol)
 
     # Plausibility gates (avoid breaking non-table docs).
     if len(col_centers) < 2 or len(row_centers) < 2:
         return ""
-    if len(col_centers) > 40 or len(row_centers) > 80:
+    if len(col_centers) > max_cols or len(row_centers) > max_rows:
         return ""
-    if len(col_centers) * len(row_centers) > 600:
+    if len(col_centers) * len(row_centers) > max_cells:
         return ""
 
     # Column widths (percent): based on distance between centers.
@@ -152,8 +196,10 @@ def _build_grid_table_from_paddle_lines(lines: list[dict[str, Any]], img_w: int,
 
     grid: list[list[str]] = [["" for _ in range(n_cols)] for _ in range(n_rows)]
     for x0, y0, x1, y1, text in items:
-        ri = _nearest_index(row_centers, y0)
-        ci = _nearest_index(col_edges, x0)
+        xc = (x0 + x1) * 0.5
+        yc = (y0 + y1) * 0.5
+        ri = _nearest_index(row_centers, yc)
+        ci = _column_band_index(xc, col_edges, iw)
         if ri < 0 or ri >= n_rows or ci < 0 or ci >= n_cols:
             continue
         cur = grid[ri][ci]
@@ -161,9 +207,10 @@ def _build_grid_table_from_paddle_lines(lines: list[dict[str, Any]], img_w: int,
 
     # Render HTML with strict borders; keep line breaks.
     parts: list[str] = []
+    fs = "10px" if n_cols > 24 else "11px"
     parts.append(
         '<table style="border-collapse:collapse;width:100%;table-layout:fixed;'
-        'font-family:Arial,Helvetica,sans-serif;font-size:11px;">'
+        f'font-family:Arial,Helvetica,sans-serif;font-size:{fs};">'
     )
     for r in range(n_rows):
         parts.append("<tr>")
@@ -403,7 +450,10 @@ async def extract_text_from_image(image_path: str) -> str:
                     )
                     try:
                         structured = await asyncio.wait_for(
-                            loop.run_in_executor(_ocr_executor, paddle_extract_structured, bgr),
+                            loop.run_in_executor(
+                                _ocr_executor,
+                                partial(paddle_extract_structured, bgr, include_html_layout=False),
+                            ),
                             timeout=float(table_timeout),
                         )
                     except asyncio.TimeoutError:

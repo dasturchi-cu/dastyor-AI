@@ -281,10 +281,11 @@ def _reading_order_lines(ocr_result) -> list[tuple[list, str, float]]:
     return items
 
 
-def paddle_extract_structured(bgr_color) -> dict[str, Any]:
+def paddle_extract_structured(bgr_color, *, include_html_layout: bool = True) -> dict[str, Any]:
     """
     Run OCR with fallbacks: color BGR → light preprocess → aggressive binary.
     Returns plain text + line boxes for layout-aware clients.
+    If include_html_layout=False, skips absolute-position HTML (faster for table-grid-only paths).
     """
     import cv2
 
@@ -313,12 +314,13 @@ def paddle_extract_structured(bgr_color) -> dict[str, Any]:
                     ]
                     ih, iw = int(to_run.shape[0]), int(to_run.shape[1])
                     html_layout = ""
-                    try:
-                        from backend.services.ocr_layout_reconstruct import build_absolute_layout_html
+                    if include_html_layout:
+                        try:
+                            from backend.services.ocr_layout_reconstruct import build_absolute_layout_html
 
-                        html_layout = build_absolute_layout_html(to_run, line_dicts, iw, ih)
-                    except Exception as le:
-                        logger.debug("Layout HTML skipped: %s", le)
+                            html_layout = build_absolute_layout_html(to_run, line_dicts, iw, ih)
+                        except Exception as le:
+                            logger.debug("Layout HTML skipped: %s", le)
                     return {
                         "text": lines_text,
                         "lines": line_dicts,
@@ -336,7 +338,7 @@ def paddle_extract_structured(bgr_color) -> dict[str, Any]:
 
 def paddle_extract_plain_text(bgr_color) -> str:
     """Backward-compatible: structured extract, plain text only."""
-    return (paddle_extract_structured(bgr_color) or {}).get("text") or ""
+    return (paddle_extract_structured(bgr_color, include_html_layout=False) or {}).get("text") or ""
 
 
 def docx_image_then_text(image_bytes: bytes, text: str) -> bytes:
