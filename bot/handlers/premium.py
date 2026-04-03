@@ -15,7 +15,14 @@ from bot.services.premium_purchase_db import (
     set_payment_request_status,
     save_subscription,
 )
-from bot.services.pricing import STANDARD_PRICE_UZS, PREMIUM_PRICE_UZS, format_uzs, apply_percent_discount, REFERRAL_DISCOUNT_PERCENT
+from bot.services.pricing import (
+    STANDARD_PRICE_UZS,
+    PREMIUM_PRICE_UZS,
+    SINGLE_DOC_PRICE_UZS,
+    format_uzs,
+    apply_percent_discount,
+    REFERRAL_DISCOUNT_PERCENT,
+)
 
 CARD_NUMBER = "9860 1201 7225 8424"
 CARD_OWNER = "DILNOZA MOMINOVA"
@@ -26,10 +33,6 @@ PLAN_INFO = {
     "standard": {"title": "Standard", "days": 7},
     "premium": {"title": "Premium", "days": 30},
 }
-
-# Single-doc paid products (manual approval)
-SINGLE_DOC_PRICE_UZS = int(os.getenv("SINGLE_DOC_PRICE_UZS", "5000") or "5000")
-
 
 def _premium_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
@@ -145,7 +148,7 @@ async def handle_premium_screenshot(update: Update, context: ContextTypes.DEFAUL
 
     request_id = None
     try:
-        from bot.services.supabase_db import has_db, db_create_payment
+        from bot.services.supabase_db import has_db, db_try_create_payment
 
         if has_db():
             meta = {
@@ -153,31 +156,48 @@ async def handle_premium_screenshot(update: Update, context: ContextTypes.DEFAUL
                 "username": user.username or "",
                 "first_name": user.first_name or "",
             }
-            plan_type = plan
             if is_paid_doc:
-                # Keep payments.plan_type schema-compatible; single-doc is detected by metadata.
-                plan_type = "premium"
+                # CV / obyektivka — alohida plan; premium EMAS
+                doc_plan = "cv" if paid_kind == "cv" else "objective"
                 meta["paid_doc_request_id"] = int(paid_rid) if str(paid_rid).isdigit() else None
                 meta["paid_doc_kind"] = paid_kind
-            pid = db_create_payment(
-                int(user.id),
-                plan_type,
-                float(SINGLE_DOC_PRICE_UZS) if is_paid_doc else 0.0,
-                screenshot_url=None,
-                metadata=meta,
-            )
+                pid, err = db_try_create_payment(
+                    int(user.id),
+                    doc_plan,
+                    float(SINGLE_DOC_PRICE_UZS),
+                    screenshot_url=None,
+                    metadata=meta,
+                )
+            else:
+                amt = float(STANDARD_PRICE_UZS if plan == "standard" else PREMIUM_PRICE_UZS)
+                pid, err = db_try_create_payment(
+                    int(user.id),
+                    plan,
+                    amt,
+                    screenshot_url=None,
+                    metadata=meta,
+                )
+            if err and not pid:
+                await update.message.reply_text(err)
+                return True
             if pid is not None:
                 request_id = pid
     except Exception as e:
-        logger.debug("db_create_payment (telegram): %s", e)
+        logger.debug("db_try_create_payment (telegram): %s", e)
 
     if request_id is None:
-        request_id = create_payment_request(
-            user_id=int(user.id),
-            plan_type=("premium" if is_paid_doc else plan),
-            username=user.username or "",
-            first_name=user.first_name or "",
-        )
+        try:
+            request_id = create_payment_request(
+                user_id=int(user.id),
+                plan_type=(
+                    ("cv" if paid_kind == "cv" else "objective") if is_paid_doc else plan
+                ),
+                username=user.username or "",
+                first_name=user.first_name or "",
+            )
+        except ValueError as ve:
+            await update.message.reply_text(str(ve))
+            return True
 
     uname = f"@{user.username}" if user.username else "yo'q"
     review_kb = InlineKeyboardMarkup(
@@ -291,18 +311,23 @@ async def premium_payment_review_callback(update: Update, context: ContextTypes.
             db_activate_subscription,
             db_reset_daily_usage,
             db_consume_referral_discount,
+            payment_normalize_plan_type,
+            payment_expected_amount_uzs,
+            db_grant_cv_access,
+            db_grant_objective_access,
         )
         if supa_has_db():
             pay = db_get_payment(request_id)
             if pay:
                 uid = int(pay["user_id"])
-                plan = (pay.get("plan_type") or "premium").lower()
-                plan_title = "Standart" if plan == "standard" else "Premium"
-                days = 7 if plan == "standard" else 30
+                norm_plan = payment_normalize_plan_type(str(pay.get("plan_type") or "premium"))
+                plan_title = "Standart" if norm_plan == "standard" else "Premium"
+                days = 7 if norm_plan == "standard" else 30
 
                 if action == "approve":
-                    # Mark payment approved
-                    db_set_payment_status(request_id, "approved", reviewed_by=int(query.from_user.id))
+                    if (pay.get("status") or "").strip().lower() != "pending":
+                        await query.answer("Bu to‘lov allaqachon ko‘rib chiqilgan", show_alert=True)
+                        return
 
                     meta = pay.get("metadata") if isinstance(pay.get("metadata"), dict) else {}
                     admin_note = str(pay.get("admin_note") or "").strip()
@@ -317,14 +342,38 @@ async def premium_payment_review_callback(update: Update, context: ContextTypes.
                             note_doc_rid = None
                             note_doc_kind = ""
 
-                    is_single_doc = (
+                    meta_kind = str(meta.get("paid_doc_kind") or "").strip().lower()
+                    is_legacy_premium_doc = norm_plan == "premium" and (
                         bool(meta.get("paid_doc_request_id"))
-                        or (str(meta.get("paid_doc_kind") or "").strip().lower() in {"cv", "obyektivka"})
+                        or meta_kind in {"cv", "obyektivka"}
                         or (note_doc_rid is not None and note_doc_kind in {"cv", "obyektivka"})
                     )
-                    # If this is a paid single-doc request, do NOT activate subscription.
-                    if is_single_doc:
+                    is_doc_flow = norm_plan in ("cv", "objective") or is_legacy_premium_doc
+
+                    if is_doc_flow:
+                        exp_amt = float(SINGLE_DOC_PRICE_UZS)
+                    else:
+                        exp_amt = payment_expected_amount_uzs(norm_plan)
+                    try:
+                        got_amt = float(pay.get("amount") or 0)
+                    except (TypeError, ValueError):
+                        got_amt = 0.0
+                    if abs(got_amt - exp_amt) > 0.5:
+                        await query.answer("To‘lov summasi tarifga mos emas", show_alert=True)
+                        return
+
+                    if is_doc_flow:
                         db_set_payment_status(request_id, "approved", reviewed_by=int(query.from_user.id))
+                        doc_kind = (
+                            norm_plan
+                            if norm_plan in ("cv", "objective")
+                            else (meta_kind or note_doc_kind or "")
+                        )
+                        if doc_kind in ("cv", "cv_single"):
+                            db_grant_cv_access(uid, True)
+                        elif doc_kind in ("objective", "obyektivka", "obyektivka_single"):
+                            db_grant_objective_access(uid, True)
+
                         doc_rid = meta.get("paid_doc_request_id") or note_doc_rid
                         try:
                             from bot.services.supabase_db import db_get_paid_doc_request, db_set_paid_doc_request_status
@@ -332,7 +381,6 @@ async def premium_payment_review_callback(update: Update, context: ContextTypes.
                             req_row = db_get_paid_doc_request(int(doc_rid)) if str(doc_rid).isdigit() else None
                             if not req_row or int(req_row.get("user_id") or 0) != uid:
                                 raise RuntimeError("paid_doc_request topilmadi")
-                            # WebApp will provide download after this.
                             db_set_paid_doc_request_status(int(req_row["id"]), "approved")
                             try:
                                 await context.bot.send_message(
@@ -345,7 +393,10 @@ async def premium_payment_review_callback(update: Update, context: ContextTypes.
                         except Exception as e:
                             logger.error("paid_doc approve failed: %s", e, exc_info=True)
                             try:
-                                await context.bot.send_message(chat_id=uid, text="⚠️ To'lov tasdiqlandi, lekin so'rov topilmadi. Supportga yozing.")
+                                await context.bot.send_message(
+                                    chat_id=uid,
+                                    text="⚠️ To'lov tasdiqlandi, lekin so'rov topilmadi. Supportga yozing.",
+                                )
                             except Exception:
                                 pass
 
@@ -357,24 +408,28 @@ async def premium_payment_review_callback(update: Update, context: ContextTypes.
                             pass
                         return
 
+                    if norm_plan not in ("standard", "premium"):
+                        await query.answer("Noto‘g‘ri to‘lov turi", show_alert=True)
+                        return
+
+                    db_set_payment_status(request_id, "approved", reviewed_by=int(query.from_user.id))
+
                     start_dt = datetime.utcnow()
                     expire_dt = start_dt + timedelta(days=days)
                     db_activate_subscription(
                         user_id=uid,
-                        plan_type=plan,
+                        plan_type=norm_plan,
                         start_date=start_dt.isoformat(),
                         expire_date=expire_dt.isoformat(),
                         status="active",
                     )
                     db_reset_daily_usage(uid)
-                    reset_plan_quotas_on_activation(uid, plan)
-                    # 1-time referral discount (per plan): consume after successful activation
+                    reset_plan_quotas_on_activation(uid, norm_plan)
                     try:
-                        db_consume_referral_discount(uid, plan)
+                        db_consume_referral_discount(uid, norm_plan)
                     except Exception:
                         pass
 
-                    meta = pay.get("metadata") if isinstance(pay.get("metadata"), dict) else {}
                     pname = (meta.get("first_name") or "").strip() or "User"
                     puser = (meta.get("username") or "").strip() or ""
                     try:
@@ -383,7 +438,6 @@ async def premium_payment_review_callback(update: Update, context: ContextTypes.
                     except Exception as e:
                         logger.debug("add_premium sync (supa path): %s", e)
 
-                    # Notify user
                     end_date_str = expire_dt.strftime("%Y-%m-%d")
                     try:
                         await context.bot.send_message(

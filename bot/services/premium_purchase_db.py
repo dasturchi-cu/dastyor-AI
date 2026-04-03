@@ -62,6 +62,17 @@ def _init_db() -> None:
         con.commit()
 
 
+def _sqlite_user_has_pending(user_id: int) -> bool:
+    _init_db()
+    with _conn() as con:
+        cur = con.cursor()
+        cur.execute(
+            "SELECT 1 FROM payment_requests WHERE user_id = ? AND status = 'pending' LIMIT 1",
+            (int(user_id),),
+        )
+        return cur.fetchone() is not None
+
+
 def create_payment_request(
     user_id: int,
     plan_type: str,
@@ -70,8 +81,16 @@ def create_payment_request(
 ) -> int:
     _init_db()
     plan = (plan_type or "premium").strip().lower()
-    if plan not in ("standard", "premium"):
+    if plan in ("obyektivka", "obyektivka_single"):
+        plan = "objective"
+    if plan == "cv_single":
+        plan = "cv"
+    if plan not in ("standard", "premium", "cv", "objective"):
         plan = "premium"
+    if _sqlite_user_has_pending(int(user_id)):
+        from bot.services.supabase_db import PENDING_PAYMENT_USER_MESSAGE
+
+        raise ValueError(PENDING_PAYMENT_USER_MESSAGE)
     now = datetime.utcnow().isoformat()
     with _conn() as con:
         cur = con.cursor()

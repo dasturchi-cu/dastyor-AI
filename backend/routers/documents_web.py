@@ -30,14 +30,13 @@ from backend.services.temp_files import safe_remove
 from backend.services.user_resolve import resolve_telegram_uid, safe_filename_part
 from backend.services.web_quota import web_quota_consume_or_raise
 from backend.web_constants import SITE_BASE_URL
+from bot.services.pricing import SINGLE_DOC_PRICE_UZS
 from bot.services.render_service import generate_cv_pdf, render_cv_html, safe_filename
 from bot.utils.delivery import send_docx_with_confirmation
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["web-documents"])
-
-SINGLE_DOC_PRICE_UZS = int(os.getenv("SINGLE_DOC_PRICE_UZS", "5000") or "5000")
 PREMIUM_ADMIN_GROUP_ID = int(os.getenv("PREMIUM_ADMIN_GROUP_ID", "-1003457224552") or "-1003457224552")
 PAYMENT_CARD_NUMBER = (os.getenv("PAYMENT_CARD_NUMBER", "9860 1201 7225 8424") or "9860 1201 7225 8424").strip()
 PAYMENT_CARD_OWNER = (os.getenv("PAYMENT_CARD_OWNER", "DILNOZA MOMINOVA") or "DILNOZA MOMINOVA").strip()
@@ -431,7 +430,7 @@ async def api_paid_doc_submit_screenshot(
         has_db,
         db_get_paid_doc_request,
         db_set_paid_doc_request_status,
-        db_create_payment,
+        db_try_create_payment,
         db_set_payment_status,
     )
 
@@ -451,10 +450,9 @@ async def api_paid_doc_submit_screenshot(
     except Exception:
         raise HTTPException(status_code=400, detail="screenshot decode xato")
 
-    # Create a payment row so we can reuse existing admin callback (prempay_approve/reject).
-    # Keep plan_type schema-compatible; identify single-doc flow via metadata.
-    plan_type = "premium"
-    pid = db_create_payment(
+    # CV / obyektivka — plan_type alohida; premium EMAS (admin tasdiqlashda subscription yo‘q).
+    plan_type = "cv" if k == "cv" else "objective"
+    pid, pay_err = db_try_create_payment(
         int(uid),
         plan_type,
         float(SINGLE_DOC_PRICE_UZS),
@@ -462,7 +460,9 @@ async def api_paid_doc_submit_screenshot(
         metadata={"paid_doc_request_id": int(request_id), "paid_doc_kind": k, "source": "webapp"},
     )
     if not pid:
-        raise HTTPException(status_code=500, detail="payment yozilmadi")
+        if pay_err:
+            raise HTTPException(status_code=409, detail=pay_err)
+        raise HTTPException(status_code=500, detail="To‘lov yozilmadi")
     # Fallback marker even if `metadata` column is absent.
     try:
         db_set_payment_status(

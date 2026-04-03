@@ -1237,6 +1237,120 @@ def db_insert_action_log(
 
 
 # ── premium payments flow (webapp) ─────────────────────────────────────────────
+PENDING_PAYMENT_USER_MESSAGE = (
+    "To‘lovingiz admin tomonidan ko‘rib chiqilmoqda. Iltimos kuting "
+    "yoki @flutterch1 bilan bog‘laning"
+)
+
+ACTIVE_PREMIUM_BLOCK_MESSAGE = (
+    "Sizda allaqachon faol Premium obuna bor. Yangi Premium to‘lovi hozir qabul qilinmaydi."
+)
+
+
+def payment_normalize_plan_type(raw: str) -> str:
+    """payments.plan_type ni bir xil ko‘rinishga (cv | objective | premium | standard)."""
+    return _normalize_payment_plan_type(raw)
+
+
+def _normalize_payment_plan_type(raw: str) -> str:
+    p = (raw or "premium").strip().lower()
+    if p in ("obyektivka", "obyektivka_single"):
+        return "objective"
+    if p == "cv_single":
+        return "cv"
+    if p in ("standard", "premium", "cv", "objective"):
+        return p
+    return "premium"
+
+
+def _expected_amount_uzs_for_plan(plan: str) -> float:
+    from bot.services.pricing import PREMIUM_PRICE_UZS, STANDARD_PRICE_UZS, SINGLE_DOC_PRICE_UZS
+
+    if plan in ("cv", "objective"):
+        return float(SINGLE_DOC_PRICE_UZS)
+    if plan == "premium":
+        return float(PREMIUM_PRICE_UZS)
+    if plan == "standard":
+        return float(STANDARD_PRICE_UZS)
+    return float(PREMIUM_PRICE_UZS)
+
+
+def payment_expected_amount_uzs(plan: str) -> float:
+    return _expected_amount_uzs_for_plan(payment_normalize_plan_type(plan))
+
+
+def db_user_has_pending_payment(user_id: int) -> bool:
+    c = _get_client()
+    if not c:
+        return False
+    try:
+        r = c.table("payments").select("id").eq("user_id", int(user_id)).eq("status", "pending").limit(1).execute()
+        return bool(r.data)
+    except Exception as e:
+        logger.debug("db_user_has_pending_payment: %s", e)
+        return False
+
+
+def db_try_create_payment(
+    user_id: int,
+    plan_type: str,
+    amount: float,
+    screenshot_url: str | None = None,
+    metadata: dict | None = None,
+) -> tuple[Optional[int], Optional[str]]:
+    """
+    Yaratishdan oldin: pending to‘lov, summa, premium takrori.
+    Qaytaradi: (payment_id, None) yoki (None, foydalanuvchi xabari).
+    """
+    c = _get_client()
+    if not c:
+        return None, None
+    uid = int(user_id)
+    plan = _normalize_payment_plan_type(plan_type)
+    expected = _expected_amount_uzs_for_plan(plan)
+    try:
+        paid = float(amount)
+    except (TypeError, ValueError):
+        return None, "To‘lov summasi noto‘g‘ri"
+    if abs(paid - expected) > 0.5:
+        return None, f"Kutilgan summa: {int(expected)} so‘m"
+
+    if db_user_has_pending_payment(uid):
+        return None, PENDING_PAYMENT_USER_MESSAGE
+
+    if plan == "premium":
+        try:
+            if db_get_active_plan_type(uid) == "premium":
+                return None, ACTIVE_PREMIUM_BLOCK_MESSAGE
+        except Exception:
+            pass
+
+    meta = metadata or {}
+    payload = {
+        "user_id": uid,
+        "plan_type": plan,
+        "amount": paid,
+        "currency": "UZS",
+        "screenshot_url": screenshot_url,
+        "status": "pending",
+    }
+    try:
+        if meta:
+            res = c.table("payments").insert({**payload, "metadata": meta}).execute()
+        else:
+            res = c.table("payments").insert(payload).execute()
+        if res.data and len(res.data) > 0:
+            return int(res.data[0]["id"]), None
+        return None, "To‘lov yozilmadi"
+    except Exception as e:
+        err = str(e).lower()
+        if "idx_payments_one_pending" in err or "unique" in err or "23505" in err:
+            return None, PENDING_PAYMENT_USER_MESSAGE
+        _mark_temporarily_unavailable(e)
+        logger.error("db_try_create_payment error: %s", e, exc_info=True)
+        return None, None
+
+
 def db_create_payment(
     user_id: int,
     plan_type: str,
@@ -1246,41 +1360,34 @@ def db_create_payment(
 ) -> Optional[int]:
     """
     Create a pending payment row in Supabase.
-    Returns payment id or None if Supabase unavailable / schema drift.
+    Returns payment id or None if blocked / unavailable / schema drift.
     """
+    pid, _ = db_try_create_payment(user_id, plan_type, amount, screenshot_url, metadata)
+    return pid
+
+
+def db_grant_cv_access(user_id: int, value: bool = True) -> bool:
     c = _get_client()
     if not c:
-        return None
+        return False
     try:
-        plan = (plan_type or "premium").strip().lower()
-        # Allow special paid single-doc products too.
-        if plan not in ("standard", "premium", "cv_single", "obyektivka_single"):
-            plan = "premium"
-        meta = metadata or {}
-        payload = {
-            "user_id": int(user_id),
-            "plan_type": plan,
-            "amount": float(amount),
-            "currency": "UZS",
-            "screenshot_url": screenshot_url,
-            "status": "pending",
-        }
-        # Some schemas may or may not have `metadata` jsonb column.
-        try:
-            if meta:
-                payload_with_meta = {**payload, "metadata": meta}
-                res = c.table("payments").insert(payload_with_meta).execute()
-            else:
-                res = c.table("payments").insert(payload).execute()
-        except Exception:
-            res = c.table("payments").insert(payload).execute()
-        if res.data and len(res.data) > 0:
-            return int(res.data[0]["id"])
-        return None
+        c.table("users").update({"has_cv_access": bool(value)}).eq("id", int(user_id)).execute()
+        return True
     except Exception as e:
-        _mark_temporarily_unavailable(e)
-        logger.error(f"db_create_payment error: {e}", exc_info=True)
-        return None
+        logger.debug("db_grant_cv_access: %s", e)
+        return False
+
+
+def db_grant_objective_access(user_id: int, value: bool = True) -> bool:
+    c = _get_client()
+    if not c:
+        return False
+    try:
+        c.table("users").update({"has_objective_access": bool(value)}).eq("id", int(user_id)).execute()
+        return True
+    except Exception as e:
+        logger.debug("db_grant_objective_access: %s", e)
+        return False
 
 
 def db_get_payment(payment_id: int) -> Optional[dict]:

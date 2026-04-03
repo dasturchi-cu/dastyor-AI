@@ -4,6 +4,8 @@ from datetime import datetime, timezone
 
 STANDARD_PRICE_UZS = int(os.getenv("STANDARD_PRICE_UZS", "9999") or "9999")
 PREMIUM_PRICE_UZS = int(os.getenv("PREMIUM_PRICE_UZS", "29999") or "29999")
+# CV / obyektivka (bitta hujjat) — premium EMAS
+SINGLE_DOC_PRICE_UZS = int(os.getenv("SINGLE_DOC_PRICE_UZS", "5000") or "5000")
 
 # Referral discount (standard + premium)
 REFERRAL_REQUIRED_INVITES = int(os.getenv("REFERRAL_REQUIRED_INVITES", "5") or "5")

@@ -112,17 +112,22 @@ async def api_premium_receipt(
     request_id = None
     payment_id = None
     try:
-        from bot.services.supabase_db import db_create_payment, has_db
+        from bot.services.pricing import PREMIUM_PRICE_UZS, STANDARD_PRICE_UZS
+        from bot.services.supabase_db import db_try_create_payment, has_db
 
         if has_db():
-            amount = 10000 if safe_plan == "standard" else 30000
-            payment_id = db_create_payment(
+            amount = float(STANDARD_PRICE_UZS if safe_plan == "standard" else PREMIUM_PRICE_UZS)
+            payment_id, pay_err = db_try_create_payment(
                 user_id=int(uid),
                 plan_type=safe_plan,
                 amount=amount,
                 screenshot_url=None,
-                metadata={"source": "webapp"},
+                metadata={"source": "webapp_premium_receipt", "first_name": first_name, "username": username},
             )
+            if pay_err and not payment_id:
+                raise HTTPException(status_code=409, detail=pay_err)
+    except HTTPException:
+        raise
     except Exception:
         payment_id = None
 
