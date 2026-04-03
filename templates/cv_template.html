@@ -14,6 +14,9 @@
   <style>
     :root {
       --cv-accent: {{ d.accent_color | default('#3b82f6') | e }};
+      /* Inline contact icons: fixed logical size (scales with preview transform, not with parent flex) */
+      --cv-ico-size: 20px;
+      --cv-ico-max: 24px;
     }
 
     * {
@@ -179,6 +182,9 @@
     }
 
     .tpl-split .contact-item {
+      display: flex;
+      align-items: center;
+      gap: 0.4em;
       font-size: 9.5pt;
       margin-bottom: 10px;
       line-height: 1.4;
@@ -287,6 +293,7 @@
       font-size: 10pt;
       display: flex;
       justify-content: center;
+      align-items: center;
       gap: 15px;
       flex-wrap: wrap;
     }
@@ -476,9 +483,17 @@
     }
 
     .tpl-creative .contact-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.4em;
       font-size: 10pt;
       margin-bottom: 12px;
       color: #475569;
+    }
+
+    .tpl-creative .contact-item svg.cv-ico {
+      margin-top: 0.12em;
+      flex-shrink: 0;
     }
 
     .tpl-creative .sec-title {
@@ -659,6 +674,47 @@
       background: transparent;
     }
 
+    /* Contact icons: .cv-ico was previously undefined → UAs/PDF used varying intrinsic SVG sizes */
+    .cv-canvas svg.cv-ico {
+      display: inline-block;
+      width: var(--cv-ico-size);
+      height: var(--cv-ico-size);
+      max-width: var(--cv-ico-max);
+      max-height: var(--cv-ico-max);
+      min-width: 0;
+      min-height: 0;
+      flex-shrink: 0;
+      box-sizing: border-box;
+      vertical-align: middle;
+      fill: currentColor;
+    }
+
+    .tpl-minimal .contact-wrap {
+      align-items: center;
+    }
+
+    .tpl-minimal .contact-wrap > span,
+    .tpl-ats .contact-wrap > span {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35em;
+      max-width: 100%;
+    }
+
+    .tpl-modern .contact > div {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.35em;
+    }
+
+    .tpl-corporate .contact-wrap > div {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 0.4em;
+    }
+
     @page {
       size: A4;
       margin: 0;
@@ -822,11 +878,11 @@
 
   {%- macro ico(name) -%}
     {%- if name == 'phone' -%}
-      <svg class="cv-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M6.6 10.8c1.6 3.2 3.4 5 6.6 6.6l2.2-2.2c.3-.3.7-.4 1.1-.3 1.2.4 2.5.6 3.8.6.6 0 1 .4 1 1V21c0 .6-.4 1-1 1C10.3 22 2 13.7 2 3c0-.6.4-1 1-1h3.2c.6 0 1 .4 1 1 0 1.3.2 2.6.6 3.8.1.4 0 .8-.3 1.1L6.6 10.8z"/></svg>
+      <svg class="cv-ico" viewBox="0 0 24 24" preserveAspectRatio="xMidYMid meet" aria-hidden="true"><path d="M6.6 10.8c1.6 3.2 3.4 5 6.6 6.6l2.2-2.2c.3-.3.7-.4 1.1-.3 1.2.4 2.5.6 3.8.6.6 0 1 .4 1 1V21c0 .6-.4 1-1 1C10.3 22 2 13.7 2 3c0-.6.4-1 1-1h3.2c.6 0 1 .4 1 1 0 1.3.2 2.6.6 3.8.1.4 0 .8-.3 1.1L6.6 10.8z"/></svg>
     {%- elif name == 'mail' -%}
-      <svg class="cv-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4-8 5-8-5V6l8 5 8-5v2z"/></svg>
+      <svg class="cv-ico" viewBox="0 0 24 24" preserveAspectRatio="xMidYMid meet" aria-hidden="true"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4-8 5-8-5V6l8 5 8-5v2z"/></svg>
     {%- elif name == 'loc' -%}
-      <svg class="cv-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2c-3.9 0-7 3.1-7 7 0 5.2 7 13 7 13s7-7.8 7-13c0-3.9-3.1-7-7-7zm0 9.5c-1.4 0-2.5-1.1-2.5-2.5S10.6 6.5 12 6.5s2.5 1.1 2.5 2.5S13.4 11.5 12 11.5z"/></svg>
+      <svg class="cv-ico" viewBox="0 0 24 24" preserveAspectRatio="xMidYMid meet" aria-hidden="true"><path d="M12 2c-3.9 0-7 3.1-7 7 0 5.2 7 13 7 13s7-7.8 7-13c0-3.9-3.1-7-7-7zm0 9.5c-1.4 0-2.5-1.1-2.5-2.5S10.6 6.5 12 6.5s2.5 1.1 2.5 2.5S13.4 11.5 12 11.5z"/></svg>
     {%- endif -%}
   {%- endmacro -%}
 
