@@ -1304,7 +1304,7 @@ def db_try_create_payment(
     """
     c = _get_client()
     if not c:
-        return None, None
+        return None, "Server baza bilan hozircha ishlamayapti. Keyinroq qayta urinib ko‘ring."
     uid = int(user_id)
     plan = _normalize_payment_plan_type(plan_type)
     expected = _expected_amount_uzs_for_plan(plan)
@@ -1334,21 +1334,44 @@ def db_try_create_payment(
         "screenshot_url": screenshot_url,
         "status": "pending",
     }
-    try:
+    def _do_insert(pl: dict) -> Optional[int]:
         if meta:
-            res = c.table("payments").insert({**payload, "metadata": meta}).execute()
+            res = c.table("payments").insert({**pl, "metadata": meta}).execute()
         else:
-            res = c.table("payments").insert(payload).execute()
+            res = c.table("payments").insert(pl).execute()
         if res.data and len(res.data) > 0:
-            return int(res.data[0]["id"]), None
-        return None, "To‘lov yozilmadi"
+            return int(res.data[0]["id"])
+        return None
+
+    try:
+        new_id = _do_insert(payload)
+        if new_id is not None:
+            return new_id, None
+        return None, "To‘lov yozilmadi (javob bo‘sh). Administratorga yozing."
     except Exception as e:
         err = str(e).lower()
         if "idx_payments_one_pending" in err or "unique" in err or "23505" in err:
             return None, PENDING_PAYMENT_USER_MESSAGE
+        # Eski sxema: plan_type faqat premium/standard — cv/objective qabul qilmasa, metadata bilan premium
+        if plan in ("cv", "objective") and any(
+            x in err for x in ("check", "constraint", "invalid input", "enum", "plan_type")
+        ):
+            try:
+                fb = {**payload, "plan_type": "premium"}
+                new_id = _do_insert(fb)
+                if new_id is not None:
+                    return new_id, None
+            except Exception as e2:
+                e = e2
+                err = str(e2).lower()
+                if "idx_payments_one_pending" in err or "unique" in err or "23505" in err:
+                    return None, PENDING_PAYMENT_USER_MESSAGE
         _mark_temporarily_unavailable(e)
         logger.error("db_try_create_payment error: %s", e, exc_info=True)
-        return None, None
+        brief = (str(e) or "noma'lum xato").strip()
+        if len(brief) > 180:
+            brief = brief[:177] + "..."
+        return None, f"To‘lov saqlanmadi: {brief}"
 
 
 def db_create_payment(

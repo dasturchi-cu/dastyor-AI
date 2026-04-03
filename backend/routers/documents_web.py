@@ -461,7 +461,18 @@ async def api_paid_doc_submit_screenshot(
     )
     if not pid:
         if pay_err:
-            raise HTTPException(status_code=409, detail=pay_err)
+            pe = (pay_err or "").lower()
+            code = 409 if any(
+                x in pe
+                for x in (
+                    "kuting",
+                    "kutilgan summa",
+                    "premium obuna",
+                    "admin tomonidan",
+                    "bog‘laning",
+                )
+            ) else 502
+            raise HTTPException(status_code=code, detail=pay_err)
         raise HTTPException(status_code=500, detail="To‘lov yozilmadi")
     # Fallback marker even if `metadata` column is absent.
     try:

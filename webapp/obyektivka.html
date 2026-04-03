@@ -342,6 +342,14 @@
           <input id="obyPayShotInput" type="file" accept="image/*" style="display:none" />
           <button type="button" class="btn btn-primary" id="obyPaySendBtn" disabled style="opacity:.6">📤 Yuborish</button>
         </div>
+        <div id="obyPayShotPreviewWrap" style="display:none;margin-top:8px;align-items:center;gap:10px;border:1px solid #86efac;border-radius:10px;background:#fff;padding:8px;">
+          <img id="obyPayShotThumb" src="" alt="" style="width:56px;height:56px;object-fit:cover;border-radius:8px;border:1px solid #e2e8f0;background:#f8fafc;" width="56" height="56" />
+          <div style="min-width:0;font-size:12px;text-align:left;">
+            <div style="font-weight:800;color:#166534;">Rasm tanlandi</div>
+            <div id="obyPayShotFileName" style="color:#475569;word-break:break-all;margin-top:2px;"></div>
+            <div style="color:#64748b;margin-top:4px;">Endi «Yuborish» tugmasini bosing.</div>
+          </div>
+        </div>
         <div id="obyPayStatus" style="font-size:12px;color:#334155;">Skrenshot tanlang va yuboring.</div>
         <div style="margin-top:8px;"></div>
       </div>
@@ -828,6 +836,12 @@ async function payObySingle(fmt){
   var sendBtn=document.getElementById('obyPaySendBtn');
   var shotInput=document.getElementById('obyPayShotInput');
   var copyBtn=document.getElementById('obyCopyCardBtn');
+  var previewWrap=document.getElementById('obyPayShotPreviewWrap');
+  var shotThumb=document.getElementById('obyPayShotThumb');
+  var shotFname=document.getElementById('obyPayShotFileName');
+  if(previewWrap) previewWrap.style.display='none';
+  if(shotThumb) shotThumb.removeAttribute('src');
+  if(shotFname) shotFname.textContent='';
   try{
     var payload = buildObyPayload(fmt);
     var req = {
@@ -872,8 +886,8 @@ async function payObySingle(fmt){
     if(_obyPayState.pollTimer){ clearInterval(_obyPayState.pollTimer); _obyPayState.pollTimer=null; }
 
     if(panel) panel.classList.remove('hidden');
-    if(sendBtn) sendBtn.disabled = true;
-    if(statusEl) statusEl.textContent = "Skrenshot tanlang va yuboring.";
+    if(sendBtn){ sendBtn.disabled = true; sendBtn.textContent = "📤 Yuborish"; sendBtn.style.opacity = '0.6'; }
+    if(statusEl){ statusEl.textContent = "Skrenshot tanlang va yuboring."; statusEl.style.color = '#334155'; statusEl.style.fontWeight = '600'; }
 
     try{
       var cardRes = await fetch(API_URL + '/api/payment_card', { cache:'no-store' });
@@ -897,11 +911,25 @@ async function payObySingle(fmt){
       shotInput.value='';
       shotInput.onchange = function(){
         var f=shotInput.files&&shotInput.files[0]; if(!f) return;
+        if(shotFname) shotFname.textContent = f.name || '(rasm)';
+        if(previewWrap) previewWrap.style.display = 'flex';
+        try{ tg.HapticFeedback&&tg.HapticFeedback.impactOccurred&&tg.HapticFeedback.impactOccurred('light'); }catch(e){}
         var reader=new FileReader();
+        reader.onerror = function(){
+          _obyPayState.screenshot = '';
+          if(sendBtn){ sendBtn.disabled = true; }
+          if(previewWrap) previewWrap.style.display = 'none';
+          if(statusEl){ statusEl.textContent = "Rasm o‘qilmadi. Boshqa fayl tanlang."; statusEl.style.color = '#b91c1c'; }
+        };
         reader.onload=function(){
           _obyPayState.screenshot = String(reader.result||'');
-          if(sendBtn) sendBtn.disabled = !_obyPayState.screenshot;
-          if(statusEl) statusEl.textContent = "Skrenshot tayyor. 'Yuborish'ni bosing.";
+          if(shotThumb && String(reader.result||'').indexOf('data:image')===0) shotThumb.src = reader.result;
+          if(sendBtn){ sendBtn.disabled = !_obyPayState.screenshot; sendBtn.style.opacity = _obyPayState.screenshot ? '1' : '0.6'; }
+          if(statusEl){
+            statusEl.textContent = "✅ Rasm tanlandi: " + (f.name||'') + " — Endi «Yuborish»ni bosing.";
+            statusEl.style.color = '#166534';
+            statusEl.style.fontWeight = '800';
+          }
         };
         reader.readAsDataURL(f);
       };
@@ -913,8 +941,13 @@ async function payObySingle(fmt){
         if(_obyPayState.telegramId) qs.set('telegram_id', String(_obyPayState.telegramId));
         if(_obyPayState.token) qs.set('token', String(_obyPayState.token));
         var r2=await fetch(API_URL + '/api/paid_doc_submit_screenshot?' + qs.toString(), { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ screenshot:_obyPayState.screenshot }) });
-        if(!r2.ok){ var err=await dastyorReadApiError(r2); if(statusEl) statusEl.textContent = "Xatolik: "+err; return; }
-        if(statusEl) statusEl.textContent = "✅ Chek yuborildi. Admin tasdiqlashini kuting...";
+        if(!r2.ok){
+          var err=await dastyorReadApiError(r2);
+          if(statusEl){ statusEl.textContent = "Xatolik: "+err; statusEl.style.color = '#b91c1c'; statusEl.style.fontWeight = '800'; }
+          if(sendBtn){ sendBtn.disabled = false; sendBtn.textContent = "📤 Yuborish"; sendBtn.style.opacity = '1'; }
+          return;
+        }
+        if(statusEl){ statusEl.textContent = "✅ Chek yuborildi. Admin tasdiqlashini kuting..."; statusEl.style.color = '#166534'; }
         if(sendBtn){ sendBtn.disabled = true; sendBtn.textContent = "Yuborilmoqda..."; }
         var spin = setInterval(function(){
           if(!statusEl) return;
