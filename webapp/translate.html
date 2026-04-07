@@ -297,6 +297,29 @@
         }
         updateLangLabels();
 
+        let _autoTrTimer = null;
+        let _activeTrAbort = null;
+        let _lastAutoText = '';
+        let _lastAutoDir = '';
+
+        function scheduleAutoTranslate() {
+            try {
+                const srcText = document.getElementById('srcText').value.trim();
+                const dirKey = srcLang + '_' + tgtLang;
+                if (!srcText) return;
+                if (srcText.length > 5000) return;
+                // Avoid re-triggering when user didn't change meaningfully
+                const sig = normalizeCompare(srcText);
+                if (sig === _lastAutoText && dirKey === _lastAutoDir) return;
+                clearTimeout(_autoTrTimer);
+                _autoTrTimer = setTimeout(() => {
+                    _lastAutoText = sig;
+                    _lastAutoDir = dirKey;
+                    translateText({ auto: true });
+                }, 450);
+            } catch (_) {}
+        }
+
         function onInput() {
             const len = document.getElementById('srcText').value.length;
             const cc = document.getElementById('charCount');
@@ -304,6 +327,7 @@
             if (len >= 5000) cc.className = "text-[10px] font-bold text-red-500";
             else if (len > 4500) cc.className = "text-[10px] font-bold text-apple-orange";
             else cc.className = "text-[10px] font-bold text-black/30 dark:text-white/30";
+            scheduleAutoTranslate();
         }
 
         function setPhrase(el) {
@@ -379,21 +403,24 @@
             return {};
         }
 
-        async function tryGeminiAPI(text, src, tgt) {
+        async function tryGeminiAPI(text, src, tgt, signal) {
             if (location.protocol === 'file:') return null;
             const dirKey = src + '_' + tgt;
             if (!GEMINI_DIRS.has(dirKey)) return null;
 
             const apiBase = location.origin;
-            const ctrl = new AbortController();
-            const timeout = setTimeout(() => ctrl.abort(), 8000);
+            const timeoutCtrl = new AbortController();
+            const timeout = setTimeout(() => timeoutCtrl.abort(), 8000);
+            const mergedSignal = signal
+                ? (AbortSignal.any ? AbortSignal.any([signal, timeoutCtrl.signal]) : timeoutCtrl.signal)
+                : timeoutCtrl.signal;
 
             try {
                 const res = await fetch(apiBase + '/api/translate', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ text, direction: dirKey, ...webAuthQuotaPayload() }),
-                    signal: ctrl.signal,
+                    signal: mergedSignal,
                 });
                 clearTimeout(timeout);
 
@@ -418,16 +445,19 @@
             }
         }
 
-        async function tryGoogleTranslate(text, src, tgt) {
+        async function tryGoogleTranslate(text, src, tgt, signal) {
             const sl = GT_CODES[src] || src;
             const tl = GT_CODES[tgt] || tgt;
             const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=${encodeURIComponent(sl)}&tl=${encodeURIComponent(tl)}&dt=t&q=${encodeURIComponent(text)}`;
 
-            const ctrl = new AbortController();
-            const timeout = setTimeout(() => ctrl.abort(), 9000);
+            const timeoutCtrl = new AbortController();
+            const timeout = setTimeout(() => timeoutCtrl.abort(), 9000);
+            const mergedSignal = signal
+                ? (AbortSignal.any ? AbortSignal.any([signal, timeoutCtrl.signal]) : timeoutCtrl.signal)
+                : timeoutCtrl.signal;
 
             try {
-                const res = await fetch(url, { signal: ctrl.signal });
+                const res = await fetch(url, { signal: mergedSignal });
                 clearTimeout(timeout);
                 if (!res.ok) throw new Error(`HTTP ${res.status}`);
                 const data = await res.json();
@@ -440,7 +470,8 @@
             }
         }
 
-        async function translateText() {
+        async function translateText(opts) {
+            const isAuto = !!(opts && opts.auto);
             const SDK = window.DastyorAI;
             if (SDK && SDK.isQuotaBlockedForCategory && SDK.getUser && SDK.isQuotaBlockedForCategory(SDK.getUser(), 'translate')) {
                 showStatus('error', '⛔', t('translate_quota', 'Bu xizmat pullik. Premium/Pro tarifni oling.'));
@@ -455,9 +486,15 @@
             const outPanel = document.getElementById('outPanel');
             const outText = document.getElementById('outText');
 
-            btn.innerHTML = t('translate_wait', 'Kuting...');
-            btn.disabled = true;
-            btn.classList.add('opacity-70');
+            // Cancel any in-flight translation when user types again
+            try { if (_activeTrAbort) _activeTrAbort.abort(); } catch (_) {}
+            _activeTrAbort = new AbortController();
+
+            if (!isAuto) {
+                btn.innerHTML = t('translate_wait', 'Kuting...');
+                btn.disabled = true;
+                btn.classList.add('opacity-70');
+            }
             outText.value = '';
             outText.classList.add('loading-shimmer');
             hideStatus();
@@ -466,7 +503,7 @@
             let lastError = null;
 
             try {
-                const result = await tryGeminiAPI(srcText, srcLang, tgtLang);
+                const result = await tryGeminiAPI(srcText, srcLang, tgtLang, _activeTrAbort.signal);
                 if (result) {
                     if (!isMeaningfullyChanged(srcText, result.text)) {
                         throw new Error("Tarjima natijasi original bilan bir xil chiqdi");
@@ -477,27 +514,33 @@
                     showStatus('success', '✅', t('translate_done', 'Tarjima qilindi'));
                     tg?.HapticFeedback?.notificationOccurred('success');
                     void window.DastyorAI?.refreshProfile?.();
-                    btn.innerHTML = t('translate_action', '⚡ Tarjima Qilish');
-                    btn.disabled = false;
-                    btn.classList.remove('opacity-70');
+                    if (!isAuto) {
+                        btn.innerHTML = t('translate_action', '⚡ Tarjima Qilish');
+                        btn.disabled = false;
+                        btn.classList.remove('opacity-70');
+                    }
                     return;
                 }
             } catch (e) {
                 lastError = e.message;
+                if (e && e.name === 'AbortError') return;
+                if (String(lastError || '').toLowerCase().includes('aborted')) return;
                 if (String(lastError || '').startsWith('__LIMIT__:')) {
                     const msg = String(lastError).replace('__LIMIT__:', '').trim() || 'Bu xizmat pullik.';
                     outText.classList.remove('loading-shimmer');
                     setEngine('Limit');
                     showStatus('error', '⛔', /premium|pro|tarif|pullik/i.test(msg) ? msg : (msg + ' Premium/Pro tarifni oling.'));
-                    btn.innerHTML = t('translate_action', '⚡ Tarjima Qilish');
-                    btn.disabled = false;
-                    btn.classList.remove('opacity-70');
+                    if (!isAuto) {
+                        btn.innerHTML = t('translate_action', '⚡ Tarjima Qilish');
+                        btn.disabled = false;
+                        btn.classList.remove('opacity-70');
+                    }
                     return;
                 }
             }
 
             try {
-                const result = await tryGoogleTranslate(srcText, srcLang, tgtLang);
+                const result = await tryGoogleTranslate(srcText, srcLang, tgtLang, _activeTrAbort.signal);
                 if (result) {
                     if (!isMeaningfullyChanged(srcText, result.text)) {
                         throw new Error("Tarjima natijasi original bilan bir xil chiqdi");
@@ -507,20 +550,27 @@
                     setEngine(result.engine);
                     showStatus('info', '🌐', t('translate_done', 'Tarjima qilindi'));
                     tg?.HapticFeedback?.notificationOccurred('success');
-                    btn.innerHTML = t('translate_action', '⚡ Tarjima Qilish');
-                    btn.disabled = false;
-                    btn.classList.remove('opacity-70');
+                    if (!isAuto) {
+                        btn.innerHTML = t('translate_action', '⚡ Tarjima Qilish');
+                        btn.disabled = false;
+                        btn.classList.remove('opacity-70');
+                    }
                     return;
                 }
-            } catch (e) { lastError = (lastError ? lastError + '; ' : '') + e.message; }
+            } catch (e) {
+                if (e && e.name === 'AbortError') return;
+                lastError = (lastError ? lastError + '; ' : '') + e.message;
+            }
 
             outText.classList.remove('loading-shimmer');
             setEngine('Xato');
             showStatus('error', '❌', 'Xatolik: ' + lastError);
             tg?.HapticFeedback?.notificationOccurred('error');
-            btn.innerHTML = '⚡ Tarjima Qilish';
-            btn.disabled = false;
-            btn.classList.remove('opacity-70');
+            if (!isAuto) {
+                btn.innerHTML = '⚡ Tarjima Qilish';
+                btn.disabled = false;
+                btn.classList.remove('opacity-70');
+            }
         }
 
         document.getElementById('srcText').addEventListener('keydown', function (e) {

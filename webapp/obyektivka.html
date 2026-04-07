@@ -1343,9 +1343,9 @@ function updatePreview(){
   scaleLivePreview();
 }
 
-// --- PERF: debounce preview updates (0.1s) ---
+// --- PERF: debounce preview updates (0.4s) ---
 // updatePreview() is heavy (DOM build + layout). Many inputs call it per keystroke.
-// We wrap it to run at most once per 100ms.
+// We wrap it to run only after the user stops typing.
 (function(){
   try{
     var _now = updatePreview;
@@ -1354,8 +1354,34 @@ function updatePreview(){
       if(t) clearTimeout(t);
       t = setTimeout(function(){
         t = null;
-        try{ _now(); }catch(e){}
-      }, 100);
+        try{
+          // Let the browser paint the keystroke first.
+          requestAnimationFrame(function(){
+            requestAnimationFrame(function(){ try{ _now(); }catch(e){} });
+          });
+        }catch(e){ try{ _now(); }catch(_){} }
+      }, 420);
+    };
+  }catch(e){}
+})();
+
+// --- PERF: debounce localStorage writes (avoid JSON.stringify per keystroke) ---
+(function(){
+  try{
+    var _save = saveToLocal;
+    var t = null;
+    saveToLocal = function(){
+      if(t) clearTimeout(t);
+      t = setTimeout(function(){
+        t = null;
+        try{
+          if (typeof requestIdleCallback === 'function') {
+            requestIdleCallback(function(){ try{ _save(); }catch(e){} }, { timeout: 800 });
+          } else {
+            _save();
+          }
+        }catch(e){ try{ _save(); }catch(_){} }
+      }, 520);
     };
   }catch(e){}
 })();
