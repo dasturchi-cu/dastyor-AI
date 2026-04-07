@@ -217,7 +217,7 @@
           <div class="relative">
             <label class="text-xs text-slate-500 font-bold mb-1 block" data-i18n="role">Kasb / Lavozim</label>
             <input type="text" id="f_role" class="input-premium w-full rounded-xl px-4 py-3 text-sm font-semibold text-blue-700" placeholder="Masalan: Dasturchi" data-i18n-ph="role_ph" autocomplete="off" 
-                   oninput="handleSuggest(this, 'roles')" onfocus="handleSuggest(this, 'roles')" onblur="setTimeout(()=>closeSuggest('roles'), 200)">
+                   oninput="handleSuggest(this, 'roles'); triggerUpdate()" onfocus="handleSuggest(this, 'roles')" onblur="setTimeout(()=>closeSuggest('roles'), 200)">
             <div id="suggest_roles" class="absolute z-50 w-full bg-white border border-blue-200 rounded-xl mt-1 shadow-lg max-h-48 overflow-y-auto custom-scrollbar hidden"></div>
           </div>
 
@@ -233,7 +233,7 @@
            <div class="sm:col-span-2 relative">
             <label class="text-xs text-slate-500 font-bold mb-1 block" data-i18n="location">Manzil (Viloyat, Shahar)</label>
             <input type="text" id="f_loc" class="input-premium w-full rounded-xl px-4 py-3 text-sm" placeholder="Masalan: Toshkent shahri" data-i18n-ph="loc_ph" autocomplete="off"
-                   oninput="handleSuggest(this, 'locs')" onfocus="handleSuggest(this, 'locs')" onblur="setTimeout(()=>closeSuggest('locs'), 200)">
+                   oninput="handleSuggest(this, 'locs'); triggerUpdate()" onfocus="handleSuggest(this, 'locs')" onblur="setTimeout(()=>closeSuggest('locs'), 200)">
             <div id="suggest_locs" class="absolute z-50 w-full bg-white border border-blue-200 rounded-xl mt-1 shadow-lg max-h-48 overflow-y-auto custom-scrollbar hidden"></div>
           </div>
 
@@ -525,18 +525,48 @@
     }
 
     // --- CUSTOM AUTOCOMPLETE ---
+    function normalizeSuggestText(s) {
+      return String(s || '')
+        .toLowerCase()
+        // unify Uzbek apostrophes/quotes so "Farg‘ona" matches "Farg'ona"
+        .replace(/[‘’ʻ`´]/g, "'");
+    }
+    function escapeHtml(s) {
+      return String(s || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+    }
+    function escapeJsSingleQuoted(s) {
+      return String(s || '')
+        .replace(/\\/g, '\\\\')
+        .replace(/'/g, "\\'");
+    }
     function handleSuggest(inputElem, type) {
-      const val = inputElem.value.toLowerCase();
+      const valRaw = inputElem.value || '';
+      const val = normalizeSuggestText(valRaw);
       const suggestDiv = document.getElementById(`suggest_${type}`);
       const list = DB[type];
       if(!val && document.activeElement !== inputElem) { suggestDiv.classList.add('hidden'); return; }
-      const filtered = list.filter(item => item.toLowerCase().includes(val));
+      const filtered = list.filter(item => normalizeSuggestText(item).includes(val));
       if(filtered.length === 0) { suggestDiv.classList.add('hidden'); return; }
       suggestDiv.innerHTML = filtered.map(item => {
-        const regex = new RegExp(`(${val})`, 'gi');
-        const highlighted = val ? item.replace(regex, `<span class="text-blue-600 font-extrabold bg-blue-50 px-0.5 rounded">$1</span>`) : item;
+        const safeItem = escapeJsSingleQuoted(item);
+        const safeInputId = escapeJsSingleQuoted(inputElem.id);
+        const safeType = escapeJsSingleQuoted(type);
+        const normalizedItem = normalizeSuggestText(item);
+        let highlighted = escapeHtml(item);
+        if (val) {
+          const idx = normalizedItem.indexOf(val);
+          if (idx >= 0) {
+            const before = escapeHtml(item.slice(0, idx));
+            const mid = escapeHtml(item.slice(idx, idx + val.length));
+            const after = escapeHtml(item.slice(idx + val.length));
+            highlighted = `${before}<span class="text-blue-600 font-extrabold bg-blue-50 px-0.5 rounded">${mid}</span>${after}`;
+          }
+        }
         return `<div class="px-4 py-2 hover:bg-blue-50 cursor-pointer text-sm font-medium text-slate-700 transition-colors border-b border-slate-50 last:border-0" 
-                     onmousedown="selectSuggest('${inputElem.id}', '${item}', '${type}')">${highlighted}</div>`;
+                     onmousedown="selectSuggest('${safeInputId}', '${safeItem}', '${safeType}')">${highlighted}</div>`;
       }).join('');
       suggestDiv.classList.remove('hidden');
     }
@@ -653,9 +683,9 @@
       `).join('');
     }
 
-    function addEdu() { eduData.push({title:'', place:'', date:''}); renderList('eduList', eduData, 'edu'); }
-    function addExp() { expData.push({title:'', place:'', date:''}); renderList('expList', expData, 'exp'); }
-    function addLang() { langData.push({lang:'', listen:0, read:0, speak:0, write:0}); renderList('langList', langData, 'lang'); }
+    function addEdu() { eduData.push({title:'', place:'', date:''}); renderList('eduList', eduData, 'edu'); triggerUpdate(); }
+    function addExp() { expData.push({title:'', place:'', date:''}); renderList('expList', expData, 'exp'); triggerUpdate(); }
+    function addLang() { langData.push({lang:'', listen:0, read:0, speak:0, write:0}); renderList('langList', langData, 'lang'); triggerUpdate(); }
     
     // BUG FIX (Scoped Array access)
     function removeObj(idx, type) { 

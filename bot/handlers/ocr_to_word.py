@@ -8,145 +8,99 @@ import asyncio
 from telegram import Update
 from telegram.ext import ContextTypes
 from telegram.constants import ParseMode, ChatAction
-from docx import Document
-from bs4 import BeautifulSoup
 from bot.keyboards.reply_keyboards import get_back_button, get_main_menu, get_ocr_to_word_keyboard
 from bot.utils.helpers import is_back_button
 from bot.services.plan_limits import CAT_OCR
 from bot.services.user_service import get_user_lang, record_service_completion
 from bot.services.usage_tracker import ensure_can_use_or_notify
-from bot.services.ocr_service import extract_text_from_image
 from bot.utils.progress import send_progress, update_progress
 from bot.utils.delivery import send_docx_with_confirmation
 
-from docx.shared import Cm
-from docx.shared import Inches
-from docx.shared import Pt
-from docx.enum.text import WD_ALIGN_PARAGRAPH
+from services.ocr_service import extract_text
+from services.docx_service import lines_to_docx
 
 logger = logging.getLogger(__name__)
 
-from bs4.element import NavigableString, Tag
-
-
-def _style_dict(style_text: str) -> dict[str, str]:
-    out: dict[str, str] = {}
-    for chunk in (style_text or "").split(";"):
-        if ":" not in chunk:
-            continue
-        k, v = chunk.split(":", 1)
-        key = (k or "").strip().lower()
-        val = (v or "").strip()
-        if key:
-            out[key] = val
-    return out
-
-
-def _parse_percent(raw: str) -> float | None:
-    s = (raw or "").strip().lower()
-    if not s or "%" not in s:
-        return None
+def _ocr_bot_extract_deadline_seconds() -> float:
     try:
-        return float(s.replace("%", "").strip())
+        return float(max(45.0, float(os.getenv("OCR_BOT_EXTRACT_TOTAL_TIMEOUT_SECONDS", "120") or "120")))
     except Exception:
-        return None
+        return 120.0
 
 
-def _parse_px(raw: str) -> float | None:
-    s = (raw or "").strip().lower()
-    if not s:
-        return None
-    if s.startswith("calc("):
-        return None
-    if s.endswith("px"):
-        s = s[:-2].strip()
+def _ocr_bot_progress_pulse_seconds() -> float:
     try:
-        return float(s)
+        v = float(os.getenv("OCR_BOT_PROGRESS_PULSE_SECONDS", "22") or "22")
+        return max(0.0, min(120.0, v))
     except Exception:
-        return None
+        return 22.0
 
 
-def _add_layout_html_to_docx(doc, layout_root) -> bool:
+async def _extract_text_from_image_bot_timed(
+    img_path: str,
+    context,
+    progress_msg,
+    *,
+    progress_pct: int,
+    status_text: str,
+) -> tuple[list[str], bool]:
     """
-    data-ocr-layout HTML ni DOCX ga approximate joylashuv bilan o‘tkazadi.
-    Absolute CSS to‘liq qo‘llanmasa ham, line/indent/spacing saqlanadi.
+    OCR extract with hard deadline (avoids 3×Gemini = 3+ daqiqa 'qotib qolish').
+    Returns (html_or_empty, timed_out).
     """
-    nodes = []
-    for el in layout_root.find_all("div", recursive=False):
-        text = (el.get_text(" ", strip=False) or "").replace("\xa0", " ")
-        if not text.strip():
-            continue
-        st = _style_dict(el.get("style", ""))
-        left = _parse_percent(st.get("left", ""))
-        top = _parse_percent(st.get("top", ""))
-        width = _parse_percent(st.get("width", ""))
-        font_px = _parse_px(st.get("font-size", ""))
-        if left is None or top is None:
-            continue
-        nodes.append(
-            {
-                "text": text.strip(),
-                "left": left,
-                "top": top,
-                "width": width if width is not None else 100.0,
-                "font_px": font_px,
-            }
+    deadline = _ocr_bot_extract_deadline_seconds()
+    pulse_sec = _ocr_bot_progress_pulse_seconds()
+
+    async def _pulse_loop() -> None:
+        elapsed = 0.0
+        try:
+            while True:
+                await asyncio.sleep(pulse_sec)
+                elapsed += pulse_sec
+                try:
+                    await update_progress(
+                        context,
+                        progress_msg,
+                        progress_pct,
+                        f"{status_text} (hali ishlanmoqda, ~{int(elapsed)}s)",
+                    )
+                except Exception:
+                    pass
+        except asyncio.CancelledError:
+            raise
+
+    pulse_task: asyncio.Task | None = None
+    if pulse_sec > 0:
+        pulse_task = asyncio.create_task(_pulse_loop())
+    timed_out = False
+    extracted: list[str] = []
+    try:
+        extracted = await asyncio.wait_for(
+            asyncio.to_thread(extract_text, img_path),
+            timeout=deadline,
         )
-
-    if not nodes:
-        return False
-
-    nodes.sort(key=lambda n: (n["top"], n["left"]))
-    heights = [max(6.0, float(n["font_px"] or 11.0) * 1.15) for n in nodes]
-    median_h = sorted(heights)[len(heights) // 2] if heights else 12.0
-    top_gap_threshold = max(0.75, median_h * 0.06)
-
-    lines = []
-    current = []
-    cur_top = None
-    for n in nodes:
-        if not current:
-            current = [n]
-            cur_top = n["top"]
-            continue
-        if abs(float(n["top"]) - float(cur_top)) <= top_gap_threshold:
-            current.append(n)
-            cur_top = (float(cur_top) + float(n["top"])) / 2.0
-        else:
-            lines.append(current)
-            current = [n]
-            cur_top = n["top"]
-    if current:
-        lines.append(current)
-
-    section = doc.sections[0]
-    content_width_cm = float(section.page_width - section.left_margin - section.right_margin) / 360000.0
-    prev_line_top = None
-    for line in lines:
-        line = sorted(line, key=lambda n: n["left"])
-        p = doc.add_paragraph()
-        min_left = max(0.0, min(float(n["left"]) for n in line))
-        p.paragraph_format.left_indent = Cm(content_width_cm * (min_left / 100.0))
-
-        if prev_line_top is not None:
-            dy = max(0.0, float(line[0]["top"]) - float(prev_line_top))
-            if dy > 1.8:
-                p.paragraph_format.space_before = Pt(min(28.0, dy * 0.95))
-        prev_line_top = float(line[0]["top"])
-
-        prev_right = min_left
-        for idx, n in enumerate(line):
-            gap = max(0.0, float(n["left"]) - float(prev_right))
-            if idx > 0 and gap > 3.0:
-                tab_count = max(1, int(gap / 7.5))
-                for _ in range(tab_count):
-                    p.add_run("\t")
-            run = p.add_run(str(n["text"]))
-            fsz = n.get("font_px")
-            if fsz:
-                run.font.size = Pt(max(8.0, min(28.0, float(fsz))))
-            prev_right = float(n["left"]) + float(n.get("width", 0.0))
-    return True
+        extracted = extracted or []
+    except asyncio.TimeoutError:
+        timed_out = True
+        logger.warning(
+            "OCR bot extract timeout after %.0fs path=%s",
+            deadline,
+            img_path,
+        )
+        extracted = []
+    except Exception as e:
+        logger.warning("OCR bot extract error path=%s: %s", img_path, e)
+        extracted = []
+    finally:
+        if pulse_task is not None:
+            pulse_task.cancel()
+            try:
+                await pulse_task
+            except asyncio.CancelledError:
+                pass
+            except Exception:
+                pass
+    return extracted, timed_out
 
 
 def _schedule_ocr_auto_process(
@@ -193,171 +147,6 @@ def _schedule_ocr_auto_process(
     context.user_data["_ocr_debounce_task"] = asyncio.create_task(_job())
 
 
-def _add_run_with_style(paragraph_obj, element, bold=False, italic=False, underline=False):
-    """Recursively parses HTML elements and adds styled runs to a docx paragraph."""
-    is_bold = bold or element.name in ['b', 'strong', 'h1', 'h2', 'h3', 'th']
-    is_italic = italic or element.name in ['i', 'em']
-    is_underline = underline or element.name in ['u']
-    
-    for child in element.children:
-        if isinstance(child, NavigableString):
-            raw = str(child).replace('\r\n', '\n').replace('\r', '\n')
-            if not raw:
-                continue
-            parts = raw.split('\n')
-            for idx, part in enumerate(parts):
-                text = part
-                if not text.strip() and text:
-                    text = ' '
-                if text:
-                    run = paragraph_obj.add_run(text)
-                    run.bold = is_bold
-                    run.italic = is_italic
-                    run.underline = is_underline
-                if idx < len(parts) - 1:
-                    paragraph_obj.add_run().add_break()
-        elif isinstance(child, Tag):
-            # If we hit block elements inside text contexts, just add a line break
-            if child.name in ['br', 'p', 'div'] and child.name != 'br':
-                paragraph_obj.add_run().add_break()
-                _add_run_with_style(paragraph_obj, child, is_bold, is_italic, is_underline)
-            elif child.name == 'br':
-                paragraph_obj.add_run().add_break()
-            else:
-                _add_run_with_style(paragraph_obj, child, is_bold, is_italic, is_underline)
-
-def get_alignment(element):
-    """Extract alignment from align attribute or inline style."""
-    align_str = element.get('align', '')
-    style_str = element.get('style', '')
-    if not align_str and style_str:
-        style_lower = style_str.lower()
-        if 'text-align: center' in style_lower or 'text-align:center' in style_lower: align_str = 'center'
-        elif 'text-align: right' in style_lower or 'text-align:right' in style_lower: align_str = 'right'
-        elif 'text-align: justify' in style_lower or 'text-align:justify' in style_lower: align_str = 'justify'
-    return align_str
-
-def add_html_to_docx(doc, html_content):
-    """Parses HTML and maps it to Word layout (tables, widths, alignment, inline fonts, lists)"""
-    # python-docx Document doim kamida bitta section beradi — jadval kengligi uchun shart
-    section = doc.sections[0]
-    section.left_margin = Cm(1.27)
-    section.right_margin = Cm(1.27)
-    section.top_margin = Cm(1.27)
-    section.bottom_margin = Cm(1.27)
-
-    soup = BeautifulSoup(html_content, 'html.parser')
-    root = soup.body if soup.body else soup
-
-    # IMPORTANT:
-    # Absolute-position layout HTML (data-ocr-layout) is hard to map 1:1 into DOCX and often "cho'zilib ketadi".
-    # Default: prefer semantic HTML (tables/paragraphs) which maps much better to Word.
-    use_layout = os.getenv("OCR_DOCX_USE_LAYOUT_HTML", "0").strip().lower() in ("1", "true", "yes", "on")
-    if use_layout:
-        layout_root = root.find(attrs={"data-ocr-layout": "1"}) or root.find("div", class_="ocr-visual")
-        if layout_root is not None and _add_layout_html_to_docx(doc, layout_root):
-            return
-    
-    def apply_align(p, align_str):
-        if not align_str: return
-        align_str = align_str.lower()
-        if 'center' in align_str: p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        elif 'right' in align_str: p.alignment = WD_ALIGN_PARAGRAPH.RIGHT
-        elif 'justify' in align_str: p.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
-
-    for element in root.children:
-        if isinstance(element, NavigableString):
-            raw = str(element).replace('\r\n', '\n').replace('\r', '\n').strip('\n')
-            if raw.strip():
-                for line in raw.split('\n'):
-                    if line.strip():
-                        doc.add_paragraph(line.strip())
-            continue
-            
-        if element.name == 'table':
-            rows = element.find_all('tr', recursive=False)
-            if not rows and element.tbody:
-                rows = element.tbody.find_all('tr', recursive=False)
-            if not rows: continue
-            
-            # Count max cols exactly
-            max_cols = 0
-            for row in rows:
-                cols = row.find_all(['td', 'th'], recursive=False)
-                if len(cols) > max_cols: max_cols = len(cols)
-            
-            if max_cols > 0:
-                table = doc.add_table(rows=len(rows), cols=max_cols)
-                table.style = 'Table Grid'
-                table.autofit = False
-                table.allow_autofit = False
-                
-                total_width = section.page_width - section.left_margin - section.right_margin
-                
-                # Try to apply widths from first row
-                if len(rows) > 0:
-                    first_row_cols = rows[0].find_all(['td', 'th'], recursive=False)
-                    for j, col in enumerate(first_row_cols):
-                        width_attr = col.get('width', '').replace('%', '')
-                        if width_attr and width_attr.isdigit() and j < max_cols:
-                            percent = int(width_attr)
-                            width_val = total_width * (percent / 100)
-                            for r_idx in range(len(rows)):
-                                try:
-                                    table.cell(r_idx, j).width = width_val
-                                except Exception:
-                                    # Non-fatal; Word table width can fail for merged cells etc.
-                                    logger.debug("DOCX cell width set failed r=%s c=%s", r_idx, j, exc_info=True)
-
-                # Fill data
-                for i, row in enumerate(rows):
-                    cols = row.find_all(['td', 'th'], recursive=False)
-                    for j, col in enumerate(cols):
-                        if j < max_cols:
-                            cell = table.cell(i, j)
-                            # Clear default text run
-                            p = cell.paragraphs[0]
-                            p.text = ""
-                            
-                            align = get_alignment(col)
-                            apply_align(p, align)
-                            _add_run_with_style(p, col)
-        
-        elif element.name in ['p', 'h1', 'h2', 'h3', 'h4', 'div', 'center', 'article', 'section', 'main', 'header', 'footer']:
-            style = 'Normal'
-            if element.name in ['h1', 'h2', 'h3']:
-                style = f"Heading {element.name[-1]}"
-            
-            p = doc.add_paragraph(style=style)
-            align = get_alignment(element)
-            if element.name == 'center': align = 'center'
-            apply_align(p, align)
-            _add_run_with_style(p, element)
-            
-        elif element.name in ['ul', 'ol']:
-            style = 'List Bullet' if element.name == 'ul' else 'List Number'
-            for li in element.find_all('li', recursive=False):
-                p = doc.add_paragraph(style=style)
-                _add_run_with_style(p, li)
-                
-        elif element.name == 'br':
-            doc.add_paragraph()
-            
-        elif element.name and element.name not in ['html', 'body', 'head', 'style', 'script', 'title', 'meta']:
-            # For unrecognized wrappers, process their children directly
-            for child in element.children:
-                if isinstance(child, NavigableString):
-                    text = str(child).strip()
-                    if text:
-                        doc.add_paragraph(text)
-                elif isinstance(child, Tag):
-                    style = 'Normal'
-                    p = doc.add_paragraph()
-                    align = get_alignment(child)
-                    apply_align(p, align)
-                    _add_run_with_style(p, child)
-
-
 async def perform_ocr_and_send(context, image_path, chat_id, user_id):
     """
     Reusable function: Takes image path, performs OCR, creates Word doc, and sends it.
@@ -375,27 +164,32 @@ async def perform_ocr_and_send(context, image_path, chat_id, user_id):
 
     try:
         await update_progress(context, progress_msg, 20, "AI matnni o'qimoqda...")
-        # Extract Text (HTML format)
-        extracted_text = await extract_text_from_image(image_path)
+        extracted_lines, timed_out = await _extract_text_from_image_bot_timed(
+            image_path,
+            context,
+            progress_msg,
+            progress_pct=20,
+            status_text="AI matnni o'qimoqda...",
+        )
         logger.info("OCR extract done in %.1fs user_id=%s", time.perf_counter() - t0, user_id)
-        
-        if not extracted_text:
-            await progress_msg.edit_text("❌ **Xatolik:** Matn ajratilmadi.")
+
+        if not extracted_lines:
+            if timed_out:
+                await progress_msg.edit_text(
+                    "⏱ **Vaqt tugadi** — rasm juda katta yoki server javobi sekin.\n\n"
+                    "**Nima qilish mumkin:** jadvalni 2–3 qismga bo‘lib rasmga oling; "
+                    "yorug‘roq va tekis surat yuboring.\n\n"
+                    "Admin: `.env` da `OCR_BOT_EXTRACT_TOTAL_TIMEOUT_SECONDS=180` "
+                    "yoki matnsiz ham Word kerak bo‘lsa `OCR_SCAN_FALLBACK_DOCX=1`.",
+                    parse_mode=ParseMode.MARKDOWN,
+                )
+            else:
+                await progress_msg.edit_text("❌ **Xatolik:** Matn ajratilmadi.")
             return
             
         await update_progress(context, progress_msg, 70, "Word hujjat shakllantirilmoqda...")
-        # Create Word Document asynchronously so we don't block the loop
         doc_path = f"Ocr_Natija_{user_id}_{int(time.time())}_@DastyorAiBot.docx"
-        def create_and_save_doc(html_text, path):
-            doc = Document()
-            try:
-                add_html_to_docx(doc, html_text)
-            except Exception as parse_err:
-                logger.error(f"HTML Parse error: {parse_err}")
-                doc.add_paragraph(str(html_text))
-            doc.save(path)
-
-        await asyncio.to_thread(create_and_save_doc, extracted_text, doc_path)
+        await asyncio.to_thread(lines_to_docx, extracted_lines, doc_path)
         
         await update_progress(context, progress_msg, 90, "Fayl yuborilmoqda...")
         
@@ -556,23 +350,34 @@ async def _perform_ocr_batch_and_send(context, bot, chat_id: int, user_id: int, 
         if len(temp_paths) == 1:
             img_path = temp_paths[0]
             await update_progress(context, progress_msg, 35, "AI matnni o'qimoqda...")
-            extracted_text = ""
-            try:
-                extracted_text = await extract_text_from_image(img_path)
-            except Exception as e:
-                logger.warning("OCR extract failed; will fallback scan-docx user=%s err=%s", user_id, e)
-                extracted_text = ""
+            extracted_text, ocr_timed_out = await _extract_text_from_image_bot_timed(
+                img_path,
+                context,
+                progress_msg,
+                progress_pct=35,
+                status_text="AI matnni o'qimoqda...",
+            )
 
             # If OCR failed/empty, default behavior: do NOT send "image-only" DOCX.
             # (User expects table/text reconstruction. Scan fallback is optional via env flag.)
             if not extracted_text:
                 scan_fallback_on = os.getenv("OCR_SCAN_FALLBACK_DOCX", "0").strip().lower() in ("1", "true", "yes", "on")
                 if not scan_fallback_on:
-                    await progress_msg.edit_text(
-                        "❌ Matn ajratilmadi.\n\n"
-                        "Jadval uchun rasmni iloji boricha tekis, yaqinroq va yorug' joyda oling.\n"
-                        "Agar xohlasangiz, admin `OCR_SCAN_FALLBACK_DOCX=1` qilib qo'ysa, hech bo'lmasa rasm Word'ga 1:1 joylanib yuboriladi."
-                    )
+                    if ocr_timed_out:
+                        await progress_msg.edit_text(
+                            "⏱ **Vaqt tugadi** (taxminan "
+                            f"{int(_ocr_bot_extract_deadline_seconds())}s) — juda katta jadval yoki tarmoq sekin.\n\n"
+                            "**Sinab ko‘ring:** jadvalni bo‘laklab suratga oling; yorug‘roq/tekis qilib yuboring.\n\n"
+                            "Admin: `OCR_BOT_EXTRACT_TOTAL_TIMEOUT_SECONDS=180` yoki "
+                            "`OCR_SCAN_FALLBACK_DOCX=1` (rasm Word’da 1:1).",
+                            parse_mode=ParseMode.MARKDOWN,
+                        )
+                    else:
+                        await progress_msg.edit_text(
+                            "❌ Matn ajratilmadi.\n\n"
+                            "Jadval uchun rasmni iloji boricha tekis, yaqinroq va yorug' joyda oling.\n"
+                            "Agar xohlasangiz, admin `OCR_SCAN_FALLBACK_DOCX=1` qilib qo'ysa, hech bo'lmasa rasm Word'ga 1:1 joylanib yuboriladi."
+                        )
                     return
 
                 await update_progress(context, progress_msg, 75, "Matn o'qilmadi — rasm Word'ga 1:1 joylanmoqda...")
@@ -647,33 +452,32 @@ async def _perform_ocr_batch_and_send(context, bot, chat_id: int, user_id: int, 
                 context.user_data.pop("ocr_images", None)
             return
 
-        html_parts = []
+        merged_lines: list[str] = []
         for i, img_path in enumerate(temp_paths):
             pct = 20 + int(70 * (i + 1) / len(temp_paths))
             await update_progress(
                 context, progress_msg, pct,
                 f"O'qilmoqda {i + 1}/{len(temp_paths)}...",
             )
-            text = await extract_text_from_image(img_path)
-            if text:
-                html_parts.append(f"<div class=\"page-break\">{text}</div>")
+            st = f"O'qilmoqda {i + 1}/{len(temp_paths)}"
+            lines, _to = await _extract_text_from_image_bot_timed(
+                img_path,
+                context,
+                progress_msg,
+                progress_pct=min(90, pct),
+                status_text=st,
+            )
+            if lines:
+                merged_lines.extend(lines)
             else:
-                html_parts.append("<p>[Matn ajratilmadi]</p>")
+                merged_lines.append("[Matn ajratilmadi]")
+            # Visual separation between images in the resulting doc
+            if i < len(temp_paths) - 1:
+                merged_lines.append("")
 
         await update_progress(context, progress_msg, 90, "Word yaratilmoqda...")
-        merged_html = "<body>" + "\n".join(html_parts) + "</body>"
         doc_path = f"Ocr_Natija_{user_id}_{int(time.time())}_@DastyorAiBot.docx"
-        def _create_doc():
-            doc = Document()
-            try:
-                add_html_to_docx(doc, merged_html)
-            except Exception as parse_err:
-                logger.error("Batch HTML parse error: %s", parse_err)
-                doc.add_paragraph(merged_html.replace("<br>", "\n").replace("</p>", "\n"))
-            doc.save(doc_path)
-            return doc_path
-
-        await asyncio.to_thread(_create_doc)
+        await asyncio.to_thread(lines_to_docx, merged_lines, doc_path)
 
         await update_progress(context, progress_msg, 95, "Yuborilmoqda...")
         with open(doc_path, "rb") as f:
