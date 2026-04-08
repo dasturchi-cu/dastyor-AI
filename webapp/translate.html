@@ -334,6 +334,12 @@
         function onInput() {
             // Cancel in-flight request ASAP while user is still typing (saves network + prevents late UI updates).
             try { if (_activeTrAbort) _activeTrAbort.abort(); } catch (_) {}
+            // Keep UI stable while typing: don't leave the output in "shimmer" state after abort.
+            try {
+                const outText = document.getElementById('outText');
+                outText.classList.remove('loading-shimmer');
+                setEngine(t('translate_typing_engine', 'Yozilyapti...'));
+            } catch (_) {}
             const len = document.getElementById('srcText').value.length;
             const cc = document.getElementById('charCount');
             cc.textContent = len + ' / 5000';
