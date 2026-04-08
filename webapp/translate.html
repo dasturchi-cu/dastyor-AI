@@ -307,6 +307,50 @@
         let _lastStableInSig = '';
         let _pendingAutoText = '';
         let _pendingAutoDir = '';
+        const _TR_DRAFT_KEY = 'dastyor_translate_draft_v1';
+        let _draftTimer = null;
+
+        function _saveDraftSoon() {
+            try {
+                clearTimeout(_draftTimer);
+                _draftTimer = setTimeout(() => {
+                    const doSave = () => {
+                        try {
+                            const src = document.getElementById('srcText')?.value || '';
+                            const out = document.getElementById('outText')?.value || '';
+                            const payload = {
+                                v: 1,
+                                ts: Date.now(),
+                                srcLang,
+                                tgtLang,
+                                src,
+                                out,
+                            };
+                            localStorage.setItem(_TR_DRAFT_KEY, JSON.stringify(payload));
+                        } catch (_) {}
+                    };
+                    if (window.requestIdleCallback) window.requestIdleCallback(doSave, { timeout: 1200 });
+                    else setTimeout(doSave, 0);
+                }, 650);
+            } catch (_) {}
+        }
+
+        function _restoreDraftIfAny() {
+            try {
+                const raw = localStorage.getItem(_TR_DRAFT_KEY);
+                if (!raw) return;
+                const d = JSON.parse(raw);
+                if (!d || d.v !== 1) return;
+                if (d.srcLang && typeof d.srcLang === 'string') srcLang = d.srcLang;
+                if (d.tgtLang && typeof d.tgtLang === 'string') tgtLang = d.tgtLang;
+                document.getElementById('srcLang').value = srcLang;
+                document.getElementById('tgtLang').value = tgtLang;
+                updateLangLabels();
+                if (typeof d.src === 'string') document.getElementById('srcText').value = d.src;
+                if (typeof d.out === 'string') document.getElementById('outText').value = d.out;
+                onInput();
+            } catch (_) {}
+        }
 
         function scheduleAutoTranslate() {
             try {
@@ -347,6 +391,7 @@
             else if (len > 4500) cc.className = "text-[10px] font-bold text-apple-orange";
             else cc.className = "text-[10px] font-bold text-black/30 dark:text-white/30";
             scheduleAutoTranslate();
+            _saveDraftSoon();
         }
 
         function setPhrase(el) {
@@ -360,6 +405,7 @@
             document.getElementById('outText').value = '';
             onInput();
             hideStatus();
+            _saveDraftSoon();
         }
 
         function showStatus(type, icon, msg) {
@@ -552,6 +598,7 @@
                     showStatus('success', '✅', t('translate_done', 'Tarjima qilindi'));
                     tg?.HapticFeedback?.notificationOccurred('success');
                     void window.DastyorAI?.refreshProfile?.();
+                    _saveDraftSoon();
                     if (!isAuto) {
                         btn.innerHTML = t('translate_action', '⚡ Tarjima Qilish');
                         btn.disabled = false;
@@ -592,6 +639,7 @@
                     setEngine(result.engine);
                     showStatus('info', '🌐', t('translate_done', 'Tarjima qilindi'));
                     tg?.HapticFeedback?.notificationOccurred('success');
+                    _saveDraftSoon();
                     if (!isAuto) {
                         btn.innerHTML = t('translate_action', '⚡ Tarjima Qilish');
                         btn.disabled = false;
@@ -616,6 +664,7 @@
                 btn.disabled = false;
                 btn.classList.remove('opacity-70');
             }
+            _saveDraftSoon();
         }
 
         document.getElementById('srcText').addEventListener('keydown', function (e) {
@@ -625,6 +674,8 @@
             }
         });
 
+        // Persist text across tab switches / reloads (prevents "disappearing" UX when navigating).
+        try { _restoreDraftIfAny(); } catch (_) {}
         if (tg) { tg.ready(); tg.expand(); }
     </script>
 </body>
