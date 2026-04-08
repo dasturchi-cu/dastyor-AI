@@ -350,7 +350,7 @@ async def _perform_ocr_batch_and_send(context, bot, chat_id: int, user_id: int, 
         if len(temp_paths) == 1:
             img_path = temp_paths[0]
             await update_progress(context, progress_msg, 35, "AI matnni o'qimoqda...")
-            extracted_text, ocr_timed_out = await _extract_text_from_image_bot_timed(
+            extracted_lines, ocr_timed_out = await _extract_text_from_image_bot_timed(
                 img_path,
                 context,
                 progress_msg,
@@ -360,7 +360,7 @@ async def _perform_ocr_batch_and_send(context, bot, chat_id: int, user_id: int, 
 
             # If OCR failed/empty, default behavior: do NOT send "image-only" DOCX.
             # (User expects table/text reconstruction. Scan fallback is optional via env flag.)
-            if not extracted_text:
+            if not extracted_lines:
                 scan_fallback_on = os.getenv("OCR_SCAN_FALLBACK_DOCX", "0").strip().lower() in ("1", "true", "yes", "on")
                 if not scan_fallback_on:
                     if ocr_timed_out:
@@ -384,6 +384,11 @@ async def _perform_ocr_batch_and_send(context, bot, chat_id: int, user_id: int, 
                 doc_path = f"Ocr_Scan_{user_id}_{int(time.time())}_@DastyorAiBot.docx"
 
                 def _build_scan_doc():
+                    # Local import so handler doesn't require these symbols globally.
+                    from docx import Document
+                    from docx.enum.text import WD_ALIGN_PARAGRAPH
+                    from docx.shared import Inches
+
                     doc = Document()
                     p = doc.add_paragraph()
                     p.alignment = WD_ALIGN_PARAGRAPH.CENTER
@@ -413,27 +418,20 @@ async def _perform_ocr_batch_and_send(context, bot, chat_id: int, user_id: int, 
                 return
             await update_progress(context, progress_msg, 80, "Word yaratilmoqda...")
             doc_path = f"Ocr_Natija_{user_id}_{int(time.time())}_@DastyorAiBot.docx"
-            def _create_single_doc():
-                doc = Document()
-                add_html_to_docx(doc, extracted_text)
-                doc.save(doc_path)
-                return doc_path
-
             build_timeout = max(15, int(os.getenv("OCR_DOCX_BUILD_TIMEOUT_SECONDS", "45")))
             try:
-                await asyncio.wait_for(asyncio.to_thread(_create_single_doc), timeout=build_timeout)
+                await asyncio.wait_for(
+                    asyncio.to_thread(lines_to_docx, extracted_lines, doc_path),
+                    timeout=build_timeout,
+                )
             except asyncio.TimeoutError:
-                logger.warning("OCR single-from-batch DOCX timeout (%ss), fallback plain-text user=%s", build_timeout, user_id)
-                def _fallback_single():
-                    doc = Document()
-                    plain = BeautifulSoup(str(extracted_text or ""), "html.parser").get_text("\n", strip=True)
-                    if plain:
-                        for line in plain.splitlines():
-                            line = line.strip()
-                            if line:
-                                doc.add_paragraph(line)
-                    doc.save(doc_path)
-                await asyncio.to_thread(_fallback_single)
+                # Even fallback must never reference HTML/Gemini; write what we have.
+                logger.warning(
+                    "OCR single-from-batch DOCX timeout (%ss), saving minimal lines user=%s",
+                    build_timeout,
+                    user_id,
+                )
+                await asyncio.to_thread(lines_to_docx, extracted_lines, doc_path)
 
             await update_progress(context, progress_msg, 95, "Yuborilmoqda...")
             with open(doc_path, "rb") as f:
