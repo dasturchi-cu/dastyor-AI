@@ -290,7 +290,8 @@
             const srcT = document.getElementById('srcText');
             const outT = document.getElementById('outText');
             const prev = outT.value;
-            if (prev) { srcT.value = prev; outT.value = ''; }
+            // Keep output stable (no flicker): move to input, but don't clear output until next result arrives.
+            if (prev) { srcT.value = prev; }
             updateLangLabels();
             onInput();
             tg?.HapticFeedback?.impactOccurred('medium');
