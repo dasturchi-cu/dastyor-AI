@@ -179,8 +179,7 @@ async def perform_ocr_and_send(context, image_path, chat_id, user_id):
                     "⏱ **Vaqt tugadi** — rasm juda katta yoki server javobi sekin.\n\n"
                     "**Nima qilish mumkin:** jadvalni 2–3 qismga bo‘lib rasmga oling; "
                     "yorug‘roq va tekis surat yuboring.\n\n"
-                    "Admin: `.env` da `OCR_BOT_EXTRACT_TOTAL_TIMEOUT_SECONDS=180` "
-                    "yoki matnsiz ham Word kerak bo‘lsa `OCR_SCAN_FALLBACK_DOCX=1`.",
+                    "Admin: `.env` da `OCR_BOT_EXTRACT_TOTAL_TIMEOUT_SECONDS=180`.",
                     parse_mode=ParseMode.MARKDOWN,
                 )
             else:
@@ -358,63 +357,22 @@ async def _perform_ocr_batch_and_send(context, bot, chat_id: int, user_id: int, 
                 status_text="AI matnni o'qimoqda...",
             )
 
-            # If OCR failed/empty, default behavior: do NOT send "image-only" DOCX.
-            # (User expects table/text reconstruction. Scan fallback is optional via env flag.)
+            # If OCR failed/empty: do NOT send image-only DOCX.
+            # User expects text/table extraction only.
             if not extracted_lines:
-                scan_fallback_on = os.getenv("OCR_SCAN_FALLBACK_DOCX", "0").strip().lower() in ("1", "true", "yes", "on")
-                if not scan_fallback_on:
-                    if ocr_timed_out:
-                        await progress_msg.edit_text(
-                            "⏱ **Vaqt tugadi** (taxminan "
-                            f"{int(_ocr_bot_extract_deadline_seconds())}s) — juda katta jadval yoki tarmoq sekin.\n\n"
-                            "**Sinab ko‘ring:** jadvalni bo‘laklab suratga oling; yorug‘roq/tekis qilib yuboring.\n\n"
-                            "Admin: `OCR_BOT_EXTRACT_TOTAL_TIMEOUT_SECONDS=180` yoki "
-                            "`OCR_SCAN_FALLBACK_DOCX=1` (rasm Word’da 1:1).",
-                            parse_mode=ParseMode.MARKDOWN,
-                        )
-                    else:
-                        await progress_msg.edit_text(
-                            "❌ Matn ajratilmadi.\n\n"
-                            "Jadval uchun rasmni iloji boricha tekis, yaqinroq va yorug' joyda oling.\n"
-                            "Agar xohlasangiz, admin `OCR_SCAN_FALLBACK_DOCX=1` qilib qo'ysa, hech bo'lmasa rasm Word'ga 1:1 joylanib yuboriladi."
-                        )
-                    return
-
-                await update_progress(context, progress_msg, 75, "Matn o'qilmadi — rasm Word'ga 1:1 joylanmoqda...")
-                doc_path = f"Ocr_Scan_{user_id}_{int(time.time())}_@DastyorAiBot.docx"
-
-                def _build_scan_doc():
-                    # Local import so handler doesn't require these symbols globally.
-                    from docx import Document
-                    from docx.enum.text import WD_ALIGN_PARAGRAPH
-                    from docx.shared import Inches
-
-                    doc = Document()
-                    p = doc.add_paragraph()
-                    p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-                    run = p.add_run()
-                    run.add_picture(img_path, width=Inches(6.8))
-                    doc.save(doc_path)
-                    return doc_path
-
-                await asyncio.to_thread(_build_scan_doc)
-                await update_progress(context, progress_msg, 95, "Yuborilmoqda...")
-                with open(doc_path, "rb") as f:
-                    ok_send = await send_docx_with_confirmation(
-                        bot,
-                        chat_id,
-                        f,
-                        filename=doc_path,
-                        caption="✅ **Word tayyor (rasm 1:1).**\n\nMatn ajratilmadi — scan ko‘rinishda berildi.",
+                if ocr_timed_out:
+                    await progress_msg.edit_text(
+                        "⏱ **Vaqt tugadi** — jadval juda katta yoki rasm sifati past bo‘lishi mumkin.\n\n"
+                        "**Sinab ko‘ring:** jadvalni bo‘laklab (2–4 rasm) yuboring, tekis va yorug‘ joyda oling.\n\n"
+                        "Admin: `.env` da `OCR_BOT_EXTRACT_TOTAL_TIMEOUT_SECONDS=180` qilishingiz mumkin.",
                         parse_mode=ParseMode.MARKDOWN,
-                        reply_markup=get_main_menu(user_id, get_user_lang(user_id)),
                     )
-                if ok_send:
-                    record_service_completion(user_id, CAT_OCR, "OCR Scan Fallback")
-                await progress_msg.delete()
-                if getattr(context, "user_data", None):
-                    context.user_data.pop("waiting_for", None)
-                    context.user_data.pop("ocr_images", None)
+                else:
+                    await progress_msg.edit_text(
+                        "❌ Matn ajratilmadi.\n\n"
+                        "Jadval uchun rasmni iloji boricha tekis, yaqinroq va yorug' joyda oling.",
+                        parse_mode=ParseMode.MARKDOWN,
+                    )
                 return
             await update_progress(context, progress_msg, 80, "Word yaratilmoqda...")
             doc_path = f"Ocr_Natija_{user_id}_{int(time.time())}_@DastyorAiBot.docx"
