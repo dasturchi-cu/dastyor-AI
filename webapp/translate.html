@@ -305,26 +305,35 @@
         let _trSeq = 0;
         let _lastStableOut = '';
         let _lastStableInSig = '';
+        let _pendingAutoText = '';
+        let _pendingAutoDir = '';
 
         function scheduleAutoTranslate() {
             try {
-                const srcText = document.getElementById('srcText').value.trim();
+                const raw = document.getElementById('srcText').value;
                 const dirKey = srcLang + '_' + tgtLang;
-                if (!srcText) return;
-                if (srcText.length > 5000) return;
-                // Avoid re-triggering when user didn't change meaningfully
-                const sig = normalizeCompare(srcText);
-                if (sig === _lastAutoText && dirKey === _lastAutoDir) return;
+                if (!raw) return;
+                // Avoid heavy normalization on every keystroke (can lag on big texts).
+                // We only normalize inside the debounce callback.
+                if (raw.length > 5000) return;
                 clearTimeout(_autoTrTimer);
+                _pendingAutoText = raw;
+                _pendingAutoDir = dirKey;
                 _autoTrTimer = setTimeout(() => {
+                    const trimmed = (_pendingAutoText || '').trim();
+                    if (!trimmed) return;
+                    const sig = normalizeCompare(trimmed);
+                    if (sig === _lastAutoText && _pendingAutoDir === _lastAutoDir) return;
                     _lastAutoText = sig;
-                    _lastAutoDir = dirKey;
+                    _lastAutoDir = _pendingAutoDir;
                     translateText({ auto: true });
                 }, 450);
             } catch (_) {}
         }
 
         function onInput() {
+            // Cancel in-flight request ASAP while user is still typing (saves network + prevents late UI updates).
+            try { if (_activeTrAbort) _activeTrAbort.abort(); } catch (_) {}
             const len = document.getElementById('srcText').value.length;
             const cc = document.getElementById('charCount');
             cc.textContent = len + ' / 5000';
