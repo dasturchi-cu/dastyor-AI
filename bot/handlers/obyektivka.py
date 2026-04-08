@@ -20,6 +20,35 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__fil
 
 logger = logging.getLogger(__name__)
 
+def _is_premium_plan(user_id: int) -> bool:
+    """
+    Voice-driven obyektivka prefill is Premium-only (costly STT + AI extract).
+    """
+    try:
+        from bot.services.settings_service import get_active_plan_code
+
+        return get_active_plan_code(int(user_id)) == "premium"
+    except Exception:
+        return False
+
+
+async def _notify_premium_required_for_voice_oby(context, chat_id: int) -> None:
+    try:
+        await context.bot.send_message(
+            chat_id=chat_id,
+            text=(
+                "⛔ Bu funksiya faqat **Premium** foydalanuvchilarga.\n\n"
+                "🎙 Ovozli xabar orqali obyektivkani avtomatik to‘ldirish Premiumda ishlaydi.\n"
+                "Premium olish uchun menyudan **Premium** bo‘limiga kiring."
+            ),
+            parse_mode="Markdown",
+            reply_markup=get_back_button(),
+        )
+    except Exception:
+        # Non-fatal: never crash handlers due to a notify message
+        pass
+
+
 async def process_obyektivka_from_audio_path(context, audio_path, chat_id, user_id):
     """
     Core logic: Transcribe -> Extract Data -> WebApp link (prefill).
@@ -205,6 +234,15 @@ async def obyektivka_handler(update: Update, context: ContextTypes.DEFAULT_TYPE)
 async def handle_obyektivka_audio(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Process audio upload from menu flow"""
     message = update.message
+    uid = update.effective_user.id if update.effective_user else 0
+    cid = update.effective_chat.id if update.effective_chat else None
+    if not cid:
+        return
+
+    # Premium-only gate (critical requirement)
+    if not _is_premium_plan(uid):
+        await _notify_premium_required_for_voice_oby(context, cid)
+        return
     
     if not (message.voice or message.audio):
         await message.reply_text("❌ Iltimos, audio xabar yuboring.")
@@ -260,6 +298,11 @@ async def auto_voice_obyektivka_from_message(update: Update, context: ContextTyp
     """
     message = update.message
     if not message or not update.effective_user or not update.effective_chat:
+        return
+
+    # Premium-only gate (critical requirement)
+    if not _is_premium_plan(update.effective_user.id):
+        await _notify_premium_required_for_voice_oby(context, update.effective_chat.id)
         return
 
     msg = await message.reply_text("⏳ Ovoz qayta ishlanmoqda...")
