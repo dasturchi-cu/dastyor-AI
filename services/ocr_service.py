@@ -48,16 +48,28 @@ def _normalize_to_supported_image_path(image_path: str) -> str:
     p = str(image_path)
     ext = os.path.splitext(p)[1].lower()
     if ext in {".jpg", ".jpeg", ".png"}:
-        # Still try to normalize EXIF orientation into a clean JPEG (cheap, avoids sideways text).
+        # Avoid recompressing already-supported images (can hurt faint table text).
+        # Only materialize a temp file when EXIF orientation requires it.
         try:
             from PIL import Image, ImageOps
 
             with Image.open(p) as im:
-                im = ImageOps.exif_transpose(im).convert("RGB")
-                fd, out = tempfile.mkstemp(prefix="ocr_", suffix=".jpg")
-                os.close(fd)
-                im.save(out, "JPEG", quality=92, optimize=True)
-                return out
+                orientation = None
+                try:
+                    orientation = im.getexif().get(274)  # 274 = Orientation
+                except Exception:
+                    orientation = None
+                if orientation in {3, 6, 8}:
+                    fixed = ImageOps.exif_transpose(im).convert("RGB")
+                    suffix = ".png" if ext == ".png" else ".jpg"
+                    fd, out = tempfile.mkstemp(prefix="ocr_", suffix=suffix)
+                    os.close(fd)
+                    if suffix == ".png":
+                        fixed.save(out, "PNG", optimize=True)
+                    else:
+                        fixed.save(out, "JPEG", quality=92, optimize=True)
+                    return out
+                return p
         except Exception:
             return p
     try:

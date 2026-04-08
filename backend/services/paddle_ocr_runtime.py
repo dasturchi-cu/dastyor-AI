@@ -46,7 +46,23 @@ def _filter_paddle_kwargs(kwargs: dict[str, Any]) -> dict[str, Any]:
         from paddleocr import PaddleOCR
 
         sig = inspect.signature(PaddleOCR)
-        return {k: v for k, v in kwargs.items() if k in sig.parameters}
+        # PaddleOCR v3+ often exposes a long explicit signature and forwards extra options via **kwargs.
+        # If **kwargs is present, we must NOT drop unknown keys (e.g. enable_mkldnn, run_mode).
+        has_varkw = any(p.kind == inspect.Parameter.VAR_KEYWORD for p in sig.parameters.values())
+        if not has_varkw:
+            return {k: v for k, v in kwargs.items() if k in sig.parameters}
+
+        # When **kwargs exists, only pass:
+        # - explicitly supported args (in the signature), plus
+        # - a small allow-list of runtime options consumed by PaddleOCR/PaddleX.
+        allow_extra = {
+            "enable_mkldnn",
+            "run_mode",
+            "device",
+            "precision",
+            "cpu_threads",
+        }
+        return {k: v for k, v in kwargs.items() if k in sig.parameters or k in allow_extra}
     except Exception:
         return kwargs
 
@@ -57,8 +73,10 @@ def _build_paddle_kwargs(profile: str) -> dict[str, Any]:
     kwargs: dict[str, Any] = {
         "lang": lang,
         "use_angle_cls": True,
-        "show_log": False,
-        "det_limit_side_len": det_limit,
+        # PaddleOCR v3 uses explicit text_det_* args; older versions silently ignore unknown keys.
+        "text_det_limit_side_len": det_limit,
+        # Critical: disable MKLDNN/oneDNN to avoid PIR→oneDNN runtime crash on some PaddlePaddle builds.
+        # (ConvertPirAttribute2RuntimeAttribute not support ... onednn_instruction.cc)
         "enable_mkldnn": False,
     }
     if profile == "fallback_v4":
@@ -98,6 +116,8 @@ def _init_paddle_engine(profile: str):
                 lang=os.getenv("PADDLE_OCR_LANG", "en"),
                 use_angle_cls=True,
                 show_log=False,
+                # Ensure MKLDNN stays disabled even on older PaddleOCR signatures.
+                enable_mkldnn=False,
             )
         else:
             raise
