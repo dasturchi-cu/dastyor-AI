@@ -301,6 +301,9 @@
         let _activeTrAbort = null;
         let _lastAutoText = '';
         let _lastAutoDir = '';
+        let _trSeq = 0;
+        let _lastStableOut = '';
+        let _lastStableInSig = '';
 
         function scheduleAutoTranslate() {
             try {
@@ -440,7 +443,8 @@
                 return null;
             } catch (e) {
                 clearTimeout(timeout);
-                if (e.name === 'AbortError') throw new Error('Server (timeout)');
+                // Abort is normal during fast typing; propagate so caller can ignore cleanly.
+                if (e && e.name === 'AbortError') throw e;
                 throw e;
             }
         }
@@ -478,7 +482,15 @@
                 return;
             }
             const srcText = document.getElementById('srcText').value.trim();
-            if (!srcText) { showStatus('error', '⚠️', t('translate_enter_text', 'Matn kiriting!')); return; }
+            if (!srcText) {
+                // Auto mode: don't spam errors; just stop and keep last stable output visible.
+                try { if (_activeTrAbort) _activeTrAbort.abort(); } catch (_) {}
+                _activeTrAbort = null;
+                document.getElementById('outText').classList.remove('loading-shimmer');
+                setEngine(t('translate_idle_engine', 'Tayyor'));
+                if (!isAuto) showStatus('error', '⚠️', t('translate_enter_text', 'Matn kiriting!'));
+                return;
+            }
             if (srcText.length > 5000) { showStatus('error', '⚠️', t('translate_max_chars', 'Max 5000 belgi.')); return; }
             if (srcLang === tgtLang) { showStatus('error', '⚠️', t('translate_swap_langs', 'Tillarni almashtiring.')); return; }
 
@@ -489,13 +501,20 @@
             // Cancel any in-flight translation when user types again
             try { if (_activeTrAbort) _activeTrAbort.abort(); } catch (_) {}
             _activeTrAbort = new AbortController();
+            const mySeq = ++_trSeq;
+            const mySignal = _activeTrAbort.signal;
 
             if (!isAuto) {
                 btn.innerHTML = t('translate_wait', 'Kuting...');
                 btn.disabled = true;
                 btn.classList.add('opacity-70');
             }
-            outText.value = '';
+            // CRITICAL: do not clear output (prevents flicker). Keep last valid translation visible
+            // until a newer response arrives.
+            if (outText.value && outText.value.trim()) {
+                _lastStableOut = outText.value;
+                _lastStableInSig = normalizeCompare(srcText);
+            }
             outText.classList.add('loading-shimmer');
             hideStatus();
             setEngine(t('translate_loading_engine', 'Yuklanmoqda...'));
@@ -503,12 +522,15 @@
             let lastError = null;
 
             try {
-                const result = await tryGeminiAPI(srcText, srcLang, tgtLang, _activeTrAbort.signal);
+                const result = await tryGeminiAPI(srcText, srcLang, tgtLang, mySignal);
                 if (result) {
+                    if (mySeq !== _trSeq || mySignal.aborted) return;
                     if (!isMeaningfullyChanged(srcText, result.text)) {
                         throw new Error("Tarjima natijasi original bilan bir xil chiqdi");
                     }
                     outText.value = result.text;
+                    _lastStableOut = result.text;
+                    _lastStableInSig = normalizeCompare(srcText);
                     outText.classList.remove('loading-shimmer');
                     setEngine(result.engine);
                     showStatus('success', '✅', t('translate_done', 'Tarjima qilindi'));
@@ -522,11 +544,12 @@
                     return;
                 }
             } catch (e) {
-                lastError = e.message;
                 if (e && e.name === 'AbortError') return;
+                lastError = e?.message || String(e || '');
                 if (String(lastError || '').toLowerCase().includes('aborted')) return;
                 if (String(lastError || '').startsWith('__LIMIT__:')) {
                     const msg = String(lastError).replace('__LIMIT__:', '').trim() || 'Bu xizmat pullik.';
+                    if (mySeq !== _trSeq || mySignal.aborted) return;
                     outText.classList.remove('loading-shimmer');
                     setEngine('Limit');
                     showStatus('error', '⛔', /premium|pro|tarif|pullik/i.test(msg) ? msg : (msg + ' Premium/Pro tarifni oling.'));
@@ -540,12 +563,15 @@
             }
 
             try {
-                const result = await tryGoogleTranslate(srcText, srcLang, tgtLang, _activeTrAbort.signal);
+                const result = await tryGoogleTranslate(srcText, srcLang, tgtLang, mySignal);
                 if (result) {
+                    if (mySeq !== _trSeq || mySignal.aborted) return;
                     if (!isMeaningfullyChanged(srcText, result.text)) {
                         throw new Error("Tarjima natijasi original bilan bir xil chiqdi");
                     }
                     outText.value = result.text;
+                    _lastStableOut = result.text;
+                    _lastStableInSig = normalizeCompare(srcText);
                     outText.classList.remove('loading-shimmer');
                     setEngine(result.engine);
                     showStatus('info', '🌐', t('translate_done', 'Tarjima qilindi'));
@@ -559,9 +585,12 @@
                 }
             } catch (e) {
                 if (e && e.name === 'AbortError') return;
-                lastError = (lastError ? lastError + '; ' : '') + e.message;
+                lastError = (lastError ? lastError + '; ' : '') + (e?.message || String(e || ''));
             }
 
+            if (mySeq !== _trSeq || mySignal.aborted) return;
+            // Keep last stable output visible on errors (no flicker).
+            outText.value = _lastStableOut || outText.value || '';
             outText.classList.remove('loading-shimmer');
             setEngine('Xato');
             showStatus('error', '❌', 'Xatolik: ' + lastError);
