@@ -25,6 +25,27 @@
     html, body { -webkit-tap-highlight-color: transparent; overscroll-behavior-y: none; }
     body { background: var(--bg-color); color: var(--text-color); min-height: var(--app-vh, 100vh); }
     .scroller::-webkit-scrollbar { width: 0px; }
+
+    /* Premium feel: subtle depth + micro-interactions */
+    .plan-card {
+      transform: translateZ(0);
+      transition: transform .14s ease, box-shadow .14s ease, border-color .14s ease, background-color .14s ease;
+      will-change: transform;
+    }
+    .plan-card:active { transform: scale(.99); }
+    @media (hover:hover) {
+      .plan-card:hover { transform: translateY(-1px); box-shadow: 0 16px 60px rgba(0,0,0,.08); }
+    }
+    .glass-badge {
+      background: rgba(255,255,255,.7);
+      border: 1px solid rgba(255,255,255,.35);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+    }
+    .dark .glass-badge {
+      background: rgba(255,255,255,.08);
+      border-color: rgba(255,255,255,.14);
+    }
   </style>
 </head>
 <body class="antialiased selection:bg-apple-orange selection:text-white flex flex-col h-screen overflow-hidden">
@@ -46,6 +67,20 @@
 
   <main class="flex-1 overflow-y-auto scroller relative flex flex-col">
     <div class="max-w-3xl w-full mx-auto p-4 md:p-6 flex flex-col gap-4 pb-10">
+
+      <div class="rounded-2xl border border-black/5 dark:border-white/10 bg-white/80 dark:bg-[#151518] p-4">
+        <div class="flex items-start gap-3">
+          <div class="w-10 h-10 rounded-2xl bg-apple-orange/10 text-apple-orange flex items-center justify-center font-extrabold shrink-0">💎</div>
+          <div class="min-w-0">
+            <div class="text-sm font-extrabold text-black dark:text-white" data-i18n="premium_intro_title" data-i18n-fallback="Premium / Standard — qulayroq ishlash uchun">
+              Premium / Standard — qulayroq ishlash uchun
+            </div>
+            <div class="mt-1 text-xs font-semibold text-black/60 dark:text-white/60 leading-relaxed" data-i18n="premium_intro_sub" data-i18n-fallback="Tarifni tanlang → to‘lov qiling → skrenshot yuboring. Admin tasdiqlagach, limitlar avtomatik yangilanadi.">
+              Tarifni tanlang → to‘lov qiling → skrenshot yuboring. Admin tasdiqlagach, limitlar avtomatik yangilanadi.
+            </div>
+          </div>
+        </div>
+      </div>
 
       <button type="button" id="btnPremiumLimits"
         class="w-full rounded-2xl border border-black/5 dark:border-white/10 bg-white dark:bg-[#151518] px-4 py-3 text-sm font-extrabold text-apple-blue hover:bg-black/[0.02] dark:hover:bg-white/[0.03] transition-colors"
@@ -78,100 +113,102 @@
       </div>
 
       <section id="plansSection" class="grid grid-cols-1 gap-4">
-        <div class="rounded-[24px] bg-white dark:bg-[#151518] border border-black/5 dark:border-white/10 overflow-hidden shadow-sm">
+        <!-- Free -->
+        <div class="plan-card rounded-[24px] bg-white dark:bg-[#151518] border border-black/5 dark:border-white/10 overflow-hidden shadow-sm flex flex-col">
           <div class="p-5 flex items-start justify-between gap-3">
-            <div>
+            <div class="min-w-0">
               <div class="text-[10px] font-bold text-black/40 dark:text-white/40 uppercase tracking-widest" data-i18n="premium_free_plan" data-i18n-fallback="Bepul">Bepul</div>
-              <div class="mt-1 text-4xl font-display font-extrabold">0 <span class="text-sm font-bold text-black/40 dark:text-white/40">/ mo</span></div>
+              <div class="mt-1 flex items-end gap-2">
+                <div class="text-4xl font-display font-extrabold leading-none">0</div>
+                <div class="text-xs font-bold text-black/40 dark:text-white/40 pb-1">/ oy</div>
+              </div>
+              <div class="mt-2 text-xs font-semibold text-black/55 dark:text-white/55" data-i18n="premium_free_hint" data-i18n-fallback="Boshlash uchun yetarli.">Boshlash uchun yetarli.</div>
             </div>
           </div>
-          <div class="px-5 pb-4 space-y-2 text-sm font-semibold">
-            <div class="flex items-center gap-2">
-              <span class="text-apple-green">✔</span><span data-i18n="premium_free_docs" data-i18n-fallback="5 hujjat/oy">5 hujjat/oy</span>
-            </div>
-            <div class="flex items-center gap-2">
-              <span class="text-apple-green">✔</span><span data-i18n="premium_free_cv_obj" data-i18n-fallback="CV & Obyektivka">CV &amp; Obyektivka</span>
-            </div>
-            <div class="flex items-center gap-2 opacity-50">
-              <span>✖</span><span data-i18n="premium_free_pro_services" data-i18n-fallback="Pro xizmatlar">Pro xizmatlar</span>
-            </div>
-            <div class="flex items-center gap-2 opacity-50">
-              <span>✖</span><span data-i18n="premium_free_fast_support" data-i18n-fallback="Tezkor aloqa">Tezkor aloqa</span>
-            </div>
+          <div class="px-5 pb-4 space-y-2 text-[13px] font-semibold text-black/70 dark:text-white/70">
+            <div class="flex items-center gap-2"><span class="text-apple-green">✔</span><span data-i18n="premium_free_docs" data-i18n-fallback="5 hujjat/oy">5 hujjat/oy</span></div>
+            <div class="flex items-center gap-2"><span class="text-apple-green">✔</span><span data-i18n="premium_free_cv_obj" data-i18n-fallback="CV & Obyektivka">CV &amp; Obyektivka</span></div>
             <details class="mt-2 rounded-xl border border-black/5 dark:border-white/10 bg-black/[0.02] dark:bg-white/[0.03] p-3">
               <summary class="cursor-pointer text-xs font-extrabold text-black/60 dark:text-white/70" data-i18n="premium_more_features" data-i18n-fallback="Barcha imkoniyatlar">Barcha imkoniyatlar</summary>
               <div class="mt-2 space-y-1 text-xs font-semibold text-black/60 dark:text-white/60">
-                <div>🔤 Krill ↔ Lotin — limit ichida</div>
-                <div>🖼 Rasm → PDF — limit ichida</div>
-                <div>🌐 Tarjima — limit ichida</div>
+                <div>🔤 Krill ↔ Lotin</div>
+                <div>🖼 Rasm → PDF</div>
+                <div>🌐 Tarjima</div>
               </div>
             </details>
           </div>
-          <div class="p-5 pt-0">
-            <a href="index.html" class="w-full block text-center py-3 rounded-2xl bg-black/5 dark:bg-white/5 text-black/70 dark:text-white/70 font-extrabold">Boshlash</a>
+          <div class="p-5 pt-0 mt-auto">
+            <a href="index.html" class="w-full block text-center h-12 leading-[48px] rounded-2xl bg-black/5 dark:bg-white/5 text-black/70 dark:text-white/70 font-extrabold">Boshlash</a>
           </div>
         </div>
 
-        <div class="rounded-[24px] bg-white dark:bg-[#151518] border border-black/5 dark:border-white/10 overflow-hidden shadow-sm">
+        <!-- Standard -->
+        <div class="plan-card rounded-[24px] bg-white dark:bg-[#151518] border border-black/5 dark:border-white/10 overflow-hidden shadow-sm flex flex-col">
           <div class="p-5 flex items-start justify-between gap-3">
-            <div>
+            <div class="min-w-0">
               <div class="text-[10px] font-bold text-black/40 dark:text-white/40 uppercase tracking-widest" data-i18n="premium_standard_plan" data-i18n-fallback="Standart">Standart</div>
-              <div class="mt-1 text-4xl font-display font-extrabold"><span id="stdPriceNow">9 999</span><span class="text-sm font-bold text-black/40 dark:text-white/40"> / 7 kun</span></div>
+              <div class="mt-1 flex items-end gap-2">
+                <div class="text-4xl font-display font-extrabold leading-none"><span id="stdPriceNow">9 999</span></div>
+                <div class="text-xs font-bold text-black/40 dark:text-white/40 pb-1">/ 7 kun</div>
+              </div>
               <span id="stdPriceWas" class="hidden"></span>
             </div>
             <div class="px-3 py-1 rounded-full bg-apple-blue/10 text-apple-blue text-xs font-extrabold">7 kun</div>
           </div>
-          <div class="px-5 pb-4 space-y-2 text-sm font-semibold text-black/70 dark:text-white/70">
-            <div class="flex items-center gap-2"><span class="text-apple-blue">✔</span><span>🔤 Krill ↔ Lotin — ♾ cheksiz</span></div>
-            <div class="flex items-center gap-2"><span class="text-apple-blue">✔</span><span>🖼 Rasm → PDF — ♾ cheksiz</span></div>
-            <div class="flex items-center gap-2"><span class="text-apple-blue">✔</span><span>🌐 Tarjima — 10 ta / kun</span></div>
-            <div class="flex items-center gap-2"><span class="text-apple-blue">✔</span><span>✏️ Imlo tekshirish — 5 ta / kun</span></div>
-            <div class="flex items-center gap-2"><span class="text-apple-blue">✔</span><span>🤖 OCR skayner — 5 ta / kun</span></div>
+          <div class="px-5 pb-4 space-y-2 text-[13px] font-semibold text-black/70 dark:text-white/70">
+            <div class="flex items-center gap-2"><span class="text-apple-blue">✔</span><span>Tarjima: 10/kun</span></div>
+            <div class="flex items-center gap-2"><span class="text-apple-blue">✔</span><span>Imlo: 5/kun</span></div>
+            <div class="flex items-center gap-2"><span class="text-apple-blue">✔</span><span>OCR: 5/kun</span></div>
+            <div class="flex items-center gap-2"><span class="text-apple-blue">✔</span><span>Krill↔Lotin: ♾</span></div>
+            <div class="flex items-center gap-2"><span class="text-apple-blue">✔</span><span>Rasm→PDF: ♾</span></div>
             <details class="mt-2 rounded-xl border border-black/5 dark:border-white/10 bg-black/[0.02] dark:bg-white/[0.03] p-3">
               <summary class="cursor-pointer text-xs font-extrabold text-black/60 dark:text-white/70">Barcha imkoniyatlar</summary>
               <div class="mt-2 space-y-1 text-xs font-semibold text-black/60 dark:text-white/60">
-                <div>📄 Obyektivka — 1 ta / 7 kun</div>
-                <div>📋 CV — 1 ta / 7 kun</div>
+                <div>📄 Obyektivka: 1 / 7 kun</div>
+                <div>📋 CV: 1 / 7 kun</div>
               </div>
             </details>
           </div>
-          <div class="p-5 pt-0">
-            <button type="button" class="w-full py-3 rounded-2xl bg-apple-blue text-white font-extrabold hover:bg-blue-600 active:scale-[0.98] transition-all"
+          <div class="p-5 pt-0 mt-auto">
+            <button type="button" class="w-full h-12 rounded-2xl bg-apple-blue text-white font-extrabold hover:bg-blue-600 active:scale-[0.98] transition-all"
               onclick="openPaymentPage('standard')">
               Standart olish
             </button>
           </div>
         </div>
 
-        <div class="rounded-[24px] bg-apple-orange/5 dark:bg-[#151518] border border-apple-orange/30 overflow-hidden shadow-sm">
+        <!-- Premium -->
+        <div class="plan-card rounded-[24px] border border-apple-orange/30 overflow-hidden shadow-sm flex flex-col
+          bg-gradient-to-br from-apple-orange/10 via-white to-white dark:from-apple-orange/10 dark:via-[#151518] dark:to-[#151518]">
           <div class="p-5 flex items-start justify-between gap-3">
-            <div>
+            <div class="min-w-0">
               <div class="text-[10px] font-bold text-apple-orange uppercase tracking-widest" data-i18n="premium_premium_plan" data-i18n-fallback="Premium Oylik">Premium Oylik</div>
-              <div class="mt-1 text-4xl font-display font-extrabold"><span id="premPriceNow">29 999</span><span class="text-sm font-bold text-black/40 dark:text-white/40"> / mo</span></div>
+              <div class="mt-1 flex items-end gap-2">
+                <div class="text-4xl font-display font-extrabold leading-none"><span id="premPriceNow">29 999</span></div>
+                <div class="text-xs font-bold text-black/40 dark:text-white/40 pb-1">/ oy</div>
+              </div>
               <span id="premPriceWas" class="hidden"></span>
             </div>
-            <div class="px-3 py-1 rounded-full bg-apple-orange text-white text-xs font-extrabold">TOP</div>
+            <div class="glass-badge px-3 py-1 rounded-full text-apple-orange text-xs font-extrabold shadow-sm">TOP</div>
           </div>
-          <div class="px-5 pb-4 space-y-2 text-sm font-semibold text-black/80 dark:text-white/80">
-            <div class="flex items-center gap-2"><span class="text-apple-orange">✔</span><span data-i18n="premium_prem_unlimited_docs" data-i18n-fallback="Cheksiz hujjatlar">Cheksiz hujjatlar</span></div>
+          <div class="px-5 pb-4 space-y-2 text-[13px] font-semibold text-black/80 dark:text-white/80">
             <div class="flex items-center gap-2"><span class="text-apple-orange">✔</span><span data-i18n="premium_prem_all_pro" data-i18n-fallback="Barcha Pro xizmatlar">Barcha Pro xizmatlar</span></div>
-            <div class="flex items-center gap-2"><span class="text-apple-orange">✔</span><span data-i18n="premium_prem_priority" data-i18n-fallback="Ustuvor navbat">Ustuvor navbat</span></div>
-            <div class="flex items-center gap-2"><span class="text-apple-orange">✔</span><span data-i18n="premium_prem_support" data-i18n-fallback="24/7 yordam">24/7 yordam</span></div>
+            <div class="flex items-center gap-2"><span class="text-apple-orange">✔</span><span>Tarjima: ♾</span></div>
+            <div class="flex items-center gap-2"><span class="text-apple-orange">✔</span><span>Imlo: ♾</span></div>
+            <div class="flex items-center gap-2"><span class="text-apple-orange">✔</span><span>Krill↔Lotin: ♾</span></div>
             <details class="mt-2 rounded-xl border border-apple-orange/20 bg-white/70 dark:bg-white/5 p-3">
               <summary class="cursor-pointer text-xs font-extrabold text-black/70 dark:text-white/70">Barcha imkoniyatlar</summary>
               <div class="mt-2 space-y-1 text-xs font-semibold text-black/70 dark:text-white/70">
-                <div>🔤 Krill ↔ Lotin — ♾ cheksiz</div>
-                <div>🖼 Rasm → PDF — ♾ cheksiz</div>
-                <div>🌐 Tarjima — ♾ cheksiz</div>
-                <div>✏️ Imlo — ♾ cheksiz</div>
-                <div>🤖 OCR — 10 ta / kun</div>
-                <div>📄 Obyektivka — 6 ta / oy</div>
-                <div>📋 CV — 6 ta / oy</div>
+                <div>🖼 Rasm→PDF: ♾</div>
+                <div>🤖 OCR: 10/kun</div>
+                <div>📄 Obyektivka: 6/oy</div>
+                <div>📋 CV: 6/oy</div>
+                <div>🕒 Ustuvor navbat + 24/7 yordam</div>
               </div>
             </details>
           </div>
-          <div class="p-5 pt-0">
-            <button type="button" class="w-full py-3 rounded-2xl bg-apple-orange text-white font-extrabold hover:brightness-110 active:scale-[0.98] transition-all"
+          <div class="p-5 pt-0 mt-auto">
+            <button type="button" class="w-full h-12 rounded-2xl bg-apple-orange text-white font-extrabold hover:brightness-110 active:scale-[0.98] transition-all"
               onclick="openPaymentPage('premium')">
               Hozir olish
             </button>
@@ -192,13 +229,48 @@
         </div>
         <div class="p-5 space-y-4">
           <div class="rounded-2xl border border-black/5 dark:border-white/10 bg-black/[0.02] dark:bg-white/[0.03] p-4">
-            <div class="text-xs font-bold text-black/50 dark:text-white/50">💳 Karta raqami</div>
-            <div class="mt-1 text-xl font-extrabold tracking-wide" id="cardNo">9860 1201 7225 8424</div>
-            <div class="mt-3 text-xs font-bold text-black/50 dark:text-white/50">👤 Karta egasi</div>
-            <div class="mt-1 text-base font-extrabold">DILNOZA MOMINOVA</div>
-            <button type="button" class="mt-3 w-full py-3 rounded-xl bg-apple-blue/10 text-apple-blue font-extrabold hover:bg-apple-blue/20 transition-colors" onclick="copyCard()">
-              Kartani nusxa olish
-            </button>
+            <div class="flex items-center justify-between gap-3">
+              <div class="min-w-0">
+                <div class="text-[10px] font-bold text-black/40 dark:text-white/40 uppercase tracking-widest" data-i18n="premium_pay_steps" data-i18n-fallback="Qadamlar">
+                  Qadamlar
+                </div>
+                <div class="mt-1 text-sm font-extrabold text-black/80 dark:text-white/80" data-i18n="premium_pay_steps_line" data-i18n-fallback="1) To‘lov  2) Skrenshot  3) Tasdiq">
+                  1) To‘lov  2) Skrenshot  3) Tasdiq
+                </div>
+              </div>
+              <div class="shrink-0 px-3 py-2 rounded-2xl bg-white/70 dark:bg-white/5 border border-black/5 dark:border-white/10">
+                <div class="text-[10px] font-bold text-black/40 dark:text-white/40 uppercase tracking-widest" data-i18n="premium_pay_amount" data-i18n-fallback="Summa">
+                  Summa
+                </div>
+                <div class="mt-0.5 text-sm font-extrabold text-black dark:text-white" id="payAmount">—</div>
+              </div>
+            </div>
+            <div class="mt-3 text-xs font-semibold text-black/60 dark:text-white/60 leading-relaxed" data-i18n="premium_pay_hint" data-i18n-fallback="To‘lov qilgandan keyin ilova/banking ekranining skrenshotini yuboring. Skrenshotda summa va sana ko‘rinsin.">
+              To‘lov qilgandan keyin ilova/banking ekranining skrenshotini yuboring. Skrenshotda summa va sana ko‘rinsin.
+            </div>
+          </div>
+
+          <div class="rounded-2xl border border-black/5 dark:border-white/10 bg-black/[0.02] dark:bg-white/[0.03] p-4">
+            <div class="flex items-start justify-between gap-3">
+              <div class="min-w-0">
+                <div class="text-xs font-bold text-black/50 dark:text-white/50">💳 Karta raqami</div>
+                <div class="mt-1">
+                  <span class="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-white/70 dark:bg-white/5 border border-black/5 dark:border-white/10 font-extrabold tracking-wide text-base sm:text-lg select-all"
+                    id="cardNo">9860 1201 7225 8424</span>
+                </div>
+              </div>
+              <button type="button"
+                class="shrink-0 h-11 px-4 rounded-2xl bg-apple-blue text-white font-extrabold hover:bg-blue-600 active:scale-[0.98] transition-all"
+                onclick="copyCard()">
+                Nusxa
+              </button>
+            </div>
+            <div class="mt-4">
+              <div class="rounded-2xl border border-black/5 dark:border-white/10 bg-white/60 dark:bg-white/5 p-3">
+                <div class="text-[10px] font-bold text-black/40 dark:text-white/40 uppercase tracking-widest">👤 Karta egasi</div>
+                <div class="mt-1 text-sm font-extrabold text-black dark:text-white">DILNOZA MOMINOVA</div>
+              </div>
+            </div>
           </div>
 
           <div class="rounded-2xl border border-black/5 dark:border-white/10 bg-black/[0.02] dark:bg-white/[0.03] p-4">
@@ -537,6 +609,13 @@
         ? (window.DA?.t?.("premium_pay_title_standard") || "Standart to'lovi (7 kun)")
         : (window.DA?.t?.("premium_pay_title_premium") || "Premium to'lovi (30 kun)");
     }
+    try {
+      const amt = document.getElementById("payAmount");
+      const std = document.getElementById("stdPriceNow")?.textContent?.trim();
+      const pre = document.getElementById("premPriceNow")?.textContent?.trim();
+      const v = selectedPlan === "standard" ? (std || "9 999") : (pre || "29 999");
+      if (amt) amt.textContent = v + " so'm";
+    } catch (_) {}
     document.getElementById("plansSection")?.classList.add("hidden");
     document.getElementById("paymentSection")?.classList.remove("hidden");
     try {
