@@ -16,6 +16,15 @@ from bot.utils.delivery import send_docx_with_confirmation
 
 logger = logging.getLogger(__name__)
 
+def _esc(s: str) -> str:
+    return (
+        str(s or "")
+        .replace("&", "&amp;")
+        .replace("<", "&lt;")
+        .replace(">", "&gt;")
+        .replace('"', "&quot;")
+    )
+
 async def handle_smart_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Smartly handle photo upload without menu selection"""
     
@@ -131,6 +140,62 @@ async def smart_callback_handler(update: Update, context: ContextTypes.DEFAULT_T
                 text="✅ OCR ishlanmoqda. Natija tez orada yuboriladi.",
                 parse_mode="Markdown",
             )
+            return
+
+        # === CV/Resume parse (Doc -> structured summary) ===
+        if data == "smart_cv_parse":
+            await query.message.edit_text("⏳ CV tahlil qilinmoqda...")
+            file_name = context.user_data.get("smart_file_name", "document.docx") or "document.docx"
+            ext = os.path.splitext(file_name)[1].lower() or ".txt"
+
+            file_obj = await context.bot.get_file(file_id)
+            temp_path = f"smart_cv_{user_id}_{int(time.time())}{ext}"
+            await file_obj.download_to_drive(temp_path)
+
+            from bot.services.document_text_extract import extract_plain_text_from_bytes
+            from backend.services.cv_parser import parse_cv_text
+            from bot.handlers.start import WEBAPP_BASE
+            from telegram import InlineKeyboardMarkup, InlineKeyboardButton, WebAppInfo
+
+            with open(temp_path, "rb") as rf:
+                raw = rf.read()
+            text = extract_plain_text_from_bytes(file_name, raw)
+            parsed = parse_cv_text(text or "")
+
+            name = parsed.name or "—"
+            skills = parsed.skills or []
+            exp = parsed.experience or []
+
+            skills_line = ", ".join(skills[:24]) if skills else "—"
+            exp_blocks = []
+            for row in exp[:6]:
+                title = _esc(str(row.get("title", "")).strip() or "—")
+                details = _esc(str(row.get("details", "")).strip())
+                if details:
+                    if len(details) > 450:
+                        details = details[:447] + "…"
+                    exp_blocks.append(f"• <b>{title}</b>\n  <i>{details}</i>")
+                else:
+                    exp_blocks.append(f"• <b>{title}</b>")
+            exp_text = "\n".join(exp_blocks) if exp_blocks else "—"
+
+            msg = (
+                "📋 <b>CV / Rezyume tahlili</b>\n\n"
+                f"👤 <b>Ism:</b> {_esc(name)}\n"
+                f"🧠 <b>Skills:</b> {_esc(skills_line)}\n\n"
+                f"💼 <b>Tajriba (top):</b>\n{exp_text}\n\n"
+                "✅ Xohlasangiz WebApp’da CV Builder’ni ochib, <b>Avto to‘ldirish</b> orqali faylingizdan ma’lumotlarni kiritishingiz mumkin."
+            )
+
+            url = f"{WEBAPP_BASE}/cv.html?telegram_id={user_id}&lang=uz"
+            kb = InlineKeyboardMarkup([[InlineKeyboardButton("🧩 CV Builder (WebApp)", web_app=WebAppInfo(url=url))]])
+
+            try:
+                await query.message.delete()
+            except Exception:
+                pass
+            await context.bot.send_message(chat_id=chat_id, text=msg, parse_mode="HTML", reply_markup=kb)
+            record_service_completion(user_id, "cv", "Smart CV Parse")
             return
 
         # === 2. Image -> PDF ===

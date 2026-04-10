@@ -17,6 +17,9 @@ def get_smart_document_keyboard(file_ext):
     
     # Translation supports almost all docs
     buttons.append([InlineKeyboardButton("🌍 Tarjima qilish", callback_data="smart_translate")])
+
+    # CV/Resume parse (best-effort for most document types)
+    buttons.append([InlineKeyboardButton("📋 CV / Rezyume tahlil", callback_data="smart_cv_parse")])
     
     # Word/PDF specific
     if 'pdf' in file_ext or 'doc' in file_ext:
