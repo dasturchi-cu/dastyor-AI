@@ -203,11 +203,25 @@
 
           <div class="rounded-2xl border border-black/5 dark:border-white/10 bg-black/[0.02] dark:bg-white/[0.03] p-4">
             <div class="text-xs font-bold text-black/50 dark:text-white/50 mb-2">🖼 Skrenshot</div>
-            <input id="receiptInput" type="file" accept="image/*" class="w-full text-sm" />
-            <button type="button" class="mt-3 w-full py-3 rounded-2xl bg-apple-orange text-white font-extrabold hover:brightness-110 active:scale-[0.98] transition-all" onclick="submitScreenshot()">
+            <input id="receiptInput" type="file" accept="image/*" class="hidden" />
+
+            <div id="receiptDrop"
+              class="mt-1 border-2 border-dashed border-black/10 dark:border-white/10 rounded-2xl bg-white/60 dark:bg-white/5 hover:bg-black/[0.03] dark:hover:bg-white/[0.08] transition-colors p-5 text-center cursor-pointer">
+              <div class="mx-auto w-14 h-14 rounded-2xl bg-apple-orange/10 text-apple-orange flex items-center justify-center mb-3 text-2xl">🧾</div>
+              <div class="font-extrabold text-sm text-black dark:text-white">Skrenshot tanlash</div>
+              <div class="text-xs text-black/50 dark:text-white/50 mt-1">Tap yoki drag &amp; drop</div>
+            </div>
+            <div id="receiptPicked" class="hidden mt-3 rounded-2xl border border-black/5 dark:border-white/10 bg-white/70 dark:bg-white/5 p-3">
+              <div class="text-[10px] font-bold text-black/40 dark:text-white/40 uppercase tracking-widest">Tanlandi</div>
+              <div id="receiptPickedName" class="mt-1 text-xs font-semibold text-black/70 dark:text-white/70 break-all"></div>
+            </div>
+
+            <button type="button" id="btnSendReceipt"
+              class="mt-3 w-full py-3 rounded-2xl bg-apple-orange text-white font-extrabold hover:brightness-110 active:scale-[0.98] transition-all disabled:opacity-50 disabled:pointer-events-none"
+              onclick="submitScreenshot()" disabled>
               Skrenshotni yuborish
             </button>
-            <div id="uploadStatus" class="text-xs font-semibold text-black/60 dark:text-white/60 mt-2"></div>
+            <div id="uploadStatus" class="mt-2 hidden items-center gap-2 p-3 rounded-xl text-sm font-semibold max-w-full leading-tight border"></div>
           </div>
         </div>
       </section>
@@ -513,6 +527,7 @@
   });
 
   let selectedPlan = "premium";
+  let _premiumReceiptFile = null;
 
   function openPaymentPage(plan) {
     selectedPlan = plan === "standard" ? "standard" : "premium";
@@ -524,7 +539,19 @@
     }
     document.getElementById("plansSection")?.classList.add("hidden");
     document.getElementById("paymentSection")?.classList.remove("hidden");
-    document.getElementById("uploadStatus").textContent = "";
+    try {
+      _premiumReceiptFile = null;
+      const input = document.getElementById("receiptInput");
+      const picked = document.getElementById("receiptPicked");
+      const pickedName = document.getElementById("receiptPickedName");
+      const btn = document.getElementById("btnSendReceipt");
+      const st = document.getElementById("uploadStatus");
+      if (input) input.value = "";
+      if (picked) picked.classList.add("hidden");
+      if (pickedName) pickedName.textContent = "";
+      if (btn) btn.disabled = true;
+      if (st) { st.className = "mt-2 hidden items-center gap-2 p-3 rounded-xl text-sm font-semibold max-w-full leading-tight border"; st.textContent = ""; }
+    } catch (_) {}
     window.Telegram?.WebApp?.HapticFeedback?.impactOccurred?.("light");
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
@@ -624,16 +651,25 @@
   async function submitScreenshot() {
     const input = document.getElementById("receiptInput");
     const st = document.getElementById("uploadStatus");
-    const file = input?.files?.[0];
+    const file = _premiumReceiptFile || input?.files?.[0];
     if (!file) {
-      if (st) st.textContent = (window.DA?.t?.("premium_upload_need_image") || "❌ Avval rasm yuklang.");
+      if (st) {
+        st.className = "mt-2 flex items-center gap-2 p-3 rounded-xl text-sm font-semibold max-w-full leading-tight border border-red-500/20 bg-red-500/10 text-red-600";
+        st.innerHTML = "<span>⚠️</span><span>" + (window.DA?.t?.("premium_upload_need_image") || "Avval rasm yuklang.") + "</span>";
+      }
       return;
     }
     if (!String(file.type || "").startsWith("image/")) {
-      if (st) st.textContent = (window.DA?.t?.("premium_upload_only_image") || "❌ Faqat rasm yuklash mumkin.");
+      if (st) {
+        st.className = "mt-2 flex items-center gap-2 p-3 rounded-xl text-sm font-semibold max-w-full leading-tight border border-red-500/20 bg-red-500/10 text-red-600";
+        st.innerHTML = "<span>⚠️</span><span>" + (window.DA?.t?.("premium_upload_only_image") || "Faqat rasm yuklash mumkin.") + "</span>";
+      }
       return;
     }
-    if (st) st.textContent = (window.DA?.t?.("premium_upload_sending_admin") || "⏳ Adminga yuborilmoqda...");
+    if (st) {
+      st.className = "mt-2 flex items-center gap-2 p-3 rounded-xl text-sm font-semibold max-w-full leading-tight border border-black/10 bg-black/5 text-black/70 dark:border-white/10 dark:bg-white/5 dark:text-white/70";
+      st.innerHTML = "<span>⏳</span><span>" + (window.DA?.t?.("premium_upload_sending_admin") || "Adminga yuborilmoqda...") + "</span>";
+    }
 
     try {
       function buildFormData() {
@@ -728,18 +764,76 @@
         fake._data = data;
         throw fake;
       }
-      if (st) st.textContent = "✅ Yuborildi. Admin tasdiqlashini kuting.";
+      if (st) {
+        st.className = "mt-2 flex items-center gap-2 p-3 rounded-xl text-sm font-semibold max-w-full leading-tight border border-apple-green/20 bg-apple-green/10 text-apple-green";
+        st.innerHTML = "<span>✅</span><span>Yuborildi. Admin tasdiqlashini kuting.</span>";
+      }
       window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred?.("success");
-      if (input) input.value = "";
+      try {
+        if (input) input.value = "";
+        _premiumReceiptFile = null;
+        const picked = document.getElementById("receiptPicked");
+        const pickedName = document.getElementById("receiptPickedName");
+        const btn = document.getElementById("btnSendReceipt");
+        if (picked) picked.classList.add("hidden");
+        if (pickedName) pickedName.textContent = "";
+        if (btn) btn.disabled = true;
+      } catch (_) {}
     } catch (e) {
       var resp = e && e._resp;
       var data = e && e._data;
       if (st) {
-        st.textContent = "❌ " + humanizePremiumUploadError(e, resp, data);
+        st.className = "mt-2 flex items-center gap-2 p-3 rounded-xl text-sm font-semibold max-w-full leading-tight border border-red-500/20 bg-red-500/10 text-red-600";
+        st.innerHTML = "<span>❌</span><span>" + humanizePremiumUploadError(e, resp, data) + "</span>";
       }
       window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred?.("error");
     }
   }
+
+  function _bindPremiumReceiptPicker() {
+    const input = document.getElementById("receiptInput");
+    const drop = document.getElementById("receiptDrop");
+    const picked = document.getElementById("receiptPicked");
+    const pickedName = document.getElementById("receiptPickedName");
+    const btn = document.getElementById("btnSendReceipt");
+    if (!input || !drop || !btn) return;
+
+    function setPickedFile(f) {
+      _premiumReceiptFile = f || null;
+      if (_premiumReceiptFile) {
+        if (picked) picked.classList.remove("hidden");
+        if (pickedName) pickedName.textContent = `${_premiumReceiptFile.name} (${Math.round((_premiumReceiptFile.size || 0) / 1024)} KB)`;
+        btn.disabled = false;
+      } else {
+        if (picked) picked.classList.add("hidden");
+        if (pickedName) pickedName.textContent = "";
+        btn.disabled = true;
+      }
+    }
+
+    drop.addEventListener("click", () => input.click());
+    input.addEventListener("change", () => setPickedFile(input.files && input.files[0]));
+
+    ["dragenter", "dragover"].forEach((ev) => drop.addEventListener(ev, (e) => {
+      e.preventDefault(); e.stopPropagation();
+      drop.classList.add("ring-2", "ring-apple-orange/40", "bg-apple-orange/5");
+    }));
+    ["dragleave", "drop"].forEach((ev) => drop.addEventListener(ev, (e) => {
+      e.preventDefault(); e.stopPropagation();
+      drop.classList.remove("ring-2", "ring-apple-orange/40", "bg-apple-orange/5");
+    }));
+    drop.addEventListener("drop", (e) => {
+      const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+      if (!f) return;
+      try { const dt = new DataTransfer(); dt.items.add(f); input.files = dt.files; } catch (_) {}
+      setPickedFile(f);
+      try { window.Telegram?.WebApp?.HapticFeedback?.impactOccurred?.("light"); } catch (_) {}
+    });
+  }
+
+  try {
+    document.addEventListener("DOMContentLoaded", () => _bindPremiumReceiptPicker());
+  } catch (_) {}
 </script>
 </body>
 </html>
