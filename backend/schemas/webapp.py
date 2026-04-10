@@ -40,6 +40,13 @@ class TranslateRequest(BaseModel):
     token: Optional[str] = None
 
 
+class TranslateAutoRequest(BaseModel):
+    text: str
+    target_lang: str = Field(..., description="uz|ru|en")
+    telegram_id: Optional[int] = None
+    token: Optional[str] = None
+
+
 class SpellcheckRequest(BaseModel):
     text: str
     telegram_id: Optional[int] = None

@@ -164,7 +164,7 @@
             <span data-i18n="spell_file_desc" data-i18n-fallback="Fayl serverga yuboriladi, matn ajratiladi va imlo tekshiriladi. Natijani bu yerdan yuklab oling yoki Telegram chatga yuborishni tanlang.">Fayl serverga yuboriladi, matn ajratiladi va imlo tekshiriladi. Natijani bu yerdan yuklab oling yoki Telegram chatga yuborishni tanlang.</span>
           </div>
 
-          <input type="file" id="fileInput" accept=".txt,.docx,.pptx,.pdf,text/plain,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.presentationml.presentation,application/pdf" class="hidden" />
+          <input type="file" id="fileInput" accept=".txt,.docx,.pptx,.pdf,.xlsx,text/plain,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.presentationml.presentation,application/pdf,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" class="hidden" />
           <div id="dropZone"
             class="mt-4 border-2 border-dashed border-black/10 dark:border-white/10 rounded-2xl bg-black/[0.02] dark:bg-white/[0.03] hover:bg-black/[0.04] dark:hover:bg-white/[0.06] transition-colors p-6 text-center cursor-pointer">
             <div class="mx-auto w-14 h-14 rounded-2xl bg-apple-blue/10 text-apple-blue flex items-center justify-center mb-4">
@@ -181,6 +181,7 @@
               <span class="px-3 py-1 rounded-full text-xs font-bold bg-black/5 dark:bg-white/5 text-black/50 dark:text-white/50 border border-black/5 dark:border-white/10">DOCX</span>
               <span class="px-3 py-1 rounded-full text-xs font-bold bg-black/5 dark:bg-white/5 text-black/50 dark:text-white/50 border border-black/5 dark:border-white/10">PPTX</span>
               <span class="px-3 py-1 rounded-full text-xs font-bold bg-black/5 dark:bg-white/5 text-black/50 dark:text-white/50 border border-black/5 dark:border-white/10">PDF</span>
+              <span class="px-3 py-1 rounded-full text-xs font-bold bg-black/5 dark:bg-white/5 text-black/50 dark:text-white/50 border border-black/5 dark:border-white/10">XLSX</span>
             </div>
           </div>
 
@@ -370,7 +371,7 @@
 
     function validateExt(name) {
       const ext = (name.split('.').pop() || '').toLowerCase();
-      return ['docx', 'pptx', 'txt', 'pdf'].includes(ext);
+      return ['docx', 'pptx', 'txt', 'pdf', 'xlsx'].includes(ext);
     }
 
     function apiBaseUrl() {
@@ -473,7 +474,7 @@
       const f = fi.files && fi.files[0];
       if (!f) return;
       if (!validateExt(f.name)) {
-        showStatus('statusFile', 'error', 'Faqat .txt, .docx, .pptx yoki .pdf qabul qilinadi.');
+        showStatus('statusFile', 'error', 'Faqat .txt, .docx, .pptx, .pdf yoki .xlsx qabul qilinadi.');
         fi.value = '';
         return;
       }
@@ -493,7 +494,7 @@
       const f = e.dataTransfer?.files?.[0];
       if (!f) return;
       if (!validateExt(f.name)) {
-        showStatus('statusFile', 'error', 'Faqat .txt, .docx, .pptx yoki .pdf qabul qilinadi.');
+        showStatus('statusFile', 'error', 'Faqat .txt, .docx, .pptx, .pdf yoki .xlsx qabul qilinadi.');
         return;
       }
       try { const dt = new DataTransfer(); dt.items.add(f); fi.files = dt.files; } catch (_) {}

@@ -208,6 +208,24 @@
           </div>
         </div>
 
+        <!-- CV PARSER: upload an existing CV and autofill fields -->
+        <div class="bg-white/60 p-4 rounded-2xl mb-6 shadow-sm border border-blue-100">
+          <div class="text-xs font-extrabold text-slate-700 mb-2">📥 CV faylni tahlil qilish (Avto to‘ldirish)</div>
+          <div class="flex flex-col sm:flex-row gap-2 items-stretch">
+            <input type="file" id="cvParseInput" class="hidden" accept=".txt,.docx,.pptx,.pdf,.xlsx,text/plain,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.presentationml.presentation,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" />
+            <button type="button" class="px-4 py-3 bg-white border border-slate-200 text-slate-700 rounded-xl font-bold text-sm hover:bg-slate-50 transition-all"
+              onclick="document.getElementById('cvParseInput').click()">
+              📎 Fayl tanlash
+            </button>
+            <button type="button" id="cvParseBtn" class="btn-primary px-4 py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 disabled:opacity-50 disabled:pointer-events-none"
+              onclick="parseCvAndFill()" disabled>
+              ⚡ Avto to‘ldirish
+            </button>
+          </div>
+          <div id="cvParsePicked" class="text-xs text-slate-600 mt-2"></div>
+          <div id="cvParseStatus" class="text-xs text-slate-700 mt-1"></div>
+        </div>
+
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
           <div>
             <label class="text-xs text-slate-500 font-bold mb-1 block" data-i18n="name">Ism Familiya</label>
@@ -1409,6 +1427,75 @@
         window.addEventListener('dastyor:profile-updated', () => syncCvQuotaUi());
       } catch (_) {}
     });
+
+    // --- CV Parser (upload existing CV -> autofill) ---
+    let _cvParseFile = null;
+    (function bindCvParsePicker() {
+      const inp = document.getElementById('cvParseInput');
+      const btn = document.getElementById('cvParseBtn');
+      const picked = document.getElementById('cvParsePicked');
+      const status = document.getElementById('cvParseStatus');
+      if (!inp || !btn) return;
+      inp.addEventListener('change', () => {
+        const f = inp.files && inp.files[0];
+        _cvParseFile = f || null;
+        if (picked) picked.textContent = f ? `Tanlandi: ${f.name} (${Math.round((f.size || 0) / 1024)} KB)` : '';
+        if (status) status.textContent = '';
+        btn.disabled = !f;
+      });
+    })();
+
+    async function parseCvAndFill() {
+      const f = _cvParseFile;
+      const status = document.getElementById('cvParseStatus');
+      const btn = document.getElementById('cvParseBtn');
+      if (!f) {
+        if (status) status.textContent = "Avval fayl tanlang.";
+        return;
+      }
+      if (btn) btn.disabled = true;
+      if (status) status.textContent = "⏳ Tahlil qilinmoqda...";
+      try {
+        const base = getCvApiBase();
+        const fd = new FormData();
+        fd.append('file', f, f.name);
+        if (telegramId && /^\d+$/.test(String(telegramId))) fd.append('telegram_id', String(telegramId));
+        const tok = (window.DastyorAI && window.DastyorAI.getToken) ? window.DastyorAI.getToken() : (sessionStorage.getItem('tg_token') || '');
+        if (tok) fd.append('token', tok);
+        const r = await fetch(base + '/api/cv_parse', { method: 'POST', body: fd });
+        const data = await r.json().catch(() => ({}));
+        if (!r.ok) throw new Error(data.detail || ('Server ' + r.status));
+
+        // Fill fields (best-effort)
+        if (data.name) {
+          const n = String(data.name).trim();
+          if (n) document.getElementById('f_name').value = n;
+        }
+        if (Array.isArray(data.skills) && data.skills.length) {
+          const add = data.skills.map((x) => String(x || '').trim()).filter(Boolean);
+          skillsData = Array.from(new Set([...(skillsData || []), ...add])).slice(0, 60);
+          renderSkills();
+          renderSuggestedSkills();
+        }
+        if (Array.isArray(data.experience) && data.experience.length) {
+          // Map to expData (title/place/date best-effort from "title" line)
+          const mapped = data.experience.map((row) => {
+            const titleLine = String(row.title || '').trim();
+            return { title: titleLine, place: '', date: '', desc: String(row.details || '').trim() };
+          }).filter((x) => x.title);
+          if (mapped.length) {
+            expData = mapped.slice(0, 10);
+            renderList('expList', expData, 'exp');
+          }
+        }
+        triggerUpdate(true, { immediatePreview: true });
+        if (status) status.textContent = "✅ Tayyor. Maydonlar to‘ldirildi (tekshirib chiqing).";
+      } catch (e) {
+        if (status) status.textContent = "❌ Xatolik: " + (e?.message || String(e));
+      } finally {
+        if (btn) btn.disabled = !_cvParseFile;
+      }
+    }
 
   </script>
 </body>

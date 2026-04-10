@@ -19,6 +19,7 @@ from backend.schemas.webapp import (
     ObjectiveRequest,
     SpellcheckRequest,
     SupportRequest,
+    TranslateAutoRequest,
     TranslateRequest,
     TranslitRequest,
 )
@@ -42,6 +43,8 @@ from backend.web_constants import (
     WEBAPP_VERSION,
 )
 from backend.services.auto_script import auto_cyrillic_latin
+from backend.services.supabase_storage import create_signed_url, upload_bytes_for_user
+from backend.services.cv_parser import parse_cv_text
 
 logger = logging.getLogger(__name__)
 SPELLCHECK_FILE_MAX_CHARS = int(os.getenv("SPELLCHECK_FILE_MAX_CHARS", "150000"))
@@ -239,6 +242,24 @@ async def api_translit_auto(req: SpellcheckRequest):
             from bot.services.plan_limits import CAT_TRANSLIT
 
             quota = web_quota_commit_success(uid, CAT_TRANSLIT, "Web translit auto")
+            try:
+                from bot.utils.action_logger import log_action_fire_and_forget
+
+                log_action_fire_and_forget(
+                    telegram_id=int(uid),
+                    username=None,
+                    action_type="TRANSLIT_AUTO",
+                    details="web:auto",
+                    metadata={
+                        "detected": res.detected,
+                        "direction": res.direction,
+                        "chars": len(req.text or ""),
+                        "latin": (res.stats or {}).get("latin"),
+                        "cyrillic": (res.stats or {}).get("cyrillic"),
+                    },
+                )
+            except Exception:
+                pass
         return {
             "ok": True,
             "result": res.result,
@@ -495,6 +516,94 @@ async def api_translate(req: TranslateRequest):
         raise
     except Exception as e:
         logger.error("Translate API error: %s", e, exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Tarjima serveri xatosi: {str(e)[:200]}")
+
+
+@router.post("/api/translate_auto")
+async def api_translate_auto(req: TranslateAutoRequest):
+    """
+    Auto source detection (no source selection).
+    Client provides only target_lang (uz|ru|en).
+    """
+    if not req.text or not req.text.strip():
+        raise HTTPException(status_code=400, detail="Matn bo'sh bo'lishi mumkin emas")
+    if len(req.text) > TRANSLATE_MAX_CHARS:
+        raise HTTPException(status_code=400, detail="Matn 5000 belgidan oshmasligi kerak")
+
+    tgt = (req.target_lang or "").strip().lower()
+    if tgt not in {"uz", "ru", "en"}:
+        raise HTTPException(status_code=400, detail="target_lang noto'g'ri (uz|ru|en)")
+
+    # best-effort source detection
+    src = "uz"
+    try:
+        from langdetect import detect  # type: ignore
+
+        sample = (req.text or "").strip().replace("\u0000", "")[:2500]
+        d = (detect(sample) or "").lower()
+        if d.startswith("ru"):
+            src = "ru"
+        elif d.startswith("en"):
+            src = "en"
+        else:
+            src = "uz"
+    except Exception:
+        src = "uz"
+
+    uid = _resolve_web_uid_optional(req.telegram_id, req.token)
+    quota = None
+    try:
+        if src == tgt:
+            result = req.text.strip()
+            direction = "none"
+        else:
+            direction_map = {
+                ("uz", "en"): "uz_en",
+                ("en", "uz"): "en_uz",
+                ("ru", "uz"): "ru_uz",
+                ("uz", "ru"): "uz_ru",
+                ("ru", "en"): "ru_en",
+                ("en", "ru"): "en_ru",
+            }
+            direction = direction_map.get((src, tgt))
+            if not direction:
+                raise HTTPException(status_code=400, detail=f"translate yo'nalishi topilmadi: {src}->{tgt}")
+            from bot.services.ai_service import is_meaningfully_changed, translate_text
+
+            result = await translate_text(req.text, direction)
+            if not result or result.startswith("Tarjimada xato") or result.startswith("Tarjima vaqtincha") or result.startswith("AI model"):
+                raise HTTPException(status_code=502, detail=result or "Tarjima bo'sh qaytdi")
+            if not is_meaningfully_changed(req.text, result):
+                raise HTTPException(status_code=422, detail="Tarjima natijasi original bilan bir xil chiqdi")
+
+        if uid and direction != "none":
+            from bot.services.plan_limits import CAT_TRANSLATE
+
+            quota = web_quota_commit_success(uid, CAT_TRANSLATE, "Web translate auto")
+            try:
+                from bot.utils.action_logger import log_action_fire_and_forget
+
+                log_action_fire_and_forget(
+                    telegram_id=int(uid),
+                    username=None,
+                    action_type="TRANSLATE_AUTO",
+                    details=f"web:{src}->{tgt}",
+                    metadata={"source_lang": src, "target_lang": tgt, "chars": len(req.text or "")},
+                )
+            except Exception:
+                pass
+        return {
+            "ok": True,
+            "translated_text": result,
+            "source_lang": src,
+            "target_lang": tgt,
+            "direction": direction,
+            "quota": quota,
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("Translate auto API error: %s", e, exc_info=True)
         raise HTTPException(status_code=500, detail=f"Tarjima serveri xatosi: {str(e)[:200]}")
 
 
@@ -758,6 +867,173 @@ async def api_spellcheck_file(
     return out
 
 
+@router.post("/api/process_file")
+async def api_process_file(
+    file: UploadFile = File(...),
+    action: str = Form(..., description="spellcheck|translit_auto|translate_auto"),
+    target_lang: Optional[str] = Form(None, description="uz|ru|en (for translate_auto)"),
+    token: Optional[str] = Form(None),
+    telegram_id: Optional[str] = Form(None),
+):
+    """
+    Unified pipeline:
+      upload -> (Supabase Storage if configured) -> extract text -> process -> structured JSON
+    """
+    uid = resolve_telegram_uid(telegram_id, token)
+    uid_int = int(uid) if uid else None
+
+    try:
+        raw = await read_upload_limited(file)
+    except EmptyUploadError:
+        raise HTTPException(status_code=400, detail="Bo'sh fayl")
+    except UploadTooLargeError as e:
+        raise HTTPException(status_code=413, detail=str(e))
+
+    fname = file.filename or "upload.txt"
+    # content-type based extension fallback (same approach as spellcheck_file)
+    if "." not in fname:
+        ct = (file.content_type or "").lower()
+        if "spreadsheetml" in ct or "excel" in ct:
+            fname = fname + ".xlsx"
+        elif "wordprocessingml" in ct:
+            fname = fname + ".docx"
+        elif "presentationml" in ct or "powerpoint" in ct:
+            fname = fname + ".pptx"
+        elif "pdf" in ct:
+            fname = fname + ".pdf"
+        elif "text" in ct:
+            fname = fname + ".txt"
+
+    st = None
+    try:
+        if uid_int:
+            st = upload_bytes_for_user(telegram_id=uid_int, filename=fname, raw=raw)
+    except Exception:
+        st = None
+
+    try:
+        from bot.services.document_text_extract import extract_plain_text_from_bytes
+
+        text = extract_plain_text_from_bytes(fname, raw)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
+
+    if not (text or "").strip():
+        raise HTTPException(status_code=422, detail="Fayldan matn ajratilmadi")
+
+    act = (action or "").strip().lower()
+    if act not in {"spellcheck", "translit_auto", "translate_auto"}:
+        raise HTTPException(status_code=400, detail="action noto'g'ri")
+
+    result_text = ""
+    meta: dict = {"filename": fname, "chars": len(text)}
+
+    if act == "spellcheck":
+        from bot.services.ai_service import check_spelling_text
+
+        corrected, fixes = await check_spelling_text(text)
+        result_text = corrected
+        meta["fixed"] = int(fixes or 0)
+
+    elif act == "translit_auto":
+        res = auto_cyrillic_latin(text)
+        result_text = res.result
+        meta["detected"] = res.detected
+        meta["direction"] = res.direction
+        meta["stats"] = res.stats
+
+    else:
+        # translate_auto: detect source language, ask only for target_lang if needed
+        tgt = (target_lang or "").strip().lower()
+        if tgt not in {"uz", "ru", "en"}:
+            raise HTTPException(status_code=400, detail="target_lang kerak (uz|ru|en)")
+
+        # Detect source (best-effort)
+        src = "uz"
+        try:
+            from langdetect import detect  # type: ignore
+
+            sample = (text or "").strip().replace("\u0000", "")
+            sample = sample[:2500]
+            d = (detect(sample) or "").lower()
+            if d.startswith("ru"):
+                src = "ru"
+            elif d.startswith("en"):
+                src = "en"
+            else:
+                src = "uz"
+        except Exception:
+            src = "uz"
+
+        if src == tgt:
+            result_text = text
+            meta["source_lang"] = src
+            meta["target_lang"] = tgt
+            meta["direction"] = "none"
+        else:
+            direction_map = {
+                ("uz", "en"): "uz_en",
+                ("en", "uz"): "en_uz",
+                ("ru", "uz"): "ru_uz",
+                ("uz", "ru"): "uz_ru",
+                ("ru", "en"): "ru_en",
+                ("en", "ru"): "en_ru",
+            }
+            direction = direction_map.get((src, tgt))
+            if not direction:
+                raise HTTPException(status_code=400, detail=f"translate yo'nalishi topilmadi: {src}->{tgt}")
+            from bot.services.ai_service import translate_text
+
+            out = await translate_text(text, direction)
+            if not out or out.startswith("Tarjima vaqtincha") or out.startswith("Tarjimada xato"):
+                raise HTTPException(status_code=502, detail=out or "Tarjima bo'sh qaytdi")
+            result_text = out
+            meta["source_lang"] = src
+            meta["target_lang"] = tgt
+            meta["direction"] = direction
+
+    signed = None
+    if st and st.bucket and st.path:
+        signed = create_signed_url(bucket=st.bucket, path=st.path, expires_in=3600)
+
+    # Telemetry (never block response)
+    try:
+        if uid_int:
+            from bot.utils.action_logger import log_action_fire_and_forget
+
+            log_action_fire_and_forget(
+                telegram_id=int(uid_int),
+                username=None,
+                action_type="PROCESS_FILE",
+                details=f"web:{act}",
+                metadata={
+                    "filename": fname,
+                    "bytes": len(raw),
+                    "chars": len(text or ""),
+                    "target_lang": target_lang,
+                    "storage_bucket": st.bucket if st else None,
+                },
+            )
+    except Exception:
+        pass
+
+    return {
+        "ok": True,
+        "action": act,
+        "text": result_text,
+        "meta": meta,
+        "storage": (
+            {
+                "bucket": st.bucket,
+                "path": st.path,
+                "public_url": st.public_url,
+                "signed_url": signed,
+            }
+            if st
+            else None
+        ),
+    }
+
 @router.post("/api/objective")
 async def api_objective(req: ObjectiveRequest):
     role = (req.role or "").strip()
@@ -801,3 +1077,97 @@ async def api_objective(req: ObjectiveRequest):
     except Exception as e:
         logger.error("Objective API error: %s", e, exc_info=True)
         raise HTTPException(status_code=500, detail=f"Objective server xatosi: {str(e)[:200]}")
+
+
+@router.post("/api/cv_parse")
+async def api_cv_parse(
+    file: UploadFile = File(...),
+    token: Optional[str] = Form(None),
+    telegram_id: Optional[str] = Form(None),
+):
+    """
+    CV/Objectives parser:
+      - Extract text from DOCX/PDF/PPTX/TXT/XLSX
+      - Return structured result: name, skills, experience
+    """
+    uid = resolve_telegram_uid(telegram_id, token)
+    uid_int = int(uid) if uid else None
+    try:
+        raw = await read_upload_limited(file)
+    except EmptyUploadError:
+        raise HTTPException(status_code=400, detail="Bo'sh fayl")
+    except UploadTooLargeError as e:
+        raise HTTPException(status_code=413, detail=str(e))
+
+    fname = file.filename or "cv.txt"
+    if "." not in fname:
+        ct = (file.content_type or "").lower()
+        if "wordprocessingml" in ct:
+            fname += ".docx"
+        elif "presentationml" in ct or "powerpoint" in ct:
+            fname += ".pptx"
+        elif "pdf" in ct:
+            fname += ".pdf"
+        elif "spreadsheetml" in ct or "excel" in ct:
+            fname += ".xlsx"
+        else:
+            fname += ".txt"
+
+    storage = None
+    try:
+        if uid_int:
+            storage = upload_bytes_for_user(telegram_id=uid_int, filename=fname, raw=raw)
+    except Exception:
+        storage = None
+
+    try:
+        from bot.services.document_text_extract import extract_plain_text_from_bytes
+
+        text = extract_plain_text_from_bytes(fname, raw)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
+
+    if not (text or "").strip():
+        raise HTTPException(status_code=422, detail="Fayldan matn ajratilmadi")
+
+    parsed = parse_cv_text(text)
+
+    try:
+        if uid_int:
+            from bot.utils.action_logger import log_action_fire_and_forget
+
+            log_action_fire_and_forget(
+                telegram_id=int(uid_int),
+                username=None,
+                action_type="CV_PARSE",
+                details="web:file",
+                metadata={
+                    "filename": fname,
+                    "bytes": len(raw),
+                    "chars": len(text or ""),
+                    "skills": len(parsed.skills or []),
+                    "experience": len(parsed.experience or []),
+                    "has_name": bool(parsed.name),
+                },
+            )
+    except Exception:
+        pass
+
+    return {
+        "ok": True,
+        "filename": fname,
+        "name": parsed.name,
+        "skills": parsed.skills,
+        "experience": parsed.experience,
+        "sections": parsed.raw_sections,
+        "storage": (
+            {
+                "bucket": storage.bucket,
+                "path": storage.path,
+                "public_url": storage.public_url,
+                "signed_url": create_signed_url(bucket=storage.bucket, path=storage.path, expires_in=3600),
+            }
+            if storage
+            else None
+        ),
+    }

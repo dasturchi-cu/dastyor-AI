@@ -10,8 +10,6 @@
     <link
         href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Outfit:wght@500;600;700;800&display=swap"
         rel="stylesheet" />
-
-    <!-- Tailwind -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -43,54 +41,33 @@
             }
         }
     </script>
-
     <style>
-        html,
-        body {
+        html, body {
             -webkit-tap-highlight-color: transparent;
             overscroll-behavior-y: none;
         }
         body { background: var(--bg-color); color: var(--text-color); min-height: 100vh; }
-
-
-        .scroller::-webkit-scrollbar {
-            width: 0px;
-        }
-
-        /* Shimmer for translation */
+        .scroller::-webkit-scrollbar { width: 0px; }
         .loading-shimmer {
-            background: linear-gradient(90deg, rgba(255, 255, 255, 0.05) 25%, rgba(255, 255, 255, 0.1) 50%, rgba(255, 255, 255, 0.05) 75%);
+            background: linear-gradient(90deg, rgba(255,255,255,0.05) 25%, rgba(255,255,255,0.1) 50%, rgba(255,255,255,0.05) 75%);
             background-size: 200% 100%;
             animation: shimmer 1.5s infinite;
         }
-
         @keyframes shimmer {
-            0% {
-                background-position: 200% 0
-            }
-
-            100% {
-                background-position: -200% 0
-            }
+            0%   { background-position: 200% 0 }
+            100% { background-position: -200% 0 }
         }
-
-        .lang-select {
-            -webkit-appearance: none;
-            appearance: none;
-        }
+        .lang-select { -webkit-appearance: none; appearance: none; }
     </style>
 </head>
 
 <body class="antialiased selection:bg-apple-blue selection:text-white flex flex-col h-screen overflow-hidden">
 
-    <!-- Global Header -->
-    <header
-        class="h-16 flex-shrink-0 border-b border-black/5 dark:border-white/5 bg-white/80 dark:bg-[#0a0a0c]/80 backdrop-blur-xl flex items-center px-4 z-50">
+    <header class="h-16 flex-shrink-0 border-b border-black/5 dark:border-white/5 bg-white/80 dark:bg-[#0a0a0c]/80 backdrop-blur-xl flex items-center px-4 z-50">
         <a href="more.html"
             class="w-10 h-10 rounded-xl bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 transition-colors flex items-center justify-center shrink-0"
             id="backBtn">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
-                stroke-linecap="round" stroke-linejoin="round">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                 <path d="m15 18-6-6 6-6" />
             </svg>
         </a>
@@ -99,8 +76,7 @@
                 <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M5 8h10"/><path d="M10 5v3c0 4-2.5 6.5-5 8"/><path d="M16 13h4"/><path d="m16 13-3 6-3-6"/></svg>
                 <span data-i18n="translate_title">Tarjima AI</span>
             </h1>
-            <p class="text-[10px] font-semibold text-black/40 dark:text-white/40 uppercase tracking-widest"><span
-                    id="engineLabel">Gemini & Google</span></p>
+            <p class="text-[10px] font-semibold text-black/40 dark:text-white/40 uppercase tracking-widest"><span id="engineLabel">Gemini & Google</span></p>
         </div>
     </header>
 
@@ -109,53 +85,29 @@
 
             <div id="translateQuotaWarn" class="hidden rounded-xl border border-red-200 bg-red-50 dark:bg-red-950/40 text-red-800 dark:text-red-200 text-xs font-semibold px-3 py-2 text-center" role="alert"></div>
 
-            <!-- Lang Bar -->
-            <div
-                class="flex items-center gap-3 bg-white dark:bg-[#151518] border border-black/5 dark:border-white/5 rounded-2xl p-2 animate-slide-up shadow-sm">
-                <div class="flex-1 relative">
-                    <select
-                        class="lang-select w-full bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 text-sm font-bold text-black dark:text-white rounded-xl px-4 py-3 outline-none transition-colors cursor-pointer"
-                        id="srcLang">
-                        <option value="uz" data-i18n="lang_uz" data-i18n-fallback="🇺🇿 O'zbekcha">🇺🇿 O'zbekcha</option>
-                        <option value="en" data-i18n="lang_en" data-i18n-fallback="🇬🇧 Inglizcha">🇬🇧 Inglizcha</option>
-                        <option value="ru" data-i18n="lang_ru" data-i18n-fallback="🇷🇺 Ruscha">🇷🇺 Ruscha</option>
-                    </select>
-                    <div class="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none opacity-50">▼</div>
+            <div class="flex items-center gap-3 bg-white dark:bg-[#151518] border border-black/5 dark:border-white/5 rounded-2xl p-2 animate-slide-up shadow-sm">
+                <div class="flex-1">
+                    <div class="w-full bg-black/5 dark:bg-white/5 text-sm font-extrabold text-black/70 dark:text-white/70 rounded-xl px-4 py-3">
+                        <span data-i18n="translate_src_auto" data-i18n-fallback="Manba: Avto aniqlanadi">Manba: Avto aniqlanadi</span>
+                    </div>
                 </div>
-
-                <button
-                    class="w-10 h-10 rounded-xl bg-apple-blue text-white flex items-center justify-center font-bold text-lg hover:bg-blue-600 active:scale-95 transition-all shadow-md shadow-apple-blue/20 shrink-0"
-                    onclick="swapLangs()">
-                    ⇆
-                </button>
-
                 <div class="flex-1 relative">
-                    <select
-                        class="lang-select w-full bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 text-sm font-bold text-black dark:text-white rounded-xl px-4 py-3 outline-none transition-colors cursor-pointer"
-                        id="tgtLang">
-                        <option value="en" selected data-i18n="lang_en" data-i18n-fallback="🇬🇧 Inglizcha">🇬🇧 Inglizcha</option>
-                        <option value="uz" data-i18n="lang_uz" data-i18n-fallback="🇺🇿 O'zbekcha">🇺🇿 O'zbekcha</option>
-                        <option value="ru" data-i18n="lang_ru" data-i18n-fallback="🇷🇺 Ruscha">🇷🇺 Ruscha</option>
+                    <select class="lang-select w-full bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 text-sm font-bold text-black dark:text-white rounded-xl px-4 py-3 outline-none transition-colors cursor-pointer" id="tgtLang">
+                        <option value="en" selected data-i18n="lang_en">🇬🇧 Inglizcha</option>
+                        <option value="uz" data-i18n="lang_uz">🇺🇿 O'zbekcha</option>
+                        <option value="ru" data-i18n="lang_ru">🇷🇺 Ruscha</option>
                     </select>
                     <div class="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none opacity-50">▼</div>
                 </div>
             </div>
 
-            <!-- Translate Box Wrapper -->
             <div class="flex flex-col md:flex-row gap-4 flex-1 h-full min-h-[400px]">
-
-                <!-- INPUT PANEL -->
-                <div class="flex-1 flex flex-col bg-white dark:bg-[#151518] border border-black/5 dark:border-white/5 rounded-[24px] overflow-hidden shadow-sm animate-slide-up"
-                    style="animation-delay: 0.1s;">
-                    <div
-                        class="flex items-center justify-between px-5 py-3 border-b border-black/5 dark:border-white/5 bg-black/[0.02] dark:bg-white/[0.02]">
-                        <span class="text-[11px] font-bold text-apple-blue uppercase tracking-widest"
-                            id="srcLangLabel">O'zbekcha</span>
+                <div class="flex-1 flex flex-col bg-white dark:bg-[#151518] border border-black/5 dark:border-white/5 rounded-[24px] overflow-hidden shadow-sm animate-slide-up" style="animation-delay: 0.1s;">
+                    <div class="flex items-center justify-between px-5 py-3 border-b border-black/5 dark:border-white/5 bg-black/[0.02] dark:bg-white/[0.02]">
+                        <span class="text-[11px] font-bold text-apple-blue uppercase tracking-widest" id="srcLangLabel">O'zbekcha</span>
                         <div class="flex items-center gap-3">
-                            <span class="text-[10px] font-bold text-black/30 dark:text-white/30" id="charCount">0 /
-                                5000</span>
-                            <button onclick="clearSrc()"
-                                class="text-black/30 dark:text-white/30 hover:text-black dark:hover:text-white transition-colors">✕</button>
+                            <span class="text-[10px] font-bold text-black/30 dark:text-white/30" id="charCount">0 / 5000</span>
+                            <button onclick="clearSrc()" class="text-black/30 dark:text-white/30 hover:text-black dark:hover:text-white transition-colors">✕</button>
                         </div>
                     </div>
                     <textarea
@@ -163,32 +115,22 @@
                         id="srcText" placeholder="Matnni bu yerga kiriting..." data-i18n-ph="translate_input_placeholder" oninput="onInput()"></textarea>
                 </div>
 
-                <!-- OUTPUT PANEL -->
-                <div class="flex-1 flex flex-col bg-apple-blue/5 dark:bg-[#151518] border border-black/5 dark:border-white/5 rounded-[24px] overflow-hidden shadow-sm animate-slide-up relative"
-                    style="animation-delay: 0.15s;" id="outPanel">
-                    <div
-                        class="flex items-center justify-between px-5 py-3 border-b border-black/5 dark:border-white/5 bg-black/[0.02] dark:bg-white/[0.02]">
-                        <span class="text-[11px] font-bold text-apple-blue uppercase tracking-widest"
-                            id="tgtLangLabel">Inglizcha</span>
-                        <button onclick="copyResult()"
-                            class="text-black/30 dark:text-white/30 hover:text-apple-blue transition-colors"
-                            data-i18n="translate_copy" data-i18n-fallback="📋 Nusxa">📋 Nusxa</button>
+                <div class="flex-1 flex flex-col bg-apple-blue/5 dark:bg-[#151518] border border-black/5 dark:border-white/5 rounded-[24px] overflow-hidden shadow-sm animate-slide-up relative" style="animation-delay: 0.15s;" id="outPanel">
+                    <div class="flex items-center justify-between px-5 py-3 border-b border-black/5 dark:border-white/5 bg-black/[0.02] dark:bg-white/[0.02]">
+                        <span class="text-[11px] font-bold text-apple-blue uppercase tracking-widest" id="tgtLangLabel">Inglizcha</span>
+                        <button onclick="copyResult()" class="text-black/30 dark:text-white/30 hover:text-apple-blue transition-colors" data-i18n="translate_copy">📋 Nusxa</button>
                     </div>
                     <textarea
                         class="w-full flex-1 bg-transparent border-none p-5 text-base font-semibold resize-none outline-none text-black dark:text-white placeholder-black/30 dark:placeholder-white/30 leading-relaxed"
                         id="outText" placeholder="Tarjima shu yerda chiqadi..." data-i18n-ph="translate_output_placeholder" readonly></textarea>
                 </div>
-
             </div>
 
-            <!-- STATUS AND ACTION -->
             <div class="mt-auto pt-2 animate-slide-up flex flex-col gap-3" style="animation-delay: 0.2s;">
-                <div id="statusBanner"
-                    class="hidden items-center gap-2 p-3 rounded-xl text-sm font-semibold max-w-full leading-tight">
+                <div id="statusBanner" class="hidden items-center gap-2 p-3 rounded-xl text-sm font-semibold max-w-full leading-tight">
                     <span id="statusIcon">⚠️</span>
                     <span id="statusMsg"></span>
                 </div>
-
                 <button
                     class="w-full py-4 rounded-2xl bg-apple-blue hover:bg-blue-600 active:scale-[0.98] text-white font-bold text-lg shadow-[0_8px_30px_rgba(10,132,255,0.3)] transition-all flex justify-center items-center gap-2"
                     id="trBtn" onclick="translateText()" data-i18n="translate_action">
@@ -196,23 +138,36 @@
                 </button>
             </div>
 
-            <!-- Quick Chips -->
+            <!-- File translate (unified pipeline) -->
+            <div class="animate-slide-up pb-2" style="animation-delay: 0.23s;">
+                <div class="bg-white dark:bg-[#151518] border border-black/5 dark:border-white/5 rounded-2xl p-4 shadow-sm">
+                    <div class="text-[10px] font-bold text-black/40 dark:text-white/40 uppercase tracking-widest mb-2" data-i18n="translate_file_title" data-i18n-fallback="Fayl tarjima (DOCX/PPTX/PDF/XLSX/TXT)">
+                        Fayl tarjima (DOCX/PPTX/PDF/XLSX/TXT)
+                    </div>
+                    <div class="flex flex-col gap-2">
+                        <input type="file" id="trFile" class="hidden" accept=".txt,.docx,.pptx,.pdf,.xlsx,text/plain,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.presentationml.presentation,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" />
+                        <button type="button" class="w-full py-3 rounded-xl bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 text-black dark:text-white font-bold transition-all"
+                            onclick="document.getElementById('trFile').click()">
+                            📎 Fayl tanlash
+                        </button>
+                        <div id="trFileName" class="text-xs font-semibold text-black/60 dark:text-white/60"></div>
+                        <button type="button" id="trFileBtn"
+                            class="w-full py-3 rounded-xl bg-apple-blue text-white font-bold hover:bg-blue-600 active:scale-[0.98] transition-all disabled:opacity-50 disabled:pointer-events-none"
+                            onclick="translateFileAuto()">
+                            ⚡ Faylni tarjima qilish
+                        </button>
+                        <div id="trFileStatus" class="text-xs font-semibold text-black/60 dark:text-white/60"></div>
+                    </div>
+                </div>
+            </div>
+
             <div class="animate-slide-up pb-6" style="animation-delay: 0.25s;">
-                <h3 class="text-[10px] font-bold text-black/40 dark:text-white/40 uppercase tracking-widest mb-3 pl-2" data-i18n="quick_phrases">
-                    Tezkor iboralar</h3>
+                <h3 class="text-[10px] font-bold text-black/40 dark:text-white/40 uppercase tracking-widest mb-3 pl-2" data-i18n="quick_phrases">Tezkor iboralar</h3>
                 <div class="flex flex-wrap gap-2">
-                    <button
-                        class="px-4 py-2 rounded-full border border-black/10 dark:border-white/10 bg-white/50 dark:bg-white/5 hover:bg-black/5 dark:hover:bg-white/10 text-xs font-semibold transition-colors"
-                        onclick="setPhrase(this)" data-i18n="translate_phrase_1" data-i18n-fallback="Salom, ahvollar qanday?">Salom, ahvollar qanday?</button>
-                    <button
-                        class="px-4 py-2 rounded-full border border-black/10 dark:border-white/10 bg-white/50 dark:bg-white/5 hover:bg-black/5 dark:hover:bg-white/10 text-xs font-semibold transition-colors"
-                        onclick="setPhrase(this)" data-i18n="translate_phrase_2" data-i18n-fallback="Katta Rahmat!">Katta Rahmat!</button>
-                    <button
-                        class="px-4 py-2 rounded-full border border-black/10 dark:border-white/10 bg-white/50 dark:bg-white/5 hover:bg-black/5 dark:hover:bg-white/10 text-xs font-semibold transition-colors"
-                        onclick="setPhrase(this)" data-i18n="translate_phrase_3" data-i18n-fallback="Iltimos, menga xabar bering">Iltimos, menga xabar bering</button>
-                    <button
-                        class="px-4 py-2 rounded-full border border-black/10 dark:border-white/10 bg-white/50 dark:bg-white/5 hover:bg-black/5 dark:hover:bg-white/10 text-xs font-semibold transition-colors"
-                        onclick="setPhrase(this)" data-i18n="translate_phrase_4" data-i18n-fallback="Uchrashuvni bekor qila olasizmi?">Uchrashuvni bekor qila olasizmi?</button>
+                    <button class="px-4 py-2 rounded-full border border-black/10 dark:border-white/10 bg-white/50 dark:bg-white/5 hover:bg-black/5 dark:hover:bg-white/10 text-xs font-semibold transition-colors" onclick="setPhrase(this)" data-i18n="translate_phrase_1">Salom, ahvollar qanday?</button>
+                    <button class="px-4 py-2 rounded-full border border-black/10 dark:border-white/10 bg-white/50 dark:bg-white/5 hover:bg-black/5 dark:hover:bg-white/10 text-xs font-semibold transition-colors" onclick="setPhrase(this)" data-i18n="translate_phrase_2">Katta Rahmat!</button>
+                    <button class="px-4 py-2 rounded-full border border-black/10 dark:border-white/10 bg-white/50 dark:bg-white/5 hover:bg-black/5 dark:hover:bg-white/10 text-xs font-semibold transition-colors" onclick="setPhrase(this)" data-i18n="translate_phrase_3">Iltimos, menga xabar bering</button>
+                    <button class="px-4 py-2 rounded-full border border-black/10 dark:border-white/10 bg-white/50 dark:bg-white/5 hover:bg-black/5 dark:hover:bg-white/10 text-xs font-semibold transition-colors" onclick="setPhrase(this)" data-i18n="translate_phrase_4">Uchrashuvni bekor qila olasizmi?</button>
                 </div>
             </div>
 
@@ -220,119 +175,126 @@
     </main>
 
     <script>
-        document.addEventListener('DOMContentLoaded', async function() {
+        // ── DOM refs cached once ──────────────────────────────────────────────
+        const $ = id => document.getElementById(id);
+        const DOM = {
+            srcText:     null,
+            outText:     null,
+            charCount:   null,
+            engineLabel: null,
+            statusBanner:null,
+            statusIcon:  null,
+            statusMsg:   null,
+            trBtn:       null,
+            tgtLangEl:   null,
+            tgtLangLabel:null,
+        };
+        function cacheDOM() {
+            DOM.srcText      = $('srcText');
+            DOM.outText      = $('outText');
+            DOM.charCount    = $('charCount');
+            DOM.engineLabel  = $('engineLabel');
+            DOM.statusBanner = $('statusBanner');
+            DOM.statusIcon   = $('statusIcon');
+            DOM.statusMsg    = $('statusMsg');
+            DOM.trBtn        = $('trBtn');
+            DOM.tgtLangEl    = $('tgtLang');
+            DOM.tgtLangLabel = $('tgtLangLabel');
+        }
+
+        // ── Init ─────────────────────────────────────────────────────────────
+        document.addEventListener('DOMContentLoaded', async function () {
+            cacheDOM();
             try {
-                if (window.DastyorAI && window.DastyorAI.initUI) {
-                    await window.DastyorAI.initUI({ autoNavLinks: true });
-                }
-                if (window.DastyorAI && window.DastyorAI.refreshProfile) {
-                    await window.DastyorAI.refreshProfile();
-                }
-                if (window.DastyorAI && window.DastyorAI.applyServiceQuotaUi) {
-                    window.DastyorAI.applyServiceQuotaUi('translate', {
-                        warnId: 'translateQuotaWarn',
-                        buttonIds: ['trBtn'],
-                        message: '⛔ Bu xizmat pullik. Davom etish uchun Premium/Pro tarifni oling.',
-                    });
-                }
+                if (window.DastyorAI?.initUI) await window.DastyorAI.initUI({ autoNavLinks: true });
+                if (window.DastyorAI?.refreshProfile) await window.DastyorAI.refreshProfile();
+                _applyQuota();
             } catch (_) {}
+            try { _restoreDraftIfAny(); } catch (_) {}
+            if (tg) { tg.ready(); tg.expand(); }
         });
+
         try {
-            window.addEventListener('dastyor:profile-updated', function () {
-                if (window.DastyorAI && window.DastyorAI.applyServiceQuotaUi) {
-                    window.DastyorAI.applyServiceQuotaUi('translate', {
-                        warnId: 'translateQuotaWarn',
-                        buttonIds: ['trBtn'],
-                        message: '⛔ Bu xizmat pullik. Davom etish uchun Premium/Pro tarifni oling.',
-                    });
-                }
-            });
+            window.addEventListener('dastyor:profile-updated', _applyQuota);
         } catch (_) {}
-        const tg = window.Telegram?.WebApp;
-        const SDK = window.DastyorAI;     // app.js SDK (auth/session/helpers)
-        const Core = window.DA;           // da-core.js (theme/i18n)
+
+        function _applyQuota() {
+            if (window.DastyorAI?.applyServiceQuotaUi) {
+                window.DastyorAI.applyServiceQuotaUi('translate', {
+                    warnId: 'translateQuotaWarn',
+                    buttonIds: ['trBtn'],
+                    message: '⛔ Bu xizmat pullik. Davom etish uchun Premium/Pro tarifni oling.',
+                });
+            }
+        }
+
+        // ── Globals ───────────────────────────────────────────────────────────
+        const tg  = window.Telegram?.WebApp;
+        const SDK = window.DastyorAI;
+        const Core = window.DA;
+
         const tid = (SDK?.getTelegramId && SDK.getTelegramId())
             || new URLSearchParams(location.search).get('telegram_id')
             || sessionStorage.getItem('tg_id')
             || tg?.initDataUnsafe?.user?.id?.toString()
             || '';
-        document.getElementById('backBtn').onclick = (e) => {
+
+        $('backBtn').onclick = e => {
             e.preventDefault();
             location.href = 'more.html' + (tid ? '?telegram_id=' + tid : '');
         };
 
         const LANG_NAMES = { uz: "O'zbekcha", en: "Inglizcha", ru: "Ruscha" };
-        const GEMINI_DIRS = new Set(['uz_en', 'en_uz', 'ru_uz', 'uz_ru', 'ru_en', 'en_ru']);
-        const GT_CODES = { uz: 'uz', en: 'en', ru: 'ru' };
+        let tgtLang = 'en';
 
-        let srcLang = 'uz', tgtLang = 'en';
+        // File translate
+        const trFileEl = document.getElementById('trFile');
+        const trFileNameEl = document.getElementById('trFileName');
+        const trFileStatusEl = document.getElementById('trFileStatus');
+        const trFileBtnEl = document.getElementById('trFileBtn');
+        let _pickedFile = null;
 
+        trFileEl?.addEventListener('change', () => {
+            const f = trFileEl.files && trFileEl.files[0];
+            _pickedFile = f || null;
+            if (trFileNameEl) trFileNameEl.textContent = f ? `Tanlandi: ${f.name} (${Math.round(f.size / 1024)} KB)` : '';
+            if (trFileStatusEl) trFileStatusEl.textContent = '';
+        });
+
+        // ── Lang helpers ─────────────────────────────────────────────────────
         function updateLangLabels() {
-            document.getElementById('srcLangLabel').textContent = LANG_NAMES[srcLang];
-            document.getElementById('tgtLangLabel').textContent = LANG_NAMES[tgtLang];
-            document.getElementById('srcLang').value = srcLang;
-            document.getElementById('tgtLang').value = tgtLang;
+            DOM.tgtLangLabel.textContent = LANG_NAMES[tgtLang];
+            DOM.tgtLangEl.value = tgtLang;
         }
 
-        document.getElementById('srcLang').addEventListener('change', function () {
-            srcLang = this.value;
-            if (srcLang === tgtLang) { tgtLang = srcLang === 'uz' ? 'en' : 'uz'; }
-            updateLangLabels();
-        });
-        document.getElementById('tgtLang').addEventListener('change', function () {
+        DOM.tgtLangEl?.addEventListener('change', function () {
             tgtLang = this.value;
-            if (srcLang === tgtLang) { srcLang = tgtLang === 'uz' ? 'ru' : 'uz'; }
             updateLangLabels();
         });
 
-        function swapLangs() {
-            const tmp = srcLang; srcLang = tgtLang; tgtLang = tmp;
-            const srcT = document.getElementById('srcText');
-            const outT = document.getElementById('outText');
-            const prev = outT.value;
-            // Keep output stable (no flicker): move to input, but don't clear output until next result arrives.
-            if (prev) { srcT.value = prev; }
-            updateLangLabels();
-            onInput();
-            tg?.HapticFeedback?.impactOccurred('medium');
-        }
-        updateLangLabels();
+        // ── State ────────────────────────────────────────────────────────────
+        let _autoTrTimer    = null;
+        let _activeTrAbort  = null;
+        let _trSeq          = 0;
+        let _lastAutoSig    = '';   // combined: normalizedText + '|' + dir
+        let _lastStableOut  = '';
+        let _draftTimer     = null;
 
-        let _autoTrTimer = null;
-        let _activeTrAbort = null;
-        let _lastAutoText = '';
-        let _lastAutoDir = '';
-        let _trSeq = 0;
-        let _lastStableOut = '';
-        let _lastStableInSig = '';
-        let _pendingAutoText = '';
-        let _pendingAutoDir = '';
         const _TR_DRAFT_KEY = 'dastyor_translate_draft_v1';
-        let _draftTimer = null;
 
+        // ── Draft: single-level timer, no idle callback nesting ───────────────
         function _saveDraftSoon() {
-            try {
-                clearTimeout(_draftTimer);
-                _draftTimer = setTimeout(() => {
-                    const doSave = () => {
-                        try {
-                            const src = document.getElementById('srcText')?.value || '';
-                            const out = document.getElementById('outText')?.value || '';
-                            const payload = {
-                                v: 1,
-                                ts: Date.now(),
-                                srcLang,
-                                tgtLang,
-                                src,
-                                out,
-                            };
-                            localStorage.setItem(_TR_DRAFT_KEY, JSON.stringify(payload));
-                        } catch (_) {}
-                    };
-                    if (window.requestIdleCallback) window.requestIdleCallback(doSave, { timeout: 1200 });
-                    else setTimeout(doSave, 0);
-                }, 650);
-            } catch (_) {}
+            clearTimeout(_draftTimer);
+            _draftTimer = setTimeout(() => {
+                try {
+                    localStorage.setItem(_TR_DRAFT_KEY, JSON.stringify({
+                        v: 1, ts: Date.now(),
+                        srcLang, tgtLang,
+                        src: DOM.srcText?.value || '',
+                        out: DOM.outText?.value || '',
+                    }));
+                } catch (_) {}
+            }, 700);
         }
 
         function _restoreDraftIfAny() {
@@ -341,343 +303,312 @@
                 if (!raw) return;
                 const d = JSON.parse(raw);
                 if (!d || d.v !== 1) return;
-                if (d.srcLang && typeof d.srcLang === 'string') srcLang = d.srcLang;
-                if (d.tgtLang && typeof d.tgtLang === 'string') tgtLang = d.tgtLang;
-                document.getElementById('srcLang').value = srcLang;
-                document.getElementById('tgtLang').value = tgtLang;
+                if (d.srcLang) srcLang = d.srcLang;
+                if (d.tgtLang) tgtLang = d.tgtLang;
                 updateLangLabels();
-                if (typeof d.src === 'string') document.getElementById('srcText').value = d.src;
-                if (typeof d.out === 'string') document.getElementById('outText').value = d.out;
+                if (typeof d.src === 'string') DOM.srcText.value = d.src;
+                if (typeof d.out === 'string') DOM.outText.value = d.out;
                 onInput();
             } catch (_) {}
         }
 
-        function scheduleAutoTranslate() {
-            try {
-                const raw = document.getElementById('srcText').value;
-                const dirKey = srcLang + '_' + tgtLang;
-                if (!raw) return;
-                // Avoid heavy normalization on every keystroke (can lag on big texts).
-                // We only normalize inside the debounce callback.
-                if (raw.length > 5000) return;
-                clearTimeout(_autoTrTimer);
-                _pendingAutoText = raw;
-                _pendingAutoDir = dirKey;
-                _autoTrTimer = setTimeout(() => {
-                    const trimmed = (_pendingAutoText || '').trim();
-                    if (!trimmed) return;
-                    const sig = normalizeCompare(trimmed);
-                    if (sig === _lastAutoText && _pendingAutoDir === _lastAutoDir) return;
-                    _lastAutoText = sig;
-                    _lastAutoDir = _pendingAutoDir;
-                    translateText({ auto: true });
-                }, 450);
-            } catch (_) {}
+        // ── normalizeCompare: called once per debounce, not per keystroke ─────
+        function normalizeCompare(s) {
+            return String(s || '').trim().toLowerCase()
+                .replace(/['`ʻʼʹ]/g, "'")
+                .replace(/\s+/g, ' ');
         }
 
+        function isMeaningfullyChanged(source, candidate) {
+            return normalizeCompare(source) !== normalizeCompare(candidate);
+        }
+
+        // ── onInput: minimal work per keystroke ──────────────────────────────
+        const CC_NORMAL  = "text-[10px] font-bold text-black/30 dark:text-white/30";
+        const CC_WARN    = "text-[10px] font-bold text-apple-orange";
+        const CC_ERROR   = "text-[10px] font-bold text-red-500";
+
         function onInput() {
-            // Cancel in-flight request ASAP while user is still typing (saves network + prevents late UI updates).
-            try { if (_activeTrAbort) _activeTrAbort.abort(); } catch (_) {}
-            // Keep UI stable while typing: don't leave the output in "shimmer" state after abort.
-            try {
-                const outText = document.getElementById('outText');
-                outText.classList.remove('loading-shimmer');
+            // abort in-flight request immediately
+            if (_activeTrAbort) {
+                try { _activeTrAbort.abort(); } catch (_) {}
+                _activeTrAbort = null;
+                DOM.outText.classList.remove('loading-shimmer');
                 setEngine(t('translate_typing_engine', 'Yozilyapti...'));
-            } catch (_) {}
-            const len = document.getElementById('srcText').value.length;
-            const cc = document.getElementById('charCount');
-            cc.textContent = len + ' / 5000';
-            if (len >= 5000) cc.className = "text-[10px] font-bold text-red-500";
-            else if (len > 4500) cc.className = "text-[10px] font-bold text-apple-orange";
-            else cc.className = "text-[10px] font-bold text-black/30 dark:text-white/30";
+            }
+
+            const len = DOM.srcText.value.length;
+            DOM.charCount.textContent = len + ' / 5000';
+            // only update className when it actually needs to change (avoids layout thrashing)
+            const newCC = len >= 5000 ? CC_ERROR : len > 4500 ? CC_WARN : CC_NORMAL;
+            if (DOM.charCount.className !== newCC) DOM.charCount.className = newCC;
+
             scheduleAutoTranslate();
             _saveDraftSoon();
         }
 
+        // ── Auto-translate debounce ───────────────────────────────────────────
+        function scheduleAutoTranslate() {
+            const raw = DOM.srcText.value;
+            if (!raw || raw.length > 5000) return;
+            clearTimeout(_autoTrTimer);
+            _autoTrTimer = setTimeout(() => {
+                const trimmed = raw.trim();
+                if (!trimmed) return;
+                const sig = normalizeCompare(trimmed) + '|' + srcLang + '_' + tgtLang;
+                if (sig === _lastAutoSig) return;
+                _lastAutoSig = sig;
+                translateText({ auto: true });
+            }, 450);
+        }
+
+        // ── Phrase chip ───────────────────────────────────────────────────────
         function setPhrase(el) {
-            document.getElementById('srcText').value = el.textContent;
+            DOM.srcText.value = el.textContent;
             onInput();
             tg?.HapticFeedback?.selectionChanged();
         }
 
         function clearSrc() {
-            document.getElementById('srcText').value = '';
-            document.getElementById('outText').value = '';
+            DOM.srcText.value = '';
+            DOM.outText.value = '';
+            _lastAutoSig = '';
+            _lastStableOut = '';
             onInput();
             hideStatus();
             _saveDraftSoon();
         }
 
+        // ── Status helpers ────────────────────────────────────────────────────
         function showStatus(type, icon, msg) {
-            const b = document.getElementById('statusBanner');
-            b.classList.remove('hidden', 'bg-red-500/10', 'text-red-500', 'bg-apple-green/10', 'text-apple-green', 'bg-apple-blue/10');
-            b.classList.add('flex');
-
-            if (type === 'error') b.classList.add('bg-red-500/10', 'text-red-500', 'border', 'border-red-500/20');
-            else if (type === 'success') b.classList.add('bg-apple-green/10', 'text-apple-green', 'border', 'border-apple-green/20');
-            else b.classList.add('bg-apple-blue/10', 'text-apple-blue', 'border', 'border-apple-blue/20');
-
-            document.getElementById('statusIcon').textContent = icon;
-            document.getElementById('statusMsg').textContent = msg;
+            const b = DOM.statusBanner;
+            b.className = 'flex items-center gap-2 p-3 rounded-xl text-sm font-semibold max-w-full leading-tight border ';
+            if (type === 'error')   b.className += 'bg-red-500/10 text-red-500 border-red-500/20';
+            else if (type === 'success') b.className += 'bg-apple-green/10 text-apple-green border-apple-green/20';
+            else                    b.className += 'bg-apple-blue/10 text-apple-blue border-apple-blue/20';
+            DOM.statusIcon.textContent = icon;
+            DOM.statusMsg.textContent  = msg;
         }
+
         function hideStatus() {
-            document.getElementById('statusBanner').classList.add('hidden');
-        }
-        function setEngine(name) {
-            document.getElementById('engineLabel').textContent = name;
+            DOM.statusBanner.className = 'hidden items-center gap-2 p-3 rounded-xl text-sm font-semibold max-w-full leading-tight';
         }
 
+        function setEngine(name) {
+            DOM.engineLabel.textContent = name;
+        }
+
+        // ── i18n helper ───────────────────────────────────────────────────────
         function t(key, fallback) {
             try {
-                const v = (window.DastyorAI?.t && window.DastyorAI.t(key)) || (Core?.t && Core.t(key)) || '';
-                if (typeof v === 'string' && v.trim() && v !== key) return v;
-                return fallback || key;
-            } catch (_) { return fallback || key; }
+                const v = (SDK?.t && SDK.t(key)) || (Core?.t && Core.t(key)) || '';
+                if (v && v !== key) return v;
+            } catch (_) {}
+            return fallback || key;
         }
-        function normalizeCompare(s) {
-            return String(s || '')
-                .trim()
-                .toLowerCase()
-                .replace(/[’`ʻʼʹ]/g, "'")
-                .replace(/\s+/g, ' ');
-        }
-        function isMeaningfullyChanged(source, candidate) {
-            return normalizeCompare(source) !== normalizeCompare(candidate);
-        }
+
         function copyResult() {
-            const t = document.getElementById('outText').value;
-            if (!t) return;
-            navigator.clipboard?.writeText(t).then(() => {
-                tg?.HapticFeedback?.notificationOccurred('success');
-            }).catch(() => {
-                const el = document.getElementById('outText');
-                el.select(); document.execCommand('copy');
-            });
+            const txt = DOM.outText.value;
+            if (!txt) return;
+            navigator.clipboard?.writeText(txt)
+                .catch(() => { DOM.outText.select(); document.execCommand('copy'); });
             tg?.HapticFeedback?.notificationOccurred('success');
         }
 
+        // ── Auth payload ──────────────────────────────────────────────────────
         function webAuthQuotaPayload() {
-            const DA = window.DastyorAI;
-            const tid = DA?.getTelegramId?.()
+            const tid2 = SDK?.getTelegramId?.()
                 || new URLSearchParams(location.search).get('telegram_id')
                 || sessionStorage.getItem('tg_id');
-            const tok = DA?.getToken?.() || sessionStorage.getItem('tg_token');
-            if (tid && /^\d+$/.test(String(tid))) {
-                return { telegram_id: parseInt(String(tid), 10), token: tok || null };
-            }
-            return {};
+            const tok = SDK?.getToken?.() || sessionStorage.getItem('tg_token');
+            return (tid2 && /^\d+$/.test(String(tid2)))
+                ? { telegram_id: parseInt(tid2, 10), token: tok || null }
+                : {};
         }
 
-        async function tryGeminiAPI(text, src, tgt, signal) {
+        // ── Fetch helpers ─────────────────────────────────────────────────────
+        function makeSignal(outerSignal, ms) {
+            const ctrl = new AbortController();
+            const timer = setTimeout(() => ctrl.abort(), ms);
+            const merged = (outerSignal && AbortSignal.any)
+                ? AbortSignal.any([outerSignal, ctrl.signal])
+                : ctrl.signal;
+            return { signal: merged, clear: () => clearTimeout(timer) };
+        }
+
+        async function callTranslateAuto(text, tgt, outerSignal) {
             if (location.protocol === 'file:') return null;
-            const dirKey = src + '_' + tgt;
-            if (!GEMINI_DIRS.has(dirKey)) return null;
-
-            const apiBase = location.origin;
-            const timeoutCtrl = new AbortController();
-            const timeout = setTimeout(() => timeoutCtrl.abort(), 8000);
-            const mergedSignal = signal
-                ? (AbortSignal.any ? AbortSignal.any([signal, timeoutCtrl.signal]) : timeoutCtrl.signal)
-                : timeoutCtrl.signal;
-
+            const { signal, clear } = makeSignal(outerSignal, 12000);
             try {
-                const res = await fetch(apiBase + '/api/translate', {
+                const res = await fetch(location.origin + '/api/translate_auto', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ text, direction: dirKey, ...webAuthQuotaPayload() }),
-                    signal: mergedSignal,
+                    body: JSON.stringify({ text, target_lang: tgt, ...webAuthQuotaPayload() }),
+                    signal,
                 });
-                clearTimeout(timeout);
-
+                clear();
+                const data = await res.json().catch(() => ({}));
                 if (!res.ok) {
-                    let detail = '';
-                    try {
-                        const err = await res.json();
-                        detail = err?.detail || err?.error || '';
-                    } catch (_) {}
-                    if (res.status === 429 || /limit|quota|premium|tarif/i.test(String(detail || ''))) {
+                    const detail = (data && (data.detail || data.error)) ? String(data.detail || data.error) : '';
+                    if (res.status === 429 || /limit|quota|premium|tarif|pullik/i.test(detail))
                         throw new Error('__LIMIT__:' + (detail || 'Tarjima limiti tugadi'));
-                    }
                     throw new Error(detail ? `${detail} (HTTP ${res.status})` : `HTTP ${res.status}`);
                 }
-                const data = await res.json();
-                if (data.translated_text) return { text: data.translated_text, engine: 'Gemini AI' };
-                return null;
+                return data?.translated_text
+                    ? { text: data.translated_text, engine: 'Auto (Gemini/Google)' }
+                    : null;
             } catch (e) {
-                clearTimeout(timeout);
-                // Abort is normal during fast typing; propagate so caller can ignore cleanly.
-                if (e && e.name === 'AbortError') throw e;
+                clear();
                 throw e;
             }
         }
 
-        async function tryGoogleTranslate(text, src, tgt, signal) {
-            const sl = GT_CODES[src] || src;
-            const tl = GT_CODES[tgt] || tgt;
-            const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=${encodeURIComponent(sl)}&tl=${encodeURIComponent(tl)}&dt=t&q=${encodeURIComponent(text)}`;
-
-            const timeoutCtrl = new AbortController();
-            const timeout = setTimeout(() => timeoutCtrl.abort(), 9000);
-            const mergedSignal = signal
-                ? (AbortSignal.any ? AbortSignal.any([signal, timeoutCtrl.signal]) : timeoutCtrl.signal)
-                : timeoutCtrl.signal;
-
-            try {
-                const res = await fetch(url, { signal: mergedSignal });
-                clearTimeout(timeout);
-                if (!res.ok) throw new Error(`HTTP ${res.status}`);
-                const data = await res.json();
-                const translated = data[0].filter(chunk => Array.isArray(chunk) && chunk[0]).map(chunk => chunk[0]).join('');
-                if (!translated) throw new Error('Tarjima yiqildi');
-                return { text: translated, engine: 'Google Translate' };
-            } catch (e) {
-                clearTimeout(timeout);
-                throw e;
-            }
-        }
-
+        // ── Main translate ────────────────────────────────────────────────────
         async function translateText(opts) {
-            const isAuto = !!(opts && opts.auto);
-            const SDK = window.DastyorAI;
-            if (SDK && SDK.isQuotaBlockedForCategory && SDK.getUser && SDK.isQuotaBlockedForCategory(SDK.getUser(), 'translate')) {
+            const isAuto = !!(opts?.auto);
+
+            if (SDK?.isQuotaBlockedForCategory && SDK?.getUser &&
+                SDK.isQuotaBlockedForCategory(SDK.getUser(), 'translate')) {
                 showStatus('error', '⛔', t('translate_quota', 'Bu xizmat pullik. Premium/Pro tarifni oling.'));
                 return;
             }
-            const srcText = document.getElementById('srcText').value.trim();
-            if (!srcText) {
-                // Auto mode: don't spam errors; just stop and keep last stable output visible.
-                try { if (_activeTrAbort) _activeTrAbort.abort(); } catch (_) {}
-                _activeTrAbort = null;
-                document.getElementById('outText').classList.remove('loading-shimmer');
+
+            const srcTxt = DOM.srcText.value.trim();
+            if (!srcTxt) {
+                if (_activeTrAbort) { try { _activeTrAbort.abort(); } catch (_) {} _activeTrAbort = null; }
+                DOM.outText.classList.remove('loading-shimmer');
                 setEngine(t('translate_idle_engine', 'Tayyor'));
                 if (!isAuto) showStatus('error', '⚠️', t('translate_enter_text', 'Matn kiriting!'));
                 return;
             }
-            if (srcText.length > 5000) { showStatus('error', '⚠️', t('translate_max_chars', 'Max 5000 belgi.')); return; }
-            if (srcLang === tgtLang) { showStatus('error', '⚠️', t('translate_swap_langs', 'Tillarni almashtiring.')); return; }
-
-            const btn = document.getElementById('trBtn');
-            const outPanel = document.getElementById('outPanel');
-            const outText = document.getElementById('outText');
-
-            // Cancel any in-flight translation when user types again
-            try { if (_activeTrAbort) _activeTrAbort.abort(); } catch (_) {}
+            if (srcTxt.length > 5000) { showStatus('error', '⚠️', t('translate_max_chars', 'Max 5000 belgi.')); return; }
+            // cancel previous
+            if (_activeTrAbort) { try { _activeTrAbort.abort(); } catch (_) {} }
             _activeTrAbort = new AbortController();
-            const mySeq = ++_trSeq;
+            const mySeq    = ++_trSeq;
             const mySignal = _activeTrAbort.signal;
 
             if (!isAuto) {
-                btn.innerHTML = t('translate_wait', 'Kuting...');
-                btn.disabled = true;
-                btn.classList.add('opacity-70');
+                DOM.trBtn.textContent = t('translate_wait', 'Kuting...');
+                DOM.trBtn.disabled = true;
+                DOM.trBtn.classList.add('opacity-70');
             }
-            // CRITICAL: do not clear output (prevents flicker). Keep last valid translation visible
-            // until a newer response arrives.
-            if (outText.value && outText.value.trim()) {
-                _lastStableOut = outText.value;
-                _lastStableInSig = normalizeCompare(srcText);
-            }
-            outText.classList.add('loading-shimmer');
+            if (DOM.outText.value.trim()) _lastStableOut = DOM.outText.value;
+            DOM.outText.classList.add('loading-shimmer');
             hideStatus();
             setEngine(t('translate_loading_engine', 'Yuklanmoqda...'));
+
+            const resetBtn = () => {
+                if (!isAuto) {
+                    DOM.trBtn.innerHTML = t('translate_action', '⚡ Tarjima Qilish');
+                    DOM.trBtn.disabled  = false;
+                    DOM.trBtn.classList.remove('opacity-70');
+                }
+            };
+
+            const stale = () => mySeq !== _trSeq || mySignal.aborted;
+
+            const applyResult = (result, statusType) => {
+                if (stale()) return false;
+                if (!isMeaningfullyChanged(srcTxt, result.text))
+                    throw new Error('Tarjima natijasi original bilan bir xil chiqdi');
+                DOM.outText.value = result.text;
+                _lastStableOut = result.text;
+                DOM.outText.classList.remove('loading-shimmer');
+                setEngine(result.engine);
+                showStatus(statusType, statusType === 'success' ? '✅' : '🌐',
+                    t('translate_done', 'Tarjima qilindi'));
+                tg?.HapticFeedback?.notificationOccurred('success');
+                _saveDraftSoon();
+                resetBtn();
+                return true;
+            };
 
             let lastError = null;
 
             try {
-                const result = await tryGeminiAPI(srcText, srcLang, tgtLang, mySignal);
-                if (result) {
-                    if (mySeq !== _trSeq || mySignal.aborted) return;
-                    if (!isMeaningfullyChanged(srcText, result.text)) {
-                        throw new Error("Tarjima natijasi original bilan bir xil chiqdi");
-                    }
-                    outText.value = result.text;
-                    _lastStableOut = result.text;
-                    _lastStableInSig = normalizeCompare(srcText);
-                    outText.classList.remove('loading-shimmer');
-                    setEngine(result.engine);
-                    showStatus('success', '✅', t('translate_done', 'Tarjima qilindi'));
-                    tg?.HapticFeedback?.notificationOccurred('success');
-                    void window.DastyorAI?.refreshProfile?.();
-                    _saveDraftSoon();
-                    if (!isAuto) {
-                        btn.innerHTML = t('translate_action', '⚡ Tarjima Qilish');
-                        btn.disabled = false;
-                        btn.classList.remove('opacity-70');
-                    }
-                    return;
-                }
+                const r = await callTranslateAuto(srcTxt, tgtLang, mySignal);
+                if (r) { applyResult(r, 'success'); void SDK?.refreshProfile?.(); return; }
             } catch (e) {
-                if (e && e.name === 'AbortError') return;
-                lastError = e?.message || String(e || '');
-                if (String(lastError || '').toLowerCase().includes('aborted')) return;
-                if (String(lastError || '').startsWith('__LIMIT__:')) {
-                    const msg = String(lastError).replace('__LIMIT__:', '').trim() || 'Bu xizmat pullik.';
-                    if (mySeq !== _trSeq || mySignal.aborted) return;
-                    outText.classList.remove('loading-shimmer');
+                if (e?.name === 'AbortError' || String(e?.message).toLowerCase().includes('aborted')) return;
+                lastError = e?.message || String(e);
+                if (lastError.startsWith('__LIMIT__:')) {
+                    if (stale()) return;
+                    const msg = lastError.replace('__LIMIT__:', '').trim() || 'Bu xizmat pullik.';
+                    DOM.outText.classList.remove('loading-shimmer');
                     setEngine('Limit');
-                    showStatus('error', '⛔', /premium|pro|tarif|pullik/i.test(msg) ? msg : (msg + ' Premium/Pro tarifni oling.'));
-                    if (!isAuto) {
-                        btn.innerHTML = t('translate_action', '⚡ Tarjima Qilish');
-                        btn.disabled = false;
-                        btn.classList.remove('opacity-70');
-                    }
+                    showStatus('error', '⛔', /premium|pro|tarif|pullik/i.test(msg)
+                        ? msg : msg + ' Premium/Pro tarifni oling.');
+                    resetBtn();
                     return;
                 }
             }
 
-            try {
-                const result = await tryGoogleTranslate(srcText, srcLang, tgtLang, mySignal);
-                if (result) {
-                    if (mySeq !== _trSeq || mySignal.aborted) return;
-                    if (!isMeaningfullyChanged(srcText, result.text)) {
-                        throw new Error("Tarjima natijasi original bilan bir xil chiqdi");
-                    }
-                    outText.value = result.text;
-                    _lastStableOut = result.text;
-                    _lastStableInSig = normalizeCompare(srcText);
-                    outText.classList.remove('loading-shimmer');
-                    setEngine(result.engine);
-                    showStatus('info', '🌐', t('translate_done', 'Tarjima qilindi'));
-                    tg?.HapticFeedback?.notificationOccurred('success');
-                    _saveDraftSoon();
-                    if (!isAuto) {
-                        btn.innerHTML = t('translate_action', '⚡ Tarjima Qilish');
-                        btn.disabled = false;
-                        btn.classList.remove('opacity-70');
-                    }
-                    return;
-                }
-            } catch (e) {
-                if (e && e.name === 'AbortError') return;
-                lastError = (lastError ? lastError + '; ' : '') + (e?.message || String(e || ''));
-            }
-
-            if (mySeq !== _trSeq || mySignal.aborted) return;
-            // Keep last stable output visible on errors (no flicker).
-            outText.value = _lastStableOut || outText.value || '';
-            outText.classList.remove('loading-shimmer');
+            if (stale()) return;
+            DOM.outText.value = _lastStableOut || DOM.outText.value || '';
+            DOM.outText.classList.remove('loading-shimmer');
             setEngine('Xato');
             showStatus('error', '❌', 'Xatolik: ' + lastError);
             tg?.HapticFeedback?.notificationOccurred('error');
-            if (!isAuto) {
-                btn.innerHTML = '⚡ Tarjima Qilish';
-                btn.disabled = false;
-                btn.classList.remove('opacity-70');
-            }
+            resetBtn();
             _saveDraftSoon();
         }
 
-        document.getElementById('srcText').addEventListener('keydown', function (e) {
-            if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
-                e.preventDefault();
-                translateText();
+        async function translateFileAuto() {
+            const f = _pickedFile;
+            if (!f) {
+                if (trFileStatusEl) trFileStatusEl.textContent = "Avval fayl tanlang.";
+                return;
             }
+            if (trFileBtnEl) trFileBtnEl.disabled = true;
+            if (trFileStatusEl) trFileStatusEl.textContent = "⏳ Fayl yuklanmoqda...";
+            try {
+                const fd = new FormData();
+                fd.append('file', f, f.name);
+                fd.append('action', 'translate_auto');
+                fd.append('target_lang', tgtLang);
+                const q = webAuthQuotaPayload();
+                if (q.telegram_id) fd.append('telegram_id', String(q.telegram_id));
+                if (q.token) fd.append('token', String(q.token));
+
+                const r = await fetch(location.origin + '/api/process_file', { method: 'POST', body: fd });
+                const data = await r.json().catch(() => ({}));
+                if (!r.ok) throw new Error(data.detail || `HTTP ${r.status}`);
+                const out = String(data.text || '').trim();
+                if (!out) throw new Error("Tarjima bo'sh qaytdi");
+
+                // download as txt (keeps fast + simple)
+                const blob = new Blob([out], { type: 'text/plain;charset=utf-8' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = (f.name.replace(/\.[^.]+$/, '') || 'document') + `_translated_${tgtLang}.txt`;
+                document.body.appendChild(a);
+                a.click();
+                setTimeout(() => { try { URL.revokeObjectURL(url); } catch (_) {} a.remove(); }, 1500);
+                if (trFileStatusEl) trFileStatusEl.textContent = "✅ Tarjima tayyor (TXT yuklandi).";
+                try { void window.DastyorAI?.refreshProfile?.(); } catch (_) {}
+            } catch (e) {
+                if (trFileStatusEl) trFileStatusEl.textContent = "❌ Xatolik: " + (e?.message || String(e));
+            } finally {
+                if (trFileBtnEl) trFileBtnEl.disabled = false;
+            }
+        }
+
+        // ── Ctrl+Enter shortcut ───────────────────────────────────────────────
+        document.addEventListener('DOMContentLoaded', () => {
+            $('srcText')?.addEventListener('keydown', e => {
+                if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+                    e.preventDefault();
+                    translateText();
+                }
+            });
         });
 
-        // Persist text across tab switches / reloads (prevents "disappearing" UX when navigating).
-        try { _restoreDraftIfAny(); } catch (_) {}
-        if (tg) { tg.ready(); tg.expand(); }
+        // init lang labels immediately (before DOMContentLoaded fires for select listeners)
+        document.addEventListener('DOMContentLoaded', () => {
+            updateLangLabels();
+        });
     </script>
 </body>
-
 </html>
