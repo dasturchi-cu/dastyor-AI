@@ -4,6 +4,7 @@ from __future__ import annotations
 import asyncio
 import html as html_lib
 import io
+import hashlib
 import logging
 import os
 import tempfile
@@ -48,6 +49,7 @@ from backend.services.cv_parser import parse_cv_text
 
 logger = logging.getLogger(__name__)
 SPELLCHECK_FILE_MAX_CHARS = int(os.getenv("SPELLCHECK_FILE_MAX_CHARS", "150000"))
+TRANSLATE_AUTO_CACHE_TTL_SECONDS = int(os.getenv("TRANSLATE_AUTO_CACHE_TTL_SECONDS", "86400"))
 
 router = APIRouter(tags=["web-api"])
 
@@ -534,6 +536,18 @@ async def api_translate_auto(req: TranslateAutoRequest):
     if tgt not in {"uz", "ru", "en"}:
         raise HTTPException(status_code=400, detail="target_lang noto'g'ri (uz|ru|en)")
 
+    # Cache key (text+target) to avoid repeated AI calls
+    cache_key = None
+    try:
+        if TRANSLATE_AUTO_CACHE_TTL_SECONDS > 0:
+            h = hashlib.sha1((req.text or "").encode("utf-8", errors="ignore")).hexdigest()  # nosec - non-crypto use
+            cache_key = f"tr:auto:{h}:{tgt}"
+            cached = await redis_cache_get_json(cache_key)
+            if cached and isinstance(cached, dict) and cached.get("ok") and cached.get("translated_text"):
+                return cached
+    except Exception:
+        cache_key = None
+
     # best-effort source detection
     src = "uz"
     try:
@@ -592,7 +606,7 @@ async def api_translate_auto(req: TranslateAutoRequest):
                 )
             except Exception:
                 pass
-        return {
+        resp = {
             "ok": True,
             "translated_text": result,
             "source_lang": src,
@@ -600,11 +614,18 @@ async def api_translate_auto(req: TranslateAutoRequest):
             "direction": direction,
             "quota": quota,
         }
+        try:
+            if cache_key:
+                await redis_cache_set_json(cache_key, resp, TRANSLATE_AUTO_CACHE_TTL_SECONDS)
+        except Exception:
+            pass
+        return resp
     except HTTPException:
         raise
     except Exception as e:
         logger.error("Translate auto API error: %s", e, exc_info=True)
         raise HTTPException(status_code=500, detail=f"Tarjima serveri xatosi: {str(e)[:200]}")
+
 
 
 @router.post("/api/spellcheck")

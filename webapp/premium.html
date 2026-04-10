@@ -3,588 +3,181 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
-  <!-- Deploy: agar WebApp statik CDN da, API esa boshqa domen da bo‘lsa, shu yerga API ildizini yozing (masalan https://sizning-app.railway.app) -->
   <meta name="dastyor-api-base" content=""/>
   <title data-i18n="premium_page_title" data-i18n-fallback="Premium | DASTYOR AI">Premium | DASTYOR AI</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com"/>
-  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="theme.css" />
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <script src="app.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: { sans: ['Inter', 'sans-serif'], display: ['Outfit', 'sans-serif'] },
+          colors: { apple: { blue: '#2563EB', green: '#30D158', orange: '#FF9F0A' } },
+        }
+      }
+    }
+  </script>
   <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-    :root {
-      --b5: #3b82f6;
-      --b6: #2563eb;
-      --b7: #1d4ed8;
-      --b4: #60a5fa;
-      --b3: #93c5fd;
-      --bg: #03071a;
-      --surf: #070e24;
-      --card: #0a1228;
-      --card2: #0d1633;
-      --border: rgba(59,130,246,.14);
-      --border2: rgba(59,130,246,.28);
-      --text: #e2eaff;
-      --muted: #4e6080;
-      --muted2: #8aa0c0;
-      --success: #22d3a0;
-      --gold: #f59e0b;
-      --gold2: #fbbf24;
-    }
-
-    html, body {
-      min-height: 100%; background: var(--bg);
-      color: var(--text); font-family: 'DM Sans', sans-serif;
-      -webkit-tap-highlight-color: transparent;
-      overscroll-behavior-y: none;
-    }
-
-    ::-webkit-scrollbar { display: none; }
-
-    /* ── BG ── */
-    .bg {
-      position: fixed; inset: 0; z-index: 0; pointer-events: none;
-      background:
-        radial-gradient(ellipse 80% 50% at 15% 0%, rgba(59,130,246,.13) 0%, transparent 60%),
-        radial-gradient(ellipse 55% 45% at 85% 100%, rgba(29,78,216,.10) 0%, transparent 55%),
-        var(--bg);
-    }
-    .orb {
-      position: fixed; border-radius: 50%;
-      filter: blur(90px); pointer-events: none; z-index: 0;
-      animation: drift 10s ease-in-out infinite alternate;
-    }
-    .o1 { width:360px;height:360px; background:rgba(59,130,246,.11); top:-90px;left:-70px; animation-duration:11s; }
-    .o2 { width:240px;height:240px; background:rgba(29,78,216,.09); bottom:-50px;right:-40px; animation-duration:13s;animation-delay:-4s; }
-    @keyframes drift { from{transform:translate(0,0)}to{transform:translate(18px,28px)} }
-
-    /* ── PAGE ── */
-    .page {
-      position: relative; z-index: 1;
-      max-width: 520px; margin: 0 auto;
-      padding: 18px 16px 40px;
-    }
-
-    /* ── HEADER ── */
-    .header {
-      display: flex; align-items: center; gap: 14px;
-      margin-bottom: 22px;
-    }
-    .back-btn {
-      width: 38px; height: 38px; border-radius: 12px; flex-shrink: 0;
-      background: var(--card2); border: 1px solid var(--border2);
-      display: grid; place-items: center; cursor: pointer;
-      color: var(--b4); text-decoration: none; transition: all .2s;
-    }
-    .back-btn:hover { background: rgba(59,130,246,.12); border-color: var(--b5); }
-    .header-text h1 {
-      font-family: 'Syne', sans-serif; font-size: 20px; font-weight: 800;
-      color: var(--text); letter-spacing: -.2px;
-    }
-    .header-text p { font-size: 12px; color: var(--muted2); margin-top: 3px; }
-
-    .limits-toggle-btn {
-      width: 100%;
-      margin: -6px 0 16px;
-      padding: 12px 16px;
-      border-radius: 14px;
-      border: 1px solid var(--border2);
-      background: var(--card2);
-      color: var(--b4);
-      font-size: 14px;
-      font-weight: 600;
-      font-family: inherit;
-      cursor: pointer;
-      transition: background .2s, border-color .2s;
-    }
-    .limits-toggle-btn:hover {
-      background: rgba(59,130,246,.12);
-      border-color: var(--b5);
-    }
-
-    /* ── PLAN CARD ── */
-    .plan {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 24px;
-      overflow: hidden;
-      box-shadow: 0 16px 50px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.03);
-      position: relative;
-      margin-bottom: 12px;
-      animation: fadeUp .5s cubic-bezier(.22,1,.36,1) both;
-    }
-    .plan::before {
-      content:''; position:absolute; top:0; left:8%; right:8%; height:1px;
-      background: linear-gradient(90deg, transparent, var(--b5), transparent);
-      opacity: .35;
-    }
-    .plan:nth-child(2) { animation-delay: .1s; }
-    .plan:nth-child(3) { animation-delay: .2s; }
-    @keyframes fadeUp { from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)} }
-
-    /* gold plan override */
-    .plan.gold {
-      border-color: rgba(245,158,11,.35);
-      box-shadow: 0 0 40px -8px rgba(245,158,11,.22), 0 16px 50px rgba(0,0,0,.5);
-    }
-    .plan.gold::before {
-      background: linear-gradient(90deg, transparent, var(--gold), transparent);
-      opacity: .5;
-    }
-
-    /* ── PLAN HEADER ── */
-    .plan-head {
-      padding: 18px 18px 14px;
-      display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;
-    }
-    .plan-label {
-      font-size: 10px; font-weight: 700; letter-spacing: .8px;
-      text-transform: uppercase; margin-bottom: 4px;
-      color: var(--muted2);
-    }
-    .plan.gold .plan-label { color: var(--gold); }
-    .plan-price {
-      font-family: 'Syne', sans-serif; font-size: 28px; font-weight: 800;
-      color: var(--text); line-height: 1;
-    }
-    .plan-period { font-size: 12px; font-weight: 500; color: var(--muted); margin-left: 2px; }
-
-    .plan-badge {
-      padding: 4px 10px; border-radius: 999px;
-      font-size: 10px; font-weight: 800; letter-spacing: .5px;
-      text-transform: uppercase; white-space: nowrap;
-    }
-    .badge-free { background:rgba(59,130,246,.12); color:var(--b4); border:1px solid rgba(59,130,246,.22); }
-    .badge-std  { background:rgba(59,130,246,.12); color:var(--b4); border:1px solid rgba(59,130,246,.22); }
-    .badge-top  { background:var(--gold); color:#000; }
-
-    /* ── DIVIDER ── */
-    .plan-div { height:1px; background:var(--border); margin:0 18px; }
-
-    /* ── FEATURES ── */
-    .plan-features { padding: 14px 18px; }
-    .feat-row {
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 8px 0;
-      border-bottom: 1px solid rgba(255,255,255,.04);
-      gap: 10px;
-    }
-    .feat-row:last-child { border-bottom: none; }
-    .feat-name { font-size: 13px; font-weight: 500; color: var(--muted2); flex:1; }
-    .feat-val {
-      font-size: 12px; font-weight: 700; text-align: right;
-      white-space: nowrap;
-    }
-    .feat-val.v-yes  { color: var(--success); }
-    .feat-val.v-no   { color: var(--muted); opacity: .5; }
-    .feat-val.v-num  { color: var(--b4); }
-    .feat-val.v-inf  { color: var(--gold2); }
-    .feat-val.v-inf-b{ color: var(--b4); }
-
-    /* ── CTA ── */
-    .plan-cta { padding: 14px 18px 18px; }
-    .cta-btn {
-      display: block; width: 100%; min-height: 48px;
-      border-radius: 16px; border: none; cursor: pointer;
-      font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 700;
-      text-align: center; text-decoration: none; line-height: 48px;
-      transition: all .3s cubic-bezier(.22,1,.36,1);
-      position: relative; overflow: hidden;
-    }
-    .cta-free {
-      background: rgba(59,130,246,.1); color: var(--b4);
-      border: 1px solid rgba(59,130,246,.22);
-    }
-    .cta-free:hover { background: rgba(59,130,246,.18); }
-
-    .cta-primary {
-      background: linear-gradient(135deg, var(--b5), var(--b7));
-      color: #fff;
-      box-shadow: 0 6px 22px rgba(59,130,246,.38), inset 0 1px 0 rgba(255,255,255,.14);
-    }
-    .cta-primary:hover { transform:translateY(-2px); box-shadow:0 12px 32px rgba(59,130,246,.5); }
-
-    .cta-gold {
-      background: linear-gradient(135deg, var(--gold), #d97706);
-      color: #000;
-      box-shadow: 0 6px 22px rgba(245,158,11,.38), inset 0 1px 0 rgba(255,255,255,.2);
-    }
-    .cta-gold:hover { transform:translateY(-2px); box-shadow:0 12px 32px rgba(245,158,11,.5); }
-
-    .cta-btn::after {
-      content:''; position:absolute; top:0;left:-60%;width:50%;height:100%;
-      background:linear-gradient(90deg,transparent,rgba(255,255,255,.18),transparent);
-      animation:shimmer 4s infinite 2s;
-    }
-    @keyframes shimmer { from{left:-60%}to{left:130%} }
-
-    /* ── PAYMENT ── */
-    .payments {
-      margin-top: 20px; text-align: center;
-    }
-    .pay-label {
-      font-size: 10px; font-weight: 700; letter-spacing: .8px;
-      text-transform: uppercase; color: var(--muted); margin-bottom: 10px;
-    }
-    .pay-tags { display:flex; flex-wrap:wrap; justify-content:center; gap:8px; }
-    .pay-tag {
-      padding: 7px 14px; border-radius: 12px;
-      background: var(--card2); border: 1px solid var(--border2);
-      font-size: 12px; font-weight: 600; color: var(--muted2);
-    }
-
-    .hidden { display: none !important; }
-
-    .payment-page {
-      background: var(--card);
-      border: 1px solid var(--border2);
-      border-radius: 22px;
-      padding: 16px;
-      box-shadow: 0 16px 50px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.03);
-    }
-    .pay-back {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      color: var(--b4);
-      text-decoration: none;
-      font-size: 13px;
-      margin-bottom: 12px;
-      cursor: pointer;
-    }
-    .pay-title {
-      font-family: 'Syne', sans-serif;
-      font-size: 20px;
-      margin-bottom: 4px;
-    }
-    .pay-sub {
-      color: var(--muted2);
-      font-size: 12px;
-      margin-bottom: 14px;
-    }
-    .pay-card {
-      background: var(--card2);
-      border: 1px solid var(--border2);
-      border-radius: 16px;
-      padding: 12px;
-      margin-bottom: 12px;
-    }
-    .pay-row { margin-bottom: 10px; }
-    .pay-row:last-child { margin-bottom: 0; }
-    .pay-label-2 { color: var(--muted2); font-size: 12px; margin-bottom: 3px; }
-    .pay-value {
-      font-size: 17px;
-      font-weight: 800;
-      letter-spacing: .3px;
-      word-break: break-word;
-    }
-    .copy-btn {
-      width: 100%;
-      margin-top: 8px;
-      min-height: 44px;
-      line-height: 44px;
-      border-radius: 12px;
-      border: 1px solid rgba(59,130,246,.22);
-      background: rgba(59,130,246,.1);
-      color: var(--b4);
-      font-weight: 700;
-      cursor: pointer;
-    }
-    .upload-box {
-      border: 1.5px dashed var(--border2);
-      border-radius: 14px;
-      padding: 12px;
-      margin-top: 12px;
-      background: rgba(59,130,246,.05);
-    }
-    .upload-title { font-size: 13px; color: var(--text); margin-bottom: 8px; }
-    .upload-input {
-      width: 100%;
-      background: var(--card2);
-      border: 1px solid var(--border2);
-      border-radius: 10px;
-      color: var(--text);
-      padding: 8px;
-    }
-    .status {
-      min-height: 18px;
-      margin-top: 9px;
-      font-size: 12px;
-      color: var(--muted2);
-    }
-
-    /* ── BOTTOM NAV ── */
-    .bottom-nav {
-      position: fixed; bottom: 0; left: 0; right: 0; z-index: 50;
-      display: flex; justify-content: center;
-      padding-bottom: 20px; padding-top: 8px;
-      pointer-events: none;
-    }
-    .nav-inner {
-      pointer-events: auto;
-      background: rgba(10,18,40,.85); backdrop-filter: blur(24px);
-      border: 1px solid var(--border2); border-radius: 999px;
-      padding: 6px 6px; display: flex; align-items: center; gap: 2px;
-      box-shadow: 0 8px 32px rgba(0,0,0,.6);
-    }
-    .nav-item {
-      width: 52px; height: 44px; border-radius: 999px;
-      display: grid; place-items: center; cursor: pointer;
-      color: var(--muted); text-decoration: none;
-      transition: all .2s; border: none; background: none;
-    }
-    .nav-item:hover { color: var(--b4); background: rgba(59,130,246,.08); }
-    .nav-item.active-gold {
-      background: var(--gold); color: #000;
-      box-shadow: 0 4px 14px rgba(245,158,11,.4);
-    }
-
-    /* Jonli tarif / balans (server bilan bir xil) */
-    .plan.live-tariff {
-      border-color: rgba(34, 211, 160, 0.35);
-      box-shadow: 0 0 36px -10px rgba(34, 211, 160, 0.2), 0 16px 50px rgba(0,0,0,.5);
-    }
-    .plan.live-tariff::before {
-      background: linear-gradient(90deg, transparent, var(--success), transparent);
-      opacity: .45;
-    }
-    .live-tariff .plan-price { font-size: 15px; font-weight: 700; line-height: 1.35; }
+    html, body { -webkit-tap-highlight-color: transparent; overscroll-behavior-y: none; }
+    body { background: var(--bg-color); color: var(--text-color); min-height: var(--app-vh, 100vh); }
+    .scroller::-webkit-scrollbar { width: 0px; }
   </style>
 </head>
-<body>
+<body class="antialiased selection:bg-apple-orange selection:text-white flex flex-col h-screen overflow-hidden">
 
-<div class="bg"></div>
-<div class="orb o1"></div>
-<div class="orb o2"></div>
-
-<main class="page">
-
-  <!-- Header -->
-  <div class="header">
-    <a href="index.html" class="back-btn">
-      <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M19 12H5M11 6l-6 6 6 6"/></svg>
+  <header class="h-16 flex-shrink-0 border-b border-black/5 dark:border-white/5 bg-white/80 dark:bg-[#0a0a0c]/80 backdrop-blur-xl flex items-center px-4 z-50">
+    <a href="more.html" class="w-10 h-10 rounded-xl bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 transition-colors flex items-center justify-center shrink-0" id="backBtn">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="m15 18-6-6 6-6" />
+      </svg>
     </a>
-    <div class="header-text">
-      <h1 data-i18n="premium_h1" data-i18n-fallback="📦 Tariflar">📦 Tariflar</h1>
-      <p data-i18n="premium_sub" data-i18n-fallback="O'zingizga mos rejani tanlang">O'zingizga mos rejani tanlang</p>
+    <div class="ml-4 flex-1">
+      <h1 class="font-display font-bold text-lg tracking-tight leading-tight flex items-center gap-2">
+        <span>💎</span>
+        <span data-i18n="premium_h1" data-i18n-fallback="Premium Tariflar">Premium Tariflar</span>
+      </h1>
+      <p class="text-[10px] font-semibold text-black/40 dark:text-white/40 uppercase tracking-widest" data-i18n="premium_sub" data-i18n-fallback="Chegaralarni kengaytirish">Chegaralarni kengaytirish</p>
     </div>
-  </div>
+  </header>
 
-  <button type="button" id="btnPremiumLimits" class="limits-toggle-btn" aria-expanded="false" aria-controls="userLiveTariff" onclick="togglePremiumLimitsPanel()">
-    📊 <span data-i18n="premium_my_limits" data-i18n-fallback="Mening limitlarim">Mening limitlarim</span>
-  </button>
-  <p class="limits-renew-hint" style="font-size:12px;opacity:0.88;margin:10px 16px 0;line-height:1.45;text-align:center;color:var(--muted,#64748b);">
-    <span data-i18n="premium_limits_hint" data-i18n-fallback="💡 Limit tugaganda shu sahifadan tarifni yangilang yoki muddatni uzaytiring — to‘lovdan keyin limitlar tarif qoidalariga qarab qayta hisoblanadi.">💡 Limit tugaganda shu sahifadan tarifni yangilang yoki muddatni uzaytiring — to‘lovdan keyin limitlar tarif qoidalariga qarab qayta hisoblanadi.</span>
-  </p>
+  <main class="flex-1 overflow-y-auto scroller relative flex flex-col">
+    <div class="max-w-3xl w-full mx-auto p-4 md:p-6 flex flex-col gap-4 pb-10">
 
-  <div id="referralDiscountBanner" class="plan hidden" style="border-color:rgba(245,158,11,.35);margin-top:12px;">
-    <div class="plan-head" style="padding:14px 16px;">
-      <div>
-        <div class="plan-label" data-i18n="ref_banner_title" data-i18n-fallback="🎁 Referal bonus">🎁 Referal bonus</div>
-        <div class="plan-price" style="font-size:14px;font-weight:700;line-height:1.35;">
-          <span id="refBannerText" data-i18n="ref_banner_loading" data-i18n-fallback="Tekshirilmoqda…">Tekshirilmoqda…</span>
-        </div>
-      </div>
-      <span class="plan-badge badge-top" id="refBannerBadge">—</span>
-    </div>
-  </div>
-
-  <!-- Serverdagi haqiqiy tarif va limit (botdagi «Balans» bilan bir xil) -->
-  <div id="userLiveTariff" class="plan live-tariff hidden" aria-live="polite">
-    <div class="plan-head">
-      <div>
-        <div class="plan-label" data-i18n="premium_your_status" data-i18n-fallback="Sizning holatingiz">Sizning holatingiz</div>
-        <div class="plan-price" id="ultSummary" data-i18n="premium_loading" data-i18n-fallback="Yuklanmoqda…">Yuklanmoqda…</div>
-      </div>
-      <span class="plan-badge badge-free" id="ultBadge">—</span>
-    </div>
-    <div class="plan-div"></div>
-    <div class="plan-features" id="ultFeatures"></div>
-  </div>
-
-  <section id="plansSection">
-  <!-- ── FREE ── -->
-  <div class="plan">
-    <div class="plan-head">
-      <div>
-        <div class="plan-label" data-i18n="premium_free_plan" data-i18n-fallback="Bepul tarif">Bepul tarif</div>
-        <div class="plan-price">0 <span class="plan-period">so'm</span></div>
-      </div>
-      <span class="plan-badge badge-free" data-i18n="premium_start_badge" data-i18n-fallback="Boshlash">Boshlash</span>
-    </div>
-    <div class="plan-div"></div>
-    <div class="plan-features">
-      <div class="feat-row">
-        <span class="feat-name" data-i18n="premium_feat_daily_pool" data-i18n-fallback="📌 Kunlik umumiy (bot + web)">📌 Kunlik umumiy (bot + web)</span>
-        <span class="feat-val v-num" id="featFreePool">—</span>
-      </div>
-      <div class="feat-row">
-        <span class="feat-name" data-i18n="premium_feat_translit" data-i18n-fallback="🔤 Krill ↔ Lotin">🔤 Krill ↔ Lotin</span>
-        <span class="feat-val v-yes" data-i18n="premium_val_within_limit" data-i18n-fallback="limit ichida">limit ichida</span>
-      </div>
-      <div class="feat-row">
-        <span class="feat-name" data-i18n="premium_feat_img2pdf" data-i18n-fallback="🖼 Rasm → PDF">🖼 Rasm → PDF</span>
-        <span class="feat-val v-yes" data-i18n="premium_val_within_limit" data-i18n-fallback="limit ichida">limit ichida</span>
-      </div>
-      <div class="feat-row">
-        <span class="feat-name" data-i18n="premium_feat_translate" data-i18n-fallback="🌐 Tarjima">🌐 Tarjima</span>
-        <span class="feat-val v-yes" data-i18n="premium_val_within_limit" data-i18n-fallback="limit ichida">limit ichida</span>
-      </div>
-      <div class="feat-row">
-        <span class="feat-name" data-i18n="premium_feat_obyektivka" data-i18n-fallback="📄 Obyektivka">📄 Obyektivka</span>
-        <span class="feat-val v-no">—</span>
-      </div>
-      <div class="feat-row">
-        <span class="feat-name" data-i18n="premium_feat_cv" data-i18n-fallback="📋 CV / Rezyume">📋 CV / Rezyume</span>
-        <span class="feat-val v-no">—</span>
-      </div>
-      <div class="feat-row">
-        <span class="feat-name" data-i18n="premium_feat_ocr" data-i18n-fallback="🤖 AI skayner">🤖 AI skayner</span>
-        <span class="feat-val v-no">—</span>
-      </div>
-      <div class="feat-row">
-        <span class="feat-name" data-i18n="premium_feat_spell" data-i18n-fallback="✏️ Imlo tekshirish">✏️ Imlo tekshirish</span>
-        <span class="feat-val v-no">—</span>
-      </div>
-    </div>
-    <div class="plan-cta">
-      <a href="index.html" class="cta-btn cta-free" data-i18n="premium_start_cta" data-i18n-fallback="Boshlash">Boshlash</a>
-    </div>
-  </div>
-
-  <!-- ── STANDART ── -->
-  <div class="plan">
-    <div class="plan-head">
-      <div>
-        <div class="plan-label" data-i18n="premium_standard_plan" data-i18n-fallback="Standart tarif">Standart tarif</div>
-        <div class="plan-price">
-          <span id="stdPriceNow">9 999</span>
-          <span id="stdPriceWas" style="margin-left:8px;font-size:12px;opacity:.8;text-decoration:line-through;display:none;">9 999</span>
-          <span class="plan-period" data-i18n="premium_period_7_days" data-i18n-fallback="so'm / 7 kun">so'm / 7 kun</span>
-        </div>
-      </div>
-      <span class="plan-badge badge-std" data-i18n="premium_badge_7_days" data-i18n-fallback="7 kun">7 kun</span>
-    </div>
-    <div class="plan-div"></div>
-    <div class="plan-features">
-      <div class="feat-row">
-        <span class="feat-name" data-i18n="premium_feat_translit" data-i18n-fallback="🔤 Krill ↔ Lotin">🔤 Krill ↔ Lotin</span>
-        <span class="feat-val v-inf-b" data-i18n="premium_val_unlimited" data-i18n-fallback="♾ cheksiz">♾ cheksiz</span>
-      </div>
-      <div class="feat-row">
-        <span class="feat-name" data-i18n="premium_feat_img2pdf" data-i18n-fallback="🖼 Rasm → PDF">🖼 Rasm → PDF</span>
-        <span class="feat-val v-inf-b" data-i18n="premium_val_unlimited" data-i18n-fallback="♾ cheksiz">♾ cheksiz</span>
-      </div>
-      <div class="feat-row">
-        <span class="feat-name" data-i18n="premium_feat_translate" data-i18n-fallback="🌐 Tarjima">🌐 Tarjima</span>
-        <span class="feat-val v-num" data-i18n="premium_val_std_translate_day" data-i18n-fallback="10 ta / kun">10 ta / kun</span>
-      </div>
-      <div class="feat-row">
-        <span class="feat-name" data-i18n="premium_feat_obyektivka" data-i18n-fallback="📄 Obyektivka">📄 Obyektivka</span>
-        <span class="feat-val v-num" data-i18n="premium_val_std_oby_7d" data-i18n-fallback="1 ta / 7 kun">1 ta / 7 kun</span>
-      </div>
-      <div class="feat-row">
-        <span class="feat-name" data-i18n="premium_feat_cv" data-i18n-fallback="📋 CV / Rezyume">📋 CV / Rezyume</span>
-        <span class="feat-val v-num" data-i18n="premium_val_std_cv_7d" data-i18n-fallback="1 ta / 7 kun">1 ta / 7 kun</span>
-      </div>
-      <div class="feat-row">
-        <span class="feat-name" data-i18n="premium_feat_ocr" data-i18n-fallback="🤖 AI skayner">🤖 AI skayner</span>
-        <span class="feat-val v-num" data-i18n="premium_val_std_ocr_day" data-i18n-fallback="5 ta / kun">5 ta / kun</span>
-      </div>
-      <div class="feat-row">
-        <span class="feat-name" data-i18n="premium_feat_spell" data-i18n-fallback="✏️ Imlo tekshirish">✏️ Imlo tekshirish</span>
-        <span class="feat-val v-num" data-i18n="premium_val_std_spell_day" data-i18n-fallback="5 ta / kun">5 ta / kun</span>
-      </div>
-    </div>
-    <div class="plan-cta">
-      <button type="button" class="cta-btn cta-primary" onclick="openPaymentPage('standard')"><span data-i18n="premium_buy_standard" data-i18n-fallback="Standart sotib olish ✦">Standart sotib olish ✦</span></button>
-    </div>
-  </div>
-
-  <!-- ── PREMIUM ── -->
-  <div class="plan gold">
-    <div class="plan-head">
-      <div>
-        <div class="plan-label" data-i18n="premium_premium_plan" data-i18n-fallback="Premium tarif">Premium tarif</div>
-        <div class="plan-price">
-          <span id="premPriceNow">29 999</span>
-          <span id="premPriceWas" style="margin-left:8px;font-size:12px;opacity:.8;text-decoration:line-through;display:none;">29 999</span>
-          <span class="plan-period" data-i18n="premium_period_month" data-i18n-fallback="so'm / oy">so'm / oy</span>
-        </div>
-      </div>
-      <span class="plan-badge badge-top" data-i18n="premium_badge_top" data-i18n-fallback="⭐ TOP">⭐ TOP</span>
-    </div>
-    <div class="plan-div"></div>
-    <div class="plan-features">
-      <div class="feat-row">
-        <span class="feat-name" data-i18n="premium_feat_translit" data-i18n-fallback="🔤 Krill ↔ Lotin">🔤 Krill ↔ Lotin</span>
-        <span class="feat-val v-inf" data-i18n="premium_val_unlimited" data-i18n-fallback="♾ cheksiz">♾ cheksiz</span>
-      </div>
-      <div class="feat-row">
-        <span class="feat-name" data-i18n="premium_feat_img2pdf" data-i18n-fallback="🖼 Rasm → PDF">🖼 Rasm → PDF</span>
-        <span class="feat-val v-inf" data-i18n="premium_val_unlimited" data-i18n-fallback="♾ cheksiz">♾ cheksiz</span>
-      </div>
-      <div class="feat-row">
-        <span class="feat-name" data-i18n="premium_feat_translate" data-i18n-fallback="🌐 Tarjima">🌐 Tarjima</span>
-        <span class="feat-val v-inf" data-i18n="premium_val_unlimited" data-i18n-fallback="♾ cheksiz">♾ cheksiz</span>
-      </div>
-      <div class="feat-row">
-        <span class="feat-name" data-i18n="premium_feat_obyektivka" data-i18n-fallback="📄 Obyektivka">📄 Obyektivka</span>
-        <span class="feat-val v-num" data-i18n="premium_val_prem_oby_month" data-i18n-fallback="6 ta / oy">6 ta / oy</span>
-      </div>
-      <div class="feat-row">
-        <span class="feat-name" data-i18n="premium_feat_cv" data-i18n-fallback="📋 CV / Rezyume">📋 CV / Rezyume</span>
-        <span class="feat-val v-num" data-i18n="premium_val_prem_cv_month" data-i18n-fallback="6 ta / oy">6 ta / oy</span>
-      </div>
-      <div class="feat-row">
-        <span class="feat-name" data-i18n="premium_feat_ocr" data-i18n-fallback="🤖 AI skayner">🤖 AI skayner</span>
-        <span class="feat-val v-num" data-i18n="premium_val_prem_ocr_day" data-i18n-fallback="10 ta / kun">10 ta / kun</span>
-      </div>
-      <div class="feat-row">
-        <span class="feat-name" data-i18n="premium_feat_spell" data-i18n-fallback="✏️ Imlo tekshirish">✏️ Imlo tekshirish</span>
-        <span class="feat-val v-inf" data-i18n="premium_val_unlimited" data-i18n-fallback="♾ cheksiz">♾ cheksiz</span>
-      </div>
-    </div>
-    <div class="plan-cta">
-      <button type="button" class="cta-btn cta-gold" onclick="openPaymentPage('premium')"><span data-i18n="premium_buy_premium" data-i18n-fallback="Premium sotib olish ✦">Premium sotib olish ✦</span></button>
-    </div>
-  </div>
-  </section>
-
-  <section id="paymentSection" class="payment-page hidden">
-    <a class="pay-back" onclick="backToPlans()">
-      <span>←</span>
-      <span data-i18n="premium_back_to_plans" data-i18n-fallback="Tariflarga qaytish">Tariflarga qaytish</span>
-    </a>
-    <div class="pay-title" id="payPlanTitle" data-i18n="premium_pay_title" data-i18n-fallback="Premium to'lovi">Premium to'lovi</div>
-    <div class="pay-sub" data-i18n="premium_pay_sub" data-i18n-fallback="To'lovni amalga oshiring va skrenshotni shu yerning o'zida yuboring.">To'lovni amalga oshiring va skrenshotni shu yerning o'zida yuboring.</div>
-
-    <div class="pay-card">
-      <div class="pay-row">
-        <div class="pay-label-2" data-i18n="premium_card_number" data-i18n-fallback="💳 Karta raqami">💳 Karta raqami</div>
-        <div class="pay-value" id="cardNo">9860 1201 7225 8424</div>
-      </div>
-      <div class="pay-row">
-        <div class="pay-label-2" data-i18n="premium_card_owner" data-i18n-fallback="👤 Karta egasi">👤 Karta egasi</div>
-        <div class="pay-value">DILNOZA MOMINOVA</div>
-      </div>
-    </div>
-
-    <button type="button" class="copy-btn" onclick="copyCard()" data-i18n="premium_copy_card" data-i18n-fallback="Kartani nusxa olish">Kartani nusxa olish</button>
-
-    <div class="upload-box">
-      <div class="upload-title" data-i18n="premium_upload_title" data-i18n-fallback="To'lov skrenshotini yuklang">To'lov skrenshotini yuklang</div>
-      <input id="receiptInput" class="upload-input" type="file" accept="image/*"/>
-      <button type="button" class="cta-btn cta-gold" style="margin-top:10px;" onclick="submitScreenshot()">
-        <span data-i18n="premium_send_screenshot" data-i18n-fallback="Skrenshotni adminga yuborish">Skrenshotni adminga yuborish</span>
+      <button type="button" id="btnPremiumLimits"
+        class="w-full rounded-2xl border border-black/5 dark:border-white/10 bg-white dark:bg-[#151518] px-4 py-3 text-sm font-extrabold text-apple-blue hover:bg-black/[0.02] dark:hover:bg-white/[0.03] transition-colors"
+        aria-expanded="false" aria-controls="userLiveTariff" onclick="togglePremiumLimitsPanel()">
+        📊 <span data-i18n="premium_my_limits" data-i18n-fallback="Mening limitlarim">Mening limitlarim</span>
       </button>
-      <div id="uploadStatus" class="status"></div>
+      <div class="text-xs text-black/50 dark:text-white/50 text-center -mt-2 px-2" data-i18n="premium_limits_hint" data-i18n-fallback="💡 Limit tugaganda shu sahifadan tarifni yangilang yoki muddatni uzaytiring.">
+        💡 Limit tugaganda shu sahifadan tarifni yangilang yoki muddatni uzaytiring.
+      </div>
+
+      <div id="referralDiscountBanner" class="hidden rounded-2xl border border-apple-orange/20 bg-apple-orange/5 px-4 py-3">
+        <div class="flex items-center justify-between gap-3">
+          <div class="min-w-0">
+            <div class="text-[10px] font-bold text-apple-orange uppercase tracking-widest" data-i18n="ref_banner_title" data-i18n-fallback="🎁 Referal bonus">🎁 Referal bonus</div>
+            <div class="text-sm font-semibold text-black dark:text-white truncate" id="refBannerText">Tekshirilmoqda…</div>
+          </div>
+          <div class="shrink-0 px-3 py-1 rounded-full bg-apple-orange text-white text-xs font-extrabold" id="refBannerBadge">—</div>
+        </div>
+      </div>
+
+      <div id="userLiveTariff" class="hidden rounded-2xl border border-apple-green/20 bg-apple-green/5 px-4 py-3" aria-live="polite">
+        <div class="flex items-start justify-between gap-3">
+          <div class="min-w-0">
+            <div class="text-[10px] font-bold text-apple-green uppercase tracking-widest" data-i18n="premium_your_status" data-i18n-fallback="Sizning holatingiz">Sizning holatingiz</div>
+            <div class="text-sm font-semibold text-black dark:text-white" id="ultSummary" data-i18n="premium_loading" data-i18n-fallback="Yuklanmoqda…">Yuklanmoqda…</div>
+          </div>
+          <div class="shrink-0 px-3 py-1 rounded-full bg-white/80 dark:bg-white/10 border border-black/5 dark:border-white/10 text-xs font-extrabold text-black/60 dark:text-white/70" id="ultBadge">—</div>
+        </div>
+        <div class="mt-3 grid grid-cols-1 gap-2" id="ultFeatures"></div>
+      </div>
+
+      <section id="plansSection" class="grid grid-cols-1 gap-4">
+        <div class="rounded-[24px] bg-white dark:bg-[#151518] border border-black/5 dark:border-white/10 overflow-hidden shadow-sm">
+          <div class="p-5 flex items-start justify-between gap-3">
+            <div>
+              <div class="text-[10px] font-bold text-black/40 dark:text-white/40 uppercase tracking-widest" data-i18n="premium_free_plan" data-i18n-fallback="Bepul">Bepul</div>
+              <div class="mt-1 text-4xl font-display font-extrabold">0 <span class="text-sm font-bold text-black/40 dark:text-white/40">/ mo</span></div>
+            </div>
+          </div>
+          <div class="px-5 pb-4 space-y-2 text-sm font-semibold">
+            <div class="flex items-center justify-between"><span>✅ 5 hujjat/oy</span><span class="text-black/40 dark:text-white/40" id="featFreePool">—</span></div>
+            <div class="flex items-center gap-2"><span class="text-apple-green">✔</span><span>CV &amp; Obyektivka</span></div>
+            <div class="flex items-center gap-2 opacity-50"><span>✖</span><span>Pro xizmatlar</span></div>
+            <div class="flex items-center gap-2 opacity-50"><span>✖</span><span>Tezkor aloqa</span></div>
+          </div>
+          <div class="p-5 pt-0">
+            <a href="index.html" class="w-full block text-center py-3 rounded-2xl bg-black/5 dark:bg-white/5 text-black/70 dark:text-white/70 font-extrabold">Boshlash</a>
+          </div>
+        </div>
+
+        <div class="rounded-[24px] bg-white dark:bg-[#151518] border border-black/5 dark:border-white/10 overflow-hidden shadow-sm">
+          <div class="p-5 flex items-start justify-between gap-3">
+            <div>
+              <div class="text-[10px] font-bold text-black/40 dark:text-white/40 uppercase tracking-widest" data-i18n="premium_standard_plan" data-i18n-fallback="Standart">Standart</div>
+              <div class="mt-1 text-4xl font-display font-extrabold"><span id="stdPriceNow">9 999</span><span class="text-sm font-bold text-black/40 dark:text-white/40"> / 7 kun</span></div>
+              <span id="stdPriceWas" class="hidden"></span>
+            </div>
+            <div class="px-3 py-1 rounded-full bg-apple-blue/10 text-apple-blue text-xs font-extrabold">7 kun</div>
+          </div>
+          <div class="px-5 pb-4 space-y-2 text-sm font-semibold text-black/70 dark:text-white/70">
+            <div class="flex items-center gap-2"><span class="text-apple-blue">✔</span><span>Tarjima (10/kun)</span></div>
+            <div class="flex items-center gap-2"><span class="text-apple-blue">✔</span><span>Imlo (5/kun)</span></div>
+            <div class="flex items-center gap-2"><span class="text-apple-blue">✔</span><span>OCR (5/kun)</span></div>
+          </div>
+          <div class="p-5 pt-0">
+            <button type="button" class="w-full py-3 rounded-2xl bg-apple-blue text-white font-extrabold hover:bg-blue-600 active:scale-[0.98] transition-all"
+              onclick="openPaymentPage('standard')">
+              Standart olish
+            </button>
+          </div>
+        </div>
+
+        <div class="rounded-[24px] bg-apple-orange/5 dark:bg-[#151518] border border-apple-orange/30 overflow-hidden shadow-sm">
+          <div class="p-5 flex items-start justify-between gap-3">
+            <div>
+              <div class="text-[10px] font-bold text-apple-orange uppercase tracking-widest" data-i18n="premium_premium_plan" data-i18n-fallback="Premium Oylik">Premium Oylik</div>
+              <div class="mt-1 text-4xl font-display font-extrabold"><span id="premPriceNow">29 999</span><span class="text-sm font-bold text-black/40 dark:text-white/40"> / mo</span></div>
+              <span id="premPriceWas" class="hidden"></span>
+            </div>
+            <div class="px-3 py-1 rounded-full bg-apple-orange text-white text-xs font-extrabold">TOP</div>
+          </div>
+          <div class="px-5 pb-4 space-y-2 text-sm font-semibold text-black/80 dark:text-white/80">
+            <div class="flex items-center gap-2"><span class="text-apple-orange">✔</span><span>Cheksiz hujjatlar</span></div>
+            <div class="flex items-center gap-2"><span class="text-apple-orange">✔</span><span>Barcha Pro xizmatlar</span></div>
+            <div class="flex items-center gap-2"><span class="text-apple-orange">✔</span><span>Ustuvor navbat</span></div>
+            <div class="flex items-center gap-2"><span class="text-apple-orange">✔</span><span>24/7 yordam</span></div>
+          </div>
+          <div class="p-5 pt-0">
+            <button type="button" class="w-full py-3 rounded-2xl bg-apple-orange text-white font-extrabold hover:brightness-110 active:scale-[0.98] transition-all"
+              onclick="openPaymentPage('premium')">
+              Hozir olish
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <section id="paymentSection" class="hidden rounded-[24px] bg-white dark:bg-[#151518] border border-black/5 dark:border-white/10 overflow-hidden shadow-sm">
+        <div class="p-5 border-b border-black/5 dark:border-white/10 flex items-center gap-3">
+          <button type="button" class="w-10 h-10 rounded-xl bg-black/5 dark:bg-white/5 flex items-center justify-center font-extrabold"
+            onclick="backToPlans()">←</button>
+          <div class="min-w-0">
+            <div class="text-[10px] font-bold text-black/40 dark:text-white/40 uppercase tracking-widest" data-i18n="premium_pay_sub" data-i18n-fallback="To'lovni amalga oshiring va skrenshotni yuboring">
+              To'lovni amalga oshiring va skrenshotni yuboring
+            </div>
+            <div class="text-lg font-display font-extrabold" id="payPlanTitle">Premium to'lovi</div>
+          </div>
+        </div>
+        <div class="p-5 space-y-4">
+          <div class="rounded-2xl border border-black/5 dark:border-white/10 bg-black/[0.02] dark:bg-white/[0.03] p-4">
+            <div class="text-xs font-bold text-black/50 dark:text-white/50">💳 Karta raqami</div>
+            <div class="mt-1 text-xl font-extrabold tracking-wide" id="cardNo">9860 1201 7225 8424</div>
+            <div class="mt-3 text-xs font-bold text-black/50 dark:text-white/50">👤 Karta egasi</div>
+            <div class="mt-1 text-base font-extrabold">DILNOZA MOMINOVA</div>
+            <button type="button" class="mt-3 w-full py-3 rounded-xl bg-apple-blue/10 text-apple-blue font-extrabold hover:bg-apple-blue/20 transition-colors" onclick="copyCard()">
+              Kartani nusxa olish
+            </button>
+          </div>
+
+          <div class="rounded-2xl border border-black/5 dark:border-white/10 bg-black/[0.02] dark:bg-white/[0.03] p-4">
+            <div class="text-xs font-bold text-black/50 dark:text-white/50 mb-2">🖼 Skrenshot</div>
+            <input id="receiptInput" type="file" accept="image/*" class="w-full text-sm" />
+            <button type="button" class="mt-3 w-full py-3 rounded-2xl bg-apple-orange text-white font-extrabold hover:brightness-110 active:scale-[0.98] transition-all" onclick="submitScreenshot()">
+              Skrenshotni yuborish
+            </button>
+            <div id="uploadStatus" class="text-xs font-semibold text-black/60 dark:text-white/60 mt-2"></div>
+          </div>
+        </div>
+      </section>
+
     </div>
-  </section>
+  </main>
 
-</main>
-
-<script src="app.js"></script>
 <script>
   function _daEsc(s) {
     return String(s || "")
