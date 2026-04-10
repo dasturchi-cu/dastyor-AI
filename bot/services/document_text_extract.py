@@ -7,7 +7,7 @@ from typing import Final
 
 logger = logging.getLogger(__name__)
 
-_SUPPORTED: Final = frozenset({"txt", "docx", "pptx", "pdf"})
+_SUPPORTED: Final = frozenset({"txt", "docx", "pptx", "pdf", "xlsx"})
 
 
 def extract_plain_text_from_bytes(filename: str, raw: bytes) -> str:
@@ -15,7 +15,7 @@ def extract_plain_text_from_bytes(filename: str, raw: bytes) -> str:
         raise ValueError("Empty file")
     ext = (filename or "").rsplit(".", 1)[-1].lower()
     if ext not in _SUPPORTED:
-        raise ValueError(f"Unsupported type .{ext}; use .txt, .docx, .pptx, .pdf")
+        raise ValueError(f"Unsupported type .{ext}; use .txt, .docx, .pptx, .pdf, .xlsx")
 
     if ext == "txt":
         for enc in ("utf-8", "utf-8-sig", "cp1251", "latin-1"):
@@ -97,5 +97,44 @@ def extract_plain_text_from_bytes(filename: str, raw: bytes) -> str:
             if t.strip():
                 texts.append(t)
         return "\n".join(texts).strip()
+
+    if ext == "xlsx":
+        """
+        Excel: best-effort text extraction (sheet by sheet).
+        Keeps row/cell separation with tabs/newlines.
+        """
+        try:
+            from openpyxl import load_workbook
+        except Exception as e:
+            logger.error("openpyxl missing for XLSX extract: %s", e)
+            raise ValueError("XLSX uchun serverda openpyxl kutubxonasi kerak") from e
+        try:
+            wb = load_workbook(io.BytesIO(raw), read_only=True, data_only=True)
+        except Exception as e:
+            raise ValueError("XLSX faylni o‘qib bo‘lmadi") from e
+        parts: list[str] = []
+        try:
+            for ws in wb.worksheets:
+                parts.append(f"--- {ws.title} ---")
+                # Iterate rows; cap extremely wide rows
+                for row in ws.iter_rows(values_only=True):
+                    if not row:
+                        continue
+                    cells: list[str] = []
+                    for v in row[:200]:
+                        if v is None:
+                            cells.append("")
+                        else:
+                            s = str(v).strip()
+                            cells.append(s)
+                    line = "\t".join(cells).strip()
+                    if line:
+                        parts.append(line)
+        finally:
+            try:
+                wb.close()
+            except Exception:
+                pass
+        return "\n".join(parts).strip()
 
     raise ValueError("Unsupported format")

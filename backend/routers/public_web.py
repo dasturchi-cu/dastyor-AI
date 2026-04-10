@@ -41,6 +41,7 @@ from backend.web_constants import (
     WEBAPP_BASE,
     WEBAPP_VERSION,
 )
+from backend.services.auto_script import auto_cyrillic_latin
 
 logger = logging.getLogger(__name__)
 SPELLCHECK_FILE_MAX_CHARS = int(os.getenv("SPELLCHECK_FILE_MAX_CHARS", "150000"))
@@ -214,6 +215,40 @@ async def api_translit(req: TranslitRequest):
         raise
     except Exception as e:
         logger.error("/api/translit error: %s", e, exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e)[:200])
+
+
+@router.post("/api/translit_auto")
+async def api_translit_auto(req: SpellcheckRequest):
+    """
+    Auto Cyrillic ↔ Latin:
+      - Latin dominates -> convert to Cyrillic
+      - Cyrillic dominates -> convert to Latin
+    No user input required.
+    """
+    if not req.text or not req.text.strip():
+        raise HTTPException(status_code=400, detail="Matn bo'sh bo'lishi mumkin emas")
+    if len(req.text) > TRANSLIT_MAX_CHARS:
+        raise HTTPException(status_code=400, detail="Matn 50 000 belgidan oshmasligi kerak")
+
+    uid = _resolve_web_uid_optional(req.telegram_id, req.token)
+    try:
+        res = auto_cyrillic_latin(req.text)
+        quota = None
+        if uid and res.direction != "none":
+            from bot.services.plan_limits import CAT_TRANSLIT
+
+            quota = web_quota_commit_success(uid, CAT_TRANSLIT, "Web translit auto")
+        return {
+            "ok": True,
+            "result": res.result,
+            "direction": res.direction,
+            "detected": res.detected,
+            "stats": res.stats,
+            "quota": quota,
+        }
+    except Exception as e:
+        logger.error("/api/translit_auto error: %s", e, exc_info=True)
         raise HTTPException(status_code=500, detail=str(e)[:200])
 
 
