@@ -300,10 +300,10 @@ async def smart_callback_handler(update: Update, context: ContextTypes.DEFAULT_T
             file_name = context.user_data.get('smart_file_name', 'document.docx')
             ext = os.path.splitext(file_name)[1].lower()
 
-            if ext not in ('.docx',):
+            if ext not in ('.docx', '.pptx', '.pdf', '.txt', '.xlsx'):
                 await query.message.edit_text(
                     f"❌ <b>{ext}</b> formati qo'llab-quvvatlanmaydi.\n"
-                    "Faqat <b>.docx</b> (Word) tarjima qilinadi.",
+                    "Qo'llab-quvvatlanadi: <b>.docx, .pptx, .pdf, .xlsx, .txt</b>",
                     parse_mode="HTML"
                 )
                 return
@@ -331,16 +331,41 @@ async def smart_callback_handler(update: Update, context: ContextTypes.DEFAULT_T
             translated_path = None
             try:
                 from telegram import InputFile
-                from bot.services.ai_service import translate_document_gemini
+                from bot.services.ai_service import (
+                    is_meaningfully_changed,
+                    translate_document_gemini,
+                    translate_pptx,
+                    translate_text,
+                )
+                from bot.services.document_text_extract import extract_plain_text_from_bytes
 
                 file_obj = await context.bot.get_file(file_id)
                 await file_obj.download_to_drive(temp_path)
 
-                translated_path = await translate_document_gemini(temp_path, target_lang)
+                if ext == ".docx":
+                    translated_path = await translate_document_gemini(temp_path, target_lang)
+                elif ext == ".pptx":
+                    translated_path = await translate_pptx(temp_path, direction, target_lang)
+                else:
+                    # pdf/xlsx/txt -> extract text -> translate -> return txt
+                    with open(temp_path, "rb") as rf:
+                        raw = rf.read()
+                    src_text = extract_plain_text_from_bytes(file_name, raw)
+                    if not (src_text or "").strip():
+                        raise Exception("Fayldan matn ajratilmadi")
+                    translated_text = await translate_text(src_text, direction)
+                    if not translated_text or translated_text.startswith("Tarjimada xato") or translated_text.startswith("AI model"):
+                        raise Exception(translated_text or "Tarjima bo'sh qaytdi")
+                    if not is_meaningfully_changed(src_text, translated_text):
+                        raise Exception("Tarjima natijasi original bilan bir xil chiqdi")
+                    translated_path = temp_path.replace(ext, f"_translated_{target_lang}.txt")
+                    with open(translated_path, "w", encoding="utf-8") as wf:
+                        wf.write(translated_text)
 
                 if translated_path and os.path.exists(translated_path):
                     base_name = os.path.splitext(file_name)[0]
-                    out_name = f"{base_name}_{target_lang}_@DastyorAiBot{ext}"
+                    out_ext = os.path.splitext(translated_path)[1].lower() or ".txt"
+                    out_name = f"{base_name}_{target_lang}_@DastyorAiBot{out_ext}"
                     await query.message.delete()
                     with open(translated_path, "rb") as fp:
                         if out_name.lower().endswith(".docx"):
