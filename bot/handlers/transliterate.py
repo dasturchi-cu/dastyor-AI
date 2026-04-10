@@ -49,7 +49,7 @@ async def transliterate_handler(update: Update, context: ContextTypes.DEFAULT_TY
 
     await update.message.reply_text(
         "🔤 *Kirill ↔ Lotin*\n\n"
-        "Matn yozing yoki DOCX hujjat yuboring.",
+        "Matn yozing yoki DOCX/PPTX/PDF/TXT/XLSX hujjat yuboring.",
         parse_mode="Markdown",
         reply_markup=get_back_button(),
     )
@@ -88,9 +88,9 @@ async def process_transliteration(update: Update, context: ContextTypes.DEFAULT_
         if msg.document:
             file_name = msg.document.file_name or "document.docx"
             ext = os.path.splitext(file_name)[1].lower()
-            if ext not in (".docx", ".pptx"):
+            if ext not in (".docx", ".pptx", ".pdf", ".txt", ".xlsx"):
                 await msg.reply_text(
-                    "❌ Faqat *.DOCX* yoki *.PPTX* fayl qabul qilinadi.",
+                    "❌ Faqat *.DOCX*, *.PPTX*, *.PDF*, *.TXT* yoki *.XLSX* fayl qabul qilinadi.",
                     parse_mode="Markdown",
                     reply_markup=get_back_button(),
                 )
@@ -200,7 +200,7 @@ async def translit_direction_callback(update: Update, context: ContextTypes.DEFA
                                                 run.text = transliterate(run.text, direction)
                 output_path = f"Translit_{dir_label}_{file_name}"
                 prs.save(output_path)
-            else:
+            elif ext == ".docx":
                 # ── DOCX processing ─────────────────────────────────────────
                 from docx import Document
                 doc = Document(temp_path)
@@ -220,6 +220,20 @@ async def translit_direction_callback(update: Update, context: ContextTypes.DEFA
 
                 output_path = f"Translit_{dir_label}_{file_name}"
                 doc.save(output_path)
+            else:
+                # PDF/TXT/XLSX: extract text -> transliterate -> return as TXT
+                with open(temp_path, "rb") as rf:
+                    raw = rf.read()
+                from bot.services.document_text_extract import extract_plain_text_from_bytes
+
+                src_text = extract_plain_text_from_bytes(file_name, raw)
+                if not (src_text or "").strip():
+                    raise Exception("Fayldan matn ajratilmadi")
+                out_text = transliterate(src_text, direction)
+                base = os.path.splitext(file_name)[0] or "document"
+                output_path = f"Translit_{dir_label}_{base}.txt"
+                with open(output_path, "w", encoding="utf-8") as wf:
+                    wf.write(out_text)
 
             with open(output_path, "rb") as f:
                 if output_path.lower().endswith(".docx"):

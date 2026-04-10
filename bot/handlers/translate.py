@@ -35,7 +35,7 @@ TARGET_LANG = {
     'ru_en': 'en',
 }
 
-SUPPORTED_EXTENSIONS = ('.docx', '.txt', '.pptx', '.pdf')
+SUPPORTED_EXTENSIONS = ('.docx', '.txt', '.pptx', '.pdf', '.xlsx')
 
 
 async def translate_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -56,7 +56,7 @@ async def set_translation_direction(update: Update, context: ContextTypes.DEFAUL
     label = DIRECTION_MAP.get(direction, "Tarjima")
     await update.message.reply_text(
         f"🔄 <b>{label}</b>\n\n"
-        "📝 Matn yoki 📄 DOCX fayl yuboring.\n"
+        "📝 Matn yoki 📄 DOCX/PPTX/PDF/TXT/XLSX fayl yuboring.\n"
         "<i>Matn yuborsangiz — natija chatga chiqariladi.\n"
         "Fayl yuborsangiz — tarjima qilingan fayl yuboriladi.</i>",
         reply_markup=get_back_button(),
@@ -113,7 +113,7 @@ async def process_translation(update: Update, context: ContextTypes.DEFAULT_TYPE
             if ext not in SUPPORTED_EXTENSIONS:
                 await message.reply_text(
                     f"❌ <b>{ext}</b> formati qo'llab-quvvatlanmaydi.\n"
-                    "Faqat <b>.docx, .txt, .pptx, .pdf</b> fayllar qabul qilinadi.",
+                    "Faqat <b>.docx, .txt, .pptx, .pdf, .xlsx</b> fayllar qabul qilinadi.",
                     parse_mode="HTML",
                 )
                 return

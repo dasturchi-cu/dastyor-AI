@@ -21,7 +21,7 @@ from bot.constants.states import WaitingState
 
 logger = logging.getLogger(__name__)
 
-SUPPORTED_EXTS = ('.txt', '.docx', '.pptx', '.pdf')
+SUPPORTED_EXTS = ('.txt', '.docx', '.pptx', '.pdf', '.xlsx')
 
 
 def _read_text_file(path: str) -> str:
@@ -38,7 +38,7 @@ async def spell_check_handler(update: Update, context: ContextTypes.DEFAULT_TYPE
     """Handle spell check request"""
     await update.message.reply_text(
         " **Imlo Tekshirish**\n\n"
-        "Oddiy matn, .txt, Word (.docx), PowerPoint (.pptx) yoki PDF yuboring.\n"
+        "Oddiy matn, .txt, Word (.docx), PowerPoint (.pptx), PDF yoki Excel (.xlsx) yuboring.\n"
         "AI imlo xatolarini aniqlaydi va tuzatilgan faylni qaytaradi.\n\n"
         "💡 Hozircha o'zbek va rus tillarini qo'llab-quvvatlaydi.",
         reply_markup=get_back_button(),
@@ -99,7 +99,7 @@ async def process_spell_check(update: Update, context: ContextTypes.DEFAULT_TYPE
     
     if ext not in SUPPORTED_EXTS:
         await update.message.reply_text(
-            "❌ Faqat .TXT, .DOCX, .PPTX yoki .PDF fayllar qabul qilinadi.",
+            "❌ Faqat .TXT, .DOCX, .PPTX, .PDF yoki .XLSX fayllar qabul qilinadi.",
             reply_markup=get_back_button()
         )
         return

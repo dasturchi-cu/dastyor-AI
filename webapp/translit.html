@@ -182,6 +182,31 @@
                 </button>
             </div>
 
+            <!-- File translit (unified pipeline /api/process_file) -->
+            <div class="animate-slide-up pb-2" style="animation-delay: 0.22s;">
+                <div class="bg-white dark:bg-[#151518] border border-black/5 dark:border-white/5 rounded-2xl p-4 shadow-sm">
+                    <div class="text-[10px] font-bold text-black/40 dark:text-white/40 uppercase tracking-widest mb-2">
+                        Fayl o‘girish (DOCX/PPTX/PDF/XLSX/TXT) — Avto (Lotin↔Kirill)
+                    </div>
+                    <div class="flex flex-col gap-2">
+                        <input type="file" id="trlFile" class="hidden"
+                            accept=".txt,.docx,.pptx,.pdf,.xlsx,text/plain,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.presentationml.presentation,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" />
+                        <button type="button"
+                            class="w-full py-3 rounded-xl bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 text-black dark:text-white font-bold transition-all"
+                            onclick="document.getElementById('trlFile').click()">
+                            📎 Fayl tanlash
+                        </button>
+                        <div id="trlFileName" class="text-xs font-semibold text-black/60 dark:text-white/60"></div>
+                        <button type="button" id="trlFileBtn"
+                            class="w-full py-3 rounded-xl bg-apple-orange text-white font-bold hover:brightness-110 active:scale-[0.98] transition-all disabled:opacity-50 disabled:pointer-events-none"
+                            onclick="translitFileAuto()" disabled>
+                            ⚡ Faylni avto o‘girish
+                        </button>
+                        <div id="trlFileStatus" class="text-xs font-semibold text-black/60 dark:text-white/60"></div>
+                    </div>
+                </div>
+            </div>
+
             <div class="animate-slide-up pb-2" style="animation-delay: 0.25s;">
                 <h3 class="text-[10px] font-bold text-black/40 dark:text-white/40 uppercase tracking-widest mb-3 pl-2" data-i18n="translit_keyboard">
                     Klaviatura</h3>
@@ -556,6 +581,72 @@
 
         updateDirUI();
         if (tg) { tg.ready(); tg.expand(); }
+
+        // ---- File translit via backend ----
+        const trlFileEl = document.getElementById('trlFile');
+        const trlFileNameEl = document.getElementById('trlFileName');
+        const trlFileStatusEl = document.getElementById('trlFileStatus');
+        const trlFileBtnEl = document.getElementById('trlFileBtn');
+        let _trlPicked = null;
+
+        trlFileEl?.addEventListener('change', () => {
+            const f = trlFileEl.files && trlFileEl.files[0];
+            _trlPicked = f || null;
+            if (trlFileNameEl) trlFileNameEl.textContent = f ? `Tanlandi: ${f.name} (${Math.round(f.size / 1024)} KB)` : '';
+            if (trlFileStatusEl) trlFileStatusEl.textContent = '';
+            if (trlFileBtnEl) trlFileBtnEl.disabled = !f;
+        });
+
+        function resolveAuth() {
+            const tid2 =
+                window.DastyorAI?.getTelegramId?.()
+                || new URLSearchParams(location.search).get('telegram_id')
+                || sessionStorage.getItem('tg_id')
+                || tg?.initDataUnsafe?.user?.id
+                || '';
+            const tok2 =
+                window.DastyorAI?.getToken?.()
+                || sessionStorage.getItem('tg_token')
+                || '';
+            return { tid: String(tid2 || '').trim(), tok: String(tok2 || '').trim() };
+        }
+
+        async function translitFileAuto() {
+            const f = _trlPicked;
+            if (!f) return;
+            if (trlFileBtnEl) trlFileBtnEl.disabled = true;
+            if (trlFileStatusEl) trlFileStatusEl.textContent = "⏳ Fayl yuklanmoqda...";
+            try {
+                const fd = new FormData();
+                fd.append('file', f, f.name);
+                fd.append('action', 'translit_auto');
+                const a = resolveAuth();
+                if (a.tid && /^\d+$/.test(a.tid)) fd.append('telegram_id', a.tid);
+                if (a.tok) fd.append('token', a.tok);
+
+                const base = location.protocol === 'file:' ? 'https://dastyor-ai.onrender.com' : location.origin;
+                const r = await fetch(base + '/api/process_file', { method: 'POST', body: fd });
+                const data = await r.json().catch(() => ({}));
+                if (!r.ok) throw new Error(data.detail || ('HTTP ' + r.status));
+                const out = String(data.text || '').trim();
+                if (!out) throw new Error("Natija bo'sh");
+
+                const blob = new Blob([out], { type: 'text/plain;charset=utf-8' });
+                const url = URL.createObjectURL(blob);
+                const aEl = document.createElement('a');
+                aEl.href = url;
+                aEl.download = (f.name.replace(/\.[^.]+$/, '') || 'document') + '_translit_auto.txt';
+                document.body.appendChild(aEl);
+                aEl.click();
+                setTimeout(() => { try { URL.revokeObjectURL(url); } catch (_) {} aEl.remove(); }, 1500);
+                if (trlFileStatusEl) trlFileStatusEl.textContent = "✅ Tayyor (TXT yuklandi).";
+                try { void window.DastyorAI?.refreshProfile?.(); } catch (_) {}
+            } catch (e) {
+                if (trlFileStatusEl) trlFileStatusEl.textContent = "❌ Xatolik: " + (e?.message || String(e));
+            } finally {
+                if (trlFileBtnEl) trlFileBtnEl.disabled = !_trlPicked;
+            }
+        }
     </script>
 </body>
 
