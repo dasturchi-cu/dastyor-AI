@@ -619,27 +619,38 @@
             try {
                 const fd = new FormData();
                 fd.append('file', f, f.name);
-                fd.append('action', 'translit_auto');
                 const a = resolveAuth();
                 if (a.tid && /^\d+$/.test(a.tid)) fd.append('telegram_id', a.tid);
                 if (a.tok) fd.append('token', a.tok);
 
                 const base = location.protocol === 'file:' ? 'https://dastyor-ai.onrender.com' : location.origin;
-                const r = await fetch(base + '/api/process_file', { method: 'POST', body: fd });
-                const data = await r.json().catch(() => ({}));
-                if (!r.ok) throw new Error(data.detail || ('HTTP ' + r.status));
-                const out = String(data.text || '').trim();
-                if (!out) throw new Error("Natija bo'sh");
+                const r = await fetch(base + '/api/translit_file_download', { method: 'POST', body: fd });
+                if (!r.ok) {
+                    let msg = 'Xato';
+                    try { const err = await r.json(); msg = err.detail || msg; } catch (_) {}
+                    throw new Error(msg + ' (HTTP ' + r.status + ')');
+                }
+                const blob = await r.blob();
 
-                const blob = new Blob([out], { type: 'text/plain;charset=utf-8' });
+                let filename = '';
+                try {
+                    const cd = r.headers.get('content-disposition') || '';
+                    const m = cd.match(/filename="([^"]+)"/i);
+                    if (m && m[1]) filename = m[1];
+                } catch (_) {}
+                if (!filename) {
+                    const baseName = (f.name.replace(/[/\\?%*:|"<>]/g, '_').replace(/\.[^.]+$/, '') || 'document');
+                    filename = baseName + '_ogirilgan.txt';
+                }
+
                 const url = URL.createObjectURL(blob);
                 const aEl = document.createElement('a');
                 aEl.href = url;
-                aEl.download = (f.name.replace(/\.[^.]+$/, '') || 'document') + '_translit_auto.txt';
+                aEl.download = filename;
                 document.body.appendChild(aEl);
                 aEl.click();
                 setTimeout(() => { try { URL.revokeObjectURL(url); } catch (_) {} aEl.remove(); }, 1500);
-                if (trlFileStatusEl) trlFileStatusEl.textContent = "✅ Tayyor (TXT yuklandi).";
+                if (trlFileStatusEl) trlFileStatusEl.textContent = "✅ Tayyor (fayl yuklandi).";
                 try { void window.DastyorAI?.refreshProfile?.(); } catch (_) {}
             } catch (e) {
                 if (trlFileStatusEl) trlFileStatusEl.textContent = "❌ Xatolik: " + (e?.message || String(e));

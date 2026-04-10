@@ -1093,6 +1093,203 @@ async def api_spellcheck_file_download(
                     pass
 
 
+@router.post("/api/translit_file_download")
+async def api_translit_file_download(
+    file: UploadFile = File(...),
+    token: Optional[str] = Form(None),
+    telegram_id: Optional[str] = Form(None),
+):
+    """
+    Download auto Cyrillic↔Latin converted file with ORIGINAL extension.
+    If detection is unclear, returns original as-is.
+
+    Supported:
+      - docx -> *_ogirilgan.docx
+      - pptx -> *_ogirilgan.pptx
+      - pdf  -> *_ogirilgan.pdf   (generated from converted text; fallback to original if unknown)
+      - xlsx -> *_ogirilgan.xlsx
+      - txt  -> *_ogirilgan.txt
+    """
+    uid = resolve_telegram_uid(telegram_id, token)
+    max_b = get_settings().max_upload_bytes
+    raw = await file.read()
+    if not raw:
+        raise HTTPException(status_code=400, detail="Bo'sh fayl")
+    if len(raw) > max_b:
+        raise HTTPException(status_code=413, detail="Fayl juda katta")
+
+    fname = file.filename or "upload.txt"
+    if "." not in fname:
+        ct = (file.content_type or "").lower()
+        if "spreadsheetml" in ct or "excel" in ct:
+            fname = fname + ".xlsx"
+        elif "wordprocessingml" in ct:
+            fname = fname + ".docx"
+        elif "presentationml" in ct or "powerpoint" in ct:
+            fname = fname + ".pptx"
+        elif "pdf" in ct:
+            fname = fname + ".pdf"
+        else:
+            fname = fname + ".txt"
+
+    base_name, ext = os.path.splitext(fname)
+    ext = (ext or ".txt").lower()
+    safe_base = os.path.basename(base_name).strip() or "document"
+    out_name = f"{safe_base}_ogirilgan{ext}"
+
+    try:
+        from bot.services.document_text_extract import extract_plain_text_from_bytes
+
+        text = extract_plain_text_from_bytes(fname, raw)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Fayl o'qilmadi: {str(e)[:200]}") from e
+
+    auto = auto_cyrillic_latin(text or "")
+    if auto.direction == "none":
+        # return original unchanged (but with our suffix name)
+        return StreamingResponse(
+            io.BytesIO(raw),
+            media_type=file.content_type or "application/octet-stream",
+            headers={"Content-Disposition": f'attachment; filename="{out_name}"'},
+        )
+
+    from bot.services.transliterate_service import transliterate
+
+    data_buf: io.BytesIO | None = None
+    tmp_out = None
+    content_type = "application/octet-stream"
+
+    try:
+        if ext == ".docx":
+            try:
+                from docx import Document
+
+                doc = Document(io.BytesIO(raw))
+                for para in doc.paragraphs:
+                    for run in para.runs:
+                        if run.text:
+                            run.text = transliterate(run.text, auto.direction)
+                for table in doc.tables:
+                    for row in table.rows:
+                        for cell in row.cells:
+                            for para in cell.paragraphs:
+                                for run in para.runs:
+                                    if run.text:
+                                        run.text = transliterate(run.text, auto.direction)
+                bio = io.BytesIO()
+                doc.save(bio)
+                bio.seek(0)
+                data_buf = bio
+                content_type = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+            except Exception:
+                out_name = f"{safe_base}_ogirilgan.txt"
+                data_buf = io.BytesIO((auto.result or "").encode("utf-8"))
+                content_type = "text/plain; charset=utf-8"
+
+        elif ext == ".pptx":
+            try:
+                from pptx import Presentation
+
+                prs = Presentation(io.BytesIO(raw))
+                for slide in prs.slides:
+                    for shape in slide.shapes:
+                        if shape.has_text_frame:
+                            for para in shape.text_frame.paragraphs:
+                                for run in para.runs:
+                                    if run.text:
+                                        run.text = transliterate(run.text, auto.direction)
+                        if shape.has_table:
+                            for row in shape.table.rows:
+                                for cell in row.cells:
+                                    for para in cell.text_frame.paragraphs:
+                                        for run in para.runs:
+                                            if run.text:
+                                                run.text = transliterate(run.text, auto.direction)
+                bio = io.BytesIO()
+                prs.save(bio)
+                bio.seek(0)
+                data_buf = bio
+                content_type = "application/vnd.openxmlformats-officedocument.presentationml.presentation"
+            except Exception:
+                out_name = f"{safe_base}_ogirilgan.txt"
+                data_buf = io.BytesIO((auto.result or "").encode("utf-8"))
+                content_type = "text/plain; charset=utf-8"
+
+        elif ext == ".xlsx":
+            try:
+                from openpyxl import load_workbook
+
+                wb = load_workbook(io.BytesIO(raw))
+                for ws in wb.worksheets:
+                    for row in ws.iter_rows():
+                        for cell in row:
+                            v = cell.value
+                            if isinstance(v, str) and v.strip():
+                                cell.value = transliterate(v, auto.direction)
+                bio = io.BytesIO()
+                wb.save(bio)
+                bio.seek(0)
+                data_buf = bio
+                content_type = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            except Exception:
+                out_name = f"{safe_base}_ogirilgan.txt"
+                data_buf = io.BytesIO((auto.result or "").encode("utf-8"))
+                content_type = "text/plain; charset=utf-8"
+
+        elif ext == ".pdf":
+            # Rebuild PDF from converted plain text (formatting not preserved)
+            fd_out, tmp_out = tempfile.mkstemp(suffix=".pdf", prefix="web_translit_dl_")
+            os.close(fd_out)
+            _build_pdf_from_text(auto.result or "", tmp_out)
+            content_type = "application/pdf"
+            with open(tmp_out, "rb") as fp:
+                data_buf = io.BytesIO(fp.read())
+
+        else:
+            out_name = f"{safe_base}_ogirilgan.txt"
+            data_buf = io.BytesIO((auto.result or "").encode("utf-8"))
+            content_type = "text/plain; charset=utf-8"
+
+        if uid:
+            try:
+                from bot.services.plan_limits import CAT_TRANSLIT
+
+                web_quota_commit_success(int(uid), CAT_TRANSLIT, "Web translit file download")
+            except Exception:
+                pass
+            try:
+                from bot.utils.action_logger import log_action_fire_and_forget
+
+                log_action_fire_and_forget(
+                    telegram_id=int(uid),
+                    username=None,
+                    action_type="TRANSLIT_AUTO",
+                    details=f"web:file:{ext}",
+                    metadata={
+                        "filename": fname,
+                        "bytes": len(raw),
+                        "detected": auto.detected,
+                        "direction": auto.direction,
+                        "letters": (auto.stats or {}).get("letters"),
+                    },
+                )
+            except Exception:
+                pass
+
+        (data_buf or io.BytesIO(b"")).seek(0)
+        return StreamingResponse(
+            data_buf or io.BytesIO(b""),
+            media_type=content_type,
+            headers={"Content-Disposition": f'attachment; filename="{out_name}"'},
+        )
+    finally:
+        if tmp_out and os.path.exists(tmp_out):
+            try:
+                os.remove(tmp_out)
+            except Exception:
+                pass
+
+
 @router.post("/api/process_file")
 async def api_process_file(
     file: UploadFile = File(...),
