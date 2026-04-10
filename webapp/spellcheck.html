@@ -213,6 +213,7 @@
     const tg = window.Telegram?.WebApp;
     let lastCorrectedText = '';
     let lastPickedFileName = '';
+    let lastPickedFileObj = null;
 
     function setMode(mode) {
       document.getElementById('segText').classList.toggle('active', mode === 'text');
@@ -405,6 +406,7 @@
         showStatus('statusFile', 'error', 'Avval fayl tanlang.');
         return;
       }
+      lastPickedFileObj = f;
       const DAq = window.DastyorAI;
       if (DAq && DAq.isQuotaBlockedForCategory && DAq.getUser && DAq.isQuotaBlockedForCategory(DAq.getUser(), 'spell')) {
         showStatus('statusFile', 'error', 'Bu xizmat pullik. Premium/Pro tarifni oling.');
@@ -460,18 +462,53 @@
     }
 
     function downloadCorrectedTxt() {
-      const t = (lastCorrectedText || '').trim();
-      if (!t) return;
-      const blob = new Blob([t], { type: 'text/plain;charset=utf-8' });
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(blob);
-      const base = (lastPickedFileName || 'tuzatilgan_matn')
-        .replace(/[/\\?%*:|"<>]/g, '_')
-        .replace(/\.[^.]+$/, '');
-      a.download = `${base}_tuzatilgan.txt`;
-      a.click();
-      URL.revokeObjectURL(a.href);
-      tg?.HapticFeedback?.impactOccurred?.('light');
+      // Download in ORIGINAL extension via backend (best-effort).
+      downloadCorrectedOriginal();
+    }
+
+    async function downloadCorrectedOriginal() {
+      const f = lastPickedFileObj || (fi.files && fi.files[0]);
+      if (!f) return;
+      const btn = document.getElementById('btnDlTxt');
+      if (btn) { btn.disabled = true; btn.textContent = '⏳ Yuklanmoqda...'; }
+      try {
+        const fd = new FormData();
+        fd.append('file', f, f.name);
+        const auth = resolveWebAuth();
+        if (auth.tid && /^\d+$/.test(auth.tid)) fd.append('telegram_id', auth.tid);
+        if (auth.tok) fd.append('token', auth.tok);
+        const res = await fetch(apiBaseUrl() + '/api/spellcheck_file_download', { method: 'POST', body: fd });
+        if (!res.ok) {
+          let msg = 'Xato';
+          try { const err = await res.json(); msg = err.detail || msg; } catch (_) {}
+          throw new Error(msg + ' (' + res.status + ')');
+        }
+        const blob = await res.blob();
+        let filename = '';
+        try {
+          const cd = res.headers.get('content-disposition') || '';
+          const m = cd.match(/filename="([^"]+)"/i);
+          if (m && m[1]) filename = m[1];
+        } catch (_) {}
+        if (!filename) {
+          const base = (lastPickedFileName || f.name || 'document')
+            .replace(/[/\\?%*:|"<>]/g, '_')
+            .replace(/\.[^.]+$/, '');
+          filename = `${base}_tuzatilgan.txt`;
+        }
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(() => { try { URL.revokeObjectURL(a.href); } catch (_) {} a.remove(); }, 1500);
+        tg?.HapticFeedback?.notificationOccurred?.('success');
+      } catch (e) {
+        showStatus('statusFile', 'error', e?.message || 'Xatolik');
+        tg?.HapticFeedback?.notificationOccurred?.('error');
+      } finally {
+        if (btn) { btn.disabled = false; btn.textContent = '📥 Tuzatilgan faylni yuklab olish'; }
+      }
     }
 
     dz.addEventListener('click', () => fi.click());

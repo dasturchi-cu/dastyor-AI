@@ -11,6 +11,7 @@ import tempfile
 from typing import Optional
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile
+from fastapi.responses import StreamingResponse
 from telegram import InputFile
 
 from backend.dependencies import get_ptb_application
@@ -886,6 +887,210 @@ async def api_spellcheck_file(
             logger.warning("spellcheck_file Telegram: %s", e)
 
     return out
+
+
+@router.post("/api/spellcheck_file_download")
+async def api_spellcheck_file_download(
+    file: UploadFile = File(...),
+    token: Optional[str] = Form(None),
+    telegram_id: Optional[str] = Form(None),
+):
+    """
+    Download corrected file with ORIGINAL extension:
+      - docx -> *_tuzatilgan.docx  (best-effort: AI rebuild if available)
+      - pptx -> *_tuzatilgan.pptx  (best-effort)
+      - pdf  -> *_tuzatilgan.pdf   (generated from corrected text)
+      - xlsx -> *_tuzatilgan.xlsx  (generated sheet with corrected text lines)
+      - txt  -> *_tuzatilgan.txt
+    """
+    uid = resolve_telegram_uid(telegram_id, token)
+    max_b = get_settings().max_upload_bytes
+    raw = await file.read()
+    if not raw:
+        raise HTTPException(status_code=400, detail="Bo'sh fayl")
+    if len(raw) > max_b:
+        raise HTTPException(status_code=413, detail="Fayl juda katta")
+
+    fname = file.filename or "upload.txt"
+    if "." not in fname:
+        ct = (file.content_type or "").lower()
+        if "spreadsheetml" in ct or "excel" in ct:
+            fname = fname + ".xlsx"
+        elif "wordprocessingml" in ct:
+            fname = fname + ".docx"
+        elif "presentationml" in ct or "powerpoint" in ct:
+            fname = fname + ".pptx"
+        elif "pdf" in ct:
+            fname = fname + ".pdf"
+        else:
+            fname = fname + ".txt"
+
+    try:
+        from bot.services.document_text_extract import extract_plain_text_from_bytes
+
+        text = extract_plain_text_from_bytes(fname, raw)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
+
+    if not (text or "").strip():
+        raise HTTPException(status_code=422, detail="Fayldan matn ajratilmadi")
+
+    src = text.strip()
+    if len(src) > SPELLCHECK_FILE_MAX_CHARS:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Fayldan olingan matn {SPELLCHECK_FILE_MAX_CHARS} belgidan oshmasligi kerak",
+        )
+
+    from bot.services.ai_service import check_spelling_text, is_meaningfully_changed
+
+    corrected, fixes = await check_spelling_text(src)
+    if corrected is None:
+        raise HTTPException(status_code=502, detail="Natija bo'sh qaytdi")
+    if int(fixes or 0) == 0 and is_meaningfully_changed(src, corrected):
+        fixes = 1
+
+    base_name, ext = os.path.splitext(fname)
+    ext = (ext or ".txt").lower()
+    safe_base = os.path.basename(base_name).strip() or "document"
+    out_name = f"{safe_base}_tuzatilgan{ext}"
+
+    data_buf: io.BytesIO | None = None
+    tmp_in = None
+    tmp_out = None
+    content_type = "application/octet-stream"
+
+    try:
+        if ext == ".docx":
+            # Prefer AI rebuild (keeps more formatting than plain text)
+            try:
+                from bot.services.ai_service import check_spelling_gemini
+
+                fd_in, tmp_in = tempfile.mkstemp(suffix=".docx", prefix="web_spell_dl_")
+                os.close(fd_in)
+                with open(tmp_in, "wb") as wf:
+                    wf.write(raw)
+                tmp_out, _, _ = await check_spelling_gemini(tmp_in)
+            except Exception:
+                tmp_out = None
+            if tmp_out and os.path.exists(tmp_out):
+                content_type = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                with open(tmp_out, "rb") as fp:
+                    data_buf = io.BytesIO(fp.read())
+            else:
+                # Fallback: build a simple docx from corrected text
+                try:
+                    from docx import Document
+
+                    doc = Document()
+                    for line in (corrected or "").splitlines():
+                        doc.add_paragraph(line)
+                    bio = io.BytesIO()
+                    doc.save(bio)
+                    bio.seek(0)
+                    data_buf = bio
+                    content_type = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                except Exception:
+                    out_name = f"{safe_base}_tuzatilgan.txt"
+                    data_buf = io.BytesIO((corrected or "").encode("utf-8"))
+                    content_type = "text/plain; charset=utf-8"
+
+        elif ext == ".pptx":
+            try:
+                from bot.services.ai_service import check_spelling_pptx
+
+                fd_in, tmp_in = tempfile.mkstemp(suffix=".pptx", prefix="web_spell_dl_")
+                os.close(fd_in)
+                with open(tmp_in, "wb") as wf:
+                    wf.write(raw)
+                tmp_out, _, _ = await check_spelling_pptx(tmp_in)
+            except Exception:
+                tmp_out = None
+            if tmp_out and os.path.exists(tmp_out):
+                content_type = "application/vnd.openxmlformats-officedocument.presentationml.presentation"
+                with open(tmp_out, "rb") as fp:
+                    data_buf = io.BytesIO(fp.read())
+            else:
+                # Fallback: create a simple pptx with one slide text box
+                try:
+                    from pptx import Presentation
+                    from pptx.util import Inches
+
+                    prs = Presentation()
+                    slide = prs.slides.add_slide(prs.slide_layouts[5])
+                    tx = slide.shapes.add_textbox(Inches(0.8), Inches(0.8), Inches(8.0), Inches(5.0))
+                    tf = tx.text_frame
+                    for i, line in enumerate((corrected or "").splitlines()[:200]):
+                        if i == 0:
+                            tf.text = line
+                        else:
+                            tf.add_paragraph().text = line
+                    bio = io.BytesIO()
+                    prs.save(bio)
+                    bio.seek(0)
+                    data_buf = bio
+                    content_type = "application/vnd.openxmlformats-officedocument.presentationml.presentation"
+                except Exception:
+                    out_name = f"{safe_base}_tuzatilgan.txt"
+                    data_buf = io.BytesIO((corrected or "").encode("utf-8"))
+                    content_type = "text/plain; charset=utf-8"
+
+        elif ext == ".pdf":
+            fd_out, tmp_out = tempfile.mkstemp(suffix=".pdf", prefix="web_spell_dl_")
+            os.close(fd_out)
+            _build_pdf_from_text(corrected or "", tmp_out)
+            content_type = "application/pdf"
+            with open(tmp_out, "rb") as fp:
+                data_buf = io.BytesIO(fp.read())
+
+        elif ext == ".xlsx":
+            try:
+                from openpyxl import Workbook
+
+                wb = Workbook()
+                ws = wb.active
+                ws.title = "Tuzatilgan"
+                for i, line in enumerate((corrected or "").splitlines(), start=1):
+                    ws.cell(row=i, column=1, value=line)
+                    if i >= 50000:
+                        break
+                bio = io.BytesIO()
+                wb.save(bio)
+                bio.seek(0)
+                data_buf = bio
+                content_type = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            except Exception:
+                out_name = f"{safe_base}_tuzatilgan.txt"
+                data_buf = io.BytesIO((corrected or "").encode("utf-8"))
+                content_type = "text/plain; charset=utf-8"
+
+        else:
+            out_name = f"{safe_base}_tuzatilgan.txt"
+            data_buf = io.BytesIO((corrected or "").encode("utf-8"))
+            content_type = "text/plain; charset=utf-8"
+
+        if uid:
+            # best-effort quota commit for download action
+            try:
+                from bot.services.plan_limits import CAT_SPELL
+
+                web_quota_commit_success(int(uid), CAT_SPELL, "Web spell file download")
+            except Exception:
+                pass
+
+        data_buf.seek(0)
+        return StreamingResponse(
+            data_buf,
+            media_type=content_type,
+            headers={"Content-Disposition": f'attachment; filename="{out_name}"'},
+        )
+    finally:
+        for p in (tmp_in, tmp_out):
+            if p and os.path.exists(p):
+                try:
+                    os.remove(p)
+                except Exception:
+                    pass
 
 
 @router.post("/api/process_file")

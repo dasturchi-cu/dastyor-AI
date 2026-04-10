@@ -88,7 +88,8 @@
             <div class="flex items-center gap-3 bg-white dark:bg-[#151518] border border-black/5 dark:border-white/5 rounded-2xl p-2 animate-slide-up shadow-sm">
                 <div class="flex-1">
                     <div class="w-full bg-black/5 dark:bg-white/5 text-sm font-extrabold text-black/70 dark:text-white/70 rounded-xl px-4 py-3">
-                        <span data-i18n="translate_src_auto" data-i18n-fallback="Manba: Avto aniqlanadi">Manba: Avto aniqlanadi</span>
+                        <div data-i18n="translate_src_auto" data-i18n-fallback="Manba: Avto aniqlanadi">Manba: Avto aniqlanadi</div>
+                        <div class="mt-1 text-[11px] font-bold text-black/50 dark:text-white/50" id="detectedBadge">Aniqlandi: —</div>
                     </div>
                 </div>
                 <div class="flex-1 relative">
@@ -455,7 +456,13 @@
                     throw new Error(detail ? `${detail} (HTTP ${res.status})` : `HTTP ${res.status}`);
                 }
                 return data?.translated_text
-                    ? { text: data.translated_text, engine: 'Auto (Gemini/Google)' }
+                    ? {
+                        text: data.translated_text,
+                        engine: 'Auto (Gemini/Google)',
+                        source_lang: data.source_lang || null,
+                        target_lang: data.target_lang || tgt,
+                        direction: data.direction || null,
+                      }
                     : null;
             } catch (e) {
                 clear();
@@ -516,6 +523,17 @@
                 _lastStableOut = result.text;
                 DOM.outText.classList.remove('loading-shimmer');
                 setEngine(result.engine);
+                // Show detected language + direction
+                try {
+                    const map = { uz: "O'zbekcha", en: "Inglizcha", ru: "Ruscha" };
+                    const s = (result.source_lang || '').toLowerCase();
+                    const t2 = (result.target_lang || tgtLang || '').toLowerCase();
+                    const srcLabel = map[s] || (s ? s.toUpperCase() : "Avto");
+                    const tgtLabel = map[t2] || (t2 ? t2.toUpperCase() : (LANG_NAMES[tgtLang] || ''));
+                    const badge = document.getElementById('detectedBadge');
+                    if (badge) badge.textContent = `Aniqlandi: ${srcLabel} → ${tgtLabel}`;
+                    if (DOM.srcLangLabel) DOM.srcLangLabel.textContent = srcLabel;
+                } catch (_) {}
                 showStatus(statusType, statusType === 'success' ? '✅' : '🌐',
                     t('translate_done', 'Tarjima qilindi'));
                 tg?.HapticFeedback?.notificationOccurred('success');
