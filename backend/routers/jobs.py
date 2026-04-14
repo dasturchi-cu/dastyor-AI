@@ -5,7 +5,7 @@ from typing import Any, Optional
 from fastapi import APIRouter, HTTPException
 
 from backend.celery_app import celery_app
-from backend.jobs import get_job, update_job
+from backend.jobs import QueueUnavailableError, get_job, update_job
 
 
 router = APIRouter(prefix="/api", tags=["jobs"])
@@ -13,7 +13,10 @@ router = APIRouter(prefix="/api", tags=["jobs"])
 
 @router.get("/jobs/{job_id}")
 async def api_get_job(job_id: str) -> dict[str, Any]:
-    rec = await get_job(job_id)
+    try:
+        rec = await get_job(job_id)
+    except QueueUnavailableError as e:
+        raise HTTPException(status_code=503, detail=str(e)[:200])
     if rec is None:
         raise HTTPException(status_code=404, detail="Job not found")
 

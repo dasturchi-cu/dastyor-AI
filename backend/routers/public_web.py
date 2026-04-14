@@ -1957,7 +1957,12 @@ async def api_process_file_async(
     from backend.jobs import create_job
     from backend.celery_app import celery_app
 
-    job = await create_job(kind=f"files:{act}")
+    try:
+        job = await create_job(kind=f"files:{act}")
+    except Exception as e:
+        # Most common cause: Redis not configured/reachable
+        logger.error("async file queue unavailable: %s", e, exc_info=True)
+        raise HTTPException(status_code=503, detail="Queue temporarily unavailable. Please try again later.")
     payload = {
         "job_id": job.job_id,
         "user_id": uid_int,

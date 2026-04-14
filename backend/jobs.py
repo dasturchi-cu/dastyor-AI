@@ -11,6 +11,9 @@ from backend.settings import get_settings
 
 JobStatus = Literal["queued", "started", "succeeded", "failed"]
 
+class QueueUnavailableError(RuntimeError):
+    pass
+
 
 @dataclass(frozen=True, slots=True)
 class JobRecord:
@@ -35,21 +38,24 @@ async def create_job(kind: str, initial: JobStatus = "queued") -> JobRecord:
     now = int(time.time())
     job_id = new_job_id()
     rec = JobRecord(job_id=job_id, status=initial, kind=kind, created_at=now, updated_at=now)
-    r = get_redis()
-    s = get_settings()
-    await r.hset(
-        _job_key(job_id),
-        mapping={
-            "job_id": rec.job_id,
-            "status": rec.status,
-            "kind": rec.kind,
-            "created_at": str(rec.created_at),
-            "updated_at": str(rec.updated_at),
-            "result_json": "",
-            "error": "",
-        },
-    )
-    await r.expire(_job_key(job_id), s.job_ttl_seconds)
+    try:
+        r = get_redis()
+        s = get_settings()
+        await r.hset(
+            _job_key(job_id),
+            mapping={
+                "job_id": rec.job_id,
+                "status": rec.status,
+                "kind": rec.kind,
+                "created_at": str(rec.created_at),
+                "updated_at": str(rec.updated_at),
+                "result_json": "",
+                "error": "",
+            },
+        )
+        await r.expire(_job_key(job_id), s.job_ttl_seconds)
+    except Exception as e:
+        raise QueueUnavailableError(f"Redis queue unavailable: {str(e)[:200]}") from e
     return rec
 
 
@@ -61,20 +67,27 @@ async def update_job(
     error: str | None = None,
 ) -> None:
     now = int(time.time())
-    r = get_redis()
-    mapping: dict[str, str] = {"status": status, "updated_at": str(now)}
-    if result is not None:
-        mapping["result_json"] = json.dumps(result, ensure_ascii=False)
-    if error is not None:
-        mapping["error"] = (error or "")[:500]
-    await r.hset(_job_key(job_id), mapping=mapping)
+    try:
+        r = get_redis()
+        mapping: dict[str, str] = {"status": status, "updated_at": str(now)}
+        if result is not None:
+            mapping["result_json"] = json.dumps(result, ensure_ascii=False)
+        if error is not None:
+            mapping["error"] = (error or "")[:500]
+        await r.hset(_job_key(job_id), mapping=mapping)
+    except Exception:
+        # If Redis is down, we can't update status; do not crash worker/API.
+        return
 
 
 async def get_job(job_id: str) -> JobRecord | None:
-    r = get_redis()
-    data = await r.hgetall(_job_key(job_id))
-    if not data:
-        return None
+    try:
+        r = get_redis()
+        data = await r.hgetall(_job_key(job_id))
+        if not data:
+            return None
+    except Exception as e:
+        raise QueueUnavailableError(f"Redis queue unavailable: {str(e)[:200]}") from e
     return JobRecord(
         job_id=data.get("job_id") or job_id,
         status=(data.get("status") or "queued"),  # type: ignore[assignment]
