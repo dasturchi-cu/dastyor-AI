@@ -413,17 +413,16 @@
       }
       const btn = document.getElementById('btnSpellFile');
       btn.disabled = true;
-      showStatus('statusFile', 'loading', 'Fayl yuklanmoqda va tekshirilmoqda...');
+      showStatus('statusFile', 'loading', 'Fayl yuklanmoqda...');
       document.getElementById('fileResultMeta').textContent = '';
       document.getElementById('btnDlTxt').classList.add('hidden');
 
       const fd = new FormData();
       fd.append('file', f, f.name);
+      fd.append('action', 'spellcheck');
       const auth = resolveWebAuth();
       if (auth.tid && /^\d+$/.test(auth.tid)) fd.append('telegram_id', auth.tid);
       if (auth.tok) fd.append('token', auth.tok);
-      const notify = true; // always send to Telegram
-      fd.append('notify_telegram', 'true');
 
       try {
         try {
@@ -431,7 +430,7 @@
             window.DastyorAI.showDocumentLoading('Fayl qayta ishlanmoqda...', 'Iltimos, biroz kuting');
           }
         } catch (_) {}
-        const res = await fetch(apiBaseUrl() + '/api/spellcheck_file', { method: 'POST', body: fd });
+        const res = await fetch(apiBaseUrl() + '/api/files/process_async', { method: 'POST', body: fd });
         if (!res.ok) {
           let msg = 'Xato';
           try {
@@ -440,13 +439,34 @@
           } catch (_) {}
           throw new Error(msg + ' (' + res.status + ')');
         }
-        const data = await res.json();
-        lastCorrectedText = data.corrected_text || '';
-        const wc = data.word_count != null ? data.word_count : '—';
-        let ec = data.error_count != null ? data.error_count : (data.fixed ?? 0);
+        const data = await res.json().catch(() => ({}));
+        const inUrl = data?.storage?.signed_url || data?.storage?.public_url || '';
+        const jobId = data?.job_id;
+        if (!jobId) throw new Error('Job ID yo‘q');
+
+        showStatus('statusFile', 'loading', inUrl ? `Fayl qabul qilindi. Yuklangan fayl: ${inUrl}` : 'Fayl qabul qilindi. Ishlanmoqda...');
+
+        async function pollJob(id, tries = 90) {
+          for (let i = 0; i < tries; i++) {
+            await new Promise(res => setTimeout(res, 1500));
+            const jr = await fetch(apiBaseUrl() + '/api/jobs/' + encodeURIComponent(id));
+            const jd = await jr.json().catch(() => ({}));
+            if (!jr.ok) throw new Error(jd.detail || `Job HTTP ${jr.status}`);
+            const st = (jd.status || '').toLowerCase();
+            if (st === 'succeeded') return jd.result || {};
+            if (st === 'failed') throw new Error(jd.error || 'Job failed');
+          }
+          throw new Error('Timeout: job yakunlanmadi');
+        }
+
+        const result = await pollJob(jobId);
+        lastCorrectedText = result.text || '';
+        const m = result.meta || {};
+        const wc = m.word_count != null ? m.word_count : '—';
+        const ec = m.fixed != null ? m.fixed : '—';
         document.getElementById('fileResultMeta').textContent = `So‘zlar: ${wc} · Tuzatishlar: ${ec}`;
-        document.getElementById('btnDlTxt').classList.add('hidden');
-        showStatus('statusFile', 'success', '✅ Tayyor. Tuzatilgan fayl botga yuborildi.');
+        const outUrl = result?.storage_out?.signed_url || result?.storage_out?.public_url || '';
+        showStatus('statusFile', 'success', outUrl ? `✅ Tayyor. Natijani yuklab olish: ${outUrl}` : '✅ Tayyor.');
         void window.DastyorAI?.refreshProfile?.();
         tg?.HapticFeedback?.notificationOccurred?.('success');
       } catch (e) {

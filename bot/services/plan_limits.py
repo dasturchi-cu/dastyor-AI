@@ -34,11 +34,11 @@ _LIMITS: dict[str, dict[str, tuple[str, int | None]]] = {
     "free": {
         CAT_TRANSLIT: ("day", 5),
         CAT_IMAGE_PDF: ("day", 5),
-        CAT_TRANSLATE: ("day", 1),
+        CAT_TRANSLATE: ("day", 5),
         CAT_OBYEKTIVKA: ("blocked", 0),
         CAT_CV: ("blocked", 0),
         CAT_OCR: ("blocked", 0),
-        CAT_SPELL: ("blocked", 0),
+        CAT_SPELL: ("day", 5),
         CAT_TRANSCRIBE: ("blocked", 0),
     },
     "standard": {
@@ -513,6 +513,9 @@ def block_reason_for_user_uz(user_id: int, category: str) -> str:
         return f"❌ «{st['label']}» hozirgi tarifda yo'q. Standard yoki Premium oling."
     if st.get("unlimited"):
         return ""
+    # WebApp/Bot UX requirement: consistent paywall copy for core features.
+    if category in (CAT_SPELL, CAT_TRANSLATE, CAT_TRANSLIT):
+        return "Limit reached. Upgrade to Premium"
     return (
         f"⛔️ «{st['label']}» limiti tugadi ({st.get('period_note', '')}). "
         f"Berilgan: {st.get('used', 0)}/{st.get('limit', 0)}. "

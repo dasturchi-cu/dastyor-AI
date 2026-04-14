@@ -81,3 +81,24 @@ def create_signed_url(*, bucket: str, path: str, expires_in: int = 3600) -> str 
     except Exception:
         return None
 
+
+def download_bytes(*, bucket: str, path: str) -> bytes | None:
+    """
+    Download object bytes from Supabase Storage.
+    Returns bytes or None if storage/client is unavailable.
+    """
+    c = _get_client()
+    if not c:
+        return None
+    try:
+        res = c.storage.from_(bucket).download(path)
+        # supabase-py may return bytes or a dict-like payload depending on version
+        if isinstance(res, (bytes, bytearray)):
+            return bytes(res)
+        if isinstance(res, dict):
+            data = res.get("data")
+            if isinstance(data, (bytes, bytearray)):
+                return bytes(data)
+        return None
+    except Exception:
+        return None

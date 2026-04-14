@@ -593,21 +593,51 @@
                 fd.append('file', f, f.name);
                 fd.append('action', 'translate_auto');
                 fd.append('target_lang', tgtLang);
-                fd.append('notify_telegram', 'true');
                 const q = webAuthQuotaPayload();
                 if (q.telegram_id) fd.append('telegram_id', String(q.telegram_id));
                 if (q.token) fd.append('token', String(q.token));
 
-                const r = await fetch(location.origin + '/api/process_file', { method: 'POST', body: fd });
+                const r = await fetch(location.origin + '/api/files/process_async', { method: 'POST', body: fd });
                 const data = await r.json().catch(() => ({}));
                 if (!r.ok) throw new Error(data.detail || `HTTP ${r.status}`);
-                const m = data?.meta || {};
+
+                const inUrl = data?.storage?.signed_url || data?.storage?.public_url || '';
+                const jobId = data?.job_id;
+                if (!jobId) throw new Error('Job ID yo‘q');
+
+                if (trFileStatusEl) {
+                    trFileStatusEl.innerHTML = inUrl
+                        ? `✅ Fayl qabul qilindi. <a class="underline" href="${inUrl}" target="_blank" rel="noopener">Yuklangan fayl</a>. ⏳ Ishlanmoqda...`
+                        : `✅ Fayl qabul qilindi. ⏳ Ishlanmoqda...`;
+                }
+
+                async function pollJob(id, tries = 90) {
+                    for (let i = 0; i < tries; i++) {
+                        await new Promise(res => setTimeout(res, 1500));
+                        const jr = await fetch(location.origin + '/api/jobs/' + encodeURIComponent(id));
+                        const jd = await jr.json().catch(() => ({}));
+                        if (!jr.ok) throw new Error(jd.detail || `Job HTTP ${jr.status}`);
+                        const st = (jd.status || '').toLowerCase();
+                        if (st === 'succeeded') return jd.result || {};
+                        if (st === 'failed') throw new Error(jd.error || 'Job failed');
+                    }
+                    throw new Error('Timeout: job yakunlanmadi');
+                }
+
+                const res = await pollJob(jobId);
+                const m = res?.meta || {};
                 const map = { uz: "O'zbekcha", en: "Inglizcha", ru: "Ruscha" };
                 const src = String(m.source_lang || '').toLowerCase();
                 const tgt = String(m.target_lang || tgtLang || '').toLowerCase();
                 const srcLabel = map[src] || (src ? src.toUpperCase() : 'Avto');
                 const tgtLabel = map[tgt] || (tgt ? tgt.toUpperCase() : (LANG_NAMES[tgtLang] || ''));
-                if (trFileStatusEl) trFileStatusEl.textContent = `✅ Aniqlandi: ${srcLabel} → ${tgtLabel}. Botga yuborildi.`;
+                const outUrl = res?.storage_out?.signed_url || res?.storage_out?.public_url || '';
+                if (trFileStatusEl) {
+                    trFileStatusEl.innerHTML =
+                        `✅ Tayyor: ${srcLabel} → ${tgtLabel}. `
+                        + (outUrl ? `<a class="underline" href="${outUrl}" target="_blank" rel="noopener">Natijani yuklab olish</a>. ` : '')
+                        + `Botga yuborildi.`;
+                }
                 try { void window.DastyorAI?.refreshProfile?.(); } catch (_) {}
             } catch (e) {
                 if (trFileStatusEl) trFileStatusEl.textContent = "❌ Xatolik: " + (e?.message || String(e));

@@ -25,11 +25,19 @@ def register_exception_handlers(app: FastAPI) -> None:
         if isinstance(exc, HTTPException):
             return JSONResponse(
                 status_code=exc.status_code,
-                content={"detail": exc.detail},
+                content={
+                    "ok": False,
+                    "detail": exc.detail,
+                    "request_id": getattr(getattr(request, "state", None), "request_id", None),
+                },
                 headers=getattr(exc, "headers", None),
             )
         logger.exception("Unhandled error path=%s", request.url.path)
         return JSONResponse(
             status_code=500,
-            content={"ok": False, "detail": "Internal server error"},
+            content={
+                "ok": False,
+                "detail": "Internal server error",
+                "request_id": getattr(getattr(request, "state", None), "request_id", None),
+            },
         )

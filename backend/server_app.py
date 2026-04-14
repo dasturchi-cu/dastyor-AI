@@ -22,6 +22,7 @@ from starlette.middleware.gzip import GZipMiddleware
 from backend.middleware.performance import PerformanceMiddleware
 from backend.middleware.maintenance import register_maintenance_middleware
 from backend.middleware.sentry_context import register_sentry_context_middleware
+from backend.middleware.request_id import register_request_id_middleware
 
 from backend.paths import webapp_dir, webapp_index_path
 from backend.exception_handlers import register_exception_handlers
@@ -133,6 +134,8 @@ def create_webhook_app() -> FastAPI:
     )
     # JSON/HTML responses: kamroq tarmoq va tezroq yuklash (WebApp API).
     app.add_middleware(GZipMiddleware, minimum_size=512)
+    # Correlation id for API debugging (first so all later middleware/handlers see it).
+    register_request_id_middleware(app)
     # So‘rov vaqti: X-Process-Time-ms + sekin yo‘llar uchun log.
     app.add_middleware(PerformanceMiddleware)
     register_webapp_middleware(app)
