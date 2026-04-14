@@ -1457,14 +1457,14 @@ async def api_process_file(
     meta: dict = {"filename": fname, "chars": len(text)}
     quota = None
     consumed = False
-    if uid_int:
-        # Enforce limits before doing any heavy/paid compute.
-        from bot.services.plan_limits import CAT_SPELL, CAT_TRANSLATE, CAT_TRANSLIT
-
-        cat = CAT_TRANSLIT if act == "translit_auto" else CAT_TRANSLATE if act == "translate_auto" else CAT_SPELL
-        consumed = bool(web_quota_consume_or_raise(int(uid_int), cat))
+    cat = None
 
     if act == "spellcheck":
+        if uid_int:
+            from bot.services.plan_limits import CAT_SPELL
+
+            cat = CAT_SPELL
+            consumed = bool(web_quota_consume_or_raise(int(uid_int), cat))
         try:
             from bot.services.ai_service import check_spelling_text
 
@@ -1484,6 +1484,11 @@ async def api_process_file(
             meta["detected"] = res.detected
             meta["direction"] = res.direction
             meta["stats"] = res.stats
+            if uid_int and res.direction != "none":
+                from bot.services.plan_limits import CAT_TRANSLIT
+
+                cat = CAT_TRANSLIT
+                consumed = bool(web_quota_consume_or_raise(int(uid_int), cat))
         except HTTPException:
             raise
         except Exception as e:
@@ -1540,6 +1545,11 @@ async def api_process_file(
                 meta["source_lang"] = src
                 meta["target_lang"] = tgt
                 meta["direction"] = direction
+                if uid_int:
+                    from bot.services.plan_limits import CAT_TRANSLATE
+
+                    cat = CAT_TRANSLATE
+                    consumed = bool(web_quota_consume_or_raise(int(uid_int), cat))
             except HTTPException:
                 raise
             except Exception as e:
@@ -1564,7 +1574,7 @@ async def api_process_file(
             signed = None
 
     # Quota (single source via plan_limits / Supabase buckets if configured)
-    if uid_int:
+    if uid_int and cat:
         try:
             from bot.services.plan_limits import category_quota_for_response
             from bot.services.user_service import record_service_completion
@@ -1607,14 +1617,245 @@ async def api_process_file(
             chat_id = int(uid_int)
             base_name = os.path.splitext(os.path.basename(fname))[0] or "document"
             ext = os.path.splitext(fname)[1].lower() or ".txt"
-            # For unified JSON pipeline we always have result_text; send as TXT for quick chaining.
-            out_name = f"{base_name}_{act}.txt"
+            out_name = f"{base_name}_{act}{ext}"
             cap = (
                 "✅ Tayyor (WebApp)\n"
                 + ("🌍 Tarjima" if act == "translate_auto" else "🔤 Krill↔Lotin" if act == "translit_auto" else "✏️ Imlo")
             )
-            buf = io.BytesIO((result_text or "").encode("utf-8"))
-            buf.seek(0)
+            buf: io.BytesIO | None = None
+
+            if act == "translate_auto":
+                # Try to keep original extension (best-effort).
+                try:
+                    tgt = (target_lang or "").strip().lower()
+                    tgt = tgt if tgt in ("uz", "ru", "en") else "uz"
+                    direction = (meta or {}).get("direction") if isinstance(meta, dict) else None
+                    direction = str(direction or "").strip()
+                    if ext == ".docx":
+                        from bot.services.ai_service import translate_document_gemini
+
+                        fd_in, tmp_in = tempfile.mkstemp(suffix=".docx", prefix="web_trl_notify_")
+                        os.close(fd_in)
+                        with open(tmp_in, "wb") as wf:
+                            wf.write(raw)
+                        tmp_out = await translate_document_gemini(tmp_in, tgt)
+                        if tmp_out and os.path.exists(tmp_out):
+                            with open(tmp_out, "rb") as fp:
+                                buf = io.BytesIO(fp.read())
+                        try:
+                            if tmp_in and os.path.exists(tmp_in):
+                                os.remove(tmp_in)
+                        except Exception:
+                            pass
+                        try:
+                            if tmp_out and os.path.exists(tmp_out):
+                                os.remove(tmp_out)
+                        except Exception:
+                            pass
+                    elif ext == ".pptx":
+                        from bot.services.ai_service import translate_pptx
+
+                        if not direction:
+                            # fallback to text output
+                            raise Exception("direction yo'q")
+                        fd_in, tmp_in = tempfile.mkstemp(suffix=".pptx", prefix="web_trl_notify_")
+                        os.close(fd_in)
+                        with open(tmp_in, "wb") as wf:
+                            wf.write(raw)
+                        tmp_out = await translate_pptx(tmp_in, direction, tgt)
+                        if tmp_out and os.path.exists(tmp_out):
+                            with open(tmp_out, "rb") as fp:
+                                buf = io.BytesIO(fp.read())
+                        try:
+                            if tmp_in and os.path.exists(tmp_in):
+                                os.remove(tmp_in)
+                        except Exception:
+                            pass
+                        try:
+                            if tmp_out and os.path.exists(tmp_out):
+                                os.remove(tmp_out)
+                        except Exception:
+                            pass
+                    elif ext == ".pdf":
+                        fd_out, tmp_out = tempfile.mkstemp(suffix=".pdf", prefix="web_trl_notify_")
+                        os.close(fd_out)
+                        _build_pdf_from_text(result_text or "", tmp_out)
+                        with open(tmp_out, "rb") as fp:
+                            buf = io.BytesIO(fp.read())
+                        try:
+                            if tmp_out and os.path.exists(tmp_out):
+                                os.remove(tmp_out)
+                        except Exception:
+                            pass
+                    elif ext == ".xlsx":
+                        from openpyxl import Workbook
+
+                        wb = Workbook()
+                        ws = wb.active
+                        ws.title = "Tarjima"
+                        for i, line in enumerate((result_text or "").splitlines(), start=1):
+                            ws.cell(row=i, column=1, value=line)
+                            if i >= 50000:
+                                break
+                        bio = io.BytesIO()
+                        wb.save(bio)
+                        bio.seek(0)
+                        buf = bio
+                    else:
+                        # txt or unknown -> txt
+                        pass
+                except Exception:
+                    buf = None
+
+            elif act == "spellcheck":
+                # Use the same logic as download endpoint: rebuild docx/pptx/pdf/xlsx best-effort from corrected text.
+                try:
+                    if ext == ".docx":
+                        from docx import Document
+
+                        doc = Document()
+                        for line in (result_text or "").splitlines():
+                            doc.add_paragraph(line)
+                        bio = io.BytesIO()
+                        doc.save(bio)
+                        bio.seek(0)
+                        buf = bio
+                    elif ext == ".pptx":
+                        from pptx import Presentation
+                        from pptx.util import Inches
+
+                        prs = Presentation()
+                        slide = prs.slides.add_slide(prs.slide_layouts[5])
+                        tx = slide.shapes.add_textbox(Inches(0.8), Inches(0.8), Inches(8.0), Inches(5.0))
+                        tf = tx.text_frame
+                        for i, line in enumerate((result_text or "").splitlines()[:200]):
+                            if i == 0:
+                                tf.text = line
+                            else:
+                                tf.add_paragraph().text = line
+                        bio = io.BytesIO()
+                        prs.save(bio)
+                        bio.seek(0)
+                        buf = bio
+                    elif ext == ".pdf":
+                        fd_out, tmp_out = tempfile.mkstemp(suffix=".pdf", prefix="web_spell_notify_")
+                        os.close(fd_out)
+                        _build_pdf_from_text(result_text or "", tmp_out)
+                        with open(tmp_out, "rb") as fp:
+                            buf = io.BytesIO(fp.read())
+                        try:
+                            if tmp_out and os.path.exists(tmp_out):
+                                os.remove(tmp_out)
+                        except Exception:
+                            pass
+                    elif ext == ".xlsx":
+                        from openpyxl import Workbook
+
+                        wb = Workbook()
+                        ws = wb.active
+                        ws.title = "Tuzatilgan"
+                        for i, line in enumerate((result_text or "").splitlines(), start=1):
+                            ws.cell(row=i, column=1, value=line)
+                            if i >= 50000:
+                                break
+                        bio = io.BytesIO()
+                        wb.save(bio)
+                        bio.seek(0)
+                        buf = bio
+                except Exception:
+                    buf = None
+
+            elif act == "translit_auto":
+                # Keep original type where possible (docx/pptx/xlsx/pdf) from translit_file_download logic is heavier;
+                # fallback: send text as same extension if possible, else txt.
+                try:
+                    if ext == ".docx":
+                        from docx import Document
+                        from backend.services.auto_script import auto_cyrillic_latin as _auto
+                        from bot.services.transliterate_service import transliterate as _trl
+
+                        # Convert only if detection decides a direction.
+                        det = _auto(text or "")
+                        if det.direction == "none":
+                            raise Exception("direction none")
+                        doc = Document(io.BytesIO(raw))
+                        for para in doc.paragraphs:
+                            for run in para.runs:
+                                if run.text:
+                                    run.text = _trl(run.text, det.direction)
+                        for table in doc.tables:
+                            for row in table.rows:
+                                for cell in row.cells:
+                                    for para in cell.paragraphs:
+                                        for run in para.runs:
+                                            if run.text:
+                                                run.text = _trl(run.text, det.direction)
+                        bio = io.BytesIO()
+                        doc.save(bio)
+                        bio.seek(0)
+                        buf = bio
+                    elif ext == ".pptx":
+                        from pptx import Presentation
+                        from backend.services.auto_script import auto_cyrillic_latin as _auto
+                        from bot.services.transliterate_service import transliterate as _trl
+
+                        det = _auto(text or "")
+                        if det.direction == "none":
+                            raise Exception("direction none")
+                        prs = Presentation(io.BytesIO(raw))
+                        for slide in prs.slides:
+                            for shape in slide.shapes:
+                                if shape.has_text_frame:
+                                    for para in shape.text_frame.paragraphs:
+                                        for run in para.runs:
+                                            if run.text:
+                                                run.text = _trl(run.text, det.direction)
+                                if shape.has_table:
+                                    for row in shape.table.rows:
+                                        for cell in row.cells:
+                                            for para in cell.text_frame.paragraphs:
+                                                for run in para.runs:
+                                                    if run.text:
+                                                        run.text = _trl(run.text, det.direction)
+                        bio = io.BytesIO()
+                        prs.save(bio)
+                        bio.seek(0)
+                        buf = bio
+                    elif ext == ".pdf":
+                        fd_out, tmp_out = tempfile.mkstemp(suffix=".pdf", prefix="web_trl2_notify_")
+                        os.close(fd_out)
+                        _build_pdf_from_text(result_text or "", tmp_out)
+                        with open(tmp_out, "rb") as fp:
+                            buf = io.BytesIO(fp.read())
+                        try:
+                            if tmp_out and os.path.exists(tmp_out):
+                                os.remove(tmp_out)
+                        except Exception:
+                            pass
+                    elif ext == ".xlsx":
+                        from openpyxl import Workbook
+
+                        wb = Workbook()
+                        ws = wb.active
+                        ws.title = "O'girildi"
+                        for i, line in enumerate((result_text or "").splitlines(), start=1):
+                            ws.cell(row=i, column=1, value=line)
+                            if i >= 50000:
+                                break
+                        bio = io.BytesIO()
+                        wb.save(bio)
+                        bio.seek(0)
+                        buf = bio
+                except Exception:
+                    buf = None
+
+            if buf is None:
+                # Final fallback: send as txt
+                out_name = f"{base_name}_{act}.txt"
+                buf = io.BytesIO((result_text or "").encode("utf-8"))
+                buf.seek(0)
+            else:
+                buf.seek(0)
             await ptb.bot.send_document(
                 chat_id=chat_id,
                 document=InputFile(buf, filename=out_name),
