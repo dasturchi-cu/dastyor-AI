@@ -33,7 +33,7 @@ from backend.services.redis_json_cache import (
 )
 from backend.services.spellcheck_cache import spellcheck_cache_get, spellcheck_cache_key, spellcheck_cache_set
 from backend.services.user_resolve import resolve_telegram_uid
-from backend.services.web_quota import web_quota_commit_success
+from backend.services.web_quota import web_quota_commit_success, web_quota_consume_or_raise
 from backend.settings import get_settings
 from backend.web_constants import (
     BOT_USERNAME,
@@ -196,14 +196,24 @@ async def api_translit(req: TranslitRequest):
     uid = _resolve_web_uid_optional(req.telegram_id, req.token)
 
     quota = None
+    consumed = False
     try:
         from bot.services.transliterate_service import transliterate
+
+        if uid:
+            from bot.services.plan_limits import CAT_TRANSLIT
+
+            consumed = bool(web_quota_consume_or_raise(int(uid), CAT_TRANSLIT))
 
         result = transliterate(req.text, req.direction)  # type: ignore[arg-type]
         if uid:
             from bot.services.plan_limits import CAT_TRANSLIT
 
-            quota = web_quota_commit_success(uid, CAT_TRANSLIT, "Web translit")
+            from bot.services.plan_limits import category_quota_for_response
+            from bot.services.user_service import record_service_completion
+
+            record_service_completion(int(uid), CAT_TRANSLIT, "Web translit", skip_quota=bool(consumed))
+            quota = category_quota_for_response(int(uid), CAT_TRANSLIT)
             try:
                 from bot.utils.action_logger import log_action_fire_and_forget
 
@@ -241,10 +251,16 @@ async def api_translit_auto(req: SpellcheckRequest):
     try:
         res = auto_cyrillic_latin(req.text)
         quota = None
+        consumed = False
         if uid and res.direction != "none":
             from bot.services.plan_limits import CAT_TRANSLIT
 
-            quota = web_quota_commit_success(uid, CAT_TRANSLIT, "Web translit auto")
+            consumed = bool(web_quota_consume_or_raise(int(uid), CAT_TRANSLIT))
+            from bot.services.plan_limits import category_quota_for_response
+            from bot.services.user_service import record_service_completion
+
+            record_service_completion(int(uid), CAT_TRANSLIT, "Web translit auto", skip_quota=bool(consumed))
+            quota = category_quota_for_response(int(uid), CAT_TRANSLIT)
             try:
                 from bot.utils.action_logger import log_action_fire_and_forget
 
@@ -490,8 +506,14 @@ async def api_translate(req: TranslateRequest):
     uid = _resolve_web_uid_optional(req.telegram_id, req.token)
 
     quota = None
+    consumed = False
     try:
         from bot.services.ai_service import is_meaningfully_changed, translate_text
+
+        if uid:
+            from bot.services.plan_limits import CAT_TRANSLATE
+
+            consumed = bool(web_quota_consume_or_raise(int(uid), CAT_TRANSLATE))
 
         result = await translate_text(req.text, req.direction)
         if not result or result.startswith("Tarjimada xato") or result.startswith("AI model"):
@@ -501,7 +523,11 @@ async def api_translate(req: TranslateRequest):
         if uid:
             from bot.services.plan_limits import CAT_TRANSLATE
 
-            quota = web_quota_commit_success(uid, CAT_TRANSLATE, "Web translate")
+            from bot.services.plan_limits import category_quota_for_response
+            from bot.services.user_service import record_service_completion
+
+            record_service_completion(int(uid), CAT_TRANSLATE, "Web translate", skip_quota=bool(consumed))
+            quota = category_quota_for_response(int(uid), CAT_TRANSLATE)
             try:
                 from bot.utils.action_logger import log_action_fire_and_forget
 
@@ -567,7 +593,13 @@ async def api_translate_auto(req: TranslateAutoRequest):
 
     uid = _resolve_web_uid_optional(req.telegram_id, req.token)
     quota = None
+    consumed = False
     try:
+        if uid:
+            from bot.services.plan_limits import CAT_TRANSLATE
+
+            consumed = bool(web_quota_consume_or_raise(int(uid), CAT_TRANSLATE))
+
         if src == tgt:
             result = req.text.strip()
             direction = "none"
@@ -594,7 +626,11 @@ async def api_translate_auto(req: TranslateAutoRequest):
         if uid and direction != "none":
             from bot.services.plan_limits import CAT_TRANSLATE
 
-            quota = web_quota_commit_success(uid, CAT_TRANSLATE, "Web translate auto")
+            from bot.services.plan_limits import category_quota_for_response
+            from bot.services.user_service import record_service_completion
+
+            record_service_completion(int(uid), CAT_TRANSLATE, "Web translate auto", skip_quota=bool(consumed))
+            quota = category_quota_for_response(int(uid), CAT_TRANSLATE)
             try:
                 from bot.utils.action_logger import log_action_fire_and_forget
 
@@ -648,6 +684,11 @@ async def api_spellcheck(req: SpellcheckRequest):
         src = req.text.strip()
         wc = count_words_text(src)
         key = spellcheck_cache_key(src)
+        consumed = False
+        if uid:
+            from bot.services.plan_limits import CAT_SPELL
+
+            consumed = bool(web_quota_consume_or_raise(int(uid), CAT_SPELL))
         hit = spellcheck_cache_get(key)
         if hit is not None:
             corrected, fixes = hit
@@ -655,7 +696,11 @@ async def api_spellcheck(req: SpellcheckRequest):
             if uid:
                 from bot.services.plan_limits import CAT_SPELL
 
-                quota = web_quota_commit_success(uid, CAT_SPELL, "Web spell text")
+                from bot.services.plan_limits import category_quota_for_response
+                from bot.services.user_service import record_service_completion
+
+                record_service_completion(int(uid), CAT_SPELL, "Web spell text", skip_quota=bool(consumed))
+                quota = category_quota_for_response(int(uid), CAT_SPELL)
                 try:
                     from bot.utils.action_logger import log_action_fire_and_forget
 
@@ -688,7 +733,11 @@ async def api_spellcheck(req: SpellcheckRequest):
         if uid:
             from bot.services.plan_limits import CAT_SPELL
 
-            quota = web_quota_commit_success(uid, CAT_SPELL, "Web spell text")
+            from bot.services.plan_limits import category_quota_for_response
+            from bot.services.user_service import record_service_completion
+
+            record_service_completion(int(uid), CAT_SPELL, "Web spell text", skip_quota=bool(consumed))
+            quota = category_quota_for_response(int(uid), CAT_SPELL)
             try:
                 from bot.utils.action_logger import log_action_fire_and_forget
 
@@ -729,6 +778,12 @@ async def api_spellcheck_file(
     Optional: send corrected UTF-8 .txt to the user's Telegram chat.
     """
     uid = resolve_telegram_uid(telegram_id, token)
+    consumed = False
+    if uid:
+        # Enforce premium/limits BEFORE heavy AI work.
+        from bot.services.plan_limits import CAT_SPELL
+
+        consumed = bool(web_quota_consume_or_raise(int(uid), CAT_SPELL))
     max_b = get_settings().max_upload_bytes
     raw = await file.read()
     do_notify = str(notify_telegram).lower() in ("1", "true", "yes", "on")
@@ -795,9 +850,14 @@ async def api_spellcheck_file(
     fc = int(fixes or 0)
     quota = None
     if uid_int:
-        from bot.services.plan_limits import CAT_SPELL
+        try:
+            from bot.services.plan_limits import CAT_SPELL, category_quota_for_response
+            from bot.services.user_service import record_service_completion
 
-        quota = web_quota_commit_success(uid_int, CAT_SPELL, "Web spell file")
+            record_service_completion(int(uid_int), CAT_SPELL, "Web spell file", skip_quota=bool(consumed))
+            quota = category_quota_for_response(int(uid_int), CAT_SPELL)
+        except Exception:
+            quota = None
         try:
             from bot.utils.action_logger import log_action_fire_and_forget
 
@@ -904,6 +964,12 @@ async def api_spellcheck_file_download(
       - txt  -> *_tuzatilgan.txt
     """
     uid = resolve_telegram_uid(telegram_id, token)
+    consumed = False
+    if uid:
+        # Enforce premium/limits BEFORE heavy AI work.
+        from bot.services.plan_limits import CAT_SPELL
+
+        consumed = bool(web_quota_consume_or_raise(int(uid), CAT_SPELL))
     max_b = get_settings().max_upload_bytes
     raw = await file.read()
     if not raw:
@@ -1070,11 +1136,13 @@ async def api_spellcheck_file_download(
             content_type = "text/plain; charset=utf-8"
 
         if uid:
-            # best-effort quota commit for download action
+            # Finalize usage (already pre-consumed for non-admins).
             try:
-                from bot.services.plan_limits import CAT_SPELL
+                from bot.services.plan_limits import CAT_SPELL, category_quota_for_response
+                from bot.services.user_service import record_service_completion
 
-                web_quota_commit_success(int(uid), CAT_SPELL, "Web spell file download")
+                record_service_completion(int(uid), CAT_SPELL, "Web spell file download", skip_quota=bool(consumed))
+                _ = category_quota_for_response(int(uid), CAT_SPELL)
             except Exception:
                 pass
 
@@ -1098,6 +1166,8 @@ async def api_translit_file_download(
     file: UploadFile = File(...),
     token: Optional[str] = Form(None),
     telegram_id: Optional[str] = Form(None),
+    notify_telegram: str = Form("false"),
+    ptb=Depends(get_ptb_application),
 ):
     """
     Download auto Cyrillic↔Latin converted file with ORIGINAL extension.
@@ -1111,6 +1181,15 @@ async def api_translit_file_download(
       - txt  -> *_ogirilgan.txt
     """
     uid = resolve_telegram_uid(telegram_id, token)
+    consumed = False
+    do_notify = str(notify_telegram).lower() in ("1", "true", "yes", "on")
+    if uid:
+        do_notify = True
+    if uid:
+        # Enforce premium/limits BEFORE heavy file rebuild.
+        from bot.services.plan_limits import CAT_TRANSLIT
+
+        consumed = bool(web_quota_consume_or_raise(int(uid), CAT_TRANSLIT))
     max_b = get_settings().max_upload_bytes
     raw = await file.read()
     if not raw:
@@ -1251,10 +1330,13 @@ async def api_translit_file_download(
             content_type = "text/plain; charset=utf-8"
 
         if uid:
+            # Finalize usage (already pre-consumed for non-admins).
             try:
-                from bot.services.plan_limits import CAT_TRANSLIT
+                from bot.services.plan_limits import CAT_TRANSLIT, category_quota_for_response
+                from bot.services.user_service import record_service_completion
 
-                web_quota_commit_success(int(uid), CAT_TRANSLIT, "Web translit file download")
+                record_service_completion(int(uid), CAT_TRANSLIT, "Web translit file download", skip_quota=bool(consumed))
+                _ = category_quota_for_response(int(uid), CAT_TRANSLIT)
             except Exception:
                 pass
             try:
@@ -1277,8 +1359,26 @@ async def api_translit_file_download(
                 pass
 
         (data_buf or io.BytesIO(b"")).seek(0)
+        buf = data_buf or io.BytesIO(b"")
+        buf.seek(0)
+
+        if do_notify and uid:
+            try:
+                from telegram import InputFile
+
+                chat_id = int(uid)
+                caption = "✅ Krill↔Lotin tayyor (WebApp)"
+                # send copy to Telegram so user can continue flows in bot
+                await ptb.bot.send_document(
+                    chat_id=chat_id,
+                    document=InputFile(io.BytesIO(buf.getvalue()), filename=out_name),
+                    caption=caption,
+                )
+            except Exception:
+                pass
+
         return StreamingResponse(
-            data_buf or io.BytesIO(b""),
+            io.BytesIO(buf.getvalue()),
             media_type=content_type,
             headers={"Content-Disposition": f'attachment; filename="{out_name}"'},
         )
@@ -1297,6 +1397,8 @@ async def api_process_file(
     target_lang: Optional[str] = Form(None, description="uz|ru|en (for translate_auto)"),
     token: Optional[str] = Form(None),
     telegram_id: Optional[str] = Form(None),
+    notify_telegram: str = Form("false"),
+    ptb=Depends(get_ptb_application),
 ):
     """
     Unified pipeline:
@@ -1304,6 +1406,9 @@ async def api_process_file(
     """
     uid = resolve_telegram_uid(telegram_id, token)
     uid_int = int(uid) if uid else None
+    do_notify = str(notify_telegram).lower() in ("1", "true", "yes", "on")
+    if uid_int:
+        do_notify = True
 
     try:
         raw = await read_upload_limited(file)
@@ -1350,20 +1455,40 @@ async def api_process_file(
 
     result_text = ""
     meta: dict = {"filename": fname, "chars": len(text)}
+    quota = None
+    consumed = False
+    if uid_int:
+        # Enforce limits before doing any heavy/paid compute.
+        from bot.services.plan_limits import CAT_SPELL, CAT_TRANSLATE, CAT_TRANSLIT
+
+        cat = CAT_TRANSLIT if act == "translit_auto" else CAT_TRANSLATE if act == "translate_auto" else CAT_SPELL
+        consumed = bool(web_quota_consume_or_raise(int(uid_int), cat))
 
     if act == "spellcheck":
-        from bot.services.ai_service import check_spelling_text
+        try:
+            from bot.services.ai_service import check_spelling_text
 
-        corrected, fixes = await check_spelling_text(text)
-        result_text = corrected
-        meta["fixed"] = int(fixes or 0)
+            corrected, fixes = await check_spelling_text(text)
+            result_text = corrected
+            meta["fixed"] = int(fixes or 0)
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.error("process_file spellcheck error: %s", e, exc_info=True)
+            raise HTTPException(status_code=502, detail=f"Imlo tekshirish xatosi: {str(e)[:200]}")
 
     elif act == "translit_auto":
-        res = auto_cyrillic_latin(text)
-        result_text = res.result
-        meta["detected"] = res.detected
-        meta["direction"] = res.direction
-        meta["stats"] = res.stats
+        try:
+            res = auto_cyrillic_latin(text)
+            result_text = res.result
+            meta["detected"] = res.detected
+            meta["direction"] = res.direction
+            meta["stats"] = res.stats
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.error("process_file translit_auto error: %s", e, exc_info=True)
+            raise HTTPException(status_code=500, detail=f"Krill↔Lotin xatosi: {str(e)[:200]}")
 
     else:
         # translate_auto: detect source language, ask only for target_lang if needed
@@ -1405,19 +1530,53 @@ async def api_process_file(
             direction = direction_map.get((src, tgt))
             if not direction:
                 raise HTTPException(status_code=400, detail=f"translate yo'nalishi topilmadi: {src}->{tgt}")
-            from bot.services.ai_service import translate_text
+            try:
+                from bot.services.ai_service import translate_text
 
-            out = await translate_text(text, direction)
-            if not out or out.startswith("Tarjima vaqtincha") or out.startswith("Tarjimada xato"):
-                raise HTTPException(status_code=502, detail=out or "Tarjima bo'sh qaytdi")
-            result_text = out
-            meta["source_lang"] = src
-            meta["target_lang"] = tgt
-            meta["direction"] = direction
+                out = await translate_text(text, direction)
+                if not out or out.startswith("Tarjima vaqtincha") or out.startswith("Tarjimada xato"):
+                    raise HTTPException(status_code=502, detail=out or "Tarjima bo'sh qaytdi")
+                result_text = out
+                meta["source_lang"] = src
+                meta["target_lang"] = tgt
+                meta["direction"] = direction
+            except HTTPException:
+                raise
+            except Exception as e:
+                logger.error(
+                    "process_file translate_auto error: %s (src=%s tgt=%s dir=%s fname=%s bytes=%s chars=%s)",
+                    e,
+                    src,
+                    tgt,
+                    direction,
+                    fname,
+                    len(raw),
+                    len(text or ""),
+                    exc_info=True,
+                )
+                raise HTTPException(status_code=502, detail=f"Tarjima xatosi: {str(e)[:200]}")
 
     signed = None
     if st and st.bucket and st.path:
-        signed = create_signed_url(bucket=st.bucket, path=st.path, expires_in=3600)
+        try:
+            signed = create_signed_url(bucket=st.bucket, path=st.path, expires_in=3600)
+        except Exception:
+            signed = None
+
+    # Quota (single source via plan_limits / Supabase buckets if configured)
+    if uid_int:
+        try:
+            from bot.services.plan_limits import category_quota_for_response
+            from bot.services.user_service import record_service_completion
+
+            record_service_completion(int(uid_int), cat, f"Web file:{act}", skip_quota=bool(consumed))
+            quota = category_quota_for_response(int(uid_int), cat)
+        except HTTPException:
+            # This means user is blocked and we should not return success.
+            raise
+        except Exception:
+            # Never fail the main response if quota snapshot couldn't be built.
+            quota = None
 
     # Telemetry (never block response)
     try:
@@ -1440,11 +1599,36 @@ async def api_process_file(
     except Exception:
         pass
 
+    # Optional: send result to Telegram (so user can continue in bot flows)
+    if do_notify and uid_int:
+        try:
+            from telegram import InputFile
+
+            chat_id = int(uid_int)
+            base_name = os.path.splitext(os.path.basename(fname))[0] or "document"
+            ext = os.path.splitext(fname)[1].lower() or ".txt"
+            # For unified JSON pipeline we always have result_text; send as TXT for quick chaining.
+            out_name = f"{base_name}_{act}.txt"
+            cap = (
+                "✅ Tayyor (WebApp)\n"
+                + ("🌍 Tarjima" if act == "translate_auto" else "🔤 Krill↔Lotin" if act == "translit_auto" else "✏️ Imlo")
+            )
+            buf = io.BytesIO((result_text or "").encode("utf-8"))
+            buf.seek(0)
+            await ptb.bot.send_document(
+                chat_id=chat_id,
+                document=InputFile(buf, filename=out_name),
+                caption=cap,
+            )
+        except Exception:
+            pass
+
     return {
         "ok": True,
         "action": act,
         "text": result_text,
         "meta": meta,
+        "quota": quota,
         "storage": (
             {
                 "bucket": st.bucket,
