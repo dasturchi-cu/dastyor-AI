@@ -1951,7 +1951,13 @@ async def api_process_file_async(
     st = upload_bytes_for_user(telegram_id=uid_int, filename=fname, raw=raw)
     if not st:
         # Without shared storage, we cannot safely async-process across services.
-        raise HTTPException(status_code=503, detail="File storage is not configured. Try again later.")
+        raise HTTPException(
+            status_code=503,
+            detail=(
+                "File storage is not configured. "
+                "Supabase Storage bucket 'files' missing or Storage policy/key blocks uploads."
+            ),
+        )
 
     signed = create_signed_url(bucket=st.bucket, path=st.path, expires_in=3600)
 
