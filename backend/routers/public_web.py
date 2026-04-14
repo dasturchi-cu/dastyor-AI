@@ -886,8 +886,8 @@ async def api_spellcheck_file(
             from bot.services.ai_service import check_spelling_gemini, check_spelling_pptx
 
             chat_id = get_chat_id(int(uid)) or int(uid)
-            summary = f"✅ Imlo tekshiruvi (WebApp)\nSo'zlar: {wc}\nTopilgan xatolar: {fc}"
-            await ptb.bot.send_message(chat_id=chat_id, text=summary)
+            # Use file-based fixed-count when possible (docx/pptx pipelines return better numbers).
+            fixed_for_summary = int(fc or 0)
             base_name, ext = os.path.splitext(fname)
             ext = ext.lower() if ext else ".txt"
             send_name = f"{base_name}_imlo_tuzatilgan{ext}"
@@ -900,7 +900,11 @@ async def api_spellcheck_file(
                 os.close(fd_in)
                 with open(tmp_in, "wb") as wf:
                     wf.write(raw)
-                tmp_out, _, _ = await check_spelling_gemini(tmp_in)
+                tmp_out, fixed2, _ = await check_spelling_gemini(tmp_in)
+                try:
+                    fixed_for_summary = max(int(fixed_for_summary), int(fixed2 or 0))
+                except Exception:
+                    pass
                 if not tmp_out or not os.path.exists(tmp_out):
                     # Fallback to plain text file if docx build failed.
                     send_name = f"{base_name}_imlo_tuzatilgan.txt"
@@ -910,7 +914,11 @@ async def api_spellcheck_file(
                 os.close(fd_in)
                 with open(tmp_in, "wb") as wf:
                     wf.write(raw)
-                tmp_out, _, _ = await check_spelling_pptx(tmp_in)
+                tmp_out, fixed2, _ = await check_spelling_pptx(tmp_in)
+                try:
+                    fixed_for_summary = max(int(fixed_for_summary), int(fixed2 or 0))
+                except Exception:
+                    pass
                 if not tmp_out or not os.path.exists(tmp_out):
                     send_name = f"{base_name}_imlo_tuzatilgan.txt"
                     data_buf = io.BytesIO((corrected or "").encode("utf-8"))
@@ -921,6 +929,9 @@ async def api_spellcheck_file(
             else:
                 send_name = f"{base_name}_imlo_tuzatilgan.txt"
                 data_buf = io.BytesIO((corrected or "").encode("utf-8"))
+
+            summary = f"✅ Imlo tekshiruvi (WebApp)\nSo'zlar: {wc}\nTopilgan xatolar: {fixed_for_summary}"
+            await ptb.bot.send_message(chat_id=chat_id, text=summary)
 
             if tmp_out and os.path.exists(tmp_out):
                 with open(tmp_out, "rb") as fp:

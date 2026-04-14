@@ -611,6 +611,17 @@
             return { tid: String(tid2 || '').trim(), tok: String(tok2 || '').trim() };
         }
 
+        function _fmtDetectedDir(meta) {
+            try {
+                const d = String(meta?.direction || '').toLowerCase();
+                if (d === 'lotin_to_krill') return "Avto aniqlandi: Lotin → Kirill";
+                if (d === 'krill_to_lotin') return "Avto aniqlandi: Kirill → Lotin";
+                return "Avto aniqlandi: —";
+            } catch (_) {
+                return "Avto aniqlandi: —";
+            }
+        }
+
         async function translitFileAuto() {
             const f = _trlPicked;
             if (!f) return;
@@ -619,38 +630,18 @@
             try {
                 const fd = new FormData();
                 fd.append('file', f, f.name);
+                fd.append('action', 'translit_auto');
+                fd.append('notify_telegram', 'true');
                 const a = resolveAuth();
                 if (a.tid && /^\d+$/.test(a.tid)) fd.append('telegram_id', a.tid);
                 if (a.tok) fd.append('token', a.tok);
 
                 const base = location.protocol === 'file:' ? 'https://dastyor-ai.onrender.com' : location.origin;
-                const r = await fetch(base + '/api/translit_file_download', { method: 'POST', body: fd });
-                if (!r.ok) {
-                    let msg = 'Xato';
-                    try { const err = await r.json(); msg = err.detail || msg; } catch (_) {}
-                    throw new Error(msg + ' (HTTP ' + r.status + ')');
-                }
-                const blob = await r.blob();
-
-                let filename = '';
-                try {
-                    const cd = r.headers.get('content-disposition') || '';
-                    const m = cd.match(/filename="([^"]+)"/i);
-                    if (m && m[1]) filename = m[1];
-                } catch (_) {}
-                if (!filename) {
-                    const baseName = (f.name.replace(/[/\\?%*:|"<>]/g, '_').replace(/\.[^.]+$/, '') || 'document');
-                    filename = baseName + '_ogirilgan.txt';
-                }
-
-                const url = URL.createObjectURL(blob);
-                const aEl = document.createElement('a');
-                aEl.href = url;
-                aEl.download = filename;
-                document.body.appendChild(aEl);
-                aEl.click();
-                setTimeout(() => { try { URL.revokeObjectURL(url); } catch (_) {} aEl.remove(); }, 1500);
-                if (trlFileStatusEl) trlFileStatusEl.textContent = "✅ Tayyor (fayl yuklandi).";
+                const r = await fetch(base + '/api/process_file', { method: 'POST', body: fd });
+                const data = await r.json().catch(() => ({}));
+                if (!r.ok) throw new Error((data && data.detail) ? String(data.detail) : ('HTTP ' + r.status));
+                const msg = _fmtDetectedDir(data?.meta) + ". Botga yuborildi.";
+                if (trlFileStatusEl) trlFileStatusEl.textContent = "✅ " + msg;
                 try { void window.DastyorAI?.refreshProfile?.(); } catch (_) {}
             } catch (e) {
                 if (trlFileStatusEl) trlFileStatusEl.textContent = "❌ Xatolik: " + (e?.message || String(e));

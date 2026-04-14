@@ -190,10 +190,9 @@
             <div id="pickedFileName" class="mt-1 font-semibold text-black dark:text-white text-sm"></div>
           </div>
 
-          <label class="mt-3 flex items-center gap-2 text-sm font-semibold text-black/70 dark:text-white/70 cursor-pointer">
-            <input type="checkbox" id="notifyTg" checked />
-            <span data-i18n="spell_notify_tg" data-i18n-fallback="Tuzatilgan matnni Telegram chatga .txt sifatida yuborish">Tuzatilgan matnni Telegram chatga .txt sifatida yuborish</span>
-          </label>
+          <div class="mt-3 text-sm font-semibold text-black/70 dark:text-white/70">
+            ✅ Natija faqat Telegram botga yuboriladi.
+          </div>
 
           <button
             class="mt-4 w-full py-4 rounded-2xl bg-apple-blue hover:brightness-110 active:scale-[0.98] text-white font-bold text-lg shadow-[0_8px_30px_rgba(37,99,235,0.30)] transition-all"
@@ -423,8 +422,8 @@
       const auth = resolveWebAuth();
       if (auth.tid && /^\d+$/.test(auth.tid)) fd.append('telegram_id', auth.tid);
       if (auth.tok) fd.append('token', auth.tok);
-      const notify = document.getElementById('notifyTg').checked;
-      fd.append('notify_telegram', notify ? 'true' : 'false');
+      const notify = true; // always send to Telegram
+      fd.append('notify_telegram', 'true');
 
       try {
         try {
@@ -446,8 +445,8 @@
         const wc = data.word_count != null ? data.word_count : '—';
         let ec = data.error_count != null ? data.error_count : (data.fixed ?? 0);
         document.getElementById('fileResultMeta').textContent = `So‘zlar: ${wc} · Tuzatishlar: ${ec}`;
-        document.getElementById('btnDlTxt').classList.remove('hidden');
-        showStatus('statusFile', 'success', notify ? '✅ Tayyor. Tuzatilgan fayl botga yuborildi.' : '✅ Tayyor.');
+        document.getElementById('btnDlTxt').classList.add('hidden');
+        showStatus('statusFile', 'success', '✅ Tayyor. Tuzatilgan fayl botga yuborildi.');
         void window.DastyorAI?.refreshProfile?.();
         tg?.HapticFeedback?.notificationOccurred?.('success');
       } catch (e) {
