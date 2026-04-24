@@ -6,11 +6,9 @@
   <meta name="dastyor-api-base" content="" />
   <title>Dastyor AI</title>
   <link rel="stylesheet" href="theme.css" />
-  <!-- Prefetch frequently opened pages to improve perceived speed -->
   <link rel="prefetch" href="translate.html" as="document" />
   <link rel="prefetch" href="more.html" as="document" />
   <link rel="prefetch" href="cv.html" as="document" />
-  <!-- "Settings" lives inside this page (bottom sheet), so no separate HTML to prefetch -->
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script src="app.js"></script>
   <style>
@@ -23,275 +21,148 @@
       box-shadow: var(--da-shadow-sm);
       margin-bottom: 12px;
     }
-    .hero-top {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      margin-bottom: 8px;
-    }
+    .hero-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
     .hero h1 { font-size: 28px; line-height: 1.12; margin-bottom: 8px; }
     .hero p { font-size: 15px; margin-bottom: 14px; }
-    .hero .home-hero-lead {
-      font-size: 15px;
-      line-height: 1.45;
-      font-weight: 600;
-      color: var(--text-color);
-      margin-bottom: 8px;
-    }
-    .hero .home-hero-sub {
-      font-size: 14px;
-      color: var(--text-muted);
-      margin-bottom: 0;
-    }
+    .hero .home-hero-lead { font-size: 15px; line-height: 1.45; font-weight: 600; color: var(--text-color); margin-bottom: 8px; }
+    .hero .home-hero-sub { font-size: 14px; color: var(--text-muted); margin-bottom: 0; }
     .hero-avatar {
-      width: 40px;
-      height: 40px;
-      border-radius: 999px;
-      overflow: hidden;
-      border: 1px solid var(--border-color);
-      background: var(--da-blue-soft);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-shrink: 0;
-      box-shadow: var(--da-shadow-xs);
+      width: 40px; height: 40px; border-radius: 999px; overflow: hidden;
+      border: 1px solid var(--border-color); background: var(--da-blue-soft);
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; box-shadow: var(--da-shadow-xs);
     }
-    .hero-avatar img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      display: block;
-    }
+    .hero-avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
     .actions { display: grid; gap: 10px; }
     .btn-secondary {
-      width: 100%;
-      min-height: 48px;
-      border-radius: 14px;
-      border: 1px solid var(--border-color);
-      background: var(--card-color);
-      color: var(--text-color);
-      font-weight: 700;
-      text-decoration: none;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      width: 100%; min-height: 48px; border-radius: 14px;
+      border: 1px solid var(--border-color); background: var(--card-color);
+      color: var(--text-color); font-weight: 700; text-decoration: none;
+      display: flex; align-items: center; justify-content: center;
     }
     .section {
-      background: var(--card-color);
-      border: 1px solid var(--border-color);
-      border-radius: 16px;
-      box-shadow: var(--da-shadow-sm);
-      padding: 14px;
-      margin-bottom: 12px;
+      background: var(--card-color); border: 1px solid var(--border-color);
+      border-radius: 16px; box-shadow: var(--da-shadow-sm);
+      padding: 14px; margin-bottom: 12px;
     }
     .section-title {
-      font-size: 12px;
-      color: var(--text-muted);
-      text-transform: uppercase;
-      letter-spacing: .08em;
-      margin-bottom: 10px;
-      font-weight: 700;
+      font-size: 12px; color: var(--text-muted); text-transform: uppercase;
+      letter-spacing: .08em; margin-bottom: 10px; font-weight: 700;
     }
-    .search-box {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      border: 1px solid var(--border-color);
-      border-radius: 14px;
-      background: var(--card-color);
-      padding: 0 12px;
-    }
-    .search-box svg { width: 18px; height: 18px; color: var(--text-muted); }
-    .search-box input { border: none; background: transparent; padding: 0; height: 48px; }
     .tools-grid { display: grid; gap: 10px; }
     .tool-card {
-      border: 1px solid var(--border-color);
-      border-radius: 14px;
-      background: var(--card-color);
-      padding: 12px;
+      border: 1px solid var(--border-color); border-radius: 14px;
+      background: var(--card-color); padding: 12px;
       box-shadow: var(--da-shadow-xs);
       transition: transform 0.2s ease, box-shadow 0.2s ease;
     }
     .tool-card:active { transform: scale(0.99); }
     .tool-head { display: flex; gap: 10px; margin-bottom: 8px; align-items: flex-start; }
     .icon-wrap {
-      width: 34px;
-      height: 34px;
-      border-radius: 10px;
-      background: var(--da-blue-soft);
-      color: var(--da-blue);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-shrink: 0;
+      width: 34px; height: 34px; border-radius: 10px;
+      background: var(--da-blue-soft); color: var(--da-blue);
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
     }
     .icon-wrap svg { width: 18px; height: 18px; stroke: currentColor; }
     .tool-title { font-size: 15px; font-weight: 700; line-height: 1.2; }
     .tool-desc { font-size: 13px; color: var(--text-muted); margin-top: 4px; }
-    .mini-list { list-style: none; display: grid; gap: 8px; }
-    .mini-list li {
-      border: 1px solid var(--border-color);
-      border-radius: 12px;
-      padding: 10px 12px;
-      background: var(--da-bg-elevated);
-      font-size: 14px;
-      color: var(--da-text-primary);
-    }
-    .feature-grid { display: grid; gap: 10px; }
-    .feature-item {
-      border: 1px solid var(--border-color);
-      border-radius: 12px;
-      padding: 10px 12px;
-      display: flex;
-      gap: 10px;
-      align-items: flex-start;
-      background: var(--card-color);
-    }
-    .feature-item h4 { font-size: 14px; margin: 0 0 2px 0; }
-    .feature-item p { font-size: 13px; margin: 0; }
     .settings-btns { display: grid; gap: 10px; margin-top: 10px; }
-    .lang-switch {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 8px;
-      margin-top: 4px;
-    }
+    .lang-switch { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 4px; }
     .lang-switch button {
-      min-height: 44px;
-      border-radius: 12px;
-      border: 1px solid var(--border-color);
-      background: var(--card-color);
-      color: var(--text-color);
-      font-weight: 700;
-      cursor: pointer;
+      min-height: 44px; border-radius: 12px; border: 1px solid var(--border-color);
+      background: var(--card-color); color: var(--text-color); font-weight: 700; cursor: pointer;
     }
-    .lang-switch button.active {
-      background: var(--da-blue-soft);
-      color: var(--da-blue);
-      border-color: var(--da-blue-mid);
-    }
-
-    /* Settings modal (bottom sheet) */
+    .lang-switch button.active { background: var(--da-blue-soft); color: var(--da-blue); border-color: var(--da-blue-mid); }
     .da-modal {
-      position: fixed;
-      inset: 0;
-      z-index: 1001;
-      display: none;
-      align-items: flex-end;
-      justify-content: center;
+      position: fixed; inset: 0; z-index: 1001;
+      display: none; align-items: flex-end; justify-content: center;
       padding: 12px 12px calc(12px + env(safe-area-inset-bottom, 0px));
-      background: rgba(15, 23, 42, 0.45);
-      backdrop-filter: blur(8px);
+      background: rgba(15,23,42,0.45); backdrop-filter: blur(8px);
     }
     .da-modal.show { display: flex; }
     .da-sheet {
-      width: min(520px, 100%);
-      background: var(--card-color);
-      border: 1px solid var(--border-color);
-      border-radius: 18px;
-      box-shadow: var(--da-shadow-md);
-      overflow: hidden;
+      width: min(520px, 100%); background: var(--card-color);
+      border: 1px solid var(--border-color); border-radius: 18px;
+      box-shadow: var(--da-shadow-md); overflow: hidden;
     }
     .da-sheet-head {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 10px;
-      padding: 12px 14px;
-      border-bottom: 1px solid var(--border-color);
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 10px; padding: 12px 14px; border-bottom: 1px solid var(--border-color);
     }
     .da-sheet-title { font-size: 13px; font-weight: 900; letter-spacing: .08em; text-transform: uppercase; color: var(--text-muted); }
     .da-sheet-close {
-      width: 40px;
-      height: 40px;
-      border-radius: 12px;
-      border: 1px solid var(--border-color);
-      background: var(--card-color);
-      color: var(--text-color);
-      font-weight: 900;
-      cursor: pointer;
+      width: 40px; height: 40px; border-radius: 12px;
+      border: 1px solid var(--border-color); background: var(--card-color);
+      color: var(--text-color); font-weight: 900; cursor: pointer;
     }
     .da-sheet-body { padding: 14px; }
-    .theme-btn {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 10px;
-    }
+    .theme-btn { display: flex; align-items: center; justify-content: center; gap: 10px; }
     .theme-ico {
-      width: 22px;
-      height: 22px;
-      border-radius: 999px;
-      background: rgba(255,255,255,0.25);
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 14px;
-      line-height: 1;
+      width: 22px; height: 22px; border-radius: 999px;
+      background: rgba(255,255,255,0.25); display: inline-flex;
+      align-items: center; justify-content: center; font-size: 14px; line-height: 1;
     }
   </style>
 </head>
 <body>
   <main class="page">
     <section class="hero">
-      <div class="section-title" data-i18n="home_brand" data-i18n-fallback="DASTYOR AI">DASTYOR AI</div>
+      <div class="section-title" data-i18n="home_brand">DASTYOR AI</div>
       <div class="hero-top">
         <h1 id="welcomeName" style="margin-bottom:0;">Salom 👋</h1>
         <div id="welcomeAvatar" class="hero-avatar" aria-label="User avatar"></div>
       </div>
-      <p class="home-hero-lead" data-i18n="home_hero_lead" data-i18n-fallback="Siz yozasiz — DASTYOR AI bajaradi! DASTYOR yordamida har qanday hujjat bilan professional darajada ishlang.">
+      <p class="home-hero-lead" data-i18n="home_hero_lead">
         Siz yozasiz — DASTYOR AI bajaradi! DASTYOR yordamida har qanday hujjat bilan professional darajada ishlang.
       </p>
-      <p class="home-hero-sub" data-i18n="home_hero_sub" data-i18n-fallback="Barcha AI asboblaringiz bir joyda">Barcha AI asboblaringiz bir joyda</p>
+      <p class="home-hero-sub" data-i18n="home_hero_sub">Barcha AI asboblaringiz bir joyda</p>
     </section>
 
     <section class="section" id="tools">
-      <div class="section-title" data-i18n="home_sections_title" data-i18n-fallback="Asosiy bo'limlar ⚙️">Asosiy bo'limlar ⚙️</div>
+      <div class="section-title" data-i18n="home_sections_title">Asosiy bo'limlar ⚙️</div>
       <div class="tools-grid" id="toolGrid">
         <article class="tool-card" data-tool="cv generator rezyume">
           <div class="tool-head">
             <span class="icon-wrap"><svg fill="none" viewBox="0 0 24 24" stroke-width="2"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h6"/></svg></span>
             <div>
-              <div class="tool-title" data-i18n="tool_cv_title" data-i18n-fallback="CV Generator 📄">CV Generator 📄</div>
-              <div class="tool-desc" data-i18n="tool_cv_desc" data-i18n-fallback="Professional CV yaratish">Professional CV yaratish</div>
+              <div class="tool-title" data-i18n="tool_cv_title">CV Generator 📄</div>
+              <div class="tool-desc" data-i18n="tool_cv_desc">Professional CV yaratish</div>
             </div>
           </div>
-          <a class="btn btn-primary" href="cv.html" data-i18n="btn_open" data-i18n-fallback="Ochish">Ochish</a>
+          <a class="btn btn-primary" href="cv.html" data-i18n="btn_open">Ochish</a>
         </article>
         <article class="tool-card" data-tool="objective generator obyektivka">
           <div class="tool-head">
             <span class="icon-wrap"><svg fill="none" viewBox="0 0 24 24" stroke-width="2"><path d="M7 3h7l5 5v13H7z"/><path d="M14 3v6h6"/><path d="M10 13h6M10 17h6"/></svg></span>
             <div>
-              <div class="tool-title" data-i18n="tool_oby_title" data-i18n-fallback="Obyektivka yaratish ✏️">Obyektivka yaratish ✏️</div>
-              <div class="tool-desc" data-i18n="tool_oby_desc" data-i18n-fallback="Qisqa vaqtda obyektivka yaratish">Qisqa vaqtda obyektivka yaratish</div>
+              <div class="tool-title" data-i18n="tool_oby_title">Obyektivka yaratish ✏️</div>
+              <div class="tool-desc" data-i18n="tool_oby_desc">Qisqa vaqtda obyektivka yaratish</div>
             </div>
           </div>
-          <a class="btn btn-primary" href="obyektivka.html" data-i18n="btn_open" data-i18n-fallback="Ochish">Ochish</a>
+          <a class="btn btn-primary" href="obyektivka.html" data-i18n="btn_open">Ochish</a>
         </article>
         <article class="tool-card" data-tool="more tools asboblar">
           <div class="tool-head">
             <span class="icon-wrap"><svg fill="none" viewBox="0 0 24 24" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg></span>
             <div>
-              <div class="tool-title" data-i18n="tool_more_title" data-i18n-fallback="Asboblar ⚙️">Asboblar ⚙️</div>
-              <div class="tool-desc" data-i18n="tool_more_desc" data-i18n-fallback="Tarjima 🌐, OCR 📷, Latin ↔ Kiril va boshqalar">Tarjima 🌐, OCR 📷, Latin ↔ Kiril va boshqalar</div>
+              <div class="tool-title" data-i18n="tool_more_title">Asboblar ⚙️</div>
+              <div class="tool-desc" data-i18n="tool_more_desc">Tarjima 🌐, OCR 📷, Latin ↔ Kiril va boshqalar</div>
             </div>
           </div>
-          <a class="btn btn-primary" href="more.html" data-i18n="btn_open" data-i18n-fallback="Ochish">Ochish</a>
+          <a class="btn btn-primary" href="more.html" data-i18n="btn_open">Ochish</a>
         </article>
         <article class="tool-card" data-tool="premium tarif">
           <div class="tool-head">
             <span class="icon-wrap"><svg fill="none" viewBox="0 0 24 24" stroke-width="2"><path d="m12 17 5 3-1.8-5.9L20 10h-6l-2-6-2 6H4l4.8 4.1L7 20z"/></svg></span>
             <div>
-              <div class="tool-title" data-i18n="tool_premium_title" data-i18n-fallback="⭐ Premium">⭐ Premium</div>
-              <div class="tool-desc" data-i18n="tool_premium_desc" data-i18n-fallback="Premium imkoniyatlar">Premium imkoniyatlar</div>
+              <div class="tool-title" data-i18n="tool_premium_title">⭐ Premium</div>
+              <div class="tool-desc" data-i18n="tool_premium_desc">Premium imkoniyatlar</div>
             </div>
           </div>
-          <a class="btn btn-primary" href="premium.html" data-i18n="btn_open" data-i18n-fallback="Ochish">Ochish</a>
+          <a class="btn btn-primary" href="premium.html" data-i18n="btn_open">Ochish</a>
         </article>
       </div>
     </section>
-
   </main>
 
   <!-- Settings modal -->
@@ -299,20 +170,20 @@
     <div class="da-sheet">
       <div class="da-sheet-head">
         <div class="da-sheet-title" data-i18n="settingsTitle">Sozlamalar</div>
-        <button class="da-sheet-close" type="button" onclick="closeSettings()">✕</button>
+        <button class="da-sheet-close" type="button" id="settingsCloseBtn">✕</button>
       </div>
       <div class="da-sheet-body">
         <div class="settings-btns">
-          <button class="btn btn-primary theme-btn" type="button" id="themeToggleBtn" onclick="toggleTheme()">
+          <button class="btn btn-primary theme-btn" type="button" id="themeToggleBtn">
             <span class="theme-ico" id="themeToggleIcon" aria-hidden="true">🌙</span>
             <span id="themeToggleLabel">Mavzuni almashtirish</span>
           </button>
           <div>
             <div class="section-title" style="margin-bottom:6px;" data-i18n="settings_language">Til</div>
             <div class="lang-switch">
-              <button id="langUzBtn" type="button" onclick="setAppLanguage('uz')">UZ</button>
-              <button id="langRuBtn" type="button" onclick="setAppLanguage('ru')">RU</button>
-              <button id="langEnBtn" type="button" onclick="setAppLanguage('en')">EN</button>
+              <button id="langUzBtn" type="button" data-lang="uz">UZ</button>
+              <button id="langRuBtn" type="button" data-lang="ru">RU</button>
+              <button id="langEnBtn" type="button" data-lang="en">EN</button>
             </div>
             <div id="langStatus" class="da-status" style="margin-top:8px;"></div>
           </div>
@@ -322,119 +193,160 @@
   </div>
 
   <script>
-    function openSettings() {
-      const m = document.getElementById("settingsModal");
-      if (!m) return;
-      m.classList.add("show");
-      document.body.style.overflow = "hidden";
-      syncLangButtons();
-      window.Telegram?.WebApp?.HapticFeedback?.impactOccurred?.("light");
-      // update URL state so bottom-nav can open it too
-      try {
-        const url = new URL(location.href);
-        url.searchParams.set("open", "settings");
-        history.replaceState({}, "", url.toString());
-      } catch (_) {}
+    // ── DOM refs cached once ──────────────────────────────────────────────────
+    const EL = {
+      welcomeName:     null,
+      welcomeAvatar:   null,
+      settingsModal:   null,
+      themeIcon:       null,
+      themeLabel:      null,
+      langStatus:      null,
+      langBtns:        null,   // NodeList of [data-lang] buttons
+    };
+
+    // ── Default avatar (computed once, not on every call) ─────────────────────
+    const DEFAULT_AVATAR_SRC = "data:image/svg+xml;utf8," + encodeURIComponent(
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48"><defs><linearGradient id="g" x1="0" x2="1" y1="0" y2="1"><stop offset="0" stop-color="#dbeafe"/><stop offset="1" stop-color="#bfdbfe"/></linearGradient></defs><rect width="48" height="48" fill="url(#g)"/><circle cx="24" cy="19" r="8" fill="#1d4ed8"/><path d="M8 43c2.5-8 8.7-12 16-12s13.5 4 16 12" fill="#1d4ed8"/></svg>'
+    );
+
+    // ── Avatar: set src directly, never innerHTML ─────────────────────────────
+    let _avatarImg = null;
+    function setWelcomeAvatar(photoUrl) {
+      if (!EL.welcomeAvatar) return;
+      const src = (photoUrl || '').trim() || DEFAULT_AVATAR_SRC;
+      if (!_avatarImg) {
+        _avatarImg = new Image();
+        _avatarImg.alt = '';
+        _avatarImg.referrerPolicy = 'no-referrer';
+        _avatarImg.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block;';
+        EL.welcomeAvatar.appendChild(_avatarImg);
+      }
+      if (_avatarImg.src !== src) _avatarImg.src = src;
     }
 
-    function closeSettings() {
-      const m = document.getElementById("settingsModal");
-      if (!m) return;
-      m.classList.remove("show");
-      document.body.style.overflow = "";
-      window.Telegram?.WebApp?.HapticFeedback?.impactOccurred?.("light");
-      try {
-        const url = new URL(location.href);
-        url.searchParams.delete("open");
-        history.replaceState({}, "", url.toString());
-      } catch (_) {}
+    function setWelcomeName(name) {
+      if (!EL.welcomeName) return;
+      const clean = (name || '').trim();
+      EL.welcomeName.textContent = clean ? `Salom, ${clean} 👋` : 'Salom 👋';
     }
 
+    // ── Lang buttons: single delegated listener, no per-button handlers ───────
     function syncLangButtons() {
       const lang = DA.getLang();
-      document.getElementById("langUzBtn").classList.toggle("active", lang === "uz");
-      document.getElementById("langRuBtn").classList.toggle("active", lang === "ru");
-      document.getElementById("langEnBtn").classList.toggle("active", lang === "en");
-    }
-
-    function syncThemeButton() {
-      const theme = DA.getTheme();
-      const ico = document.getElementById("themeToggleIcon");
-      const lbl = document.getElementById("themeToggleLabel");
-      if (!ico || !lbl) return;
-      if (theme === "dark") {
-        ico.textContent = "☀️";
-        lbl.textContent = "Yorug' mavzu";
-      } else {
-        ico.textContent = "🌙";
-        lbl.textContent = "Qorong'i mavzu";
-      }
-    }
-
-    function toggleTheme() {
-      DA.setTheme(DA.getTheme() === "dark" ? "light" : "dark");
-      syncThemeButton();
+      EL.langBtns?.forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.lang === lang);
+      });
     }
 
     function setAppLanguage(lang) {
       DA.setLang(lang);
       syncLangButtons();
-      const status = document.getElementById("langStatus");
-      status.className = "da-status show success";
-      status.innerHTML = `<span>✓</span><span>${DA.t("language_changed_success")}</span>`;
-      setTimeout(function () { status.className = "da-status"; }, 2200);
-      window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred?.("success");
+      if (EL.langStatus) {
+        EL.langStatus.className = 'da-status show success';
+        EL.langStatus.innerHTML = `<span>✓</span><span>${DA.t('language_changed_success')}</span>`;
+        clearTimeout(_langStatusTimer);
+        _langStatusTimer = setTimeout(() => {
+          if (EL.langStatus) EL.langStatus.className = 'da-status';
+        }, 2200);
+      }
+      window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred?.('success');
+    }
+    let _langStatusTimer = null;
+
+    // ── Theme ─────────────────────────────────────────────────────────────────
+    function syncThemeButton() {
+      if (!EL.themeIcon || !EL.themeLabel) return;
+      const isDark = DA.getTheme() === 'dark';
+      EL.themeIcon.textContent  = isDark ? '☀️' : '🌙';
+      EL.themeLabel.textContent = isDark ? "Yorug' mavzu" : "Qorong'i mavzu";
     }
 
-    function setWelcomeName(name) {
-      const clean = (name || "").trim();
-      const label = clean ? `Salom, ${clean} 👋` : "Salom 👋";
-      const el = document.getElementById("welcomeName");
-      if (el) el.textContent = label;
-    }
-    function defaultAvatarData() {
-      return "data:image/svg+xml;utf8," + encodeURIComponent(
-        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48"><defs><linearGradient id="g" x1="0" x2="1" y1="0" y2="1"><stop offset="0" stop-color="#dbeafe"/><stop offset="1" stop-color="#bfdbfe"/></linearGradient></defs><rect width="48" height="48" fill="url(#g)"/><circle cx="24" cy="19" r="8" fill="#1d4ed8"/><path d="M8 43c2.5-8 8.7-12 16-12s13.5 4 16 12" fill="#1d4ed8"/></svg>'
-      );
-    }
-    function setWelcomeAvatar(photoUrl) {
-      const avatarEl = document.getElementById("welcomeAvatar");
-      if (!avatarEl) return;
-      const safe = (photoUrl || "").trim() || defaultAvatarData();
-      avatarEl.innerHTML = `<img src="${safe}" alt="" referrerpolicy="no-referrer">`;
+    function toggleTheme() {
+      DA.setTheme(DA.getTheme() === 'dark' ? 'light' : 'dark');
+      syncThemeButton();
     }
 
-    document.addEventListener("DOMContentLoaded", function () {
-      if (window.DastyorAI && window.DastyorAI.initUI) {
+    // ── Settings modal ────────────────────────────────────────────────────────
+    function openSettings() {
+      if (!EL.settingsModal) return;
+      EL.settingsModal.classList.add('show');
+      document.body.style.overflow = 'hidden';
+      syncLangButtons();
+      window.Telegram?.WebApp?.HapticFeedback?.impactOccurred?.('light');
+      try {
+        const url = new URL(location.href);
+        url.searchParams.set('open', 'settings');
+        history.replaceState({}, '', url.toString());
+      } catch (_) {}
+    }
+
+    function closeSettings() {
+      if (!EL.settingsModal) return;
+      EL.settingsModal.classList.remove('show');
+      document.body.style.overflow = '';
+      window.Telegram?.WebApp?.HapticFeedback?.impactOccurred?.('light');
+      try {
+        const url = new URL(location.href);
+        url.searchParams.delete('open');
+        history.replaceState({}, '', url.toString());
+      } catch (_) {}
+    }
+
+    // ── Boot ──────────────────────────────────────────────────────────────────
+    document.addEventListener('DOMContentLoaded', function () {
+      // cache all DOM refs once
+      EL.welcomeName   = document.getElementById('welcomeName');
+      EL.welcomeAvatar = document.getElementById('welcomeAvatar');
+      EL.settingsModal = document.getElementById('settingsModal');
+      EL.themeIcon     = document.getElementById('themeToggleIcon');
+      EL.themeLabel    = document.getElementById('themeToggleLabel');
+      EL.langStatus    = document.getElementById('langStatus');
+      EL.langBtns      = document.querySelectorAll('[data-lang]');
+
+      // wire up buttons via cached refs (no inline onclick needed)
+      document.getElementById('settingsCloseBtn')?.addEventListener('click', closeSettings);
+      document.getElementById('themeToggleBtn')?.addEventListener('click', toggleTheme);
+
+      // single delegated listener for lang buttons
+      EL.langBtns?.forEach(btn => {
+        btn.addEventListener('click', () => setAppLanguage(btn.dataset.lang));
+      });
+
+      // modal backdrop click
+      EL.settingsModal?.addEventListener('click', e => {
+        if (e.target === EL.settingsModal) closeSettings();
+      });
+
+      // keyboard close
+      document.addEventListener('keydown', e => {
+        if (e.key === 'Escape') closeSettings();
+      });
+
+      // SDK init
+      if (window.DastyorAI?.initUI) {
         DastyorAI.initUI({
           autoNavLinks: true,
-          onUser: function (me) {
-            setWelcomeName(me?.first_name || me?.username || "");
-            setWelcomeAvatar(me?.photo_url || "");
+          onUser(me) {
+            setWelcomeName(me?.first_name || me?.username || '');
+            setWelcomeAvatar(me?.photo_url || '');
           }
         });
       }
-      const tgName = window.Telegram?.WebApp?.initDataUnsafe?.user?.first_name || "";
-      const tgPhoto = window.Telegram?.WebApp?.initDataUnsafe?.user?.photo_url || "";
-      if (tgName) setWelcomeName(tgName);
-      setWelcomeAvatar(tgPhoto);
+
+      // Telegram fallback (only set if SDK hasn't already set them)
+      const tgUser = window.Telegram?.WebApp?.initDataUnsafe?.user;
+      if (tgUser?.first_name) setWelcomeName(tgUser.first_name);
+      setWelcomeAvatar(tgUser?.photo_url || '');
+
       syncLangButtons();
       syncThemeButton();
-      // modal close events
-      const modal = document.getElementById("settingsModal");
-      modal?.addEventListener("click", function (e) {
-        if (e.target === modal) closeSettings();
-      });
-      document.addEventListener("keydown", function (e) {
-        if (e.key === "Escape") closeSettings();
-      });
-      // open settings via query (?open=settings) for bottom nav
+
+      // open settings if ?open=settings in URL
       try {
-        const p = new URLSearchParams(location.search);
-        if (p.get("open") === "settings") openSettings();
+        if (new URLSearchParams(location.search).get('open') === 'settings') openSettings();
       } catch (_) {}
 
-      window.addEventListener("app:theme-changed", syncThemeButton);
+      window.addEventListener('app:theme-changed', syncThemeButton);
       window.Telegram?.WebApp?.ready?.();
       window.Telegram?.WebApp?.expand?.();
     });

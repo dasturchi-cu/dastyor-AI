@@ -624,7 +624,8 @@ async def api_translate_auto(req: TranslateAutoRequest):
     try:
         if TRANSLATE_AUTO_CACHE_TTL_SECONDS > 0:
             h = hashlib.sha1((req.text or "").encode("utf-8", errors="ignore")).hexdigest()  # nosec - non-crypto use
-            cache_key = f"tr:auto:{h}:{tgt}"
+            # v2: avoid reusing old cached results from previous source-detection logic
+            cache_key = f"tr:auto:v2:{h}:{tgt}"
             cached = await redis_cache_get_json(cache_key)
             if cached and isinstance(cached, dict) and cached.get("ok") and cached.get("translated_text"):
                 return cached
