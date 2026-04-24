@@ -417,12 +417,14 @@
       document.getElementById('fileResultMeta').textContent = '';
       document.getElementById('btnDlTxt').classList.add('hidden');
 
+      // IMPORTANT: Use direct spellcheck endpoint (does NOT require Supabase Storage / queue).
+      // This endpoint can also send the corrected file to Telegram.
       const fd = new FormData();
       fd.append('file', f, f.name);
-      fd.append('action', 'spellcheck');
       const auth = resolveWebAuth();
       if (auth.tid && /^\d+$/.test(auth.tid)) fd.append('telegram_id', auth.tid);
       if (auth.tok) fd.append('token', auth.tok);
+      fd.append('notify_telegram', 'true');
 
       try {
         try {
@@ -430,7 +432,7 @@
             window.DastyorAI.showDocumentLoading('Fayl qayta ishlanmoqda...', 'Iltimos, biroz kuting');
           }
         } catch (_) {}
-        const res = await fetch(apiBaseUrl() + '/api/files/process_async', { method: 'POST', body: fd });
+        const res = await fetch(apiBaseUrl() + '/api/spellcheck_file', { method: 'POST', body: fd });
         if (!res.ok) {
           let msg = 'Xato';
           try {
@@ -440,46 +442,14 @@
           throw new Error(msg + ' (' + res.status + ')');
         }
         const data = await res.json().catch(() => ({}));
-        // Sync fallback (no Supabase storage / no queue)
-        if (data && data.mode === 'sync' && data.result && data.result.ok) {
-          const result = data.result;
-          lastCorrectedText = result.text || '';
-          const m = result.meta || {};
-          const wc = m.word_count != null ? m.word_count : '—';
-          const ec = m.fixed != null ? m.fixed : (m.error_count != null ? m.error_count : '—');
-          document.getElementById('fileResultMeta').textContent = `So‘zlar: ${wc} · Tuzatishlar: ${ec}`;
-          showStatus('statusFile', 'success', '✅ Tayyor. Storage sozlanmaganligi uchun natija shu yerda qaytdi.');
-          void window.DastyorAI?.refreshProfile?.();
-          tg?.HapticFeedback?.notificationOccurred?.('success');
-          return;
-        }
-        const inUrl = data?.storage?.signed_url || data?.storage?.public_url || '';
-        const jobId = data?.job_id;
-        if (!jobId) throw new Error((data && (data.detail || data.error)) ? String(data.detail || data.error) : 'Job ID yo‘q');
-
-        showStatus('statusFile', 'loading', inUrl ? `Fayl qabul qilindi. Yuklangan fayl: ${inUrl}` : 'Fayl qabul qilindi. Ishlanmoqda...');
-
-        async function pollJob(id, tries = 90) {
-          for (let i = 0; i < tries; i++) {
-            await new Promise(res => setTimeout(res, 1500));
-            const jr = await fetch(apiBaseUrl() + '/api/jobs/' + encodeURIComponent(id));
-            const jd = await jr.json().catch(() => ({}));
-            if (!jr.ok) throw new Error(jd.detail || `Job HTTP ${jr.status}`);
-            const st = (jd.status || '').toLowerCase();
-            if (st === 'succeeded') return jd.result || {};
-            if (st === 'failed') throw new Error(jd.error || 'Job failed');
-          }
-          throw new Error('Timeout: job yakunlanmadi');
-        }
-
-        const result = await pollJob(jobId);
-        lastCorrectedText = result.text || '';
-        const m = result.meta || {};
-        const wc = m.word_count != null ? m.word_count : '—';
-        const ec = m.fixed != null ? m.fixed : '—';
+        // API already attempted to send the corrected file to Telegram when notify_telegram=true.
+        lastCorrectedText = data.corrected_text || '';
+        const wc = data.word_count != null ? data.word_count : '—';
+        const ec = data.error_count != null ? data.error_count : (data.fixed ?? '—');
         document.getElementById('fileResultMeta').textContent = `So‘zlar: ${wc} · Tuzatishlar: ${ec}`;
-        const outUrl = result?.storage_out?.signed_url || result?.storage_out?.public_url || '';
-        showStatus('statusFile', 'success', outUrl ? `✅ Tayyor. Natijani yuklab olish: ${outUrl}` : '✅ Tayyor.');
+        showStatus('statusFile', 'success', '✅ Tayyor. Natija Telegram botga yuborildi.');
+        // Also show download button (server supports returning original extension via /api/spellcheck_file_download).
+        document.getElementById('btnDlTxt').classList.remove('hidden');
         void window.DastyorAI?.refreshProfile?.();
         tg?.HapticFeedback?.notificationOccurred?.('success');
       } catch (e) {
