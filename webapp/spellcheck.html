@@ -440,9 +440,22 @@
           throw new Error(msg + ' (' + res.status + ')');
         }
         const data = await res.json().catch(() => ({}));
+        // Sync fallback (no Supabase storage / no queue)
+        if (data && data.mode === 'sync' && data.result && data.result.ok) {
+          const result = data.result;
+          lastCorrectedText = result.text || '';
+          const m = result.meta || {};
+          const wc = m.word_count != null ? m.word_count : '—';
+          const ec = m.fixed != null ? m.fixed : (m.error_count != null ? m.error_count : '—');
+          document.getElementById('fileResultMeta').textContent = `So‘zlar: ${wc} · Tuzatishlar: ${ec}`;
+          showStatus('statusFile', 'success', '✅ Tayyor. Storage sozlanmaganligi uchun natija shu yerda qaytdi.');
+          void window.DastyorAI?.refreshProfile?.();
+          tg?.HapticFeedback?.notificationOccurred?.('success');
+          return;
+        }
         const inUrl = data?.storage?.signed_url || data?.storage?.public_url || '';
         const jobId = data?.job_id;
-        if (!jobId) throw new Error('Job ID yo‘q');
+        if (!jobId) throw new Error((data && (data.detail || data.error)) ? String(data.detail || data.error) : 'Job ID yo‘q');
 
         showStatus('statusFile', 'loading', inUrl ? `Fayl qabul qilindi. Yuklangan fayl: ${inUrl}` : 'Fayl qabul qilindi. Ishlanmoqda...');
 

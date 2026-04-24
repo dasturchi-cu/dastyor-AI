@@ -18,6 +18,7 @@ from bot.services.plan_limits import CAT_SPELL
 from bot.services.user_service import get_user_lang, record_service_completion
 from bot.services.usage_tracker import reply_if_daily_quota_blocked
 from bot.constants.states import WaitingState
+from config import GOOGLE_API_KEY
 
 logger = logging.getLogger(__name__)
 
@@ -49,6 +50,14 @@ async def spell_check_handler(update: Update, context: ContextTypes.DEFAULT_TYPE
 
 async def process_spell_check(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Process spell checking for text/.txt/.docx/.pptx and always return a file."""
+    warn_ai_limited = (
+        (not (GOOGLE_API_KEY or "").strip())
+    )
+    limited_note = (
+        "\n\n⚠️ Eslatma: `GOOGLE_API_KEY` sozlanmagan. Imlo tekshirish cheklangan bo‘lishi mumkin."
+        if warn_ai_limited
+        else ""
+    )
     # Plain text spell-check support (always return a document)
     if not update.message.document:
         if update.message.text and update.message.text.strip():
@@ -76,6 +85,7 @@ async def process_spell_check(update: Update, context: ContextTypes.DEFAULT_TYPE
                     caption=(
                         "✅ Imlo tekshirish yakunlandi!\n\n"
                         f"📊 Tuzatilgan: {fixes} ta o'zgarish"
+                        f"{limited_note if (fixes or 0) == 0 else ''}"
                     )
                 )
             await status.delete()
@@ -181,6 +191,7 @@ async def process_spell_check(update: Update, context: ContextTypes.DEFAULT_TYPE
                     f"✅ Imlo tekshirish yakunlandi!\n\n"
                     f"📊 Natijalar:\n"
                     f"• Tuzatilgan: {fixed} ta o'zgarish"
+                    f"{limited_note if (fixed or 0) == 0 else ''}"
                 ),
             )
         file_sent = True

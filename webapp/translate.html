@@ -601,9 +601,26 @@
                 const data = await r.json().catch(() => ({}));
                 if (!r.ok) throw new Error(data.detail || `HTTP ${r.status}`);
 
+                // Sync fallback (no Supabase storage / no queue)
+                if (data && data.mode === 'sync' && data.result && data.result.ok) {
+                    const res0 = data.result;
+                    const m = res0?.meta || {};
+                    const map = { uz: "O'zbekcha", en: "Inglizcha", ru: "Ruscha" };
+                    const src = String(m.source_lang || '').toLowerCase();
+                    const tgt = String(m.target_lang || tgtLang || '').toLowerCase();
+                    const srcLabel = map[src] || (src ? src.toUpperCase() : 'Avto');
+                    const tgtLabel = map[tgt] || (tgt ? tgt.toUpperCase() : (LANG_NAMES[tgtLang] || ''));
+                    if (trFileStatusEl) {
+                        trFileStatusEl.textContent =
+                            `✅ Tayyor: ${srcLabel} → ${tgtLabel}. (Storage sozlanmagan — natija shu yerda qaytdi.)`;
+                    }
+                    try { void window.DastyorAI?.refreshProfile?.(); } catch (_) {}
+                    return;
+                }
+
                 const inUrl = data?.storage?.signed_url || data?.storage?.public_url || '';
                 const jobId = data?.job_id;
-                if (!jobId) throw new Error('Job ID yo‘q');
+                if (!jobId) throw new Error((data && (data.detail || data.error)) ? String(data.detail || data.error) : 'Job ID yo‘q');
 
                 if (trFileStatusEl) {
                     trFileStatusEl.innerHTML = inUrl

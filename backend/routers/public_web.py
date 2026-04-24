@@ -7,8 +7,9 @@ import io
 import hashlib
 import logging
 import os
+import re
 import tempfile
-from typing import Optional
+from typing import Any, Optional
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile
 from fastapi.responses import StreamingResponse
@@ -54,6 +55,60 @@ SPELLCHECK_FILE_MAX_CHARS = int(os.getenv("SPELLCHECK_FILE_MAX_CHARS", "150000")
 TRANSLATE_AUTO_CACHE_TTL_SECONDS = int(os.getenv("TRANSLATE_AUTO_CACHE_TTL_SECONDS", "86400"))
 
 router = APIRouter(tags=["web-api"])
+
+_CYR_RE = re.compile(r"[\u0400-\u04FF\u0500-\u052F]")
+
+
+def _detect_lang_best_effort(text: str) -> str:
+    """
+    Return one of: 'uz' | 'ru' | 'en'
+
+    langdetect is often wrong on short Uzbek texts (e.g. "salom nma gap"),
+    sometimes misclassifying them as EN. We guard with cheap heuristics.
+    """
+    s = (text or "").strip()
+    if not s:
+        return "uz"
+    if _CYR_RE.search(s):
+        return "ru"
+
+    low = s.lower()
+    # Uzbek latin markers (very common in casual chat)
+    uz_hits = 0
+    if any(x in low for x in (" o'", " g'", " sh", " ch", " yo'", " qo'", " o‘", " g‘", "ʻ", "ʼ")):
+        uz_hits += 2
+    if any(w in low.split() for w in ("salom", "nma", "nima", "gap", "qalay", "rahmat", "iltimos", "bugun", "kecha", "ertaga")):
+        uz_hits += 2
+    if any(ch in low for ch in ("q", "x")):
+        uz_hits += 1
+
+    # English markers
+    en_hits = 0
+    if any(w in low.split() for w in ("the", "and", "is", "are", "to", "of", "in", "for", "with")):
+        en_hits += 2
+    if re.search(r"\b(i|you|we|they|this|that|what|how)\b", low):
+        en_hits += 1
+
+    if uz_hits >= en_hits + 2:
+        return "uz"
+
+    # Fallback: langdetect, but only accept ru/en when reasonably confident by signal length.
+    try:
+        from langdetect import detect  # type: ignore
+
+        sample = low.replace("\u0000", "")[:2500]
+        d = (detect(sample) or "").lower()
+        if d.startswith("ru"):
+            return "ru"
+        if d.startswith("en"):
+            # Short Uzbek chat gets misdetected as EN a lot — require additional signal.
+            sig = sum(1 for ch in sample if ch.isalpha())
+            if sig >= 30 and en_hits >= 1 and uz_hits == 0:
+                return "en"
+            return "uz"
+        return "uz"
+    except Exception:
+        return "uz"
 
 
 def _resolve_web_uid_optional(telegram_id: Optional[int], token: Optional[str]) -> Optional[int]:
@@ -576,21 +631,8 @@ async def api_translate_auto(req: TranslateAutoRequest):
     except Exception:
         cache_key = None
 
-    # best-effort source detection
-    src = "uz"
-    try:
-        from langdetect import detect  # type: ignore
-
-        sample = (req.text or "").strip().replace("\u0000", "")[:2500]
-        d = (detect(sample) or "").lower()
-        if d.startswith("ru"):
-            src = "ru"
-        elif d.startswith("en"):
-            src = "en"
-        else:
-            src = "uz"
-    except Exception:
-        src = "uz"
+    # best-effort source detection (guarded against short-text mis-detection)
+    src = _detect_lang_best_effort(req.text or "")
 
     uid = _resolve_web_uid_optional(req.telegram_id, req.token)
     quota = None
@@ -1950,14 +1992,74 @@ async def api_process_file_async(
 
     st = upload_bytes_for_user(telegram_id=uid_int, filename=fname, raw=raw)
     if not st:
-        # Without shared storage, we cannot safely async-process across services.
-        raise HTTPException(
-            status_code=503,
-            detail=(
-                "File storage is not configured. "
-                "Supabase Storage bucket 'files' missing or Storage policy/key blocks uploads."
-            ),
-        )
+        # Fallback: run synchronously (no Supabase Storage).
+        # WebApp can still download result from the response.
+        from bot.services.document_text_extract import extract_plain_text_from_bytes
+
+        try:
+            text = extract_plain_text_from_bytes(fname, raw)
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=f"Fayl o'qilmadi: {str(e)[:200]}") from e
+
+        if not (text or "").strip():
+            raise HTTPException(status_code=422, detail="Fayldan matn ajratilmadi")
+
+        meta: dict[str, Any] = {"filename": fname, "chars": len(text or "")}
+        out_text = ""
+
+        if act == "spellcheck":
+            from bot.services.ai_service import check_spelling_text
+
+            corrected, fixes = await check_spelling_text(text)
+            out_text = corrected or ""
+            meta["fixed"] = int(fixes or 0)
+        elif act == "translit_auto":
+            res = auto_cyrillic_latin(text)
+            out_text = res.result or ""
+            meta["detected"] = res.detected
+            meta["direction"] = res.direction
+            meta["stats"] = res.stats
+        else:
+            tgt = (target_lang or "").strip().lower()
+            if tgt not in ("uz", "ru", "en"):
+                raise HTTPException(status_code=400, detail="target_lang kerak (uz|ru|en)")
+            src = _detect_lang_best_effort(text)
+            if src == tgt:
+                out_text = text.strip()
+                meta["source_lang"] = src
+                meta["target_lang"] = tgt
+                meta["direction"] = "none"
+            else:
+                direction_map = {
+                    ("uz", "en"): "uz_en",
+                    ("en", "uz"): "en_uz",
+                    ("ru", "uz"): "ru_uz",
+                    ("uz", "ru"): "uz_ru",
+                    ("ru", "en"): "ru_en",
+                    ("en", "ru"): "en_ru",
+                }
+                direction = direction_map.get((src, tgt))
+                if not direction:
+                    raise HTTPException(status_code=400, detail=f"translate yo'nalishi topilmadi: {src}->{tgt}")
+                from bot.services.ai_service import translate_text
+
+                out = await translate_text(text, direction)
+                if not out or out.startswith("Tarjima vaqtincha") or out.startswith("Tarjimada xato"):
+                    raise HTTPException(status_code=502, detail=out or "Tarjima bo'sh qaytdi")
+                out_text = out
+                meta["source_lang"] = src
+                meta["target_lang"] = tgt
+                meta["direction"] = direction
+
+        return {
+            "ok": True,
+            "mode": "sync",
+            "job_id": None,
+            "action": act,
+            "result": {"ok": True, "action": act, "text": out_text, "meta": meta, "storage_out": None},
+            "storage": None,
+            "detail": "storage_unavailable_sync_fallback",
+        }
 
     signed = create_signed_url(bucket=st.bucket, path=st.path, expires_in=3600)
 

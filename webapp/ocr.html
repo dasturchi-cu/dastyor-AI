@@ -339,9 +339,10 @@
      */
     async function runOcrPipeline(file) {
         const baseCandidates = getOcrBaseCandidates();
+        // Prefer Gemini first for "1:1" Word output; fallback to Paddle when Gemini is unavailable.
         const steps = [
-            { path: "/ocr?layout=1", name: "paddle_layout" },
             { path: "/api/ocr_extract", name: "gemini" },
+            { path: "/ocr?layout=1", name: "paddle_layout" },
             { path: "/ocr", name: "paddle" },
             { path: "/api/ocr", name: "api" },
         ];
