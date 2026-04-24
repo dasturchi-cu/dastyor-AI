@@ -23,9 +23,10 @@ logger = logging.getLogger(__name__)
 
 def _ocr_bot_extract_deadline_seconds() -> float:
     try:
-        return float(max(45.0, float(os.getenv("OCR_BOT_EXTRACT_TOTAL_TIMEOUT_SECONDS", "120") or "120")))
+        # Default increased to 180s to reduce "Timed out" for large scans.
+        return float(max(45.0, float(os.getenv("OCR_BOT_EXTRACT_TOTAL_TIMEOUT_SECONDS", "180") or "180")))
     except Exception:
-        return 120.0
+        return 180.0
 
 
 def _ocr_bot_progress_pulse_seconds() -> float:
@@ -74,9 +75,43 @@ async def _extract_text_from_image_bot_timed(
         pulse_task = asyncio.create_task(_pulse_loop())
     timed_out = False
     extracted: list[str] = []
+    resized_path: str | None = None
+    using_resized = False
+
+    def _maybe_downscale_for_ocr(path: str) -> str:
+        """
+        Downscale huge images to speed up OCR and prevent timeouts.
+        Returns a path to use for OCR (original or resized temp copy).
+        """
+        try:
+            from PIL import Image  # type: ignore
+
+            max_side = int(os.getenv("OCR_BOT_MAX_SIDE", "1800") or "1800")
+            if max_side < 800:
+                max_side = 800
+            im = Image.open(path)
+            w, h = im.size
+            if max(w, h) <= max_side:
+                return path
+            scale = max_side / float(max(w, h))
+            nw = max(1, int(round(w * scale)))
+            nh = max(1, int(round(h * scale)))
+            im = im.convert("RGB")
+            im = im.resize((nw, nh), Image.Resampling.LANCZOS)
+            out_path = f"{path}.ocr_downscaled.jpg"
+            im.save(out_path, format="JPEG", quality=85, optimize=True, progressive=True)
+            return out_path
+        except Exception:
+            return path
+
     try:
+        # Resize in thread (PIL is blocking).
+        ocr_path = await asyncio.to_thread(_maybe_downscale_for_ocr, img_path)
+        if ocr_path != img_path:
+            resized_path = ocr_path
+            using_resized = True
         extracted = await asyncio.wait_for(
-            asyncio.to_thread(extract_text, img_path),
+            asyncio.to_thread(extract_text, ocr_path),
             timeout=deadline,
         )
         extracted = extracted or []
@@ -92,6 +127,11 @@ async def _extract_text_from_image_bot_timed(
         logger.warning("OCR bot extract error path=%s: %s", img_path, e)
         extracted = []
     finally:
+        if using_resized and resized_path and os.path.exists(resized_path):
+            try:
+                os.remove(resized_path)
+            except Exception:
+                pass
         if pulse_task is not None:
             pulse_task.cancel()
             try:
@@ -376,7 +416,7 @@ async def _perform_ocr_batch_and_send(context, bot, chat_id: int, user_id: int, 
                 return
             await update_progress(context, progress_msg, 80, "Word yaratilmoqda...")
             doc_path = f"Ocr_Natija_{user_id}_{int(time.time())}_@DastyorAiBot.docx"
-            build_timeout = max(15, int(os.getenv("OCR_DOCX_BUILD_TIMEOUT_SECONDS", "45")))
+            build_timeout = max(20, int(os.getenv("OCR_DOCX_BUILD_TIMEOUT_SECONDS", "90")))
             try:
                 await asyncio.wait_for(
                     asyncio.to_thread(lines_to_docx, extracted_lines, doc_path),
