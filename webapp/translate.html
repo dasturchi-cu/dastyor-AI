@@ -206,6 +206,7 @@
         // ── Init ─────────────────────────────────────────────────────────────
         document.addEventListener('DOMContentLoaded', async function () {
             cacheDOM();
+            try { bindTgtLangSelect(); } catch (_) {}
             try {
                 if (window.DastyorAI?.initUI) await window.DastyorAI.initUI({ autoNavLinks: true });
                 if (window.DastyorAI?.refreshProfile) await window.DastyorAI.refreshProfile();
@@ -246,6 +247,8 @@
         };
 
         const LANG_NAMES = { uz: "O'zbekcha", en: "Inglizcha", ru: "Ruscha" };
+        // Source language is auto-detected on the server; keep a label for drafts/UI only.
+        let srcLang = 'auto';
         let tgtLang = 'en';
 
         // File translate
@@ -267,11 +270,20 @@
             DOM.tgtLangLabel.textContent = LANG_NAMES[tgtLang];
             DOM.tgtLangEl.value = tgtLang;
         }
-
-        DOM.tgtLangEl?.addEventListener('change', function () {
-            tgtLang = this.value;
+        function bindTgtLangSelect() {
+            const el = DOM.tgtLangEl;
+            if (!el) return;
+            // Initialize from actual current select value (browser may restore it).
+            try {
+                const v = String(el.value || '').trim();
+                if (v) tgtLang = v;
+            } catch (_) {}
             updateLangLabels();
-        });
+            el.addEventListener('change', function () {
+                tgtLang = this.value;
+                updateLangLabels();
+            });
+        }
 
         // ── State ────────────────────────────────────────────────────────────
         let _autoTrTimer    = null;
@@ -673,10 +685,7 @@
             });
         });
 
-        // init lang labels immediately (before DOMContentLoaded fires for select listeners)
-        document.addEventListener('DOMContentLoaded', () => {
-            updateLangLabels();
-        });
+        // (labels + select binding are initialized in bindTgtLangSelect)
     </script>
 </body>
 </html>
