@@ -974,9 +974,6 @@ async def api_spellcheck_file(
                 send_name = f"{base_name}_imlo_tuzatilgan.txt"
                 data_buf = io.BytesIO((corrected or "").encode("utf-8"))
 
-            summary = f"✅ Imlo tekshiruvi (WebApp)\nSo'zlar: {wc}\nTopilgan xatolar: {fixed_for_summary}"
-            await ptb.bot.send_message(chat_id=chat_id, text=summary)
-
             if tmp_out and os.path.exists(tmp_out):
                 with open(tmp_out, "rb") as fp:
                     await ptb.bot.send_document(
@@ -992,6 +989,8 @@ async def api_spellcheck_file(
                     document=InputFile(buf, filename=send_name),
                     caption="Tuzatilgan matn (TXT)",
                 )
+            summary = f"✅ Imlo tekshiruvi (WebApp)\nSo'zlar: {wc}\nTopilgan xatolar: {fixed_for_summary}"
+            await ptb.bot.send_message(chat_id=chat_id, text=summary)
             for p in (tmp_in, tmp_out):
                 if p and os.path.exists(p):
                     try:
