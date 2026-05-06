@@ -50,10 +50,19 @@ def _menu_markup(uid: int) -> InlineKeyboardMarkup:
     )
 
 
-def _reply_menu() -> ReplyKeyboardMarkup:
+def _reply_menu(uid: int) -> ReplyKeyboardMarkup:
     return ReplyKeyboardMarkup(
         keyboard=[
-            [KeyboardButton(BTN_CV), KeyboardButton(BTN_OBY)],
+            [
+                KeyboardButton(
+                    text=BTN_CV,
+                    web_app=WebAppInfo(url=f"{WEBAPP_BASE}/cv.html?telegram_id={uid}"),
+                ),
+                KeyboardButton(
+                    text=BTN_OBY,
+                    web_app=WebAppInfo(url=f"{WEBAPP_BASE}/obyektivka.html?telegram_id={uid}"),
+                ),
+            ],
             [KeyboardButton(BTN_CONTACT)],
         ],
         resize_keyboard=True,
@@ -83,7 +92,7 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
             "• Admin bilan bog'lanish\n\n"
             "Quyidan xizmatni tanlang."
         ),
-        reply_markup=_reply_menu(),
+        reply_markup=_reply_menu(uid),
     )
     await update.message.reply_text(
         "Tez ochish tugmalari:",
@@ -106,11 +115,8 @@ async def message_router(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     text = (update.message.text or "").strip()
     uid = int(update.effective_user.id)
 
-    if text == BTN_CV:
-        await update.message.reply_text("CV bo'limi ochildi:", reply_markup=_menu_markup(uid))
-        return
-    if text == BTN_OBY:
-        await update.message.reply_text("Obyektivka bo'limi ochildi:", reply_markup=_menu_markup(uid))
+    if text == BTN_CV or text == BTN_OBY:
+        await update.message.reply_text("Xizmatni ochish uchun tugmani bir marta bosing.", reply_markup=_reply_menu(uid))
         return
     if text == BTN_CONTACT:
         await start_feedback(update, context)

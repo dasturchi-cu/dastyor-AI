@@ -3,9 +3,8 @@ Feedback Handler — Collects user feedback (text/photo/video/voice/file)
 and forwards everything to a Telegram group with user info.
 """
 import logging
-from telegram import Update
+from telegram import ReplyKeyboardRemove, Update
 from telegram.ext import ContextTypes
-from bot.keyboards.reply_keyboards import get_back_button, get_main_menu
 from bot.services.user_service import get_user_lang
 
 logger = logging.getLogger(__name__)
@@ -58,7 +57,7 @@ async def start_feedback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         # "• 📎 Fayl\n\n"
         "<i>Yuborilgan barcha ma'lumotlar administratorga yetkaziladi.</i>",
         parse_mode="HTML",
-        reply_markup=get_back_button(lang),
+        reply_markup=ReplyKeyboardRemove(),
     )
 
 
@@ -189,7 +188,7 @@ async def handle_feedback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await message.reply_text(
                 "✅ Murojaatingiz qabul qilindi!\n"
                 "Tez orada javob beramiz. Rahmat! 🙏",
-                reply_markup=get_main_menu(user.id, lang),
+                reply_markup=ReplyKeyboardRemove(),
             )
             # Clear state
             context.user_data.pop("waiting_for", None)
@@ -197,13 +196,13 @@ async def handle_feedback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await message.reply_text(
                 "❌ Bu turdagi xabar qabul qilinmadi.\n"
                 "Matn, rasm, video, ovoz yoki fayl yuboring.",
-                reply_markup=get_back_button(lang),
+                reply_markup=ReplyKeyboardRemove(),
             )
 
     except Exception as e:
         logger.error(f"Feedback forwarding error: {e}", exc_info=True)
         await message.reply_text(
             "❌ Xatolik yuz berdi. Iltimos, qayta urinib ko'ring.",
-            reply_markup=get_main_menu(user.id, lang),
+            reply_markup=ReplyKeyboardRemove(),
         )
         context.user_data.pop("waiting_for", None)
