@@ -4,7 +4,15 @@ from __future__ import annotations
 import logging
 import os
 
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardRemove, Update, WebAppInfo
+from telegram import (
+    InlineKeyboardButton,
+    InlineKeyboardMarkup,
+    KeyboardButton,
+    ReplyKeyboardMarkup,
+    ReplyKeyboardRemove,
+    Update,
+    WebAppInfo,
+)
 from telegram.ext import (
     ApplicationBuilder,
     CallbackQueryHandler,
@@ -28,6 +36,10 @@ logger = logging.getLogger(__name__)
 BOT_TOKEN = (os.getenv("BOT_TOKEN") or "").strip()
 WEBAPP_BASE = (os.getenv("WEBAPP_BASE") or "").strip().rstrip("/")
 
+BTN_CV = "📄 CV Resume"
+BTN_OBY = "✍️ Obyektivka"
+BTN_CONTACT = "🆘 Murojaat"
+
 
 def _menu_markup(uid: int) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
@@ -35,6 +47,18 @@ def _menu_markup(uid: int) -> InlineKeyboardMarkup:
             [InlineKeyboardButton("CV", web_app=WebAppInfo(url=f"{WEBAPP_BASE}/cv.html?telegram_id={uid}"))],
             [InlineKeyboardButton("Obyektivka", web_app=WebAppInfo(url=f"{WEBAPP_BASE}/obyektivka.html?telegram_id={uid}"))],
         ]
+    )
+
+
+def _reply_menu() -> ReplyKeyboardMarkup:
+    return ReplyKeyboardMarkup(
+        keyboard=[
+            [KeyboardButton(BTN_CV), KeyboardButton(BTN_OBY)],
+            [KeyboardButton(BTN_CONTACT)],
+        ],
+        resize_keyboard=True,
+        is_persistent=True,
+        input_field_placeholder="Xizmatni tanlang...",
     )
 
 
@@ -51,13 +75,18 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     await update.message.reply_text("Yangi menyu yuklandi.", reply_markup=ReplyKeyboardRemove())
     await update.message.reply_text(
         (
-            "Assalomu alaykum.\n\n"
+            "Assalomu alaykum.\n"
+            "Dastyor AI'ga xush kelibsiz.\n\n"
             "Men sizga quyidagilarda yordam beraman:\n"
-            "- CV yaratish\n"
-            "- Obyektivka yozish\n"
-            "- Admin bilan murojaat yuborish\n\n"
+            "• CV yaratish\n"
+            "• Obyektivka yozish\n"
+            "• Admin bilan bog'lanish\n\n"
             "Quyidan xizmatni tanlang."
         ),
+        reply_markup=_reply_menu(),
+    )
+    await update.message.reply_text(
+        "Tez ochish tugmalari:",
         reply_markup=_menu_markup(uid),
     )
 
@@ -67,8 +96,24 @@ async def support_command(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
 
 
 async def message_router(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    if not update.message or not update.effective_user or not update.effective_chat:
+        return
+
     if context.user_data.get("waiting_for") == "feedback":
         await handle_feedback(update, context)
+        return
+
+    text = (update.message.text or "").strip()
+    uid = int(update.effective_user.id)
+
+    if text == BTN_CV:
+        await update.message.reply_text("CV bo'limi ochildi:", reply_markup=_menu_markup(uid))
+        return
+    if text == BTN_OBY:
+        await update.message.reply_text("Obyektivka bo'limi ochildi:", reply_markup=_menu_markup(uid))
+        return
+    if text == BTN_CONTACT:
+        await start_feedback(update, context)
 
 
 def setup_application():
