@@ -1,4 +1,4 @@
-﻿"""Minimal Telegram bot for CV/Obyektivka, support, and admin payment alerts."""
+"""Minimal Telegram bot for CV/Obyektivka, support, and admin payment alerts."""
 from __future__ import annotations
 
 import logging
@@ -16,7 +16,13 @@ from telegram.ext import (
 
 from bot.handlers.admin import admin_panel_command, handle_admin_text
 from bot.handlers.feedback import handle_feedback, start_feedback
-from bot.handlers.premium import premium_payment_review_callback
+
+try:
+    from bot.handlers.premium import premium_payment_review_callback
+except Exception:  # premium module may be removed in minimal build
+    async def premium_payment_review_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+        if update.callback_query:
+            await update.callback_query.answer("Payment review handler o'chirilgan.", show_alert=False)
 
 logger = logging.getLogger(__name__)
 BOT_TOKEN = (os.getenv("BOT_TOKEN") or "").strip()
