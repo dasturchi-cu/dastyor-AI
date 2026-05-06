@@ -4,7 +4,7 @@ from __future__ import annotations
 import logging
 import os
 
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update, WebAppInfo
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardRemove, Update, WebAppInfo
 from telegram.ext import (
     ApplicationBuilder,
     CallbackQueryHandler,
@@ -39,10 +39,27 @@ def _menu_markup(uid: int) -> InlineKeyboardMarkup:
 
 
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    if not update.effective_user or not update.effective_chat or update.effective_chat.type != "private":
+    if (
+        not update.effective_user
+        or not update.effective_chat
+        or update.effective_chat.type != "private"
+        or not update.message
+    ):
         return
     uid = int(update.effective_user.id)
-    await update.message.reply_text("Assalomu alaykum. Xizmatni tanlang.", reply_markup=_menu_markup(uid))
+    # Remove any old legacy reply keyboard from previous bot versions.
+    await update.message.reply_text("Yangi menyu yuklandi.", reply_markup=ReplyKeyboardRemove())
+    await update.message.reply_text(
+        (
+            "Assalomu alaykum.\n\n"
+            "Men sizga quyidagilarda yordam beraman:\n"
+            "- CV yaratish\n"
+            "- Obyektivka yozish\n"
+            "- Admin bilan murojaat yuborish\n\n"
+            "Quyidan xizmatni tanlang."
+        ),
+        reply_markup=_menu_markup(uid),
+    )
 
 
 async def support_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
