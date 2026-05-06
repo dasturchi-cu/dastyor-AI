@@ -6,6 +6,12 @@ import logging
 import os
 from telegram import ReplyKeyboardRemove, Update
 from telegram.ext import ContextTypes
+from bot.ui.messages import (
+    SUPPORT_CANCEL_TEXT,
+    SUPPORT_INVALID_TEXT,
+    SUPPORT_START_TEXT,
+    SUPPORT_SUCCESS_TEXT,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -47,15 +53,7 @@ async def start_feedback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data["waiting_for"] = "feedback"
 
     await update.message.reply_text(
-        "📩 <b>Murojaat yuborish</b>\n\n"
-        "Quyidagilarni yuborishingiz mumkin:\n"
-        "• 📝 Matn\n"
-        "• 🖼 Rasm\n"
-        "• 🎤 Ovozli xabar\n"
-        
-        # "• 📎 Fayl\n\n"
-        "<i>Yuborilgan barcha ma'lumotlar administratorga yetkaziladi.</i>",
-        parse_mode="HTML",
+        SUPPORT_START_TEXT,
         reply_markup=ReplyKeyboardRemove(),
     )
 
@@ -89,6 +87,10 @@ async def handle_feedback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         request_text_for_panel = ""
         # ── Text feedback ───────────────────────────────────────────────
         if message.text:
+            if message.text.strip().lower() in {"bekor", "cancel", "orqaga", "ortga"}:
+                context.user_data.pop("waiting_for", None)
+                await message.reply_text(SUPPORT_CANCEL_TEXT, reply_markup=ReplyKeyboardRemove())
+                return
             request_text_for_panel = message.text
             await context.bot.send_message(
                 chat_id=FEEDBACK_GROUP_ID,
@@ -184,16 +186,14 @@ async def handle_feedback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
             _increment_feedback_count(user.id)
             await message.reply_text(
-                "✅ Murojaatingiz qabul qilindi!\n"
-                "Tez orada javob beramiz. Rahmat! 🙏",
+                SUPPORT_SUCCESS_TEXT,
                 reply_markup=ReplyKeyboardRemove(),
             )
             # Clear state
             context.user_data.pop("waiting_for", None)
         else:
             await message.reply_text(
-                "❌ Bu turdagi xabar qabul qilinmadi.\n"
-                "Matn, rasm, video, ovoz yoki fayl yuboring.",
+                SUPPORT_INVALID_TEXT,
                 reply_markup=ReplyKeyboardRemove(),
             )
 

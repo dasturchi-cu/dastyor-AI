@@ -23,6 +23,7 @@ from telegram.ext import (
 )
 
 from bot.handlers.feedback import handle_feedback, start_feedback
+from bot.ui.messages import HELP_TEXT, WELCOME_TEXT
 
 try:
     from bot.handlers.premium import premium_payment_review_callback
@@ -119,14 +120,7 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     await update.message.reply_text("Yangi menyu yuklandi.", reply_markup=ReplyKeyboardRemove())
     await _send_with_typing(
         update,
-        (
-            "Assalomu alaykum.\n\n"
-            "Dastyor AI sizga quyidagilarda yordam beradi:\n"
-            "• CV yaratish\n"
-            "• Obyektivka yozish\n"
-            "• Admin bilan bog'lanish\n\n"
-            "Kerakli xizmatni tanlang."
-        ),
+        WELCOME_TEXT,
         reply_markup=_reply_menu(uid),
     )
     await update.message.reply_text("Tez ochish:", reply_markup=_menu_markup(uid))
@@ -142,13 +136,7 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     uid = int(update.effective_user.id)
     await _send_with_typing(
         update,
-        (
-            "ℹ️ Yordam\n\n"
-            "1) CV Resume tugmasi — CV formani ochadi\n"
-            "2) Obyektivka tugmasi — obyektivka formani ochadi\n"
-            "3) Murojaat — admin bilan bog'lanish\n\n"
-            "Savol bo'lsa, '🆘 Murojaat' ni bosing."
-        ),
+        HELP_TEXT,
         reply_markup=_reply_menu(uid),
     )
 
@@ -198,6 +186,9 @@ async def message_router(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         return
     if text == BTN_HELP:
         await help_command(update, context)
+        return
+    if text.lower() in {"bekor", "cancel", "orqaga", "ortga"}:
+        await update.message.reply_text("↩️ Asosiy menyuga qaytdik.", reply_markup=_reply_menu(uid))
         return
     await admin_text_router(update, context)
 
