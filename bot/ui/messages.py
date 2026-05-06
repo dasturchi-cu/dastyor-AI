@@ -39,3 +39,21 @@ SUPPORT_INVALID_TEXT = (
 )
 
 SUPPORT_CANCEL_TEXT = "↩️ Murojaat rejimi yopildi."
+
+UNKNOWN_INPUT_TEXT = (
+    "🤖 Tushundim, lekin bu buyruqni taniy olmadim.\n\n"
+    "Davom etish uchun quyidagilardan birini tanlang:\n"
+    "• CV Resume\n"
+    "• Obyektivka\n"
+    "• Murojaat\n"
+    "• Yordam"
+)
+
+ADMIN_PANEL_OPENED_TEXT = (
+    "🛠 Admin panel ochildi.\n"
+    "Kerakli bo'limni tanlang."
+)
+
+ADMIN_ONLY_TEXT = "⛔ Bu bo'lim faqat adminlar uchun."
+
+ADMIN_STATUS_TEXT = "✅ Bot holati: barqaror va ishchi."

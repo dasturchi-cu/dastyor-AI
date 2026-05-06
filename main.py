@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import logging
 import os
+import time
 
 from telegram import (
     InlineKeyboardButton,
@@ -22,8 +23,27 @@ from telegram.ext import (
     filters,
 )
 
+from bot.flow.state import WAITING_FOR_FEEDBACK
 from bot.handlers.feedback import handle_feedback, start_feedback
-from bot.ui.messages import HELP_TEXT, WELCOME_TEXT
+from bot.ui.keyboards import (
+    ADMIN_BTN_CLOSE,
+    ADMIN_BTN_PAYMENTS,
+    ADMIN_BTN_STATS,
+    ADMIN_BTN_SUPPORT,
+    BTN_CONTACT,
+    BTN_HELP,
+    user_inline_quick_open,
+    user_reply_menu,
+    admin_menu,
+)
+from bot.ui.messages import (
+    ADMIN_ONLY_TEXT,
+    ADMIN_PANEL_OPENED_TEXT,
+    ADMIN_STATUS_TEXT,
+    HELP_TEXT,
+    UNKNOWN_INPUT_TEXT,
+    WELCOME_TEXT,
+)
 
 try:
     from bot.handlers.premium import premium_payment_review_callback
@@ -42,57 +62,7 @@ _ADMIN_IDS = {
     if v.strip().isdigit()
 }
 
-BTN_CV = "📄 CV Resume"
-BTN_OBY = "✍️ Obyektivka"
-BTN_CONTACT = "🆘 Murojaat"
-BTN_HELP = "ℹ️ Yordam"
-
-ADMIN_BTN_STATS = "📊 Holat"
-ADMIN_BTN_SUPPORT = "📨 Murojaatlar"
-ADMIN_BTN_PAYMENTS = "💳 To'lovlar"
-ADMIN_BTN_CLOSE = "🚪 Yopish"
-
-
-def _menu_markup(uid: int) -> InlineKeyboardMarkup:
-    return InlineKeyboardMarkup(
-        [
-            [InlineKeyboardButton("CV", web_app=WebAppInfo(url=f"{WEBAPP_BASE}/cv.html?telegram_id={uid}"))],
-            [InlineKeyboardButton("Obyektivka", web_app=WebAppInfo(url=f"{WEBAPP_BASE}/obyektivka.html?telegram_id={uid}"))],
-        ]
-    )
-
-
-def _reply_menu(uid: int) -> ReplyKeyboardMarkup:
-    return ReplyKeyboardMarkup(
-        keyboard=[
-            [
-                KeyboardButton(
-                    text=BTN_CV,
-                    web_app=WebAppInfo(url=f"{WEBAPP_BASE}/cv.html?telegram_id={uid}"),
-                ),
-                KeyboardButton(
-                    text=BTN_OBY,
-                    web_app=WebAppInfo(url=f"{WEBAPP_BASE}/obyektivka.html?telegram_id={uid}"),
-                ),
-            ],
-            [KeyboardButton(BTN_CONTACT), KeyboardButton(BTN_HELP)],
-        ],
-        resize_keyboard=True,
-        is_persistent=True,
-        input_field_placeholder="Xizmatni tanlang...",
-    )
-
-
-def _admin_menu() -> ReplyKeyboardMarkup:
-    return ReplyKeyboardMarkup(
-        keyboard=[
-            [KeyboardButton(ADMIN_BTN_STATS), KeyboardButton(ADMIN_BTN_SUPPORT)],
-            [KeyboardButton(ADMIN_BTN_PAYMENTS), KeyboardButton(ADMIN_BTN_CLOSE)],
-        ],
-        resize_keyboard=True,
-        is_persistent=True,
-        input_field_placeholder="Admin bo'limi",
-    )
+LAST_ACTION_TS = "_last_action_ts"
 
 
 def _is_admin(update: Update) -> bool:
@@ -105,6 +75,13 @@ async def _send_with_typing(update: Update, text: str, *, reply_markup=None) -> 
         return
     await update.get_bot().send_chat_action(chat_id=update.effective_chat.id, action="typing")
     await update.message.reply_text(text, reply_markup=reply_markup)
+
+
+def _is_fast_repeat(context: ContextTypes.DEFAULT_TYPE, min_gap_seconds: float = 0.35) -> bool:
+    now = time.monotonic()
+    prev = float(context.user_data.get(LAST_ACTION_TS, 0.0) or 0.0)
+    context.user_data[LAST_ACTION_TS] = now
+    return (now - prev) < min_gap_seconds
 
 
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -121,9 +98,9 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     await _send_with_typing(
         update,
         WELCOME_TEXT,
-        reply_markup=_reply_menu(uid),
+        reply_markup=user_reply_menu(WEBAPP_BASE, uid),
     )
-    await update.message.reply_text("Tez ochish:", reply_markup=_menu_markup(uid))
+    await update.message.reply_text("Tez ochish:", reply_markup=user_inline_quick_open(WEBAPP_BASE, uid))
 
 
 async def support_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -137,7 +114,7 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     await _send_with_typing(
         update,
         HELP_TEXT,
-        reply_markup=_reply_menu(uid),
+        reply_markup=user_reply_menu(WEBAPP_BASE, uid),
     )
 
 
@@ -145,9 +122,9 @@ async def admin_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     if not update.message:
         return
     if not _is_admin(update):
-        await update.message.reply_text("Bu bo'lim faqat adminlar uchun.")
+        await update.message.reply_text(ADMIN_ONLY_TEXT)
         return
-    await _send_with_typing(update, "Admin panel ochildi.", reply_markup=_admin_menu())
+    await _send_with_typing(update, ADMIN_PANEL_OPENED_TEXT, reply_markup=admin_menu())
 
 
 async def admin_text_router(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -155,7 +132,7 @@ async def admin_text_router(update: Update, context: ContextTypes.DEFAULT_TYPE) 
         return
     txt = (update.message.text or "").strip()
     if txt == ADMIN_BTN_STATS:
-        await _send_with_typing(update, "✅ Bot ishlayapti. Holat: barqaror.")
+        await _send_with_typing(update, ADMIN_STATUS_TEXT)
     elif txt == ADMIN_BTN_SUPPORT:
         await _send_with_typing(
             update,
@@ -170,17 +147,15 @@ async def admin_text_router(update: Update, context: ContextTypes.DEFAULT_TYPE) 
 async def message_router(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     if not update.message or not update.effective_user or not update.effective_chat:
         return
+    if _is_fast_repeat(context):
+        return
 
-    if context.user_data.get("waiting_for") == "feedback":
+    if context.user_data.get("waiting_for") == WAITING_FOR_FEEDBACK:
         await handle_feedback(update, context)
         return
 
     text = (update.message.text or "").strip()
     uid = int(update.effective_user.id)
-
-    if text == BTN_CV or text == BTN_OBY:
-        await update.message.reply_text("Xizmatni ochish uchun tugmani bir marta bosing.", reply_markup=_reply_menu(uid))
-        return
     if text == BTN_CONTACT:
         await start_feedback(update, context)
         return
@@ -188,9 +163,12 @@ async def message_router(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         await help_command(update, context)
         return
     if text.lower() in {"bekor", "cancel", "orqaga", "ortga"}:
-        await update.message.reply_text("↩️ Asosiy menyuga qaytdik.", reply_markup=_reply_menu(uid))
+        await update.message.reply_text("↩️ Asosiy menyuga qaytdik.", reply_markup=user_reply_menu(WEBAPP_BASE, uid))
         return
-    await admin_text_router(update, context)
+    if _is_admin(update):
+        await admin_text_router(update, context)
+        return
+    await _send_with_typing(update, UNKNOWN_INPUT_TEXT, reply_markup=user_reply_menu(WEBAPP_BASE, uid))
 
 
 def setup_application():

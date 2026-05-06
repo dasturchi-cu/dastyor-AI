@@ -6,6 +6,7 @@ import logging
 import os
 from telegram import ReplyKeyboardRemove, Update
 from telegram.ext import ContextTypes
+from bot.flow.state import WAITING_FOR_FEEDBACK
 from bot.ui.messages import (
     SUPPORT_CANCEL_TEXT,
     SUPPORT_INVALID_TEXT,
@@ -50,7 +51,9 @@ async def start_feedback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     Called when user clicks 'Aloqa ✉️'.
     Sets the state to collect feedback.
     """
-    context.user_data["waiting_for"] = "feedback"
+    if not update.message:
+        return
+    context.user_data["waiting_for"] = WAITING_FOR_FEEDBACK
 
     await update.message.reply_text(
         SUPPORT_START_TEXT,
@@ -77,7 +80,7 @@ async def handle_feedback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
     message = update.message
     user = update.effective_user
-    if not user:
+    if not message or not user:
         return
 
     header = _build_header(user)
