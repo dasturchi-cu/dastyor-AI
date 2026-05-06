@@ -22,7 +22,6 @@ from telegram.ext import (
     filters,
 )
 
-from bot.handlers.admin import admin_panel_command, handle_admin_text
 from bot.handlers.feedback import handle_feedback, start_feedback
 
 try:
@@ -35,10 +34,22 @@ except Exception:  # premium module may be removed in minimal build
 logger = logging.getLogger(__name__)
 BOT_TOKEN = (os.getenv("BOT_TOKEN") or "").strip()
 WEBAPP_BASE = (os.getenv("WEBAPP_BASE") or "").strip().rstrip("/")
+SUPPORT_GROUP_ID = int((os.getenv("SUPPORT_GROUP_ID") or "-1003457224552").strip())
+_ADMIN_IDS = {
+    int(v.strip())
+    for v in (os.getenv("ADMIN_USER_ID") or "").split(",")
+    if v.strip().isdigit()
+}
 
 BTN_CV = "📄 CV Resume"
 BTN_OBY = "✍️ Obyektivka"
 BTN_CONTACT = "🆘 Murojaat"
+BTN_HELP = "ℹ️ Yordam"
+
+ADMIN_BTN_STATS = "📊 Holat"
+ADMIN_BTN_SUPPORT = "📨 Murojaatlar"
+ADMIN_BTN_PAYMENTS = "💳 To'lovlar"
+ADMIN_BTN_CLOSE = "🚪 Yopish"
 
 
 def _menu_markup(uid: int) -> InlineKeyboardMarkup:
@@ -63,12 +74,36 @@ def _reply_menu(uid: int) -> ReplyKeyboardMarkup:
                     web_app=WebAppInfo(url=f"{WEBAPP_BASE}/obyektivka.html?telegram_id={uid}"),
                 ),
             ],
-            [KeyboardButton(BTN_CONTACT)],
+            [KeyboardButton(BTN_CONTACT), KeyboardButton(BTN_HELP)],
         ],
         resize_keyboard=True,
         is_persistent=True,
         input_field_placeholder="Xizmatni tanlang...",
     )
+
+
+def _admin_menu() -> ReplyKeyboardMarkup:
+    return ReplyKeyboardMarkup(
+        keyboard=[
+            [KeyboardButton(ADMIN_BTN_STATS), KeyboardButton(ADMIN_BTN_SUPPORT)],
+            [KeyboardButton(ADMIN_BTN_PAYMENTS), KeyboardButton(ADMIN_BTN_CLOSE)],
+        ],
+        resize_keyboard=True,
+        is_persistent=True,
+        input_field_placeholder="Admin bo'limi",
+    )
+
+
+def _is_admin(update: Update) -> bool:
+    uid = int(update.effective_user.id) if update.effective_user else 0
+    return uid in _ADMIN_IDS
+
+
+async def _send_with_typing(update: Update, text: str, *, reply_markup=None) -> None:
+    if not update.effective_chat or not update.message:
+        return
+    await update.get_bot().send_chat_action(chat_id=update.effective_chat.id, action="typing")
+    await update.message.reply_text(text, reply_markup=reply_markup)
 
 
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -82,26 +117,66 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     uid = int(update.effective_user.id)
     # Remove any old legacy reply keyboard from previous bot versions.
     await update.message.reply_text("Yangi menyu yuklandi.", reply_markup=ReplyKeyboardRemove())
-    await update.message.reply_text(
+    await _send_with_typing(
+        update,
         (
-            "Assalomu alaykum.\n"
-            "Dastyor AI'ga xush kelibsiz.\n\n"
-            "Men sizga quyidagilarda yordam beraman:\n"
+            "Assalomu alaykum.\n\n"
+            "Dastyor AI sizga quyidagilarda yordam beradi:\n"
             "• CV yaratish\n"
             "• Obyektivka yozish\n"
             "• Admin bilan bog'lanish\n\n"
-            "Quyidan xizmatni tanlang."
+            "Kerakli xizmatni tanlang."
         ),
         reply_markup=_reply_menu(uid),
     )
-    await update.message.reply_text(
-        "Tez ochish tugmalari:",
-        reply_markup=_menu_markup(uid),
-    )
+    await update.message.reply_text("Tez ochish:", reply_markup=_menu_markup(uid))
 
 
 async def support_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await start_feedback(update, context)
+
+
+async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    if not update.message or not update.effective_user:
+        return
+    uid = int(update.effective_user.id)
+    await _send_with_typing(
+        update,
+        (
+            "ℹ️ Yordam\n\n"
+            "1) CV Resume tugmasi — CV formani ochadi\n"
+            "2) Obyektivka tugmasi — obyektivka formani ochadi\n"
+            "3) Murojaat — admin bilan bog'lanish\n\n"
+            "Savol bo'lsa, '🆘 Murojaat' ni bosing."
+        ),
+        reply_markup=_reply_menu(uid),
+    )
+
+
+async def admin_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    if not update.message:
+        return
+    if not _is_admin(update):
+        await update.message.reply_text("Bu bo'lim faqat adminlar uchun.")
+        return
+    await _send_with_typing(update, "Admin panel ochildi.", reply_markup=_admin_menu())
+
+
+async def admin_text_router(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    if not update.message or not _is_admin(update):
+        return
+    txt = (update.message.text or "").strip()
+    if txt == ADMIN_BTN_STATS:
+        await _send_with_typing(update, "✅ Bot ishlayapti. Holat: barqaror.")
+    elif txt == ADMIN_BTN_SUPPORT:
+        await _send_with_typing(
+            update,
+            f"📨 Murojaatlar guruhi: {SUPPORT_GROUP_ID}\nYangi murojaatlar shu yerga yuboriladi.",
+        )
+    elif txt == ADMIN_BTN_PAYMENTS:
+        await _send_with_typing(update, "💳 To'lov bildirishnomalari admin guruhga yuboriladi.")
+    elif txt == ADMIN_BTN_CLOSE:
+        await update.message.reply_text("Admin panel yopildi.", reply_markup=ReplyKeyboardRemove())
 
 
 async def message_router(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -120,6 +195,11 @@ async def message_router(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         return
     if text == BTN_CONTACT:
         await start_feedback(update, context)
+        return
+    if text == BTN_HELP:
+        await help_command(update, context)
+        return
+    await admin_text_router(update, context)
 
 
 def setup_application():
@@ -137,15 +217,10 @@ def setup_application():
 
     app.add_handler(CommandHandler("start", start_command))
     app.add_handler(CommandHandler("menu", start_command))
+    app.add_handler(CommandHandler("help", help_command))
     app.add_handler(CommandHandler("contact", support_command))
-    app.add_handler(CommandHandler("admin", admin_panel_command))
+    app.add_handler(CommandHandler("admin", admin_command))
     app.add_handler(CallbackQueryHandler(premium_payment_review_callback, pattern=r"^prempay_(approve|reject)_\d+$"))
-    app.add_handler(
-        MessageHandler(
-            filters.Regex(r"^(📊 Statistika|📨 Xabar yuborish|📢 Kanallar|💎 Premium Boshqaruv|⚙️ Sozlamalar|👥 Foydalanuvchilar|➕ Admin qo'shish|❌ Admin o'chirish|🆘 Support so'rovlar|🚪 Panelni yopish)$"),
-            handle_admin_text,
-        )
-    )
     app.add_handler(
         MessageHandler(
             filters.TEXT | filters.PHOTO | filters.Document.ALL | filters.VIDEO | filters.VOICE | filters.AUDIO,

@@ -3,14 +3,14 @@ Feedback Handler — Collects user feedback (text/photo/video/voice/file)
 and forwards everything to a Telegram group with user info.
 """
 import logging
+import os
 from telegram import ReplyKeyboardRemove, Update
 from telegram.ext import ContextTypes
-from bot.services.user_service import get_user_lang
 
 logger = logging.getLogger(__name__)
 
 # ── Group where feedback is forwarded ───────────────────────────────────
-FEEDBACK_GROUP_ID = -1003457224552
+FEEDBACK_GROUP_ID = int((os.getenv("SUPPORT_GROUP_ID") or "-1003457224552").strip())
 
 # ── Simple in-memory feedback counter (persistent via user_profiles.json)
 def _get_feedback_count(user_id: int) -> int:
@@ -45,7 +45,6 @@ async def start_feedback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     Sets the state to collect feedback.
     """
     context.user_data["waiting_for"] = "feedback"
-    lang = get_user_lang(update.effective_user.id) if update.effective_user else "uz_lat"
 
     await update.message.reply_text(
         "📩 <b>Murojaat yuborish</b>\n\n"
@@ -84,7 +83,6 @@ async def handle_feedback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     header = _build_header(user)
-    lang = get_user_lang(user.id)
     sent = False
 
     try:
