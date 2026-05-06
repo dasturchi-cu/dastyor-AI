@@ -28,12 +28,8 @@ from backend.paths import webapp_dir, webapp_index_path
 from backend.exception_handlers import register_exception_handlers
 from backend.middleware.webapp import register_webapp_middleware
 from backend.routers.documents_web import router as documents_router
-from backend.routers.jobs import router as jobs_router
-from backend.routers.ocr import router as ocr_jobs_router
-from backend.routers.ocr_web import router as ocr_web_router
 from backend.routers.public_web import router as public_router
 from backend.routers.site import router as site_router
-from backend.routers.telegram_files_web import router as telegram_files_router
 from backend.routers.tg_update import router as tg_update_router
 
 logger = logging.getLogger(__name__)
@@ -155,11 +151,7 @@ def create_webhook_app() -> FastAPI:
     # Order: specific routes before static mount
     app.include_router(site_router)
     app.include_router(public_router)
-    app.include_router(ocr_web_router)
     app.include_router(documents_router)
-    app.include_router(telegram_files_router)
-    app.include_router(jobs_router)
-    app.include_router(ocr_jobs_router)
     app.include_router(tg_update_router)
 
     _wd = webapp_dir()
