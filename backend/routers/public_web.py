@@ -1,4 +1,4 @@
-﻿"""Minimal Web APIs for CV/Obyektivka and admin notifications."""
+"""Minimal Web APIs for CV/Obyektivka and admin notifications."""
 from __future__ import annotations
 
 import os
@@ -18,20 +18,20 @@ router = APIRouter(tags=["web-api"])
 
 @router.post("/api/auth")
 async def api_auth(req: AuthRequest) -> dict:
-        token = create_session(
-            telegram_id=req.telegram_id,
-            first_name=req.first_name,
-            username=req.username,
-            photo_url=req.photo_url,
-        )
+    token = create_session(
+        telegram_id=req.telegram_id,
+        first_name=req.first_name,
+        username=req.username,
+        photo_url=req.photo_url,
+    )
 
     class _U:
-            id = req.telegram_id
-            first_name = req.first_name
-            username = req.username
+        id = req.telegram_id
+        first_name = req.first_name
+        username = req.username
 
     track_user_activity(_U(), command="web_auth", chat_id=int(req.telegram_id))
-        return {"ok": True, "token": token, "telegram_id": req.telegram_id}
+    return {"ok": True, "token": token, "telegram_id": req.telegram_id}
 
 
 @router.get("/api/me")
@@ -83,13 +83,13 @@ async def api_support(req: SupportRequest, ptb=Depends(get_ptb_application)) -> 
         raise HTTPException(status_code=400, detail="Xabar bo'sh")
 
     saved = create_support_request(
-            user_id=int(uid),
+        user_id=int(uid),
         username=req.username or "",
-            message=msg,
-            source="webapp",
-        )
+        message=msg,
+        source="webapp",
+    )
     admin_chat = int(os.getenv("SUPPORT_GROUP_ID", "-1003457224552"))
-            await ptb.bot.send_message(
+    await ptb.bot.send_message(
         chat_id=admin_chat,
         text=(
             "📩 <b>Yangi murojaat</b>\n\n"
@@ -97,8 +97,8 @@ async def api_support(req: SupportRequest, ptb=Depends(get_ptb_application)) -> 
             f"🆔 User: <code>{uid}</code>\n\n"
             f"💬 {msg}"
         ),
-                parse_mode="HTML",
-            )
+        parse_mode="HTML",
+    )
     return {"ok": True, "request_id": saved["id"]}
 
 
