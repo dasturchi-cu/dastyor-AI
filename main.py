@@ -25,6 +25,7 @@ from bot.ui.keyboards import (
     ADMIN_BTN_SUPPORT,
     BTN_CONTACT,
     BTN_HELP,
+    user_inline_start_menu,
     user_reply_menu,
     admin_menu,
 )
@@ -87,11 +88,7 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     ):
         return
     uid = int(update.effective_user.id)
-    await _send_with_typing(
-        update,
-        WELCOME_TEXT,
-        reply_markup=user_reply_menu(WEBAPP_BASE, uid),
-    )
+    await _send_with_typing(update, WELCOME_TEXT, reply_markup=user_inline_start_menu(WEBAPP_BASE, uid))
 
 
 async def support_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
