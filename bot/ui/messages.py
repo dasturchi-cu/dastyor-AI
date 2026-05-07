@@ -2,11 +2,9 @@
 
 WELCOME_TEXT = (
     "Assalomu alaykum.\n\n"
-    "Dastyor AI sizga quyidagilarda yordam beradi:\n"
-    "• CV yaratish\n"
-    "• Obyektivka yozish\n"
-    "• Admin bilan bog'lanish\n\n"
-    "Kerakli xizmatni tanlang."
+    "Formani to'ldirish uchun xizmatni tanlang:\n"
+    "• CV Resume\n"
+    "• Obyektivka"
 )
 
 HELP_TEXT = (

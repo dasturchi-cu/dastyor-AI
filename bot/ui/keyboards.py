@@ -2,8 +2,6 @@
 from __future__ import annotations
 
 from telegram import (
-    InlineKeyboardButton,
-    InlineKeyboardMarkup,
     KeyboardButton,
     ReplyKeyboardMarkup,
     WebAppInfo,
@@ -34,17 +32,6 @@ def user_reply_menu(webapp_base: str, uid: int) -> ReplyKeyboardMarkup:
         is_persistent=True,
         input_field_placeholder="Xizmatni tanlang...",
     )
-
-
-def user_inline_quick_open(webapp_base: str, uid: int) -> InlineKeyboardMarkup:
-    base = (webapp_base or "").rstrip("/")
-    return InlineKeyboardMarkup(
-        [
-            [InlineKeyboardButton("CV ochish", web_app=WebAppInfo(url=f"{base}/cv.html?telegram_id={uid}"))],
-            [InlineKeyboardButton("Obyektivka ochish", web_app=WebAppInfo(url=f"{base}/obyektivka.html?telegram_id={uid}"))],
-        ]
-    )
-
 
 def admin_menu() -> ReplyKeyboardMarkup:
     return ReplyKeyboardMarkup(

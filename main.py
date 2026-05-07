@@ -5,15 +5,7 @@ import logging
 import os
 import time
 
-from telegram import (
-    InlineKeyboardButton,
-    InlineKeyboardMarkup,
-    KeyboardButton,
-    ReplyKeyboardMarkup,
-    ReplyKeyboardRemove,
-    Update,
-    WebAppInfo,
-)
+from telegram import ReplyKeyboardRemove, Update
 from telegram.ext import (
     ApplicationBuilder,
     CallbackQueryHandler,
