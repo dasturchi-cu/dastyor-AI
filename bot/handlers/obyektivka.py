@@ -1,4 +1,5 @@
 from telegram import Update, InputFile, InlineKeyboardMarkup, InlineKeyboardButton, WebAppInfo
+from telegram.constants import ChatAction
 from telegram.ext import ContextTypes
 from bot.keyboards.reply_keyboards import get_back_button
 import os
@@ -19,6 +20,14 @@ from bot.utils.temp_files import safe_unlink, temp_file_path, ensure_temp_dir
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 logger = logging.getLogger(__name__)
+
+
+async def _voice_action(context, chat_id: int, action: str = ChatAction.RECORD_VOICE) -> None:
+    """Best-effort voice chat action for cleaner Telegram UX."""
+    try:
+        await context.bot.send_chat_action(chat_id=chat_id, action=action)
+    except Exception:
+        pass
 
 def _is_premium_plan(user_id: int) -> bool:
     """
@@ -58,6 +67,7 @@ async def process_obyektivka_from_audio_path(context, audio_path, chat_id, user_
     # Initial Progress
     progress_msg = await send_progress(context, chat_id, "Audio tahlil qilinmoqda...")
     try:
+        await _voice_action(context, chat_id, ChatAction.RECORD_VOICE)
         await update_progress(context, progress_msg, 20, "Matn o'qilmoqda (Whisper)...")
         
         # 1. Transcribe
@@ -70,6 +80,7 @@ async def process_obyektivka_from_audio_path(context, audio_path, chat_id, user_
             return
 
         await update_progress(context, progress_msg, 50, "Ma'lumotlar ajratilmoqda (AI)...")
+        await _voice_action(context, chat_id, ChatAction.RECORD_VOICE)
         
         # 2. Extract Data
         extracted_data = await extract_obyektivka_data(transcribed_text)
@@ -79,6 +90,7 @@ async def process_obyektivka_from_audio_path(context, audio_path, chat_id, user_
             return
             
         await update_progress(context, progress_msg, 80, "Web-shaklga bog'lanmoqda...")
+        await _voice_action(context, chat_id, ChatAction.RECORD_VOICE)
 
         # 3. Save data — persistent (user_profiles) + temp file fallback
         from bot.services.user_service import save_pending_oby_data
@@ -141,6 +153,8 @@ async def obyektivka_handler(update: Update, context: ContextTypes.DEFAULT_TYPE)
     # Immediate feedback (avoid waiting on Telegram parse/upload)
     ack_msg_id = None
     try:
+        if update.effective_chat:
+            await _voice_action(context, update.effective_chat.id, ChatAction.RECORD_VOICE)
         ack = await update.message.reply_text(
             "⏳ Obyektivka ochilmoqda... (yo‘riqnoma va namuna audio yuborilmoqda)"
         )
@@ -209,6 +223,7 @@ async def obyektivka_handler(update: Update, context: ContextTypes.DEFAULT_TYPE)
                 if not path or not os.path.exists(path):
                     continue
                 try:
+                    await _voice_action(context, chat_id, ChatAction.UPLOAD_VOICE)
                     # Pass file path directly: PTB uploads reliably and Telegram detects audio.
                     await context.bot.send_audio(
                         chat_id=chat_id,
@@ -248,6 +263,7 @@ async def handle_obyektivka_audio(update: Update, context: ContextTypes.DEFAULT_
         await message.reply_text("❌ Iltimos, audio xabar yuboring.")
         return
     
+    await _voice_action(context, cid, ChatAction.RECORD_VOICE)
     msg = await message.reply_text("⏳ Audio yuklanmoqda...")
     audio_path = None
     
@@ -263,6 +279,7 @@ async def handle_obyektivka_audio(update: Update, context: ContextTypes.DEFAULT_
         
         audio_path = temp_file_path("temp_oby", update.effective_user.id, ext)
         await audio_file.download_to_drive(audio_path)
+        await _voice_action(context, cid, ChatAction.RECORD_VOICE)
         await msg.edit_text("⏳ Audio qabul qilindi. Qayta ishlanmoqda...")
 
         async def _bg(path: str):
@@ -305,6 +322,7 @@ async def auto_voice_obyektivka_from_message(update: Update, context: ContextTyp
         await _notify_premium_required_for_voice_oby(context, update.effective_chat.id)
         return
 
+    await _voice_action(context, update.effective_chat.id, ChatAction.RECORD_VOICE)
     msg = await message.reply_text("⏳ Ovoz qayta ishlanmoqda...")
     audio_path = None
     try:
@@ -323,6 +341,7 @@ async def auto_voice_obyektivka_from_message(update: Update, context: ContextTyp
 
         audio_path = temp_file_path("auto_oby", update.effective_user.id, ext)
         await audio_file.download_to_drive(audio_path)
+        await _voice_action(context, update.effective_chat.id, ChatAction.RECORD_VOICE)
         await msg.edit_text("⏳ Ovoz qabul qilindi. Qayta ishlanmoqda...")
 
         async def _bg(path: str):
