@@ -302,6 +302,9 @@
         <button type="button" class="btn btn-ghost" onclick="startObyVoiceFill()" id="btn_voice_fill">
           🎤 Ovozdan to'ldirish
         </button>
+        <button type="button" class="btn btn-ghost" onclick="toggleObyLiveRecording()" id="btn_voice_live">
+          ⏺ Jonli yozish
+        </button>
         <input type="file" id="obyVoiceInput" accept="audio/*" capture style="display:none" />
         <button type="button" class="btn btn-primary" onclick="goToStep(2)" id="btn_next_1">
           Keyingisi <svg viewBox="0 0 24 24"><path d="m9 18 6-6-6-6" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -678,6 +681,10 @@ function buildObyPayload(fmt){
 
 var _obyApprovedRequestId = 0;
 var _obyVoiceUploading = false;
+var _obyLiveRecorder = null;
+var _obyLiveStream = null;
+var _obyLiveChunks = [];
+var _obyLiveRecording = false;
 
 function syncObyQuotaUi() {
   var u = window.DastyorAI && window.DastyorAI.getUser ? window.DastyorAI.getUser() : null;
@@ -765,6 +772,101 @@ function startObyVoiceFill(){
   if(!input) return;
   input.value = '';
   input.click();
+}
+
+function _resetLiveVoiceBtn(){
+  var liveBtn = document.getElementById('btn_voice_live');
+  if(!liveBtn) return;
+  liveBtn.disabled = false;
+  liveBtn.textContent = "⏺ Jonli yozish";
+}
+
+async function _stopObyLiveRecording(){
+  if(!_obyLiveRecorder) return;
+  return new Promise(function(resolve){
+    var rec = _obyLiveRecorder;
+    rec.onstop = async function(){
+      try{
+        var mime = rec.mimeType || 'audio/webm';
+        var blob = new Blob(_obyLiveChunks, { type: mime });
+        _obyLiveChunks = [];
+        if(blob && blob.size > 0){
+          var ext = mime.indexOf('ogg') > -1 ? 'ogg' : (mime.indexOf('mp4') > -1 ? 'm4a' : 'webm');
+          var file = new File([blob], 'live_voice.' + ext, { type: mime });
+          await uploadObyVoiceFile(file);
+        }else{
+          alert("⚠️ Ovoz yozuvi bo'sh chiqdi. Qayta urinib ko'ring.");
+        }
+      }catch(e){
+        alert("❌ Yozuvni yuborishda xatolik: " + (e.message || e));
+      }finally{
+        try{
+          if(_obyLiveStream){
+            _obyLiveStream.getTracks().forEach(function(t){ try{ t.stop(); }catch(_){} });
+          }
+        }catch(_){}
+        _obyLiveRecorder = null;
+        _obyLiveStream = null;
+        _obyLiveRecording = false;
+        _resetLiveVoiceBtn();
+        resolve();
+      }
+    };
+    try{ rec.stop(); }catch(_){ resolve(); }
+  });
+}
+
+async function toggleObyLiveRecording(){
+  var tg = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp : null;
+  if(!tg){
+    alert("Faqat Telegram WebApp ichida ishlaydi!");
+    return;
+  }
+  if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || typeof MediaRecorder === 'undefined'){
+    startObyVoiceFill();
+    return;
+  }
+  var liveBtn = document.getElementById('btn_voice_live');
+  if(_obyVoiceUploading){
+    return;
+  }
+  if(_obyLiveRecording){
+    if(liveBtn){
+      liveBtn.disabled = true;
+      liveBtn.textContent = "⏳ Saqlanmoqda...";
+    }
+    await _stopObyLiveRecording();
+    return;
+  }
+  try{
+    _obyLiveStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    var preferredMime = '';
+    ['audio/webm;codecs=opus','audio/webm','audio/ogg;codecs=opus','audio/ogg'].some(function(mt){
+      if(MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(mt)){ preferredMime = mt; return true; }
+      return false;
+    });
+    _obyLiveChunks = [];
+    _obyLiveRecorder = preferredMime ? new MediaRecorder(_obyLiveStream, { mimeType: preferredMime }) : new MediaRecorder(_obyLiveStream);
+    _obyLiveRecorder.ondataavailable = function(e){
+      if(e && e.data && e.data.size > 0){ _obyLiveChunks.push(e.data); }
+    };
+    _obyLiveRecorder.start(300);
+    _obyLiveRecording = true;
+    if(liveBtn){
+      liveBtn.textContent = "⏹ Yozishni to'xtatish";
+    }
+  }catch(e){
+    try{
+      if(_obyLiveStream){
+        _obyLiveStream.getTracks().forEach(function(t){ try{ t.stop(); }catch(_){} });
+      }
+    }catch(_){}
+    _obyLiveStream = null;
+    _obyLiveRecorder = null;
+    _obyLiveRecording = false;
+    _resetLiveVoiceBtn();
+    alert("🎙 Mikrofon ruxsati kerak. Ruxsat berib qayta urinib ko'ring.");
+  }
 }
 
 async function sendObyektivkaViaApi(fmt){
@@ -1532,6 +1634,16 @@ function runAutoloadObyData(){
 }
 
 window.addEventListener('resize',function(){try{scaleLivePreview();}catch(e){}});
+window.addEventListener('beforeunload', function(){
+  try{
+    if(_obyLiveRecorder && _obyLiveRecording){
+      _obyLiveRecorder.stop();
+    }
+    if(_obyLiveStream){
+      _obyLiveStream.getTracks().forEach(function(t){ try{ t.stop(); }catch(_){} });
+    }
+  }catch(_){}
+});
 document.addEventListener('DOMContentLoaded',function(){
   try{ _obyApprovedRequestId = Number(localStorage.getItem('oby_paid_request_id') || 0); }catch(e){}
   try{ syncObyQuotaUi(); }catch(e){}
