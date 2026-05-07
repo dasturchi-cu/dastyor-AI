@@ -9,7 +9,7 @@ import os
 import time
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile
 from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
 from telegram import InputFile
 
@@ -248,6 +248,60 @@ async def api_get_oby_data(
         except Exception as e:
             logger.error("Error reading oby_data: %s", e)
     return {"ok": False}
+
+
+@router.post("/api/oby_voice_fill")
+async def api_oby_voice_fill(
+    audio: UploadFile = File(...),
+    telegram_id: Optional[str] = Form(None),
+    token: Optional[str] = Form(None),
+):
+    """
+    Accept voice/audio file, transcribe it, extract obyektivka fields, and save as pending data.
+    """
+    uid = resolve_telegram_uid(telegram_id, token)
+    if not uid:
+        raise HTTPException(status_code=401, detail="Foydalanuvchi aniqlanmadi")
+
+    if not audio or not audio.filename:
+        raise HTTPException(status_code=400, detail="Audio fayl yuborilmadi")
+
+    ext = os.path.splitext(audio.filename)[1] or ".ogg"
+    ts = int(time.time() * 1000)
+    temp_path = os.path.join("temp", f"oby_voice_{uid}_{ts}{ext}")
+    os.makedirs("temp", exist_ok=True)
+
+    try:
+        raw = await audio.read()
+        if not raw:
+            raise HTTPException(status_code=400, detail="Audio fayl bo'sh")
+        with open(temp_path, "wb") as fh:
+            fh.write(raw)
+
+        from bot.services.ai_service import extract_obyektivka_data, transcribe_audio
+        from bot.services.user_service import save_pending_oby_data
+
+        transcript = (await transcribe_audio(temp_path) or "").strip()
+        if not transcript:
+            raise HTTPException(status_code=422, detail="Ovozdan matn ajratib bo'lmadi")
+
+        data = await extract_obyektivka_data(transcript)
+        if not isinstance(data, dict) or not data:
+            raise HTTPException(status_code=422, detail="Obyektivka ma'lumotlari aniqlanmadi")
+
+        save_pending_oby_data(int(uid), data)
+        return {
+            "ok": True,
+            "data": data,
+            "transcript": transcript[:1200],
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.exception("api_oby_voice_fill failed: %s", e)
+        raise HTTPException(status_code=500, detail="Ovozli to'ldirishda xatolik yuz berdi") from e
+    finally:
+        safe_remove(temp_path)
 
 
 @router.post("/api/generate_obyektivka")
