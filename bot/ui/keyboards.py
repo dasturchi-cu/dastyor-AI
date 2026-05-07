@@ -27,6 +27,7 @@ def user_reply_menu(webapp_base: str, uid: int) -> ReplyKeyboardMarkup:
                 KeyboardButton(text=BTN_CV, web_app=WebAppInfo(url=f"{base}/cv.html?telegram_id={uid}")),
                 KeyboardButton(text=BTN_OBY, web_app=WebAppInfo(url=f"{base}/obyektivka.html?telegram_id={uid}")),
             ],
+            [KeyboardButton(BTN_CONTACT), KeyboardButton(BTN_HELP)],
         ],
         resize_keyboard=True,
         is_persistent=True,
