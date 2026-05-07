@@ -5,6 +5,7 @@ import logging
 import os
 import time
 
+from dotenv import load_dotenv
 from telegram import ReplyKeyboardRemove, Update
 from telegram.ext import (
     ApplicationBuilder,
@@ -44,7 +45,9 @@ except Exception:  # premium module may be removed in minimal build
             await update.callback_query.answer("Payment review handler o'chirilgan.", show_alert=False)
 
 logger = logging.getLogger(__name__)
-BOT_TOKEN = (os.getenv("BOT_TOKEN") or "").strip()
+load_dotenv(override=True)
+# Some editors save .env with UTF-8 BOM; support both keys safely.
+BOT_TOKEN = (os.getenv("BOT_TOKEN") or os.getenv("\ufeffBOT_TOKEN") or "").strip()
 WEBAPP_BASE = (os.getenv("WEBAPP_BASE") or "").strip().rstrip("/")
 SUPPORT_GROUP_ID = int((os.getenv("SUPPORT_GROUP_ID") or "-1003457224552").strip())
 _ADMIN_IDS = {
