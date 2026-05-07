@@ -1,7 +1,7 @@
 """Centralized bot message templates for consistent UX tone."""
 
 WELCOME_TEXT = (
-    "Formani ochish uchun xizmatni tanlang:\n"
+    "Formani to'ldirish uchun xizmatni tanlang:\n"
     "• CV Resume\n"
     "• Obyektivka"
 )
