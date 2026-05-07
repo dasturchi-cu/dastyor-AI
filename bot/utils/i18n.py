@@ -6,7 +6,7 @@ DEFAULT_LANG = "uz_lat"
 _DICT = {
     # welcome text
     "welcome": {
-        "uz_lat": "Assalomu alaykum, {name}! 👋\n\n📌 <b>DASTYOR AI</b> — hujjat va AI xizmatlar platformasi.\n\nQuyidagi xizmatlardan birini tanlang yoki Mini Appni oching:",
+        "uz_lat": "Assalomu alaykum, {name}! 👋\n\n📌 <b>DASTYOR AI</b> — hujjat va AI xizmatlar platformasi.\n\nFormani ochish uchun xizmatni tanlang:",
         "uz_cyr": "Ассалому алайкум, {name}! 👋\n\n📌 <b>DASTYOR AI</b> — ҳужжат ва AI хизматлар платформаси.\n\nҚуйидаги хизматлардан бирини танланг ёки Mini Appни очинг:",
         "en": "Hello, {name}! 👋\n\n📌 <b>DASTYOR AI</b> — Documents & AI services platform.\n\nChoose a service below or open the Mini App:",
         "ru": "Здравствуйте, {name}! 👋\n\n📌 <b>DASTYOR AI</b> — Платформа документов и ИИ сервисов.\n\nВыберите услугу ниже или откройте Mini App:"
@@ -20,7 +20,7 @@ _DICT = {
         "ru": "🚀 Открыть приложение"
     },
     "btn_cv": {
-        "uz_lat": "📄 CV Resume",
+        "uz_lat": "📄 CV ochish",
         "uz_cyr": "📄 CV Resume",
         "en": "📄 CV Resume",
         "ru": "📄 CV Резюме"
@@ -32,7 +32,7 @@ _DICT = {
         "ru": "🔧 Другие услуги"
     },
     "btn_oby": {
-        "uz_lat": "📋 Obyektivka",
+        "uz_lat": "📋 Obyektivka ochish",
         "uz_cyr": "📋 Объективка",
         "en": "📋 CV Record",
         "ru": "📋 Анкета"
