@@ -421,8 +421,29 @@
 <script>
 var currentLang='uz_l',photoData='',photoReadyPromise=null,relatives=[],editingRelIndex=-1;
 var telegramId='';
-try{if(window.Telegram&&window.Telegram.WebApp&&window.Telegram.WebApp.initDataUnsafe&&window.Telegram.WebApp.initDataUnsafe.user)telegramId=String(window.Telegram.WebApp.initDataUnsafe.user.id);}catch(e){}
-if(!telegramId){var up=new URLSearchParams(window.location.search).get('telegram_id');if(up)telegramId=up;}
+function resolveTelegramId(){
+  try{
+    if(window.DastyorAI && typeof window.DastyorAI.getTelegramId === 'function'){
+      var daId = window.DastyorAI.getTelegramId();
+      if(daId && /^\d+$/.test(String(daId))) return String(daId);
+    }
+  }catch(_){}
+  try{
+    var tgId = window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initDataUnsafe
+      && window.Telegram.WebApp.initDataUnsafe.user ? window.Telegram.WebApp.initDataUnsafe.user.id : null;
+    if(tgId && /^\d+$/.test(String(tgId))) return String(tgId);
+  }catch(_){}
+  try{
+    var up = new URLSearchParams(window.location.search).get('telegram_id');
+    if(up && /^\d+$/.test(String(up))) return String(up);
+  }catch(_){}
+  try{
+    var ssId = sessionStorage.getItem('tg_id');
+    if(ssId && /^\d+$/.test(String(ssId))) return String(ssId);
+  }catch(_){}
+  return '';
+}
+telegramId = resolveTelegramId();
 var API_URL;
 var _qApi=new URLSearchParams(window.location.search).get('api');
 if(_qApi){API_URL=String(_qApi).replace(/\/$/,'');}
@@ -716,6 +737,7 @@ function syncObyQuotaUi() {
 }
 
 async function uploadObyVoiceFile(file){
+  telegramId = resolveTelegramId();
   if(!file) return;
   if(_obyVoiceUploading) return;
   if(!telegramId){
@@ -929,6 +951,7 @@ async function sendObyektivkaViaApi(fmt){
 }
 
 async function sendObyektivkaToBot(fmt){
+  telegramId = resolveTelegramId();
   var tg=window.Telegram&&window.Telegram.WebApp?window.Telegram.WebApp:null;
   var btn=document.getElementById('dlBtn');
   if(!tg){
@@ -994,6 +1017,7 @@ async function sendObyektivkaToBot(fmt){
 
 var _obyPayState = { requestId:0, token:"", telegramId:0, screenshot:"", pollTimer:null, cardNumber:"" };
 async function payObySingle(fmt){
+  telegramId = resolveTelegramId();
   var tg=window.Telegram&&window.Telegram.WebApp?window.Telegram.WebApp:null;
   if(!tg){ alert("Faqat Telegram WebApp ichida ishlaydi!"); return; }
   var panel=document.getElementById('obyPayPanel');
@@ -1655,6 +1679,7 @@ document.addEventListener('DOMContentLoaded',function(){
       if(window.DastyorAI&&typeof window.DastyorAI.refreshProfile==='function'){
         await window.DastyorAI.refreshProfile();
       }
+      telegramId = resolveTelegramId();
       syncObyQuotaUi();
     }catch(e){console.warn(e);}
   })();
