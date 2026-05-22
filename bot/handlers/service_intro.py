@@ -16,7 +16,7 @@ from bot.ui.keyboards import (
     service_open_inline,
     user_reply_menu,
 )
-from bot.ui.messages import CV_INTRO_TEXT, OBY_INTRO_TEXT, OBY_SAMPLE_TEXT
+from bot.ui.messages import CV_INTRO_TEXT, OBY_INSTRUCTION_TEXT, OBY_INTRO_TEXT
 
 logger = logging.getLogger(__name__)
 
@@ -44,13 +44,17 @@ def is_oby_button(text: str) -> bool:
     return (text or "").strip() in oby_button_labels()
 
 
-async def _send_oby_sample_audio(context: ContextTypes.DEFAULT_TYPE, chat_id: int) -> None:
-    audio_candidates = [
+def _oby_sample_audio_paths() -> list[str]:
+    return [
+        os.path.join(BASE_DIR, "speech.mp3"),
         os.path.join(HANDLERS_DIR, "speech (1).mp3"),
         os.path.join(HANDLERS_DIR, "namuna.mp3"),
         os.path.join(BASE_DIR, "namuna.mp3"),
     ]
-    for path in audio_candidates:
+
+
+async def _send_oby_sample_audio(context: ContextTypes.DEFAULT_TYPE, chat_id: int) -> None:
+    for path in _oby_sample_audio_paths():
         if not path or not os.path.exists(path):
             continue
         try:
@@ -58,18 +62,13 @@ async def _send_oby_sample_audio(context: ContextTypes.DEFAULT_TYPE, chat_id: in
             await context.bot.send_audio(
                 chat_id=chat_id,
                 audio=path,
-                caption=(
-                    "🎙 <b>Namuna ovoz</b>\n\n"
-                    "Shu tartibda o'zbek tilida aniq gapiring. "
-                    "Keyin pastdagi «Formani ochish» tugmasini bosing — "
-                    "yoki shu yerga ovoz yuboring (avtomatik to'ldiriladi)."
-                ),
+                caption="🎙 <b>Namuna audio</b> — shunday qilib o‘qib yuboring",
                 parse_mode="HTML",
             )
             return
         except Exception as e:
             logger.warning("sample audio send failed path=%s: %s", path, e)
-    logger.warning("Obyektivka namuna audio topilmadi: %s", audio_candidates)
+    logger.warning("Obyektivka namuna audio topilmadi: %s", _oby_sample_audio_paths())
 
 
 async def send_cv_intro(message: Message, context: ContextTypes.DEFAULT_TYPE, uid: int) -> None:
@@ -83,15 +82,18 @@ async def send_cv_intro(message: Message, context: ContextTypes.DEFAULT_TYPE, ui
 
 async def send_obyektivka_intro(message: Message, context: ContextTypes.DEFAULT_TYPE, uid: int) -> None:
     context.user_data["waiting_for"] = WaitingState.OBYEKTIVKA_AUDIO
+    base = context.bot_data.get("webapp_base", "")
+    inline = service_open_inline(base, uid, "obyektivka")
+
+    await message.reply_text(OBY_INSTRUCTION_TEXT, parse_mode="HTML")
+    chat_id = message.chat_id
+    if chat_id:
+        await _send_oby_sample_audio(context, chat_id)
     await message.reply_text(
         OBY_INTRO_TEXT,
         parse_mode="HTML",
-        reply_markup=service_open_inline(context.bot_data.get("webapp_base", ""), uid, "obyektivka"),
+        reply_markup=inline,
     )
-    await message.reply_text(OBY_SAMPLE_TEXT, parse_mode="HTML")
-    chat_id = message.chat_id
-    if chat_id:
-        asyncio.create_task(_send_oby_sample_audio(context, chat_id))
 
 
 async def handle_cv_intro(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:

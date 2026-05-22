@@ -186,9 +186,10 @@ async def obyektivka_handler(update: Update, context: ContextTypes.DEFAULT_TYPE)
             # 2) Example audio
             HANDLERS_DIR = os.path.dirname(os.path.abspath(__file__))
             audio_candidates = [
-                os.path.join(HANDLERS_DIR, "speech (1).mp3"),   # bot/handlers/speech (1).mp3
-                os.path.join(HANDLERS_DIR, "namuna.mp3"),        # bot/handlers/namuna.mp3
-                os.path.join(BASE_DIR, "namuna.mp3"),            # project root fallback
+                os.path.join(BASE_DIR, "speech.mp3"),
+                os.path.join(HANDLERS_DIR, "speech (1).mp3"),
+                os.path.join(HANDLERS_DIR, "namuna.mp3"),
+                os.path.join(BASE_DIR, "namuna.mp3"),
             ]
             for path in audio_candidates:
                 if not path or not os.path.exists(path):

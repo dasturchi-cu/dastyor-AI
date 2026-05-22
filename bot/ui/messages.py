@@ -28,15 +28,31 @@ OBY_INTRO_TEXT = (
     "💡 Ovozli to‘ldirish <b>bepul</b>; faqat tayyor hujjat yuborish pullik."
 )
 
-OBY_SAMPLE_TEXT = (
-    "📌 <b>Ovozda aytish kerak bo‘lganlar (qisqa ro‘yxat):</b>\n\n"
-    "• F.I.Sh., tug‘ilgan sana va joyi, millati\n"
-    "• Ma’lumot, o‘quv yurti, mutaxassislik\n"
-    "• Partiyaviylik, ilmiy daraja/unvon, tillar\n"
-    "• Mukofotlar, deputatlik (agar bor bo‘lsa)\n"
-    "• <b>Ish joylari</b> — tashkilot, lavozim, boshlanish/tugash yillari\n"
-    "• <b>Oila a’zolari</b> — har biri: F.I.Sh., tug‘ilgan yili/joyi, ish joyi, manzil\n\n"
-    "🎙 Keyingi xabarda <b>namuna ovoz</b> keladi — shu tartibda o‘qing."
+OBY_INSTRUCTION_TEXT = (
+    "📌 <b>Obyektivka tayyorlash uchun quyidagi ma’lumotlarni audiodagi kabi o‘qib jo‘nating:</b>\n\n"
+    "1. F.I.Sh. (Familiyasi, ismi, sharifi)\n"
+    "2. Tug‘ilgan yili, oyi, sanasi\n"
+    "3. Tug‘ilgan joyi (viloyat, tuman/shahar)\n"
+    "4. Millati\n"
+    "5. Ma’lumoti\n"
+    "6. Tamomlagan o‘quv yurti (nomi va yili)\n"
+    "7. Mutaxassisligi (diplom bo‘yicha)\n"
+    "8. Partiyaviyligi\n"
+    "9. Ilmiy darajasi\n"
+    "10. Ilmiy unvoni\n"
+    "11. Qaysi chet tillarini biladi\n"
+    "12. Davlat mukofotlari bilan taqdirlanganligi\n"
+    "13. Deputatlar kengashi a’zoligi (ha/yo‘q, qaysi kengash)\n"
+    "14. Mehnat faoliyati (qayerda, qaysi lavozimda, boshlagan va tugatgan sanalari bilan)\n"
+    "15. Rasm elektron variantda\n\n"
+    "👨‍👩‍👧‍👦 <b>Oila a’zolari haqida ma’lumot:</b>\n"
+    "(Ota, ona, aka, uka, opa, singil, turmush o‘rtog‘i)\n\n"
+    "Har biri uchun quyidagilar ko‘rsatiladi:\n"
+    "1. F.I.Sh.\n"
+    "2. Tug‘ilgan yili va joyi\n"
+    "3. Ish joyi va lavozimi\n"
+    "4. Yashash manzili\n\n"
+    "🎙 <b>Quyidagi audio namunaga o‘xshab o‘qib yuboring:</b>"
 )
 
 HELP_TEXT = (
