@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 
 from telegram import Update
 from telegram.ext import ContextTypes
@@ -131,6 +132,34 @@ async def premium_payment_review_callback(update: Update, context: ContextTypes.
                 pass
         except Exception:
             logger.warning("payment approve side-effects failed pid=%s", payment_id, exc_info=True)
+
+    if uid is not None:
+        try:
+            uid_i = int(uid)
+            base = (context.bot_data.get("webapp_base") or os.getenv("WEBAPP_BASE") or "").strip()
+            from bot.services.bot_notify import (
+                notify_payment_approved,
+                notify_payment_rejected,
+            )
+
+            kind = pdkind or ("cv" if plan == "cv" else "obyektivka" if plan == "objective" else "cv")
+            if new_status == "approved":
+                await notify_payment_approved(
+                    context.bot,
+                    uid_i,
+                    kind=kind,
+                    request_id=rid,
+                    webapp_base=base,
+                )
+            else:
+                await notify_payment_rejected(
+                    context.bot,
+                    uid_i,
+                    kind=kind,
+                    request_id=rid,
+                )
+        except Exception:
+            logger.warning("payment user notify failed pid=%s", payment_id, exc_info=True)
 
     msg = "✅ To'lov tasdiqlandi." if new_status == "approved" else "❌ To'lov rad etildi."
 

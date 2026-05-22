@@ -7,6 +7,7 @@ import os
 
 from telegram import Message, Update
 from telegram.constants import ChatAction
+from telegram.error import BadRequest
 from telegram.ext import ContextTypes
 
 from bot.constants.states import WaitingState
@@ -16,7 +17,12 @@ from bot.ui.keyboards import (
     service_open_inline,
     user_reply_menu,
 )
-from bot.ui.messages import CV_INTRO_TEXT, OBY_INSTRUCTION_TEXT, OBY_INTRO_TEXT
+from bot.ui.messages import (
+    CV_INSTRUCTION_TEXT,
+    CV_INTRO_TEXT,
+    OBY_INSTRUCTION_TEXT,
+    OBY_INTRO_TEXT,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -71,26 +77,62 @@ async def _send_oby_sample_audio(context: ContextTypes.DEFAULT_TYPE, chat_id: in
     logger.warning("Obyektivka namuna audio topilmadi: %s", _oby_sample_audio_paths())
 
 
+async def _reply_cv_intro(message: Message, base: str, uid: int) -> None:
+    markup = service_open_inline(base, uid, "cv")
+    try:
+        await message.reply_text(CV_INTRO_TEXT, parse_mode="HTML", reply_markup=markup)
+    except BadRequest as e:
+        logger.warning("CV intro reply failed (markup): %s", e)
+        await message.reply_text(
+            CV_INTRO_TEXT + "\n\n⚠️ <i>Forma tugmasi vaqtincha ishlamadi — /start yoki admin bilan bog‘laning.</i>",
+            parse_mode="HTML",
+        )
+
+
 async def send_cv_intro(message: Message, context: ContextTypes.DEFAULT_TYPE, uid: int) -> None:
     context.user_data.pop("waiting_for", None)
+    try:
+        from bot.services.bot_analytics import log_bot_event
+
+        log_bot_event(uid, "bot_cv_intro_open")
+    except Exception:
+        pass
     base = context.bot_data.get("webapp_base", "")
-    await message.reply_text(
-        CV_INTRO_TEXT,
-        parse_mode="HTML",
-        reply_markup=service_open_inline(base, uid, "cv"),
-    )
+    chat_id = message.chat_id
+    if chat_id:
+        try:
+            await context.bot.send_chat_action(chat_id=chat_id, action=ChatAction.TYPING)
+        except Exception:
+            pass
+    await message.reply_text(CV_INSTRUCTION_TEXT, parse_mode="HTML")
+    await _reply_cv_intro(message, base, uid)
 
 
 async def send_obyektivka_intro(message: Message, context: ContextTypes.DEFAULT_TYPE, uid: int) -> None:
     context.user_data["waiting_for"] = WaitingState.OBYEKTIVKA_AUDIO
+    try:
+        from bot.services.bot_analytics import log_bot_event
+
+        log_bot_event(uid, "bot_oby_intro_open")
+    except Exception:
+        pass
     base = context.bot_data.get("webapp_base", "")
     inline = service_open_inline(base, uid, "obyektivka")
 
-    await message.reply_text(OBY_INSTRUCTION_TEXT, parse_mode="HTML")
+    combined = f"{OBY_INSTRUCTION_TEXT}\n\n{OBY_INTRO_TEXT}"
+    await message.reply_text(combined, parse_mode="HTML")
     chat_id = message.chat_id
     if chat_id:
         await _send_oby_sample_audio(context, chat_id)
-    await message.reply_text(OBY_INTRO_TEXT, parse_mode="HTML", reply_markup=inline)
+    try:
+        await message.reply_text(
+            "👇 Formani shu tugma orqali oching:",
+            parse_mode="HTML",
+            reply_markup=inline,
+        )
+    except BadRequest as e:
+        logger.warning("Obyektivka intro reply failed (markup): %s", e)
+        await message.reply_text(OBY_INTRO_TEXT, parse_mode="HTML")
 
 
 async def handle_cv_intro(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -135,6 +177,11 @@ async def intro_callback_router(update: Update, context: ContextTypes.DEFAULT_TY
         from bot.handlers.feedback import start_feedback
 
         await start_feedback(update, context)
+        return
+    if data == "intro_my_docs":
+        from bot.handlers.my_documents import send_my_documents
+
+        await send_my_documents(msg, context, _uid(update))
         return
     if data == "menu_back":
         await handle_menu_back_from_callback(update, context)

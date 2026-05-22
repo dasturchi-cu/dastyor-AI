@@ -1,9 +1,9 @@
 """Minimal Telegram bot for CV/Obyektivka, support, and admin payment alerts."""
 from __future__ import annotations
 
+import asyncio
 import logging
 import os
-import re
 import time
 
 from dotenv import load_dotenv
@@ -20,6 +20,11 @@ from telegram.ext import (
 from bot.constants.states import WaitingState
 from bot.flow.state import WAITING_FOR_FEEDBACK
 from bot.handlers.feedback import handle_feedback, start_feedback
+from bot.handlers.my_documents import (
+    docs_command,
+    handle_my_docs_button,
+    is_my_docs_button,
+)
 from bot.handlers.obyektivka import handle_obyektivka_audio
 from bot.handlers.service_intro import (
     handle_cv_intro,
@@ -29,23 +34,25 @@ from bot.handlers.service_intro import (
     is_cv_button,
     is_oby_button,
 )
-from bot.ui.keyboards import cv_button_labels, oby_button_labels
+from bot.ui.keyboards import cv_button_labels, oby_button_labels, user_inline_start_menu
 from bot.ui.keyboards import (
     ADMIN_BTN_CLOSE,
+    ADMIN_BTN_DIGEST,
     ADMIN_BTN_PAYMENTS,
     ADMIN_BTN_STATS,
     ADMIN_BTN_SUPPORT,
     BTN_BACK,
     BTN_CONTACT,
     BTN_HELP,
+    BTN_MY_DOCS,
     user_reply_menu,
     admin_menu,
 )
 from bot.ui.messages import (
     ADMIN_ONLY_TEXT,
     ADMIN_PANEL_OPENED_TEXT,
-    ADMIN_STATUS_TEXT,
     HELP_TEXT,
+    OBY_AUDIO_WAIT_HINT,
     UNKNOWN_INPUT_TEXT,
     WELCOME_TEXT,
 )
@@ -63,6 +70,7 @@ load_dotenv(override=True)
 BOT_TOKEN = (os.getenv("BOT_TOKEN") or os.getenv("\ufeffBOT_TOKEN") or "").strip()
 WEBAPP_BASE = (os.getenv("WEBAPP_BASE") or "").strip().rstrip("/")
 SUPPORT_GROUP_ID = int((os.getenv("SUPPORT_GROUP_ID") or "-1003457224552").strip())
+PREMIUM_ADMIN_GROUP_ID = int((os.getenv("PREMIUM_ADMIN_GROUP_ID") or str(SUPPORT_GROUP_ID)).strip())
 _ADMIN_IDS = {
     int(v.strip())
     for v in (os.getenv("ADMIN_USER_ID") or "").split(",")
@@ -100,17 +108,41 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     ):
         return
     uid = int(update.effective_user.id)
-    # Eski WebApp pastki tugmalarini olib tashlash (aks holda forma to‘g‘ridan ochiladi)
+    context.user_data.pop("waiting_for", None)
+    try:
+        from bot.services.user_service import track_user_activity
+
+        await asyncio.to_thread(
+            track_user_activity,
+            update.effective_user,
+            "start",
+            update.effective_chat.id,
+        )
+    except Exception:
+        pass
+    try:
+        from bot.services.bot_analytics import log_bot_event
+
+        log_bot_event(uid, "bot_start")
+    except Exception:
+        pass
     await update.message.reply_text(
         "🔄 Menyu yangilanmoqda…",
         reply_markup=ReplyKeyboardRemove(),
     )
     await _send_with_typing(
         update,
-        WELCOME_TEXT + "\n\n<i>CV yoki Obyektivka — avval yo‘riqnoma, keyin forma.</i>",
+        WELCOME_TEXT,
         reply_markup=user_reply_menu(WEBAPP_BASE, uid),
         parse_mode="HTML",
     )
+    try:
+        await update.message.reply_text(
+            "⚡ Tez tanlash:",
+            reply_markup=user_inline_start_menu(WEBAPP_BASE, uid),
+        )
+    except Exception:
+        pass
 
 
 async def support_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -143,25 +175,38 @@ async def admin_text_router(update: Update, context: ContextTypes.DEFAULT_TYPE) 
         return
     txt = (update.message.text or "").strip()
     if txt == ADMIN_BTN_STATS:
-        await _send_with_typing(update, ADMIN_STATUS_TEXT)
+        from bot.services.bot_admin_stats import format_admin_stats_text
+
+        await _send_with_typing(update, format_admin_stats_text(), parse_mode="HTML")
+    elif txt == ADMIN_BTN_DIGEST:
+        from bot.services.bot_admin_stats import send_daily_admin_digest
+
+        await send_daily_admin_digest(update.get_bot(), PREMIUM_ADMIN_GROUP_ID)
+        await update.message.reply_text("📋 Kunlik hisobot admin guruhiga yuborildi.")
     elif txt == ADMIN_BTN_SUPPORT:
         await _send_with_typing(
             update,
             f"📨 Murojaatlar guruhi: {SUPPORT_GROUP_ID}\nYangi murojaatlar shu yerga yuboriladi.",
         )
     elif txt == ADMIN_BTN_PAYMENTS:
-        await _send_with_typing(update, "💳 To'lov bildirishnomalari admin guruhga yuboriladi.")
+        await _send_with_typing(
+            update,
+            f"💳 To'lovlar guruhi: {PREMIUM_ADMIN_GROUP_ID}\nSkrinshotlar shu yerga tushadi.",
+        )
     elif txt == ADMIN_BTN_CLOSE:
-        await update.message.reply_text("Admin panel yopildi.", reply_markup=ReplyKeyboardRemove())
+        uid = int(update.effective_user.id) if update.effective_user else 0
+        await update.message.reply_text(
+            "Admin panel yopildi.",
+            reply_markup=user_reply_menu(WEBAPP_BASE, uid),
+        )
 
 
 async def cv_oby_intro_router(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """CV / Obyektivka — birinchi navbatda yo‘riqnoma (eski WebApp menyu ustidan)."""
     if not update.message or not update.effective_user:
         return
-    if _is_fast_repeat(context):
-        return
     text = (update.message.text or "").strip()
+    context.user_data["_skip_message_router"] = True
     if is_cv_button(text):
         await handle_cv_intro(update, context)
     elif is_oby_button(text):
@@ -171,7 +216,7 @@ async def cv_oby_intro_router(update: Update, context: ContextTypes.DEFAULT_TYPE
 async def message_router(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     if not update.message or not update.effective_user or not update.effective_chat:
         return
-    if _is_fast_repeat(context):
+    if context.user_data.pop("_skip_message_router", False):
         return
 
     if context.user_data.get("waiting_for") == WAITING_FOR_FEEDBACK:
@@ -182,6 +227,19 @@ async def message_router(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         if update.message.voice or update.message.audio:
             await handle_obyektivka_audio(update, context)
             return
+        if update.message.text:
+            t = (update.message.text or "").strip()
+            if t == BTN_BACK or t.lower() in {"bekor", "cancel", "orqaga", "ortga"}:
+                await handle_menu_back(update, context)
+                return
+            if is_oby_button(t):
+                await handle_obyektivka_intro(update, context)
+                return
+            if is_my_docs_button(t):
+                await handle_my_docs_button(update, context)
+                return
+        await update.message.reply_text(OBY_AUDIO_WAIT_HINT, parse_mode="HTML")
+        return
 
     text = (update.message.text or "").strip()
     uid = int(update.effective_user.id)
@@ -192,11 +250,22 @@ async def message_router(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     if text == BTN_HELP:
         await help_command(update, context)
         return
+    if text == BTN_MY_DOCS or is_my_docs_button(text):
+        await handle_my_docs_button(update, context)
+        return
     if text == BTN_BACK or text.lower() in {"bekor", "cancel", "orqaga", "ortga"}:
         await handle_menu_back(update, context)
         return
+    if is_cv_button(text):
+        await handle_cv_intro(update, context)
+        return
+    if is_oby_button(text):
+        await handle_obyektivka_intro(update, context)
+        return
     if _is_admin(update):
         await admin_text_router(update, context)
+        return
+    if _is_fast_repeat(context):
         return
     await _send_with_typing(
         update,
@@ -217,11 +286,13 @@ def setup_application():
         .connection_pool_size(int(os.getenv("PTB_POOL_SIZE", "12")))
         .pool_timeout(20.0)
         .post_init(_post_init)
+        .post_shutdown(_post_shutdown)
         .build()
     )
 
     app.add_handler(CommandHandler("start", start_command))
     app.add_handler(CommandHandler("menu", start_command))
+    app.add_handler(CommandHandler("docs", docs_command))
     app.add_handler(CommandHandler("help", help_command))
     app.add_handler(CommandHandler("contact", support_command))
     app.add_handler(CommandHandler("admin", admin_command))
@@ -229,12 +300,16 @@ def setup_application():
     app.add_handler(
         CallbackQueryHandler(
             intro_callback_router,
-            pattern=r"^(intro_cv|intro_oby|intro_help|intro_contact|menu_back)$",
+            pattern=r"^(intro_cv|intro_oby|intro_help|intro_contact|intro_my_docs|menu_back)$",
         )
     )
-    cv_oby_text_filter = filters.TEXT & ~filters.COMMAND & filters.Regex(
-        rf"^({'|'.join(re.escape(l) for l in sorted(cv_button_labels() | oby_button_labels(), key=len, reverse=True))})$"
-    )
+    class _CvObyReplyFilter(filters.MessageFilter):
+        def filter(self, message):  # noqa: A003 — PTB API
+            if not message or not message.text:
+                return False
+            return (message.text or "").strip() in (cv_button_labels() | oby_button_labels())
+
+    cv_oby_text_filter = filters.TEXT & ~filters.COMMAND & _CvObyReplyFilter()
     app.add_handler(MessageHandler(cv_oby_text_filter, cv_oby_intro_router), group=0)
     app.add_handler(
         MessageHandler(
@@ -247,7 +322,21 @@ def setup_application():
 
 
 async def _post_init(app) -> None:
+    from bot.ui.bot_commands import sync_bot_commands
+
     app.bot_data["webapp_base"] = WEBAPP_BASE
+    await sync_bot_commands(app.bot)
+    if os.getenv("ADMIN_DAILY_DIGEST_ON_START", "0").strip().lower() in ("1", "true", "yes"):
+        try:
+            from bot.services.bot_admin_stats import send_daily_admin_digest
+
+            await send_daily_admin_digest(app.bot, PREMIUM_ADMIN_GROUP_ID)
+        except Exception as e:
+            logger.warning("startup daily digest: %s", e)
+
+
+async def _post_shutdown(app) -> None:
+    pass
 
 
 def main() -> None:

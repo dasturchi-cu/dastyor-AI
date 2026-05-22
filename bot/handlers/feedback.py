@@ -7,6 +7,7 @@ import os
 from telegram import ReplyKeyboardRemove, Update
 from telegram.ext import ContextTypes
 from bot.flow.state import WAITING_FOR_FEEDBACK
+from bot.ui.keyboards import user_reply_menu
 from bot.ui.messages import (
     SUPPORT_CANCEL_TEXT,
     SUPPORT_INVALID_TEXT,
@@ -57,6 +58,14 @@ async def start_feedback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not msg:
         return
     context.user_data["waiting_for"] = WAITING_FOR_FEEDBACK
+    uid = int(update.effective_user.id) if update.effective_user else 0
+    if uid:
+        try:
+            from bot.services.bot_analytics import log_bot_event
+
+            log_bot_event(uid, "bot_support_start")
+        except Exception:
+            pass
 
     await msg.reply_text(
         SUPPORT_START_TEXT,
@@ -95,7 +104,12 @@ async def handle_feedback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if message.text:
             if message.text.strip().lower() in {"bekor", "cancel", "orqaga", "ortga"}:
                 context.user_data.pop("waiting_for", None)
-                await message.reply_text(SUPPORT_CANCEL_TEXT, reply_markup=ReplyKeyboardRemove())
+                base = context.bot_data.get("webapp_base", "")
+                await message.reply_text(
+                    SUPPORT_CANCEL_TEXT,
+                    reply_markup=user_reply_menu(base, user.id),
+                    parse_mode="HTML",
+                )
                 return
             request_text_for_panel = message.text
             await context.bot.send_message(
@@ -191,22 +205,26 @@ async def handle_feedback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 logger.warning(f"Support panel save failed: {panel_err}")
 
             _increment_feedback_count(user.id)
+            base = context.bot_data.get("webapp_base", "")
             await message.reply_text(
                 SUPPORT_SUCCESS_TEXT,
-                reply_markup=ReplyKeyboardRemove(),
+                reply_markup=user_reply_menu(base, user.id),
+                parse_mode="HTML",
             )
             # Clear state
             context.user_data.pop("waiting_for", None)
         else:
             await message.reply_text(
                 SUPPORT_INVALID_TEXT,
-                reply_markup=ReplyKeyboardRemove(),
+                parse_mode="HTML",
             )
 
     except Exception as e:
         logger.error(f"Feedback forwarding error: {e}", exc_info=True)
+        base = context.bot_data.get("webapp_base", "")
         await message.reply_text(
-            "❌ Xatolik yuz berdi. Iltimos, qayta urinib ko'ring.",
-            reply_markup=ReplyKeyboardRemove(),
+            "❌ Yuborib bo‘lmadi. Qayta urinib ko‘ring yoki /contact.",
+            reply_markup=user_reply_menu(base, user.id),
+            parse_mode="HTML",
         )
         context.user_data.pop("waiting_for", None)

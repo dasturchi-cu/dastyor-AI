@@ -60,6 +60,25 @@ def create_webhook_app() -> FastAPI:
         await application.initialize()
         await application.start()
 
+        try:
+            from bot.ui.bot_commands import sync_bot_commands
+
+            await sync_bot_commands(application.bot)
+        except Exception as e:
+            logger.warning("sync_bot_commands on startup: %s", e)
+
+        if os.getenv("ADMIN_DAILY_DIGEST_ON_START", "0").strip().lower() in ("1", "true", "yes"):
+            try:
+                from bot.services.bot_admin_stats import send_daily_admin_digest
+
+                admin_chat = int(
+                    (os.getenv("PREMIUM_ADMIN_GROUP_ID") or os.getenv("SUPPORT_GROUP_ID") or "0").strip()
+                )
+                if admin_chat:
+                    await send_daily_admin_digest(application.bot, admin_chat)
+            except Exception as e:
+                logger.warning("startup daily digest: %s", e)
+
         webhook_url = os.getenv(
             "WEBHOOK_URL",
             "https://dastyor-ai-production.up.railway.app/webhook",

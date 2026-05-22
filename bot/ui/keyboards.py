@@ -17,11 +17,13 @@ BTN_CV = "📄 CV Resume"
 BTN_OBY = "✍️ Obyektivka"
 BTN_CONTACT = "🆘 Murojaat"
 BTN_HELP = "ℹ️ Yordam"
+BTN_MY_DOCS = "📂 Mening hujjatlarim"
 BTN_BACK = "🔙 Orqaga"
 
 ADMIN_BTN_STATS = "📊 Holat"
 ADMIN_BTN_SUPPORT = "📨 Murojaatlar"
 ADMIN_BTN_PAYMENTS = "💳 To'lovlar"
+ADMIN_BTN_DIGEST = "📋 Kunlik hisobot"
 ADMIN_BTN_CLOSE = "🚪 Yopish"
 
 
@@ -38,12 +40,17 @@ def oby_button_labels() -> frozenset[str]:
     return frozenset({BTN_OBY, *_labels_from_i18n("btn_oby")})
 
 
+def my_docs_button_labels() -> frozenset[str]:
+    return frozenset({BTN_MY_DOCS})
+
+
 def user_reply_menu(webapp_base: str, uid: int) -> ReplyKeyboardMarkup:
     """Oddiy matn tugmalar — WebApp yo‘q (eski WebApp menyu ustiga yoziladi)."""
     _ = webapp_base, uid  # inline forma URL uchun alohida service_open_inline
     return ReplyKeyboardMarkup(
         keyboard=[
             [KeyboardButton(BTN_CV), KeyboardButton(BTN_OBY)],
+            [KeyboardButton(BTN_MY_DOCS)],
             [KeyboardButton(BTN_CONTACT), KeyboardButton(BTN_HELP)],
             [KeyboardButton(BTN_BACK)],
         ],
@@ -53,19 +60,36 @@ def user_reply_menu(webapp_base: str, uid: int) -> ReplyKeyboardMarkup:
     )
 
 
+def webapp_service_url(webapp_base: str, uid: int, service: str) -> str | None:
+    """Telegram WebApp uchun to‘liq https URL; noto‘g‘ri base bo‘lsa None."""
+    base = (webapp_base or "").strip().rstrip("/")
+    if not base.startswith("https://"):
+        return None
+    ver = WEBAPP_VERSION
+    page = "cv.html" if service == "cv" else "obyektivka.html"
+    return f"{base}/{page}?telegram_id={uid}&v={ver}"
+
+
 def service_open_inline(webapp_base: str, uid: int, service: str) -> InlineKeyboardMarkup:
     """Forma ochish — faqat tushuntirishdan keyin."""
-    base = (webapp_base or "").rstrip("/")
-    ver = WEBAPP_VERSION
+    url = webapp_service_url(webapp_base, uid, service)
     if service == "cv":
-        url = f"{base}/cv.html?telegram_id={uid}&v={ver}"
         label = "🚀 CV formasini ochish"
     else:
-        url = f"{base}/obyektivka.html?telegram_id={uid}&v={ver}"
         label = "🚀 Obyektivka formasini ochish"
+    row_open: list[InlineKeyboardButton]
+    if url:
+        row_open = [InlineKeyboardButton(label, web_app=WebAppInfo(url=url))]
+    else:
+        row_open = [
+            InlineKeyboardButton(
+                "⚠️ Forma havolasi sozlanmagan (admin: WEBAPP_BASE)",
+                callback_data="menu_back",
+            )
+        ]
     return InlineKeyboardMarkup(
         inline_keyboard=[
-            [InlineKeyboardButton(label, web_app=WebAppInfo(url=url))],
+            row_open,
             [InlineKeyboardButton("🔙 Boshqa xizmatlar", callback_data="menu_back")],
         ]
     )
@@ -80,6 +104,9 @@ def user_inline_start_menu(webapp_base: str, uid: int) -> InlineKeyboardMarkup:
                 InlineKeyboardButton(BTN_OBY, callback_data="intro_oby"),
             ],
             [
+                InlineKeyboardButton(BTN_MY_DOCS, callback_data="intro_my_docs"),
+            ],
+            [
                 InlineKeyboardButton(BTN_CONTACT, callback_data="intro_contact"),
                 InlineKeyboardButton(BTN_HELP, callback_data="intro_help"),
             ],
@@ -91,7 +118,8 @@ def admin_menu() -> ReplyKeyboardMarkup:
     return ReplyKeyboardMarkup(
         keyboard=[
             [KeyboardButton(ADMIN_BTN_STATS), KeyboardButton(ADMIN_BTN_SUPPORT)],
-            [KeyboardButton(ADMIN_BTN_PAYMENTS), KeyboardButton(ADMIN_BTN_CLOSE)],
+            [KeyboardButton(ADMIN_BTN_PAYMENTS), KeyboardButton(ADMIN_BTN_DIGEST)],
+            [KeyboardButton(ADMIN_BTN_CLOSE)],
         ],
         resize_keyboard=True,
         is_persistent=True,

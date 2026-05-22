@@ -664,6 +664,26 @@ def db_create_paid_doc_request(user_id: int, kind: str, payload: dict) -> int | 
         return None
 
 
+def db_list_user_paid_doc_requests(user_id: int, limit: int = 8) -> list[dict]:
+    """Foydalanuvchining oxirgi paid_doc so‘rovlari (bot «Mening hujjatlarim»)."""
+    c = _get_client()
+    if not c:
+        return []
+    try:
+        r = (
+            c.table("paid_doc_requests")
+            .select("id,kind,status,created_at,updated_at")
+            .eq("user_id", int(user_id))
+            .order("id", desc=True)
+            .limit(max(1, min(int(limit), 20)))
+            .execute()
+        )
+        return [dict(x) for x in (r.data or [])]
+    except Exception as e:
+        logger.debug("db_list_user_paid_doc_requests: %s", e)
+        return []
+
+
 def db_get_paid_doc_request(request_id: int) -> dict | None:
     """
     Returns dict with fields: id,user_id,kind,payload,status or None.

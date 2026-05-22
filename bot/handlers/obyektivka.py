@@ -95,20 +95,25 @@ async def process_obyektivka_from_audio_path(context, audio_path, chat_id, user_
             pass
 
         # 4. Give webapp link (form opens with autoload=1 → fields prefilled from API)
-        kb = [[InlineKeyboardButton(
-            "📋 Obyektivkani ochish",
-            web_app=WebAppInfo(url=f"{WEBAPP_BASE}/obyektivka.html?autoload=1&telegram_id={user_id}&v={WEBAPP_VERSION}")
-        )]]
+        from bot.ui.keyboards import webapp_service_url
+
+        oby_url = webapp_service_url(WEBAPP_BASE, int(user_id), "obyektivka")
+        if oby_url:
+            oby_url = oby_url + ("&" if "?" in oby_url else "?") + "autoload=1"
+        kb = []
+        if oby_url:
+            kb = [[InlineKeyboardButton("📋 Obyektivkani ochish", web_app=WebAppInfo(url=oby_url))]]
 
         fn = extracted_data.get("fullname") or ""
         await context.bot.send_message(
             chat_id=chat_id,
             text=(
                 (f"👤 {fn}\n\n" if fn else "")
-                + "✅ Obyektivka to'ldirildi — formada ma'lumotlarni tekshirib, Word yuklab oling.\n\n"
-                + "💡 Word faylni botga yuborish tarif bo‘yicha; formani avval bepul ko‘rib chiqishingiz mumkin."
+                + "✅ Ma’lumotlar tayyor — formada tekshiring.\n"
+                + "Word yuborish: <b>5 000 so‘m</b>, admin tasdiqlashdan keyin 1 marta."
             ),
-            reply_markup=InlineKeyboardMarkup(kb),
+            reply_markup=InlineKeyboardMarkup(kb) if kb else None,
+            parse_mode="HTML",
         )
         await progress_msg.delete()
         
