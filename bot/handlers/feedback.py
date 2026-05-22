@@ -4,7 +4,7 @@ and forwards everything to a Telegram group with user info.
 """
 import logging
 import os
-from telegram import ReplyKeyboardRemove, Update
+from telegram import Update
 from telegram.ext import ContextTypes
 from bot.flow.state import WAITING_FOR_FEEDBACK
 from bot.ui.keyboards import contact_button_labels, help_button_labels, user_reply_menu
@@ -67,9 +67,10 @@ async def start_feedback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         except Exception:
             pass
 
+    base = context.bot_data.get("webapp_base", "")
     await msg.reply_text(
         SUPPORT_START_TEXT,
-        reply_markup=ReplyKeyboardRemove(),
+        reply_markup=user_reply_menu(base, uid),
         parse_mode="HTML",
     )
 
