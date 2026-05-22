@@ -9,11 +9,11 @@ from telegram.ext import ContextTypes
 
 from bot.services.admin_service import is_admin
 from bot.services.broadcast_service import (
-    DEFAULT_FIX_ANNOUNCEMENT,
     collect_broadcast_recipients,
     format_broadcast_report,
     run_broadcast,
 )
+from bot.ui.messages import BROADCAST_FIX_ANNOUNCEMENT
 from bot.ui.keyboards import (
     ADMIN_BTN_BROADCAST,
     ADMIN_BTN_BROADCAST_CANCEL,
@@ -65,7 +65,7 @@ async def broadcast_command(update: Update, context: ContextTypes.DEFAULT_TYPE) 
         return
     args = (context.args or [])
     if args and args[0].lower() in ("tayyor", "ready", "fix"):
-        context.user_data[_DRAFT] = DEFAULT_FIX_ANNOUNCEMENT
+        context.user_data[_DRAFT] = BROADCAST_FIX_ANNOUNCEMENT
         context.user_data[_STEP] = "confirm"
         await _send_preview(update, context)
         return

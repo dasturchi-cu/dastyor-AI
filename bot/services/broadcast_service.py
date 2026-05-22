@@ -16,20 +16,6 @@ logger = logging.getLogger(__name__)
 BROADCAST_LOG_FILE = os.getenv("BROADCAST_LOG_FILE", "broadcast_logs.json")
 _SEND_DELAY = float(os.getenv("BROADCAST_SEND_DELAY_SECONDS", "0.04") or "0.04")
 
-DEFAULT_FIX_ANNOUNCEMENT = (
-    "👋 <b>Assalomu alaykum!</b>\n"
-    "Bu — <b>DASTYOR AI</b> jamoasidan yangilik.\n\n"
-    "✅ <b>Bot yangilandi</b> — ko‘p xatolar tuzatildi:\n"
-    "📄 CV (PDF) tezroq botga keladi\n"
-    "✍️ Obyektivka (Word) — forma va ovoz\n"
-    "💳 To‘lov va limit aniq ishlaydi\n"
-    "🆘 Murojaat va ℹ️ Yordam to‘g‘ri ishlaydi\n\n"
-    "Hujjat kerak bo‘lsa: pastdagi <b>CV Resume</b> yoki <b>Obyektivka</b> tugmasini bosing.\n"
-    "Savol bo‘lsa — <b>Murojaat</b> (matn, ovoz, rasm).\n\n"
-    "Rahmat, bizni tanlaganingiz uchun! 💙"
-)
-
-
 def collect_broadcast_recipients() -> list[tuple[int, int]]:
     """(user_id, chat_id) — banlanganlar tashqari."""
     from bot.services.user_service import get_all_profiles
