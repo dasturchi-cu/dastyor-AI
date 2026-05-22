@@ -388,18 +388,20 @@ def category_status(user_id: int, category: str) -> dict[str, Any]:
             from bot.services.supabase_db import has_db, db_user_has_cv_access, db_user_has_objective_access
 
             if has_db():
-                if category == CAT_CV and db_user_has_cv_access(uid):
+                if category == CAT_CV:
                     bkey_po = f"paid_once:{CAT_CV}:{uid}"
                     counts_po = _batch_bucket_counts(uid, [bkey_po])
-                    return _assemble_category_status(
-                        uid, category, plan, "subscription", 1, label, bkey_po, counts_po
-                    )
-                if category == CAT_OBYEKTIVKA and db_user_has_objective_access(uid):
+                    if db_user_has_cv_access(uid) or int(counts_po.get(bkey_po, 0) or 0) >= 1:
+                        return _assemble_category_status(
+                            uid, category, plan, "subscription", 1, label, bkey_po, counts_po
+                        )
+                if category == CAT_OBYEKTIVKA:
                     bkey_po = f"paid_once:{CAT_OBYEKTIVKA}:{uid}"
                     counts_po = _batch_bucket_counts(uid, [bkey_po])
-                    return _assemble_category_status(
-                        uid, category, plan, "subscription", 1, label, bkey_po, counts_po
-                    )
+                    if db_user_has_objective_access(uid) or int(counts_po.get(bkey_po, 0) or 0) >= 1:
+                        return _assemble_category_status(
+                            uid, category, plan, "subscription", 1, label, bkey_po, counts_po
+                        )
         except Exception as e:
             logger.debug("category_status paid_once: %s", e)
 
@@ -500,26 +502,28 @@ def record_category_use(user_id: int, category: str) -> bool:
             )
 
             if has_db():
-                if category == CAT_CV and db_user_has_cv_access(uid):
+                if category == CAT_CV:
                     bkey_po = f"paid_once:{CAT_CV}:{uid}"
                     if _get_bucket_count(uid, bkey_po) >= 1:
                         db_grant_cv_access(uid, False)
                         return False
-                    inc = _try_incr_bucket(uid, bkey_po, 1)
-                    if inc >= 1:
-                        db_grant_cv_access(uid, False)
-                        return True
-                    return False
-                if category == CAT_OBYEKTIVKA and db_user_has_objective_access(uid):
+                    if db_user_has_cv_access(uid):
+                        inc = _try_incr_bucket(uid, bkey_po, 1)
+                        if inc >= 1:
+                            db_grant_cv_access(uid, False)
+                            return True
+                        return False
+                if category == CAT_OBYEKTIVKA:
                     bkey_po = f"paid_once:{CAT_OBYEKTIVKA}:{uid}"
                     if _get_bucket_count(uid, bkey_po) >= 1:
                         db_grant_objective_access(uid, False)
                         return False
-                    inc = _try_incr_bucket(uid, bkey_po, 1)
-                    if inc >= 1:
-                        db_grant_objective_access(uid, False)
-                        return True
-                    return False
+                    if db_user_has_objective_access(uid):
+                        inc = _try_incr_bucket(uid, bkey_po, 1)
+                        if inc >= 1:
+                            db_grant_objective_access(uid, False)
+                            return True
+                        return False
         except Exception as e:
             logger.debug("record_category_use paid_once: %s", e)
 
@@ -632,6 +636,15 @@ def block_reason_for_user_uz(user_id: int, category: str) -> str:
         return f"❌ «{st['label']}» hozirgi tarifda yo'q. Standard yoki Premium oling."
     if st.get("unlimited"):
         return ""
+    if category in (CAT_CV, CAT_OBYEKTIVKA):
+        rem = st.get("remaining")
+        if rem is not None and int(rem or 0) <= 0:
+            try:
+                from backend.services.web_user_quota import single_doc_limit_exhausted_message
+
+                return single_doc_limit_exhausted_message(category)
+            except Exception:
+                pass
     # WebApp/Bot UX requirement: consistent paywall copy for core features.
     if category in (CAT_SPELL, CAT_TRANSLATE, CAT_TRANSLIT):
         return "Limit reached. Upgrade to Premium"

@@ -1241,22 +1241,26 @@
       const rem = window.DastyorAI && window.DastyorAI.getCategoryQuotaRemaining
         ? window.DastyorAI.getCategoryQuotaRemaining(u, 'cv')
         : null;
-      const quotaUsed = rem !== null && rem <= 0 && hasAccess;
+      const exhausted = window.DastyorAI && window.DastyorAI.isSingleDocLimitExhausted
+        ? window.DastyorAI.isSingleDocLimitExhausted(u, 'cv')
+        : (rem !== null && rem <= 0 && !hasAccess);
 
       if (btn) {
-        btn.disabled = _cvExportInFlight || blocked || pendingAdmin || quotaUsed;
-        if (quotaUsed && !pendingAdmin) {
-          btn.title = "Limit tugadi";
+        btn.disabled = _cvExportInFlight || blocked || pendingAdmin;
+        if (exhausted && !pendingAdmin) {
+          btn.title = "Limitiz tugagan";
         }
       }
       if (payBtn) {
-        if (blocked && !hasAccess) payBtn.classList.remove('hidden');
+        if ((blocked && !hasAccess) || exhausted) payBtn.classList.remove('hidden');
         else payBtn.classList.add('hidden');
       }
       if (warn) {
-        if (quotaUsed) {
+        if (exhausted && !pendingAdmin) {
           warn.classList.remove('hidden');
-          warn.textContent = "✅ PDF yuborilgan. Yana — yangi to'lov.";
+          warn.textContent = window.DastyorAI && window.DastyorAI.singleDocLimitMessage
+            ? window.DastyorAI.singleDocLimitMessage('cv')
+            : "❌ Limitiz tugagan. Yana 5 000 so'm to'lov qiling (CV).";
         } else if (hasAccess && !blocked) {
           warn.classList.remove('hidden');
           warn.textContent = "✅ «PDF botga yuborish» tugmasi.";
@@ -1342,8 +1346,12 @@
             const m2 = (e2 && e2.message) ? String(e2.message) : String(e2);
             alert('⏳ ' + m2.slice(0, 100));
           }
-        } else if (msg.indexOf('402') >= 0 || msg.indexOf('to\'lov') >= 0) {
-          alert('💳 Avval to‘lov qiling (5 000 so‘m).');
+        } else if (msg.indexOf('402') >= 0 || msg.indexOf('Limitiz tugagan') >= 0 || msg.indexOf('to\'lov') >= 0) {
+          if (msg.indexOf('Limitiz tugagan') >= 0 || msg.indexOf('ishlatilgan') >= 0) {
+            alert(msg.slice(0, 140));
+          } else {
+            alert('💳 Avval to‘lov qiling (5 000 so‘m).');
+          }
           try { await payCvSingle(fmt); } catch (_) {}
         } else {
           alert('❌ ' + msg.slice(0, 100));

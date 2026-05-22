@@ -778,17 +778,21 @@ function syncObyQuotaUi() {
   var rem = window.DastyorAI && window.DastyorAI.getCategoryQuotaRemaining
     ? window.DastyorAI.getCategoryQuotaRemaining(u, 'obyektivka')
     : null;
-  var quotaUsed = rem !== null && rem <= 0 && hasAccess;
+  var exhausted = window.DastyorAI && window.DastyorAI.isSingleDocLimitExhausted
+    ? window.DastyorAI.isSingleDocLimitExhausted(u, 'obyektivka')
+    : (rem !== null && rem <= 0 && !hasAccess);
 
-  if (btn) btn.disabled = _obyExportInFlight || blocked || pendingAdmin || quotaUsed;
+  if (btn) btn.disabled = _obyExportInFlight || blocked || pendingAdmin;
   if (payBtn) {
-    if (blocked && !hasAccess) payBtn.classList.remove('hidden');
+    if ((blocked && !hasAccess) || exhausted) payBtn.classList.remove('hidden');
     else payBtn.classList.add('hidden');
   }
   if (warn) {
-    if (quotaUsed) {
+    if (exhausted && !pendingAdmin) {
       warn.classList.remove('hidden');
-      warn.textContent = "✅ Word yuborilgan. Yana — yangi to'lov.";
+      warn.textContent = window.DastyorAI && window.DastyorAI.singleDocLimitMessage
+        ? window.DastyorAI.singleDocLimitMessage('obyektivka')
+        : "❌ Limitiz tugagan. Yana 5 000 so'm to'lov qiling (Obyektivka).";
     } else if (hasAccess && !blocked) {
       warn.classList.remove('hidden');
       warn.textContent = "✅ «Word botga yuborish» tugmasi.";
@@ -1084,8 +1088,12 @@ async function sendObyektivkaToBot(fmt){
         em = (e2 && e2.message) ? String(e2.message) : String(e2);
         alert('⏳ ' + em.slice(0, 100));
       }
-    } else if(em.indexOf('402') >= 0 || em.toLowerCase().indexOf('to\'lov') >= 0){
-      alert('💳 Avval to‘lov qiling (5 000 so‘m).');
+    } else if(em.indexOf('402') >= 0 || em.indexOf('Limitiz tugagan') >= 0 || em.toLowerCase().indexOf('to\'lov') >= 0){
+      if(em.indexOf('Limitiz tugagan') >= 0 || em.indexOf('ishlatilgan') >= 0){
+        alert(em.slice(0, 140));
+      } else {
+        alert('💳 Avval to‘lov qiling (5 000 so‘m).');
+      }
       try{ await payObySingle(fmt); }catch(_){}
     } else {
       if (em.length > 500) em = em.slice(0, 500) + '…';

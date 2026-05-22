@@ -148,7 +148,7 @@ async def _send_oby_sample_audio(context: ContextTypes.DEFAULT_TYPE, chat_id: in
             pass
         return
 
-    caption = "🎙 Namuna — shu tartibda o‘qib yuboring"
+    caption = "🎙 Namuna — yuqoridagi ro‘yxat bo‘yicha o‘qib yuboring"
     ogg_path = None
     try:
         await _voice_chat_action(context, chat_id)

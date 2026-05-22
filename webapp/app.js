@@ -367,6 +367,27 @@ const DastyorAI = (() => {
         return false;
     }
 
+    /** 5 000 so'mlik bitta yuborish allaqachon ishlatilgan */
+    function isSingleDocLimitExhausted(u, category) {
+        if (!u || !category) return false;
+        if (hasSingleDocAccess(u, category)) return false;
+        const rem = getCategoryQuotaRemaining(u, category);
+        if (rem !== null && rem <= 0) return true;
+        if (Array.isArray(u.limits_breakdown)) {
+            const row = u.limits_breakdown.find((r) => r.category === category);
+            if (row && (row.exhausted === true || (row.remaining != null && Number(row.remaining) <= 0))) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    function singleDocLimitMessage(category) {
+        const cat = String(category || '').toLowerCase();
+        const label = cat === 'cv' ? 'CV' : 'Obyektivka';
+        return `❌ Limitiz tugagan. Yana 5 000 so'm to'lov qiling (${label}).`;
+    }
+
     /**
      * @param {string} category - plan_limits CAT_* slug (cv, ocr, translate, …)
      * @param {{ warnId?: string, buttonIds?: string[], message?: string }} cfg
@@ -1071,6 +1092,8 @@ html[data-theme="dark"] .da-doc-loading-ring{border-color:#334155;border-top-col
         refreshProfile,
         isQuotaBlockedForCategory,
         hasSingleDocAccess,
+        isSingleDocLimitExhausted,
+        singleDocLimitMessage,
         getCategoryQuotaRemaining,
         needsSingleDocPayment,
         applyServiceQuotaUi,

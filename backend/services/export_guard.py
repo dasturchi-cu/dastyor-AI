@@ -33,6 +33,45 @@ def delivery_bucket_keys(uid: int, category: str) -> list[str]:
     return [_pending_bucket(uid, category), _done_bucket(uid, category)]
 
 
+def is_document_delivery_complete(uid: int, category: str) -> bool:
+    """5 000 so'mlik bitta yuborish allaqachon ishlatilganmi."""
+    try:
+        from bot.services.supabase_db import db_service_bucket_get, has_db
+
+        if not has_db():
+            return False
+        return int(db_service_bucket_get(int(uid), _done_bucket(int(uid), category)) or 0) >= 1
+    except Exception:
+        return False
+
+
+def mark_single_doc_export_used(uid: int, category: str) -> None:
+    """To'lov limiti yeb qo'yildi — keyingi yuborish faqat yangi to'lovdan keyin."""
+    u = int(uid)
+    _db_mark_delivered(u, category)
+    try:
+        from bot.services.plan_limits import CAT_CV, CAT_OBYEKTIVKA
+        from bot.services.supabase_db import (
+            db_grant_cv_access,
+            db_grant_objective_access,
+            has_db,
+        )
+
+        if has_db():
+            if category == CAT_CV:
+                db_grant_cv_access(u, False)
+            elif category == CAT_OBYEKTIVKA:
+                db_grant_objective_access(u, False)
+    except Exception as e:
+        logger.debug("mark_single_doc_export_used grant off uid=%s: %s", u, e)
+    try:
+        from bot.services.user_service import invalidate_user_profile_cache
+
+        invalidate_user_profile_cache(u)
+    except Exception:
+        pass
+
+
 def clear_document_delivery_buckets(uid: int, category: str) -> None:
     """Yangi to'lov tasdiqlanganda — qayta 1 marta yuborishga ruxsat."""
     try:
@@ -86,13 +125,7 @@ def _db_claim_export_slot(uid: int, category: str) -> None:
         if not has_db():
             return
         u = int(uid)
-        done_key = _done_bucket(u, category)
         pending_key = _pending_bucket(u, category)
-        if int(db_service_bucket_get(u, done_key) or 0) >= 1:
-            raise HTTPException(
-                status_code=409,
-                detail="✅ Allaqachon yuborilgan. Yangi to‘lov kerak.",
-            )
         if int(db_service_bucket_get(u, pending_key) or 0) >= 1:
             if _pending_is_stale(u, category):
                 db_service_buckets_delete_many(u, [pending_key])
@@ -175,7 +208,8 @@ async def begin_document_export(
 
 def mark_document_export_sent(uid: int, category: str) -> None:
     _LAST_SEND_TS[_key(uid, category)] = time.monotonic()
-    _db_mark_delivered(uid, category)
+    if not is_document_delivery_complete(uid, category):
+        _db_mark_delivered(uid, category)
     release_document_export(uid, category)
 
 

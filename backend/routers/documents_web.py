@@ -64,6 +64,26 @@ def _finish_single_doc_delivery(uid: int, category: str, *, request_id: int | No
         pass
 
 
+async def _prepare_paid_doc_export(uid: int, category: str) -> bool:
+    """To'lov tekshiruvi → limit yeb qo'yish → parallel guard. skip_quota qaytaradi."""
+    from backend.services.export_guard import (
+        begin_document_export,
+        mark_single_doc_export_used,
+        release_document_export,
+    )
+
+    u = int(uid)
+    require_paid_single_doc_or_subscription(u, category)
+    await begin_document_export(u, category, hold_process_lock=False)
+    try:
+        skip = web_quota_consume_or_raise(u, category)
+        mark_single_doc_export_used(u, category)
+        return skip
+    except Exception:
+        release_document_export(u, category)
+        raise
+
+
 @router.get("/api/payment_card")
 async def api_payment_card() -> dict:
     """
@@ -150,16 +170,8 @@ async def api_generate_cv(
     skip_quota_completion = False
     if uid_str:
         from bot.services.plan_limits import CAT_CV
-        from backend.services.export_guard import begin_document_export, release_document_export
 
-        uid_i = int(uid_str)
-        await begin_document_export(uid_i, CAT_CV, hold_process_lock=False)
-        try:
-            require_paid_single_doc_or_subscription(uid_i, CAT_CV)
-            skip_quota_completion = web_quota_consume_or_raise(uid_i, CAT_CV)
-        except Exception:
-            release_document_export(uid_i, CAT_CV)
-            raise
+        skip_quota_completion = await _prepare_paid_doc_export(int(uid_str), CAT_CV)
     payload = req.dict(exclude={"telegram_id", "token"})
 
     try:
@@ -370,8 +382,7 @@ async def api_generate_obyektivka(
     if uid_str:
         from bot.services.plan_limits import CAT_OBYEKTIVKA
 
-        require_paid_single_doc_or_subscription(int(uid_str), CAT_OBYEKTIVKA)
-        skip_quota_completion = web_quota_consume_or_raise(int(uid_str), CAT_OBYEKTIVKA)
+        skip_quota_completion = await _prepare_paid_doc_export(int(uid_str), CAT_OBYEKTIVKA)
 
     doc_data = {
         "lang": req.lang,
@@ -714,22 +725,20 @@ async def api_paid_doc_download(
     row = db_get_paid_doc_request(int(request_id))
     if not row or int(row.get("user_id") or 0) != int(uid):
         raise HTTPException(status_code=404, detail="So'rov topilmadi")
-    st = str(row.get("status") or "").strip().lower()
-    if st == "completed":
-        raise HTTPException(
-            status_code=409,
-            detail="Bu to'lov allaqachon ishlatilgan (1 ta hujjat). Yana olish uchun yangi to'lov qiling.",
-        )
-    if st not in {"approved", "delivered"}:
-        raise HTTPException(status_code=409, detail="Hali tasdiqlanmagan")
-
-    payload = row.get("payload") if isinstance(row.get("payload"), dict) else {}
     kind = str(row.get("kind") or "").strip().lower()
     from bot.services.plan_limits import CAT_CV, CAT_OBYEKTIVKA
 
     cat = CAT_CV if kind == "cv" else CAT_OBYEKTIVKA
-    require_paid_single_doc_or_subscription(int(uid), cat)
-    web_quota_consume_or_raise(int(uid), cat)
+    st = str(row.get("status") or "").strip().lower()
+    if st == "completed":
+        from backend.services.web_user_quota import single_doc_limit_exhausted_message
+
+        raise HTTPException(status_code=402, detail=single_doc_limit_exhausted_message(cat))
+    if st not in {"approved", "delivered"}:
+        raise HTTPException(status_code=409, detail="Hali tasdiqlanmagan")
+
+    payload = row.get("payload") if isinstance(row.get("payload"), dict) else {}
+    await _prepare_paid_doc_export(int(uid), cat)
     db_set_paid_doc_request_status(int(request_id), "completed")
     _finish_single_doc_delivery(int(uid), cat, request_id=int(request_id))
 
@@ -805,33 +814,25 @@ async def api_paid_doc_send_to_bot(
     row = db_get_paid_doc_request(int(request_id))
     if not row or int(row.get("user_id") or 0) != int(uid):
         raise HTTPException(status_code=404, detail="So'rov topilmadi")
-    st = str(row.get("status") or "").strip().lower()
-    if st == "completed":
-        raise HTTPException(
-            status_code=409,
-            detail="Bu to'lov allaqachon ishlatilgan (1 ta hujjat). Yana olish uchun yangi to'lov qiling.",
-        )
-    if st not in {"approved", "delivered"}:
-        raise HTTPException(status_code=409, detail="Hali tasdiqlanmagan")
-
-    payload = row.get("payload") if isinstance(row.get("payload"), dict) else {}
     kind = str(row.get("kind") or "").strip().lower()
     from bot.services.plan_limits import CAT_CV, CAT_OBYEKTIVKA
 
     cat = CAT_CV if kind == "cv" else CAT_OBYEKTIVKA
+    st = str(row.get("status") or "").strip().lower()
+    if st == "completed":
+        from backend.services.web_user_quota import single_doc_limit_exhausted_message
+
+        raise HTTPException(status_code=402, detail=single_doc_limit_exhausted_message(cat))
+    if st not in {"approved", "delivered"}:
+        raise HTTPException(status_code=409, detail="Hali tasdiqlanmagan")
+
+    payload = row.get("payload") if isinstance(row.get("payload"), dict) else {}
     from backend.services.export_guard import (
-        begin_document_export,
         mark_document_export_sent,
         release_document_export,
     )
 
-    await begin_document_export(int(uid), cat, hold_process_lock=False)
-    try:
-        require_paid_single_doc_or_subscription(int(uid), cat)
-        skip_quota_completion = web_quota_consume_or_raise(int(uid), cat)
-    except Exception:
-        release_document_export(int(uid), cat)
-        raise
+    skip_quota_completion = await _prepare_paid_doc_export(int(uid), cat)
     db_set_paid_doc_request_status(int(request_id), "completed")
 
     chat_id = int(uid)
@@ -928,19 +929,12 @@ async def api_export_cv(
     if uid_str:
         from bot.services.plan_limits import CAT_CV
         from backend.services.export_guard import (
-            begin_document_export,
             mark_document_export_sent,
             release_document_export,
         )
 
         uid_i = int(uid_str)
-        await begin_document_export(uid_i, CAT_CV, hold_process_lock=False)
-        try:
-            require_paid_single_doc_or_subscription(uid_i, CAT_CV)
-            skip_quota_completion = web_quota_consume_or_raise(uid_i, CAT_CV)
-        except Exception:
-            release_document_export(uid_i, CAT_CV)
-            raise
+        skip_quota_completion = await _prepare_paid_doc_export(uid_i, CAT_CV)
     fmt = "pdf"
     data = req.dict(exclude={"telegram_id", "token", "format"})
     safe = safe_filename(req.name or "CV")
@@ -1106,19 +1100,12 @@ async def api_export_obyektivka(
     if uid_str:
         from bot.services.plan_limits import CAT_OBYEKTIVKA
         from backend.services.export_guard import (
-            begin_document_export,
             mark_document_export_sent,
             release_document_export,
         )
 
         uid_i = int(uid_str)
-        await begin_document_export(uid_i, CAT_OBYEKTIVKA, hold_process_lock=False)
-        try:
-            require_paid_single_doc_or_subscription(uid_i, CAT_OBYEKTIVKA)
-            skip_quota_completion = web_quota_consume_or_raise(uid_i, CAT_OBYEKTIVKA)
-        except Exception:
-            release_document_export(uid_i, CAT_OBYEKTIVKA)
-            raise
+        skip_quota_completion = await _prepare_paid_doc_export(uid_i, CAT_OBYEKTIVKA)
     fmt = "word"
     data = req.dict(exclude={"telegram_id", "token", "format"})
     safe = safe_filename(req.fullname or "Obyektivka")

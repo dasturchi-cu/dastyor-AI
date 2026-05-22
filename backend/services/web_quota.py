@@ -24,10 +24,16 @@ def web_quota_consume_or_raise(uid: int, category: str) -> bool:
         if is_admin(u):
             return False
         if not record_category_use(u, category):
+            from bot.services.plan_limits import CAT_CV, CAT_OBYEKTIVKA
+            from backend.services.web_user_quota import single_doc_limit_exhausted_message
+
+            detail = block_reason_for_user_uz(u, category)
+            if not detail and category in (CAT_CV, CAT_OBYEKTIVKA):
+                detail = single_doc_limit_exhausted_message(category)
+            status = 402 if category in (CAT_CV, CAT_OBYEKTIVKA) else 429
             raise HTTPException(
-                status_code=429,
-                detail=block_reason_for_user_uz(u, category)
-                or "Bu xizmat uchun limit tugadi.",
+                status_code=status,
+                detail=detail or "Bu xizmat uchun limit tugadi.",
             )
         return True
     except HTTPException:

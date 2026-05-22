@@ -4,6 +4,19 @@ from __future__ import annotations
 from fastapi import HTTPException
 
 
+def single_doc_limit_exhausted_message(category: str) -> str:
+    from bot.services.plan_limits import CAT_CV
+
+    try:
+        from bot.services.pricing import SINGLE_DOC_PRICE_UZS
+
+        price = int(SINGLE_DOC_PRICE_UZS)
+    except Exception:
+        price = 5000
+    label = "CV" if (category or "").strip().lower() == CAT_CV else "Obyektivka"
+    return f"❌ Limitiz tugagan. Yana {price:,} so'm to'lov qiling ({label}).".replace(",", " ")
+
+
 def build_web_me_quota_fields(uid: int) -> dict:
     from bot.services.settings_service import get_active_plan_code
     from bot.services.plan_limits import user_limits_breakdown
@@ -77,12 +90,12 @@ def require_paid_single_doc_or_subscription(uid: int, category: str) -> None:
     plan = get_active_plan_code(u)
     if plan in ("standard", "premium"):
         return
+    from backend.services.export_guard import is_document_delivery_complete
+
+    if is_document_delivery_complete(u, cat):
+        raise HTTPException(status_code=402, detail=single_doc_limit_exhausted_message(cat))
     if has_db() and _paid_once_bucket_used(u, cat):
-        label = "CV" if cat == CAT_CV else "Obyektivka"
-        raise HTTPException(
-            status_code=402,
-            detail=f"❌ «{label}» to'lovi ishlatilgan. Yangi to'lov kerak.",
-        )
+        raise HTTPException(status_code=402, detail=single_doc_limit_exhausted_message(cat))
     if cat == CAT_CV and has_db() and db_user_has_cv_access(u):
         return
     if cat == CAT_OBYEKTIVKA and has_db() and db_user_has_objective_access(u):
