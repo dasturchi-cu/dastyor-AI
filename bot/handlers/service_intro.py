@@ -72,33 +72,55 @@ def _oby_sample_audio_paths() -> list[str]:
 
 
 def _oby_sample_audio_enabled() -> bool:
-    return os.getenv("OBY_SAMPLE_AUDIO", "0").strip().lower() in ("1", "true", "yes")
+    return os.getenv("OBY_SAMPLE_AUDIO", "1").strip().lower() not in ("0", "false", "no")
+
+
+def _find_oby_sample_audio_path() -> str | None:
+    for path in _oby_sample_audio_paths():
+        if path and os.path.isfile(path):
+            return path
+    return None
 
 
 async def _send_oby_sample_audio(context: ContextTypes.DEFAULT_TYPE, chat_id: int) -> None:
-    """Ixtiyoriy namuna — UPLOAD_VOICE ishlatilmaydi (foydalanuvchida «voice yuborilmoqda» qotib qolmasin)."""
+    """Namuna ovoz — matndan keyin (UPLOAD_VOICE yo‘q, chat qotmaydi)."""
     if not _oby_sample_audio_enabled():
         return
-    for path in _oby_sample_audio_paths():
-        if not path or not os.path.exists(path):
-            continue
+    path = _find_oby_sample_audio_path()
+    if not path:
         try:
+            await context.bot.send_message(
+                chat_id=chat_id,
+                text="🎙 <b>Namuna audio</b> hozir yo‘q. Formani oching yoki o‘zingiz ovoz yuboring.",
+                parse_mode="HTML",
+            )
+        except Exception:
+            pass
+        return
+    try:
+        from telegram import InputFile
 
-            async def _upload():
-                with open(path, "rb") as fh:
-                    return await context.bot.send_audio(
-                        chat_id=chat_id,
-                        audio=fh,
-                        caption="🎙 Namuna audio — shunday qilib o‘qib yuboring",
-                    )
+        async def _upload():
+            return await context.bot.send_audio(
+                chat_id=chat_id,
+                audio=InputFile(path),
+                caption="🎙 <b>Namuna</b> — shu tartibda o‘qib yuboring",
+                parse_mode="HTML",
+                title="Obyektivka namuna",
+            )
 
-            await asyncio.wait_for(_upload(), timeout=12.0)
-            return
-        except asyncio.TimeoutError:
-            logger.warning("sample audio send timeout path=%s", path)
-        except Exception as e:
-            logger.warning("sample audio send failed path=%s: %s", path, e)
-    logger.debug("Obyektivka namuna audio yo‘q yoki yuborilmadi")
+        await asyncio.wait_for(_upload(), timeout=25.0)
+    except asyncio.TimeoutError:
+        logger.warning("sample audio send timeout path=%s", path)
+        try:
+            await context.bot.send_message(
+                chat_id=chat_id,
+                text="🎙 Namuna audio yuklanmadi. Forma yoki ovoz yuboring.",
+            )
+        except Exception:
+            pass
+    except Exception as e:
+        logger.warning("sample audio send failed path=%s: %s", path, e)
 
 
 async def _reply_cv_intro(message: Message, base: str, uid: int, text: str | None = None) -> None:
@@ -154,7 +176,7 @@ async def send_obyektivka_intro(message: Message, context: ContextTypes.DEFAULT_
 
     chat_id = message.chat_id
     if chat_id and _oby_sample_audio_enabled():
-        asyncio.create_task(_send_oby_sample_audio(context, chat_id))
+        await _send_oby_sample_audio(context, chat_id)
 
     try:
         from bot.services.bot_analytics import log_bot_event

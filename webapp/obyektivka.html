@@ -708,17 +708,37 @@ async function reconcileObyPaidRequestStatus(){
   try{
     var js = await window.DastyorAI.fetchPaidDocStatus(rid);
     if(!js) return;
-    var s = String(js.status || '');
+    var s = String(js.status || '').toLowerCase();
+    if(s === 'pending' || s === 'pending_payment' || s === 'payment_submitted'){
+      _obyApprovedRequestId = rid;
+      try{ localStorage.setItem('oby_paid_request_id', String(rid)); }catch(e){}
+      syncObyQuotaUi();
+      return;
+    }
+    if(s === 'completed' || s === 'rejected' || s === 'cancelled'){
+      _obyApprovedRequestId = 0;
+      try{ localStorage.removeItem('oby_paid_request_id'); }catch(e){}
+      syncObyQuotaUi();
+      return;
+    }
     if(s === 'approved' || s === 'delivered'){
+      try{ if(window.DastyorAI.refreshProfile) await window.DastyorAI.refreshProfile(); }catch(e){}
+      var u = window.DastyorAI.getUser ? window.DastyorAI.getUser() : null;
+      var paidOk = window.DastyorAI.hasSingleDocAccess
+        ? window.DastyorAI.hasSingleDocAccess(u, 'obyektivka')
+        : !!(u && u.has_objective_access);
+      if(!paidOk){
+        _obyApprovedRequestId = rid;
+        try{ localStorage.setItem('oby_paid_request_id', String(rid)); }catch(e){}
+        syncObyQuotaUi();
+        return;
+      }
       _obyApprovedRequestId = rid;
       try{ localStorage.setItem('oby_paid_request_id', String(rid)); }catch(e){}
     }
-    if(s === 'completed'){
-      _obyApprovedRequestId = 0;
-      try{ localStorage.removeItem('oby_paid_request_id'); }catch(e){}
-    }
     if(window.DastyorAI.processPaidDocStatus){
       await window.DastyorAI.processPaidDocStatus('obyektivka', rid, s, {
+        silent: true,
         onApproved: async function(id){
           _obyApprovedRequestId = id;
           try{ localStorage.setItem('oby_paid_request_id', String(id)); }catch(e){}
@@ -731,6 +751,7 @@ async function reconcileObyPaidRequestStatus(){
         }
       });
     }
+    syncObyQuotaUi();
   }catch(e){}
 }
 
@@ -770,7 +791,7 @@ function syncObyQuotaUi() {
       warn.textContent = "✅ Word yuborilgan. Yana — yangi to'lov.";
     } else if (hasAccess && !blocked) {
       warn.classList.remove('hidden');
-      warn.textContent = "✅ To'lov OK — «Word botga yuborish».";
+      warn.textContent = "✅ «Word botga yuborish» tugmasi.";
     } else if (pendingAdmin) {
       warn.classList.remove('hidden');
       warn.textContent = "⏳ Admin kutyapti.";
@@ -1044,8 +1065,18 @@ async function sendObyektivkaToBot(fmt){
     _obyExportInFlight = false;
     syncObyQuotaUi();
     var em = (e && e.message) ? String(e.message) : String(e);
-    if (em.length > 500) em = em.slice(0, 500) + '…';
-    alert("❌ Yuborishda xatolik:\n\n" + em);
+    if(em.indexOf('409') >= 0 || em.indexOf('Tayyorlanmoqda') >= 0 || em.indexOf('tugamagan') >= 0){
+      if(window.DastyorAI && window.DastyorAI.releaseExportPending){
+        await window.DastyorAI.releaseExportPending('obyektivka');
+      }
+      alert('⏳ Qayta urinib ko‘ring (1 marta «Word botga yuborish»).');
+    } else if(em.indexOf('402') >= 0 || em.toLowerCase().indexOf('to\'lov') >= 0){
+      alert('💳 Avval to‘lov qiling (5 000 so‘m).');
+      try{ await payObySingle(fmt); }catch(_){}
+    } else {
+      if (em.length > 500) em = em.slice(0, 500) + '…';
+      alert('❌ ' + em.slice(0, 120));
+    }
   }finally{
     try { if (window.DastyorAI && window.DastyorAI.hideDocumentLoading) window.DastyorAI.hideDocumentLoading(); } catch (_) {}
   }

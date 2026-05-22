@@ -945,19 +945,45 @@ html[data-theme="dark"] .da-doc-loading-ring{border-color:#334155;border-top-col
         alert(message);
     }
 
+    async function releaseExportPending(category) {
+        const cat = category === 'obyektivka' ? 'obyektivka' : 'cv';
+        const tid = getTelegramId();
+        if (!tid) return false;
+        const params = new URLSearchParams({
+            category: cat,
+            telegram_id: String(parseInt(tid, 10)),
+        });
+        if (token) params.set('token', token);
+        try {
+            const r = await fetch(`${BASE}/api/export_release_pending?${params}`, {
+                method: 'POST',
+                cache: 'no-store',
+            });
+            return r.ok;
+        } catch (_) {
+            return false;
+        }
+    }
+
     async function processPaidDocStatus(kind, requestId, status, callbacks = {}) {
         const st = String(status || '').toLowerCase();
         const rid = Number(requestId || 0);
         if (!rid) return st;
+        const cat = kind === 'obyektivka' ? 'obyektivka' : 'cv';
 
         if (st === 'approved' || st === 'delivered') {
             if (callbacks.onApproved) await callbacks.onApproved(rid, st);
+            try {
+                await refreshProfile();
+            } catch (_) {}
+            const u = getUser();
+            const paidOk = hasSingleDocAccess(u, cat);
+            if (!paidOk) {
+                return st;
+            }
             const nk = paidDocNotifyKey(kind, rid, 'approved');
-            if (localStorage.getItem(nk) !== '1') {
+            if (!callbacks.silent && localStorage.getItem(nk) !== '1') {
                 localStorage.setItem(nk, '1');
-                try {
-                    await refreshProfile();
-                } catch (_) {}
                 showPaymentResultPopup(kind, 'approved');
                 window.dispatchEvent(
                     new CustomEvent('dastyor:payment-approved', {
@@ -978,9 +1004,8 @@ html[data-theme="dark"] .da-doc-loading-ring{border-color:#334155;border-top-col
         } else if (st === 'completed') {
             if (callbacks.onCompleted) await callbacks.onCompleted(rid, st);
             const nk = paidDocNotifyKey(kind, rid, 'completed');
-            if (localStorage.getItem(nk) !== '1') {
+            if (!callbacks.silent) {
                 localStorage.setItem(nk, '1');
-                showPaymentResultPopup(kind, 'completed');
             }
         }
         return st;
@@ -1063,6 +1088,7 @@ html[data-theme="dark"] .da-doc-loading-ring{border-color:#334155;border-top-col
 
         fetchPaidDocStatus,
         processPaidDocStatus,
+        releaseExportPending,
         startPaidDocWatcher,
         stopPaidDocWatcher,
         resumePaidDocWatcher,

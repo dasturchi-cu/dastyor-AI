@@ -1175,17 +1175,39 @@
       try {
         const js = await window.DastyorAI.fetchPaidDocStatus(rid);
         if (!js) return;
-        const s = String(js.status || '');
+        const s = String(js.status || '').toLowerCase();
+        if (s === 'pending' || s === 'pending_payment' || s === 'payment_submitted') {
+          _cvApprovedRequestId = rid;
+          try { localStorage.setItem('cv_paid_request_id', String(rid)); } catch (_) {}
+          syncCvQuotaUi();
+          return;
+        }
+        if (s === 'completed' || s === 'rejected' || s === 'cancelled') {
+          _cvApprovedRequestId = 0;
+          try { localStorage.removeItem('cv_paid_request_id'); } catch (_) {}
+          syncCvQuotaUi();
+          return;
+        }
         if (s === 'approved' || s === 'delivered') {
+          try {
+            if (window.DastyorAI.refreshProfile) await window.DastyorAI.refreshProfile();
+          } catch (_) {}
+          const u = window.DastyorAI.getUser ? window.DastyorAI.getUser() : null;
+          const paidOk = window.DastyorAI.hasSingleDocAccess
+            ? window.DastyorAI.hasSingleDocAccess(u, 'cv')
+            : !!(u && u.has_cv_access);
+          if (!paidOk) {
+            _cvApprovedRequestId = rid;
+            try { localStorage.setItem('cv_paid_request_id', String(rid)); } catch (_) {}
+            syncCvQuotaUi();
+            return;
+          }
           _cvApprovedRequestId = rid;
           try { localStorage.setItem('cv_paid_request_id', String(rid)); } catch (_) {}
         }
-        if (s === 'completed') {
-          _cvApprovedRequestId = 0;
-          try { localStorage.removeItem('cv_paid_request_id'); } catch (_) {}
-        }
         if (window.DastyorAI.processPaidDocStatus) {
           await window.DastyorAI.processPaidDocStatus('cv', rid, s, {
+            silent: true,
             onApproved: async function (id) {
               _cvApprovedRequestId = id;
               try { localStorage.setItem('cv_paid_request_id', String(id)); } catch (_) {}
@@ -1198,6 +1220,7 @@
             },
           });
         }
+        syncCvQuotaUi();
       } catch (_) {}
     }
 
@@ -1236,7 +1259,7 @@
           warn.textContent = "✅ PDF yuborilgan. Yana — yangi to'lov.";
         } else if (hasAccess && !blocked) {
           warn.classList.remove('hidden');
-          warn.textContent = "✅ To'lov OK — «PDF botga yuborish».";
+          warn.textContent = "✅ «PDF botga yuborish» tugmasi.";
         } else if (pendingAdmin) {
           warn.classList.remove('hidden');
           warn.textContent = "⏳ Admin kutyapti.";
@@ -1284,7 +1307,7 @@
       try {
         try {
           if (window.DastyorAI && window.DastyorAI.showDocumentLoading) {
-            window.DastyorAI.showDocumentLoading('Yuborilmoqda...', 'Bitta marta bosing');
+            window.DastyorAI.showDocumentLoading('Yuborilmoqda...', '');
           }
         } catch (_) {}
 
@@ -1300,10 +1323,16 @@
         _cvExportInFlight = false;
         syncCvQuotaUi();
         const msg = (e && e.message) ? String(e.message) : String(e);
-        if (msg.indexOf('409') >= 0 || msg.indexOf('allaqachon') >= 0 || msg.indexOf('tayyorlanmoqda') >= 0) {
-          alert("⏳ " + msg.slice(0, 120));
+        if (msg.indexOf('409') >= 0 || msg.indexOf('Tayyorlanmoqda') >= 0 || msg.indexOf('tugamagan') >= 0) {
+          if (window.DastyorAI && window.DastyorAI.releaseExportPending) {
+            await window.DastyorAI.releaseExportPending('cv');
+          }
+          alert('⏳ Qayta urinib ko‘ring (1 marta «PDF botga yuborish»).');
+        } else if (msg.indexOf('402') >= 0 || msg.indexOf('to\'lov') >= 0) {
+          alert('💳 Avval to‘lov qiling (5 000 so‘m).');
+          try { await payCvSingle(fmt); } catch (_) {}
         } else {
-          alert("❌ Yuborishda xatolik: " + msg.slice(0, 100));
+          alert('❌ ' + msg.slice(0, 100));
         }
       } finally {
         try {

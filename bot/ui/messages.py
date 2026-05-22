@@ -20,7 +20,8 @@ OBY_INTRO_TEXT = ""
 OBY_INSTRUCTION_TEXT = (
     "✍️ <b>Obyektivka</b>\n"
     "Forma yoki ovoz → to‘lov → Word botga.\n\n"
-    "🎙 Ovoz yuborsangiz: F.I.Sh., tug‘ilgan sana/joy, ta’lim, ish, oila."
+    "🎙 Pastda <b>namuna audio</b> keladi — shunday o‘qing.\n"
+    "F.I.Sh., tug‘ilgan sana/joy, ta’lim, ish, oila."
 )
 
 OBY_AUDIO_WAIT_HINT = (
