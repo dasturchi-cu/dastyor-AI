@@ -50,12 +50,11 @@ def user_reply_menu(webapp_base: str, uid: int) -> ReplyKeyboardMarkup:
     return ReplyKeyboardMarkup(
         keyboard=[
             [KeyboardButton(BTN_CV), KeyboardButton(BTN_OBY)],
-            [KeyboardButton(BTN_CONTACT), KeyboardButton(BTN_HELP)],
             [KeyboardButton(BTN_BACK)],
         ],
         resize_keyboard=True,
         is_persistent=False,
-        input_field_placeholder="Tugma tanlang",
+        input_field_placeholder="CV yoki Obyektivka",
     )
 
 
@@ -102,16 +101,13 @@ def service_open_inline(webapp_base: str, uid: int, service: str) -> InlineKeybo
 
 
 def user_inline_start_menu(webapp_base: str, uid: int) -> InlineKeyboardMarkup:
-    """/start — qisqa tanlov (forma ochish emas, faqat yo‘riqnoma tugmalari)."""
+    """Inline — faqat CV va Obyektivka (murojaat/yordam /help va /contact)."""
+    _ = webapp_base, uid
     return InlineKeyboardMarkup(
         inline_keyboard=[
             [
                 InlineKeyboardButton(BTN_CV, callback_data="intro_cv"),
                 InlineKeyboardButton(BTN_OBY, callback_data="intro_oby"),
-            ],
-            [
-                InlineKeyboardButton(BTN_CONTACT, callback_data="intro_contact"),
-                InlineKeyboardButton(BTN_HELP, callback_data="intro_help"),
             ],
         ]
     )

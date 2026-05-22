@@ -1,12 +1,6 @@
 """Centralized bot message templates for consistent UX tone."""
 
-WELCOME_TEXT = (
-    "👋 <b>DASTYOR AI</b>\n\n"
-    "📄 <b>CV</b> — PDF\n"
-    "✍️ <b>Obyektivka</b> — Word\n"
-    "🆘 Murojaat · ℹ️ Yordam\n\n"
-    "Tugmani bosing."
-)
+WELCOME_TEXT = "👋 <b>DASTYOR AI</b>"
 
 CV_INSTRUCTION_TEXT = (
     "📄 <b>CV</b>\n"

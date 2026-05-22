@@ -34,7 +34,7 @@ from bot.handlers.service_intro import (
     is_cv_button,
     is_oby_button,
 )
-from bot.ui.keyboards import cv_button_labels, oby_button_labels, user_inline_start_menu
+from bot.ui.keyboards import cv_button_labels, oby_button_labels
 from bot.ui.keyboards import (
     ADMIN_BTN_CLOSE,
     ADMIN_BTN_DIGEST,
@@ -139,13 +139,6 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
             reply_markup=user_reply_menu(WEBAPP_BASE, uid),
             parse_mode="HTML",
         )
-    try:
-        await update.message.reply_text(
-            "⚡ Tez tanlash:",
-            reply_markup=user_inline_start_menu(WEBAPP_BASE, uid),
-        )
-    except Exception:
-        pass
 
 
 async def support_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
