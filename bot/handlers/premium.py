@@ -1,15 +1,56 @@
-﻿"""Minimal payment review callbacks for admin-only flow."""
+"""Minimal payment review callbacks for admin-only flow."""
 from __future__ import annotations
 
+import json
 import logging
 
 from telegram import Update
 from telegram.ext import ContextTypes
 
 from bot.services.admin_service import is_admin
-from bot.services.supabase_db import db_get_payment, db_set_payment_status
+from bot.services.plan_limits import CAT_CV, CAT_OBYEKTIVKA
+from bot.services.supabase_db import (
+    db_get_payment,
+    db_grant_cv_access,
+    db_grant_objective_access,
+    db_service_buckets_delete_many,
+    db_set_paid_doc_request_status,
+    db_set_payment_status,
+    payment_normalize_plan_type,
+)
 
 logger = logging.getLogger(__name__)
+
+
+def _paid_doc_meta_from_payment(payment: dict) -> tuple[int | None, str | None]:
+    """payments.metadata yoki admin_note dan paid_doc request id + kind."""
+    meta = payment.get("metadata")
+    if isinstance(meta, str):
+        try:
+            meta = json.loads(meta)
+        except Exception:
+            meta = {}
+    if not isinstance(meta, dict):
+        meta = {}
+    rid = meta.get("paid_doc_request_id")
+    try:
+        rid_i = int(rid) if rid is not None else None
+    except Exception:
+        rid_i = None
+    kind = (meta.get("paid_doc_kind") or "").strip().lower() or None
+    if rid_i and kind in ("cv", "obyektivka"):
+        return rid_i, kind
+    note = (payment.get("admin_note") or "").strip()
+    if note.startswith("paid_doc:"):
+        parts = note.split(":", 2)
+        if len(parts) >= 3:
+            try:
+                k = parts[2].strip().lower()
+                if k in ("cv", "obyektivka"):
+                    return int(parts[1]), k
+            except Exception:
+                pass
+    return None, None
 
 
 async def premium_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -62,10 +103,36 @@ async def premium_payment_review_callback(update: Update, context: ContextTypes.
         return
 
     uid = payment.get("user_id")
-    plan = payment.get("plan_type") or "service"
-    msg = (
-        "✅ To'lov tasdiqlandi." if new_status == "approved" else "❌ To'lov rad etildi."
-    )
+    plan_raw = payment.get("plan_type")
+    plan = payment_normalize_plan_type(plan_raw)
+    rid, pdkind = _paid_doc_meta_from_payment(payment)
+    if plan not in ("cv", "objective") and pdkind:
+        plan = "cv" if pdkind == "cv" else "objective"
+
+    if new_status == "approved" and uid is not None:
+        try:
+            uid_i = int(uid)
+            if plan == "cv":
+                db_grant_cv_access(uid_i, True)
+                db_service_buckets_delete_many(uid_i, [f"paid_once:{CAT_CV}:{uid_i}"])
+            elif plan == "objective":
+                db_grant_objective_access(uid_i, True)
+                db_service_buckets_delete_many(uid_i, [f"paid_once:{CAT_OBYEKTIVKA}:{uid_i}"])
+            if rid:
+                try:
+                    db_set_paid_doc_request_status(int(rid), "approved")
+                except Exception:
+                    logger.debug("paid_doc_request approve skip rid=%s", rid, exc_info=True)
+            try:
+                from bot.services.user_service import invalidate_user_profile_cache
+
+                invalidate_user_profile_cache(uid_i)
+            except Exception:
+                pass
+        except Exception:
+            logger.warning("payment approve side-effects failed pid=%s", payment_id, exc_info=True)
+
+    msg = "✅ To'lov tasdiqlandi." if new_status == "approved" else "❌ To'lov rad etildi."
 
     try:
         await query.message.edit_reply_markup(reply_markup=None)

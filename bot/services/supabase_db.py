@@ -433,11 +433,23 @@ def db_get_user(user_id: int | str) -> Optional[dict]:
             "referral_discount_standard_consumed_at": row.get("referral_discount_standard_consumed_at"),
             "referral_discount_premium_consumed_at": row.get("referral_discount_premium_consumed_at"),
             "paywall_shown_at": row.get("paywall_shown_at"),
+            "has_cv_access": bool(row.get("has_cv_access", False)),
+            "has_objective_access": bool(row.get("has_objective_access", False)),
         }
     except Exception as e:
         _mark_temporarily_unavailable(e)
         _log_write_error("db_get_user", e)
         return None
+
+
+def db_user_has_cv_access(user_id: int) -> bool:
+    u = db_get_user(user_id)
+    return bool(u and u.get("has_cv_access"))
+
+
+def db_user_has_objective_access(user_id: int) -> bool:
+    u = db_get_user(user_id)
+    return bool(u and u.get("has_objective_access"))
 
 
 def db_upsert_user(user_id: int, first_name: str = "", username: str = None,

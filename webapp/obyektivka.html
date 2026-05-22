@@ -712,10 +712,9 @@ function syncObyQuotaUi() {
   var btn = document.getElementById('dlBtn');
   var payBtn = document.getElementById('payBtn');
   var warn = document.getElementById('obyQuotaWarn');
-  var isPrem = !!(u && (u.is_premium || u.plan === 'premium' || u.user_plan === 'premium'));
   var blocked = window.DastyorAI && window.DastyorAI.isQuotaBlockedForCategory
     ? window.DastyorAI.isQuotaBlockedForCategory(u, 'obyektivka')
-    : false;
+    : true;
   if (btn) btn.disabled = !!blocked && !_obyApprovedRequestId;
   if (payBtn) {
     if (blocked && !_obyApprovedRequestId) payBtn.classList.remove('hidden');
@@ -726,9 +725,7 @@ function syncObyQuotaUi() {
       warn.classList.remove('hidden');
       warn.textContent = _obyApprovedRequestId
         ? "✅ To'lov tasdiqlangan. Endi yuqoridagi 'Word botga yuborish' tugmasi ochiq."
-        : (isPrem
-        ? '⛔ Limit tugabti. Xohlasangiz 5 000 so‘mga Obyektivka olishingiz mumkin yoki Premiumni yangilang.'
-        : '⛔ Bu xizmat pullik. Xohlasangiz 5 000 so‘mga Obyektivka olishingiz mumkin yoki Premium sotib oling.');
+        : '⛔ Obyektivka olish uchun avval 5 000 so\'m to\'lov (skrinshot) qiling — pastdagi tugma.';
     } else {
       warn.classList.add('hidden');
       warn.textContent = '';
@@ -963,10 +960,10 @@ async function sendObyektivkaToBot(fmt){
   var uNow = window.DastyorAI&&window.DastyorAI.getUser?window.DastyorAI.getUser():null;
   var blockedNow = window.DastyorAI&&window.DastyorAI.isQuotaBlockedForCategory
     ? window.DastyorAI.isQuotaBlockedForCategory(uNow,'obyektivka')
-    : false;
+    : true;
   if(blockedNow && !_obyApprovedRequestId){
     syncObyQuotaUi();
-    alert("⛔ Limit tugagan. Pastdagi '5 000 so'm to'lash' tugmasidan foydalaning.");
+    try{ await payObySingle(fmt); }catch(_){}
     return;
   }
   if(blockedNow && _obyApprovedRequestId){

@@ -8,6 +8,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from backend.dependencies import get_ptb_application
 from backend.schemas.webapp import AuthRequest, NotifyRequest, ObjectiveRequest, SupportRequest
 from backend.services.user_resolve import resolve_telegram_uid
+from backend.services.web_user_quota import build_web_me_quota_fields
 from bot.services.ai_service import generate_objective
 from bot.services.session_service import create_session, get_session_by_telegram_id
 from bot.services.support_service import create_support_request
@@ -42,6 +43,7 @@ async def api_me(token: str | None = Query(None), telegram_id: str | None = Quer
 
     profile = get_user_profile(uid) or {}
     session = get_session_by_telegram_id(uid) or {}
+    quota = build_web_me_quota_fields(int(uid))
     return {
         "ok": True,
         "telegram_id": uid,
@@ -51,6 +53,7 @@ async def api_me(token: str | None = Query(None), telegram_id: str | None = Quer
         "files_processed": profile.get("files_processed", 0),
         "joined_at": profile.get("joined_at", ""),
         "last_active": profile.get("last_active", ""),
+        **quota,
     }
 
 

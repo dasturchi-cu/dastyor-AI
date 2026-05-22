@@ -29,6 +29,7 @@ from backend.services.cv_preview_cache import (
 from backend.services.temp_files import safe_remove
 from backend.services.user_resolve import resolve_telegram_uid, safe_filename_part
 from backend.services.web_quota import web_quota_consume_or_raise
+from backend.services.web_user_quota import require_paid_single_doc_or_subscription
 from backend.web_constants import SITE_BASE_URL
 from bot.services.pricing import SINGLE_DOC_PRICE_UZS
 from bot.services.render_service import generate_cv_pdf, render_cv_html, safe_filename
@@ -127,6 +128,7 @@ async def api_generate_cv(
     if uid_str:
         from bot.services.plan_limits import CAT_CV
 
+        require_paid_single_doc_or_subscription(int(uid_str), CAT_CV)
         skip_quota_completion = web_quota_consume_or_raise(int(uid_str), CAT_CV)
     payload = req.dict(exclude={"telegram_id", "token"})
 
@@ -263,6 +265,28 @@ async def api_oby_voice_fill(
     if not uid:
         raise HTTPException(status_code=401, detail="Foydalanuvchi aniqlanmadi")
 
+    # STT + AI pullik — bir martalik to'lov (obyektivka) yoki obuna / admin.
+    try:
+        from bot.services.admin_service import is_admin
+        from bot.services.settings_service import get_active_plan_code
+        from bot.services.supabase_db import db_user_has_objective_access, has_db
+
+        uii = int(uid)
+        if not is_admin(uii) and get_active_plan_code(uii) == "free":
+            if not (has_db() and db_user_has_objective_access(uii)):
+                raise HTTPException(
+                    status_code=402,
+                    detail=(
+                        "Ovozli to'ldirish uchun avval veb-formada 5 000 so'm to'lov "
+                        "(skrinshot) qiling va admin tasdiqlashini kuting."
+                    ),
+                )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.warning("api_oby_voice_fill access check: %s", e)
+        raise HTTPException(status_code=503, detail="Ruxsat tekshiruvi vaqtincha ishlamayapti") from e
+
     if not audio or not audio.filename:
         raise HTTPException(status_code=400, detail="Audio fayl yuborilmadi")
 
@@ -320,6 +344,7 @@ async def api_generate_obyektivka(
     if uid_str:
         from bot.services.plan_limits import CAT_OBYEKTIVKA
 
+        require_paid_single_doc_or_subscription(int(uid_str), CAT_OBYEKTIVKA)
         skip_quota_completion = web_quota_consume_or_raise(int(uid_str), CAT_OBYEKTIVKA)
 
     doc_data = {
@@ -789,6 +814,7 @@ async def api_export_cv(
     if uid_str:
         from bot.services.plan_limits import CAT_CV
 
+        require_paid_single_doc_or_subscription(int(uid_str), CAT_CV)
         skip_quota_completion = web_quota_consume_or_raise(int(uid_str), CAT_CV)
     fmt = "pdf"
     data = req.dict(exclude={"telegram_id", "token", "format"})
@@ -976,6 +1002,7 @@ async def api_export_obyektivka(
     if uid_str:
         from bot.services.plan_limits import CAT_OBYEKTIVKA
 
+        require_paid_single_doc_or_subscription(int(uid_str), CAT_OBYEKTIVKA)
         skip_quota_completion = web_quota_consume_or_raise(int(uid_str), CAT_OBYEKTIVKA)
     fmt = "word"
     data = req.dict(exclude={"telegram_id", "token", "format"})

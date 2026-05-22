@@ -375,6 +375,27 @@ def category_status(user_id: int, category: str) -> dict[str, Any]:
     mode, cap = _plan_limits(plan).get(category, ("blocked", 0))
     label = category_label_uz(category)
 
+    # Bir martalik 5 000 so'm (admin tasdiqidan keyin) — CV / obyektivka bitta eksport.
+    if plan == "free":
+        try:
+            from bot.services.supabase_db import has_db, db_user_has_cv_access, db_user_has_objective_access
+
+            if has_db():
+                if category == CAT_CV and db_user_has_cv_access(uid):
+                    bkey_po = f"paid_once:{CAT_CV}:{uid}"
+                    counts_po = _batch_bucket_counts(uid, [bkey_po])
+                    return _assemble_category_status(
+                        uid, category, plan, "subscription", 1, label, bkey_po, counts_po
+                    )
+                if category == CAT_OBYEKTIVKA and db_user_has_objective_access(uid):
+                    bkey_po = f"paid_once:{CAT_OBYEKTIVKA}:{uid}"
+                    counts_po = _batch_bucket_counts(uid, [bkey_po])
+                    return _assemble_category_status(
+                        uid, category, plan, "subscription", 1, label, bkey_po, counts_po
+                    )
+        except Exception as e:
+            logger.debug("category_status paid_once: %s", e)
+
     bkey: str | None = None
     if mode not in ("unlimited", "blocked") and cap != 0:
         bkey = resolve_bucket_key(uid, category, mode)
@@ -414,6 +435,35 @@ def record_category_use(user_id: int, category: str) -> bool:
     from bot.services.settings_service import get_active_plan_code
 
     plan = get_active_plan_code(uid)
+    # Free + bir martalik to'lov: bucket + flag (flag faqat muvaffaqiyatli +1 dan keyin o'chadi).
+    if plan == "free" and category in (CAT_CV, CAT_OBYEKTIVKA):
+        try:
+            from bot.services.supabase_db import (
+                has_db,
+                db_grant_cv_access,
+                db_grant_objective_access,
+                db_user_has_cv_access,
+                db_user_has_objective_access,
+            )
+
+            if has_db():
+                if category == CAT_CV and db_user_has_cv_access(uid):
+                    bkey_po = f"paid_once:{CAT_CV}:{uid}"
+                    inc = _try_incr_bucket(uid, bkey_po, 1)
+                    if inc >= 1:
+                        db_grant_cv_access(uid, False)
+                        return True
+                    return False
+                if category == CAT_OBYEKTIVKA and db_user_has_objective_access(uid):
+                    bkey_po = f"paid_once:{CAT_OBYEKTIVKA}:{uid}"
+                    inc = _try_incr_bucket(uid, bkey_po, 1)
+                    if inc >= 1:
+                        db_grant_objective_access(uid, False)
+                        return True
+                    return False
+        except Exception as e:
+            logger.debug("record_category_use paid_once: %s", e)
+
     mode, cap = _plan_limits(plan).get(category, ("blocked", 0))
     if mode in ("unlimited", "blocked"):
         return mode == "unlimited"
@@ -446,33 +496,16 @@ def record_category_use(user_id: int, category: str) -> bool:
 
 
 def user_limits_breakdown(user_id: int, plan: str | None = None) -> list[dict[str, Any]]:
-    """API / balans uchun barcha kategoriyalar ro'yxati (bitta bucket so'rovi)."""
+    """API / balans uchun barcha kategoriyalar ro'yxati (category_status — paid_once ham)."""
     from bot.services.settings_service import get_active_plan_code
 
     uid = int(user_id)
     if plan is None:
         plan = get_active_plan_code(uid)
-    limits = _plan_limits(plan)
-
-    bkey_by_cat: dict[str, str] = {}
-    all_keys: list[str] = []
-    for cat in _ORDER:
-        mode, cap = limits.get(cat, ("blocked", 0))
-        if mode in ("unlimited", "blocked") or cap == 0:
-            continue
-        bk = resolve_bucket_key(uid, cat, mode)
-        if bk:
-            bkey_by_cat[cat] = bk
-            all_keys.append(bk)
-
-    counts = _batch_bucket_counts(uid, all_keys)
 
     out: list[dict[str, Any]] = []
     for cat in _ORDER:
-        mode, cap = limits.get(cat, ("blocked", 0))
-        label = category_label_uz(cat)
-        bkey = bkey_by_cat.get(cat)
-        st = _assemble_category_status(uid, cat, plan, mode, cap, label, bkey, counts)
+        st = category_status(uid, cat)
         line = {
             "category": cat,
             "label": st["label"],
@@ -488,7 +521,16 @@ def user_limits_breakdown(user_id: int, plan: str | None = None) -> list[dict[st
             line["display"] = f"{st['label']}: ♾ cheksiz"
         elif st["blocked"]:
             line["exhausted"] = False
-            line["display"] = f"{st['label']}: — (tarifda yo'q)"
+            if cat in (CAT_CV, CAT_OBYEKTIVKA):
+                try:
+                    from bot.services.pricing import SINGLE_DOC_PRICE_UZS
+
+                    p = int(SINGLE_DOC_PRICE_UZS)
+                except Exception:
+                    p = 5000
+                line["display"] = f"{st['label']}: {p} so'm (bir martalik to'lov)"
+            else:
+                line["display"] = f"{st['label']}: — (tarifda yo'q)"
         else:
             u = st.get("used", 0)
             l = st.get("limit", 0)
@@ -510,6 +552,17 @@ def block_reason_for_user_uz(user_id: int, category: str) -> str:
         return ""
     st = category_status(uid, category)
     if st.get("blocked"):
+        if category in (CAT_CV, CAT_OBYEKTIVKA):
+            try:
+                from bot.services.pricing import SINGLE_DOC_PRICE_UZS
+
+                p = int(SINGLE_DOC_PRICE_UZS)
+            except Exception:
+                p = 5000
+            return (
+                f"❌ «{st['label']}» bir martalik — veb-formada {p} so'm to'lov (skrinshot), "
+                "admin tasdiqlagach faylni yuklab oling."
+            )
         return f"❌ «{st['label']}» hozirgi tarifda yo'q. Standard yoki Premium oling."
     if st.get("unlimited"):
         return ""

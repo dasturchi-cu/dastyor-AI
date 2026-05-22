@@ -29,29 +29,65 @@ async def _voice_action(context, chat_id: int, action: str = ChatAction.RECORD_V
     except Exception:
         pass
 
-def _is_premium_plan(user_id: int) -> bool:
+def _can_use_voice_obyektivka(user_id: int) -> bool:
     """
-    Voice-driven obyektivka prefill is Premium-only (costly STT + AI extract).
+    Ovozli obyektivka: obuna (standard/premium) yoki bir martalik 5 000 so'm (has_objective_access).
     """
+    try:
+        from bot.services.admin_service import is_admin
+
+        if is_admin(int(user_id)):
+            return True
+    except Exception:
+        pass
     try:
         from bot.services.settings_service import get_active_plan_code
 
-        return get_active_plan_code(int(user_id)) == "premium"
+        if get_active_plan_code(int(user_id)) != "free":
+            return True
     except Exception:
-        return False
+        pass
+    try:
+        from bot.services.supabase_db import has_db, db_user_has_objective_access
+
+        if has_db() and db_user_has_objective_access(int(user_id)):
+            return True
+    except Exception:
+        pass
+    return False
 
 
-async def _notify_premium_required_for_voice_oby(context, chat_id: int) -> None:
+async def _notify_paid_access_required_for_voice_oby(context, chat_id: int, user_id: int) -> None:
+    try:
+        from bot.services.pricing import SINGLE_DOC_PRICE_UZS
+
+        price = int(SINGLE_DOC_PRICE_UZS)
+    except Exception:
+        price = 5000
+    price_txt = f"{price:,}".replace(",", " ")
+    kb = InlineKeyboardMarkup(
+        [
+            [
+                InlineKeyboardButton(
+                    "📋 Obyektivka (to'lov)",
+                    web_app=WebAppInfo(
+                        url=f"{WEBAPP_BASE}/obyektivka.html?telegram_id={user_id}&v={WEBAPP_VERSION}"
+                    ),
+                )
+            ]
+        ]
+    )
     try:
         await context.bot.send_message(
             chat_id=chat_id,
             text=(
-                "⛔ Bu funksiya faqat **Premium** foydalanuvchilarga.\n\n"
-                "🎙 Ovozli xabar orqali obyektivkani avtomatik to‘ldirish Premiumda ishlaydi.\n"
-                "Premium olish uchun menyudan **Premium** bo‘limiga kiring."
+                "⛔ Ovozli obyektivkani avtomatik to‘ldirish uchun ruxsat kerak.\n\n"
+                f"🎙 **{price_txt} so'm** bir martalik to‘lov: veb-formada hujjatni boshlang, "
+                "to‘lov skrinshotini yuboring — admin tasdiqlagach shu yerda ovoz yuborishingiz mumkin.\n\n"
+                "💡 Formani bepul ko‘rib chiqishingiz mumkin; ovozli to‘ldirish tasdiqlangan to‘lovdan keyin ishlaydi."
             ),
             parse_mode="Markdown",
-            reply_markup=get_back_button(),
+            reply_markup=kb,
         )
     except Exception:
         # Non-fatal: never crash handlers due to a notify message
@@ -254,9 +290,8 @@ async def handle_obyektivka_audio(update: Update, context: ContextTypes.DEFAULT_
     if not cid:
         return
 
-    # Premium-only gate (critical requirement)
-    if not _is_premium_plan(uid):
-        await _notify_premium_required_for_voice_oby(context, cid)
+    if not _can_use_voice_obyektivka(uid):
+        await _notify_paid_access_required_for_voice_oby(context, cid, uid)
         return
     
     if not (message.voice or message.audio):
@@ -317,9 +352,9 @@ async def auto_voice_obyektivka_from_message(update: Update, context: ContextTyp
     if not message or not update.effective_user or not update.effective_chat:
         return
 
-    # Premium-only gate (critical requirement)
-    if not _is_premium_plan(update.effective_user.id):
-        await _notify_premium_required_for_voice_oby(context, update.effective_chat.id)
+    uid_auto = int(update.effective_user.id)
+    if not _can_use_voice_obyektivka(uid_auto):
+        await _notify_paid_access_required_for_voice_oby(context, update.effective_chat.id, uid_auto)
         return
 
     await _voice_action(context, update.effective_chat.id, ChatAction.RECORD_VOICE)

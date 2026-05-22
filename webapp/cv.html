@@ -1148,10 +1148,9 @@
       const btn = document.getElementById('cvSendBotBtn');
       const payBtn = document.getElementById('cvPayBtn');
       const warn = document.getElementById('cvQuotaWarn');
-      const isPrem = !!(u && (u.is_premium || u.plan === 'premium' || u.user_plan === 'premium'));
       const blocked = window.DastyorAI && window.DastyorAI.isQuotaBlockedForCategory
         ? window.DastyorAI.isQuotaBlockedForCategory(u, 'cv')
-        : false;
+        : true;
       if (btn) {
         btn.disabled = !!blocked && !_cvApprovedRequestId;
       }
@@ -1164,9 +1163,7 @@
           warn.classList.remove('hidden');
           warn.textContent = _cvApprovedRequestId
             ? "✅ To'lov tasdiqlangan. Endi yuqoridagi 'PDF botga yuborish' tugmasi ochiq."
-            : (isPrem
-            ? '⛔ Limit tugabti. Xohlasangiz 5 000 so‘mga CV olishingiz mumkin yoki Premiumni yangilang.'
-            : '⛔ Bu xizmat pullik. Xohlasangiz 5 000 so‘mga CV olishingiz mumkin yoki Premium sotib oling.');
+            : '⛔ CV olish uchun avval 5 000 so\'m to\'lov (skrinshot) qiling — pastdagi tugma.';
         } else {
           warn.classList.add('hidden');
           warn.textContent = '';
@@ -1186,10 +1183,10 @@
       const uNow = window.DastyorAI && window.DastyorAI.getUser ? window.DastyorAI.getUser() : null;
       const blockedNow = window.DastyorAI && window.DastyorAI.isQuotaBlockedForCategory
         ? window.DastyorAI.isQuotaBlockedForCategory(uNow, 'cv')
-        : false;
+        : true;
       if (blockedNow && !_cvApprovedRequestId) {
         syncCvQuotaUi();
-        alert("⛔ Limit tugagan. Pastdagi '5 000 so'm to'lash' tugmasidan foydalaning.");
+        try { await payCvSingle(fmt); } catch (_) {}
         return;
       }
       if (blockedNow && _cvApprovedRequestId) {

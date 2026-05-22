@@ -292,6 +292,8 @@ const DastyorAI = (() => {
             'remaining',
             'subscription_ends',
             'limits_breakdown',
+            'has_cv_access',
+            'has_objective_access',
             // Referral marketing
             'referred_by',
             'referrals_count',
@@ -307,11 +309,26 @@ const DastyorAI = (() => {
     }
 
     /**
-     * /api/me limits_breakdown: bu kategoriya uchun limit tugagan yoki tarifda yo'q.
-     * category masalan: cv, obyektivka, ocr
+     * Free tarif: CV/obyektivka faqat 5 000 so'm (admin tasdiq) yoki obuna.
+     */
+    function needsSingleDocPayment(u, category) {
+        if (!u || !category) return true;
+        const cat = String(category).toLowerCase();
+        if (cat !== 'cv' && cat !== 'obyektivka') return false;
+        const plan = String(u.plan || u.user_plan || 'free').toLowerCase();
+        if (plan === 'standard' || plan === 'premium') return false;
+        if (cat === 'cv' && u.has_cv_access) return false;
+        if (cat === 'obyektivka' && u.has_objective_access) return false;
+        return true;
+    }
+
+    /**
+     * /api/me limits_breakdown: bu kategoriya uchun limit tugagan yoki to'lov kerak.
      */
     function isQuotaBlockedForCategory(u, category) {
-        if (!u || !category || !Array.isArray(u.limits_breakdown)) return false;
+        if (!u || !category) return false;
+        if (needsSingleDocPayment(u, category)) return true;
+        if (!Array.isArray(u.limits_breakdown)) return false;
         const row = u.limits_breakdown.find((r) => r.category === category);
         if (!row) return false;
         if (row.unlimited) return false;
@@ -838,6 +855,7 @@ html[data-theme="dark"] .da-doc-loading-ring{border-color:#334155;border-top-col
         renderTariffBanner,
         refreshProfile,
         isQuotaBlockedForCategory,
+        needsSingleDocPayment,
         applyServiceQuotaUi,
         shouldShowTariffStrip,
         getUser: () => user,
