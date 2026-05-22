@@ -39,6 +39,8 @@ def oby_button_labels() -> frozenset[str]:
 
 
 def user_reply_menu(webapp_base: str, uid: int) -> ReplyKeyboardMarkup:
+    """Oddiy matn tugmalar — WebApp yo‘q (eski WebApp menyu ustiga yoziladi)."""
+    _ = webapp_base, uid  # inline forma URL uchun alohida service_open_inline
     return ReplyKeyboardMarkup(
         keyboard=[
             [KeyboardButton(BTN_CV), KeyboardButton(BTN_OBY)],
@@ -46,7 +48,7 @@ def user_reply_menu(webapp_base: str, uid: int) -> ReplyKeyboardMarkup:
             [KeyboardButton(BTN_BACK)],
         ],
         resize_keyboard=True,
-        is_persistent=True,
+        is_persistent=False,
         input_field_placeholder="Xizmatni tanlang...",
     )
 

@@ -20,7 +20,7 @@ _DICT = {
         "ru": "🚀 Открыть приложение"
     },
     "btn_cv": {
-        "uz_lat": "📄 CV ochish",
+        "uz_lat": "📄 CV Resume",
         "uz_cyr": "📄 CV Resume",
         "en": "📄 CV Resume",
         "ru": "📄 CV Резюме"
@@ -32,10 +32,10 @@ _DICT = {
         "ru": "🔧 Другие услуги"
     },
     "btn_oby": {
-        "uz_lat": "📋 Obyektivka ochish",
-        "uz_cyr": "📋 Объективка",
-        "en": "📋 CV Record",
-        "ru": "📋 Анкета"
+        "uz_lat": "✍️ Obyektivka",
+        "uz_cyr": "✍️ Obyektivka",
+        "en": "✍️ Obyektivka",
+        "ru": "✍️ Obyektivka"
     },
     "btn_ocr": {
         "uz_lat": "👁️ OCR",

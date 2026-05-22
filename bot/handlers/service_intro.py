@@ -73,10 +73,11 @@ async def _send_oby_sample_audio(context: ContextTypes.DEFAULT_TYPE, chat_id: in
 
 async def send_cv_intro(message: Message, context: ContextTypes.DEFAULT_TYPE, uid: int) -> None:
     context.user_data.pop("waiting_for", None)
+    base = context.bot_data.get("webapp_base", "")
     await message.reply_text(
         CV_INTRO_TEXT,
         parse_mode="HTML",
-        reply_markup=service_open_inline(context.bot_data.get("webapp_base", ""), uid, "cv"),
+        reply_markup=service_open_inline(base, uid, "cv"),
     )
 
 
@@ -89,11 +90,7 @@ async def send_obyektivka_intro(message: Message, context: ContextTypes.DEFAULT_
     chat_id = message.chat_id
     if chat_id:
         await _send_oby_sample_audio(context, chat_id)
-    await message.reply_text(
-        OBY_INTRO_TEXT,
-        parse_mode="HTML",
-        reply_markup=inline,
-    )
+    await message.reply_text(OBY_INTRO_TEXT, parse_mode="HTML", reply_markup=inline)
 
 
 async def handle_cv_intro(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:

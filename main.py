@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import logging
 import os
+import re
 import time
 
 from dotenv import load_dotenv
@@ -28,6 +29,7 @@ from bot.handlers.service_intro import (
     is_cv_button,
     is_oby_button,
 )
+from bot.ui.keyboards import cv_button_labels, oby_button_labels
 from bot.ui.keyboards import (
     ADMIN_BTN_CLOSE,
     ADMIN_BTN_PAYMENTS,
@@ -36,7 +38,6 @@ from bot.ui.keyboards import (
     BTN_BACK,
     BTN_CONTACT,
     BTN_HELP,
-    user_inline_start_menu,
     user_reply_menu,
     admin_menu,
 )
@@ -99,15 +100,16 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     ):
         return
     uid = int(update.effective_user.id)
+    # Eski WebApp pastki tugmalarini olib tashlash (aks holda forma to‘g‘ridan ochiladi)
+    await update.message.reply_text(
+        "🔄 Menyu yangilanmoqda…",
+        reply_markup=ReplyKeyboardRemove(),
+    )
     await _send_with_typing(
         update,
-        WELCOME_TEXT,
+        WELCOME_TEXT + "\n\n<i>CV yoki Obyektivka — avval yo‘riqnoma, keyin forma.</i>",
         reply_markup=user_reply_menu(WEBAPP_BASE, uid),
         parse_mode="HTML",
-    )
-    await update.message.reply_text(
-        "Yoki quyidagi tugmalardan tanlang:",
-        reply_markup=user_inline_start_menu(WEBAPP_BASE, uid),
     )
 
 
@@ -153,6 +155,19 @@ async def admin_text_router(update: Update, context: ContextTypes.DEFAULT_TYPE) 
         await update.message.reply_text("Admin panel yopildi.", reply_markup=ReplyKeyboardRemove())
 
 
+async def cv_oby_intro_router(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """CV / Obyektivka — birinchi navbatda yo‘riqnoma (eski WebApp menyu ustidan)."""
+    if not update.message or not update.effective_user:
+        return
+    if _is_fast_repeat(context):
+        return
+    text = (update.message.text or "").strip()
+    if is_cv_button(text):
+        await handle_cv_intro(update, context)
+    elif is_oby_button(text):
+        await handle_obyektivka_intro(update, context)
+
+
 async def message_router(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     if not update.message or not update.effective_user or not update.effective_chat:
         return
@@ -179,12 +194,6 @@ async def message_router(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         return
     if text == BTN_BACK or text.lower() in {"bekor", "cancel", "orqaga", "ortga"}:
         await handle_menu_back(update, context)
-        return
-    if is_cv_button(text):
-        await handle_cv_intro(update, context)
-        return
-    if is_oby_button(text):
-        await handle_obyektivka_intro(update, context)
         return
     if _is_admin(update):
         await admin_text_router(update, context)
@@ -223,11 +232,16 @@ def setup_application():
             pattern=r"^(intro_cv|intro_oby|intro_help|intro_contact|menu_back)$",
         )
     )
+    cv_oby_text_filter = filters.TEXT & ~filters.COMMAND & filters.Regex(
+        rf"^({'|'.join(re.escape(l) for l in sorted(cv_button_labels() | oby_button_labels(), key=len, reverse=True))})$"
+    )
+    app.add_handler(MessageHandler(cv_oby_text_filter, cv_oby_intro_router), group=0)
     app.add_handler(
         MessageHandler(
             filters.TEXT | filters.PHOTO | filters.Document.ALL | filters.VIDEO | filters.VOICE | filters.AUDIO,
             message_router,
-        )
+        ),
+        group=1,
     )
     return app
 
