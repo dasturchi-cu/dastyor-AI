@@ -1,6 +1,15 @@
 """Centralized bot message templates for consistent UX tone."""
 
-WELCOME_TEXT = "👋 <b>DASTYOR AI</b>"
+WELCOME_TEXT = (
+    "👋 <b>DASTYOR AI</b> ga xush kelibsiz!\n\n"
+    "<b>Bot nima qiladi?</b>\n"
+    "CV va Obyektivka tayyorlaydi — tayyor fayl shu chatga keladi.\n\n"
+    "📄 <b>CV Resume</b> — forma → 5 000 so‘m → <b>PDF</b>\n"
+    "✍️ <b>Obyektivka</b> — forma yoki ovoz → 5 000 so‘m → <b>Word</b>\n\n"
+    "💳 To‘lov: kartaga o‘tkazma + skrinshot. Admin tasdiqlagach hujjatni yuborasiz.\n\n"
+    "👇 Pastdagi tugmalardan xizmatni tanlang.\n"
+    "ℹ️ <b>Yordam</b> · 🆘 <b>Murojaat</b> · 🔙 <b>Orqaga</b>"
+)
 
 CV_INSTRUCTION_TEXT = (
     "📄 <b>CV</b>\n"

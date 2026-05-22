@@ -45,6 +45,7 @@ from bot.ui.keyboards import (
     BTN_MY_DOCS,
     contact_button_labels,
     help_button_labels,
+    user_inline_start_menu,
     user_reply_menu,
     admin_menu,
 )
@@ -126,19 +127,32 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         asyncio.create_task(asyncio.to_thread(log_bot_event, uid, "bot_start"))
     except Exception:
         pass
+    reply_kb = user_reply_menu(WEBAPP_BASE, uid)
+    inline_kb = user_inline_start_menu(WEBAPP_BASE, uid)
     try:
         await update.message.reply_text(
             WELCOME_TEXT,
-            reply_markup=user_reply_menu(WEBAPP_BASE, uid),
+            reply_markup=reply_kb,
             parse_mode="HTML",
+        )
+        await update.message.reply_text(
+            "👇 Tez tanlash:",
+            reply_markup=inline_kb,
         )
     except Exception:
         await _send_with_typing(
             update,
             WELCOME_TEXT,
-            reply_markup=user_reply_menu(WEBAPP_BASE, uid),
+            reply_markup=reply_kb,
             parse_mode="HTML",
         )
+        try:
+            await update.message.reply_text(
+                "👇 Tez tanlash:",
+                reply_markup=inline_kb,
+            )
+        except Exception:
+            pass
 
 
 async def support_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:

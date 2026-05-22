@@ -320,27 +320,40 @@ async def intro_callback_router(update: Update, context: ContextTypes.DEFAULT_TY
 
 async def handle_menu_back_from_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     from bot.ui.messages import WELCOME_TEXT
+    from bot.ui.keyboards import user_inline_start_menu
 
     q = update.callback_query
     if not q or not q.message:
         return
     context.user_data.pop("waiting_for", None)
+    base = context.bot_data.get("webapp_base", "")
+    uid = _uid(update)
     await q.message.reply_text(
         WELCOME_TEXT,
         parse_mode="HTML",
-        reply_markup=user_reply_menu(context.bot_data.get("webapp_base", ""), _uid(update)),
+        reply_markup=user_reply_menu(base, uid),
+    )
+    await q.message.reply_text(
+        "👇 Tez tanlash:",
+        reply_markup=user_inline_start_menu(base, uid),
     )
 
 
 async def handle_menu_back(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     from bot.ui.messages import WELCOME_TEXT
+    from bot.ui.keyboards import user_inline_start_menu
 
     if not update.message:
         return
     context.user_data.pop("waiting_for", None)
     uid = _uid(update)
+    base = context.bot_data.get("webapp_base", "")
     await update.message.reply_text(
         WELCOME_TEXT,
         parse_mode="HTML",
-        reply_markup=user_reply_menu(context.bot_data.get("webapp_base", ""), uid),
+        reply_markup=user_reply_menu(base, uid),
+    )
+    await update.message.reply_text(
+        "👇 Tez tanlash:",
+        reply_markup=user_inline_start_menu(base, uid),
     )
