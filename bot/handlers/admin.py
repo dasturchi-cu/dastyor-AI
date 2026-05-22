@@ -1,4 +1,4 @@
-﻿"""Minimal admin handlers (compatibility layer)."""
+"""Minimal admin handlers (compatibility layer)."""
 from __future__ import annotations
 
 from telegram import KeyboardButton, ReplyKeyboardMarkup, ReplyKeyboardRemove, Update
@@ -61,8 +61,9 @@ async def stats_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def broadcast_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if update.message:
-        await update.message.reply_text("Bu funksiya minimal versiyada o'chirilgan.")
+    from bot.handlers.admin_broadcast import broadcast_command as _broadcast
+
+    await _broadcast(update, context)
 
 
 async def add_channel_command(update: Update, context: ContextTypes.DEFAULT_TYPE):

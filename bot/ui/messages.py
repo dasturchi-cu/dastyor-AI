@@ -98,7 +98,12 @@ SUPPORT_CANCEL_TEXT = "↩️ Bekor. Menyu pastda."
 
 UNKNOWN_INPUT_TEXT = "Tugma tanlang yoki /start"
 
-ADMIN_PANEL_OPENED_TEXT = "🛠 <b>Admin panel</b>"
+ADMIN_PANEL_OPENED_TEXT = (
+    "🛠 <b>Admin panel</b>\n\n"
+    "📢 <b>Hammaga xabar</b> — barcha foydalanuvchilarga e’lon + hisobot "
+    "(nechta yetdi / yetmadi / sabab).\n"
+    "Tayyor matn: <code>/broadcast tayyor</code>"
+)
 
 ADMIN_ONLY_TEXT = "⛔ Faqat adminlar uchun."
 

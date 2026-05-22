@@ -24,6 +24,8 @@ ADMIN_BTN_STATS = "📊 Holat"
 ADMIN_BTN_SUPPORT = "📨 Murojaatlar"
 ADMIN_BTN_PAYMENTS = "💳 To'lovlar"
 ADMIN_BTN_DIGEST = "📋 Kunlik hisobot"
+ADMIN_BTN_BROADCAST = "📢 Hammaga xabar"
+ADMIN_BTN_BROADCAST_CANCEL = "❌ Bekor qilish"
 ADMIN_BTN_CLOSE = "🚪 Yopish"
 
 
@@ -131,7 +133,8 @@ def admin_menu() -> ReplyKeyboardMarkup:
         keyboard=[
             [KeyboardButton(ADMIN_BTN_STATS), KeyboardButton(ADMIN_BTN_SUPPORT)],
             [KeyboardButton(ADMIN_BTN_PAYMENTS), KeyboardButton(ADMIN_BTN_DIGEST)],
-            [KeyboardButton(ADMIN_BTN_CLOSE)],
+            [KeyboardButton(ADMIN_BTN_BROADCAST)],
+            [KeyboardButton(ADMIN_BTN_BROADCAST_CANCEL), KeyboardButton(ADMIN_BTN_CLOSE)],
         ],
         resize_keyboard=True,
         is_persistent=True,

@@ -36,6 +36,8 @@ from bot.handlers.service_intro import (
 )
 from bot.ui.keyboards import cv_button_labels, oby_button_labels
 from bot.ui.keyboards import (
+    ADMIN_BTN_BROADCAST,
+    ADMIN_BTN_BROADCAST_CANCEL,
     ADMIN_BTN_CLOSE,
     ADMIN_BTN_DIGEST,
     ADMIN_BTN_PAYMENTS,
@@ -184,6 +186,16 @@ async def admin_text_router(update: Update, context: ContextTypes.DEFAULT_TYPE) 
     if not update.message or not _is_admin(update):
         return
     txt = (update.message.text or "").strip()
+    if txt == ADMIN_BTN_BROADCAST_CANCEL:
+        from bot.handlers.admin_broadcast import handle_admin_broadcast_message
+
+        if await handle_admin_broadcast_message(update, context):
+            return
+    if txt == ADMIN_BTN_BROADCAST:
+        from bot.handlers.admin_broadcast import start_broadcast_flow
+
+        await start_broadcast_flow(update, context)
+        return
     if txt == ADMIN_BTN_STATS:
         from bot.services.bot_admin_stats import format_admin_stats_text
 
@@ -286,6 +298,10 @@ async def message_router(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         await update.message.reply_text(OBY_AUDIO_WAIT_HINT, parse_mode="HTML")
         return
     if _is_admin(update):
+        from bot.handlers.admin_broadcast import handle_admin_broadcast_message
+
+        if await handle_admin_broadcast_message(update, context):
+            return
         await admin_text_router(update, context)
         return
     if _is_fast_repeat(context):
@@ -319,6 +335,10 @@ def setup_application():
     app.add_handler(CommandHandler("help", help_command))
     app.add_handler(CommandHandler("contact", support_command))
     app.add_handler(CommandHandler("admin", admin_command))
+    from bot.handlers.admin_broadcast import broadcast_command, broadcast_callback
+
+    app.add_handler(CommandHandler("broadcast", broadcast_command))
+    app.add_handler(CallbackQueryHandler(broadcast_callback, pattern=r"^broadcast_(confirm|cancel)$"))
     app.add_handler(CallbackQueryHandler(premium_payment_review_callback, pattern=r"^prempay_(approve|reject)_\d+$"))
     app.add_handler(
         CallbackQueryHandler(
