@@ -44,13 +44,21 @@ def my_docs_button_labels() -> frozenset[str]:
     return frozenset({BTN_MY_DOCS})
 
 
+def contact_button_labels() -> frozenset[str]:
+    return frozenset({BTN_CONTACT, *_labels_from_i18n("btn_contact")})
+
+
+def help_button_labels() -> frozenset[str]:
+    return frozenset({BTN_HELP, *_labels_from_i18n("btn_help")})
+
+
 def user_reply_menu(webapp_base: str, uid: int) -> ReplyKeyboardMarkup:
     """Oddiy matn tugmalar — WebApp yo‘q (eski WebApp menyu ustiga yoziladi)."""
     _ = webapp_base, uid  # inline forma URL uchun alohida service_open_inline
     return ReplyKeyboardMarkup(
         keyboard=[
             [KeyboardButton(BTN_CV), KeyboardButton(BTN_OBY)],
-            [KeyboardButton(BTN_HELP)],
+            [KeyboardButton(BTN_CONTACT), KeyboardButton(BTN_HELP)],
             [KeyboardButton(BTN_BACK)],
         ],
         resize_keyboard=True,
@@ -102,7 +110,7 @@ def service_open_inline(webapp_base: str, uid: int, service: str) -> InlineKeybo
 
 
 def user_inline_start_menu(webapp_base: str, uid: int) -> InlineKeyboardMarkup:
-    """Inline — faqat CV va Obyektivka (murojaat/yordam /help va /contact)."""
+    """Inline — CV, Obyektivka, Murojaat."""
     _ = webapp_base, uid
     return InlineKeyboardMarkup(
         inline_keyboard=[
@@ -110,6 +118,7 @@ def user_inline_start_menu(webapp_base: str, uid: int) -> InlineKeyboardMarkup:
                 InlineKeyboardButton(BTN_CV, callback_data="intro_cv"),
                 InlineKeyboardButton(BTN_OBY, callback_data="intro_oby"),
             ],
+            [InlineKeyboardButton(BTN_CONTACT, callback_data="intro_contact")],
         ]
     )
 

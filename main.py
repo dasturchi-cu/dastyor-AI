@@ -42,9 +42,9 @@ from bot.ui.keyboards import (
     ADMIN_BTN_STATS,
     ADMIN_BTN_SUPPORT,
     BTN_BACK,
-    BTN_CONTACT,
-    BTN_HELP,
     BTN_MY_DOCS,
+    contact_button_labels,
+    help_button_labels,
     user_reply_menu,
     admin_menu,
 )
@@ -249,10 +249,10 @@ async def message_router(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     text = (update.message.text or "").strip()
     uid = int(update.effective_user.id)
 
-    if text == BTN_CONTACT:
+    if text in contact_button_labels():
         await start_feedback(update, context)
         return
-    if text == BTN_HELP:
+    if text in help_button_labels():
         await help_command(update, context)
         return
     if text == BTN_MY_DOCS or is_my_docs_button(text):
