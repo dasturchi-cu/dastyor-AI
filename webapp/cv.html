@@ -201,9 +201,10 @@
             <span class="text-3xl hyper-emoji">📷</span>
           </div>
           <div class="z-10 flex flex-col items-start gap-1">
-            <input type="file" id="imgInput" accept="image/*" class="hidden" onchange="handleImage(this)">
-            <button class="px-5 py-2 bg-white text-blue-600 font-bold text-sm rounded-xl shadow-sm border border-blue-200 hover:bg-blue-50 transition-all" onclick="document.getElementById('imgInput').click()" data-i18n="upload_img">Rasmni tanlang</button>
+            <input type="file" id="imgInput" accept="image/jpeg,image/jpg,image/png,image/webp,.jpg,.jpeg,.png,.webp" class="hidden" onchange="handleImage(this)">
+            <button type="button" class="px-5 py-2 bg-white text-blue-600 font-bold text-sm rounded-xl shadow-sm border border-blue-200 hover:bg-blue-50 transition-all" onclick="event.stopPropagation(); document.getElementById('imgInput').click();" data-i18n="upload_img">Rasmni tanlang</button>
             <span class="text-xs text-slate-500 font-medium" data-i18n="drag_img">yoki rasmni shu yerga tortib tashlang</span>
+            <span class="text-[10px] text-slate-400 font-medium" data-i18n="photo_hint">JPG yoki PNG (3×4 rasm)</span>
           </div>
         </div>
 
@@ -389,10 +390,10 @@
   <script>
     // --- UI: faqat hujjat tili (#langSelect / docLang); ilova sozlamalari tiliga bog‘lanmaydi ---
     const cvDocPack = {
-      uz_lat: {"app_title":"CV Builder","step_1":"Shaxsiy","step_2":"Tajriba","step_3":"Yutuqlar","upload_img":"Rasmni tanlang","drag_img":"yoki rasmni shu yerga tortib tashlang","name":"Ism Familiya","name_ph":"Ali Valiyev","role":"Kasb / Lavozim","role_ph":"Masalan: Dasturchi","phone":"Telefon","cv_phone_ph":"+998 90 123 45 67","email":"Email","location":"Manzil (Viloyat, Shahar)","loc_ph":"Masalan: Toshkent shahri","about":"Men haqimda","about_ph":"Men haqimda...","next_btn":"Keyingisi","back_btn":"Orqaga","edu_title":"Ta'lim","add_edu":"+ Ta'lim qo'shish","exp_title":"Ish tajribasi","add_exp":"+ Tajriba qo'shish","lang_title":"Til bilish","add_lang":"+ Til qo'shish","skills_title":"Ko'nikmalar (Skills)","ach_title":"Yutuqlar va qobiliyatlar","preview":"Jonli ko'rinish","cv_color":"Rang:","download_pdf":"PDF botga yuborish","pay_5000":"💳 5 000 so'm to'lash","pay_help":"Limit tugasa pastdagi '5 000 so'm to'lash' tugmasi orqali davom etasiz.","cv_pay_shot_picked_title":"Rasm tanlandi","cv_pay_shot_next":"Endi «Yuborish» tugmasini bosing.","clear_data":"Ma'lumotlarni tozalash","cv_clear_confirm":"Ishonchingiz komilmi?","cv_select_lang":"Til tanlang","cv_lang_en":"Ingliz tili","cv_lang_ru":"Rus tili","cv_lang_de":"Nemis tili","cv_lang_tr":"Turk tili","cv_lang_other":"Boshqa","cv_listen":"Tinglash","cv_read":"O'qish","cv_speak":"Gapirish","cv_write":"Yozish","cv_cert":"Sertifikat","cv_dip":"Diplom","cv_honor":"Faxriy yorliq","cv_prize":"Sovrin","cv_ach_name_ph":"Nomi (masalan: IELTS 7.5)","cv_year_ph":"Yili","cv_title_ph":"Sarlavha","cv_place_ph":"Joy nomi","cv_date_ph":"2020-2024","cv_quick_skills":"Tezkor tanlash:","cv_skills_ph":"Masalan: Liderlik, Python...","cv_sug_skills":"Microsoft Word, Microsoft Excel, PowerPoint, Jamoaviy ishlash, Muammoni hal qilish"},
-      uz_cyr: {"app_title":"CV Builder","step_1":"Шахсий","step_2":"Тажриба","step_3":"Ютуқлар","upload_img":"Расмни танланг","drag_img":"ёки расмни шу ерга тортиб ташланг","name":"Исм Фамилия","name_ph":"Али Валиев","role":"Касб / Лавозим","role_ph":"Масалан: Дастурчи","phone":"Телефон","cv_phone_ph":"+998 90 123 45 67","email":"Email","location":"Манзил (Вилоят, Шаҳар)","loc_ph":"Масалан: Тошкент шаҳри","about":"Мен ҳақимда","about_ph":"Мен ҳақимда...","next_btn":"Кейингиси","back_btn":"Орқага","edu_title":"Таълим","add_edu":"+ Таълим қўшиш","exp_title":"Иш Тажрибаси","add_exp":"+ Тажриба қўшиш","lang_title":"Тил Билиш","add_lang":"+ Тил қўшиш","skills_title":"Кўникмалар (Skills)","ach_title":"Ютуқлар ва Қобилиятлар","preview":"Жонли Кўриниш","cv_color":"Ранг:","download_pdf":"PDF ботга юбориш","pay_5000":"💳 5 000 сўм тўлаш","pay_help":"Лимит тугаса пастдаги '5 000 сўм тўлаш' тугмаси орқали давом этасиз.","cv_pay_shot_picked_title":"Расм танланди","cv_pay_shot_next":"Энди «Юбориш» тугмасини босинг.","clear_data":"Маълумотларни тозалаш","cv_clear_confirm":"Ишончингиз комилми?","cv_select_lang":"Тил танланг","cv_lang_en":"Инглиз тили","cv_lang_ru":"Рус тили","cv_lang_de":"Немис тили","cv_lang_tr":"Турк тили","cv_lang_other":"Бошқа","cv_listen":"Тинглаш","cv_read":"Ўқиш","cv_speak":"Гапириш","cv_write":"Ёзиш","cv_cert":"Сертификат","cv_dip":"Диплом","cv_honor":"Фахрий ёрлиқ","cv_prize":"Соврин","cv_ach_name_ph":"Номи (масалан: IELTS 7.5)","cv_year_ph":"Йили","cv_title_ph":"Сарлавҳа","cv_place_ph":"Жой номи","cv_date_ph":"2020-2024","cv_quick_skills":"Тезкор танлаш:","cv_skills_ph":"Масалан: Лидерлик, Python...","cv_sug_skills":"Microsoft Word, Microsoft Excel, PowerPoint, Жамоавий ишлаш, Муаммони ҳал қилиш"},
-      en: {"app_title":"CV Builder","step_1":"Personal","step_2":"Experience","step_3":"Achievements","upload_img":"Select image","drag_img":"or drag and drop here","name":"Full name","name_ph":"John Doe","role":"Profession / Role","role_ph":"e.g. Software Engineer","phone":"Phone","cv_phone_ph":"+998 90 123 45 67","email":"Email","location":"Location (region, city)","loc_ph":"e.g. Tashkent","about":"About you","about_ph":"A few words about yourself...","next_btn":"Next","back_btn":"Back","edu_title":"Education","add_edu":"+ Add education","exp_title":"Work experience","add_exp":"+ Add experience","lang_title":"Languages","add_lang":"+ Add language","skills_title":"Skills","ach_title":"Achievements","preview":"Live preview","cv_color":"Color:","download_pdf":"Send PDF to bot","pay_5000":"💳 Pay 5,000 UZS","pay_help":"If limit is reached, continue by paying 5,000 UZS from the button below.","cv_pay_shot_picked_title":"Image selected","cv_pay_shot_next":"Tap «Send» to continue.","clear_data":"Clear data","cv_clear_confirm":"Are you sure?","cv_select_lang":"Select language","cv_lang_en":"English","cv_lang_ru":"Russian","cv_lang_de":"German","cv_lang_tr":"Turkish","cv_lang_other":"Other","cv_listen":"Listening","cv_read":"Reading","cv_speak":"Speaking","cv_write":"Writing","cv_cert":"Certificate","cv_dip":"Diploma","cv_honor":"Certificate of honor","cv_prize":"Award","cv_ach_name_ph":"Name (e.g. IELTS 7.5)","cv_year_ph":"Year","cv_title_ph":"Title","cv_place_ph":"Place / company","cv_date_ph":"2020–2024","cv_quick_skills":"Quick pick:","cv_skills_ph":"e.g. Leadership, Python...","cv_sug_skills":"Microsoft Word, Microsoft Excel, PowerPoint, Teamwork, Problem solving"},
-      ru: {"app_title":"Конструктор CV","step_1":"Личное","step_2":"Опыт","step_3":"Достижения","upload_img":"Выбрать фото","drag_img":"или перетащите фото сюда","name":"Имя Фамилия","name_ph":"Иван Иванов","role":"Профессия / Должность","role_ph":"Например: Разработчик","phone":"Телефон","cv_phone_ph":"+998 90 123 45 67","email":"Email","location":"Адрес (область, город)","loc_ph":"Например: Ташкент","about":"О себе","about_ph":"Кратко о себе...","next_btn":"Далее","back_btn":"Назад","edu_title":"Образование","add_edu":"+ Добавить образование","exp_title":"Опыт работы","add_exp":"+ Добавить опыт","lang_title":"Языки","add_lang":"+ Добавить язык","skills_title":"Навыки","ach_title":"Достижения","preview":"Предпросмотр","cv_color":"Цвет:","download_pdf":"Отправить PDF в бота","pay_5000":"💳 Оплатить 5 000 сум","pay_help":"Если лимит исчерпан, продолжите через оплату 5 000 сум с кнопки ниже.","cv_pay_shot_picked_title":"Скриншот выбран","cv_pay_shot_next":"Нажмите «Отправить».","clear_data":"Очистить данные","cv_clear_confirm":"Вы уверены?","cv_select_lang":"Выберите язык","cv_lang_en":"Английский","cv_lang_ru":"Русский","cv_lang_de":"Немецкий","cv_lang_tr":"Турецкий","cv_lang_other":"Другой","cv_listen":"Аудирование","cv_read":"Чтение","cv_speak":"Говорение","cv_write":"Письмо","cv_cert":"Сертификат","cv_dip":"Диплом","cv_honor":"Почетная грамота","cv_prize":"Награда","cv_ach_name_ph":"Название (напр., IELTS 7.5)","cv_year_ph":"Год","cv_title_ph":"Заголовок","cv_place_ph":"Место / компания","cv_date_ph":"2020–2024","cv_quick_skills":"Быстрый выбор:","cv_skills_ph":"Например: Лидерство, Python...","cv_sug_skills":"Microsoft Word, Microsoft Excel, PowerPoint, Работа в команде, Решение проблем"}
+      uz_lat: {"app_title":"CV Builder","step_1":"Shaxsiy","step_2":"Tajriba","step_3":"Yutuqlar","upload_img":"Rasmni tanlang","drag_img":"yoki rasmni shu yerga tortib tashlang","photo_hint":"JPG yoki PNG (3×4 rasm)","img_wrong_doc":"Bu CV fayli (PDF/Word). Rasm uchun «Rasmni tanlang» tugmasini bosing.","img_bad_format":"Rasm ochilmadi. JPG yoki PNG tanlang.","img_heic_hint":"iPhone HEIC: galereyada «Eng mos format» yoki JPG qilib saqlang.","name":"Ism Familiya","name_ph":"Ali Valiyev","role":"Kasb / Lavozim","role_ph":"Masalan: Dasturchi","phone":"Telefon","cv_phone_ph":"+998 90 123 45 67","email":"Email","location":"Manzil (Viloyat, Shahar)","loc_ph":"Masalan: Toshkent shahri","about":"Men haqimda","about_ph":"Men haqimda...","next_btn":"Keyingisi","back_btn":"Orqaga","edu_title":"Ta'lim","add_edu":"+ Ta'lim qo'shish","exp_title":"Ish tajribasi","add_exp":"+ Tajriba qo'shish","lang_title":"Til bilish","add_lang":"+ Til qo'shish","skills_title":"Ko'nikmalar (Skills)","ach_title":"Yutuqlar va qobiliyatlar","preview":"Jonli ko'rinish","cv_color":"Rang:","download_pdf":"PDF botga yuborish","pay_5000":"💳 5 000 so'm to'lash","pay_help":"Limit tugasa pastdagi '5 000 so'm to'lash' tugmasi orqali davom etasiz.","cv_pay_shot_picked_title":"Rasm tanlandi","cv_pay_shot_next":"Endi «Yuborish» tugmasini bosing.","clear_data":"Ma'lumotlarni tozalash","cv_clear_confirm":"Ishonchingiz komilmi?","cv_select_lang":"Til tanlang","cv_lang_en":"Ingliz tili","cv_lang_ru":"Rus tili","cv_lang_de":"Nemis tili","cv_lang_tr":"Turk tili","cv_lang_other":"Boshqa","cv_listen":"Tinglash","cv_read":"O'qish","cv_speak":"Gapirish","cv_write":"Yozish","cv_cert":"Sertifikat","cv_dip":"Diplom","cv_honor":"Faxriy yorliq","cv_prize":"Sovrin","cv_ach_name_ph":"Nomi (masalan: IELTS 7.5)","cv_year_ph":"Yili","cv_title_ph":"Sarlavha","cv_place_ph":"Joy nomi","cv_date_ph":"2020-2024","cv_quick_skills":"Tezkor tanlash:","cv_skills_ph":"Masalan: Liderlik, Python...","cv_sug_skills":"Microsoft Word, Microsoft Excel, PowerPoint, Jamoaviy ishlash, Muammoni hal qilish"},
+      uz_cyr: {"app_title":"CV Builder","step_1":"Шахсий","step_2":"Тажриба","step_3":"Ютуқлар","upload_img":"Расмни танланг","drag_img":"ёки расмни шу ерга тортиб ташланг","photo_hint":"JPG ёки PNG (3×4 расм)","img_wrong_doc":"Бу CV файли. Расм учун «Расмни танланг» тугмасини босинг.","img_bad_format":"Расм очилмади. JPG ёки PNG танланг.","img_heic_hint":"iPhone HEIC: галереяда JPG қилиб сақланг.","name":"Исм Фамилия","name_ph":"Али Валиев","role":"Касб / Лавозим","role_ph":"Масалан: Дастурчи","phone":"Телефон","cv_phone_ph":"+998 90 123 45 67","email":"Email","location":"Манзил (Вилоят, Шаҳар)","loc_ph":"Масалан: Тошкент шаҳри","about":"Мен ҳақимда","about_ph":"Мен ҳақимда...","next_btn":"Кейингиси","back_btn":"Орқага","edu_title":"Таълим","add_edu":"+ Таълим қўшиш","exp_title":"Иш Тажрибаси","add_exp":"+ Тажриба қўшиш","lang_title":"Тил Билиш","add_lang":"+ Тил қўшиш","skills_title":"Кўникмалар (Skills)","ach_title":"Ютуқлар ва Қобилиятлар","preview":"Жонли Кўриниш","cv_color":"Ранг:","download_pdf":"PDF ботга юбориш","pay_5000":"💳 5 000 сўм тўлаш","pay_help":"Лимит тугаса пастдаги '5 000 сўм тўлаш' тугмаси орқали давом этасиз.","cv_pay_shot_picked_title":"Расм танланди","cv_pay_shot_next":"Энди «Юбориш» тугмасини босинг.","clear_data":"Маълумотларни тозалаш","cv_clear_confirm":"Ишончингиз комилми?","cv_select_lang":"Тил танланг","cv_lang_en":"Инглиз тили","cv_lang_ru":"Рус тили","cv_lang_de":"Немис тили","cv_lang_tr":"Турк тили","cv_lang_other":"Бошқа","cv_listen":"Тинглаш","cv_read":"Ўқиш","cv_speak":"Гапириш","cv_write":"Ёзиш","cv_cert":"Сертификат","cv_dip":"Диплом","cv_honor":"Фахрий ёрлиқ","cv_prize":"Соврин","cv_ach_name_ph":"Номи (масалан: IELTS 7.5)","cv_year_ph":"Йили","cv_title_ph":"Сарлавҳа","cv_place_ph":"Жой номи","cv_date_ph":"2020-2024","cv_quick_skills":"Тезкор танлаш:","cv_skills_ph":"Масалан: Лидерлик, Python...","cv_sug_skills":"Microsoft Word, Microsoft Excel, PowerPoint, Жамоавий ишлаш, Муаммони ҳал қилиш"},
+      en: {"app_title":"CV Builder","step_1":"Personal","step_2":"Experience","step_3":"Achievements","upload_img":"Select image","drag_img":"or drag and drop here","photo_hint":"JPG or PNG photo","img_wrong_doc":"This is a CV document. Use «Select image» for your photo.","img_bad_format":"Could not open image. Choose JPG or PNG.","img_heic_hint":"HEIC from iPhone: save as JPG in gallery first.","name":"Full name","name_ph":"John Doe","role":"Profession / Role","role_ph":"e.g. Software Engineer","phone":"Phone","cv_phone_ph":"+998 90 123 45 67","email":"Email","location":"Location (region, city)","loc_ph":"e.g. Tashkent","about":"About you","about_ph":"A few words about yourself...","next_btn":"Next","back_btn":"Back","edu_title":"Education","add_edu":"+ Add education","exp_title":"Work experience","add_exp":"+ Add experience","lang_title":"Languages","add_lang":"+ Add language","skills_title":"Skills","ach_title":"Achievements","preview":"Live preview","cv_color":"Color:","download_pdf":"Send PDF to bot","pay_5000":"💳 Pay 5,000 UZS","pay_help":"If limit is reached, continue by paying 5,000 UZS from the button below.","cv_pay_shot_picked_title":"Image selected","cv_pay_shot_next":"Tap «Send» to continue.","clear_data":"Clear data","cv_clear_confirm":"Are you sure?","cv_select_lang":"Select language","cv_lang_en":"English","cv_lang_ru":"Russian","cv_lang_de":"German","cv_lang_tr":"Turkish","cv_lang_other":"Other","cv_listen":"Listening","cv_read":"Reading","cv_speak":"Speaking","cv_write":"Writing","cv_cert":"Certificate","cv_dip":"Diploma","cv_honor":"Certificate of honor","cv_prize":"Award","cv_ach_name_ph":"Name (e.g. IELTS 7.5)","cv_year_ph":"Year","cv_title_ph":"Title","cv_place_ph":"Place / company","cv_date_ph":"2020–2024","cv_quick_skills":"Quick pick:","cv_skills_ph":"e.g. Leadership, Python...","cv_sug_skills":"Microsoft Word, Microsoft Excel, PowerPoint, Teamwork, Problem solving"},
+      ru: {"app_title":"Конструктор CV","step_1":"Личное","step_2":"Опыт","step_3":"Достижения","upload_img":"Выбрать фото","drag_img":"или перетащите фото сюда","photo_hint":"JPG или PNG","img_wrong_doc":"Это файл CV. Для фото нажмите «Выбрать фото».","img_bad_format":"Не удалось открыть фото. Выберите JPG или PNG.","img_heic_hint":"HEIC с iPhone: сначала сохраните как JPG.","name":"Имя Фамилия","name_ph":"Иван Иванов","role":"Профессия / Должность","role_ph":"Например: Разработчик","phone":"Телефон","cv_phone_ph":"+998 90 123 45 67","email":"Email","location":"Адрес (область, город)","loc_ph":"Например: Ташкент","about":"О себе","about_ph":"Кратко о себе...","next_btn":"Далее","back_btn":"Назад","edu_title":"Образование","add_edu":"+ Добавить образование","exp_title":"Опыт работы","add_exp":"+ Добавить опыт","lang_title":"Языки","add_lang":"+ Добавить язык","skills_title":"Навыки","ach_title":"Достижения","preview":"Предпросмотр","cv_color":"Цвет:","download_pdf":"Отправить PDF в бота","pay_5000":"💳 Оплатить 5 000 сум","pay_help":"Если лимит исчерпан, продолжите через оплату 5 000 сум с кнопки ниже.","cv_pay_shot_picked_title":"Скриншот выбран","cv_pay_shot_next":"Нажмите «Отправить».","clear_data":"Очистить данные","cv_clear_confirm":"Вы уверены?","cv_select_lang":"Выберите язык","cv_lang_en":"Английский","cv_lang_ru":"Русский","cv_lang_de":"Немецкий","cv_lang_tr":"Турецкий","cv_lang_other":"Другой","cv_listen":"Аудирование","cv_read":"Чтение","cv_speak":"Говорение","cv_write":"Письмо","cv_cert":"Сертификат","cv_dip":"Диплом","cv_honor":"Почетная грамота","cv_prize":"Награда","cv_ach_name_ph":"Название (напр., IELTS 7.5)","cv_year_ph":"Год","cv_title_ph":"Заголовок","cv_place_ph":"Место / компания","cv_date_ph":"2020–2024","cv_quick_skills":"Быстрый выбор:","cv_skills_ph":"Например: Лидерство, Python...","cv_sug_skills":"Microsoft Word, Microsoft Excel, PowerPoint, Работа в команде, Решение проблем"}
     };
     function cvDocStrings() { return cvDocPack[docLang] || cvDocPack.uz_lat; }
     function cvT(key, fallback = '') {
@@ -603,29 +604,151 @@
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
-    // --- IMAGE UPLOAD ---
-    function handleImage(input) {
-      if(input.files && input.files[0]) {
-        const r = new FileReader();
-        r.onload = e => {
-          avatarUrl = e.target.result;
-          _previewImgSrc = "";
-          _previewImgOut = "";
-          _previewImgPromise = null;
-          document.getElementById('photoPrev').innerHTML = `<img src="${avatarUrl}" class="w-full h-full object-cover">`;
-          triggerUpdate();
+    // --- IMAGE UPLOAD (Telegram WebApp: fayl ko‘rinishi / HEIC / bo‘sh MIME) ---
+    let _heic2anyPromise = null;
+    function ensureHeic2any() {
+      if (window.heic2any) return Promise.resolve(window.heic2any);
+      if (_heic2anyPromise) return _heic2anyPromise;
+      _heic2anyPromise = new Promise(function (resolve, reject) {
+        const s = document.createElement('script');
+        s.src = 'https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js';
+        s.async = true;
+        s.onload = function () { resolve(window.heic2any); };
+        s.onerror = function () { _heic2anyPromise = null; reject(new Error('heic_lib')); };
+        document.head.appendChild(s);
+      });
+      return _heic2anyPromise;
+    }
+    function isCvPhotoFile(file) {
+      if (!file) return false;
+      const t = (file.type || '').toLowerCase();
+      const n = (file.name || '').toLowerCase();
+      if (t.startsWith('image/')) return true;
+      if (/\.(jpe?g|png|gif|webp|bmp|heic|heif)$/i.test(n)) return true;
+      /* Telegram WebView: MIME bo‘sh yoki application/octet-stream */
+      if ((!t || t === 'application/octet-stream') && !isCvDocumentFile(file)) {
+        const sz = file.size || 0;
+        return sz > 400 && sz < 22 * 1024 * 1024;
+      }
+      return false;
+    }
+    function isCvDocumentFile(file) {
+      if (!file) return false;
+      const t = (file.type || '').toLowerCase();
+      const n = (file.name || '').toLowerCase();
+      if (/\.(pdf|docx?|txt|pptx?|xlsx?|rtf)$/i.test(n)) return true;
+      return /pdf|word|document|spreadsheet|presentation|text\/plain/.test(t);
+    }
+    function assignFileToInput(input, file) {
+      try {
+        const dt = new DataTransfer();
+        dt.items.add(file);
+        input.files = dt.files;
+      } catch (_) {
+        /* eski WebView */
+      }
+    }
+    function blobToJpegDataUrl(blob) {
+      return new Promise(function (resolve, reject) {
+        const url = URL.createObjectURL(blob);
+        const img = new Image();
+        img.onload = function () {
+          try {
+            const c = document.createElement('canvas');
+            let w = img.width;
+            let h = img.height;
+            const maxSide = 1200;
+            const scale = Math.min(1, maxSide / Math.max(w, h, 1));
+            w = Math.max(1, Math.round(w * scale));
+            h = Math.max(1, Math.round(h * scale));
+            c.width = w;
+            c.height = h;
+            c.getContext('2d').drawImage(img, 0, 0, w, h);
+            resolve(c.toDataURL('image/jpeg', 0.9));
+          } catch (err) {
+            reject(err);
+          } finally {
+            URL.revokeObjectURL(url);
+          }
         };
-        r.readAsDataURL(input.files[0]);
+        img.onerror = function () {
+          URL.revokeObjectURL(url);
+          reject(new Error('decode'));
+        };
+        img.src = url;
+      });
+    }
+    async function fileToAvatarDataUrl(file) {
+      const t = (file.type || '').toLowerCase();
+      const n = (file.name || '').toLowerCase();
+      if (isCvDocumentFile(file) && !t.startsWith('image/')) throw new Error('doc');
+      let blob = file;
+      if (t.includes('heic') || t.includes('heif') || /\.heic$/i.test(n) || /\.heif$/i.test(n)) {
+        try {
+          const heic2any = await ensureHeic2any();
+          const out = await heic2any({ blob: file, toType: 'image/jpeg', quality: 0.9 });
+          blob = Array.isArray(out) ? out[0] : out;
+        } catch (_) {
+          throw new Error('heic');
+        }
+      }
+      return await blobToJpegDataUrl(blob);
+    }
+    function applyAvatarPreview(dataUrl) {
+      avatarUrl = dataUrl;
+      _previewImgSrc = '';
+      _previewImgOut = '';
+      _previewImgPromise = null;
+      const prev = document.getElementById('photoPrev');
+      if (prev) prev.innerHTML = '<img src="' + avatarUrl + '" class="w-full h-full object-cover" alt="">';
+      triggerUpdate();
+    }
+    async function handleImage(input) {
+      const file = input && input.files && input.files[0];
+      if (!file) return;
+      if (!isCvPhotoFile(file)) {
+        if (isCvDocumentFile(file)) {
+          alert(cvT('img_wrong_doc', 'Bu CV fayli. Rasm uchun «Rasmni tanlang» tugmasini bosing.'));
+        } else {
+          alert(cvT('img_bad_format', 'Rasm ochilmadi. JPG yoki PNG tanlang.'));
+        }
+        input.value = '';
+        return;
+      }
+      try {
+        const dataUrl = await fileToAvatarDataUrl(file);
+        applyAvatarPreview(dataUrl);
+      } catch (err) {
+        const code = err && err.message;
+        if (code === 'doc') {
+          alert(cvT('img_wrong_doc', 'Bu CV fayli. Rasm uchun «Rasmni tanlang» tugmasini bosing.'));
+        } else if (code === 'heic') {
+          alert(cvT('img_heic_hint', 'iPhone HEIC: galereyada JPG qilib saqlang.'));
+        } else {
+          alert(cvT('img_bad_format', 'Rasm ochilmadi. JPG yoki PNG tanlang.'));
+        }
+        input.value = '';
       }
     }
     const dropZone = document.getElementById('photoPrev');
-    dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('border-blue-500', 'bg-blue-100'); });
-    dropZone.addEventListener('dragleave', (e) => { e.preventDefault(); dropZone.classList.remove('border-blue-500', 'bg-blue-100'); });
-    dropZone.addEventListener('drop', (e) => {
-        e.preventDefault(); dropZone.classList.remove('border-blue-500', 'bg-blue-100');
-        if(e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-            const input = document.getElementById('imgInput'); input.files = e.dataTransfer.files; handleImage(input);
-        }
+    dropZone.addEventListener('dragover', function (e) { e.preventDefault(); dropZone.classList.add('border-blue-500', 'bg-blue-100'); });
+    dropZone.addEventListener('dragleave', function (e) { e.preventDefault(); dropZone.classList.remove('border-blue-500', 'bg-blue-100'); });
+    dropZone.addEventListener('drop', function (e) {
+      e.preventDefault();
+      dropZone.classList.remove('border-blue-500', 'bg-blue-100');
+      const files = e.dataTransfer && e.dataTransfer.files;
+      if (!files || !files.length) return;
+      let picked = null;
+      for (let i = 0; i < files.length; i++) {
+        if (isCvPhotoFile(files[i])) { picked = files[i]; break; }
+      }
+      if (!picked) {
+        alert(cvT('img_bad_format', 'Faqat rasm (JPG, PNG).'));
+        return;
+      }
+      const inp = document.getElementById('imgInput');
+      assignFileToInput(inp, picked);
+      handleImage(inp);
     });
 
     // --- THEME & TEMPLATE ---

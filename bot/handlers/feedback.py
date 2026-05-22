@@ -7,7 +7,7 @@ import os
 from telegram import ReplyKeyboardRemove, Update
 from telegram.ext import ContextTypes
 from bot.flow.state import WAITING_FOR_FEEDBACK
-from bot.ui.keyboards import user_reply_menu
+from bot.ui.keyboards import contact_button_labels, help_button_labels, user_reply_menu
 from bot.ui.messages import (
     SUPPORT_CANCEL_TEXT,
     SUPPORT_INVALID_TEXT,
@@ -70,6 +70,7 @@ async def start_feedback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await msg.reply_text(
         SUPPORT_START_TEXT,
         reply_markup=ReplyKeyboardRemove(),
+        parse_mode="HTML",
     )
 
 
@@ -102,7 +103,13 @@ async def handle_feedback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         request_text_for_panel = ""
         # ── Text feedback ───────────────────────────────────────────────
         if message.text:
-            if message.text.strip().lower() in {"bekor", "cancel", "orqaga", "ortga"}:
+            text_stripped = message.text.strip()
+            if text_stripped.startswith("/"):
+                return
+            if text_stripped in contact_button_labels() or text_stripped in help_button_labels():
+                await start_feedback(update, context)
+                return
+            if text_stripped.lower() in {"bekor", "cancel", "orqaga", "ortga"}:
                 context.user_data.pop("waiting_for", None)
                 base = context.bot_data.get("webapp_base", "")
                 await message.reply_text(

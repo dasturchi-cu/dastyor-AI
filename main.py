@@ -318,7 +318,12 @@ def setup_application():
     app.add_handler(MessageHandler(cv_oby_text_filter, cv_oby_intro_router), group=0)
     app.add_handler(
         MessageHandler(
-            filters.TEXT | filters.PHOTO | filters.Document.ALL | filters.VIDEO | filters.VOICE | filters.AUDIO,
+            (filters.TEXT & ~filters.COMMAND)
+            | filters.PHOTO
+            | filters.Document.ALL
+            | filters.VIDEO
+            | filters.VOICE
+            | filters.AUDIO,
             message_router,
         ),
         group=1,
