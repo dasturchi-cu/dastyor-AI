@@ -333,7 +333,7 @@
         </div>
 
         <div class="flex flex-col sm:flex-row items-stretch gap-2">
-        <button type="button" id="cvSendBotBtn" onclick="sendCvToBot('pdf')" class="bg-red-600 hover:bg-red-700 text-white px-5 py-2 rounded-lg font-semibold text-sm shadow-md transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-red-600">
+        <button type="button" id="cvSendBotBtn" class="bg-red-600 hover:bg-red-700 text-white px-5 py-2 rounded-lg font-semibold text-sm shadow-md transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-red-600" aria-label="PDF botga yuborish">
           <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
             <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
           </svg>
@@ -1201,6 +1201,8 @@
       } catch (_) {}
     }
 
+    let _cvExportInFlight = false;
+
     function syncCvQuotaUi() {
       const u = window.DastyorAI && window.DastyorAI.getUser ? window.DastyorAI.getUser() : null;
       const btn = document.getElementById('cvSendBotBtn');
@@ -1213,14 +1215,26 @@
         ? window.DastyorAI.hasSingleDocAccess(u, 'cv')
         : !!(u && u.has_cv_access);
       const pendingAdmin = !!(blocked && _cvApprovedRequestId && !hasAccess);
+      const rem = window.DastyorAI && window.DastyorAI.getCategoryQuotaRemaining
+        ? window.DastyorAI.getCategoryQuotaRemaining(u, 'cv')
+        : null;
+      const quotaUsed = rem !== null && rem <= 0 && hasAccess;
 
-      if (btn) btn.disabled = blocked || pendingAdmin;
+      if (btn) {
+        btn.disabled = _cvExportInFlight || blocked || pendingAdmin || quotaUsed;
+        if (quotaUsed && !pendingAdmin) {
+          btn.title = "Bu to'lov allaqachon ishlatilgan (1 ta PDF)";
+        }
+      }
       if (payBtn) {
         if (blocked && !hasAccess) payBtn.classList.remove('hidden');
         else payBtn.classList.add('hidden');
       }
       if (warn) {
-        if (hasAccess && !blocked) {
+        if (quotaUsed) {
+          warn.classList.remove('hidden');
+          warn.textContent = "✅ PDF allaqachon yuborilgan. Yana kerak bo'lsa — yangi to'lov (5 000 so'm).";
+        } else if (hasAccess && !blocked) {
           warn.classList.remove('hidden');
           warn.textContent = "✅ To'lov tasdiqlandi. «PDF botga yuborish» — faqat 1 marta.";
         } else if (pendingAdmin) {
@@ -1236,6 +1250,15 @@
       }
     }
 
+    function _exportClickTooSoon(storageKey) {
+      try {
+        const last = Number(sessionStorage.getItem(storageKey) || 0);
+        if (Date.now() - last < 4500) return true;
+        sessionStorage.setItem(storageKey, String(Date.now()));
+      } catch (_) {}
+      return false;
+    }
+
     async function sendCvToBot(fmt) {
       const tg = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp : null;
       const mainBtn = document.getElementById('cvSendBotBtn');
@@ -1243,6 +1266,9 @@
         alert("Faqat Telegram WebApp ichida ishlaydi!");
         return;
       }
+      if (_exportClickTooSoon('cv_last_export_click')) return;
+      if (_cvExportInFlight) return;
+      _cvExportInFlight = true;
       if (mainBtn) { mainBtn.disabled = true; }
       try { if (window.DastyorAI && window.DastyorAI.refreshProfile) await window.DastyorAI.refreshProfile(); } catch (_) {}
       const uNow = window.DastyorAI && window.DastyorAI.getUser ? window.DastyorAI.getUser() : null;
@@ -1250,6 +1276,7 @@
         ? window.DastyorAI.isQuotaBlockedForCategory(uNow, 'cv')
         : true;
       if (blockedNow) {
+        _cvExportInFlight = false;
         syncCvQuotaUi();
         try { await payCvSingle(fmt); } catch (_) {}
         return;
@@ -1264,6 +1291,7 @@
         const data = await sendCvViaApi(fmt);
         _cvApprovedRequestId = 0;
         try { localStorage.removeItem('cv_paid_request_id'); } catch (_) {}
+        if (window.DastyorAI && window.DastyorAI.stopPaidDocWatcher) window.DastyorAI.stopPaidDocWatcher('cv');
         try { if (window.DastyorAI && window.DastyorAI.refreshProfile) await window.DastyorAI.refreshProfile(); } catch (_) {}
         syncCvQuotaUi();
         tg.HapticFeedback && tg.HapticFeedback.notificationOccurred && tg.HapticFeedback.notificationOccurred('success');
@@ -1271,12 +1299,18 @@
         alert(line);
         setTimeout(() => { try { tg.close(); } catch (_) {} }, 900);
       } catch (e) {
-        alert("❌ Yuborishda xatolik: " + (e.message || String(e)).slice(0, 80));
+        _cvExportInFlight = false;
+        syncCvQuotaUi();
+        const msg = (e && e.message) ? String(e.message) : String(e);
+        if (msg.indexOf('409') >= 0 || msg.indexOf('allaqachon') >= 0 || msg.indexOf('tayyorlanmoqda') >= 0) {
+          alert("⏳ " + msg.slice(0, 120));
+        } else {
+          alert("❌ Yuborishda xatolik: " + msg.slice(0, 100));
+        }
       } finally {
         try {
           if (window.DastyorAI && window.DastyorAI.hideDocumentLoading) window.DastyorAI.hideDocumentLoading();
         } catch (_) {}
-        if (mainBtn) mainBtn.disabled = false;
       }
     }
 
@@ -1458,6 +1492,14 @@
 
     // --- INIT ---
     document.addEventListener('DOMContentLoaded', async () => {
+      const cvSendBtn = document.getElementById('cvSendBotBtn');
+      if (cvSendBtn && !cvSendBtn.dataset.boundExport) {
+        cvSendBtn.dataset.boundExport = '1';
+        cvSendBtn.addEventListener('click', function (ev) {
+          ev.preventDefault();
+          sendCvToBot('pdf');
+        });
+      }
       // Show blocked state ASAP from current cache, then refresh.
       try { _cvApprovedRequestId = Number(localStorage.getItem('cv_paid_request_id') || 0); } catch (_) {}
       try { syncCvQuotaUi(); } catch (_) {}

@@ -1098,8 +1098,11 @@ def db_get_maintenance_mode() -> Optional[bool]:
             return bool(r.data[0].get("maintenance_mode", False))
         return False
     except Exception as e:
+        msg = str(e).lower()
+        if "pgrst205" in msg or "bot_settings" in msg and "could not find" in msg:
+            return False
         _mark_temporarily_unavailable(e)
-        logger.error(f"db_get_maintenance_mode: {e}")
+        logger.debug("db_get_maintenance_mode: %s", e)
         return None
 
 
@@ -1266,26 +1269,30 @@ def db_insert_action_log(
     metadata: dict | None = None,
 ) -> bool:
     """
-    Append one row to `logs` (preferred) or `usage_logs` if schema differs.
-    action_type: ocr, cv, pdf, word, translate, translit, imlo, obyektivka_voice, ...
+    Audit: avval system_logs (production), keyin logs / usage_logs (eski sxema).
     """
     c = _get_client()
     if not c:
         return False
     uid = int(user_id)
     at = (action_type or "unknown")[:120]
+    if db_insert_system_log(
+        uid,
+        None,
+        "BOT",
+        at,
+        status="ok",
+        metadata=metadata if isinstance(metadata, dict) else None,
+    ):
+        return True
     fn = (file_name or "")[:500] if file_name else None
     ts = datetime.utcnow().isoformat()
     base = {"user_id": uid, "action_type": at}
     if fn:
         base["file_name"] = fn
-    attempts: list[dict] = [
-        {**base, "created_at": ts},
-        dict(base),
-    ]
+    attempts: list[dict] = [{**base, "created_at": ts}]
     if metadata:
-        attempts.insert(0, {**base, "created_at": ts, "metadata": metadata})
-        attempts.insert(1, {**base, "metadata": metadata})
+        attempts.append({**base, "created_at": ts, "metadata": metadata})
     last_err: Exception | None = None
     for payload in attempts:
         try:
@@ -1293,33 +1300,11 @@ def db_insert_action_log(
             return True
         except Exception as e:
             last_err = e
+            if "pgrst205" in str(e).lower():
+                break
             continue
-    # Ba'zi eski sxemalarda `action` ustuni bo'ladi, `action_type` emas
-    for base in (
-        {"user_id": uid, "action": at, "created_at": ts},
-        {"user_id": uid, "action": at},
-    ):
-        alt_log = dict(base)
-        if fn:
-            alt_log["file_name"] = fn
-        if metadata:
-            alt_log["metadata"] = metadata
-        try:
-            c.table("logs").insert(alt_log).execute()
-            return True
-        except Exception as e:
-            last_err = e
-            continue
-    try:
-        alt = {"user_id": uid, "action": at, "created_at": ts}
-        if metadata:
-            alt["metadata"] = metadata
-        c.table("usage_logs").insert(alt).execute()
-        return True
-    except Exception as e:
-        last_err = e
-    if last_err:
-        _log_write_error("db_insert_action_log", last_err)
+    if last_err and "pgrst205" not in str(last_err).lower():
+        logger.debug("db_insert_action_log skip: %s", last_err)
     return False
 
 

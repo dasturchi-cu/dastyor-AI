@@ -346,6 +346,18 @@ const DastyorAI = (() => {
         return false;
     }
 
+    /** limits_breakdown dan qolgan limit (paid_once uchun 0 = yuborilgan) */
+    function getCategoryQuotaRemaining(u, category) {
+        if (!u || !category || !Array.isArray(u.limits_breakdown)) return null;
+        const row = u.limits_breakdown.find((r) => r.category === category);
+        if (!row) return null;
+        if (row.unlimited) return Infinity;
+        if (row.blocked) return 0;
+        if (row.exhausted === true) return 0;
+        const rem = row.remaining != null ? Number(row.remaining) : null;
+        return rem != null && !Number.isNaN(rem) ? rem : null;
+    }
+
     /** has_cv_access / has_objective_access — admin tasdiqlagan 1 ta yuborish huquqi */
     function hasSingleDocAccess(u, category) {
         if (!u || !category) return false;
@@ -1032,6 +1044,7 @@ html[data-theme="dark"] .da-doc-loading-ring{border-color:#334155;border-top-col
         refreshProfile,
         isQuotaBlockedForCategory,
         hasSingleDocAccess,
+        getCategoryQuotaRemaining,
         needsSingleDocPayment,
         applyServiceQuotaUi,
         shouldShowTariffStrip,

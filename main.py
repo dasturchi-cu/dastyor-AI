@@ -207,10 +207,19 @@ async def cv_oby_intro_router(update: Update, context: ContextTypes.DEFAULT_TYPE
         return
     text = (update.message.text or "").strip()
     context.user_data["_skip_message_router"] = True
-    if is_cv_button(text):
-        await handle_cv_intro(update, context)
-    elif is_oby_button(text):
-        await handle_obyektivka_intro(update, context)
+    try:
+        if is_cv_button(text):
+            await handle_cv_intro(update, context)
+        elif is_oby_button(text):
+            await handle_obyektivka_intro(update, context)
+    except Exception as e:
+        logger.error("cv_oby_intro_router text=%r: %s", text[:40], e, exc_info=True)
+        try:
+            await update.message.reply_text(
+                "❌ Xatolik. /start bosing yoki qayta urinib ko‘ring.",
+            )
+        except Exception:
+            pass
 
 
 async def message_router(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:

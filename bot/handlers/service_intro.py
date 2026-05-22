@@ -71,22 +71,34 @@ def _oby_sample_audio_paths() -> list[str]:
     ]
 
 
+def _oby_sample_audio_enabled() -> bool:
+    return os.getenv("OBY_SAMPLE_AUDIO", "0").strip().lower() in ("1", "true", "yes")
+
+
 async def _send_oby_sample_audio(context: ContextTypes.DEFAULT_TYPE, chat_id: int) -> None:
+    """Ixtiyoriy namuna — UPLOAD_VOICE ishlatilmaydi (foydalanuvchida «voice yuborilmoqda» qotib qolmasin)."""
+    if not _oby_sample_audio_enabled():
+        return
     for path in _oby_sample_audio_paths():
         if not path or not os.path.exists(path):
             continue
         try:
-            await context.bot.send_chat_action(chat_id=chat_id, action=ChatAction.UPLOAD_VOICE)
-            await context.bot.send_audio(
-                chat_id=chat_id,
-                audio=path,
-                caption="🎙 <b>Namuna audio</b> — shunday qilib o‘qib yuboring",
-                parse_mode="HTML",
-            )
+
+            async def _upload():
+                with open(path, "rb") as fh:
+                    return await context.bot.send_audio(
+                        chat_id=chat_id,
+                        audio=fh,
+                        caption="🎙 Namuna audio — shunday qilib o‘qib yuboring",
+                    )
+
+            await asyncio.wait_for(_upload(), timeout=12.0)
             return
+        except asyncio.TimeoutError:
+            logger.warning("sample audio send timeout path=%s", path)
         except Exception as e:
             logger.warning("sample audio send failed path=%s: %s", path, e)
-    logger.warning("Obyektivka namuna audio topilmadi: %s", _oby_sample_audio_paths())
+    logger.debug("Obyektivka namuna audio yo‘q yoki yuborilmadi")
 
 
 async def _reply_cv_intro(message: Message, base: str, uid: int, text: str | None = None) -> None:
@@ -107,7 +119,7 @@ async def send_cv_intro(message: Message, context: ContextTypes.DEFAULT_TYPE, ui
     try:
         from bot.services.bot_analytics import log_bot_event
 
-        log_bot_event(uid, "bot_cv_intro_open")
+        asyncio.create_task(asyncio.to_thread(log_bot_event, uid, "bot_cv_intro_open"))
     except Exception:
         pass
     base = _webapp_base(context)
@@ -128,25 +140,66 @@ async def send_cv_intro(message: Message, context: ContextTypes.DEFAULT_TYPE, ui
 
 async def send_obyektivka_intro(message: Message, context: ContextTypes.DEFAULT_TYPE, uid: int) -> None:
     context.user_data["waiting_for"] = WaitingState.OBYEKTIVKA_AUDIO
+    chat_id = message.chat_id
+    try:
+        # 1) Darhol oddiy matn — Telegram «voice yuborilmoqda» holatida qolmasin
+        await message.reply_text(
+            "✍️ <b>Obyektivka</b>\n\nYo‘riqnoma yuborilmoqda…",
+            parse_mode="HTML",
+        )
+    except Exception as e:
+        logger.warning("Obyektivka ack failed: %s", e)
+        try:
+            await message.reply_text("✍️ Obyektivka — yo‘riqnoma yuborilmoqda...")
+        except Exception:
+            return
+
     try:
         from bot.services.bot_analytics import log_bot_event
 
-        log_bot_event(uid, "bot_oby_intro_open")
+        asyncio.create_task(asyncio.to_thread(log_bot_event, uid, "bot_oby_intro_open"))
     except Exception:
         pass
+
     base = _webapp_base(context)
     context.bot_data["webapp_base"] = base
     inline = service_open_inline(base, uid, "obyektivka")
-
     combined = f"{OBY_INSTRUCTION_TEXT}\n\n{OBY_INTRO_TEXT}"
-    chat_id = message.chat_id
-    if chat_id:
-        await _send_oby_sample_audio(context, chat_id)
+
+    sent = False
     try:
         await message.reply_text(combined, parse_mode="HTML", reply_markup=inline)
+        sent = True
     except BadRequest as e:
         logger.warning("Obyektivka intro reply failed (markup): %s", e)
-        await message.reply_text(combined, parse_mode="HTML")
+    except Exception as e:
+        logger.warning("Obyektivka intro reply failed: %s", e, exc_info=True)
+
+    if not sent:
+        try:
+            await message.reply_text(combined, parse_mode="HTML")
+            sent = True
+        except Exception:
+            pass
+
+    if not sent:
+        url = None
+        try:
+            from bot.ui.keyboards import webapp_service_url
+
+            url = webapp_service_url(base, uid, "obyektivka")
+        except Exception:
+            pass
+        tail = f"\n\n🔗 Forma: {url}" if url else ""
+        try:
+            await message.reply_text(
+                "✍️ Obyektivka: ovoz yuboring yoki veb-formani oching." + tail,
+            )
+        except Exception as e2:
+            logger.error("Obyektivka intro fallback failed: %s", e2, exc_info=True)
+
+    if chat_id and _oby_sample_audio_enabled():
+        asyncio.create_task(_send_oby_sample_audio(context, chat_id))
 
 
 async def handle_cv_intro(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -160,7 +213,16 @@ async def handle_obyektivka_intro(update: Update, context: ContextTypes.DEFAULT_
     msg = _reply_target(update)
     if not msg:
         return
-    await send_obyektivka_intro(msg, context, _uid(update))
+    try:
+        await send_obyektivka_intro(msg, context, _uid(update))
+    except Exception as e:
+        logger.error("handle_obyektivka_intro: %s", e, exc_info=True)
+        try:
+            await msg.reply_text(
+                "❌ Obyektivka ochilmadi. /start bosing yoki bir ozdan keyin qayta urinib ko‘ring.",
+            )
+        except Exception:
+            pass
 
 
 async def intro_callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:

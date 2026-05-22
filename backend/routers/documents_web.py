@@ -150,9 +150,16 @@ async def api_generate_cv(
     skip_quota_completion = False
     if uid_str:
         from bot.services.plan_limits import CAT_CV
+        from backend.services.export_guard import begin_document_export, release_document_export
 
-        require_paid_single_doc_or_subscription(int(uid_str), CAT_CV)
-        skip_quota_completion = web_quota_consume_or_raise(int(uid_str), CAT_CV)
+        uid_i = int(uid_str)
+        await begin_document_export(uid_i, CAT_CV)
+        try:
+            require_paid_single_doc_or_subscription(uid_i, CAT_CV)
+            skip_quota_completion = web_quota_consume_or_raise(uid_i, CAT_CV)
+        except Exception:
+            release_document_export(uid_i, CAT_CV)
+            raise
     payload = req.dict(exclude={"telegram_id", "token"})
 
     try:
@@ -161,6 +168,11 @@ async def api_generate_cv(
         loop = asyncio.get_running_loop()
         docx_path = await loop.run_in_executor(None, generate_cv_docx, payload)
     except Exception as e:
+        if uid_str:
+            from backend.services.export_guard import release_document_export
+            from bot.services.plan_limits import CAT_CV
+
+            release_document_export(int(uid_str), CAT_CV)
         logger.error("/api/generate_cv build error: %s", e, exc_info=True)
         raise HTTPException(status_code=500, detail=f"CV yaratishda xato: {str(e)[:200]}")
 
@@ -183,6 +195,8 @@ async def api_generate_cv(
         _finish_single_doc_delivery(int(uid_str), CAT_CV)
 
         async def _send_cv():
+            from backend.services.export_guard import mark_document_export_sent
+
             try:
                 buf = io.BytesIO(docx_bytes)
                 safe = (req.name or "CV").replace(" ", "_")[:30]
@@ -200,8 +214,10 @@ async def api_generate_cv(
                     ),
                     parse_mode="HTML",
                 )
+                mark_document_export_sent(int(uid_str), CAT_CV)
             except Exception as tg_err:
                 logger.warning("CV Telegram send failed (non-fatal): %s", tg_err)
+                release_document_export(int(uid_str), CAT_CV)
 
         asyncio.create_task(_send_cv())
 
@@ -783,8 +799,19 @@ async def api_paid_doc_send_to_bot(
     from bot.services.plan_limits import CAT_CV, CAT_OBYEKTIVKA
 
     cat = CAT_CV if kind == "cv" else CAT_OBYEKTIVKA
-    require_paid_single_doc_or_subscription(int(uid), cat)
-    skip_quota_completion = web_quota_consume_or_raise(int(uid), cat)
+    from backend.services.export_guard import (
+        begin_document_export,
+        mark_document_export_sent,
+        release_document_export,
+    )
+
+    await begin_document_export(int(uid), cat)
+    try:
+        require_paid_single_doc_or_subscription(int(uid), cat)
+        skip_quota_completion = web_quota_consume_or_raise(int(uid), cat)
+    except Exception:
+        release_document_export(int(uid), cat)
+        raise
     db_set_paid_doc_request_status(int(request_id), "completed")
 
     chat_id = int(uid)
@@ -853,8 +880,10 @@ async def api_paid_doc_send_to_bot(
                 skip_quota=skip_quota_completion,
             )
             _finish_single_doc_delivery(chat_id, cat, request_id=rid)
+            mark_document_export_sent(chat_id, cat)
         except Exception as e:
             logger.error("paid_doc_send_to_bot failed rid=%s: %s", rid, e, exc_info=True)
+            release_document_export(chat_id, cat)
             try:
                 await ptb.bot.send_message(chat_id=chat_id, text="❌ Hujjat yuborishda xatolik. Qayta urinib ko'ring.")
             except Exception:
@@ -878,9 +907,20 @@ async def api_export_cv(
     skip_quota_completion = False
     if uid_str:
         from bot.services.plan_limits import CAT_CV
+        from backend.services.export_guard import (
+            begin_document_export,
+            mark_document_export_sent,
+            release_document_export,
+        )
 
-        require_paid_single_doc_or_subscription(int(uid_str), CAT_CV)
-        skip_quota_completion = web_quota_consume_or_raise(int(uid_str), CAT_CV)
+        uid_i = int(uid_str)
+        await begin_document_export(uid_i, CAT_CV)
+        try:
+            require_paid_single_doc_or_subscription(uid_i, CAT_CV)
+            skip_quota_completion = web_quota_consume_or_raise(uid_i, CAT_CV)
+        except Exception:
+            release_document_export(uid_i, CAT_CV)
+            raise
     fmt = "pdf"
     data = req.dict(exclude={"telegram_id", "token", "format"})
     safe = safe_filename(req.name or "CV")
@@ -954,8 +994,10 @@ async def api_export_cv(
                     )
                 except Exception:
                     pass
+                mark_document_export_sent(int(uid_str), CAT_CV)
             except Exception as e:
                 logger.error("CV background generation/send failed: %s", e, exc_info=True)
+                release_document_export(int(uid_str), "cv")
                 try:
                     await ptb.bot.send_message(
                         chat_id=int(uid_str),
@@ -1066,9 +1108,20 @@ async def api_export_obyektivka(
     skip_quota_completion = False
     if uid_str:
         from bot.services.plan_limits import CAT_OBYEKTIVKA
+        from backend.services.export_guard import (
+            begin_document_export,
+            mark_document_export_sent,
+            release_document_export,
+        )
 
-        require_paid_single_doc_or_subscription(int(uid_str), CAT_OBYEKTIVKA)
-        skip_quota_completion = web_quota_consume_or_raise(int(uid_str), CAT_OBYEKTIVKA)
+        uid_i = int(uid_str)
+        await begin_document_export(uid_i, CAT_OBYEKTIVKA)
+        try:
+            require_paid_single_doc_or_subscription(uid_i, CAT_OBYEKTIVKA)
+            skip_quota_completion = web_quota_consume_or_raise(uid_i, CAT_OBYEKTIVKA)
+        except Exception:
+            release_document_export(uid_i, CAT_OBYEKTIVKA)
+            raise
     fmt = "word"
     data = req.dict(exclude={"telegram_id", "token", "format"})
     safe = safe_filename(req.fullname or "Obyektivka")
@@ -1084,6 +1137,103 @@ async def api_export_obyektivka(
             progress_msg_id = progress_msg.message_id
         except Exception:
             progress_msg_id = None
+
+    if req.send_only and uid_str:
+        from bot.services.plan_limits import CAT_OBYEKTIVKA
+
+        uid_i = int(uid_str)
+        photo_data = req.photo_data
+
+        async def _generate_and_send_oby_only() -> None:
+            photo_path = None
+            try:
+                photo_path = None
+                try:
+                    if (
+                        photo_data
+                        and isinstance(photo_data, str)
+                        and photo_data.startswith("data:image/")
+                    ):
+                        header, b64 = photo_data.split(",", 1)
+                        mime = header.split(";")[0].split(":")[1].lower()
+                        ext = {
+                            "image/png": "png",
+                            "image/jpeg": "jpg",
+                            "image/jpg": "jpg",
+                            "image/webp": "webp",
+                        }.get(mime, "png")
+                        raw = base64.b64decode(b64)
+                        local_ts = int(time.time())
+                        photo_path = os.path.join("temp", f"oby_export_photo_{local_ts}.{ext}")
+                        with open(photo_path, "wb") as f:
+                            f.write(raw)
+                except Exception as e:
+                    logger.warning("/api/export_obyektivka photo decode failed: %s", e)
+                    photo_path = None
+
+                from bot.services.doc_generator import generate_obyektivka_docx
+
+                loop = asyncio.get_running_loop()
+                docx_path = await loop.run_in_executor(
+                    None, generate_obyektivka_docx, data, photo_path
+                )
+                if not docx_path or not os.path.exists(docx_path):
+                    raise RuntimeError("Word fayl yaratilmadi")
+                local_ts = int(time.time())
+                filename_send = f"DASTYOR_Obyektivka_{safe}_{local_ts}{bot_suffix}.docx"
+                with open(docx_path, "rb") as fh:
+                    file_bytes_send = fh.read()
+                safe_remove(docx_path, photo_path)
+
+                buf = io.BytesIO(file_bytes_send)
+                buf.name = filename_send
+                await send_docx_with_confirmation(
+                    ptb.bot,
+                    uid_i,
+                    buf,
+                    filename=filename_send,
+                    caption=(
+                        f"✅ <b>Obyektivka tayyor!</b>\n"
+                        f"👤 <b>{req.fullname}</b>\n"
+                        f"📎 <code>{filename_send}</code>"
+                    ),
+                    parse_mode="HTML",
+                )
+                from bot.services.user_service import record_service_completion
+
+                record_service_completion(
+                    uid_i,
+                    CAT_OBYEKTIVKA,
+                    "Obyektivka Export WORD",
+                    skip_quota=skip_quota_completion,
+                )
+                _finish_single_doc_delivery(uid_i, CAT_OBYEKTIVKA)
+                mark_document_export_sent(uid_i, CAT_OBYEKTIVKA)
+            except Exception as e:
+                logger.error("Obyektivka background send failed: %s", e, exc_info=True)
+                release_document_export(uid_i, CAT_OBYEKTIVKA)
+                try:
+                    await ptb.bot.send_message(
+                        chat_id=uid_i,
+                        text=f"❌ Obyektivka yuborilmadi: {str(e)[:200]}",
+                    )
+                except Exception:
+                    pass
+            finally:
+                if progress_msg_id is not None:
+                    try:
+                        await ptb.bot.delete_message(chat_id=uid_i, message_id=progress_msg_id)
+                    except Exception:
+                        pass
+
+        asyncio.create_task(_generate_and_send_oby_only())
+        return JSONResponse(
+            content={
+                "ok": True,
+                "status": "queued_to_bot",
+                "message": "✅ Qabul qilindi. Obyektivka tez orada bot chatiga yuboriladi.",
+            }
+        )
 
     filename = ""
     media_type = ""
@@ -1143,49 +1293,7 @@ async def api_export_obyektivka(
             skip_quota=skip_quota_completion,
         )
         _finish_single_doc_delivery(int(uid_str), CAT_OBYEKTIVKA)
-
-        async def _send_oby():
-            try:
-                buf = io.BytesIO(file_bytes)
-                buf.name = filename
-                chat_id = int(uid_str)
-                if filename.lower().endswith(".pdf"):
-                    await ptb.bot.send_document(
-                        chat_id=chat_id,
-                        document=InputFile(buf, filename=filename),
-                        caption=(
-                            f"✅ <b>Obyektivka tayyor!</b>\n"
-                            f"👤 <b>{req.fullname}</b>\n"
-                            f"📎 <code>{filename}</code>"
-                        ),
-                        parse_mode="HTML",
-                    )
-                else:
-                    await send_docx_with_confirmation(
-                        ptb.bot,
-                        chat_id,
-                        buf,
-                        filename=filename,
-                        caption=(
-                            f"✅ <b>Obyektivka tayyor!</b>\n"
-                            f"👤 <b>{req.fullname}</b>\n"
-                            f"📎 <code>{filename}</code>"
-                        ),
-                        parse_mode="HTML",
-                    )
-            except Exception as e:
-                logger.warning("Obyektivka export Telegram send failed: %s", e)
-            finally:
-                if progress_msg_id is not None:
-                    try:
-                        await ptb.bot.delete_message(chat_id=int(uid_str), message_id=progress_msg_id)
-                    except Exception:
-                        pass
-
-        asyncio.create_task(_send_oby())
-
-    if req.send_only and uid_str:
-        return JSONResponse(content={"ok": True})
+        release_document_export(int(uid_str), CAT_OBYEKTIVKA)
 
     return StreamingResponse(
         io.BytesIO(file_bytes),

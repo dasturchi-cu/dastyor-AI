@@ -113,12 +113,16 @@ async def premium_payment_review_callback(update: Update, context: ContextTypes.
     if new_status == "approved" and uid is not None:
         try:
             uid_i = int(uid)
+            from backend.services.export_guard import clear_document_delivery_buckets
+
             if plan == "cv":
                 db_grant_cv_access(uid_i, True)
                 db_service_buckets_delete_many(uid_i, [f"paid_once:{CAT_CV}:{uid_i}"])
+                clear_document_delivery_buckets(uid_i, CAT_CV)
             elif plan == "objective":
                 db_grant_objective_access(uid_i, True)
                 db_service_buckets_delete_many(uid_i, [f"paid_once:{CAT_OBYEKTIVKA}:{uid_i}"])
+                clear_document_delivery_buckets(uid_i, CAT_OBYEKTIVKA)
             if rid:
                 try:
                     db_set_paid_doc_request_status(int(rid), "approved")

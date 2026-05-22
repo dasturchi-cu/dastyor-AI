@@ -38,7 +38,7 @@ OBY_INSTRUCTION_TEXT = (
     "📌 <b>Ovozda quyidagilarni o‘qing</b> (namunadagi tartibda):\n"
     "F.I.Sh., tug‘ilgan sana/joy, millat, ta’lim, OTM, mutaxassislik, "
     "ish joylari, oila a’zolari (ism, tug‘ilgan, ish, manzil).\n\n"
-    "🎙 <b>Namuna audio pastda.</b> Tayyor bo‘lsa — ovozli xabar yuboring."
+    "🎙 Tayyor bo‘lsa — ovozli xabar yuboring (namuna audio ixtiyoriy)."
 )
 
 OBY_AUDIO_WAIT_HINT = (

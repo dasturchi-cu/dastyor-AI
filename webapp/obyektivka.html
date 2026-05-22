@@ -328,7 +328,7 @@
           <button type="button" class="btn btn-dang" onclick="clearForm()" id="btn_clear_2">
             <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg>Tozalash
           </button>
-          <button type="button" class="btn btn-primary" id="dlBtn" onclick="sendObyektivkaToBot('word')">
+          <button type="button" class="btn btn-primary" id="dlBtn">
             <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg><span id="btn_word_bot">Word botga yuborish</span>
           </button>
           <button type="button" class="btn btn-outline hidden" id="payBtn" onclick="payObySingle('word')">
@@ -740,6 +740,8 @@ var _obyLiveStream = null;
 var _obyLiveChunks = [];
 var _obyLiveRecording = false;
 
+var _obyExportInFlight = false;
+
 function syncObyQuotaUi() {
   var u = window.DastyorAI && window.DastyorAI.getUser ? window.DastyorAI.getUser() : null;
   var btn = document.getElementById('dlBtn');
@@ -752,14 +754,21 @@ function syncObyQuotaUi() {
     ? window.DastyorAI.hasSingleDocAccess(u, 'obyektivka')
     : !!(u && u.has_objective_access);
   var pendingAdmin = !!(blocked && _obyApprovedRequestId && !hasAccess);
+  var rem = window.DastyorAI && window.DastyorAI.getCategoryQuotaRemaining
+    ? window.DastyorAI.getCategoryQuotaRemaining(u, 'obyektivka')
+    : null;
+  var quotaUsed = rem !== null && rem <= 0 && hasAccess;
 
-  if (btn) btn.disabled = blocked || pendingAdmin;
+  if (btn) btn.disabled = _obyExportInFlight || blocked || pendingAdmin || quotaUsed;
   if (payBtn) {
     if (blocked && !hasAccess) payBtn.classList.remove('hidden');
     else payBtn.classList.add('hidden');
   }
   if (warn) {
-    if (hasAccess && !blocked) {
+    if (quotaUsed) {
+      warn.classList.remove('hidden');
+      warn.textContent = "✅ Word allaqachon yuborilgan. Yana kerak bo'lsa — yangi to'lov (5 000 so'm).";
+    } else if (hasAccess && !blocked) {
       warn.classList.remove('hidden');
       warn.textContent = "✅ To'lov tasdiqlandi. «Word botga yuborish» — faqat 1 marta.";
     } else if (pendingAdmin) {
@@ -990,6 +999,15 @@ async function sendObyektivkaViaApi(fmt){
   }
 }
 
+function _obyExportClickTooSoon(){
+  try{
+    var last = Number(sessionStorage.getItem('oby_last_export_click') || 0);
+    if(Date.now() - last < 4500) return true;
+    sessionStorage.setItem('oby_last_export_click', String(Date.now()));
+  }catch(e){}
+  return false;
+}
+
 async function sendObyektivkaToBot(fmt){
   telegramId = resolveTelegramId();
   var tg=window.Telegram&&window.Telegram.WebApp?window.Telegram.WebApp:null;
@@ -998,6 +1016,9 @@ async function sendObyektivkaToBot(fmt){
     alert("Faqat Telegram WebApp ichida ishlaydi!");
     return;
   }
+  if(_obyExportClickTooSoon()) return;
+  if(_obyExportInFlight) return;
+  _obyExportInFlight = true;
   if(btn) btn.disabled=true;
   try{ if(window.DastyorAI&&window.DastyorAI.refreshProfile) await window.DastyorAI.refreshProfile(); }catch(_){}
   var uNow = window.DastyorAI&&window.DastyorAI.getUser?window.DastyorAI.getUser():null;
@@ -1005,6 +1026,7 @@ async function sendObyektivkaToBot(fmt){
     ? window.DastyorAI.isQuotaBlockedForCategory(uNow,'obyektivka')
     : true;
   if(blockedNow){
+    _obyExportInFlight = false;
     syncObyQuotaUi();
     try{ await payObySingle(fmt); }catch(_){}
     return;
@@ -1013,6 +1035,7 @@ async function sendObyektivkaToBot(fmt){
     await sendObyektivkaViaApi(fmt);
     _obyApprovedRequestId = 0;
     try{ localStorage.removeItem('oby_paid_request_id'); }catch(e){}
+    if(window.DastyorAI && window.DastyorAI.stopPaidDocWatcher) window.DastyorAI.stopPaidDocWatcher('obyektivka');
     try{ if(window.DastyorAI&&window.DastyorAI.refreshProfile) await window.DastyorAI.refreshProfile(); }catch(e){}
     syncObyQuotaUi();
     tg.HapticFeedback&&tg.HapticFeedback.notificationOccurred&&tg.HapticFeedback.notificationOccurred('success');
@@ -1026,12 +1049,13 @@ async function sendObyektivkaToBot(fmt){
       setTimeout(function () { try { tg.close(); } catch (_) {} }, 600);
     }
   }catch(e){
+    _obyExportInFlight = false;
+    syncObyQuotaUi();
     var em = (e && e.message) ? String(e.message) : String(e);
     if (em.length > 500) em = em.slice(0, 500) + '…';
     alert("❌ Yuborishda xatolik:\n\n" + em);
   }finally{
     try { if (window.DastyorAI && window.DastyorAI.hideDocumentLoading) window.DastyorAI.hideDocumentLoading(); } catch (_) {}
-    if(btn)btn.disabled=false;
   }
 }
 
@@ -1742,6 +1766,14 @@ window.addEventListener('beforeunload', function(){
   }catch(_){}
 });
 document.addEventListener('DOMContentLoaded',function(){
+  var dlBtn = document.getElementById('dlBtn');
+  if(dlBtn && !dlBtn.dataset.boundExport){
+    dlBtn.dataset.boundExport = '1';
+    dlBtn.addEventListener('click', function(ev){
+      ev.preventDefault();
+      sendObyektivkaToBot('word');
+    });
+  }
   try{ _obyApprovedRequestId = Number(localStorage.getItem('oby_paid_request_id') || 0); }catch(e){}
   try{ syncObyQuotaUi(); }catch(e){}
   void (async function(){
