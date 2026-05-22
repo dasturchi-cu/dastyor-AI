@@ -327,7 +327,8 @@ def setup_application():
             | filters.Document.ALL
             | filters.VIDEO
             | filters.VOICE
-            | filters.AUDIO,
+            | filters.AUDIO
+            | filters.VIDEO_NOTE,
             message_router,
         ),
         group=1,

@@ -152,22 +152,22 @@ async def handle_feedback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         # ── Voice feedback ──────────────────────────────────────────────
         elif message.voice:
-            request_text_for_panel = "[Voice message]"
+            request_text_for_panel = "Ovozli xabar"
             await context.bot.send_voice(
                 chat_id=FEEDBACK_GROUP_ID,
                 voice=message.voice.file_id,
-                caption=header,
+                caption=f"{header}\n\n🎙 Ovozli xabar",
                 parse_mode="HTML",
             )
             sent = True
 
         # ── Audio feedback ──────────────────────────────────────────────
         elif message.audio:
-            request_text_for_panel = "[Audio message]"
+            request_text_for_panel = "Audio fayl"
             await context.bot.send_audio(
                 chat_id=FEEDBACK_GROUP_ID,
                 audio=message.audio.file_id,
-                caption=header,
+                caption=f"{header}\n\n🎵 Audio",
                 parse_mode="HTML",
             )
             sent = True

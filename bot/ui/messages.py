@@ -58,7 +58,7 @@ HELP_TEXT = (
     "• Ovozda: F.I.Sh., tug‘ilgan sana/joy, ta’lim, ish, oila\n"
     "• To‘lov CV bilan bir xil (5 000 so‘m + skrinshot)\n"
     "• Tasdiqdan keyin <b>Word botga yuborish</b> — .docx shu yerga\n\n"
-    "🆘 <b>Murojaat</b> — savol, muammo (matn/rasm/fayl)\n\n"
+    "🆘 <b>Murojaat</b> — matn, ovozli xabar, rasm yoki fayl\n\n"
     "<b>Buyruqlar</b>\n"
     "/start — bosh menyu\n"
     "/docs — to‘lov holati\n"
@@ -69,13 +69,21 @@ HELP_TEXT = (
 
 SUPPORT_START_TEXT = (
     "📩 <b>Murojaat</b>\n\n"
-    "Muammo yoki savol — matn, rasm yoki fayl.\n"
-    "Bekor: <b>bekor</b>"
+    "Savolingiz yoki muammoingizni yuboring — admin tez orada javob beradi.\n\n"
+    "<b>Yuborishingiz mumkin:</b>\n"
+    "📝 Matn\n"
+    "🎙 Ovozli xabar\n"
+    "🖼 Rasm (skrinshot ham bo‘ladi)\n"
+    "📎 Fayl (PDF, Word va hokazo)\n\n"
+    "Bekor: <b>bekor</b> yozing yoki 🔙 <b>Orqaga</b> tugmasi."
 )
 
 SUPPORT_SUCCESS_TEXT = "✅ Yuborildi. Javob kuting."
 
-SUPPORT_INVALID_TEXT = "⚠️ Matn, rasm yoki fayl yuboring. Bekor: <b>bekor</b>"
+SUPPORT_INVALID_TEXT = (
+    "⚠️ Matn, ovozli xabar, rasm yoki fayl yuboring.\n"
+    "Bekor: <b>bekor</b>"
+)
 
 SUPPORT_CANCEL_TEXT = "↩️ Bekor. Menyu pastda."
 
