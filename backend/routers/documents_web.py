@@ -43,6 +43,27 @@ PAYMENT_CARD_NUMBER = (os.getenv("PAYMENT_CARD_NUMBER", "9860 1201 7225 8424") o
 PAYMENT_CARD_OWNER = (os.getenv("PAYMENT_CARD_OWNER", "DILNOZA MOMINOVA") or "DILNOZA MOMINOVA").strip()
 
 
+def _finish_single_doc_delivery(uid: int, category: str, *, request_id: int | None = None) -> None:
+    """5 000 so'm = 1 hujjat: paid_doc so'rovlarini yopish, profil keshini yangilash."""
+    from bot.services.plan_limits import CAT_CV, CAT_OBYEKTIVKA
+
+    u = int(uid)
+    kind = "cv" if category == CAT_CV else "obyektivka"
+    try:
+        from bot.services.supabase_db import db_complete_user_paid_doc_requests, has_db
+
+        if has_db():
+            db_complete_user_paid_doc_requests(u, kind, request_id=request_id)
+    except Exception as e:
+        logger.debug("_finish_single_doc_delivery db: %s", e)
+    try:
+        from bot.services.user_service import invalidate_user_profile_cache
+
+        invalidate_user_profile_cache(u)
+    except Exception:
+        pass
+
+
 @router.get("/api/payment_card")
 async def api_payment_card() -> dict:
     """
@@ -96,7 +117,9 @@ async def _cv_bytes_pdf_with_fallback(data: dict, safe: str, local_ts: int, bot_
 
     loop = asyncio.get_running_loop()
     docx_path = await loop.run_in_executor(None, generate_cv_docx, data)
-    pdf_path = convert_to_pdf_safe(docx_path) if docx_path else None
+    pdf_path = (
+        await loop.run_in_executor(None, convert_to_pdf_safe, docx_path) if docx_path else None
+    )
     if pdf_path and os.path.exists(pdf_path):
         with open(pdf_path, "rb") as fh:
             raw = fh.read()
@@ -157,6 +180,7 @@ async def api_generate_cv(
         record_service_completion(
             int(uid_str), CAT_CV, "CV Generator", skip_quota=skip_quota_completion
         )
+        _finish_single_doc_delivery(int(uid_str), CAT_CV)
 
         async def _send_cv():
             try:
@@ -404,6 +428,7 @@ async def api_generate_obyektivka(
         record_service_completion(
             int(uid_str), CAT_OBYEKTIVKA, "Obyektivka Generator", skip_quota=skip_quota_completion
         )
+        _finish_single_doc_delivery(int(uid_str), CAT_OBYEKTIVKA)
 
         async def _send_oby():
             try:
@@ -642,18 +667,36 @@ async def api_paid_doc_download(
     uid = resolve_telegram_uid(telegram_id, token)
     if not uid:
         raise HTTPException(status_code=401, detail="Foydalanuvchi aniqlanmadi")
-    from bot.services.supabase_db import has_db, db_get_paid_doc_request
+    from bot.services.supabase_db import (
+        has_db,
+        db_get_paid_doc_request,
+        db_set_paid_doc_request_status,
+    )
 
     if not has_db():
         raise HTTPException(status_code=503, detail="DB ishlamayapti")
     row = db_get_paid_doc_request(int(request_id))
     if not row or int(row.get("user_id") or 0) != int(uid):
         raise HTTPException(status_code=404, detail="So'rov topilmadi")
-    if str(row.get("status") or "") not in {"approved", "delivered", "completed"}:
+    st = str(row.get("status") or "").strip().lower()
+    if st == "completed":
+        raise HTTPException(
+            status_code=409,
+            detail="Bu to'lov allaqachon ishlatilgan (1 ta hujjat). Yana olish uchun yangi to'lov qiling.",
+        )
+    if st not in {"approved", "delivered"}:
         raise HTTPException(status_code=409, detail="Hali tasdiqlanmagan")
 
     payload = row.get("payload") if isinstance(row.get("payload"), dict) else {}
     kind = str(row.get("kind") or "").strip().lower()
+    from bot.services.plan_limits import CAT_CV, CAT_OBYEKTIVKA
+
+    cat = CAT_CV if kind == "cv" else CAT_OBYEKTIVKA
+    require_paid_single_doc_or_subscription(int(uid), cat)
+    web_quota_consume_or_raise(int(uid), cat)
+    db_set_paid_doc_request_status(int(request_id), "completed")
+    _finish_single_doc_delivery(int(uid), cat, request_id=int(request_id))
+
     ts = int(time.time())
     if kind == "cv":
         from bot.services.doc_generator import generate_cv_docx
@@ -726,11 +769,24 @@ async def api_paid_doc_send_to_bot(
     row = db_get_paid_doc_request(int(request_id))
     if not row or int(row.get("user_id") or 0) != int(uid):
         raise HTTPException(status_code=404, detail="So'rov topilmadi")
-    if str(row.get("status") or "") not in {"approved", "delivered", "completed"}:
+    st = str(row.get("status") or "").strip().lower()
+    if st == "completed":
+        raise HTTPException(
+            status_code=409,
+            detail="Bu to'lov allaqachon ishlatilgan (1 ta hujjat). Yana olish uchun yangi to'lov qiling.",
+        )
+    if st not in {"approved", "delivered"}:
         raise HTTPException(status_code=409, detail="Hali tasdiqlanmagan")
 
     payload = row.get("payload") if isinstance(row.get("payload"), dict) else {}
     kind = str(row.get("kind") or "").strip().lower()
+    from bot.services.plan_limits import CAT_CV, CAT_OBYEKTIVKA
+
+    cat = CAT_CV if kind == "cv" else CAT_OBYEKTIVKA
+    require_paid_single_doc_or_subscription(int(uid), cat)
+    skip_quota_completion = web_quota_consume_or_raise(int(uid), cat)
+    db_set_paid_doc_request_status(int(request_id), "completed")
+
     chat_id = int(uid)
     rid = int(request_id)
 
@@ -788,10 +844,15 @@ async def api_paid_doc_send_to_bot(
                     parse_mode="HTML",
                 )
 
-            try:
-                db_set_paid_doc_request_status(rid, "completed")
-            except Exception:
-                pass
+            from bot.services.user_service import record_service_completion
+
+            record_service_completion(
+                chat_id,
+                cat,
+                "Paid doc → bot",
+                skip_quota=skip_quota_completion,
+            )
+            _finish_single_doc_delivery(chat_id, cat, request_id=rid)
         except Exception as e:
             logger.error("paid_doc_send_to_bot failed rid=%s: %s", rid, e, exc_info=True)
             try:
@@ -946,6 +1007,7 @@ async def api_export_cv(
         record_service_completion(
             int(uid_str), CAT_CV, f"CV Export {fmt.upper()}", skip_quota=skip_quota_completion
         )
+        _finish_single_doc_delivery(int(uid_str), CAT_CV)
 
         async def _send():
             try:
@@ -1081,6 +1143,7 @@ async def api_export_obyektivka(
             "Obyektivka Export PDF" if fmt == "pdf" else "Obyektivka Export WORD",
             skip_quota=skip_quota_completion,
         )
+        _finish_single_doc_delivery(int(uid_str), CAT_OBYEKTIVKA)
 
         async def _send_oby():
             try:

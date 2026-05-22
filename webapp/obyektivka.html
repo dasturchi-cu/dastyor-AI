@@ -701,6 +701,27 @@ function buildObyPayload(fmt){
 }
 
 var _obyApprovedRequestId = 0;
+
+async function reconcileObyPaidRequestStatus(){
+  var rid = _obyApprovedRequestId || Number(localStorage.getItem('oby_paid_request_id') || 0);
+  if(!rid) return;
+  try{
+    var p = new URLSearchParams({ request_id: String(rid) });
+    telegramId = resolveTelegramId();
+    if(telegramId) p.set('telegram_id', String(parseInt(telegramId, 10)));
+    var tok = getDastyorSessionToken();
+    if(tok) p.set('token', String(tok));
+    var st = await fetch(API_URL + '/api/paid_doc_status?' + p.toString(), { cache: 'no-store' });
+    if(!st.ok) return;
+    var js = await st.json();
+    var s = String(js.status || '');
+    if(s === 'completed'){
+      _obyApprovedRequestId = 0;
+      try{ localStorage.removeItem('oby_paid_request_id'); }catch(e){}
+    }
+  }catch(e){}
+}
+
 var _obyVoiceUploading = false;
 var _obyLiveRecorder = null;
 var _obyLiveStream = null;
@@ -715,17 +736,26 @@ function syncObyQuotaUi() {
   var blocked = window.DastyorAI && window.DastyorAI.isQuotaBlockedForCategory
     ? window.DastyorAI.isQuotaBlockedForCategory(u, 'obyektivka')
     : true;
-  if (btn) btn.disabled = !!blocked && !_obyApprovedRequestId;
+  var hasAccess = window.DastyorAI && window.DastyorAI.hasSingleDocAccess
+    ? window.DastyorAI.hasSingleDocAccess(u, 'obyektivka')
+    : !!(u && u.has_objective_access);
+  var pendingAdmin = !!(blocked && _obyApprovedRequestId && !hasAccess);
+
+  if (btn) btn.disabled = blocked || pendingAdmin;
   if (payBtn) {
-    if (blocked && !_obyApprovedRequestId) payBtn.classList.remove('hidden');
+    if (blocked && !hasAccess) payBtn.classList.remove('hidden');
     else payBtn.classList.add('hidden');
   }
   if (warn) {
-    if (blocked) {
+    if (hasAccess && !blocked) {
       warn.classList.remove('hidden');
-      warn.textContent = _obyApprovedRequestId
-        ? "✅ To'lov tasdiqlangan. Endi yuqoridagi 'Word botga yuborish' tugmasi ochiq."
-        : '⛔ Obyektivka olish uchun avval 5 000 so\'m to\'lov (skrinshot) qiling — pastdagi tugma.';
+      warn.textContent = "✅ To'lov tasdiqlandi. «Word botga yuborish» — faqat 1 marta.";
+    } else if (pendingAdmin) {
+      warn.classList.remove('hidden');
+      warn.textContent = "⏳ Admin tasdiqlashini kuting. Keyin 1 marta Word yuborishingiz mumkin.";
+    } else if (blocked) {
+      warn.classList.remove('hidden');
+      warn.textContent = "⛔ Obyektivka: 5 000 so'm = 1 ta Word. Avval to'lov (skrinshot), keyin yuborish.";
     } else {
       warn.classList.add('hidden');
       warn.textContent = '';
@@ -938,6 +968,7 @@ async function sendObyektivkaViaApi(fmt){
   });
   if (!res.ok) {
     var errMsg = await dastyorReadApiError(res);
+    if (res.status === 402 || res.status === 429) errMsg = '⛔ ' + errMsg;
     throw new Error(errMsg);
   }
   } finally {
@@ -961,37 +992,17 @@ async function sendObyektivkaToBot(fmt){
   var blockedNow = window.DastyorAI&&window.DastyorAI.isQuotaBlockedForCategory
     ? window.DastyorAI.isQuotaBlockedForCategory(uNow,'obyektivka')
     : true;
-  if(blockedNow && !_obyApprovedRequestId){
+  if(blockedNow){
     syncObyQuotaUi();
     try{ await payObySingle(fmt); }catch(_){}
     return;
   }
-  if(blockedNow && _obyApprovedRequestId){
-    var token = getDastyorSessionToken();
-    var p = new URLSearchParams({ request_id:String(_obyApprovedRequestId) });
-    if(telegramId) p.set('telegram_id', String(parseInt(telegramId,10)));
-    if(token) p.set('token', String(token));
-    var sendUrl = API_URL + '/api/paid_doc_send_to_bot?' + p.toString();
-    try{
-      var resp = await fetch(sendUrl, { method:'POST' });
-      if(!resp.ok){
-        var errTxt = await dastyorReadApiError(resp);
-        throw new Error(errTxt || ('Server ' + resp.status));
-      }
-      _obyApprovedRequestId = 0;
-      try{ localStorage.removeItem('oby_paid_request_id'); }catch(e){}
-      syncObyQuotaUi();
-      try{ await resp.json(); }catch(_){}
-      alert("✅ Word botga yuborildi.");
-      setTimeout(function(){ try{ tg.close(); }catch(_){} }, 500);
-    }catch(e){
-      var em2 = (e && e.message) ? String(e.message) : String(e);
-      alert("❌ Yuborishda xatolik: " + em2);
-    }
-    return;
-  }
   try{
     await sendObyektivkaViaApi(fmt);
+    _obyApprovedRequestId = 0;
+    try{ localStorage.removeItem('oby_paid_request_id'); }catch(e){}
+    try{ if(window.DastyorAI&&window.DastyorAI.refreshProfile) await window.DastyorAI.refreshProfile(); }catch(e){}
+    syncObyQuotaUi();
     tg.HapticFeedback&&tg.HapticFeedback.notificationOccurred&&tg.HapticFeedback.notificationOccurred('success');
     var doneMsg2 = (fmt === 'pdf')
       ? "✅ Tayyor! PDF fayl chatga yuborildi. Chatni ochib faylni oling."
@@ -1178,13 +1189,23 @@ async function payObySingle(fmt){
             if(!st.ok) return;
             var js=await st.json();
             var s=String(js.status||'');
-            if(s==='approved'||s==='delivered'||s==='completed'){
+            if(s==='completed'){
+              clearInterval(spin);
+              clearInterval(_obyPayState.pollTimer);
+              _obyPayState.pollTimer = null;
+              _obyApprovedRequestId = 0;
+              try{ localStorage.removeItem('oby_paid_request_id'); }catch(e){}
+              if(statusEl) statusEl.textContent = "✅ Bu to'lov ishlatilgan. Yana Word uchun yangi to'lov qiling.";
+              try{ if(window.DastyorAI&&window.DastyorAI.refreshProfile) await window.DastyorAI.refreshProfile(); }catch(e){}
+              syncObyQuotaUi();
+            } else if(s==='approved'||s==='delivered'){
               clearInterval(spin);
               clearInterval(_obyPayState.pollTimer);
               _obyPayState.pollTimer = null;
               _obyApprovedRequestId = _obyPayState.requestId;
               try{ localStorage.setItem('oby_paid_request_id', String(_obyApprovedRequestId)); }catch(e){}
-              if(statusEl) statusEl.textContent = "✅ Admin tasdiqladi. Endi yuqoridagi 'Word botga yuborish' tugmasi ochildi.";
+              if(statusEl) statusEl.textContent = "✅ Admin tasdiqladi. «Word botga yuborish» — faqat 1 marta.";
+              try{ if(window.DastyorAI&&window.DastyorAI.refreshProfile) await window.DastyorAI.refreshProfile(); }catch(e){}
               syncObyQuotaUi();
             }
           }catch(e){}
@@ -1715,12 +1736,10 @@ document.addEventListener('DOMContentLoaded',function(){
   void (async function(){
     try{
       if(window.DastyorAI&&typeof window.DastyorAI.init==='function'){
-        await window.DastyorAI.init();
-      }
-      if(window.DastyorAI&&typeof window.DastyorAI.refreshProfile==='function'){
-        await window.DastyorAI.refreshProfile();
+        await window.DastyorAI.init({ refreshProfile: true });
       }
       telegramId = resolveTelegramId();
+      await reconcileObyPaidRequestStatus();
       syncObyQuotaUi();
     }catch(e){console.warn(e);}
   })();

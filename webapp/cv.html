@@ -11,8 +11,7 @@
   
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script src="app.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-  <script src="https://cdn.tailwindcss.com"></script>
+  <script defer src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
       theme: {
@@ -885,7 +884,7 @@
       }
       previewDebounceTimer = setTimeout(function () {
         fetchServerPreview();
-      }, 420);
+      }, 950);
     }
 
     async function getPreviewImageFast(src) {
@@ -907,8 +906,27 @@
       return await _previewImgPromise;
     }
 
-    // --- PDF EXPORT ---
+    function ensureHtml2pdfLoaded() {
+      return new Promise(function (resolve, reject) {
+        if (typeof html2pdf === 'function') {
+          resolve();
+          return;
+        }
+        var s = document.createElement('script');
+        s.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js';
+        s.async = true;
+        s.onload = function () { resolve(); };
+        s.onerror = function () { reject(new Error('html2pdf yuklanmadi')); };
+        document.head.appendChild(s);
+      });
+    }
+
+    // --- PDF EXPORT (ixtiyoriy; asosiy yo'l — server export_cv) ---
     async function exportPDF() {
+      try { await ensureHtml2pdfLoaded(); } catch (e) {
+        alert('PDF kutubxonasi yuklanmadi. «PDF botga yuborish» tugmasidan foydalaning.');
+        return;
+      }
       const name = document.getElementById('f_name').value.trim() || 'CV';
       const safeName = name.replace(/\s+/g, '_');
       
@@ -1128,7 +1146,7 @@
             detail = detail.map((x) => (typeof x === 'string' ? x : (x && x.msg) || '')).filter(Boolean).join(' ');
           }
         } catch (_) {}
-        const head = res.status === 429 ? '⛔ Limit tugadi: ' : '';
+        const head = res.status === 429 ? '⛔ Limit tugadi: ' : (res.status === 402 ? '⛔ ' : '');
         throw new Error(head + (detail || 'Server ' + res.status));
       }
       if (ct.includes('application/json')) {
@@ -1143,6 +1161,25 @@
 
     let _cvApprovedRequestId = 0;
 
+    async function reconcileCvPaidRequestStatus() {
+      const rid = _cvApprovedRequestId || Number(localStorage.getItem('cv_paid_request_id') || 0);
+      if (!rid) return;
+      try {
+        const p = new URLSearchParams({ request_id: String(rid) });
+        if (telegramId) p.set('telegram_id', String(parseInt(telegramId, 10)));
+        const tok = (window.DastyorAI && window.DastyorAI.getToken) ? window.DastyorAI.getToken() : (sessionStorage.getItem('tg_token') || '');
+        if (tok) p.set('token', String(tok));
+        const st = await fetch(getCvApiBase() + '/api/paid_doc_status?' + p.toString(), { cache: 'no-store' });
+        if (!st.ok) return;
+        const js = await st.json();
+        const s = String(js.status || '');
+        if (s === 'completed') {
+          _cvApprovedRequestId = 0;
+          try { localStorage.removeItem('cv_paid_request_id'); } catch (_) {}
+        }
+      } catch (_) {}
+    }
+
     function syncCvQuotaUi() {
       const u = window.DastyorAI && window.DastyorAI.getUser ? window.DastyorAI.getUser() : null;
       const btn = document.getElementById('cvSendBotBtn');
@@ -1151,19 +1188,26 @@
       const blocked = window.DastyorAI && window.DastyorAI.isQuotaBlockedForCategory
         ? window.DastyorAI.isQuotaBlockedForCategory(u, 'cv')
         : true;
-      if (btn) {
-        btn.disabled = !!blocked && !_cvApprovedRequestId;
-      }
+      const hasAccess = window.DastyorAI && window.DastyorAI.hasSingleDocAccess
+        ? window.DastyorAI.hasSingleDocAccess(u, 'cv')
+        : !!(u && u.has_cv_access);
+      const pendingAdmin = !!(blocked && _cvApprovedRequestId && !hasAccess);
+
+      if (btn) btn.disabled = blocked || pendingAdmin;
       if (payBtn) {
-        if (blocked && !_cvApprovedRequestId) payBtn.classList.remove('hidden');
+        if (blocked && !hasAccess) payBtn.classList.remove('hidden');
         else payBtn.classList.add('hidden');
       }
       if (warn) {
-        if (blocked) {
+        if (hasAccess && !blocked) {
           warn.classList.remove('hidden');
-          warn.textContent = _cvApprovedRequestId
-            ? "✅ To'lov tasdiqlangan. Endi yuqoridagi 'PDF botga yuborish' tugmasi ochiq."
-            : '⛔ CV olish uchun avval 5 000 so\'m to\'lov (skrinshot) qiling — pastdagi tugma.';
+          warn.textContent = "✅ To'lov tasdiqlandi. «PDF botga yuborish» — faqat 1 marta.";
+        } else if (pendingAdmin) {
+          warn.classList.remove('hidden');
+          warn.textContent = "⏳ Admin tasdiqlashini kuting. Keyin 1 marta PDF yuborishingiz mumkin.";
+        } else if (blocked) {
+          warn.classList.remove('hidden');
+          warn.textContent = "⛔ CV: 5 000 so'm = 1 ta PDF. Avval to'lov (skrinshot), keyin yuborish.";
         } else {
           warn.classList.add('hidden');
           warn.textContent = '';
@@ -1184,42 +1228,9 @@
       const blockedNow = window.DastyorAI && window.DastyorAI.isQuotaBlockedForCategory
         ? window.DastyorAI.isQuotaBlockedForCategory(uNow, 'cv')
         : true;
-      if (blockedNow && !_cvApprovedRequestId) {
+      if (blockedNow) {
         syncCvQuotaUi();
         try { await payCvSingle(fmt); } catch (_) {}
-        return;
-      }
-      if (blockedNow && _cvApprovedRequestId) {
-        const token = (window.DastyorAI && window.DastyorAI.getToken) ? window.DastyorAI.getToken() : (sessionStorage.getItem('tg_token') || "");
-        const qs = new URLSearchParams({ request_id: String(_cvApprovedRequestId) });
-        if (telegramId) qs.set('telegram_id', String(parseInt(telegramId, 10)));
-        if (token) qs.set('token', String(token));
-        const sendUrl = getCvApiBase() + '/api/paid_doc_send_to_bot?' + qs.toString();
-        try {
-          try {
-            if (window.DastyorAI && window.DastyorAI.showDocumentLoading) {
-              window.DastyorAI.showDocumentLoading('Hujjat tayyorlanmoqda...', 'Iltimos, 10–15 soniya kuting');
-            }
-          } catch (_) {}
-          const resp = await fetch(sendUrl, { method: 'POST' });
-          if (!resp.ok) {
-            let d = '';
-            try { const j = await resp.json(); d = j.detail || j.message || ''; } catch (_) {}
-            throw new Error(d || ('Server ' + resp.status));
-          }
-          try { await resp.json(); } catch (_) {}
-          _cvApprovedRequestId = 0;
-          try { localStorage.removeItem('cv_paid_request_id'); } catch (_) {}
-          syncCvQuotaUi();
-          alert("✅ CV botga yuborildi.");
-          setTimeout(() => { try { tg.close(); } catch (_) {} }, 500);
-        } catch (e) {
-          alert("❌ Yuborishda xatolik: " + ((e && e.message) ? e.message : String(e)));
-        } finally {
-          try {
-            if (window.DastyorAI && window.DastyorAI.hideDocumentLoading) window.DastyorAI.hideDocumentLoading();
-          } catch (_) {}
-        }
         return;
       }
       try {
@@ -1230,6 +1241,10 @@
         } catch (_) {}
 
         const data = await sendCvViaApi(fmt);
+        _cvApprovedRequestId = 0;
+        try { localStorage.removeItem('cv_paid_request_id'); } catch (_) {}
+        try { if (window.DastyorAI && window.DastyorAI.refreshProfile) await window.DastyorAI.refreshProfile(); } catch (_) {}
+        syncCvQuotaUi();
         tg.HapticFeedback && tg.HapticFeedback.notificationOccurred && tg.HapticFeedback.notificationOccurred('success');
         const line = (data && data.message) ? data.message : "✅ Fayl botga yuborildi. Telegram chatda kuting.";
         alert(line);
@@ -1391,13 +1406,23 @@
                 if (!st.ok) return;
                 const js = await st.json();
                 const s = String(js.status || '');
-                if (s === 'approved' || s === 'delivered') {
+                if (s === 'completed') {
+                  clearInterval(spin);
+                  clearInterval(_cvPayState.pollTimer);
+                  _cvPayState.pollTimer = null;
+                  _cvApprovedRequestId = 0;
+                  try { localStorage.removeItem('cv_paid_request_id'); } catch (_) {}
+                  if (status) status.textContent = "✅ Bu to'lov ishlatilgan. Yana PDF uchun yangi to'lov qiling.";
+                  try { if (window.DastyorAI && window.DastyorAI.refreshProfile) await window.DastyorAI.refreshProfile(); } catch (_) {}
+                  syncCvQuotaUi();
+                } else if (s === 'approved' || s === 'delivered') {
                   clearInterval(spin);
                   clearInterval(_cvPayState.pollTimer);
                   _cvPayState.pollTimer = null;
                   _cvApprovedRequestId = _cvPayState.requestId;
                   try { localStorage.setItem('cv_paid_request_id', String(_cvApprovedRequestId)); } catch (_) {}
-                  if (status) status.textContent = "✅ Admin tasdiqladi. Endi yuqoridagi 'PDF botga yuborish' tugmasi ochildi.";
+                  if (status) status.textContent = "✅ Admin tasdiqladi. «PDF botga yuborish» — faqat 1 marta.";
+                  try { if (window.DastyorAI && window.DastyorAI.refreshProfile) await window.DastyorAI.refreshProfile(); } catch (_) {}
                   syncCvQuotaUi();
                 }
               } catch (_) {}
@@ -1415,8 +1440,10 @@
       try { _cvApprovedRequestId = Number(localStorage.getItem('cv_paid_request_id') || 0); } catch (_) {}
       try { syncCvQuotaUi(); } catch (_) {}
       try {
-        if (window.DastyorAI && window.DastyorAI.init) await window.DastyorAI.init();
-        if (window.DastyorAI && window.DastyorAI.refreshProfile) await window.DastyorAI.refreshProfile();
+        if (window.DastyorAI && window.DastyorAI.init) {
+          await window.DastyorAI.init({ refreshProfile: true });
+        }
+        await reconcileCvPaidRequestStatus();
         syncCvQuotaUi();
       } catch (_) {}
       loadFromLocalStorage();

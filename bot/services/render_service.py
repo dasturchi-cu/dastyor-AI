@@ -471,7 +471,7 @@ async def generate_obyektivka_pdf(data: dict, base_url: str | None = None) -> by
     if bu and "<head>" in html_str:
         html_str = html_str.replace("<head>", f"<head><base href='{bu}/'>")
 
-    pw_first = os.getenv("OBY_PDF_PLAYWRIGHT_FIRST", os.getenv("CV_PDF_PLAYWRIGHT_FIRST", "1")).strip().lower() in (
+    pw_first = os.getenv("OBY_PDF_PLAYWRIGHT_FIRST", os.getenv("CV_PDF_PLAYWRIGHT_FIRST", "0")).strip().lower() in (
         "1",
         "true",
         "yes",

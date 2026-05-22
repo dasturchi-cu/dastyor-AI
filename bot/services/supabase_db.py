@@ -708,13 +708,36 @@ def db_set_paid_doc_request_status(request_id: int, status: str) -> bool:
         return True
     except Exception:
         return False
+
+
+def db_complete_user_paid_doc_requests(
+    user_id: int,
+    kind: str,
+    *,
+    request_id: int | None = None,
+) -> None:
+    """Bir martalik to'lov ishlatilganda ochiq (approved/delivered) so'rovlarni yopish."""
+    c = _get_client()
+    if not c:
+        return
+    uid = int(user_id)
+    k = (kind or "").strip().lower()
+    if k not in {"cv", "obyektivka"}:
+        return
     try:
-        c.table("users").update(kwargs).eq("id", user_id).execute()
-        return True
+        q = c.table("paid_doc_requests").update({"status": "completed"})
+        if request_id is not None:
+            q = q.eq("id", int(request_id)).eq("user_id", uid)
+        else:
+            q = q.eq("user_id", uid).eq("kind", k)
+        q.in_("status", ["approved", "delivered"]).execute()
+        if request_id is not None:
+            try:
+                _paid_doc_req_cache.pop(int(request_id), None)
+            except Exception:
+                pass
     except Exception as e:
-        _mark_temporarily_unavailable(e)
-        logger.error(f"db_update_user_field: {e}")
-        return False
+        logger.debug("db_complete_user_paid_doc_requests: %s", e)
 
 
 def db_increment_files(user_id: int, service_name: str = None) -> bool:

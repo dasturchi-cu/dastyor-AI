@@ -14,9 +14,9 @@ CV_INTRO_TEXT = (
     "📄 <b>CV (rezyume) — qanday ishlaydi?</b>\n\n"
     "1️⃣ <b>Formani oching</b> — pastdagi ko‘k tugma\n"
     "2️⃣ Ma’lumotlaringizni to‘ldiring (tajriba, ta’lim, foto)\n"
-    "3️⃣ Tayyor PDF/Word ni ko‘rib chiqing\n"
-    "4️⃣ Kerak bo‘lsa <b>5 000 so‘m</b> to‘lov → admin tasdiqlash → fayl botga keladi\n\n"
-    "💡 Formani bepul ko‘rishingiz mumkin; yuklab olish/to‘lov alohida."
+    "3️⃣ Jonli ko‘rinishda tekshiring\n"
+    "4️⃣ <b>5 000 so‘m</b> to‘lov → admin tasdiqlash → <b>1 ta PDF</b> botga yuboriladi\n\n"
+    "💡 Formani bepul to‘ldirasiz; <b>botga PDF yuborish</b> — bir martalik to‘lov."
 )
 
 OBY_INTRO_TEXT = (
@@ -24,8 +24,8 @@ OBY_INTRO_TEXT = (
     "1️⃣ <b>Quyidagi namuna ovozni</b> tinglang (qanday o‘qish kerakligi)\n"
     "2️⃣ Xohlasangiz shu yerga <b>ovozli xabar</b> yuboring — bot maydonlarni to‘ldiradi\n"
     "3️⃣ Yoki pastdagi tugma orqali <b>formani ochib</b> qo‘lda kiriting\n"
-    "4️⃣ Tayyor Word ni ko‘ring → <b>5 000 so‘m</b> to‘lov → admin tasdiqlash → botga yuboriladi\n\n"
-    "💡 Ovozli to‘ldirish <b>bepul</b>; faqat tayyor hujjat yuborish pullik."
+    "4️⃣ Tayyor Word ni ko‘ring → <b>5 000 so‘m</b> → admin tasdiqlash → <b>1 ta Word</b> botga\n\n"
+    "💡 Ovozli to‘ldirish <b>bepul</b>; <b>botga Word yuborish</b> — bir martalik to‘lov."
 )
 
 OBY_INSTRUCTION_TEXT = (

@@ -319,6 +319,13 @@ const DastyorAI = (() => {
         if (plan === 'standard' || plan === 'premium') return false;
         if (cat === 'cv' && u.has_cv_access) return false;
         if (cat === 'obyektivka' && u.has_objective_access) return false;
+        if (Array.isArray(u.limits_breakdown)) {
+            const row = u.limits_breakdown.find((r) => r.category === cat);
+            if (row && !row.unlimited && !row.blocked) {
+                const rem = row.remaining != null ? Number(row.remaining) : NaN;
+                if (!Number.isNaN(rem) && rem <= 0) return true;
+            }
+        }
         return true;
     }
 
@@ -326,7 +333,7 @@ const DastyorAI = (() => {
      * /api/me limits_breakdown: bu kategoriya uchun limit tugagan yoki to'lov kerak.
      */
     function isQuotaBlockedForCategory(u, category) {
-        if (!u || !category) return false;
+        if (!u || !category) return true;
         if (needsSingleDocPayment(u, category)) return true;
         if (!Array.isArray(u.limits_breakdown)) return false;
         const row = u.limits_breakdown.find((r) => r.category === category);
@@ -336,6 +343,15 @@ const DastyorAI = (() => {
         if (row.exhausted === true) return true;
         const rem = row.remaining != null ? Number(row.remaining) : NaN;
         if (!Number.isNaN(rem) && rem <= 0) return true;
+        return false;
+    }
+
+    /** has_cv_access / has_objective_access — admin tasdiqlagan 1 ta yuborish huquqi */
+    function hasSingleDocAccess(u, category) {
+        if (!u || !category) return false;
+        const cat = String(category).toLowerCase();
+        if (cat === 'cv') return !!u.has_cv_access;
+        if (cat === 'obyektivka') return !!u.has_objective_access;
         return false;
     }
 
@@ -439,7 +455,11 @@ const DastyorAI = (() => {
         if (document.body) document.body.insertBefore(el, document.body.firstChild);
     }
 
-    async function init() {
+    let _profileRefreshInFlight = null;
+    let _profileRefreshLastAt = 0;
+    const PROFILE_REFRESH_MIN_MS = 2800;
+
+    async function init(opts = {}) {
         restoreSession();
         if (tg) {
             tg.ready();
@@ -449,20 +469,11 @@ const DastyorAI = (() => {
         if (!identity) return null;
 
         if (token && user && String(user.telegram_id) === String(identity.telegram_id)) {
-            if (shouldShowTariffStrip()) renderTariffBanner(user);
-            void (async () => {
-                try {
-                    const r = await apiFetch(
-                        `/api/me?telegram_id=${identity.telegram_id}&token=${encodeURIComponent(token)}`,
-                    );
-                    if (r.ok) {
-                        const p = await r.json();
-                        Object.assign(user, _pickTariffFields(p));
-                        persistSession(user, token);
-                        if (shouldShowTariffStrip()) renderTariffBanner(user);
-                    }
-                } catch (_) { /* ignore */ }
-            })();
+            if (opts.refreshProfile !== false) {
+                await refreshProfile(true);
+            } else if (shouldShowTariffStrip()) {
+                renderTariffBanner(user);
+            }
             return user;
         }
 
@@ -494,45 +505,63 @@ const DastyorAI = (() => {
         }
     }
 
-    async function refreshProfile() {
+    async function refreshProfile(force = false) {
         const identity = readIdentity();
         if (!identity) return user;
-        const t = token || (() => {
+        const now = Date.now();
+        if (!force && _profileRefreshInFlight) {
+            return _profileRefreshInFlight;
+        }
+        if (!force && now - _profileRefreshLastAt < PROFILE_REFRESH_MIN_MS && user) {
+            return user;
+        }
+
+        const run = async () => {
+            const t = token || (() => {
+                try {
+                    return sessionStorage.getItem('tg_token');
+                } catch (_) {
+                    return null;
+                }
+            })();
             try {
-                return sessionStorage.getItem('tg_token');
-            } catch (_) {
-                return null;
-            }
-        })();
-        try {
-            if (t) {
-                const r = await apiFetch(
-                    `/api/me?telegram_id=${identity.telegram_id}&token=${encodeURIComponent(t)}`,
-                );
-                if (r.ok) {
-                    const p = await r.json();
-                    if (!user) user = { telegram_id: identity.telegram_id };
-                    Object.assign(user, _pickTariffFields(p));
-                    persistSession(user, t);
-                    token = t;
+                if (t) {
+                    const r = await apiFetch(
+                        `/api/me?telegram_id=${identity.telegram_id}&token=${encodeURIComponent(t)}`,
+                    );
+                    if (r.ok) {
+                        const p = await r.json();
+                        if (!user) user = { telegram_id: identity.telegram_id };
+                        Object.assign(user, _pickTariffFields(p));
+                        persistSession(user, t);
+                        token = t;
+                    }
+                } else {
+                    const r = await apiFetch(`/api/me?telegram_id=${identity.telegram_id}`);
+                    if (r.ok) {
+                        const p = await r.json();
+                        if (!user) user = { telegram_id: identity.telegram_id };
+                        Object.assign(user, _pickTariffFields(p));
+                        try {
+                            sessionStorage.setItem(SS_USER, JSON.stringify(user));
+                        } catch (_) {}
+                    }
                 }
-            } else {
-                const r = await apiFetch(`/api/me?telegram_id=${identity.telegram_id}`);
-                if (r.ok) {
-                    const p = await r.json();
-                    if (!user) user = { telegram_id: identity.telegram_id };
-                    Object.assign(user, _pickTariffFields(p));
-                    try {
-                        sessionStorage.setItem(SS_USER, JSON.stringify(user));
-                    } catch (_) {}
-                }
-            }
-        } catch (_) { /* ignore */ }
-        if (shouldShowTariffStrip()) renderTariffBanner(user);
+            } catch (_) { /* ignore */ }
+            if (shouldShowTariffStrip()) renderTariffBanner(user);
+            try {
+                window.dispatchEvent(new CustomEvent('dastyor:profile-updated', { detail: user }));
+            } catch (_) {}
+            _profileRefreshLastAt = Date.now();
+            return user;
+        };
+
+        _profileRefreshInFlight = run();
         try {
-            window.dispatchEvent(new CustomEvent('dastyor:profile-updated', { detail: user }));
-        } catch (_) {}
-        return user;
+            return await _profileRefreshInFlight;
+        } finally {
+            _profileRefreshInFlight = null;
+        }
     }
 
     function navigate(page) {
@@ -595,7 +624,6 @@ const DastyorAI = (() => {
         const r = await apiFetch('/api/translate', { method: 'POST', body: JSON.stringify(body) });
         const data = await r.json();
         if (!r.ok) throw new Error(data.detail || 'Translation failed');
-        void refreshProfile();
         return data.translated_text;
     }
 
@@ -618,7 +646,6 @@ const DastyorAI = (() => {
         const r = await apiFetch('/api/translit', { method: 'POST', body: JSON.stringify(body) });
         const data = await r.json();
         if (!r.ok) throw new Error(data.detail || 'Translit failed');
-        void refreshProfile();
         return data.result;
     }
 
@@ -855,6 +882,7 @@ html[data-theme="dark"] .da-doc-loading-ring{border-color:#334155;border-top-col
         renderTariffBanner,
         refreshProfile,
         isQuotaBlockedForCategory,
+        hasSingleDocAccess,
         needsSingleDocPayment,
         applyServiceQuotaUi,
         shouldShowTariffStrip,
@@ -915,6 +943,9 @@ html[data-theme="dark"] .da-doc-loading-ring{border-color:#334155;border-top-col
     // Til: loadLocale asinxron — DOM bo‘lmasa yoki keyinroq CV parse bo‘lsa, applyTranslations noto‘g‘ri yozardi.
     (function bootLanguageWhenDomReady() {
         const run = () => {
+            if (document.body && document.body.dataset.daSkipGlobalI18n === '1') {
+                return;
+            }
             const qsLang = pickLangCandidate(new URLSearchParams(location.search || '').get('lang'));
             const ssLang = pickLangCandidate(sessionStorage.getItem(SS_LANG));
             const lsLang = pickLangCandidate(localStorage.getItem(LANGUAGE_KEY));

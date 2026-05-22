@@ -15,8 +15,18 @@ def build_web_me_quota_fields(uid: int) -> dict:
 
     u = int(uid)
     plan = get_active_plan_code(u)
-    has_cv = bool(has_db() and db_user_has_cv_access(u))
-    has_obj = bool(has_db() and db_user_has_objective_access(u))
+    has_cv = False
+    has_obj = False
+    if has_db():
+        try:
+            from bot.services.supabase_db import db_get_user
+            from bot.services.plan_limits import _paid_access_flags_from_row
+
+            row = db_get_user(u)
+            has_cv, has_obj = _paid_access_flags_from_row(row)
+        except Exception:
+            has_cv = bool(db_user_has_cv_access(u))
+            has_obj = bool(db_user_has_objective_access(u))
     plan_labels = {
         "free": "Bepul",
         "standard": "Standard",
@@ -30,6 +40,18 @@ def build_web_me_quota_fields(uid: int) -> dict:
         "has_objective_access": has_obj,
         "limits_breakdown": user_limits_breakdown(u, plan),
     }
+
+
+def _paid_once_bucket_used(uid: int, category: str) -> bool:
+    from bot.services.plan_limits import CAT_CV, CAT_OBYEKTIVKA, _get_bucket_count
+
+    u = int(uid)
+    cat = (category or "").strip().lower()
+    if cat == CAT_CV:
+        return _get_bucket_count(u, f"paid_once:{CAT_CV}:{u}") >= 1
+    if cat == CAT_OBYEKTIVKA:
+        return _get_bucket_count(u, f"paid_once:{CAT_OBYEKTIVKA}:{u}") >= 1
+    return False
 
 
 def require_paid_single_doc_or_subscription(uid: int, category: str) -> None:
@@ -55,6 +77,15 @@ def require_paid_single_doc_or_subscription(uid: int, category: str) -> None:
     plan = get_active_plan_code(u)
     if plan in ("standard", "premium"):
         return
+    if has_db() and _paid_once_bucket_used(u, cat):
+        label = "CV" if cat == CAT_CV else "Obyektivka"
+        raise HTTPException(
+            status_code=402,
+            detail=(
+                f"❌ «{label}» uchun 5 000 so'mlik to'lov allaqachon ishlatilgan "
+                "(1 ta hujjat). Yana olish uchun yangi to'lov qiling."
+            ),
+        )
     if cat == CAT_CV and has_db() and db_user_has_cv_access(u):
         return
     if cat == CAT_OBYEKTIVKA and has_db() and db_user_has_objective_access(u):

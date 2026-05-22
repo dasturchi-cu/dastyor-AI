@@ -1,6 +1,7 @@
 """Minimal Web APIs for CV/Obyektivka and admin notifications."""
 from __future__ import annotations
 
+import asyncio
 import os
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -31,7 +32,12 @@ async def api_auth(req: AuthRequest) -> dict:
         first_name = req.first_name
         username = req.username
 
-    track_user_activity(_U(), command="web_auth", chat_id=int(req.telegram_id))
+    await asyncio.to_thread(
+        track_user_activity,
+        _U(),
+        "web_auth",
+        int(req.telegram_id),
+    )
     return {"ok": True, "token": token, "telegram_id": req.telegram_id}
 
 

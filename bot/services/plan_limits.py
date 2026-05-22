@@ -104,9 +104,16 @@ def _subscription_row_for_buckets(user_id: int) -> Optional[dict]:
         return None
 
 
-def resolve_bucket_key(user_id: int, category: str, mode: str) -> Optional[str]:
+def resolve_bucket_key(
+    user_id: int,
+    category: str,
+    mode: str,
+    *,
+    sub_row: Optional[dict] = None,
+) -> Optional[str]:
     """
     None = cheksiz yoki blocked (hisob yo'q).
+    sub_row — ixtiyoriy kesh (user_limits_breakdown uchun bir marta o'qiladi).
     """
     if mode in ("unlimited", "blocked"):
         return None
@@ -116,7 +123,7 @@ def resolve_bucket_key(user_id: int, category: str, mode: str) -> Optional[str]:
     if mode == "month":
         return f"m:{date.today().strftime('%Y-%m')}:{category}"
     if mode == "subscription":
-        row = _subscription_row_for_buckets(uid)
+        row = sub_row if sub_row is not None else _subscription_row_for_buckets(uid)
         if not row:
             return None
         sid = row.get("id")
@@ -404,6 +411,52 @@ def category_status(user_id: int, category: str) -> dict[str, Any]:
     return _assemble_category_status(uid, category, plan, mode, cap, label, bkey, counts)
 
 
+def _paid_access_flags_from_row(row: Optional[dict]) -> tuple[bool, bool]:
+    if not row:
+        return False, False
+    return bool(row.get("has_cv_access")), bool(row.get("has_objective_access"))
+
+
+def _format_breakdown_line(cat: str, st: dict[str, Any]) -> dict[str, Any]:
+    line = {
+        "category": cat,
+        "label": st["label"],
+        "unlimited": st["unlimited"],
+        "blocked": st["blocked"],
+        "used": st.get("used"),
+        "limit": st.get("limit"),
+        "remaining": st.get("remaining"),
+        "period": st.get("period_note"),
+    }
+    if st["unlimited"]:
+        line["exhausted"] = False
+        line["display"] = f"{st['label']}: ♾ cheksiz"
+    elif st["blocked"]:
+        line["exhausted"] = False
+        if cat in (CAT_CV, CAT_OBYEKTIVKA):
+            try:
+                from bot.services.pricing import SINGLE_DOC_PRICE_UZS
+
+                p = int(SINGLE_DOC_PRICE_UZS)
+            except Exception:
+                p = 5000
+            line["display"] = f"{st['label']}: {p} so'm (bir martalik to'lov)"
+        else:
+            line["display"] = f"{st['label']}: — (tarifda yo'q)"
+    else:
+        u = st.get("used", 0)
+        l = st.get("limit", 0)
+        r = st.get("remaining", 0)
+        pn = st.get("period_note", "")
+        exhausted = int(r or 0) <= 0
+        line["exhausted"] = exhausted
+        tail = " — ⚠️ limit tugadi" if exhausted else ""
+        line["display"] = (
+            f"{st['label']}: ishlatilgan {u}, limit {l} ({pn}), qoldi {r}{tail}"
+        )
+    return line
+
+
 def can_use_category(user_id: int, category: str) -> bool:
     from bot.services.admin_service import is_admin
 
@@ -449,6 +502,9 @@ def record_category_use(user_id: int, category: str) -> bool:
             if has_db():
                 if category == CAT_CV and db_user_has_cv_access(uid):
                     bkey_po = f"paid_once:{CAT_CV}:{uid}"
+                    if _get_bucket_count(uid, bkey_po) >= 1:
+                        db_grant_cv_access(uid, False)
+                        return False
                     inc = _try_incr_bucket(uid, bkey_po, 1)
                     if inc >= 1:
                         db_grant_cv_access(uid, False)
@@ -456,6 +512,9 @@ def record_category_use(user_id: int, category: str) -> bool:
                     return False
                 if category == CAT_OBYEKTIVKA and db_user_has_objective_access(uid):
                     bkey_po = f"paid_once:{CAT_OBYEKTIVKA}:{uid}"
+                    if _get_bucket_count(uid, bkey_po) >= 1:
+                        db_grant_objective_access(uid, False)
+                        return False
                     inc = _try_incr_bucket(uid, bkey_po, 1)
                     if inc >= 1:
                         db_grant_objective_access(uid, False)
@@ -496,53 +555,60 @@ def record_category_use(user_id: int, category: str) -> bool:
 
 
 def user_limits_breakdown(user_id: int, plan: str | None = None) -> list[dict[str, Any]]:
-    """API / balans uchun barcha kategoriyalar ro'yxati (category_status — paid_once ham)."""
+    """API / balans: barcha kategoriyalar — bitta batch bucket so'rovi (N+1 emas)."""
     from bot.services.settings_service import get_active_plan_code
 
     uid = int(user_id)
     if plan is None:
         plan = get_active_plan_code(uid)
 
-    out: list[dict[str, Any]] = []
-    for cat in _ORDER:
-        st = category_status(uid, cat)
-        line = {
-            "category": cat,
-            "label": st["label"],
-            "unlimited": st["unlimited"],
-            "blocked": st["blocked"],
-            "used": st.get("used"),
-            "limit": st.get("limit"),
-            "remaining": st.get("remaining"),
-            "period": st.get("period_note"),
-        }
-        if st["unlimited"]:
-            line["exhausted"] = False
-            line["display"] = f"{st['label']}: ♾ cheksiz"
-        elif st["blocked"]:
-            line["exhausted"] = False
-            if cat in (CAT_CV, CAT_OBYEKTIVKA):
-                try:
-                    from bot.services.pricing import SINGLE_DOC_PRICE_UZS
+    limits = _plan_limits(plan)
+    has_cv_access = False
+    has_obj_access = False
+    sub_row: Optional[dict] = None
 
-                    p = int(SINGLE_DOC_PRICE_UZS)
-                except Exception:
-                    p = 5000
-                line["display"] = f"{st['label']}: {p} so'm (bir martalik to'lov)"
-            else:
-                line["display"] = f"{st['label']}: — (tarifda yo'q)"
-        else:
-            u = st.get("used", 0)
-            l = st.get("limit", 0)
-            r = st.get("remaining", 0)
-            pn = st.get("period_note", "")
-            exhausted = int(r or 0) <= 0
-            line["exhausted"] = exhausted
-            tail = " — ⚠️ limit tugadi" if exhausted else ""
-            line["display"] = (
-                f"{st['label']}: ishlatilgan {u}, limit {l} ({pn}), qoldi {r}{tail}"
-            )
-        out.append(line)
+    needs_sub = any(limits.get(c, ("blocked", 0))[0] == "subscription" for c in _ORDER)
+    if needs_sub:
+        sub_row = _subscription_row_for_buckets(uid)
+
+    if plan == "free":
+        try:
+            from bot.services.supabase_db import db_get_user, has_db
+
+            if has_db():
+                has_cv_access, has_obj_access = _paid_access_flags_from_row(db_get_user(uid))
+        except Exception as e:
+            logger.debug("user_limits_breakdown access flags: %s", e)
+
+    bucket_keys: list[str] = []
+    cat_specs: list[tuple[str, str, int | None, str, Optional[str]]] = []
+
+    for cat in _ORDER:
+        label = category_label_uz(cat)
+        if plan == "free" and cat == CAT_CV and has_cv_access:
+            bkey = f"paid_once:{CAT_CV}:{uid}"
+            bucket_keys.append(bkey)
+            cat_specs.append((cat, "subscription", 1, label, bkey))
+            continue
+        if plan == "free" and cat == CAT_OBYEKTIVKA and has_obj_access:
+            bkey = f"paid_once:{CAT_OBYEKTIVKA}:{uid}"
+            bucket_keys.append(bkey)
+            cat_specs.append((cat, "subscription", 1, label, bkey))
+            continue
+
+        mode, cap = limits.get(cat, ("blocked", 0))
+        bkey: Optional[str] = None
+        if mode not in ("unlimited", "blocked") and cap != 0:
+            bkey = resolve_bucket_key(uid, cat, mode, sub_row=sub_row)
+            if bkey:
+                bucket_keys.append(bkey)
+        cat_specs.append((cat, mode, cap, label, bkey))
+
+    counts = _batch_bucket_counts(uid, bucket_keys)
+    out: list[dict[str, Any]] = []
+    for cat, mode, cap, label, bkey in cat_specs:
+        st = _assemble_category_status(uid, cat, plan, mode, cap, label, bkey, counts)
+        out.append(_format_breakdown_line(cat, st))
     return out
 
 
