@@ -32,7 +32,7 @@ def _compact_doc_rows(rows: list[dict]) -> list[dict]:
 
 def format_my_documents_text(user_id: int) -> str:
     uid = int(user_id)
-    lines = ["📂 <b>Mening hujjatlarim</b>\n"]
+    lines = ["📂 <b>Hujjatlar</b>\n"]
 
     if not has_db():
         lines.append("⚠️ Ma’lumotlar bazasi ulanmagan.")
@@ -51,11 +51,7 @@ def format_my_documents_text(user_id: int) -> str:
 
     rows = _compact_doc_rows(db_list_user_paid_doc_requests(uid, limit=12))
     if not rows:
-        lines.append(
-            "Hali so‘rov yo‘q.\n\n"
-            "📄 <b>CV Resume</b> yoki ✍️ <b>Obyektivka</b> tugmasini bosing — "
-            "forma → 5 000 so‘m → admin tasdiqlash."
-        )
+        lines.append("So‘rov yo‘q. 📄 CV yoki ✍️ Obyektivka tugmasi.")
         return "\n".join(lines)
 
     lines.append("<b>Oxirgi so‘rovlar:</b>")
@@ -66,8 +62,5 @@ def format_my_documents_text(user_id: int) -> str:
         st = paid_doc_status_label(str(r.get("status") or "pending"))
         lines.append(f"• #{rid} — {kind_uz}: {st}")
 
-    lines.append(
-        "\n💡 <b>Tasdiqlangan</b> bo‘lsa — formada «Botga yuborish».\n"
-        "<b>Yuborilgan</b> bo‘lsa — yangi hujjat uchun qayta to‘lov."
-    )
+    lines.append("\nTasdiq → forma, «Botga yuborish». Yuborilgan → yangi to‘lov.")
     return "\n".join(lines)

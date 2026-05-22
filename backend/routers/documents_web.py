@@ -674,6 +674,26 @@ async def api_paid_doc_status(
     return {"ok": True, "request_id": int(request_id), "status": str(row.get("status") or "")}
 
 
+@router.post("/api/export_release_pending")
+async def api_export_release_pending(
+    category: str = Query(..., description="cv yoki obyektivka"),
+    token: Optional[str] = Query(None),
+    telegram_id: Optional[str] = Query(None),
+):
+    """Qotib qolgan doc_send_pending — foydalanuvchi qayta yuborishi uchun."""
+    uid = resolve_telegram_uid(telegram_id, token)
+    if not uid:
+        raise HTTPException(status_code=401, detail="Foydalanuvchi aniqlanmadi")
+    from bot.services.plan_limits import CAT_CV, CAT_OBYEKTIVKA
+    from backend.services.export_guard import release_document_export
+
+    cat = (category or "").strip().lower()
+    if cat not in (CAT_CV, CAT_OBYEKTIVKA):
+        raise HTTPException(status_code=400, detail="category: cv yoki obyektivka")
+    release_document_export(int(uid), cat)
+    return {"ok": True, "released": True}
+
+
 @router.get("/api/paid_doc_download")
 async def api_paid_doc_download(
     request_id: int = Query(..., ge=1),
@@ -934,17 +954,6 @@ async def api_export_cv(
         len((data.get("img") or "")),
     )
 
-    progress_msg_id: int | None = None
-    if uid_str:
-        try:
-            progress_msg = await ptb.bot.send_message(
-                chat_id=int(uid_str),
-                text="⏳ CV tayyorlanmoqda... (2–5 soniya)",
-            )
-            progress_msg_id = progress_msg.message_id
-        except Exception:
-            progress_msg_id = None
-
     if req.send_only and uid_str:
 
         async def _generate_and_send():
@@ -1005,19 +1014,13 @@ async def api_export_cv(
                     )
                 except Exception:
                     pass
-            finally:
-                if progress_msg_id is not None:
-                    try:
-                        await ptb.bot.delete_message(chat_id=int(uid_str), message_id=progress_msg_id)
-                    except Exception:
-                        pass
 
         asyncio.create_task(_generate_and_send())
         return JSONResponse(
             content={
                 "ok": True,
                 "status": "queued_to_bot",
-                "message": "✅ So‘rov qabul qilindi. CV tayyorlanmoqda — fayl tez orada bot chatiga yuboriladi.",
+                "message": "✅ PDF bot chatiga yuborilmoqda.",
             }
         )
 
@@ -1081,12 +1084,6 @@ async def api_export_cv(
                     )
             except Exception as tg_err:
                 logger.warning("CV export Telegram send failed: %s", tg_err)
-            finally:
-                if progress_msg_id is not None:
-                    try:
-                        await ptb.bot.delete_message(chat_id=int(uid_str), message_id=progress_msg_id)
-                    except Exception:
-                        pass
 
         asyncio.create_task(_send())
 
@@ -1126,17 +1123,6 @@ async def api_export_obyektivka(
     data = req.dict(exclude={"telegram_id", "token", "format"})
     safe = safe_filename(req.fullname or "Obyektivka")
     bot_suffix = "_@DastyorAiBot"
-
-    progress_msg_id: int | None = None
-    if uid_str:
-        try:
-            progress_msg = await ptb.bot.send_message(
-                chat_id=int(uid_str),
-                text="⏳ Obyektivka tayyorlanmoqda... (bir necha soniya)",
-            )
-            progress_msg_id = progress_msg.message_id
-        except Exception:
-            progress_msg_id = None
 
     if req.send_only and uid_str:
         from bot.services.plan_limits import CAT_OBYEKTIVKA
@@ -1219,19 +1205,13 @@ async def api_export_obyektivka(
                     )
                 except Exception:
                     pass
-            finally:
-                if progress_msg_id is not None:
-                    try:
-                        await ptb.bot.delete_message(chat_id=uid_i, message_id=progress_msg_id)
-                    except Exception:
-                        pass
 
         asyncio.create_task(_generate_and_send_oby_only())
         return JSONResponse(
             content={
                 "ok": True,
                 "status": "queued_to_bot",
-                "message": "✅ Qabul qilindi. Obyektivka tez orada bot chatiga yuboriladi.",
+                "message": "✅ Word bot chatiga yuborilmoqda.",
             }
         )
 

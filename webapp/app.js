@@ -815,7 +815,7 @@ html[data-theme="dark"] .da-doc-loading-ring{border-color:#334155;border-top-col
     }
 
     async function generateDoc(endpoint, payload, filename) {
-        showDocumentLoading('Hujjat tayyorlanmoqda...', 'Iltimos, 10–15 soniya kuting');
+        showDocumentLoading('Yuborilmoqda...', 'Bitta marta bosing');
         try {
             const tid = getTelegramId();
             const enriched = { ...payload, telegram_id: tid ? parseInt(tid, 10) : null, token: token || undefined };
@@ -916,12 +916,11 @@ html[data-theme="dark"] .da-doc-loading-ring{border-color:#334155;border-top-col
         const label = kind === 'cv' ? 'CV (PDF)' : 'Obyektivka (Word)';
         let message = '';
         if (status === 'approved') {
-            message =
-                `✅ To'lov tasdiqlandi!\n\n${label} tayyor — «Botga yuborish» tugmasini bosing (faqat 1 marta).`;
+            message = `✅ To'lov OK.\n«Botga yuborish» tugmasi.`;
         } else if (status === 'rejected') {
-            message = `❌ To'lov rad etildi.\n\nQayta skrinshot yuboring yoki botda 🆘 Murojaat.`;
+            message = `❌ Rad etildi. Qayta skrinshot yoki 🆘 Murojaat.`;
         } else if (status === 'completed') {
-            message = `📦 Bu to'lov allaqachon ishlatilgan.\n\nYana ${label} uchun yangi to'lov kerak.`;
+            message = `📦 Bu to'lov ishlatilgan. Yangi ${label} — yangi to'lov.`;
         }
         if (!message) return;
         try {

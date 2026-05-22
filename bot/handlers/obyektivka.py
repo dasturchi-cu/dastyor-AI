@@ -110,7 +110,7 @@ async def process_obyektivka_from_audio_path(context, audio_path, chat_id, user_
             text=(
                 (f"👤 {fn}\n\n" if fn else "")
                 + "✅ Ma’lumotlar tayyor — formada tekshiring.\n"
-                + "Word yuborish: <b>5 000 so‘m</b>, admin tasdiqlashdan keyin 1 marta."
+                + "Word: to‘lov → admin → botga."
             ),
             reply_markup=InlineKeyboardMarkup(kb) if kb else None,
             parse_mode="HTML",

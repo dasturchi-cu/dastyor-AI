@@ -116,43 +116,45 @@ async def _reply_cv_intro(message: Message, base: str, uid: int, text: str | Non
 
 async def send_cv_intro(message: Message, context: ContextTypes.DEFAULT_TYPE, uid: int) -> None:
     context.user_data.pop("waiting_for", None)
+    base = _webapp_base(context)
+    context.bot_data["webapp_base"] = base
+    await _reply_cv_intro(message, base, uid, CV_INSTRUCTION_TEXT)
     try:
         from bot.services.bot_analytics import log_bot_event
 
         asyncio.create_task(asyncio.to_thread(log_bot_event, uid, "bot_cv_intro_open"))
     except Exception:
         pass
-    base = _webapp_base(context)
-    context.bot_data["webapp_base"] = base
-    chat_id = message.chat_id
-    if chat_id:
-        try:
-            await context.bot.send_chat_action(chat_id=chat_id, action=ChatAction.TYPING)
-        except Exception:
-            pass
-    await _reply_cv_intro(
-        message,
-        base,
-        uid,
-        f"{CV_INSTRUCTION_TEXT}\n\n{CV_INTRO_TEXT}",
-    )
 
 
 async def send_obyektivka_intro(message: Message, context: ContextTypes.DEFAULT_TYPE, uid: int) -> None:
     context.user_data["waiting_for"] = WaitingState.OBYEKTIVKA_AUDIO
-    chat_id = message.chat_id
+    base = _webapp_base(context)
+    context.bot_data["webapp_base"] = base
+    inline = service_open_inline(base, uid, "obyektivka")
+    combined = OBY_INSTRUCTION_TEXT
+
     try:
-        # 1) Darhol oddiy matn — Telegram «voice yuborilmoqda» holatida qolmasin
-        await message.reply_text(
-            "✍️ <b>Obyektivka</b>\n\nYo‘riqnoma yuborilmoqda…",
-            parse_mode="HTML",
-        )
-    except Exception as e:
-        logger.warning("Obyektivka ack failed: %s", e)
+        await message.reply_text(combined, parse_mode="HTML", reply_markup=inline)
+    except BadRequest as e:
+        logger.warning("Obyektivka intro reply failed (markup): %s", e)
         try:
-            await message.reply_text("✍️ Obyektivka — yo‘riqnoma yuborilmoqda...")
-        except Exception:
-            return
+            await message.reply_text(combined, parse_mode="HTML")
+        except Exception as e2:
+            logger.error("Obyektivka intro plain reply failed: %s", e2, exc_info=True)
+            url = None
+            try:
+                from bot.ui.keyboards import webapp_service_url
+
+                url = webapp_service_url(base, uid, "obyektivka")
+            except Exception:
+                pass
+            tail = f"\n\n🔗 {url}" if url else ""
+            await message.reply_text("✍️ Obyektivka" + tail)
+
+    chat_id = message.chat_id
+    if chat_id and _oby_sample_audio_enabled():
+        asyncio.create_task(_send_oby_sample_audio(context, chat_id))
 
     try:
         from bot.services.bot_analytics import log_bot_event
@@ -160,46 +162,6 @@ async def send_obyektivka_intro(message: Message, context: ContextTypes.DEFAULT_
         asyncio.create_task(asyncio.to_thread(log_bot_event, uid, "bot_oby_intro_open"))
     except Exception:
         pass
-
-    base = _webapp_base(context)
-    context.bot_data["webapp_base"] = base
-    inline = service_open_inline(base, uid, "obyektivka")
-    combined = f"{OBY_INSTRUCTION_TEXT}\n\n{OBY_INTRO_TEXT}"
-
-    sent = False
-    try:
-        await message.reply_text(combined, parse_mode="HTML", reply_markup=inline)
-        sent = True
-    except BadRequest as e:
-        logger.warning("Obyektivka intro reply failed (markup): %s", e)
-    except Exception as e:
-        logger.warning("Obyektivka intro reply failed: %s", e, exc_info=True)
-
-    if not sent:
-        try:
-            await message.reply_text(combined, parse_mode="HTML")
-            sent = True
-        except Exception:
-            pass
-
-    if not sent:
-        url = None
-        try:
-            from bot.ui.keyboards import webapp_service_url
-
-            url = webapp_service_url(base, uid, "obyektivka")
-        except Exception:
-            pass
-        tail = f"\n\n🔗 Forma: {url}" if url else ""
-        try:
-            await message.reply_text(
-                "✍️ Obyektivka: ovoz yuboring yoki veb-formani oching." + tail,
-            )
-        except Exception as e2:
-            logger.error("Obyektivka intro fallback failed: %s", e2, exc_info=True)
-
-    if chat_id and _oby_sample_audio_enabled():
-        asyncio.create_task(_send_oby_sample_audio(context, chat_id))
 
 
 async def handle_cv_intro(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:

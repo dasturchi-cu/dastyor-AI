@@ -2,88 +2,57 @@
 
 WELCOME_TEXT = (
     "👋 <b>DASTYOR AI</b>\n\n"
-    "Rezyume va ma’lumotnoma tayyorlash — tez va tartibli.\n\n"
-    "📄 <b>CV Resume</b> — PDF (5 000 so‘m, 1 marta)\n"
-    "✍️ <b>Obyektivka</b> — Word (ovoz yoki qo‘lda)\n"
-    "📂 <b>Mening hujjatlarim</b> — to‘lov holati\n"
-    "🆘 <b>Murojaat</b> · ℹ️ <b>Yordam</b>\n\n"
-    "Tugmani bosing — avval yo‘riqnoma, keyin forma."
+    "📄 <b>CV</b> — PDF\n"
+    "✍️ <b>Obyektivka</b> — Word\n"
+    "🆘 Murojaat · ℹ️ Yordam\n\n"
+    "Tugmani bosing."
 )
 
 CV_INSTRUCTION_TEXT = (
-    "📌 <b>CV uchun tayyorlang:</b>\n"
-    "ism, kasb, telefon, rasm, ta’lim, ish tajribasi, tillar, ko‘nikmalar.\n\n"
-    "Formada <b>jonli ko‘rinish</b> bor — har qadamda tekshirasiz."
+    "📄 <b>CV</b>\n"
+    "Formani to‘ldiring → to‘lov (5 000 so‘m) → PDF botga."
 )
 
-CV_INTRO_TEXT = (
-    "📄 <b>CV — 4 qadam</b>\n\n"
-    "1️⃣ Pastdagi tugma → forma\n"
-    "2️⃣ Ma’lumotlarni to‘ldiring\n"
-    "3️⃣ Ko‘rinishni tekshiring\n"
-    "4️⃣ <b>5 000 so‘m</b> → admin tasdiqlash → <b>1 ta PDF</b> botga\n\n"
-    "💡 To‘ldirish bepul; PDF yuborish — bir marta."
-)
+CV_INTRO_TEXT = ""
 
-OBY_INTRO_TEXT = (
-    "✍️ <b>Obyektivka — 4 qadam</b>\n\n"
-    "1️⃣ Namuna ovozni tinglang\n"
-    "2️⃣ Xuddi shunday <b>ovoz</b> yuboring yoki formani oching\n"
-    "3️⃣ Word ni ko‘rib chiqing\n"
-    "4️⃣ <b>5 000 so‘m</b> → admin → <b>1 ta Word</b> botga\n\n"
-    "💡 Ovoz va forma bepul; Word yuborish — bir marta."
-)
+OBY_INTRO_TEXT = ""
 
 OBY_INSTRUCTION_TEXT = (
-    "📌 <b>Ovozda quyidagilarni o‘qing</b> (namunadagi tartibda):\n"
-    "F.I.Sh., tug‘ilgan sana/joy, millat, ta’lim, OTM, mutaxassislik, "
-    "ish joylari, oila a’zolari (ism, tug‘ilgan, ish, manzil).\n\n"
-    "🎙 Tayyor bo‘lsa — ovozli xabar yuboring (namuna audio ixtiyoriy)."
+    "✍️ <b>Obyektivka</b>\n"
+    "Forma yoki ovoz → to‘lov → Word botga.\n\n"
+    "🎙 Ovoz yuborsangiz: F.I.Sh., tug‘ilgan sana/joy, ta’lim, ish, oila."
 )
 
 OBY_AUDIO_WAIT_HINT = (
-    "🎙 <b>Obyektivka rejimi</b>\n\n"
-    "Ovozli xabar yuboring (namunadagi kabi).\n"
-    "Yoki ✍️ <b>Obyektivka</b> tugmasini qayta bosing — forma ochiladi.\n\n"
-    "Bekor: <b>bekor</b> yozing yoki 🔙 <b>Orqaga</b>."
+    "🎙 Ovoz yuboring yoki ✍️ <b>Obyektivka</b> tugmasi — forma.\n"
+    "Bekor: <b>bekor</b> yoki 🔙 <b>Orqaga</b>."
 )
 
 HELP_TEXT = (
     "ℹ️ <b>Yordam</b>\n\n"
-    "📄 <b>CV</b> — tugma → forma → 5 000 so‘m → PDF\n"
-    "✍️ <b>Obyektivka</b> — ovoz yoki forma → Word\n"
-    "📂 <b>Mening hujjatlarim</b> (/docs) — holat\n"
-    "🆘 <b>Murojaat</b> — muammo, to‘lov\n\n"
-    "Menyu: /start yoki 🔙 <b>Orqaga</b>"
+    "📄 CV — PDF\n"
+    "✍️ Obyektivka — Word\n"
+    "📂 /docs — to‘lov holati\n"
+    "🆘 Murojaat\n\n"
+    "/start"
 )
 
 SUPPORT_START_TEXT = (
     "📩 <b>Murojaat</b>\n\n"
-    "Matn, rasm, ovoz yoki fayl yuboring.\n"
-    "Muammoni qisqa yozing (masalan: to‘lov, forma ochilmayapti).\n\n"
-    "Bekor: <b>bekor</b> yozing."
+    "Muammo yoki savol — matn, rasm yoki fayl.\n"
+    "Bekor: <b>bekor</b>"
 )
 
-SUPPORT_SUCCESS_TEXT = (
-    "✅ Qabul qilindi. Admin tez orada javob beradi.\n\n"
-    "Davom etish uchun pastdagi menyudan xizmat tanlang."
-)
+SUPPORT_SUCCESS_TEXT = "✅ Yuborildi. Javob kuting."
 
-SUPPORT_INVALID_TEXT = (
-    "⚠️ Qabul qilinmadi.\n"
-    "Matn, rasm, ovoz yoki fayl yuboring — yoki <b>bekor</b> yozing."
-)
+SUPPORT_INVALID_TEXT = "⚠️ Matn, rasm yoki fayl yuboring. Bekor: <b>bekor</b>"
 
-SUPPORT_CANCEL_TEXT = "↩️ Bekor qilindi. Asosiy menyu pastda."
+SUPPORT_CANCEL_TEXT = "↩️ Bekor. Menyu pastda."
 
-UNKNOWN_INPUT_TEXT = (
-    "Menyudan tanlang:\n"
-    "📄 CV  •  ✍️ Obyektivka  •  📂 Hujjatlar  •  🆘 Murojaat\n\n"
-    "Yoki /start"
-)
+UNKNOWN_INPUT_TEXT = "Tugma tanlang yoki /start"
 
-ADMIN_PANEL_OPENED_TEXT = "🛠 <b>Admin panel</b>\nBo‘limni tanlang."
+ADMIN_PANEL_OPENED_TEXT = "🛠 <b>Admin panel</b>"
 
 ADMIN_ONLY_TEXT = "⛔ Faqat adminlar uchun."
 
-ADMIN_STATUS_TEXT = "✅ Bot ishlayapti."  # legacy; main.py uses format_admin_stats_text
+ADMIN_STATUS_TEXT = "✅ Bot ishlayapti."

@@ -81,10 +81,7 @@ def require_paid_single_doc_or_subscription(uid: int, category: str) -> None:
         label = "CV" if cat == CAT_CV else "Obyektivka"
         raise HTTPException(
             status_code=402,
-            detail=(
-                f"❌ «{label}» uchun 5 000 so'mlik to'lov allaqachon ishlatilgan "
-                "(1 ta hujjat). Yana olish uchun yangi to'lov qiling."
-            ),
+            detail=f"❌ «{label}» to'lovi ishlatilgan. Yangi to'lov kerak.",
         )
     if cat == CAT_CV and has_db() and db_user_has_cv_access(u):
         return
@@ -99,8 +96,5 @@ def require_paid_single_doc_or_subscription(uid: int, category: str) -> None:
     label = "CV" if cat == CAT_CV else "Obyektivka"
     raise HTTPException(
         status_code=402,
-        detail=(
-            f"❌ «{label}» uchun avval {price} so'm to'lov qiling (skrinshot), "
-            "admin tasdiqlagach yuklab oling. Pastdagi «5 000 so'm to'lash» tugmasidan foydalaning."
-        ),
+        detail=f"❌ «{label}» — avval {price} so'm to'lov (skrinshot).",
     )

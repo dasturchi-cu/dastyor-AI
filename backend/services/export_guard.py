@@ -61,16 +61,17 @@ def _db_claim_export_slot(uid: int, category: str) -> None:
         if int(db_service_bucket_get(u, done_key) or 0) >= 1:
             raise HTTPException(
                 status_code=409,
-                detail=(
-                    "✅ Hujjat allaqachon botga yuborilgan. "
-                    "Yangi fayl uchun yangi to‘lov (5 000 so‘m) qiling."
-                ),
+                detail="✅ Allaqachon yuborilgan. Yangi to‘lov kerak.",
             )
         inc = int(db_service_bucket_try_increment(u, pending_key, 1) or 0)
         if inc < 1:
+            # Oldingi urinishda pending qolgan bo‘lishi mumkin (xato / worker qayta ishga tushdi)
+            db_service_buckets_delete_many(u, [pending_key])
+            inc = int(db_service_bucket_try_increment(u, pending_key, 1) or 0)
+        if inc < 1:
             raise HTTPException(
                 status_code=409,
-                detail="⏳ Hujjat allaqachon tayyorlanmoqda. Bitta marta bosing va kuting.",
+                detail="⏳ Oldingi yuborish hali tugamagan. 1–2 daqiqa kuting yoki sahifani yangilang.",
             )
     except HTTPException:
         raise
@@ -116,7 +117,7 @@ async def begin_document_export(uid: int, category: str) -> None:
         _db_release_pending(uid, category)
         raise HTTPException(
             status_code=409,
-            detail="⏳ Hujjat allaqachon tayyorlanmoqda. Bitta marta bosing va kuting.",
+            detail="⏳ Tayyorlanmoqda. Kuting.",
         )
     now = time.monotonic()
     last = _LAST_SEND_TS.get(k, 0.0)
@@ -124,10 +125,7 @@ async def begin_document_export(uid: int, category: str) -> None:
         _db_release_pending(uid, category)
         raise HTTPException(
             status_code=409,
-            detail=(
-                "✅ Hujjat yaqinda botga yuborilgan. "
-                "Yangi fayl uchun avval yangi to‘lov (5 000 so‘m) qiling."
-            ),
+            detail="✅ Yaqinda yuborilgan. Yangi to‘lov kerak.",
         )
     await lock.acquire()
 

@@ -349,7 +349,7 @@
         </div>
       </div>
       <div class="w-full text-center text-xs text-slate-500 -mt-3 mb-3" data-i18n="pay_help">
-        Limit tugasa shu tugmadan 5 000 so'm to'lab davom etasiz.
+        To'lov kerak bo'lsa — pastdagi tugma.
       </div>
       <div id="cvPayPanel" class="hidden w-full rounded-2xl border border-emerald-200 bg-emerald-50 p-4 mb-4">
         <div class="text-sm font-bold text-emerald-800 mb-2">💳 To'lov (5 000 so'm)</div>
@@ -1223,7 +1223,7 @@
       if (btn) {
         btn.disabled = _cvExportInFlight || blocked || pendingAdmin || quotaUsed;
         if (quotaUsed && !pendingAdmin) {
-          btn.title = "Bu to'lov allaqachon ishlatilgan (1 ta PDF)";
+          btn.title = "Limit tugadi";
         }
       }
       if (payBtn) {
@@ -1233,16 +1233,16 @@
       if (warn) {
         if (quotaUsed) {
           warn.classList.remove('hidden');
-          warn.textContent = "✅ PDF allaqachon yuborilgan. Yana kerak bo'lsa — yangi to'lov (5 000 so'm).";
+          warn.textContent = "✅ PDF yuborilgan. Yana — yangi to'lov.";
         } else if (hasAccess && !blocked) {
           warn.classList.remove('hidden');
-          warn.textContent = "✅ To'lov tasdiqlandi. «PDF botga yuborish» — faqat 1 marta.";
+          warn.textContent = "✅ To'lov OK — «PDF botga yuborish».";
         } else if (pendingAdmin) {
           warn.classList.remove('hidden');
-          warn.textContent = "⏳ Admin tasdiqlashini kuting. Keyin 1 marta PDF yuborishingiz mumkin.";
+          warn.textContent = "⏳ Admin kutyapti.";
         } else if (blocked) {
           warn.classList.remove('hidden');
-          warn.textContent = "⛔ CV: 5 000 so'm = 1 ta PDF. Avval to'lov (skrinshot), keyin yuborish.";
+          warn.textContent = "💳 Avval to'lov (5 000 so'm).";
         } else {
           warn.classList.add('hidden');
           warn.textContent = '';
@@ -1284,7 +1284,7 @@
       try {
         try {
           if (window.DastyorAI && window.DastyorAI.showDocumentLoading) {
-            window.DastyorAI.showDocumentLoading('Hujjat tayyorlanmoqda...', 'Iltimos, 10–15 soniya kuting');
+            window.DastyorAI.showDocumentLoading('Yuborilmoqda...', 'Bitta marta bosing');
           }
         } catch (_) {}
 
@@ -1295,9 +1295,7 @@
         try { if (window.DastyorAI && window.DastyorAI.refreshProfile) await window.DastyorAI.refreshProfile(); } catch (_) {}
         syncCvQuotaUi();
         tg.HapticFeedback && tg.HapticFeedback.notificationOccurred && tg.HapticFeedback.notificationOccurred('success');
-        const line = (data && data.message) ? data.message : "✅ Fayl botga yuborildi. Telegram chatda kuting.";
-        alert(line);
-        setTimeout(() => { try { tg.close(); } catch (_) {} }, 900);
+        setTimeout(() => { try { tg.close(); } catch (_) {} }, 350);
       } catch (e) {
         _cvExportInFlight = false;
         syncCvQuotaUi();
@@ -1463,7 +1461,7 @@
                   clearInterval(spin);
                   _cvApprovedRequestId = id;
                   try { localStorage.setItem('cv_paid_request_id', String(id)); } catch (_) {}
-                  if (status) status.textContent = "✅ Admin tasdiqladi. «PDF botga yuborish» — faqat 1 marta.";
+                  if (status) status.textContent = "✅ Tasdiqlandi — «PDF botga yuborish».";
                   syncCvQuotaUi();
                 },
                 onCompleted: async function () {

@@ -123,19 +123,22 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     try:
         from bot.services.bot_analytics import log_bot_event
 
-        log_bot_event(uid, "bot_start")
+        asyncio.create_task(asyncio.to_thread(log_bot_event, uid, "bot_start"))
     except Exception:
         pass
-    await update.message.reply_text(
-        "🔄 Menyu yangilanmoqda…",
-        reply_markup=ReplyKeyboardRemove(),
-    )
-    await _send_with_typing(
-        update,
-        WELCOME_TEXT,
-        reply_markup=user_reply_menu(WEBAPP_BASE, uid),
-        parse_mode="HTML",
-    )
+    try:
+        await update.message.reply_text(
+            WELCOME_TEXT,
+            reply_markup=user_reply_menu(WEBAPP_BASE, uid),
+            parse_mode="HTML",
+        )
+    except Exception:
+        await _send_with_typing(
+            update,
+            WELCOME_TEXT,
+            reply_markup=user_reply_menu(WEBAPP_BASE, uid),
+            parse_mode="HTML",
+        )
     try:
         await update.message.reply_text(
             "⚡ Tez tanlash:",

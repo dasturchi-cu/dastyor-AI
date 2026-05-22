@@ -34,12 +34,8 @@ async def notify_payment_approved(
     svc = "cv" if k == "cv" else "obyektivka"
     label = "CV (PDF)" if svc == "cv" else "Obyektivka (Word)"
     text = (
-        f"✅ <b>To‘lovingiz tasdiqlandi!</b>\n\n"
-        f"📄 Xizmat: <b>{label}</b>\n"
-        f"🆔 So‘rov: <code>#{request_id or '—'}</code>\n\n"
-        f"Endi formani ochib <b>«Botga yuborish»</b> tugmasini bosing — "
-        f"<b>1 ta</b> tayyor fayl botga keladi.\n\n"
-        f"⏱ 24 soat ichida yuklab oling; keyin yangi to‘lov kerak bo‘ladi."
+        f"✅ <b>To‘lov OK</b> — {label}\n\n"
+        f"Formani oching → <b>Botga yuborish</b>."
     )
     markup = service_open_inline(webapp_base, int(user_id), svc)
     try:
@@ -63,10 +59,8 @@ async def notify_payment_rejected(
     k = (kind or "cv").strip().lower()
     label = "CV" if k == "cv" else "Obyektivka"
     text = (
-        f"❌ <b>To‘lov rad etildi</b>\n\n"
-        f"📄 {label} · so‘rov <code>#{request_id or '—'}</code>\n\n"
-        "Skrinshot yoki summa noto‘g‘ri bo‘lishi mumkin.\n"
-        "Qayta to‘lov qiling yoki 🆘 <b>Murojaat</b> orqali yozing."
+        f"❌ <b>To‘lov rad</b> — {label}\n"
+        "Qayta skrinshot yoki 🆘 Murojaat."
     )
     try:
         await bot.send_message(chat_id=int(user_id), text=text, parse_mode="HTML")

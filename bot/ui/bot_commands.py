@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 # Faqat minimal botda ishlaydigan buyruqlar (main.py handlerlari bilan mos)
 DEFAULT_BOT_COMMANDS: tuple[BotCommand, ...] = (
     BotCommand("start", "Bosh menyu — CV va Obyektivka"),
-    BotCommand("docs", "Mening hujjatlarim — to‘lov holati"),
+    BotCommand("docs", "To‘lov holati"),
     BotCommand("help", "Yordam"),
     BotCommand("contact", "Murojaat (admin bilan bog‘lanish)"),
 )

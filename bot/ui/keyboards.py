@@ -50,13 +50,12 @@ def user_reply_menu(webapp_base: str, uid: int) -> ReplyKeyboardMarkup:
     return ReplyKeyboardMarkup(
         keyboard=[
             [KeyboardButton(BTN_CV), KeyboardButton(BTN_OBY)],
-            [KeyboardButton(BTN_MY_DOCS)],
             [KeyboardButton(BTN_CONTACT), KeyboardButton(BTN_HELP)],
             [KeyboardButton(BTN_BACK)],
         ],
         resize_keyboard=True,
         is_persistent=False,
-        input_field_placeholder="Xizmatni tanlang...",
+        input_field_placeholder="Tugma tanlang",
     )
 
 
@@ -109,9 +108,6 @@ def user_inline_start_menu(webapp_base: str, uid: int) -> InlineKeyboardMarkup:
             [
                 InlineKeyboardButton(BTN_CV, callback_data="intro_cv"),
                 InlineKeyboardButton(BTN_OBY, callback_data="intro_oby"),
-            ],
-            [
-                InlineKeyboardButton(BTN_MY_DOCS, callback_data="intro_my_docs"),
             ],
             [
                 InlineKeyboardButton(BTN_CONTACT, callback_data="intro_contact"),
