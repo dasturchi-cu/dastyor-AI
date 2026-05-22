@@ -218,10 +218,47 @@ async def cv_oby_intro_router(update: Update, context: ContextTypes.DEFAULT_TYPE
             pass
 
 
+async def _route_menu_text(update: Update, context: ContextTypes.DEFAULT_TYPE, text: str) -> bool:
+    """Menyu tugmalari — ovoz/murojaat kutish holatidan ham ishlaydi."""
+    if not text:
+        return False
+    if text in help_button_labels():
+        context.user_data.pop("waiting_for", None)
+        await help_command(update, context)
+        return True
+    if text in contact_button_labels():
+        context.user_data.pop("waiting_for", None)
+        await start_feedback(update, context)
+        return True
+    if text == BTN_BACK or text.lower() in {"bekor", "cancel", "orqaga", "ortga"}:
+        context.user_data.pop("waiting_for", None)
+        await handle_menu_back(update, context)
+        return True
+    if text == BTN_MY_DOCS or is_my_docs_button(text):
+        context.user_data.pop("waiting_for", None)
+        await handle_my_docs_button(update, context)
+        return True
+    if is_cv_button(text):
+        context.user_data.pop("waiting_for", None)
+        await handle_cv_intro(update, context)
+        return True
+    if is_oby_button(text):
+        context.user_data.pop("waiting_for", None)
+        await handle_obyektivka_intro(update, context)
+        return True
+    return False
+
+
 async def message_router(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     if not update.message or not update.effective_user or not update.effective_chat:
         return
     if context.user_data.pop("_skip_message_router", False):
+        return
+
+    text = (update.message.text or "").strip()
+    uid = int(update.effective_user.id)
+
+    if update.message.text and await _route_menu_text(update, context, text):
         return
 
     if context.user_data.get("waiting_for") == WAITING_FOR_FEEDBACK:
@@ -232,40 +269,7 @@ async def message_router(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         if update.message.voice or update.message.audio:
             await handle_obyektivka_audio(update, context)
             return
-        if update.message.text:
-            t = (update.message.text or "").strip()
-            if t == BTN_BACK or t.lower() in {"bekor", "cancel", "orqaga", "ortga"}:
-                await handle_menu_back(update, context)
-                return
-            if is_oby_button(t):
-                await handle_obyektivka_intro(update, context)
-                return
-            if is_my_docs_button(t):
-                await handle_my_docs_button(update, context)
-                return
         await update.message.reply_text(OBY_AUDIO_WAIT_HINT, parse_mode="HTML")
-        return
-
-    text = (update.message.text or "").strip()
-    uid = int(update.effective_user.id)
-
-    if text in contact_button_labels():
-        await start_feedback(update, context)
-        return
-    if text in help_button_labels():
-        await help_command(update, context)
-        return
-    if text == BTN_MY_DOCS or is_my_docs_button(text):
-        await handle_my_docs_button(update, context)
-        return
-    if text == BTN_BACK or text.lower() in {"bekor", "cancel", "orqaga", "ortga"}:
-        await handle_menu_back(update, context)
-        return
-    if is_cv_button(text):
-        await handle_cv_intro(update, context)
-        return
-    if is_oby_button(text):
-        await handle_obyektivka_intro(update, context)
         return
     if _is_admin(update):
         await admin_text_router(update, context)

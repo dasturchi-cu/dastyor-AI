@@ -118,7 +118,10 @@ def user_inline_start_menu(webapp_base: str, uid: int) -> InlineKeyboardMarkup:
                 InlineKeyboardButton(BTN_CV, callback_data="intro_cv"),
                 InlineKeyboardButton(BTN_OBY, callback_data="intro_oby"),
             ],
-            [InlineKeyboardButton(BTN_CONTACT, callback_data="intro_contact")],
+            [
+                InlineKeyboardButton(BTN_HELP, callback_data="intro_help"),
+                InlineKeyboardButton(BTN_CONTACT, callback_data="intro_contact"),
+            ],
         ]
     )
 

@@ -58,10 +58,11 @@ HELP_TEXT = (
     "• Ovozda: F.I.Sh., tug‘ilgan sana/joy, ta’lim, ish, oila\n"
     "• To‘lov CV bilan bir xil (5 000 so‘m + skrinshot)\n"
     "• Tasdiqdan keyin <b>Word botga yuborish</b> — .docx shu yerga\n\n"
+    "🆘 <b>Murojaat</b> — savol, muammo (matn/rasm/fayl)\n\n"
     "<b>Buyruqlar</b>\n"
     "/start — bosh menyu\n"
     "/docs — to‘lov holati\n"
-    "/contact — savol yoki muammo\n"
+    "/contact — murojaat\n"
     "/help — yordam\n\n"
     "🔙 <b>Orqaga</b> — menyuga qaytish."
 )

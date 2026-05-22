@@ -296,6 +296,7 @@ async def intro_callback_router(update: Update, context: ContextTypes.DEFAULT_TY
     if data == "intro_help":
         from bot.ui.messages import HELP_TEXT
 
+        context.user_data.pop("waiting_for", None)
         await msg.reply_text(
             HELP_TEXT,
             parse_mode="HTML",
@@ -305,6 +306,7 @@ async def intro_callback_router(update: Update, context: ContextTypes.DEFAULT_TY
     if data == "intro_contact":
         from bot.handlers.feedback import start_feedback
 
+        context.user_data.pop("waiting_for", None)
         await start_feedback(update, context)
         return
     if data == "intro_my_docs":
