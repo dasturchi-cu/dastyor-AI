@@ -1171,19 +1171,32 @@
 
     async function reconcileCvPaidRequestStatus() {
       const rid = _cvApprovedRequestId || Number(localStorage.getItem('cv_paid_request_id') || 0);
-      if (!rid) return;
+      if (!rid || !window.DastyorAI || !window.DastyorAI.fetchPaidDocStatus) return;
       try {
-        const p = new URLSearchParams({ request_id: String(rid) });
-        if (telegramId) p.set('telegram_id', String(parseInt(telegramId, 10)));
-        const tok = (window.DastyorAI && window.DastyorAI.getToken) ? window.DastyorAI.getToken() : (sessionStorage.getItem('tg_token') || '');
-        if (tok) p.set('token', String(tok));
-        const st = await fetch(getCvApiBase() + '/api/paid_doc_status?' + p.toString(), { cache: 'no-store' });
-        if (!st.ok) return;
-        const js = await st.json();
+        const js = await window.DastyorAI.fetchPaidDocStatus(rid);
+        if (!js) return;
         const s = String(js.status || '');
+        if (s === 'approved' || s === 'delivered') {
+          _cvApprovedRequestId = rid;
+          try { localStorage.setItem('cv_paid_request_id', String(rid)); } catch (_) {}
+        }
         if (s === 'completed') {
           _cvApprovedRequestId = 0;
           try { localStorage.removeItem('cv_paid_request_id'); } catch (_) {}
+        }
+        if (window.DastyorAI.processPaidDocStatus) {
+          await window.DastyorAI.processPaidDocStatus('cv', rid, s, {
+            onApproved: async function (id) {
+              _cvApprovedRequestId = id;
+              try { localStorage.setItem('cv_paid_request_id', String(id)); } catch (_) {}
+              syncCvQuotaUi();
+            },
+            onCompleted: async function () {
+              _cvApprovedRequestId = 0;
+              try { localStorage.removeItem('cv_paid_request_id'); } catch (_) {}
+              syncCvQuotaUi();
+            },
+          });
         }
       } catch (_) {}
     }
@@ -1313,7 +1326,9 @@
         _cvPayState.token = req.token || "";
         _cvPayState.telegramId = req.telegram_id || 0;
         _cvPayState.screenshot = "";
+        try { localStorage.setItem('cv_paid_request_id', String(rid)); } catch (_) {}
         if (_cvPayState.pollTimer) { clearInterval(_cvPayState.pollTimer); _cvPayState.pollTimer = null; }
+        if (window.DastyorAI && window.DastyorAI.stopPaidDocWatcher) window.DastyorAI.stopPaidDocWatcher('cv');
 
         if (panel) panel.classList.remove('hidden');
         applyCvDocI18nToDom();
@@ -1405,36 +1420,35 @@
               status.textContent = status.textContent.endsWith("...") ? "⏳ Admin tekshirmoqda." : (status.textContent.endsWith(".") ? "⏳ Admin tekshirmoqda.." : "⏳ Admin tekshirmoqda...");
             }, 450);
             if (sendBtn) sendBtn.disabled = true;
-            _cvPayState.pollTimer = setInterval(async () => {
-              const p = new URLSearchParams({ request_id: String(_cvPayState.requestId) });
-              if (_cvPayState.telegramId) p.set('telegram_id', String(_cvPayState.telegramId));
-              if (_cvPayState.token) p.set('token', String(_cvPayState.token));
-              try {
-                const st = await fetch(base + '/api/paid_doc_status?' + p.toString(), { cache:'no-store' });
-                if (!st.ok) return;
-                const js = await st.json();
-                const s = String(js.status || '');
-                if (s === 'completed') {
+            if (window.DastyorAI && window.DastyorAI.startPaidDocWatcher) {
+              window.DastyorAI.startPaidDocWatcher({
+                kind: 'cv',
+                storageKey: 'cv_paid_request_id',
+                getRequestId: function () { return _cvPayState.requestId; },
+                onApproved: async function (id) {
                   clearInterval(spin);
-                  clearInterval(_cvPayState.pollTimer);
-                  _cvPayState.pollTimer = null;
+                  _cvApprovedRequestId = id;
+                  try { localStorage.setItem('cv_paid_request_id', String(id)); } catch (_) {}
+                  if (status) status.textContent = "✅ Admin tasdiqladi. «PDF botga yuborish» — faqat 1 marta.";
+                  syncCvQuotaUi();
+                },
+                onCompleted: async function () {
+                  clearInterval(spin);
                   _cvApprovedRequestId = 0;
                   try { localStorage.removeItem('cv_paid_request_id'); } catch (_) {}
                   if (status) status.textContent = "✅ Bu to'lov ishlatilgan. Yana PDF uchun yangi to'lov qiling.";
-                  try { if (window.DastyorAI && window.DastyorAI.refreshProfile) await window.DastyorAI.refreshProfile(); } catch (_) {}
                   syncCvQuotaUi();
-                } else if (s === 'approved' || s === 'delivered') {
+                },
+                onRejected: async function () {
                   clearInterval(spin);
-                  clearInterval(_cvPayState.pollTimer);
-                  _cvPayState.pollTimer = null;
-                  _cvApprovedRequestId = _cvPayState.requestId;
-                  try { localStorage.setItem('cv_paid_request_id', String(_cvApprovedRequestId)); } catch (_) {}
-                  if (status) status.textContent = "✅ Admin tasdiqladi. «PDF botga yuborish» — faqat 1 marta.";
-                  try { if (window.DastyorAI && window.DastyorAI.refreshProfile) await window.DastyorAI.refreshProfile(); } catch (_) {}
-                  syncCvQuotaUi();
-                }
-              } catch (_) {}
-            }, 1500);
+                  if (status) {
+                    status.textContent = "❌ To'lov rad etildi. Qayta skrinshot yuboring.";
+                    status.classList.add('text-red-700');
+                  }
+                  if (sendBtn) { sendBtn.disabled = false; sendBtn.textContent = "📤 Yuborish"; }
+                },
+              });
+            }
           };
         }
       } catch (e) {
@@ -1453,12 +1467,28 @@
         }
         await reconcileCvPaidRequestStatus();
         syncCvQuotaUi();
+        if (window.DastyorAI && window.DastyorAI.resumePaidDocWatcher) {
+          window.DastyorAI.resumePaidDocWatcher({
+            kind: 'cv',
+            storageKey: 'cv_paid_request_id',
+            onApproved: async function (id) {
+              _cvApprovedRequestId = id;
+              syncCvQuotaUi();
+            },
+            onCompleted: async function () {
+              _cvApprovedRequestId = 0;
+              try { localStorage.removeItem('cv_paid_request_id'); } catch (_) {}
+              syncCvQuotaUi();
+            },
+          });
+        }
       } catch (_) {}
       setPreviewPlaceholder("⏳ Ko‘rinish yuklanmoqda…");
       loadFromLocalStorage();
       try { triggerUpdate(false); } catch (_) {}
       try {
         window.addEventListener('dastyor:profile-updated', () => syncCvQuotaUi());
+        window.addEventListener('dastyor:payment-approved', () => syncCvQuotaUi());
       } catch (_) {}
     });
 

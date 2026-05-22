@@ -68,7 +68,7 @@ logger = logging.getLogger(__name__)
 load_dotenv(override=True)
 # Some editors save .env with UTF-8 BOM; support both keys safely.
 BOT_TOKEN = (os.getenv("BOT_TOKEN") or os.getenv("\ufeffBOT_TOKEN") or "").strip()
-WEBAPP_BASE = (os.getenv("WEBAPP_BASE") or "").strip().rstrip("/")
+from config import WEBAPP_BASE, resolve_webapp_base
 SUPPORT_GROUP_ID = int((os.getenv("SUPPORT_GROUP_ID") or "-1003457224552").strip())
 PREMIUM_ADMIN_GROUP_ID = int((os.getenv("PREMIUM_ADMIN_GROUP_ID") or str(SUPPORT_GROUP_ID)).strip())
 _ADMIN_IDS = {
@@ -324,7 +324,12 @@ def setup_application():
 async def _post_init(app) -> None:
     from bot.ui.bot_commands import sync_bot_commands
 
-    app.bot_data["webapp_base"] = WEBAPP_BASE
+    base = resolve_webapp_base()
+    app.bot_data["webapp_base"] = base
+    if not base.startswith("https://"):
+        logger.error("WEBAPP_BASE not https: %s — forma tugmasi ishlamaydi", base)
+    else:
+        logger.info("WEBAPP_BASE=%s", base)
     await sync_bot_commands(app.bot)
     if os.getenv("ADMIN_DAILY_DIGEST_ON_START", "0").strip().lower() in ("1", "true", "yes"):
         try:

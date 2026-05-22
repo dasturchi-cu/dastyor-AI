@@ -876,6 +876,155 @@ html[data-theme="dark"] .da-doc-loading-ring{border-color:#334155;border-top-col
         if (e.key === LANGUAGE_KEY) setLanguage(e.newValue || DEFAULT_LANG, false);
     });
 
+    /** To‘lov holati — forma yopiq bo‘lsa ham (visibility) va qayta ochganda tekshiriladi */
+    const _paidDocWatchers = {};
+
+    function paidDocNotifyKey(kind, requestId, status) {
+        return `paid_notify_${kind}_${requestId}_${status}`;
+    }
+
+    async function fetchPaidDocStatus(requestId) {
+        const tid = getTelegramId();
+        const rid = Number(requestId || 0);
+        if (!tid || !rid) return null;
+        const params = new URLSearchParams({
+            request_id: String(rid),
+            telegram_id: String(parseInt(tid, 10)),
+        });
+        if (token) params.set('token', token);
+        try {
+            const r = await fetch(`${BASE}/api/paid_doc_status?${params}`, { cache: 'no-store' });
+            return r.ok ? r.json() : null;
+        } catch (_) {
+            return null;
+        }
+    }
+
+    function showPaymentResultPopup(kind, status) {
+        const label = kind === 'cv' ? 'CV (PDF)' : 'Obyektivka (Word)';
+        let message = '';
+        if (status === 'approved') {
+            message =
+                `✅ To'lov tasdiqlandi!\n\n${label} tayyor — «Botga yuborish» tugmasini bosing (faqat 1 marta).`;
+        } else if (status === 'rejected') {
+            message = `❌ To'lov rad etildi.\n\nQayta skrinshot yuboring yoki botda 🆘 Murojaat.`;
+        } else if (status === 'completed') {
+            message = `📦 Bu to'lov allaqachon ishlatilgan.\n\nYana ${label} uchun yangi to'lov kerak.`;
+        }
+        if (!message) return;
+        try {
+            haptic('success');
+        } catch (_) {}
+        try {
+            if (tg && typeof tg.showPopup === 'function') {
+                tg.showPopup({
+                    title: 'Dastyor AI',
+                    message,
+                    buttons: [{ type: 'ok' }],
+                });
+                return;
+            }
+        } catch (_) {}
+        try {
+            if (tg && typeof tg.showAlert === 'function') {
+                tg.showAlert(message);
+                return;
+            }
+        } catch (_) {}
+        alert(message);
+    }
+
+    async function processPaidDocStatus(kind, requestId, status, callbacks = {}) {
+        const st = String(status || '').toLowerCase();
+        const rid = Number(requestId || 0);
+        if (!rid) return st;
+
+        if (st === 'approved' || st === 'delivered') {
+            if (callbacks.onApproved) await callbacks.onApproved(rid, st);
+            const nk = paidDocNotifyKey(kind, rid, 'approved');
+            if (localStorage.getItem(nk) !== '1') {
+                localStorage.setItem(nk, '1');
+                try {
+                    await refreshProfile();
+                } catch (_) {}
+                showPaymentResultPopup(kind, 'approved');
+                window.dispatchEvent(
+                    new CustomEvent('dastyor:payment-approved', {
+                        detail: { kind, requestId: rid, status: st },
+                    }),
+                );
+            }
+        } else if (st === 'rejected') {
+            if (callbacks.onRejected) await callbacks.onRejected(rid, st);
+            const nk = paidDocNotifyKey(kind, rid, 'rejected');
+            if (localStorage.getItem(nk) !== '1') {
+                localStorage.setItem(nk, '1');
+                showPaymentResultPopup(kind, 'rejected');
+                window.dispatchEvent(
+                    new CustomEvent('dastyor:payment-rejected', { detail: { kind, requestId: rid } }),
+                );
+            }
+        } else if (st === 'completed') {
+            if (callbacks.onCompleted) await callbacks.onCompleted(rid, st);
+            const nk = paidDocNotifyKey(kind, rid, 'completed');
+            if (localStorage.getItem(nk) !== '1') {
+                localStorage.setItem(nk, '1');
+                showPaymentResultPopup(kind, 'completed');
+            }
+        }
+        return st;
+    }
+
+    function stopPaidDocWatcher(kind) {
+        const w = _paidDocWatchers[kind];
+        if (!w) return;
+        clearInterval(w.timer);
+        if (w.onVis) document.removeEventListener('visibilitychange', w.onVis);
+        delete _paidDocWatchers[kind];
+    }
+
+    function startPaidDocWatcher(opts = {}) {
+        const kind = opts.kind === 'obyektivka' ? 'obyektivka' : 'cv';
+        const storageKey =
+            opts.storageKey || (kind === 'cv' ? 'cv_paid_request_id' : 'oby_paid_request_id');
+        const intervalMs = Number(opts.intervalMs) > 0 ? Number(opts.intervalMs) : 2500;
+
+        stopPaidDocWatcher(kind);
+
+        const tick = async () => {
+            let rid = 0;
+            try {
+                rid = Number(localStorage.getItem(storageKey) || 0);
+            } catch (_) {}
+            if (!rid && typeof opts.getRequestId === 'function') {
+                rid = Number(opts.getRequestId() || 0);
+            }
+            if (!rid) return;
+            const js = await fetchPaidDocStatus(rid);
+            if (!js || !js.status) return;
+            await processPaidDocStatus(kind, rid, js.status, opts);
+        };
+
+        tick();
+        const timer = setInterval(tick, intervalMs);
+        const onVis = () => {
+            if (document.visibilityState === 'visible') tick();
+        };
+        document.addEventListener('visibilitychange', onVis);
+        _paidDocWatchers[kind] = { timer, onVis, storageKey, opts };
+    }
+
+    function resumePaidDocWatcher(opts = {}) {
+        const storageKey =
+            opts.storageKey ||
+            (opts.kind === 'obyektivka' ? 'oby_paid_request_id' : 'cv_paid_request_id');
+        let rid = 0;
+        try {
+            rid = Number(localStorage.getItem(storageKey) || 0);
+        } catch (_) {}
+        if (rid) startPaidDocWatcher(opts);
+    }
+
     const api = {
         init,
         initUI,
@@ -899,6 +1048,13 @@ html[data-theme="dark"] .da-doc-loading-ring{border-color:#334155;border-top-col
         haptic,
         showDocumentLoading,
         hideDocumentLoading,
+
+        fetchPaidDocStatus,
+        processPaidDocStatus,
+        startPaidDocWatcher,
+        stopPaidDocWatcher,
+        resumePaidDocWatcher,
+        showPaymentResultPopup,
 
         // Theme API
         applyTheme,

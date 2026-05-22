@@ -853,12 +853,6 @@ async def api_paid_doc_send_to_bot(
                 skip_quota=skip_quota_completion,
             )
             _finish_single_doc_delivery(chat_id, cat, request_id=rid)
-            try:
-                from bot.services.bot_notify import notify_doc_delivered
-
-                await notify_doc_delivered(ptb.bot, chat_id, kind=kind)
-            except Exception:
-                pass
         except Exception as e:
             logger.error("paid_doc_send_to_bot failed rid=%s: %s", rid, e, exc_info=True)
             try:
@@ -960,13 +954,6 @@ async def api_export_cv(
                     )
                 except Exception:
                     pass
-                try:
-                    from bot.services.bot_notify import notify_doc_delivered
-
-                    await notify_doc_delivered(ptb.bot, int(uid_str), kind="cv")
-                except Exception:
-                    pass
-
             except Exception as e:
                 logger.error("CV background generation/send failed: %s", e, exc_info=True)
                 try:

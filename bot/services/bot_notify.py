@@ -12,7 +12,10 @@ logger = logging.getLogger(__name__)
 
 _STATUS_UZ = {
     "pending": "⏳ To‘lov kutilmoqda",
+    "pending_payment": "⏳ To‘lov kutilmoqda",
+    "payment_submitted": "⏳ Admin tekshirmoqda",
     "approved": "✅ Tasdiqlangan — formada yuklang",
+    "delivered": "✅ Tasdiqlangan — formada yuklang",
     "rejected": "❌ Rad etilgan",
     "completed": "📦 Botga yuborilgan",
     "cancelled": "🚫 Bekor qilingan",
@@ -86,5 +89,10 @@ async def notify_doc_delivered(bot: Bot, user_id: int, *, kind: str) -> None:
 
 
 def paid_doc_status_label(status: str) -> str:
-    st = (status or "pending").strip().lower()
-    return _STATUS_UZ.get(st, st)
+    try:
+        from bot.services.supabase_db import normalize_paid_doc_status
+
+        st = normalize_paid_doc_status(status or "pending")
+    except Exception:
+        st = (status or "pending").strip().lower()
+    return _STATUS_UZ.get(st, "⏳ To‘lov kutilmoqda")

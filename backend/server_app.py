@@ -95,7 +95,12 @@ def create_webhook_app() -> FastAPI:
 
                 # Har doim jarayon muhitidan o'qimiz (web_constants import vaqti eski bo'lishi mumkin)
                 override = os.getenv("MENU_WEBAPP_URL", "").strip()
-                base = os.getenv("WEBAPP_BASE", "").strip().rstrip("/")
+                try:
+                    from config import resolve_webapp_base
+
+                    base = resolve_webapp_base()
+                except Exception:
+                    base = os.getenv("WEBAPP_BASE", "").strip().rstrip("/")
                 if override:
                     menu_url = override
                 elif base:

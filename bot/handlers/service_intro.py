@@ -34,6 +34,18 @@ def _uid(update: Update) -> int:
     return int(update.effective_user.id) if update.effective_user else 0
 
 
+def _webapp_base(context: ContextTypes.DEFAULT_TYPE) -> str:
+    base = (context.bot_data.get("webapp_base") or "").strip()
+    if base.startswith("https://"):
+        return base
+    try:
+        from config import resolve_webapp_base
+
+        return resolve_webapp_base()
+    except Exception:
+        return base
+
+
 def _reply_target(update: Update) -> Message | None:
     if update.message:
         return update.message
@@ -77,14 +89,15 @@ async def _send_oby_sample_audio(context: ContextTypes.DEFAULT_TYPE, chat_id: in
     logger.warning("Obyektivka namuna audio topilmadi: %s", _oby_sample_audio_paths())
 
 
-async def _reply_cv_intro(message: Message, base: str, uid: int) -> None:
+async def _reply_cv_intro(message: Message, base: str, uid: int, text: str | None = None) -> None:
     markup = service_open_inline(base, uid, "cv")
+    body = text or CV_INTRO_TEXT
     try:
-        await message.reply_text(CV_INTRO_TEXT, parse_mode="HTML", reply_markup=markup)
+        await message.reply_text(body, parse_mode="HTML", reply_markup=markup)
     except BadRequest as e:
         logger.warning("CV intro reply failed (markup): %s", e)
         await message.reply_text(
-            CV_INTRO_TEXT + "\n\n⚠️ <i>Forma tugmasi vaqtincha ishlamadi — /start yoki admin bilan bog‘laning.</i>",
+            body + "\n\n⚠️ <i>Forma tugmasi vaqtincha ishlamadi — /start yoki admin bilan bog‘laning.</i>",
             parse_mode="HTML",
         )
 
@@ -97,15 +110,20 @@ async def send_cv_intro(message: Message, context: ContextTypes.DEFAULT_TYPE, ui
         log_bot_event(uid, "bot_cv_intro_open")
     except Exception:
         pass
-    base = context.bot_data.get("webapp_base", "")
+    base = _webapp_base(context)
+    context.bot_data["webapp_base"] = base
     chat_id = message.chat_id
     if chat_id:
         try:
             await context.bot.send_chat_action(chat_id=chat_id, action=ChatAction.TYPING)
         except Exception:
             pass
-    await message.reply_text(CV_INSTRUCTION_TEXT, parse_mode="HTML")
-    await _reply_cv_intro(message, base, uid)
+    await _reply_cv_intro(
+        message,
+        base,
+        uid,
+        f"{CV_INSTRUCTION_TEXT}\n\n{CV_INTRO_TEXT}",
+    )
 
 
 async def send_obyektivka_intro(message: Message, context: ContextTypes.DEFAULT_TYPE, uid: int) -> None:
@@ -116,23 +134,19 @@ async def send_obyektivka_intro(message: Message, context: ContextTypes.DEFAULT_
         log_bot_event(uid, "bot_oby_intro_open")
     except Exception:
         pass
-    base = context.bot_data.get("webapp_base", "")
+    base = _webapp_base(context)
+    context.bot_data["webapp_base"] = base
     inline = service_open_inline(base, uid, "obyektivka")
 
     combined = f"{OBY_INSTRUCTION_TEXT}\n\n{OBY_INTRO_TEXT}"
-    await message.reply_text(combined, parse_mode="HTML")
     chat_id = message.chat_id
     if chat_id:
         await _send_oby_sample_audio(context, chat_id)
     try:
-        await message.reply_text(
-            "👇 Formani shu tugma orqali oching:",
-            parse_mode="HTML",
-            reply_markup=inline,
-        )
+        await message.reply_text(combined, parse_mode="HTML", reply_markup=inline)
     except BadRequest as e:
         logger.warning("Obyektivka intro reply failed (markup): %s", e)
-        await message.reply_text(OBY_INTRO_TEXT, parse_mode="HTML")
+        await message.reply_text(combined, parse_mode="HTML")
 
 
 async def handle_cv_intro(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:

@@ -704,20 +704,32 @@ var _obyApprovedRequestId = 0;
 
 async function reconcileObyPaidRequestStatus(){
   var rid = _obyApprovedRequestId || Number(localStorage.getItem('oby_paid_request_id') || 0);
-  if(!rid) return;
+  if(!rid || !window.DastyorAI || !window.DastyorAI.fetchPaidDocStatus) return;
   try{
-    var p = new URLSearchParams({ request_id: String(rid) });
-    telegramId = resolveTelegramId();
-    if(telegramId) p.set('telegram_id', String(parseInt(telegramId, 10)));
-    var tok = getDastyorSessionToken();
-    if(tok) p.set('token', String(tok));
-    var st = await fetch(API_URL + '/api/paid_doc_status?' + p.toString(), { cache: 'no-store' });
-    if(!st.ok) return;
-    var js = await st.json();
+    var js = await window.DastyorAI.fetchPaidDocStatus(rid);
+    if(!js) return;
     var s = String(js.status || '');
+    if(s === 'approved' || s === 'delivered'){
+      _obyApprovedRequestId = rid;
+      try{ localStorage.setItem('oby_paid_request_id', String(rid)); }catch(e){}
+    }
     if(s === 'completed'){
       _obyApprovedRequestId = 0;
       try{ localStorage.removeItem('oby_paid_request_id'); }catch(e){}
+    }
+    if(window.DastyorAI.processPaidDocStatus){
+      await window.DastyorAI.processPaidDocStatus('obyektivka', rid, s, {
+        onApproved: async function(id){
+          _obyApprovedRequestId = id;
+          try{ localStorage.setItem('oby_paid_request_id', String(id)); }catch(e){}
+          syncObyQuotaUi();
+        },
+        onCompleted: async function(){
+          _obyApprovedRequestId = 0;
+          try{ localStorage.removeItem('oby_paid_request_id'); }catch(e){}
+          syncObyQuotaUi();
+        }
+      });
     }
   }catch(e){}
 }
@@ -1156,6 +1168,7 @@ async function payObySingle(fmt){
             var d0 = await res0.json();
             _obyPayState.requestId = d0 && d0.request_id ? Number(d0.request_id) : 0;
             if(!_obyPayState.requestId) throw new Error("request_id yo'q");
+            try{ localStorage.setItem('oby_paid_request_id', String(_obyPayState.requestId)); }catch(e){}
           }catch(e0){
             var em0 = (e0 && e0.message) ? String(e0.message) : String(e0);
             if(statusEl){ statusEl.textContent = "Xatolik: "+em0; statusEl.style.color = '#b91c1c'; }
@@ -1175,41 +1188,39 @@ async function payObySingle(fmt){
         }
         if(statusEl){ statusEl.textContent = "✅ Chek yuborildi. Admin tasdiqlashini kuting..."; statusEl.style.color = '#166534'; }
         if(sendBtn){ sendBtn.disabled = true; sendBtn.textContent = "Yuborilmoqda..."; }
+        try{ localStorage.setItem('oby_paid_request_id', String(_obyPayState.requestId)); }catch(e){}
+        if(window.DastyorAI && window.DastyorAI.stopPaidDocWatcher) window.DastyorAI.stopPaidDocWatcher('obyektivka');
         var spin = setInterval(function(){
           if(!statusEl) return;
           statusEl.textContent = statusEl.textContent.indexOf("...")>-1 ? "⏳ Admin tekshirmoqda." : (statusEl.textContent.indexOf("..")>-1 ? "⏳ Admin tekshirmoqda..." : "⏳ Admin tekshirmoqda..");
         }, 450);
 
-        _obyPayState.pollTimer = setInterval(async function(){
-          var p = new URLSearchParams({ request_id:String(_obyPayState.requestId) });
-          if(_obyPayState.telegramId) p.set('telegram_id', String(_obyPayState.telegramId));
-          if(_obyPayState.token) p.set('token', String(_obyPayState.token));
-          try{
-            var st=await fetch(API_URL + '/api/paid_doc_status?' + p.toString(), { cache:'no-store' });
-            if(!st.ok) return;
-            var js=await st.json();
-            var s=String(js.status||'');
-            if(s==='completed'){
+        if(window.DastyorAI && window.DastyorAI.startPaidDocWatcher){
+          window.DastyorAI.startPaidDocWatcher({
+            kind: 'obyektivka',
+            storageKey: 'oby_paid_request_id',
+            getRequestId: function(){ return _obyPayState.requestId; },
+            onApproved: async function(id){
               clearInterval(spin);
-              clearInterval(_obyPayState.pollTimer);
-              _obyPayState.pollTimer = null;
+              _obyApprovedRequestId = id;
+              try{ localStorage.setItem('oby_paid_request_id', String(id)); }catch(e){}
+              if(statusEl) statusEl.textContent = "✅ Admin tasdiqladi. «Word botga yuborish» — faqat 1 marta.";
+              syncObyQuotaUi();
+            },
+            onCompleted: async function(){
+              clearInterval(spin);
               _obyApprovedRequestId = 0;
               try{ localStorage.removeItem('oby_paid_request_id'); }catch(e){}
               if(statusEl) statusEl.textContent = "✅ Bu to'lov ishlatilgan. Yana Word uchun yangi to'lov qiling.";
-              try{ if(window.DastyorAI&&window.DastyorAI.refreshProfile) await window.DastyorAI.refreshProfile(); }catch(e){}
               syncObyQuotaUi();
-            } else if(s==='approved'||s==='delivered'){
+            },
+            onRejected: async function(){
               clearInterval(spin);
-              clearInterval(_obyPayState.pollTimer);
-              _obyPayState.pollTimer = null;
-              _obyApprovedRequestId = _obyPayState.requestId;
-              try{ localStorage.setItem('oby_paid_request_id', String(_obyApprovedRequestId)); }catch(e){}
-              if(statusEl) statusEl.textContent = "✅ Admin tasdiqladi. «Word botga yuborish» — faqat 1 marta.";
-              try{ if(window.DastyorAI&&window.DastyorAI.refreshProfile) await window.DastyorAI.refreshProfile(); }catch(e){}
-              syncObyQuotaUi();
+              if(statusEl){ statusEl.textContent = "❌ To'lov rad etildi. Qayta skrinshot yuboring."; statusEl.style.color = '#b91c1c'; }
+              if(sendBtn){ sendBtn.disabled = false; sendBtn.textContent = "📤 Yuborish"; sendBtn.style.opacity = '1'; }
             }
-          }catch(e){}
-        }, 1500);
+          });
+        }
       };
     }
   }catch(e){
@@ -1741,9 +1752,27 @@ document.addEventListener('DOMContentLoaded',function(){
       telegramId = resolveTelegramId();
       await reconcileObyPaidRequestStatus();
       syncObyQuotaUi();
+      if(window.DastyorAI && window.DastyorAI.resumePaidDocWatcher){
+        window.DastyorAI.resumePaidDocWatcher({
+          kind: 'obyektivka',
+          storageKey: 'oby_paid_request_id',
+          onApproved: async function(id){
+            _obyApprovedRequestId = id;
+            syncObyQuotaUi();
+          },
+          onCompleted: async function(){
+            _obyApprovedRequestId = 0;
+            try{ localStorage.removeItem('oby_paid_request_id'); }catch(e){}
+            syncObyQuotaUi();
+          }
+        });
+      }
     }catch(e){console.warn(e);}
   })();
-  try{ window.addEventListener('dastyor:profile-updated', function(){ syncObyQuotaUi(); }); }catch(e){}
+  try{
+    window.addEventListener('dastyor:profile-updated', function(){ syncObyQuotaUi(); });
+    window.addEventListener('dastyor:payment-approved', function(){ syncObyQuotaUi(); });
+  }catch(e){}
   try{
     var up=new URLSearchParams(window.location.search);
     if(up.get('autoload')==='1'&&telegramId){

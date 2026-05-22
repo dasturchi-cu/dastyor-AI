@@ -6,7 +6,28 @@ from bot.services.supabase_db import (
     db_get_user,
     db_list_user_paid_doc_requests,
     has_db,
+    normalize_paid_doc_status,
 )
+
+
+def _compact_doc_rows(rows: list[dict]) -> list[dict]:
+    """Eski takroriy «pending» yozuvlarni yashirish — faqat oxirgi holatlar."""
+    out: list[dict] = []
+    seen_pending_kind: set[str] = set()
+    for r in rows:
+        kind = str(r.get("kind") or "").strip().lower()
+        try:
+            st = normalize_paid_doc_status(str(r.get("status") or "pending"))
+        except Exception:
+            st = "pending"
+        if st == "pending" and kind in seen_pending_kind:
+            continue
+        if st == "pending":
+            seen_pending_kind.add(kind)
+        out.append(r)
+        if len(out) >= 4:
+            break
+    return out
 
 
 def format_my_documents_text(user_id: int) -> str:
@@ -28,7 +49,7 @@ def format_my_documents_text(user_id: int) -> str:
     if flags:
         lines.append("🎫 " + " · ".join(flags) + "\n")
 
-    rows = db_list_user_paid_doc_requests(uid, limit=6)
+    rows = _compact_doc_rows(db_list_user_paid_doc_requests(uid, limit=12))
     if not rows:
         lines.append(
             "Hali so‘rov yo‘q.\n\n"

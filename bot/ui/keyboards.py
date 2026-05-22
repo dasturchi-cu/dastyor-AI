@@ -60,9 +60,21 @@ def user_reply_menu(webapp_base: str, uid: int) -> ReplyKeyboardMarkup:
     )
 
 
-def webapp_service_url(webapp_base: str, uid: int, service: str) -> str | None:
-    """Telegram WebApp uchun to‘liq https URL; noto‘g‘ri base bo‘lsa None."""
+def _resolved_webapp_base(webapp_base: str) -> str:
     base = (webapp_base or "").strip().rstrip("/")
+    if base.startswith("https://"):
+        return base
+    try:
+        from config import resolve_webapp_base
+
+        return resolve_webapp_base()
+    except Exception:
+        return ""
+
+
+def webapp_service_url(webapp_base: str, uid: int, service: str) -> str | None:
+    """Telegram WebApp uchun to‘liq https URL."""
+    base = _resolved_webapp_base(webapp_base)
     if not base.startswith("https://"):
         return None
     ver = WEBAPP_VERSION
@@ -81,12 +93,7 @@ def service_open_inline(webapp_base: str, uid: int, service: str) -> InlineKeybo
     if url:
         row_open = [InlineKeyboardButton(label, web_app=WebAppInfo(url=url))]
     else:
-        row_open = [
-            InlineKeyboardButton(
-                "⚠️ Forma havolasi sozlanmagan (admin: WEBAPP_BASE)",
-                callback_data="menu_back",
-            )
-        ]
+        row_open = [InlineKeyboardButton("🔙 Boshqa xizmatlar", callback_data="menu_back")]
     return InlineKeyboardMarkup(
         inline_keyboard=[
             row_open,
