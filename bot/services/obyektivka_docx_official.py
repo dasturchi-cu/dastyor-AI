@@ -239,23 +239,8 @@ def generate_obyektivka_docx(
         section.left_margin = Cm(2.2)
         section.right_margin = Cm(1.8)
 
-    title = doc.add_paragraph()
-    title.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    title_run = title.add_run("MA'LUMOTNOMA")
-    # Oddiy holatda (sarlavha bold emas)
-    title_run.font.size = Pt(16)
-    title.paragraph_format.space_after = Pt(6)
-    title.paragraph_format.line_spacing = 1.3
-
     full_name = _to_text(data.get("fullname")) or "FAMILIYA ISM SHARIF"
     work_items = _parse_list(data.get("work_experience"))
-    name = doc.add_paragraph()
-    name.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    name_run = name.add_run(full_name)
-    # Oddiy holatda
-    name_run.font.size = Pt(14)
-    name.paragraph_format.space_after = Pt(4)
-    name.paragraph_format.line_spacing = 1.3
 
     current_job = _to_text(data.get("current_job"))
     current_job_year = _to_text(data.get("current_job_year"))
@@ -282,6 +267,53 @@ def generate_obyektivka_docx(
                             current_job_year = match.group(0)
                 work_items.pop(idx)
                 break
+
+    section = doc.sections[0]
+    total_width = section.page_width - section.left_margin - section.right_margin
+    photo_col_width = Cm(3.2)
+    text_col_width = int(total_width - photo_col_width)
+
+    # Sarlavha + F.I.Sh + foto (namuna hujjat maketi).
+    hdr_tbl = doc.add_table(rows=1, cols=2)
+    hdr_tbl.autofit = False
+    hdr_tbl.columns[0].width = text_col_width
+    hdr_tbl.columns[1].width = photo_col_width
+    _set_table_no_borders_strict(hdr_tbl)
+    left_hdr = hdr_tbl.cell(0, 0)
+    right_hdr = hdr_tbl.cell(0, 1)
+    left_hdr.vertical_alignment = WD_ALIGN_VERTICAL.TOP
+    right_hdr.vertical_alignment = WD_ALIGN_VERTICAL.TOP
+    _set_cell_margins(left_hdr)
+    _set_cell_margins(right_hdr, right_twips=0)
+
+    t_p = left_hdr.paragraphs[0]
+    t_p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    tr = t_p.add_run("MA'LUMOTNOMA")
+    tr.bold = True
+    tr.font.size = Pt(14)
+    t_p.paragraph_format.space_after = Pt(4)
+
+    n_p = left_hdr.add_paragraph()
+    n_p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    nr = n_p.add_run(full_name)
+    nr.bold = True
+    nr.font.size = Pt(12)
+    n_p.paragraph_format.space_after = Pt(6)
+
+    photo_p = right_hdr.paragraphs[0]
+    photo_p.alignment = WD_ALIGN_PARAGRAPH.RIGHT
+    if photo_path and os.path.exists(photo_path):
+        try:
+            run = photo_p.add_run()
+            run.add_picture(photo_path, width=Cm(3), height=Cm(4))
+        except Exception as exc:
+            logger.warning("Failed to insert photo: %s", exc)
+            ph = photo_p.add_run("[3x4 foto]")
+            ph.italic = True
+    else:
+        ph = photo_p.add_run("[3x4 foto]")
+        ph.italic = True
+
     if current_job:
         if current_job_year:
             year_text = current_job_year.rstrip(".")
@@ -290,28 +322,18 @@ def generate_obyektivka_docx(
             current_line.add_run(f"{year_text}-yildan:")
             current_line.add_run().add_break()
             current_line.add_run(current_job)
-            current_line.paragraph_format.line_spacing = 1.15
-            current_line.paragraph_format.space_after = Pt(14)
         else:
             current_line = doc.add_paragraph()
             current_line.alignment = WD_ALIGN_PARAGRAPH.LEFT
             current_line.add_run(current_job)
-            current_line.paragraph_format.line_spacing = 1.15
-            current_line.paragraph_format.space_after = Pt(14)
-    else:
-        name.paragraph_format.space_after = Pt(20)
+        current_line.paragraph_format.line_spacing = 1.15
+        current_line.paragraph_format.space_after = Pt(10)
 
-    # Main info block: invisible 3-column table for precise alignment.
-    section = doc.sections[0]
-    total_width = section.page_width - section.left_margin - section.right_margin
-    photo_col_width = Cm(4)
-    info_col_width = int((total_width - photo_col_width) / 2)
-
-    info_tbl = doc.add_table(rows=8, cols=3)
+    info_col_width = int(total_width / 2)
+    info_tbl = doc.add_table(rows=8, cols=2)
     info_tbl.autofit = False
     info_tbl.columns[0].width = info_col_width
     info_tbl.columns[1].width = info_col_width
-    info_tbl.columns[2].width = photo_col_width
     _set_table_no_borders_strict(info_tbl)
     info_rows = [
         (("Tug'ilgan yili", _to_text(data.get("birthdate"))), ("Tug'ilgan joyi", _to_text(data.get("birthplace"))), False),
@@ -345,31 +367,11 @@ def generate_obyektivka_docx(
             right_cell.paragraphs[0].paragraph_format.space_after = Pt(6)
             right_cell.paragraphs[0].paragraph_format.line_spacing = 1.3
 
-    photo_cell = info_tbl.cell(0, 2).merge(info_tbl.cell(3, 2))
-    photo_cell.vertical_alignment = WD_ALIGN_VERTICAL.TOP
-    _set_cell_margins(photo_cell, right_twips=0, left_twips=0)
-    _set_cell_no_borders(photo_cell)
-    photo_p = photo_cell.paragraphs[0]
-    photo_p.alignment = WD_ALIGN_PARAGRAPH.RIGHT
-    photo_p.paragraph_format.space_before = Pt(0)
-    photo_p.paragraph_format.space_after = Pt(0)
-    if photo_path and os.path.exists(photo_path):
-        try:
-            run = photo_p.add_run()
-            run.add_picture(photo_path, width=Cm(3), height=Cm(4))
-        except Exception as exc:
-            logger.warning("Failed to insert photo: %s", exc)
-            ph = photo_p.add_run("[3x4 foto]")
-            ph.italic = True
-    else:
-        ph = photo_p.add_run("[3x4 foto]")
-        ph.italic = True
-
     work_title = doc.add_paragraph()
     work_title.alignment = WD_ALIGN_PARAGRAPH.CENTER
     wr = work_title.add_run("MEHNAT FAOLIYATI")
-    # Oddiy holatda
-    wr.font.size = Pt(14)
+    wr.bold = True
+    wr.font.size = Pt(12)
     work_title.paragraph_format.space_before = Pt(20)
     work_title.paragraph_format.space_after = Pt(6)
     work_title.paragraph_format.line_spacing = 1.3

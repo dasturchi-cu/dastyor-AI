@@ -280,6 +280,8 @@ def build_obyektivka_context(raw: dict) -> dict:
     relatives = raw.get("relatives", [])
     return {
         "lang":           raw.get("lang", "uz_lat"),
+        "current_job":    raw.get("current_job", "") or "",
+        "current_job_year": raw.get("current_job_year", "") or "",
         # Template uses d.img to render photo (absolute URL or data URL).
         # Webapp/API send photo as `photo_data` (data:image/...).
         "img":            raw.get("img", "") or raw.get("photo_data", "") or "",

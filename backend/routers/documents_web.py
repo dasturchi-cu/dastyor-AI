@@ -206,11 +206,19 @@ async def api_request_paid_cv(req: CVRequest):
     payload = req.dict(exclude={"telegram_id", "token"})
     rid = None
     try:
-        from bot.services.supabase_db import has_db, db_create_paid_doc_request
+        from bot.services.supabase_db import has_db, db_create_paid_doc_request, db_upsert_user
 
-        if has_db():
-            rid = db_create_paid_doc_request(uid, "cv", payload)
-    except Exception:
+        if not has_db():
+            raise HTTPException(status_code=503, detail="Baza vaqtincha ishlamayapti.")
+        try:
+            db_upsert_user(uid, first_name=(payload.get("name") or "User")[:80], command="webapp")
+        except Exception:
+            pass
+        rid = db_create_paid_doc_request(uid, "cv", payload)
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("api_request_paid_cv: %s", e, exc_info=True)
         rid = None
     if not rid:
         raise HTTPException(status_code=500, detail="So'rovni saqlab bo'lmadi (DB).")
@@ -445,14 +453,31 @@ async def api_request_paid_obyektivka(req: ObyektivkaRequest):
     payload = req.dict(exclude={"telegram_id", "token"})
     rid = None
     try:
-        from bot.services.supabase_db import has_db, db_create_paid_doc_request
+        from bot.services.supabase_db import has_db, db_create_paid_doc_request, db_upsert_user
 
-        if has_db():
-            rid = db_create_paid_doc_request(uid, "obyektivka", payload)
-    except Exception:
+        if not has_db():
+            raise HTTPException(
+                status_code=503,
+                detail="Baza vaqtincha ishlamayapti. Keyinroq qayta urinib ko'ring.",
+            )
+        try:
+            db_upsert_user(uid, first_name=(payload.get("fullname") or "User")[:80], command="webapp")
+        except Exception:
+            pass
+        rid = db_create_paid_doc_request(uid, "obyektivka", payload)
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("api_request_paid_obyektivka: %s", e, exc_info=True)
         rid = None
     if not rid:
-        raise HTTPException(status_code=500, detail="So'rovni saqlab bo'lmadi (DB).")
+        raise HTTPException(
+            status_code=500,
+            detail=(
+                "So'rovni saqlab bo'lmadi. "
+                "Serverda SUPABASE_SERVICE_ROLE_KEY va paid_doc_requests jadvali tekshirilsin."
+            ),
+        )
     bot_username = (os.getenv("BOT_USERNAME", "DastyorAiBot") or "DastyorAiBot").strip().lstrip("@")
     pay_link = f"https://t.me/{bot_username}?start=payoby_{rid}"
     return {
@@ -542,7 +567,8 @@ async def api_paid_doc_submit_screenshot(
         pass
 
     try:
-        db_set_paid_doc_request_status(int(request_id), "payment_submitted")
+        # Admin tasdiqlaguncha «pending» (DB constraint bilan mos).
+        db_set_paid_doc_request_status(int(request_id), "pending")
     except Exception:
         pass
 
@@ -623,7 +649,7 @@ async def api_paid_doc_download(
     row = db_get_paid_doc_request(int(request_id))
     if not row or int(row.get("user_id") or 0) != int(uid):
         raise HTTPException(status_code=404, detail="So'rov topilmadi")
-    if str(row.get("status") or "") not in {"approved", "delivered"}:
+    if str(row.get("status") or "") not in {"approved", "delivered", "completed"}:
         raise HTTPException(status_code=409, detail="Hali tasdiqlanmagan")
 
     payload = row.get("payload") if isinstance(row.get("payload"), dict) else {}
@@ -700,7 +726,7 @@ async def api_paid_doc_send_to_bot(
     row = db_get_paid_doc_request(int(request_id))
     if not row or int(row.get("user_id") or 0) != int(uid):
         raise HTTPException(status_code=404, detail="So'rov topilmadi")
-    if str(row.get("status") or "") not in {"approved", "delivered"}:
+    if str(row.get("status") or "") not in {"approved", "delivered", "completed"}:
         raise HTTPException(status_code=409, detail="Hali tasdiqlanmagan")
 
     payload = row.get("payload") if isinstance(row.get("payload"), dict) else {}
@@ -763,7 +789,7 @@ async def api_paid_doc_send_to_bot(
                 )
 
             try:
-                db_set_paid_doc_request_status(rid, "delivered")
+                db_set_paid_doc_request_status(rid, "completed")
             except Exception:
                 pass
         except Exception as e:

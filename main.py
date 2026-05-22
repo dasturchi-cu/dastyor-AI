@@ -16,13 +16,24 @@ from telegram.ext import (
     filters,
 )
 
+from bot.constants.states import WaitingState
 from bot.flow.state import WAITING_FOR_FEEDBACK
 from bot.handlers.feedback import handle_feedback, start_feedback
+from bot.handlers.obyektivka import handle_obyektivka_audio
+from bot.handlers.service_intro import (
+    handle_cv_intro,
+    handle_menu_back,
+    handle_obyektivka_intro,
+    intro_callback_router,
+    is_cv_button,
+    is_oby_button,
+)
 from bot.ui.keyboards import (
     ADMIN_BTN_CLOSE,
     ADMIN_BTN_PAYMENTS,
     ADMIN_BTN_STATS,
     ADMIN_BTN_SUPPORT,
+    BTN_BACK,
     BTN_CONTACT,
     BTN_HELP,
     user_inline_start_menu,
@@ -65,11 +76,11 @@ def _is_admin(update: Update) -> bool:
     return uid in _ADMIN_IDS
 
 
-async def _send_with_typing(update: Update, text: str, *, reply_markup=None) -> None:
+async def _send_with_typing(update: Update, text: str, *, reply_markup=None, parse_mode: str | None = None) -> None:
     if not update.effective_chat or not update.message:
         return
     await update.get_bot().send_chat_action(chat_id=update.effective_chat.id, action="typing")
-    await update.message.reply_text(text, reply_markup=reply_markup)
+    await update.message.reply_text(text, reply_markup=reply_markup, parse_mode=parse_mode)
 
 
 def _is_fast_repeat(context: ContextTypes.DEFAULT_TYPE, min_gap_seconds: float = 0.35) -> bool:
@@ -88,7 +99,16 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     ):
         return
     uid = int(update.effective_user.id)
-    await _send_with_typing(update, WELCOME_TEXT, reply_markup=user_inline_start_menu(WEBAPP_BASE, uid))
+    await _send_with_typing(
+        update,
+        WELCOME_TEXT,
+        reply_markup=user_reply_menu(WEBAPP_BASE, uid),
+        parse_mode="HTML",
+    )
+    await update.message.reply_text(
+        "Yoki quyidagi tugmalardan tanlang:",
+        reply_markup=user_inline_start_menu(WEBAPP_BASE, uid),
+    )
 
 
 async def support_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -103,6 +123,7 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         update,
         HELP_TEXT,
         reply_markup=user_reply_menu(WEBAPP_BASE, uid),
+        parse_mode="HTML",
     )
 
 
@@ -142,21 +163,38 @@ async def message_router(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         await handle_feedback(update, context)
         return
 
+    if context.user_data.get("waiting_for") == WaitingState.OBYEKTIVKA_AUDIO:
+        if update.message.voice or update.message.audio:
+            await handle_obyektivka_audio(update, context)
+            return
+
     text = (update.message.text or "").strip()
     uid = int(update.effective_user.id)
+
     if text == BTN_CONTACT:
         await start_feedback(update, context)
         return
     if text == BTN_HELP:
         await help_command(update, context)
         return
-    if text.lower() in {"bekor", "cancel", "orqaga", "ortga"}:
-        await update.message.reply_text("↩️ Asosiy menyuga qaytdik.", reply_markup=user_reply_menu(WEBAPP_BASE, uid))
+    if text == BTN_BACK or text.lower() in {"bekor", "cancel", "orqaga", "ortga"}:
+        await handle_menu_back(update, context)
+        return
+    if is_cv_button(text):
+        await handle_cv_intro(update, context)
+        return
+    if is_oby_button(text):
+        await handle_obyektivka_intro(update, context)
         return
     if _is_admin(update):
         await admin_text_router(update, context)
         return
-    await _send_with_typing(update, UNKNOWN_INPUT_TEXT, reply_markup=user_reply_menu(WEBAPP_BASE, uid))
+    await _send_with_typing(
+        update,
+        UNKNOWN_INPUT_TEXT,
+        reply_markup=user_reply_menu(WEBAPP_BASE, uid),
+        parse_mode="HTML",
+    )
 
 
 def setup_application():
@@ -169,6 +207,7 @@ def setup_application():
         .token(BOT_TOKEN)
         .connection_pool_size(int(os.getenv("PTB_POOL_SIZE", "12")))
         .pool_timeout(20.0)
+        .post_init(_post_init)
         .build()
     )
 
@@ -179,12 +218,22 @@ def setup_application():
     app.add_handler(CommandHandler("admin", admin_command))
     app.add_handler(CallbackQueryHandler(premium_payment_review_callback, pattern=r"^prempay_(approve|reject)_\d+$"))
     app.add_handler(
+        CallbackQueryHandler(
+            intro_callback_router,
+            pattern=r"^(intro_cv|intro_oby|intro_help|intro_contact|menu_back)$",
+        )
+    )
+    app.add_handler(
         MessageHandler(
             filters.TEXT | filters.PHOTO | filters.Document.ALL | filters.VIDEO | filters.VOICE | filters.AUDIO,
             message_router,
         )
     )
     return app
+
+
+async def _post_init(app) -> None:
+    app.bot_data["webapp_base"] = WEBAPP_BASE
 
 
 def main() -> None:

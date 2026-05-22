@@ -6,7 +6,7 @@ create table if not exists public.paid_doc_requests (
   user_id bigint not null references public.users(id) on delete cascade,
   kind text not null check (kind in ('cv','obyektivka')),
   payload jsonb not null,
-  status text not null default 'pending_payment',
+  status text not null default 'pending',
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );

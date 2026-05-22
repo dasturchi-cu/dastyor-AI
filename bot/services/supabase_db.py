@@ -609,6 +609,25 @@ def db_mark_paywall_shown(user_id: int) -> bool:
         return False
 
 
+_PAID_DOC_ALLOWED_STATUSES = frozenset(
+    {"pending", "approved", "rejected", "completed", "cancelled"}
+)
+
+
+def normalize_paid_doc_status(status: str) -> str:
+    """Production DB check: pending|approved|rejected|completed|cancelled."""
+    st = (status or "pending").strip().lower()
+    aliases = {
+        "pending_payment": "pending",
+        "payment_submitted": "pending",
+        "delivered": "completed",
+    }
+    st = aliases.get(st, st)
+    if st not in _PAID_DOC_ALLOWED_STATUSES:
+        return "pending"
+    return st
+
+
 def db_create_paid_doc_request(user_id: int, kind: str, payload: dict) -> int | None:
     """
     Create a paid doc request row: paid_doc_requests(user_id, kind, payload, status).
@@ -616,19 +635,32 @@ def db_create_paid_doc_request(user_id: int, kind: str, payload: dict) -> int | 
     """
     c = _get_client()
     if not c:
+        logger.warning("db_create_paid_doc_request: Supabase client yo'q")
         return None
     uid = int(user_id)
     k = (kind or "").strip().lower()
     if k not in {"cv", "obyektivka"}:
         k = "cv"
+    pl: dict = dict(payload or {})
+    # Juda katta base64 foto jsonb insertni sekinlashtirishi/yiqishi mumkin — payloadda saqlanmaydi.
+    ph = pl.get("photo_data")
+    if isinstance(ph, str) and len(ph) > 120_000:
+        pl = {**pl, "photo_data": "", "has_photo": True}
+    try:
+        db_upsert_user(uid, first_name="User", command="webapp")
+    except Exception as e:
+        logger.debug("db_create_paid_doc_request upsert user: %s", e)
     try:
         r = c.table("paid_doc_requests").insert(
-            {"user_id": uid, "kind": k, "payload": payload, "status": "pending_payment"}
+            {"user_id": uid, "kind": k, "payload": pl, "status": "pending"}
         ).execute()
         if r.data and isinstance(r.data, list) and r.data[0].get("id"):
             return int(r.data[0]["id"])
+        logger.error("db_create_paid_doc_request: insert javobi bo'sh (user=%s kind=%s)", uid, k)
         return None
-    except Exception:
+    except Exception as e:
+        _log_write_error("db_create_paid_doc_request", e)
+        logger.error("db_create_paid_doc_request failed user=%s kind=%s: %s", uid, k, e, exc_info=True)
         return None
 
 
@@ -666,7 +698,7 @@ def db_set_paid_doc_request_status(request_id: int, status: str) -> bool:
     if not c:
         return False
     rid = int(request_id)
-    st = (status or "").strip().lower()[:40]
+    st = normalize_paid_doc_status(status)[:40]
     try:
         c.table("paid_doc_requests").update({"status": st}).eq("id", rid).execute()
         try:

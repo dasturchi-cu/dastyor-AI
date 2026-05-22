@@ -1012,7 +1012,42 @@ async function sendObyektivkaToBot(fmt){
   }
 }
 
-var _obyPayState = { requestId:0, token:"", telegramId:0, screenshot:"", pollTimer:null, cardNumber:"" };
+var _obyPayState = { requestId:0, token:"", telegramId:0, screenshot:"", pollTimer:null, cardNumber:"", pendingReq:null, fmt:"word" };
+
+function _buildPaidObyRequest(fmt){
+  var payload = buildObyPayload(fmt);
+  var req = {
+    telegram_id: telegramId ? parseInt(telegramId, 10) : null,
+    lang: payload.lang,
+    fullname: payload.fullname || '',
+    birthdate: payload.bdate || '',
+    birthplace: payload.bplace || '',
+    nation: payload.nation || '',
+    party: payload.party || '',
+    education: payload.edu || '',
+    graduated: payload.grad || '',
+    specialty: payload.spec || '',
+    degree: payload.deg || '',
+    scientific_title: payload.ttl || '',
+    languages: payload.langs || '',
+    military_rank: payload.mil || '',
+    awards: payload.award || '',
+    deputy: payload.dep || '',
+    current_job: payload.current_job || '',
+    current_job_year: payload.current_job_year || '',
+    work_experience: (payload.works || []).map(function(w){
+      return { year: ((w.f || '') + ((w.f || w.t) ? '-' : '') + (w.t || '')).replace(/^-|-$/g,''), position: w.d || '' };
+    }),
+    relatives: (payload.rels || []).map(function(r){
+      return { degree:r.type||'', fullname:r.name||'', birth_year_place:r.birth||'', work_place:r.job||'', address:r.addr||'' };
+    }),
+    photo_data: payload.photo_data || ''
+  };
+  var tok = getDastyorSessionToken();
+  if (tok) req.token = tok;
+  return req;
+}
+
 async function payObySingle(fmt){
   telegramId = resolveTelegramId();
   var tg=window.Telegram&&window.Telegram.WebApp?window.Telegram.WebApp:null;
@@ -1030,51 +1065,23 @@ async function payObySingle(fmt){
   if(shotThumb) shotThumb.removeAttribute('src');
   if(shotFname) shotFname.textContent='';
   try{
-    var payload = buildObyPayload(fmt);
-    var req = {
-      telegram_id: telegramId ? parseInt(telegramId, 10) : null,
-      lang: payload.lang,
-      fullname: payload.fullname || '',
-      birthdate: payload.bdate || '',
-      birthplace: payload.bplace || '',
-      nation: payload.nation || '',
-      party: payload.party || '',
-      education: payload.edu || '',
-      graduated: payload.grad || '',
-      specialty: payload.spec || '',
-      degree: payload.deg || '',
-      scientific_title: payload.ttl || '',
-      languages: payload.langs || '',
-      military_rank: payload.mil || '',
-      awards: payload.award || '',
-      deputy: payload.dep || '',
-      current_job: payload.current_job || '',
-      current_job_year: payload.current_job_year || '',
-      work_experience: (payload.works || []).map(function(w){
-        return { year: ((w.f || '') + ((w.f || w.t) ? '-' : '') + (w.t || '')).replace(/^-|-$/g,''), position: w.d || '' };
-      }),
-      relatives: (payload.rels || []).map(function(r){
-        return { degree:r.type||'', fullname:r.name||'', birth_year_place:r.birth||'', work_place:r.job||'', address:r.addr||'' };
-      }),
-      photo_data: payload.photo_data || ''
-    };
-    var tok = getDastyorSessionToken();
-    if (tok) req.token = tok;
-    var res = await fetch(API_URL + '/api/request_paid_obyektivka', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(req) });
-    if(!res.ok){ var errMsg = await dastyorReadApiError(res); throw new Error(errMsg); }
-    var data = await res.json();
-    var rid = data && data.request_id ? Number(data.request_id) : 0;
-    if(!rid) throw new Error("request_id yo'q");
-
-    _obyPayState.requestId = rid;
-    _obyPayState.token = req.token || "";
-    _obyPayState.telegramId = req.telegram_id || 0;
+    _obyPayState.fmt = fmt || 'word';
+    _obyPayState.pendingReq = _buildPaidObyRequest(_obyPayState.fmt);
+    _obyPayState.token = _obyPayState.pendingReq.token || "";
+    _obyPayState.telegramId = _obyPayState.pendingReq.telegram_id || 0;
+    _obyPayState.requestId = 0;
     _obyPayState.screenshot = "";
     if(_obyPayState.pollTimer){ clearInterval(_obyPayState.pollTimer); _obyPayState.pollTimer=null; }
 
     if(panel) panel.classList.remove('hidden');
+    if(panel && panel.scrollIntoView) panel.scrollIntoView({ behavior:'smooth', block:'nearest' });
     if(sendBtn){ sendBtn.disabled = true; sendBtn.textContent = "📤 Yuborish"; sendBtn.style.opacity = '0.6'; }
-    if(statusEl){ statusEl.textContent = "Skrenshot tanlang va yuboring."; statusEl.style.color = '#334155'; statusEl.style.fontWeight = '600'; }
+    if(statusEl){
+      statusEl.textContent = "💳 Quyidagi kartaga 5 000 so'm o'tkazing, keyin to'lov skrinshotini yuboring.";
+      statusEl.style.color = '#334155';
+      statusEl.style.fontWeight = '600';
+    }
+    if(cardInfo) cardInfo.textContent = "Karta ma'lumotlari yuklanmoqda...";
 
     try{
       var cardRes = await fetch(API_URL + '/api/payment_card', { cache:'no-store' });
@@ -1084,9 +1091,11 @@ async function payObySingle(fmt){
         var owner = String(c.card_owner||'');
         var price = String(c.single_doc_price_uzs||5000);
         _obyPayState.cardNumber = cardNum;
-        if(cardInfo) cardInfo.textContent = "Karta: "+cardNum+"\nEga: "+owner+"\nNarx: "+price+" so'm";
-      }
-    }catch(e){}
+        if(cardInfo) cardInfo.textContent = "💳 Karta: "+cardNum+"\n👤 Ega: "+owner+"\n💰 Narx: "+price+" so'm";
+      } else if(cardInfo) cardInfo.textContent = "Karta ma'lumotlari yuklanmadi. Qayta urinib ko'ring.";
+    }catch(e){
+      if(cardInfo) cardInfo.textContent = "Karta ma'lumotlari yuklanmadi.";
+    }
 
     if(copyBtn){
       copyBtn.onclick = async function(){
@@ -1124,6 +1133,25 @@ async function payObySingle(fmt){
     if(sendBtn){
       sendBtn.onclick = async function(){
         if(!_obyPayState.screenshot) return;
+        if(!_obyPayState.requestId){
+          if(statusEl){ statusEl.textContent = "⏳ So'rov saqlanmoqda..."; statusEl.style.color = '#334155'; }
+          try{
+            var res0 = await fetch(API_URL + '/api/request_paid_obyektivka', {
+              method:'POST',
+              headers:{'Content-Type':'application/json'},
+              body: JSON.stringify(_obyPayState.pendingReq || _buildPaidObyRequest(_obyPayState.fmt))
+            });
+            if(!res0.ok){ throw new Error(await dastyorReadApiError(res0)); }
+            var d0 = await res0.json();
+            _obyPayState.requestId = d0 && d0.request_id ? Number(d0.request_id) : 0;
+            if(!_obyPayState.requestId) throw new Error("request_id yo'q");
+          }catch(e0){
+            var em0 = (e0 && e0.message) ? String(e0.message) : String(e0);
+            if(statusEl){ statusEl.textContent = "Xatolik: "+em0; statusEl.style.color = '#b91c1c'; }
+            if(sendBtn){ sendBtn.disabled = false; sendBtn.textContent = "📤 Yuborish"; sendBtn.style.opacity = '1'; }
+            return;
+          }
+        }
         var qs=new URLSearchParams({ request_id:String(_obyPayState.requestId), kind:'obyektivka' });
         if(_obyPayState.telegramId) qs.set('telegram_id', String(_obyPayState.telegramId));
         if(_obyPayState.token) qs.set('token', String(_obyPayState.token));
@@ -1150,7 +1178,7 @@ async function payObySingle(fmt){
             if(!st.ok) return;
             var js=await st.json();
             var s=String(js.status||'');
-            if(s==='approved'||s==='delivered'){
+            if(s==='approved'||s==='delivered'||s==='completed'){
               clearInterval(spin);
               clearInterval(_obyPayState.pollTimer);
               _obyPayState.pollTimer = null;
@@ -1448,21 +1476,20 @@ function updatePreview(){
 
   function r2(l1,v1,l2,v2){
     return '<tr>'
-      +'<td style="width:40%;vertical-align:top;padding:1mm 2mm 1.5mm 0">'
-        +'<div style="font-weight:bold;font-size:8.5pt">'+l1+'</div>'
-        +'<div style="font-size:8.5pt">'+v1+'</div>'
+      +'<td style="width:50%;vertical-align:top;padding:1.5mm 3mm 2mm 0">'
+        +'<div style="font-weight:bold;font-size:10pt">'+l1+':</div>'
+        +'<div style="font-size:10pt">'+v1+'</div>'
       +'</td>'
-      +'<td style="width:37%;vertical-align:top;padding:1mm 2mm 1.5mm">'
-        +'<div style="font-weight:bold;font-size:8.5pt">'+l2+'</div>'
-        +'<div style="font-size:8.5pt">'+v2+'</div>'
+      +'<td style="width:50%;vertical-align:top;padding:1.5mm 0 2mm 3mm">'
+        +'<div style="font-weight:bold;font-size:10pt">'+l2+':</div>'
+        +'<div style="font-size:10pt">'+v2+'</div>'
       +'</td>'
-      +'<td style="vertical-align:top;padding:1mm 0"></td>'
     +'</tr>';
   }
   function r1(lbl,val){
-    return '<tr><td colspan="3" style="vertical-align:top;padding:1mm 0 1.5mm">'
-      +'<div style="font-weight:bold;font-size:8.5pt">'+lbl+'</div>'
-      +'<div style="font-size:8.5pt">'+val+'</div>'
+    return '<tr><td colspan="2" style="vertical-align:top;padding:1.5mm 0 2mm">'
+      +'<div style="font-weight:bold;font-size:10pt">'+lbl+':</div>'
+      +'<div style="font-size:10pt">'+val+'</div>'
     +'</td></tr>';
   }
 
@@ -1476,52 +1503,69 @@ function updatePreview(){
   info+=r1(D.rAw,sf(toCurrentScript(v('awards'))));
   info+=r1(D.rDep,sf(toCurrentScript(v('deputy'))));
 
+  var currentJobHtml='';
+  var worksForList=works.slice();
+  if(worksForList.length){
+    var last=worksForList[worksForList.length-1];
+    var yrNorm=String(last.yr||'').toLowerCase().replace(/[\s.\-_/]/g,'');
+    if(/hv|hvgacha|hozirgacha|ҳв|ҳвгача|present|current/.test(yrNorm)){
+      var cj=last.d||'';
+      var cy=(last.yr||'').split('-')[0].replace(/[^\d]/g,'').slice(0,4);
+      if(cj){
+        currentJobHtml='<div style="margin:0 0 3mm;font-size:10pt">'
+          +(cy?'<div style="font-weight:bold">'+cy+'-yildan:</div>':'')
+          +'<div>'+cj+'</div></div>';
+        worksForList.pop();
+      }
+    }
+  }
+
   var workRows='';
-  if(works.length){
-    works.forEach(function(w){
-      workRows+='<div style="display:grid;grid-template-columns:26mm 1fr;gap:2.5mm;margin-bottom:2mm;align-items:start">'
-        +'<div style="font-size:8.5pt;font-weight:bold;line-height:1.4;text-align:left">'+(w.yr||'')+'</div>'
-        +'<div style="font-size:8.5pt;line-height:1.45;text-align:left">'+w.d+'</div>'
-      +'</div>';
+  if(worksForList.length){
+    worksForList.forEach(function(w){
+      var y=(w.yr||'').replace(/:$/,'');
+      workRows+='<div style="margin-bottom:2.5mm;font-size:10pt;line-height:1.35">'
+        +(y?'<div style="font-weight:bold">'+y+':</div>':'')
+        +'<div>'+w.d+'</div></div>';
     });
-  }else{
-    workRows='<div style="font-size:8pt;color:#ccc">______________</div>';
+  }else if(!currentJobHtml){
+    workRows='<div style="font-size:10pt;color:#ccc">—</div>';
   }
 
   p1.innerHTML=
-    '<table style="width:100%;border-collapse:collapse;margin-bottom:3mm">'
+    '<table style="width:100%;border-collapse:collapse;margin-bottom:4mm">'
       +'<tr>'
-        +'<td style="text-align:center;vertical-align:top">'
-          +'<div style="font-weight:bold;font-size:13pt;letter-spacing:1.5px;margin-bottom:2mm">'+D.d_title+'</div>'
-          +'<div style="font-weight:bold;font-size:11pt">'+(fn||'____________________')+'</div>'
+        +'<td style="text-align:center;vertical-align:top;padding-right:4mm">'
+          +'<div style="font-weight:bold;font-size:14pt;letter-spacing:1px;margin-bottom:2mm">'+D.d_title+'</div>'
+          +'<div style="font-weight:bold;font-size:12pt">'+(fn||'____________________')+'</div>'
         +'</td>'
-        +'<td style="width:31mm;vertical-align:top;text-align:right">'
+        +'<td style="width:30mm;vertical-align:top;text-align:right">'
           +'<div class="doc-photo-box">'+photoEl+'</div>'
         +'</td>'
       +'</tr>'
     +'</table>'
-    +'<hr style="border:0;border-top:1px solid #aaa;margin:2mm 0 3mm">'
+    +currentJobHtml
     +'<table style="width:100%;border-collapse:collapse">'+info+'</table>'
-    +'<div style="text-align:center;font-weight:bold;font-size:10.5pt;letter-spacing:.8px;margin:4mm 0 2mm">'+D.d_work+'</div>'
+    +'<div style="text-align:center;font-weight:bold;font-size:12pt;margin:5mm 0 3mm">'+D.d_work+'</div>'
     +workRows;
 
   var relRows='';
   if(relatives.length){
-    relatives.forEach(function(r){relRows+='<tr><td style="border:1px solid #000;padding:1.5mm 2mm;font-size:7.5pt">'+toCurrentScript(r.type||'')+'</td><td style="border:1px solid #000;padding:1.5mm 2mm;font-size:7.5pt">'+toCurrentScript(r.name||'')+'</td><td style="border:1px solid #000;padding:1.5mm 2mm;font-size:7.5pt">'+toCurrentScript(r.birth||'')+'</td><td style="border:1px solid #000;padding:1.5mm 2mm;font-size:7.5pt">'+toCurrentScript(r.job||'')+'</td><td style="border:1px solid #000;padding:1.5mm 2mm;font-size:7.5pt">'+toCurrentScript(r.addr||'')+'</td></tr>';});
+    relatives.forEach(function(r){relRows+='<tr><td style="border:1px solid #000;padding:2mm;font-size:10pt;font-weight:bold">'+toCurrentScript(r.type||'')+'</td><td style="border:1px solid #000;padding:2mm;font-size:10pt">'+toCurrentScript(r.name||'')+'</td><td style="border:1px solid #000;padding:2mm;font-size:10pt">'+toCurrentScript(r.birth||'')+'</td><td style="border:1px solid #000;padding:2mm;font-size:10pt">'+toCurrentScript(r.job||'')+'</td><td style="border:1px solid #000;padding:2mm;font-size:10pt">'+toCurrentScript(r.addr||'')+'</td></tr>';});
   }else{
     relRows='<tr><td colspan="5" style="border:1px solid #000;padding:2mm;text-align:center;font-style:italic;color:#888;font-size:7.5pt">'+D.d_no_rel+'</td></tr>';
   }
 
   p2.innerHTML=
-    '<div style="text-align:center;font-size:8.5pt;margin-bottom:2mm">'+(fn?fn+D.d_rel_intro:'')+'</div>'
-    +'<div style="text-align:center;font-weight:bold;font-size:12pt;letter-spacing:1.2px;margin-bottom:4mm">'+D.d_rel_title+'</div>'
+    '<div style="text-align:center;font-size:10pt;margin-bottom:2mm">'+(fn?fn+D.d_rel_intro:'')+'</div>'
+    +'<div style="text-align:center;font-weight:bold;font-size:12pt;margin-bottom:4mm">'+D.d_rel_title+'</div>'
     +'<table style="width:100%;border-collapse:collapse">'
       +'<thead><tr>'
-        +'<th style="border:1px solid #000;padding:1.5mm 2mm;text-align:center;width:13%;font-size:7.5pt">'+D.d_qar+'</th>'
-        +'<th style="border:1px solid #000;padding:1.5mm 2mm;text-align:center;width:22%;font-size:7.5pt">'+D.d_fish+'</th>'
-        +'<th style="border:1px solid #000;padding:1.5mm 2mm;text-align:center;width:20%;font-size:7.5pt">'+D.d_tug+'</th>'
-        +'<th style="border:1px solid #000;padding:1.5mm 2mm;text-align:center;width:24%;font-size:7.5pt">'+D.d_ish+'</th>'
-        +'<th style="border:1px solid #000;padding:1.5mm 2mm;text-align:center;width:21%;font-size:7.5pt">'+D.d_tur+'</th>'
+        +'<th style="border:1px solid #000;padding:2mm;text-align:center;width:14%;font-size:10pt;font-weight:bold">'+D.d_qar+'</th>'
+        +'<th style="border:1px solid #000;padding:2mm;text-align:center;width:24%;font-size:10pt;font-weight:bold">'+D.d_fish+'</th>'
+        +'<th style="border:1px solid #000;padding:2mm;text-align:center;width:18%;font-size:10pt;font-weight:bold">'+D.d_tug+'</th>'
+        +'<th style="border:1px solid #000;padding:2mm;text-align:center;width:24%;font-size:10pt;font-weight:bold">'+D.d_ish+'</th>'
+        +'<th style="border:1px solid #000;padding:2mm;text-align:center;width:20%;font-size:10pt;font-weight:bold">'+D.d_tur+'</th>'
       +'</tr></thead>'
       +'<tbody>'+relRows+'</tbody>'
     +'</table>';

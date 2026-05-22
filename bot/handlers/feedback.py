@@ -51,11 +51,14 @@ async def start_feedback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     Called when user clicks 'Aloqa ✉️'.
     Sets the state to collect feedback.
     """
-    if not update.message:
+    msg = update.message
+    if not msg and update.callback_query:
+        msg = update.callback_query.message
+    if not msg:
         return
     context.user_data["waiting_for"] = WAITING_FOR_FEEDBACK
 
-    await update.message.reply_text(
+    await msg.reply_text(
         SUPPORT_START_TEXT,
         reply_markup=ReplyKeyboardRemove(),
     )
