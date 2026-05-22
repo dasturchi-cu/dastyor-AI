@@ -88,11 +88,30 @@ def _is_admin(update: Update) -> bool:
     return uid in _ADMIN_IDS
 
 
-async def _send_with_typing(update: Update, text: str, *, reply_markup=None, parse_mode: str | None = None) -> None:
+def _parse_mode_for_text(text: str, explicit: str | None = None) -> str | None:
+    """Matnda <b>, <code> bo‘lsa HTML — Telegram taglarni ko‘rsatmasin."""
+    if explicit is not None:
+        return explicit
+    if any(tag in text for tag in ("<b>", "<i>", "<u>", "<s>", "<code>", "<pre>", "</")):
+        return "HTML"
+    return None
+
+
+async def _send_with_typing(
+    update: Update,
+    text: str,
+    *,
+    reply_markup=None,
+    parse_mode: str | None = None,
+) -> None:
     if not update.effective_chat or not update.message:
         return
     await update.get_bot().send_chat_action(chat_id=update.effective_chat.id, action="typing")
-    await update.message.reply_text(text, reply_markup=reply_markup, parse_mode=parse_mode)
+    await update.message.reply_text(
+        text,
+        reply_markup=reply_markup,
+        parse_mode=_parse_mode_for_text(text, parse_mode),
+    )
 
 
 def _is_fast_repeat(context: ContextTypes.DEFAULT_TYPE, min_gap_seconds: float = 0.35) -> bool:
@@ -179,7 +198,12 @@ async def admin_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     if not _is_admin(update):
         await update.message.reply_text(ADMIN_ONLY_TEXT)
         return
-    await _send_with_typing(update, ADMIN_PANEL_OPENED_TEXT, reply_markup=admin_menu())
+    await _send_with_typing(
+        update,
+        ADMIN_PANEL_OPENED_TEXT,
+        reply_markup=admin_menu(),
+        parse_mode="HTML",
+    )
 
 
 async def admin_text_router(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:

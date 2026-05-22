@@ -48,10 +48,10 @@ async def start_broadcast_flow(update: Update, context: ContextTypes.DEFAULT_TYP
     context.user_data.pop(_DRAFT, None)
     await update.message.reply_text(
         "📢 <b>Hammaga xabar</b>\n\n"
-        f"👥 Yuborish ro‘yxati: <b>{n}</b> ta foydalanuvchi (banlanganlar tashqari).\n\n"
-        "Matn yuboring (HTML: <b>qalin</b>, <i>kursiv</i>).\n"
-        f"Tayyor xabar uchun: <code>/broadcast tayyor</code>\n"
-        f"Bekor: <b>{ADMIN_BTN_BROADCAST_CANCEL}</b>",
+        f"👥 Ro‘yxat: <b>{n}</b> ta foydalanuvchi.\n\n"
+        "E’lon matnini yuboring.\n"
+        "Tayyor xabar: /broadcast tayyor\n"
+        f"Bekor: {ADMIN_BTN_BROADCAST_CANCEL}",
         parse_mode="HTML",
         reply_markup=admin_menu(),
     )
