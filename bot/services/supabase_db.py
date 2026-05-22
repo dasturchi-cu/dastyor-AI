@@ -848,6 +848,32 @@ def db_service_bucket_get(user_id: int, bucket_key: str) -> int:
     return int(m.get(bucket_key, 0))
 
 
+def db_service_bucket_row(user_id: int, bucket_key: str) -> dict | None:
+    """count va updated_at (export pending eskirishi uchun)."""
+    uid = int(user_id)
+    key = str(bucket_key).strip()
+    if not key:
+        return None
+    c = _get_client()
+    if not c:
+        return None
+    try:
+        r = (
+            c.table("service_usage_buckets")
+            .select("count,updated_at")
+            .eq("user_id", uid)
+            .eq("bucket_key", key)
+            .limit(1)
+            .execute()
+        )
+        if r.data:
+            return r.data[0]
+    except Exception as e:
+        _mark_temporarily_unavailable(e)
+        logger.debug("db_service_bucket_row: %s", e)
+    return None
+
+
 def db_service_bucket_get_many(user_id: int, bucket_keys: list[str]) -> dict[str, int]:
     """Bir nechta bucket uchun bitta so'rov (Balans /start tezligi)."""
     uid = int(user_id)

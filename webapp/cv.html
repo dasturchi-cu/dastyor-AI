@@ -1327,7 +1327,21 @@
           if (window.DastyorAI && window.DastyorAI.releaseExportPending) {
             await window.DastyorAI.releaseExportPending('cv');
           }
-          alert('⏳ Qayta urinib ko‘ring (1 marta «PDF botga yuborish»).');
+          try {
+            _cvExportInFlight = true;
+            await sendCvViaApi(fmt);
+            _cvApprovedRequestId = 0;
+            try { localStorage.removeItem('cv_paid_request_id'); } catch (_) {}
+            if (window.DastyorAI && window.DastyorAI.stopPaidDocWatcher) window.DastyorAI.stopPaidDocWatcher('cv');
+            try { if (window.DastyorAI && window.DastyorAI.refreshProfile) await window.DastyorAI.refreshProfile(); } catch (_) {}
+            syncCvQuotaUi();
+            tg.HapticFeedback && tg.HapticFeedback.notificationOccurred && tg.HapticFeedback.notificationOccurred('success');
+            setTimeout(() => { try { tg.close(); } catch (_) {} }, 350);
+            return;
+          } catch (e2) {
+            const m2 = (e2 && e2.message) ? String(e2.message) : String(e2);
+            alert('⏳ ' + m2.slice(0, 100));
+          }
         } else if (msg.indexOf('402') >= 0 || msg.indexOf('to\'lov') >= 0) {
           alert('💳 Avval to‘lov qiling (5 000 so‘m).');
           try { await payCvSingle(fmt); } catch (_) {}

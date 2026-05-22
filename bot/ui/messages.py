@@ -24,12 +24,26 @@ OBY_AUDIO_WAIT_HINT = (
 )
 
 HELP_TEXT = (
-    "ℹ️ <b>Yordam</b>\n\n"
-    "📄 CV — PDF\n"
-    "✍️ Obyektivka — Word\n"
-    "📂 /docs — to‘lov holati\n"
-    "🆘 Murojaat\n\n"
-    "/start"
+    "ℹ️ <b>Yordam — DASTYOR AI</b>\n\n"
+    "<b>Bot nima qiladi?</b>\n"
+    "CV (PDF) va Obyektivka (Word) tayyorlaydi. "
+    "Tayyor fayl shu Telegram chatiga keladi.\n\n"
+    "📄 <b>CV</b>\n"
+    "• <b>CV Resume</b> tugmasi → forma ochiladi\n"
+    "• Ma’lumotlarni to‘ldiring\n"
+    "• <b>5 000 so‘m</b> — ko‘rsatilgan kartaga o‘tkazing, skrinshot yuboring\n"
+    "• Admin tasdiqlagach formada <b>PDF botga yuborish</b> — fayl shu yerga\n\n"
+    "✍️ <b>Obyektivka</b>\n"
+    "• <b>Obyektivka</b> tugmasi → forma yoki ovoz\n"
+    "• Ovozda: F.I.Sh., tug‘ilgan sana/joy, ta’lim, ish, oila\n"
+    "• To‘lov CV bilan bir xil (5 000 so‘m + skrinshot)\n"
+    "• Tasdiqdan keyin <b>Word botga yuborish</b> — .docx shu yerga\n\n"
+    "<b>Buyruqlar</b>\n"
+    "/start — bosh menyu\n"
+    "/docs — to‘lov holati\n"
+    "/contact — savol yoki muammo\n"
+    "/help — yordam\n\n"
+    "🔙 <b>Orqaga</b> — menyuga qaytish."
 )
 
 SUPPORT_START_TEXT = (

@@ -153,7 +153,7 @@ async def api_generate_cv(
         from backend.services.export_guard import begin_document_export, release_document_export
 
         uid_i = int(uid_str)
-        await begin_document_export(uid_i, CAT_CV)
+        await begin_document_export(uid_i, CAT_CV, hold_process_lock=False)
         try:
             require_paid_single_doc_or_subscription(uid_i, CAT_CV)
             skip_quota_completion = web_quota_consume_or_raise(uid_i, CAT_CV)
@@ -825,7 +825,7 @@ async def api_paid_doc_send_to_bot(
         release_document_export,
     )
 
-    await begin_document_export(int(uid), cat)
+    await begin_document_export(int(uid), cat, hold_process_lock=False)
     try:
         require_paid_single_doc_or_subscription(int(uid), cat)
         skip_quota_completion = web_quota_consume_or_raise(int(uid), cat)
@@ -934,7 +934,7 @@ async def api_export_cv(
         )
 
         uid_i = int(uid_str)
-        await begin_document_export(uid_i, CAT_CV)
+        await begin_document_export(uid_i, CAT_CV, hold_process_lock=False)
         try:
             require_paid_single_doc_or_subscription(uid_i, CAT_CV)
             skip_quota_completion = web_quota_consume_or_raise(uid_i, CAT_CV)
@@ -1112,7 +1112,7 @@ async def api_export_obyektivka(
         )
 
         uid_i = int(uid_str)
-        await begin_document_export(uid_i, CAT_OBYEKTIVKA)
+        await begin_document_export(uid_i, CAT_OBYEKTIVKA, hold_process_lock=False)
         try:
             require_paid_single_doc_or_subscription(uid_i, CAT_OBYEKTIVKA)
             skip_quota_completion = web_quota_consume_or_raise(uid_i, CAT_OBYEKTIVKA)

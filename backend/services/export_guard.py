@@ -12,6 +12,7 @@ logger = logging.getLogger(__name__)
 _LOCKS: dict[str, asyncio.Lock] = {}
 _LAST_SEND_TS: dict[str, float] = {}
 _COOLDOWN_SEC = float(__import__("os").getenv("DOC_EXPORT_COOLDOWN_SEC", "50"))
+_STALE_PENDING_SEC = float(__import__("os").getenv("DOC_EXPORT_PENDING_STALE_SEC", "90"))
 
 
 def _key(uid: int, category: str) -> str:
@@ -43,6 +44,35 @@ def clear_document_delivery_buckets(uid: int, category: str) -> None:
         logger.debug("clear_document_delivery_buckets uid=%s: %s", uid, e)
 
 
+def _pending_is_stale(uid: int, category: str) -> bool:
+    """Qotgan doc_send_pending — yangi to‘lov / qayta urinish uchun."""
+    try:
+        from datetime import datetime, timezone
+
+        from bot.services.supabase_db import db_service_bucket_row, has_db
+
+        if not has_db():
+            return True
+        row = db_service_bucket_row(int(uid), _pending_bucket(int(uid), category))
+        if not row or int(row.get("count") or 0) < 1:
+            return False
+        raw = row.get("updated_at")
+        if not raw:
+            return True
+        if isinstance(raw, str):
+            ts = datetime.fromisoformat(raw.replace("Z", "+00:00"))
+        elif isinstance(raw, datetime):
+            ts = raw
+        else:
+            return True
+        if ts.tzinfo is None:
+            ts = ts.replace(tzinfo=timezone.utc)
+        age = (datetime.now(timezone.utc) - ts).total_seconds()
+        return age >= _STALE_PENDING_SEC
+    except Exception:
+        return True
+
+
 def _db_claim_export_slot(uid: int, category: str) -> None:
     """Bir nechta Railway workerda ham bitta yuborish (Supabase bucket)."""
     try:
@@ -63,16 +93,21 @@ def _db_claim_export_slot(uid: int, category: str) -> None:
                 status_code=409,
                 detail="✅ Allaqachon yuborilgan. Yangi to‘lov kerak.",
             )
+        if int(db_service_bucket_get(u, pending_key) or 0) >= 1:
+            if _pending_is_stale(u, category):
+                db_service_buckets_delete_many(u, [pending_key])
+            else:
+                raise HTTPException(
+                    status_code=409,
+                    detail="⏳ Tayyorlanmoqda. 1 daqiqa kuting.",
+                )
         inc = int(db_service_bucket_try_increment(u, pending_key, 1) or 0)
         if inc < 1:
-            # Oldingi urinishda pending qolgan bo‘lishi mumkin (xato / worker qayta ishga tushdi)
             db_service_buckets_delete_many(u, [pending_key])
             inc = int(db_service_bucket_try_increment(u, pending_key, 1) or 0)
         if inc < 1:
-            raise HTTPException(
-                status_code=409,
-                detail="⏳ Oldingi yuborish hali tugamagan. 1–2 daqiqa kuting yoki sahifani yangilang.",
-            )
+            logger.warning("export pending claim failed uid=%s cat=%s — clear", u, category)
+            db_service_buckets_delete_many(u, [pending_key])
     except HTTPException:
         raise
     except Exception as e:
@@ -105,9 +140,17 @@ def _db_mark_delivered(uid: int, category: str) -> None:
         logger.warning("export_guard db mark delivered uid=%s: %s", uid, e)
 
 
-async def begin_document_export(uid: int, category: str) -> None:
-    """Eksport boshlanishi — parallel ikkinchi so‘rov 409."""
+async def begin_document_export(
+    uid: int,
+    category: str,
+    *,
+    hold_process_lock: bool = True,
+) -> None:
+    """Eksport boshlanishi. Fon yuborishda hold_process_lock=False (qulflanib qolmasin)."""
     _db_claim_export_slot(uid, category)
+
+    if not hold_process_lock:
+        return
 
     k = _key(uid, category)
     if k not in _LOCKS:

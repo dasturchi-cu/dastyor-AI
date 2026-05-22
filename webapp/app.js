@@ -976,6 +976,9 @@ html[data-theme="dark"] .da-doc-loading-ring{border-color:#334155;border-top-col
             try {
                 await refreshProfile();
             } catch (_) {}
+            try {
+                await releaseExportPending(cat);
+            } catch (_) {}
             const u = getUser();
             const paidOk = hasSingleDocAccess(u, cat);
             if (!paidOk) {

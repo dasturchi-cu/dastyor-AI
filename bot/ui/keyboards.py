@@ -50,6 +50,7 @@ def user_reply_menu(webapp_base: str, uid: int) -> ReplyKeyboardMarkup:
     return ReplyKeyboardMarkup(
         keyboard=[
             [KeyboardButton(BTN_CV), KeyboardButton(BTN_OBY)],
+            [KeyboardButton(BTN_HELP)],
             [KeyboardButton(BTN_BACK)],
         ],
         resize_keyboard=True,
