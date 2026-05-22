@@ -265,28 +265,6 @@ async def api_oby_voice_fill(
     if not uid:
         raise HTTPException(status_code=401, detail="Foydalanuvchi aniqlanmadi")
 
-    # STT + AI pullik — bir martalik to'lov (obyektivka) yoki obuna / admin.
-    try:
-        from bot.services.admin_service import is_admin
-        from bot.services.settings_service import get_active_plan_code
-        from bot.services.supabase_db import db_user_has_objective_access, has_db
-
-        uii = int(uid)
-        if not is_admin(uii) and get_active_plan_code(uii) == "free":
-            if not (has_db() and db_user_has_objective_access(uii)):
-                raise HTTPException(
-                    status_code=402,
-                    detail=(
-                        "Ovozli to'ldirish uchun avval veb-formada 5 000 so'm to'lov "
-                        "(skrinshot) qiling va admin tasdiqlashini kuting."
-                    ),
-                )
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.warning("api_oby_voice_fill access check: %s", e)
-        raise HTTPException(status_code=503, detail="Ruxsat tekshiruvi vaqtincha ishlamayapti") from e
-
     if not audio or not audio.filename:
         raise HTTPException(status_code=400, detail="Audio fayl yuborilmadi")
 
