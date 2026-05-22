@@ -17,13 +17,16 @@ BROADCAST_LOG_FILE = os.getenv("BROADCAST_LOG_FILE", "broadcast_logs.json")
 _SEND_DELAY = float(os.getenv("BROADCAST_SEND_DELAY_SECONDS", "0.04") or "0.04")
 
 DEFAULT_FIX_ANNOUNCEMENT = (
-    "✅ <b>DASTYOR AI yangilandi</b>\n\n"
-    "Botdagi asosiy xatolar tuzatildi:\n"
-    "• CV va Obyektivka yuborish\n"
-    "• To‘lov va limit\n"
-    "• Murojaat va yordam\n\n"
-    "Agar muammo qolsa — 🆘 <b>Murojaat</b> yoki /contact.\n"
-    "Yangi hujjat: 📄 <b>CV</b> yoki ✍️ <b>Obyektivka</b> tugmalari."
+    "👋 <b>Assalomu alaykum!</b>\n"
+    "Bu — <b>DASTYOR AI</b> jamoasidan yangilik.\n\n"
+    "✅ <b>Bot yangilandi</b> — ko‘p xatolar tuzatildi:\n"
+    "📄 CV (PDF) tezroq botga keladi\n"
+    "✍️ Obyektivka (Word) — forma va ovoz\n"
+    "💳 To‘lov va limit aniq ishlaydi\n"
+    "🆘 Murojaat va ℹ️ Yordam to‘g‘ri ishlaydi\n\n"
+    "Hujjat kerak bo‘lsa: pastdagi <b>CV Resume</b> yoki <b>Obyektivka</b> tugmasini bosing.\n"
+    "Savol bo‘lsa — <b>Murojaat</b> (matn, ovoz, rasm).\n\n"
+    "Rahmat, bizni tanlaganingiz uchun! 💙"
 )
 
 
