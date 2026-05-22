@@ -95,8 +95,8 @@
 
     @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-    .tpl-card { position: relative; transition: all 0.3s ease; overflow: hidden; cursor: pointer; border: 2px solid transparent; background: #fff; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
-    .tpl-card:hover { transform: translateY(-4px); box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); }
+    .tpl-card { position: relative; transition: border-color 0.12s ease, box-shadow 0.12s ease; overflow: hidden; cursor: pointer; border: 2px solid transparent; background: #fff; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
+    .tpl-card:hover { box-shadow: 0 6px 12px -2px rgba(0,0,0,0.12); }
     .tpl-card.tpl-active { border-color: #3b82f6; box-shadow: 0 0 0 4px rgba(59,130,246,0.2); }
     .tpl-card.tpl-active::after { content: '✓'; position: absolute; top: 4px; right: 4px; width: 20px; height: 20px; background: #3b82f6; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; color: white; font-weight: bold; z-index: 10; }
     .tpl-name { position: absolute; bottom: 0; left: 0; right: 0; background: rgba(255,255,255,0.9); text-align: center; font-size: 10px; font-weight: 700; padding: 4px; color: #1e293b; border-top: 1px solid #e2e8f0; z-index: 10; }
@@ -629,11 +629,94 @@
     });
 
     // --- THEME & TEMPLATE ---
+    const CV_TEMPLATES = ['minimal', 'split', 'modern', 'ats', 'elegant', 'corporate', 'creative', 'prof'];
+    let _tplPreviewCache = {};
+    let _previewPayloadKey = '';
+    let _tplPrefetchBusy = false;
+
+    function buildPreviewPayloadKey() {
+      const p = buildCvPayload('pdf');
+      delete p.action;
+      delete p.template;
+      const img = p.img;
+      p.img = img && String(img).length > 64 ? 'img:' + String(img).length : '';
+      return JSON.stringify(p);
+    }
+
+    function syncPreviewCacheKey() {
+      const k = buildPreviewPayloadKey();
+      if (k !== _previewPayloadKey) {
+        _tplPreviewCache = {};
+        _previewPayloadKey = k;
+      }
+      return k;
+    }
+
+    function applyPreviewHtmlToIframe(html, reqId) {
+      const iframe = document.getElementById('cv-preview-frame');
+      if (!iframe) return;
+      function layoutOnce() {
+        if (reqId != null && reqId !== previewRequestId) return;
+        try { resizePreviewIframe(); } catch (_) {}
+        try { autoScale(); } catch (_) {}
+      }
+      iframe.srcdoc = html;
+      iframe.onload = layoutOnce;
+      requestAnimationFrame(function () { requestAnimationFrame(layoutOnce); });
+    }
+
+    async function fetchPreviewHtmlForTemplate(tpl, signal) {
+      const base = getCvApiBase();
+      const payload = Object.assign({}, buildCvPayload('pdf'));
+      delete payload.action;
+      payload.template = tpl;
+      payload.accent_color = cvColor;
+      try { payload.img = await getPreviewImageFast(payload.img); } catch (_) {}
+      const res = await fetch(base + '/api/cv_preview_html', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+        signal: signal,
+      });
+      if (!res.ok) throw new Error(String(res.status));
+      return await res.text();
+    }
+
+    function queuePrefetchOtherTemplates() {
+      if (_tplPrefetchBusy) return;
+      const keyAtStart = _previewPayloadKey;
+      const missing = CV_TEMPLATES.filter(function (t) { return !_tplPreviewCache[t]; });
+      if (!missing.length) return;
+      _tplPrefetchBusy = true;
+      (async function () {
+        for (let i = 0; i < missing.length; i++) {
+          if (_previewPayloadKey !== keyAtStart) break;
+          const tpl = missing[i];
+          try {
+            const html = await fetchPreviewHtmlForTemplate(tpl, undefined);
+            if (_previewPayloadKey === keyAtStart) _tplPreviewCache[tpl] = html;
+          } catch (_) {}
+          await new Promise(function (r) { setTimeout(r, 60); });
+        }
+        _tplPrefetchBusy = false;
+      })();
+    }
+
     function setTpl(tpl, shouldTrigger = true) {
       activeTpl = tpl;
-      document.querySelectorAll('.tpl-card').forEach(el => el.classList.remove('tpl-active'));
-      document.getElementById('tpl-' + tpl).classList.add('tpl-active');
-      if(shouldTrigger) triggerUpdate(true, { immediatePreview: true });
+      document.querySelectorAll('.tpl-card').forEach(function (el) { el.classList.remove('tpl-active'); });
+      const card = document.getElementById('tpl-' + tpl);
+      if (card) card.classList.add('tpl-active');
+      if (!shouldTrigger) return;
+      scheduleSaveToLocalStorage();
+      syncPreviewCacheKey();
+      const cached = _tplPreviewCache[tpl];
+      if (cached) {
+        applyPreviewHtmlToIframe(cached, null);
+        queuePrefetchOtherTemplates();
+        return;
+      }
+      triggerUpdate(true, { immediatePreview: true });
     }
     function syncPreviewAccentChrome() {
       const card = document.getElementById('cvLivePreviewCard');
@@ -876,6 +959,7 @@
 
     function triggerUpdate(save = true, opts = null) {
       if (save) scheduleSaveToLocalStorage();
+      syncPreviewCacheKey();
       const immediate = !!(opts && opts.immediatePreview);
       clearTimeout(previewDebounceTimer);
       if (immediate) {
@@ -884,7 +968,7 @@
       }
       previewDebounceTimer = setTimeout(function () {
         fetchServerPreview();
-      }, 950);
+      }, 420);
     }
 
     async function getPreviewImageFast(src) {
@@ -1041,40 +1125,24 @@
     async function fetchServerPreview() {
       const iframe = document.getElementById('cv-preview-frame');
       if (!iframe) return;
+      syncPreviewCacheKey();
+      const tpl = activeTpl;
+      const cached = _tplPreviewCache[tpl];
+      if (cached) {
+        applyPreviewHtmlToIframe(cached, null);
+        queuePrefetchOtherTemplates();
+        return;
+      }
       const reqId = ++previewRequestId;
       if (previewAbort) previewAbort.abort();
       previewAbort = new AbortController();
       const base = getCvApiBase();
       try {
-        const payload = Object.assign({}, buildCvPayload('pdf'));
-        delete payload.action;
-        payload.accent_color = cvColor;
-        try { payload.img = await getPreviewImageFast(payload.img); } catch (_) { /* ignore */ }
-        const res = await fetch(base + '/api/cv_preview_html', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-          signal: previewAbort.signal,
-        });
-        if (!res.ok) throw new Error(String(res.status));
-        const html = await res.text();
+        const html = await fetchPreviewHtmlForTemplate(tpl, previewAbort.signal);
         if (reqId !== previewRequestId) return;
-        function applyPreviewLayout() {
-          if (reqId !== previewRequestId) return;
-          try { resizePreviewIframe(); } catch (_) { /* ignore */ }
-          try { autoScale(); } catch (_) { /* ignore */ }
-        }
-        iframe.srcdoc = html;
-        iframe.onload = function () {
-          applyPreviewLayout();
-        };
-        // Telegram WebView / iOS: srcdoc uchun onload ba’zan ishlamaydi — majburiy qayta o‘lchash
-        requestAnimationFrame(function () {
-          requestAnimationFrame(applyPreviewLayout);
-        });
-        setTimeout(applyPreviewLayout, 0);
-        setTimeout(applyPreviewLayout, 120);
-        setTimeout(applyPreviewLayout, 400);
+        _tplPreviewCache[tpl] = html;
+        applyPreviewHtmlToIframe(html, reqId);
+        queuePrefetchOtherTemplates();
       } catch (e) {
         if (e.name === 'AbortError') return;
         if (reqId !== previewRequestId) return;
