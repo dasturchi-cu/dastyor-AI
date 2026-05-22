@@ -4,6 +4,8 @@ from __future__ import annotations
 import asyncio
 import logging
 import os
+import subprocess
+import tempfile
 
 from telegram import Message, Update
 from telegram.constants import ChatAction
@@ -78,12 +80,60 @@ def _oby_sample_audio_enabled() -> bool:
 def _find_oby_sample_audio_path() -> str | None:
     for path in _oby_sample_audio_paths():
         if path and os.path.isfile(path):
-            return path
+            try:
+                if os.path.getsize(path) >= 2048:
+                    return path
+            except OSError:
+                continue
     return None
 
 
+def _mp3_to_voice_ogg(mp3_path: str) -> str | None:
+    """Telegram ovozli xabar (voice) uchun OGG/Opus."""
+    fd, out = tempfile.mkstemp(suffix=".ogg")
+    os.close(fd)
+    try:
+        proc = subprocess.run(
+            [
+                "ffmpeg",
+                "-y",
+                "-i",
+                mp3_path,
+                "-ac",
+                "1",
+                "-c:a",
+                "libopus",
+                "-b:a",
+                "48k",
+                out,
+            ],
+            capture_output=True,
+            timeout=45,
+            check=False,
+        )
+        if proc.returncode == 0 and os.path.getsize(out) >= 500:
+            return out
+        logger.warning("ffmpeg voice convert rc=%s stderr=%s", proc.returncode, (proc.stderr or b"")[:200])
+    except FileNotFoundError:
+        logger.debug("ffmpeg yo‘q — namuna audio sifatida yuboriladi")
+    except Exception as e:
+        logger.warning("ffmpeg voice convert: %s", e)
+    try:
+        os.unlink(out)
+    except OSError:
+        pass
+    return None
+
+
+async def _voice_chat_action(context: ContextTypes.DEFAULT_TYPE, chat_id: int) -> None:
+    try:
+        await context.bot.send_chat_action(chat_id=chat_id, action=ChatAction.UPLOAD_VOICE)
+    except Exception:
+        pass
+
+
 async def _send_oby_sample_audio(context: ContextTypes.DEFAULT_TYPE, chat_id: int) -> None:
-    """Namuna ovoz — matndan keyin (UPLOAD_VOICE yo‘q, chat qotmaydi)."""
+    """Matndan keyin namuna — ovozli xabar (voice), tinglash oson."""
     if not _oby_sample_audio_enabled():
         return
     path = _find_oby_sample_audio_path()
@@ -91,36 +141,54 @@ async def _send_oby_sample_audio(context: ContextTypes.DEFAULT_TYPE, chat_id: in
         try:
             await context.bot.send_message(
                 chat_id=chat_id,
-                text="🎙 <b>Namuna audio</b> hozir yo‘q. Formani oching yoki o‘zingiz ovoz yuboring.",
+                text="🎙 <b>Namuna ovoz</b> hozir yo‘q. Formani oching yoki o‘zingiz ovoz yuboring.",
                 parse_mode="HTML",
             )
         except Exception:
             pass
         return
+
+    caption = "🎙 Namuna — shu tartibda o‘qib yuboring"
+    ogg_path = None
     try:
-        from telegram import InputFile
+        await _voice_chat_action(context, chat_id)
+        ogg_path = _mp3_to_voice_ogg(path)
 
-        async def _upload():
-            return await context.bot.send_audio(
-                chat_id=chat_id,
-                audio=InputFile(path),
-                caption="🎙 <b>Namuna</b> — shu tartibda o‘qib yuboring",
-                parse_mode="HTML",
-                title="Obyektivka namuna",
-            )
+        async def _upload_voice():
+            with open(ogg_path or path, "rb") as fh:
+                if ogg_path:
+                    return await context.bot.send_voice(
+                        chat_id=chat_id,
+                        voice=fh,
+                        caption=caption,
+                    )
+                from telegram import InputFile
 
-        await asyncio.wait_for(_upload(), timeout=25.0)
+                return await context.bot.send_audio(
+                    chat_id=chat_id,
+                    audio=InputFile(fh, filename=os.path.basename(path)),
+                    caption=caption,
+                    title="Obyektivka namuna",
+                )
+
+        await asyncio.wait_for(_upload_voice(), timeout=30.0)
     except asyncio.TimeoutError:
-        logger.warning("sample audio send timeout path=%s", path)
+        logger.warning("sample voice send timeout path=%s", path)
         try:
             await context.bot.send_message(
                 chat_id=chat_id,
-                text="🎙 Namuna audio yuklanmadi. Forma yoki ovoz yuboring.",
+                text="🎙 Namuna yuklanmadi. Forma yoki ovoz yuboring.",
             )
         except Exception:
             pass
     except Exception as e:
-        logger.warning("sample audio send failed path=%s: %s", path, e)
+        logger.warning("sample voice send failed path=%s: %s", path, e)
+    finally:
+        if ogg_path:
+            try:
+                os.unlink(ogg_path)
+            except OSError:
+                pass
 
 
 async def _reply_cv_intro(message: Message, base: str, uid: int, text: str | None = None) -> None:
@@ -176,6 +244,7 @@ async def send_obyektivka_intro(message: Message, context: ContextTypes.DEFAULT_
 
     chat_id = message.chat_id
     if chat_id and _oby_sample_audio_enabled():
+        await asyncio.sleep(0.35)
         await _send_oby_sample_audio(context, chat_id)
 
     try:

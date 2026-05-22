@@ -14,7 +14,7 @@ OBY_INTRO_TEXT = ""
 OBY_INSTRUCTION_TEXT = (
     "✍️ <b>Obyektivka</b>\n"
     "Forma yoki ovoz → to‘lov → Word botga.\n\n"
-    "🎙 Pastda <b>namuna audio</b> keladi — shunday o‘qing.\n"
+    "🎙 Pastda <b>namuna ovoz</b> keladi — tinglab, shu tartibda o‘zingiz ovoz yuboring.\n"
     "F.I.Sh., tug‘ilgan sana/joy, ta’lim, ish, oila."
 )
 
