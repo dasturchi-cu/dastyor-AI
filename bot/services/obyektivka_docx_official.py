@@ -15,6 +15,7 @@ from docx.enum.table import WD_ALIGN_VERTICAL
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
+from docx.shared import Cm, Pt
 from bot.services.document_render.photo import process_passport_photo
 
 logger = logging.getLogger(__name__)
@@ -40,15 +41,19 @@ def _parse_list(value: Any) -> list[dict[str, Any]]:
     return []
 
 
-def _add_label_value(paragraph, label: str, value: str, *, value_on_new_line: bool = True) -> None:
+def _add_label_value(paragraph, label: str, value: str, *, value_on_new_line: bool = False) -> None:
+    """Official sample layout: label bold 11pt, value underlined 11pt, 8pt space before."""
+    paragraph.paragraph_format.space_before = Pt(8)
+    paragraph.paragraph_format.space_after = Pt(0)
+    paragraph.paragraph_format.line_spacing = 1.15
     label_run = paragraph.add_run(f"{label}: ")
     label_run.bold = True
+    label_run.font.size = Pt(11)
     if value_on_new_line:
         paragraph.add_run().add_break()
-    paragraph.add_run(value or "yo'q")
-    paragraph.paragraph_format.space_before = Pt(0)
-    paragraph.paragraph_format.space_after = Pt(3)
-    paragraph.paragraph_format.line_spacing = 1.15
+    val_run = paragraph.add_run(value or "yo'q")
+    val_run.font.size = Pt(11)
+    val_run.underline = True
 
 
 def _set_cell_no_borders(cell) -> None:
@@ -231,14 +236,14 @@ def generate_obyektivka_docx(
     doc = Document()
     style = doc.styles["Normal"]
     style.font.name = "Times New Roman"
-    style.font.size = Pt(12)
-    style.paragraph_format.line_spacing = 1.3
-    style.paragraph_format.space_after = Pt(6)
+    style.font.size = Pt(11)
+    style.paragraph_format.line_spacing = 1.15
+    style.paragraph_format.space_after = Pt(0)
     for section in doc.sections:
         section.top_margin = Cm(2)
         section.bottom_margin = Cm(2)
-        section.left_margin = Cm(2.2)
-        section.right_margin = Cm(1.8)
+        section.left_margin = Cm(3)
+        section.right_margin = Cm(1.5)
 
     full_name = _to_text(data.get("fullname")) or "FAMILIYA ISM SHARIF"
     work_items = _parse_list(data.get("work_experience"))
@@ -298,40 +303,44 @@ def generate_obyektivka_docx(
     n_p.alignment = WD_ALIGN_PARAGRAPH.CENTER
     nr = n_p.add_run(full_name)
     nr.bold = True
-    nr.font.size = Pt(12)
-    n_p.paragraph_format.space_after = Pt(6)
+    nr.font.size = Pt(14)
+    n_p.paragraph_format.space_after = Pt(4)
 
     photo_p = right_hdr.paragraphs[0]
     photo_p.alignment = WD_ALIGN_PARAGRAPH.RIGHT
+    photo_hint = (
+        "Oq fondagi 3x4 sm, oxirgi 3 oy davomida olingan rangli fotosurat, "
+        "elektron ko'rinishda (rasmiy kiyimda)."
+    )
     if photo_path and os.path.exists(photo_path):
         try:
             run = photo_p.add_run()
             run.add_picture(photo_path, width=Cm(3), height=Cm(4))
         except Exception as exc:
             logger.warning("Failed to insert photo: %s", exc)
-            ph = photo_p.add_run("[3x4 foto]")
-            ph.italic = True
+            ph = photo_p.add_run(photo_hint)
+            ph.font.size = Pt(7)
     else:
-        ph = photo_p.add_run("[3x4 foto]")
-        ph.italic = True
+        ph = photo_p.add_run(photo_hint)
+        ph.font.size = Pt(7)
 
     if current_job:
-        if current_job_year:
-            year_text = current_job_year.rstrip(".")
-            current_line = doc.add_paragraph()
-            current_line.alignment = WD_ALIGN_PARAGRAPH.LEFT
-            current_line.add_run(f"{year_text}-yildan:")
-            current_line.add_run().add_break()
-            current_line.add_run(current_job)
-        else:
-            current_line = doc.add_paragraph()
-            current_line.alignment = WD_ALIGN_PARAGRAPH.LEFT
-            current_line.add_run(current_job)
+        current_line = doc.add_paragraph()
+        current_line.alignment = WD_ALIGN_PARAGRAPH.LEFT
         current_line.paragraph_format.line_spacing = 1.15
-        current_line.paragraph_format.space_after = Pt(10)
+        current_line.paragraph_format.space_before = Pt(0)
+        current_line.paragraph_format.space_after = Pt(4)
+        if current_job_year:
+            yr_run = current_line.add_run(f"{current_job_year.rstrip('.')}:")
+            yr_run.font.size = Pt(11)
+            yr_run.underline = True
+            current_line.add_run().add_break()
+        pos_run = current_line.add_run(current_job)
+        pos_run.font.size = Pt(11)
+        pos_run.underline = True
 
     info_col_width = int(total_width / 2)
-    info_tbl = doc.add_table(rows=8, cols=2)
+    info_tbl = doc.add_table(rows=9, cols=2)
     info_tbl.autofit = False
     info_tbl.columns[0].width = info_col_width
     info_tbl.columns[1].width = info_col_width
@@ -342,8 +351,9 @@ def generate_obyektivka_docx(
         (("Ma'lumoti", _to_text(data.get("education"))), ("Tamomlagan", _to_text(data.get("graduated"))), False),
         (("Ma'lumoti bo'yicha mutaxassisligi", _to_text(data.get("specialty"))), None, False),
         (("Ilmiy darajasi", _to_text(data.get("degree"))), ("Ilmiy unvoni", _to_text(data.get("scientific_title"))), False),
-        (("Qaysi chet tillarini biladi", _to_text(data.get("languages"))), ("Harbiy unvoni", _to_text(data.get("military_rank"))), False),
-        (("Davlat mukofotlari bilan taqdirlanganmi (qanaqa)", _to_text(data.get("awards"))), None, True),
+        (("Qaysi chet tillarini biladi", _to_text(data.get("languages"))), ("Harbiy (maxsus) unvoni", _to_text(data.get("military_rank"))), False),
+        (("Davlat mukofotlari va premiyalari bilan taqdirlanganmi (qanaqa)", _to_text(data.get("awards"))), None, True),
+        (("Idoraviy mukofotlar bilan taqdirlanganmi (qanaqa)", _to_text(data.get("departmental_awards"))), None, True),
         (("Xalq deputatlari respublika, viloyat, shahar va tuman Kengashi deputatimi yoki boshqa saylanadigan organlarning a'zosimi (to'liq ko'rsatish lozim)", _to_text(data.get("deputy"))), None, True),
     ]
 
@@ -355,10 +365,10 @@ def generate_obyektivka_docx(
         _set_cell_margins(left_cell)
         _set_cell_margins(right_cell)
 
-        _add_label_value(left_cell.paragraphs[0], left_data[0], left_data[1], value_on_new_line=True)
+        _add_label_value(left_cell.paragraphs[0], left_data[0], left_data[1], value_on_new_line=False)
 
         if right_data is not None:
-            _add_label_value(right_cell.paragraphs[0], right_data[0], right_data[1], value_on_new_line=True)
+            _add_label_value(right_cell.paragraphs[0], right_data[0], right_data[1], value_on_new_line=False)
         elif merge_row:
             merged = left_cell.merge(right_cell)
             merged.vertical_alignment = WD_ALIGN_VERTICAL.TOP
@@ -372,9 +382,9 @@ def generate_obyektivka_docx(
     work_title.alignment = WD_ALIGN_PARAGRAPH.CENTER
     wr = work_title.add_run("MEHNAT FAOLIYATI")
     wr.bold = True
-    wr.font.size = Pt(12)
-    work_title.paragraph_format.space_before = Pt(20)
-    work_title.paragraph_format.space_after = Pt(6)
+    wr.font.size = Pt(14)
+    work_title.paragraph_format.space_before = Pt(12)
+    work_title.paragraph_format.space_after = Pt(4)
     work_title.paragraph_format.line_spacing = 1.3
 
     if work_items:
@@ -388,14 +398,20 @@ def generate_obyektivka_docx(
             if not (year or position):
                 continue
             p = doc.add_paragraph()
+            p.paragraph_format.space_before = Pt(4)
+            p.paragraph_format.space_after = Pt(0)
+            p.paragraph_format.line_spacing = 1.15
             if year and position:
-                p.add_run(f"{year}:")
-                p.add_run().add_break()
-                p.add_run(position)
+                yshow = year if ("yy" in year.lower() or "йй" in year.lower()) else f"{year} yy."
+                yr_run = p.add_run(f"{yshow} - ")
+                yr_run.font.size = Pt(11)
+                pos_run = p.add_run(position)
+                pos_run.font.size = Pt(11)
+                pos_run.underline = True
             else:
-                p.add_run(year or position)
-            p.paragraph_format.space_after = Pt(6)
-            p.paragraph_format.line_spacing = 1.3
+                only = p.add_run(year or position)
+                only.font.size = Pt(11)
+                only.underline = True
     else:
         doc.add_paragraph("-")
 
@@ -404,15 +420,10 @@ def generate_obyektivka_docx(
     doc.add_page_break()
     t1 = doc.add_paragraph()
     t1.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    r1 = t1.add_run(f"{full_name}ning yaqin qarindoshlari haqida")
+    r1 = t1.add_run(f"{full_name}ning yaqin qarindoshlari haqida MA'LUMOT")
     r1.bold = True
-    r1.font.size = Pt(12)
-
-    t2 = doc.add_paragraph()
-    t2.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    r2 = t2.add_run("MA'LUMOTNOMA")
-    r2.bold = True
-    r2.font.size = Pt(12)
+    r1.font.size = Pt(11)
+    t1.paragraph_format.space_after = Pt(6)
 
     rel_tbl = doc.add_table(rows=1, cols=5)
     rel_tbl.autofit = False
@@ -425,7 +436,7 @@ def generate_obyektivka_docx(
 
     headers = [
         "Qarindoshligi",
-        "Familiyasi ismi va\notasining ismi",
+        "Familiyasi, ismi va\notasining ismi",
         "Tug'ilgan yili\nva joyi",
         "Ish joyi va\nlavozimi",
         "Turar joyi",
@@ -435,7 +446,7 @@ def generate_obyektivka_docx(
         p.alignment = WD_ALIGN_PARAGRAPH.CENTER
         run = p.add_run(h)
         run.bold = True
-        run.font.size = Pt(11)
+        run.font.size = Pt(12)
 
     if relatives:
         for rel in relatives:

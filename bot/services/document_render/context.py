@@ -145,6 +145,7 @@ def build_obyektivka_render_context(
         "languages": _to_text(raw.get("languages") or raw.get("langs")),
         "military_rank": _to_text(raw.get("military_rank") or raw.get("mil")),
         "awards": _to_text(raw.get("awards") or raw.get("award")),
+        "departmental_awards": _to_text(raw.get("departmental_awards") or raw.get("idor_awards") or raw.get("idor")),
         "deputy": _to_text(raw.get("deputy") or raw.get("dep")),
         "address": _maybe_mask(_to_text(raw.get("address")), enabled=mask_pii),
         "phone": _maybe_mask(_to_text(raw.get("phone")), enabled=mask_pii),
@@ -155,6 +156,7 @@ def build_obyektivka_render_context(
             "mask_pii": bool(mask_pii),
             "watermark_text": watermark_text(),
             "watermark_opacity": watermark_opacity(),
+            "watermark_image": _to_text(raw.get("watermark_image")),
         },
     }
     return ctx

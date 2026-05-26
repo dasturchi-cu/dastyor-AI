@@ -146,6 +146,9 @@
     @keyframes pulse{0%,100%{box-shadow:0 0 0 3px rgba(22,163,74,.2)}50%{box-shadow:0 0 0 6px rgba(22,163,74,.05)}}
     .live-badge{font-size:10px;background:#dcfce7;color:#15803d;padding:2px 7px;border-radius:20px;font-weight:700}
     .preview-note{font-size:10px;color:var(--muted);font-weight:600}
+    .wm-tools{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:10px;padding:10px 12px;background:#fff;border:1.5px solid var(--border);border-radius:10px}
+    .wm-tools-label{font-size:12px;font-weight:800;color:var(--text);margin-right:4px}
+    .wm-tools-status{font-size:10px;color:var(--muted);font-weight:600;flex:1;min-width:120px}
     .preview-zoom{display:flex;align-items:center;gap:6px;background:#fff;border:1.5px solid var(--border);border-radius:999px;padding:4px 8px}
     .preview-zoom button{width:28px;height:28px;border-radius:50%;border:1.5px solid var(--border);background:var(--card);color:var(--text);font-weight:800;font-size:14px;cursor:pointer;font-family:var(--font);-webkit-tap-highlight-color:transparent}
     .preview-zoom button:active{background:var(--blue-light)}
@@ -275,9 +278,10 @@
           <div class="field"><label id="lbl-spec">Mutaxassisligi</label><input type="text" id="spec" placeholder="Mutaxassislik" oninput="saveToLocal();updatePreview()"></div>
           <div class="field"><label id="lbl-degree">Ilmiy darajasi</label><input type="text" id="degree" value="yo'q" oninput="saveToLocal();updatePreview()"></div>
           <div class="field"><label id="lbl-scititle">Ilmiy unvoni</label><input type="text" id="scititle" value="yo'q" oninput="saveToLocal();updatePreview()"></div>
-          <div class="field"><label id="lbl-military">Harbiy unvoni</label><input type="text" id="military" value="yo'q" oninput="saveToLocal();updatePreview()"></div>
+          <div class="field"><label id="lbl-military">Harbiy (maxsus) unvoni</label><input type="text" id="military" value="yo'q" oninput="saveToLocal();updatePreview()"></div>
           <div class="field"><label id="lbl-langs">Xorijiy tillar</label><input type="text" id="langs" value="yo'q" list="lang-list" oninput="saveToLocal();updatePreview()"><datalist id="lang-list"></datalist></div>
-          <div class="field" style="grid-column:1/-1"><label id="lbl-awards">Davlat mukofotlari bilan taqdirlanganmi</label><input type="text" id="awards" value="yo'q" oninput="saveToLocal();updatePreview()"></div>
+          <div class="field" style="grid-column:1/-1"><label id="lbl-awards">Davlat mukofotlari va premiyalari bilan taqdirlanganmi</label><input type="text" id="awards" value="yo'q" oninput="saveToLocal();updatePreview()"></div>
+          <div class="field" style="grid-column:1/-1"><label id="lbl-idor-awards">Idoraviy mukofotlar bilan taqdirlanganmi</label><input type="text" id="idor-awards" value="yo'q" oninput="saveToLocal();updatePreview()"></div>
           <div class="field" style="grid-column:1/-1"><label id="lbl-deputy">Xalq deputatlari Kengashi deputatimi yoki boshqa saylanadigan organlar a'zosimi</label><input type="text" id="deputy" value="yo'q" oninput="saveToLocal();updatePreview()"></div>
         </div>
         <hr />
@@ -359,8 +363,15 @@
       </div>
     </form>
 
-    <!-- LIVE PREVIEW (server-rendered = PDF export) -->
+    <!-- LIVE PREVIEW (server-rendered = PDF/Word maket) -->
     <div class="preview-wrap" id="preview-section" style="display:none">
+      <div class="wm-tools">
+        <span class="wm-tools-label">Watermark</span>
+        <label for="obyWatermarkInput" class="btn btn-outline btn-sm" style="cursor:pointer;margin:0">Yuklash</label>
+        <input type="file" id="obyWatermarkInput" accept="image/png,image/jpeg,image/webp" hidden />
+        <button type="button" class="btn btn-ghost btn-sm" id="obyWatermarkTestBtn">Test yuklash</button>
+        <span class="wm-tools-status" id="obyWatermarkStatus">Standart watermark (DASTYOR AI)</span>
+      </div>
       <div class="preview-bar">
         <div class="preview-label">
           <span class="live-dot"></span>
@@ -374,7 +385,7 @@
           <button type="button" id="obyZoomReset" title="Asl o'lcham" style="width:auto;padding:0 10px;font-size:11px;border-radius:999px">100%</button>
         </div>
       </div>
-      <div class="preview-note" style="margin-bottom:10px">To'lovgacha preview — watermark va shaxsiy ma'lumotlar himoyalangan. Export bilan bir xil maket.</div>
+      <div class="preview-note" style="margin-bottom:10px">Rasmiy namuna maketi — preview va Word export bir xil. Watermark faqat preview uchun.</div>
       <div class="preview-port">
         <div class="preview-scroll">
           <div id="obyPreviewPane">
@@ -537,7 +548,7 @@ uz_k:{
   ui_m_type:"\u049a\u0430\u0440\u0438\u043d\u0434\u043e\u0448\u043b\u0438\u0433\u0438",ui_m_name:"\u0424.\u0418.\u0428",ui_m_birth:"\u0422\u0443\u0493\u0438\u043b\u0433\u0430\u043d \u0439\u0438\u043b\u0438 \u0432\u0430 \u0436\u043e\u0439\u0438",ui_m_job:"\u0418\u0448 \u0436\u043e\u0439\u0438 \u0432\u0430 \u043b\u0430\u0432\u043e\u0437\u0438\u043c\u0438",ui_m_job_custom:"\u0411\u043e\u0448\u049b\u0430 \u0438\u0448 \u0436\u043e\u0439\u0438 / \u043b\u0430\u0432\u043e\u0437\u0438\u043c\u0438",ui_m_addr:"\u0422\u0443\u0440\u0430\u0440 \u0436\u043e\u0439\u0438"
 }};
 
-var defIds=['party','degree','scititle','military','awards','deputy'];
+var defIds=['party','degree','scititle','military','awards','idor-awards','deputy'];
 
 function applyUiLang(){
   var d=dict[currentLang]||{};
@@ -695,6 +706,7 @@ function buildObyPayload(fmt){
     langs: v('langs'),
     mil: v('military'),
     award: v('awards'),
+    idor: v('idor-awards'),
     dep: v('deputy'),
     current_job: '',
     current_job_year: '',
@@ -992,6 +1004,7 @@ async function sendObyektivkaViaApi(fmt){
     languages: payload.langs || '',
     military_rank: payload.mil || '',
     awards: payload.award || '',
+    departmental_awards: payload.idor || '',
     deputy: payload.dep || '',
     current_job: payload.current_job || '',
     current_job_year: payload.current_job_year || '',
@@ -1128,6 +1141,7 @@ function _buildPaidObyRequest(fmt){
     languages: payload.langs || '',
     military_rank: payload.mil || '',
     awards: payload.award || '',
+    departmental_awards: payload.idor || '',
     deputy: payload.dep || '',
     current_job: payload.current_job || '',
     current_job_year: payload.current_job_year || '',
@@ -1350,13 +1364,13 @@ function generateYearDatalists(){var o='',ot='';for(var y=1985;y<=2030;y++){o+='
 function updateDatalist(id,options){var dl=document.getElementById(id);dl.innerHTML='';options.forEach(function(opt){var o=document.createElement('option');o.value=opt;dl.appendChild(o);});}
 
 function saveToLocal(){
-  var d={fullname:v('fullname'),birthdate:v('birthdate'),birthplace:v('birthplace'),nation:v('nation'),edu:v('edu'),spec:v('spec'),degree:v('degree'),langs:v('langs'),awards:v('awards'),deputy:v('deputy'),party:v('party'),graduated:v('graduated'),scititle:v('scititle'),military:v('military'),works:[],relatives:relatives};
+  var d={fullname:v('fullname'),birthdate:v('birthdate'),birthplace:v('birthplace'),nation:v('nation'),edu:v('edu'),spec:v('spec'),degree:v('degree'),langs:v('langs'),awards:v('awards'),'idor-awards':v('idor-awards'),deputy:v('deputy'),party:v('party'),graduated:v('graduated'),scititle:v('scititle'),military:v('military'),works:[],relatives:relatives};
   document.querySelectorAll('#work-container .work-row').forEach(function(row){d.works.push({f:row.querySelector('.year-from')?row.querySelector('.year-from').value:'',t:row.querySelector('.year-to')?row.querySelector('.year-to').value:'',d:row.querySelector('.work-desc')?row.querySelector('.work-desc').value:''});});
   try{localStorage.setItem('obyektivkaData',JSON.stringify(d));}catch(e){}
 }
 function loadFromLocal(){
   try{var str=localStorage.getItem('obyektivkaData');if(!str)return;var d=JSON.parse(str);
-  ['fullname','birthdate','birthplace','nation','edu','spec','degree','langs','awards','deputy','party','graduated','scititle','military'].forEach(function(id){if(d[id]){var el=document.getElementById(id);if(el)el.value=d[id];}});
+  ['fullname','birthdate','birthplace','nation','edu','spec','degree','langs','awards','idor-awards','deputy','party','graduated','scititle','military'].forEach(function(id){if(d[id]){var el=document.getElementById(id);if(el)el.value=d[id];}});
   if(d.works&&d.works.length){document.getElementById('work-container').innerHTML='';d.works.forEach(function(w){addWorkRow(w.f,w.t,w.d);});}
   if(d.relatives&&d.relatives.length){relatives=d.relatives;renderRelList();}}catch(e){console.warn(e);}
 }
@@ -1594,6 +1608,7 @@ function applyServerObyData(d){
   setv('langs',d.languages);
   setv('military',d.military_rank);
   setv('awards',d.awards);
+  setv('idor-awards',d.departmental_awards||d['idor-awards']);
   setv('deputy',d.deputy);
   var wc=document.getElementById('work-container');
   if(wc){

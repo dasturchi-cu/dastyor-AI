@@ -1,6 +1,5 @@
 /**
- * Obyektivka server-side document preview — same HTML/CSS as PDF export.
- * Watermark + PII masking enabled for unpaid live preview.
+ * Obyektivka server-side document preview — same HTML/CSS as PDF/Word export.
  */
 (function (global) {
   'use strict';
@@ -12,6 +11,7 @@
   var _previewImgSrc = '';
   var _previewImgOut = '';
   var _previewImgPromise = null;
+  var watermarkData = '';
 
   function getApiBase() {
     try {
@@ -20,6 +20,50 @@
     var meta = document.querySelector('meta[name="dastyor-api-base"]');
     if (meta && meta.content) return String(meta.content).replace(/\/$/, '');
     return '';
+  }
+
+  function setWatermarkStatus(text) {
+    var el = document.getElementById('obyWatermarkStatus');
+    if (el) el.textContent = text || '';
+  }
+
+  function loadWatermarkFromStorage() {
+    try {
+      var saved = localStorage.getItem('oby_watermark_data');
+      if (saved && String(saved).indexOf('data:image') === 0) {
+        watermarkData = saved;
+        setWatermarkStatus('Watermark yuklangan');
+      }
+    } catch (_) {}
+  }
+
+  function saveWatermarkToStorage() {
+    try {
+      if (watermarkData) localStorage.setItem('oby_watermark_data', watermarkData);
+      else localStorage.removeItem('oby_watermark_data');
+    } catch (_) {}
+  }
+
+  function buildTestWatermark() {
+    return new Promise(function (resolve) {
+      try {
+        var canvas = document.createElement('canvas');
+        canvas.width = 420;
+        canvas.height = 120;
+        var ctx = canvas.getContext('2d');
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.translate(canvas.width / 2, canvas.height / 2);
+        ctx.rotate(-0.55);
+        ctx.font = 'bold 28px Times New Roman';
+        ctx.fillStyle = 'rgba(120,120,120,0.35)';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('DASTYOR AI', 0, 0);
+        resolve(canvas.toDataURL('image/png'));
+      } catch (_) {
+        resolve('');
+      }
+    });
   }
 
   function buildPreviewRequest(watermark, maskPii) {
@@ -40,6 +84,7 @@
       languages: p.langs || '',
       military_rank: p.mil || '',
       awards: p.award || '',
+      departmental_awards: p.idor || '',
       deputy: p.dep || '',
       current_job: p.current_job || '',
       current_job_year: p.current_job_year || '',
@@ -61,6 +106,7 @@
       photo_data: p.photo_data || '',
       watermark: watermark !== false,
       mask_pii: maskPii !== false,
+      watermark_image: watermarkData || null,
     };
   }
 
@@ -195,16 +241,50 @@
   }
 
   function bindPreviewControls() {
+    loadWatermarkFromStorage();
+
     var zoomIn = document.getElementById('obyZoomIn');
     var zoomOut = document.getElementById('obyZoomOut');
     var zoomReset = document.getElementById('obyZoomReset');
     if (zoomIn) zoomIn.addEventListener('click', function () { setPreviewZoom(previewZoom + 0.1); });
     if (zoomOut) zoomOut.addEventListener('click', function () { setPreviewZoom(previewZoom - 0.1); });
     if (zoomReset) zoomReset.addEventListener('click', function () { setPreviewZoom(1); });
+
+    var wmInput = document.getElementById('obyWatermarkInput');
+    var wmTest = document.getElementById('obyWatermarkTestBtn');
+    if (wmInput) {
+      wmInput.addEventListener('change', function () {
+        var f = wmInput.files && wmInput.files[0];
+        if (!f) return;
+        var reader = new FileReader();
+        reader.onload = function () {
+          watermarkData = String(reader.result || '');
+          saveWatermarkToStorage();
+          setWatermarkStatus('Watermark yuklandi: ' + (f.name || ''));
+          fetchServerPreview({ immediate: true });
+        };
+        reader.readAsDataURL(f);
+      });
+    }
+    if (wmTest) {
+      wmTest.addEventListener('click', async function () {
+        if (wmInput && wmInput.files && wmInput.files[0]) {
+          wmInput.dispatchEvent(new Event('change'));
+          return;
+        }
+        watermarkData = await buildTestWatermark();
+        saveWatermarkToStorage();
+        setWatermarkStatus('Test watermark yuklandi');
+        fetchServerPreview({ immediate: true });
+      });
+    }
+
     window.addEventListener('resize', function () {
       try { applyPreviewScale(); } catch (_) {}
     });
   }
+
+  global.getObyWatermarkData = function () { return watermarkData; };
 
   global.updatePreview = function updatePreview() {
     fetchServerPreview({ immediate: false });
