@@ -189,3 +189,8 @@ class PreviewObyektivkaRequest(BaseModel):
     phone: str = ""
     work_experience: list = []
     relatives: list = []
+    photo_data: Optional[str] = None
+    current_job: Optional[str] = None
+    current_job_year: Optional[str] = None
+    watermark: bool = True
+    mask_pii: bool = True

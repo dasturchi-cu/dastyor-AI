@@ -275,35 +275,15 @@ def build_cv_context(raw: dict) -> dict:
 
 
 def build_obyektivka_context(raw: dict) -> dict:
-    """Build template context for Obyektivka template."""
-    works = raw.get("work_experience", [])
-    relatives = raw.get("relatives", [])
-    return {
-        "lang":           raw.get("lang", "uz_lat"),
-        "current_job":    raw.get("current_job", "") or "",
-        "current_job_year": raw.get("current_job_year", "") or "",
-        # Template uses d.img to render photo (absolute URL or data URL).
-        # Webapp/API send photo as `photo_data` (data:image/...).
-        "img":            raw.get("img", "") or raw.get("photo_data", "") or "",
-        "fullname":       raw.get("fullname", ""),
-        "birthdate":      raw.get("birthdate", "") or raw.get("birth", ""),
-        "birthplace":     raw.get("birthplace", "") or raw.get("place", ""),
-        "nation":         raw.get("nation", ""),
-        "party":          raw.get("party", ""),
-        "education":      raw.get("education", ""),
-        "graduated":      raw.get("graduated", ""),
-        "specialty":      raw.get("specialty", ""),
-        "degree":         raw.get("degree", ""),
-        "scientific_title": raw.get("scientific_title", ""),
-        "languages":      raw.get("languages", ""),
-        "military_rank":  raw.get("military_rank", ""),
-        "awards":         raw.get("awards", ""),
-        "deputy":         raw.get("deputy", ""),
-        "address":        raw.get("address", ""),
-        "phone":          raw.get("phone", ""),
-        "work_experience": works,
-        "relatives":       relatives,
-    }
+    """Build template context for Obyektivka template (paid/export — clean)."""
+    from bot.services.document_render.context import build_obyektivka_render_context
+
+    return build_obyektivka_render_context(
+        raw,
+        watermark=bool(raw.get("watermark")),
+        mask_pii=bool(raw.get("mask_pii")),
+        process_photo=True,
+    )
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -317,9 +297,26 @@ def render_cv_html(data: dict) -> str:
     return tmpl.render(data=ctx)
 
 
-def render_obyektivka_html(data: dict) -> str:
-    """Render obyektivka_template.html with given data dict. Returns HTML string."""
-    ctx = build_obyektivka_context(data) if "fullname" in data else data
+def render_obyektivka_html(
+    data: dict,
+    *,
+    watermark: bool | None = None,
+    mask_pii: bool | None = None,
+) -> str:
+    """Render obyektivka_template.html — single source for preview and PDF."""
+    from bot.services.document_render.context import build_obyektivka_render_context
+
+    if "render" in data and "fullname" not in data:
+        ctx = data
+    else:
+        wm = watermark if watermark is not None else bool(data.get("watermark"))
+        mp = mask_pii if mask_pii is not None else bool(data.get("mask_pii"))
+        ctx = build_obyektivka_render_context(
+            data,
+            watermark=wm,
+            mask_pii=mp,
+            process_photo=True,
+        )
     tmpl = _jinja_env.get_template("obyektivka_template.html")
     return tmpl.render(data=ctx)
 
@@ -465,13 +462,13 @@ async def generate_obyektivka_pdf(data: dict, base_url: str | None = None) -> by
     Default: Playwright first (mini-app iframe bilan bir xil Chromium) — preview ≈ PDF.
     OBY_PDF_PLAYWRIGHT_FIRST=0 yoki WeasyPrint tez yo‘l.
     """
-    html_str = render_obyektivka_html(data)
+    html_str = render_obyektivka_html(data, watermark=False, mask_pii=False)
 
     bu = (base_url or "").strip().rstrip("/")
     if bu and "<head>" in html_str:
         html_str = html_str.replace("<head>", f"<head><base href='{bu}/'>")
 
-    pw_first = os.getenv("OBY_PDF_PLAYWRIGHT_FIRST", os.getenv("CV_PDF_PLAYWRIGHT_FIRST", "0")).strip().lower() in (
+    pw_first = os.getenv("OBY_PDF_PLAYWRIGHT_FIRST", os.getenv("CV_PDF_PLAYWRIGHT_FIRST", "1")).strip().lower() in (
         "1",
         "true",
         "yes",

@@ -1106,7 +1106,9 @@ async def api_export_obyektivka(
 
         uid_i = int(uid_str)
         skip_quota_completion = await _prepare_paid_doc_export(uid_i, CAT_OBYEKTIVKA)
-    fmt = "word"
+    fmt = (req.format or "word").strip().lower()
+    if fmt not in ("word", "pdf"):
+        fmt = "word"
     data = req.dict(exclude={"telegram_id", "token", "format"})
     safe = safe_filename(req.fullname or "Obyektivka")
     bot_suffix = "_@DastyorAiBot"
@@ -1271,7 +1273,24 @@ async def api_export_obyektivka(
 
 @router.post("/api/preview_obyektivka", response_class=HTMLResponse)
 async def api_preview_obyektivka(req: PreviewObyektivkaRequest):
+    from backend.services.oby_preview_cache import (
+        cache_key_for_oby_preview,
+        oby_preview_cache_get,
+        oby_preview_cache_set,
+    )
     from bot.services.render_service import render_obyektivka_html
 
-    html = await asyncio.to_thread(render_obyektivka_html, req.dict())
+    payload = req.dict()
+    ck = cache_key_for_oby_preview(payload)
+    cached = oby_preview_cache_get(ck)
+    if cached:
+        return HTMLResponse(content=cached)
+
+    html = await asyncio.to_thread(
+        render_obyektivka_html,
+        payload,
+        watermark=bool(req.watermark),
+        mask_pii=bool(req.mask_pii),
+    )
+    oby_preview_cache_set(ck, html)
     return HTMLResponse(content=html)

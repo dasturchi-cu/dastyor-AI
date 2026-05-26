@@ -15,7 +15,7 @@ from docx.enum.table import WD_ALIGN_VERTICAL
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
-from docx.shared import Cm, Pt
+from bot.services.document_render.photo import process_passport_photo
 
 logger = logging.getLogger(__name__)
 
@@ -200,6 +200,7 @@ def generate_obyektivka_docx(
         photo_data = _to_text(data.get("photo_data"))
         try:
             if photo_data.startswith("data:image/") and "," in photo_data:
+                photo_data = process_passport_photo(photo_data)
                 header, b64 = photo_data.split(",", 1)
                 mime = header.split(";")[0].split(":")[1].lower()
                 ext = {

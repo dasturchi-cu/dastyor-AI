@@ -138,35 +138,32 @@
     .hint{background:var(--blue-light);border:1px solid var(--blue-mid);border-radius:9px;padding:8px 11px;font-size:12px;color:var(--blue-dark);font-weight:500;display:flex;align-items:flex-start;gap:6px;margin-bottom:12px}
     .hint svg{width:13px;height:13px;stroke:var(--blue);stroke-width:2.5;fill:none;flex-shrink:0;margin-top:1px}
 
-    /* PREVIEW */
+    /* PREVIEW — official document viewport */
     .preview-wrap{padding:0 18px 20px}
-    .preview-bar{display:flex;align-items:center;justify-content:space-between;padding:12px 0 10px;border-top:1.5px solid var(--blue-light);margin-top:2px}
+    .preview-bar{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;padding:12px 0 10px;border-top:1.5px solid var(--blue-light);margin-top:2px}
     .preview-label{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:800}
     .live-dot{width:8px;height:8px;border-radius:50%;background:var(--success);box-shadow:0 0 0 3px rgba(22,163,74,.2);animation:pulse 1.5s infinite}
     @keyframes pulse{0%,100%{box-shadow:0 0 0 3px rgba(22,163,74,.2)}50%{box-shadow:0 0 0 6px rgba(22,163,74,.05)}}
     .live-badge{font-size:10px;background:#dcfce7;color:#15803d;padding:2px 7px;border-radius:20px;font-weight:700}
-
-    .preview-port{background:#1e2540;border-radius:12px;overflow:hidden;box-shadow:inset 0 2px 10px rgba(0,0,0,.3),0 4px 16px rgba(0,0,0,.12)}
-    .preview-scroll{max-height:540px;overflow:auto;padding:14px;-webkit-overflow-scrolling:touch}
-    .preview-scroll::-webkit-scrollbar{width:4px}
-    .preview-scroll::-webkit-scrollbar-thumb{background:rgba(255,255,255,.18);border-radius:2px}
-
-    /* DOCUMENT */
-    /* Keep A4 proportions stable on mobile by scaling a fixed-width page */
-    .preview-holder{position:relative}
-    .preview-scale{transform-origin:top left;will-change:transform}
-    .doc-page{background:#fff;font-family:'Times New Roman',Georgia,serif;font-size:9pt;color:#000;line-height:1.55;padding:10mm 11mm;width:794px;max-width:794px;box-shadow:0 4px 24px rgba(0,0,0,.5)}
-    .doc-page+.doc-page{margin-top:10px}
-    .doc-photo-box{width:28mm;height:37mm;border:1px solid #bbb;display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0;font-size:7pt;color:#aaa;text-align:center}
-    .doc-photo-box img{width:100%;height:100%;object-fit:cover;display:block}
+    .preview-note{font-size:10px;color:var(--muted);font-weight:600}
+    .preview-zoom{display:flex;align-items:center;gap:6px;background:#fff;border:1.5px solid var(--border);border-radius:999px;padding:4px 8px}
+    .preview-zoom button{width:28px;height:28px;border-radius:50%;border:1.5px solid var(--border);background:var(--card);color:var(--text);font-weight:800;font-size:14px;cursor:pointer;font-family:var(--font);-webkit-tap-highlight-color:transparent}
+    .preview-zoom button:active{background:var(--blue-light)}
+    .preview-zoom span{font-size:11px;font-weight:800;color:var(--muted);min-width:42px;text-align:center}
+    .preview-port{background:linear-gradient(180deg,#e8edf7 0%,#d5deef 100%);border-radius:14px;overflow:hidden;box-shadow:inset 0 2px 12px rgba(15,23,42,.12),0 8px 28px rgba(29,111,232,.12);border:1.5px solid #c9d4ea}
+    .preview-scroll{max-height:min(72vh,640px);overflow:auto;padding:18px 14px;-webkit-overflow-scrolling:touch}
+    .preview-scroll::-webkit-scrollbar{width:5px;height:5px}
+    .preview-scroll::-webkit-scrollbar-thumb{background:rgba(15,23,42,.18);border-radius:3px}
+    #obyPreviewPane{display:flex;align-items:flex-start;justify-content:center;width:100%}
+    #obyPreviewScaleWrapper{transform-origin:top center;will-change:transform;margin:0 auto}
+    #oby-preview-frame{display:block;width:210mm;min-height:297mm;border:0;background:#fff;box-shadow:0 14px 40px rgba(15,23,42,.28),0 2px 8px rgba(15,23,42,.12);border-radius:2px}
 
     @media(max-width:480px){
       .main{padding:14px 10px calc(56px + var(--safe-bottom))}
       .form-body{padding:14px 14px 0}
       .form-footer{padding:12px 14px 16px}
       .preview-wrap{padding:0 14px 16px}
-      .preview-scroll{max-height:420px;padding:12px}
-      .doc-page+.doc-page{margin-top:12px}
+      .preview-scroll{max-height:min(58vh,420px);padding:14px 10px}
     }
 
     /* MODAL */
@@ -362,7 +359,7 @@
       </div>
     </form>
 
-    <!-- LIVE PREVIEW -->
+    <!-- LIVE PREVIEW (server-rendered = PDF export) -->
     <div class="preview-wrap" id="preview-section" style="display:none">
       <div class="preview-bar">
         <div class="preview-label">
@@ -370,13 +367,19 @@
           <span>Jonli Ko'rinish</span>
           <span class="live-badge">LIVE</span>
         </div>
+        <div class="preview-zoom" aria-label="Zoom">
+          <button type="button" id="obyZoomOut" title="Kichiklashtirish">−</button>
+          <span id="obyZoomLabel">100%</span>
+          <button type="button" id="obyZoomIn" title="Kattalashtirish">+</button>
+          <button type="button" id="obyZoomReset" title="Asl o'lcham" style="width:auto;padding:0 10px;font-size:11px;border-radius:999px">100%</button>
+        </div>
       </div>
+      <div class="preview-note" style="margin-bottom:10px">To'lovgacha preview — watermark va shaxsiy ma'lumotlar himoyalangan. Export bilan bir xil maket.</div>
       <div class="preview-port">
         <div class="preview-scroll">
-          <div class="preview-holder" id="preview-holder">
-            <div class="preview-scale" id="preview-scale">
-              <div class="doc-page" id="doc-page-1"></div>
-              <div class="doc-page" id="doc-page-2" style="margin-top:10px"></div>
+          <div id="obyPreviewPane">
+            <div id="obyPreviewScaleWrapper">
+              <iframe id="oby-preview-frame" title="Obyektivka preview" sandbox="allow-scripts allow-same-origin"></iframe>
             </div>
           </div>
         </div>
@@ -418,6 +421,7 @@
   </div>
 </div>
 
+<script src="js/obyektivka-preview.js"></script>
 <script>
 var currentLang='uz_l',photoData='',photoReadyPromise=null,relatives=[],editingRelIndex=-1;
 var telegramId='';
@@ -1551,151 +1555,7 @@ async function downloadDoc(){
   sendObyektivkaToBot('word');
 }
 
-/* LIVE PREVIEW */
-function sf(val){return(val&&String(val).trim())?String(val):'____________________';}
-
-function updatePreview(){
-  var p1=document.getElementById('doc-page-1');
-  var p2=document.getElementById('doc-page-2');
-  if(!p1||!p2)return;
-  var D=dict[currentLang];
-  var fn=toCurrentScript(v('fullname'));
-
-  var works=[];
-  document.querySelectorAll('#work-container .work-row').forEach(function(row){
-    var f=(row.querySelector('.year-from')?row.querySelector('.year-from').value:'').trim();
-    var t=(row.querySelector('.year-to')?row.querySelector('.year-to').value:'').trim();
-    var d=toCurrentScript((row.querySelector('.work-desc')?row.querySelector('.work-desc').value:'').trim());
-    if(!d)return;
-    var yr=formatWorkPeriod(f,t);
-    works.push({yr:yr,d:d});
-  });
-
-  var photoEl=photoData
-    ?'<img src="'+photoData+'" style="width:100%;height:100%;object-fit:cover;display:block">'
-    :'<div style="font-size:7pt;color:#aaa;text-align:center;padding:6px;line-height:1.4">'+D.d_foto+'</div>';
-
-  function r2(l1,v1,l2,v2){
-    return '<tr>'
-      +'<td style="width:50%;vertical-align:top;padding:1.5mm 3mm 2mm 0">'
-        +'<div style="font-weight:bold;font-size:10pt">'+l1+':</div>'
-        +'<div style="font-size:10pt">'+v1+'</div>'
-      +'</td>'
-      +'<td style="width:50%;vertical-align:top;padding:1.5mm 0 2mm 3mm">'
-        +'<div style="font-weight:bold;font-size:10pt">'+l2+':</div>'
-        +'<div style="font-size:10pt">'+v2+'</div>'
-      +'</td>'
-    +'</tr>';
-  }
-  function r1(lbl,val){
-    return '<tr><td colspan="2" style="vertical-align:top;padding:1.5mm 0 2mm">'
-      +'<div style="font-weight:bold;font-size:10pt">'+lbl+':</div>'
-      +'<div style="font-size:10pt">'+val+'</div>'
-    +'</td></tr>';
-  }
-
-  var info='';
-  info+=r2(D.r1l,sf(toCurrentScript(v('birthdate'))),D.r1r,sf(toCurrentScript(v('birthplace'))));
-  info+=r2(D.r2l,sf(toCurrentScript(v('nation'))),D.r2r,sf(toCurrentScript(v('party'))));
-  info+=r2(D.r3l,sf(toCurrentScript(v('edu'))),D.r3r,sf(toCurrentScript(v('graduated'))));
-  info+=r1(D.rSpec,sf(toCurrentScript(v('spec'))));
-  info+=r2(D.r4l,sf(toCurrentScript(v('degree'))),D.r4r,sf(toCurrentScript(v('scititle'))));
-  info+=r2(D.r5l,sf(toCurrentScript(v('langs'))),D.r5r,sf(toCurrentScript(v('military'))));
-  info+=r1(D.rAw,sf(toCurrentScript(v('awards'))));
-  info+=r1(D.rDep,sf(toCurrentScript(v('deputy'))));
-
-  var currentJobHtml='';
-  var worksForList=works.slice();
-  if(worksForList.length){
-    var last=worksForList[worksForList.length-1];
-    var yrNorm=String(last.yr||'').toLowerCase().replace(/[\s.\-_/]/g,'');
-    if(/hv|hvgacha|hozirgacha|ҳв|ҳвгача|present|current/.test(yrNorm)){
-      var cj=last.d||'';
-      var cy=(last.yr||'').split('-')[0].replace(/[^\d]/g,'').slice(0,4);
-      if(cj){
-        currentJobHtml='<div style="margin:0 0 3mm;font-size:10pt">'
-          +(cy?'<div style="font-weight:bold">'+cy+'-yildan:</div>':'')
-          +'<div>'+cj+'</div></div>';
-        worksForList.pop();
-      }
-    }
-  }
-
-  var workRows='';
-  if(worksForList.length){
-    worksForList.forEach(function(w){
-      var y=(w.yr||'').replace(/:$/,'');
-      workRows+='<div style="margin-bottom:2.5mm;font-size:10pt;line-height:1.35">'
-        +(y?'<div style="font-weight:bold">'+y+':</div>':'')
-        +'<div>'+w.d+'</div></div>';
-    });
-  }else if(!currentJobHtml){
-    workRows='<div style="font-size:10pt;color:#ccc">—</div>';
-  }
-
-  p1.innerHTML=
-    '<table style="width:100%;border-collapse:collapse;margin-bottom:4mm">'
-      +'<tr>'
-        +'<td style="text-align:center;vertical-align:top;padding-right:4mm">'
-          +'<div style="font-weight:bold;font-size:14pt;letter-spacing:1px;margin-bottom:2mm">'+D.d_title+'</div>'
-          +'<div style="font-weight:bold;font-size:12pt">'+(fn||'____________________')+'</div>'
-        +'</td>'
-        +'<td style="width:30mm;vertical-align:top;text-align:right">'
-          +'<div class="doc-photo-box">'+photoEl+'</div>'
-        +'</td>'
-      +'</tr>'
-    +'</table>'
-    +currentJobHtml
-    +'<table style="width:100%;border-collapse:collapse">'+info+'</table>'
-    +'<div style="text-align:center;font-weight:bold;font-size:12pt;margin:5mm 0 3mm">'+D.d_work+'</div>'
-    +workRows;
-
-  var relRows='';
-  if(relatives.length){
-    relatives.forEach(function(r){relRows+='<tr><td style="border:1px solid #000;padding:2mm;font-size:10pt;font-weight:bold">'+toCurrentScript(r.type||'')+'</td><td style="border:1px solid #000;padding:2mm;font-size:10pt">'+toCurrentScript(r.name||'')+'</td><td style="border:1px solid #000;padding:2mm;font-size:10pt">'+toCurrentScript(r.birth||'')+'</td><td style="border:1px solid #000;padding:2mm;font-size:10pt">'+toCurrentScript(r.job||'')+'</td><td style="border:1px solid #000;padding:2mm;font-size:10pt">'+toCurrentScript(r.addr||'')+'</td></tr>';});
-  }else{
-    relRows='<tr><td colspan="5" style="border:1px solid #000;padding:2mm;text-align:center;font-style:italic;color:#888;font-size:7.5pt">'+D.d_no_rel+'</td></tr>';
-  }
-
-  p2.innerHTML=
-    '<div style="text-align:center;font-size:10pt;margin-bottom:2mm">'+(fn?fn+D.d_rel_intro:'')+'</div>'
-    +'<div style="text-align:center;font-weight:bold;font-size:12pt;margin-bottom:4mm">'+D.d_rel_title+'</div>'
-    +'<table style="width:100%;border-collapse:collapse">'
-      +'<thead><tr>'
-        +'<th style="border:1px solid #000;padding:2mm;text-align:center;width:14%;font-size:10pt;font-weight:bold">'+D.d_qar+'</th>'
-        +'<th style="border:1px solid #000;padding:2mm;text-align:center;width:24%;font-size:10pt;font-weight:bold">'+D.d_fish+'</th>'
-        +'<th style="border:1px solid #000;padding:2mm;text-align:center;width:18%;font-size:10pt;font-weight:bold">'+D.d_tug+'</th>'
-        +'<th style="border:1px solid #000;padding:2mm;text-align:center;width:24%;font-size:10pt;font-weight:bold">'+D.d_ish+'</th>'
-        +'<th style="border:1px solid #000;padding:2mm;text-align:center;width:20%;font-size:10pt;font-weight:bold">'+D.d_tur+'</th>'
-      +'</tr></thead>'
-      +'<tbody>'+relRows+'</tbody>'
-    +'</table>';
-
-  // Keep preview scale stable on mobile
-  scaleLivePreview();
-}
-
-// --- PERF: debounce preview updates (0.4s) ---
-// updatePreview() is heavy (DOM build + layout). Many inputs call it per keystroke.
-// We wrap it to run only after the user stops typing.
-(function(){
-  try{
-    var _now = updatePreview;
-    var t = null;
-    updatePreview = function(){
-      if(t) clearTimeout(t);
-      t = setTimeout(function(){
-        t = null;
-        try{
-          // Let the browser paint the keystroke first.
-          requestAnimationFrame(function(){
-            requestAnimationFrame(function(){ try{ _now(); }catch(e){} });
-          });
-        }catch(e){ try{ _now(); }catch(_){} }
-      }, 420);
-    };
-  }catch(e){}
-})();
+/* LIVE PREVIEW — server-side (see js/obyektivka-preview.js) */
 
 // --- PERF: debounce localStorage writes (avoid JSON.stringify per keystroke) ---
 (function(){
@@ -1717,29 +1577,6 @@ function updatePreview(){
     };
   }catch(e){}
 })();
-
-function scaleLivePreview(){
-  try{
-    var holder=document.getElementById('preview-holder');
-    var scaleEl=document.getElementById('preview-scale');
-    if(!holder||!scaleEl)return;
-    var scroll=holder.closest('.preview-scroll');
-    if(!scroll)return;
-    var PAGE_W=794; // fixed doc width above
-    var avail=Math.max(0,scroll.clientWidth-2);
-    var s=Math.min(1,avail/PAGE_W);
-    scaleEl.style.transform='scale('+s+')';
-    // Reserve stable height (prevents random zoom/jumps on mobile)
-    var p1=document.getElementById('doc-page-1');
-    var p2=document.getElementById('doc-page-2');
-    var h=0;
-    if(p1)h+=p1.offsetHeight||0;
-    if(p2)h+=p2.offsetHeight||0;
-    h+=10; // gap
-    if(h<=0)h=scaleEl.scrollHeight||0;
-    holder.style.height=(h*s)+'px';
-  }catch(e){}
-}
 
 function applyServerObyData(d){
   if(!d)return;

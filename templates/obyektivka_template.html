@@ -4,31 +4,101 @@
   <meta charset="UTF-8">
   <title>Ma'lumotnoma — {{ data.fullname }}</title>
   <style>
-    @page { size: A4; margin: 20mm 18mm 18mm 22mm; }
+    @page {
+      size: A4;
+      margin: 20mm 18mm 18mm 22mm;
+    }
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      font-family: "Times New Roman", Times, serif;
+    html, body {
+      font-family: "Times New Roman", Times, "Liberation Serif", serif;
       font-size: 12pt;
-      line-height: 1.35;
+      line-height: 1.3;
       color: #000;
       background: #fff;
       -webkit-print-color-adjust: exact;
       print-color-adjust: exact;
     }
+    body { width: 210mm; margin: 0 auto; }
+
     .page {
-      width: 100%;
-      max-width: 210mm;
-      margin: 0 auto;
+      position: relative;
+      width: 210mm;
+      min-height: 297mm;
+      padding: 20mm 18mm 18mm 22mm;
       page-break-after: always;
+      overflow: hidden;
+      background: #fff;
     }
     .page:last-child { page-break-after: auto; }
 
-    .hdr { width: 100%; border-collapse: collapse; margin-bottom: 4mm; }
+    .page-content {
+      position: relative;
+      z-index: 2;
+    }
+
+    /* ── Watermark layer (per page, print-safe) ── */
+    .wm-layer {
+      position: absolute;
+      inset: 0;
+      z-index: 5;
+      pointer-events: none;
+      user-select: none;
+      -webkit-user-select: none;
+      overflow: hidden;
+    }
+    .wm-tile {
+      position: absolute;
+      left: -20%;
+      top: -20%;
+      width: 140%;
+      height: 140%;
+      transform: rotate(-34deg);
+      transform-origin: center center;
+      display: flex;
+      flex-wrap: wrap;
+      align-content: flex-start;
+      gap: 28mm 36mm;
+      opacity: {{ data.render.watermark_opacity | default(0.11) }};
+    }
+    .wm-text {
+      font-family: "Times New Roman", Times, serif;
+      font-size: 13pt;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      color: #888;
+      white-space: nowrap;
+      text-transform: uppercase;
+      -webkit-user-select: none;
+      user-select: none;
+    }
+
+    /* ── PII protection ── */
+    .pii-blur {
+      filter: blur(4px);
+      -webkit-filter: blur(4px);
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    .pii-partial {
+      letter-spacing: 0.02em;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    /* ── Header ── */
+    .hdr { width: 100%; border-collapse: collapse; margin-bottom: 4mm; table-layout: fixed; }
     .hdr td { vertical-align: top; border: none; padding: 0; }
-    .hdr-left { text-align: center; padding-right: 6mm; }
-    .hdr-title { font-size: 14pt; font-weight: bold; letter-spacing: 1px; margin-bottom: 2mm; }
-    .hdr-name { font-size: 12pt; font-weight: bold; }
-    .hdr-photo { width: 32mm; text-align: right; }
+    .hdr-left { text-align: center; padding-right: 6mm; width: auto; }
+    .hdr-title {
+      font-size: 14pt;
+      font-weight: bold;
+      letter-spacing: 0.5px;
+      margin-bottom: 2mm;
+      line-height: 1.2;
+    }
+    .hdr-name { font-size: 12pt; font-weight: bold; line-height: 1.25; }
+    .hdr-photo { width: 32mm; text-align: right; vertical-align: top; }
+
     .photo-box {
       width: 30mm;
       height: 40mm;
@@ -40,18 +110,28 @@
       font-size: 8pt;
       color: #888;
       text-align: center;
+      background: #fff;
+      line-height: 1.25;
     }
-    .photo-box img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .photo-box img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: center top;
+      display: block;
+      background: #fff;
+    }
 
-    .current-job { margin: 0 0 4mm 0; font-size: 12pt; }
-    .current-job .yr { font-weight: normal; }
+    .current-job { margin: 0 0 4mm 0; font-size: 12pt; line-height: 1.15; }
+    .current-job .yr { font-weight: normal; display: block; }
     .current-job .pos { display: block; margin-top: 1mm; }
 
-    .info { width: 100%; border-collapse: collapse; margin-bottom: 5mm; }
-    .info td { vertical-align: top; padding: 1.5mm 3mm 2mm 0; width: 50%; border: none; }
-    .info td.full { width: 100%; }
-    .lbl { font-weight: bold; font-size: 12pt; display: block; }
-    .val { font-size: 12pt; display: block; margin-top: 0.5mm; }
+    .info { width: 100%; border-collapse: collapse; margin-bottom: 5mm; table-layout: fixed; }
+    .info td { vertical-align: top; padding: 0 3mm 2mm 0; width: 50%; border: none; }
+    .info td.full { width: 100%; padding-right: 0; }
+    .info td.right-col { padding-left: 3mm; padding-right: 0; }
+    .lbl { font-weight: bold; font-size: 12pt; display: block; line-height: 1.15; }
+    .val { font-size: 12pt; display: block; margin-top: 0.5mm; line-height: 1.3; }
 
     .sect-work {
       text-align: center;
@@ -59,28 +139,40 @@
       font-size: 12pt;
       margin: 5mm 0 3mm;
       letter-spacing: 0.5px;
+      line-height: 1.3;
     }
-    .work-item { margin-bottom: 2.5mm; font-size: 12pt; }
-    .work-yr { font-weight: bold; }
-    .work-yr::after { content: ":"; }
-    .work-pos { display: block; margin-top: 0.5mm; padding-left: 0; }
+    .work-item { margin-bottom: 2.5mm; font-size: 12pt; line-height: 1.3; }
+    .work-yr { font-weight: bold; display: block; line-height: 1.15; }
+    .work-pos { display: block; margin-top: 0.5mm; }
 
-    .rel-intro { text-align: center; font-size: 12pt; margin-bottom: 2mm; }
-    .rel-title { text-align: center; font-weight: bold; font-size: 12pt; margin-bottom: 4mm; }
-    .rel { width: 100%; border-collapse: collapse; font-size: 11pt; }
+    .rel-intro { text-align: center; font-size: 12pt; margin-bottom: 2mm; line-height: 1.3; font-weight: bold; }
+    .rel-title { text-align: center; font-weight: bold; font-size: 12pt; margin-bottom: 4mm; line-height: 1.3; }
+    .rel { width: 100%; border-collapse: collapse; font-size: 11pt; table-layout: fixed; }
     .rel th, .rel td {
       border: 1px solid #000;
       padding: 2mm 2.5mm;
       text-align: center;
       vertical-align: middle;
+      line-height: 1.25;
+      word-wrap: break-word;
     }
     .rel th { font-weight: bold; font-size: 10pt; }
     .rel td.rel-type { font-weight: bold; }
-    .empty { font-style: italic; color: #666; text-align: center; padding: 3mm; }
+    .empty { font-style: italic; color: #666; text-align: center; padding: 3mm; font-size: 11pt; }
+
+    @media print {
+      body { width: auto; }
+      .page { padding: 0; min-height: auto; }
+      .wm-layer, .wm-tile, .wm-text, .pii-blur {
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+    }
   </style>
 </head>
 <body>
 {%- set d = data -%}
+{%- set R = d.render if d.render is defined else {} -%}
 {%- set ll = {
   'uz_lat': {
     'title': "MA'LUMOTNOMA",
@@ -120,113 +212,131 @@
 {%- set L = ll.get(d.lang or 'uz_lat', ll['uz_lat']) -%}
 {%- set fn = d.fullname or '' -%}
 {%- macro val(x) -%}{{ x if x else L.none }}{%- endmacro -%}
+{%- macro safe_html(x) -%}{% if x %}{{ x | safe }}{% else %}{{ L.none }}{% endif %}{%- endmacro -%}
+{%- macro wm_layer() -%}
+{%- if R.watermark -%}
+<div class="wm-layer" aria-hidden="true">
+  <div class="wm-tile">
+    {%- for i in range(48) -%}
+    <span class="wm-text">{{ R.watermark_text | default('DASTYOR AI') }}</span>
+    {%- endfor -%}
+  </div>
+</div>
+{%- endif -%}
+{%- endmacro -%}
 
 <div class="page">
-  <table class="hdr">
-    <tr>
-      <td class="hdr-left">
-        <div class="hdr-title">{{ L.title }}</div>
-        <div class="hdr-name">{{ fn | upper }}</div>
-      </td>
-      <td class="hdr-photo">
-        <div class="photo-box">
-          {%- if d.img -%}
-          <img src="{{ d.img }}" alt="">
-          {%- else -%}
-          {{ L.photo }}
-          {%- endif -%}
-        </div>
-      </td>
-    </tr>
-  </table>
+  {{ wm_layer() }}
+  <div class="page-content">
+    <table class="hdr">
+      <tr>
+        <td class="hdr-left">
+          <div class="hdr-title">{{ L.title }}</div>
+          <div class="hdr-name">{{ fn | upper }}</div>
+        </td>
+        <td class="hdr-photo">
+          <div class="photo-box">
+            {%- if d.img -%}
+            <img src="{{ d.img }}" alt="">
+            {%- else -%}
+            {{ L.photo }}
+            {%- endif -%}
+          </div>
+        </td>
+      </tr>
+    </table>
 
-  {%- if d.current_job -%}
-  <div class="current-job">
-    {%- if d.current_job_year -%}
-    <span class="yr">{{ d.current_job_year }}-yildan:</span>
-    {%- endif -%}
-    <span class="pos">{{ d.current_job }}</span>
-  </div>
-  {%- endif -%}
-
-  <table class="info">
-    <tr>
-      <td><span class="lbl">{{ L.r1l }}:</span><span class="val">{{ val(d.birthdate) }}</span></td>
-      <td><span class="lbl">{{ L.r1r }}:</span><span class="val">{{ val(d.birthplace) }}</span></td>
-    </tr>
-    <tr>
-      <td><span class="lbl">{{ L.r2l }}:</span><span class="val">{{ val(d.nation) }}</span></td>
-      <td><span class="lbl">{{ L.r2r }}:</span><span class="val">{{ val(d.party) }}</span></td>
-    </tr>
-    <tr>
-      <td><span class="lbl">{{ L.r3l }}:</span><span class="val">{{ val(d.education) }}</span></td>
-      <td><span class="lbl">{{ L.r3r }}:</span><span class="val">{{ val(d.graduated) }}</span></td>
-    </tr>
-    <tr>
-      <td colspan="2" class="full"><span class="lbl">{{ L.rSpec }}:</span><span class="val">{{ val(d.specialty) }}</span></td>
-    </tr>
-    <tr>
-      <td><span class="lbl">{{ L.r4l }}:</span><span class="val">{{ val(d.degree) }}</span></td>
-      <td><span class="lbl">{{ L.r4r }}:</span><span class="val">{{ val(d.scientific_title) }}</span></td>
-    </tr>
-    <tr>
-      <td><span class="lbl">{{ L.r5l }}:</span><span class="val">{{ val(d.languages) }}</span></td>
-      <td><span class="lbl">{{ L.r5r }}:</span><span class="val">{{ val(d.military_rank) }}</span></td>
-    </tr>
-    <tr>
-      <td colspan="2" class="full"><span class="lbl">{{ L.rAw }}:</span><span class="val">{{ val(d.awards) }}</span></td>
-    </tr>
-    <tr>
-      <td colspan="2" class="full"><span class="lbl">{{ L.rDep }}:</span><span class="val">{{ val(d.deputy) }}</span></td>
-    </tr>
-  </table>
-
-  <div class="sect-work">{{ L.work }}</div>
-  {%- if d.work_experience and d.work_experience | length > 0 -%}
-    {%- for w in d.work_experience -%}
-    <div class="work-item">
-      {%- set yr = w.year or w.years or '' -%}
-      {%- set pos = w.position or w.desc or w.job or '' -%}
-      {%- if yr -%}<span class="work-yr">{{ yr }}</span>{%- endif -%}
-      {%- if pos -%}<span class="work-pos">{{ pos }}</span>{%- endif -%}
+    {%- if d.current_job -%}
+    <div class="current-job">
+      {%- if d.current_job_year -%}
+      <span class="yr">{{ d.current_job_year | safe }}-yildan:</span>
+      {%- endif -%}
+      <span class="pos">{{ d.current_job | safe }}</span>
     </div>
-    {%- endfor -%}
-  {%- else -%}
-  <div class="empty">—</div>
-  {%- endif -%}
+    {%- endif -%}
+
+    <table class="info">
+      <tr>
+        <td><span class="lbl">{{ L.r1l }}:</span><span class="val">{{ safe_html(val(d.birthdate)) }}</span></td>
+        <td class="right-col"><span class="lbl">{{ L.r1r }}:</span><span class="val">{{ safe_html(val(d.birthplace)) }}</span></td>
+      </tr>
+      <tr>
+        <td><span class="lbl">{{ L.r2l }}:</span><span class="val">{{ val(d.nation) }}</span></td>
+        <td class="right-col"><span class="lbl">{{ L.r2r }}:</span><span class="val">{{ val(d.party) }}</span></td>
+      </tr>
+      <tr>
+        <td><span class="lbl">{{ L.r3l }}:</span><span class="val">{{ val(d.education) }}</span></td>
+        <td class="right-col"><span class="lbl">{{ L.r3r }}:</span><span class="val">{{ val(d.graduated) }}</span></td>
+      </tr>
+      <tr>
+        <td colspan="2" class="full"><span class="lbl">{{ L.rSpec }}:</span><span class="val">{{ val(d.specialty) }}</span></td>
+      </tr>
+      <tr>
+        <td><span class="lbl">{{ L.r4l }}:</span><span class="val">{{ val(d.degree) }}</span></td>
+        <td class="right-col"><span class="lbl">{{ L.r4r }}:</span><span class="val">{{ val(d.scientific_title) }}</span></td>
+      </tr>
+      <tr>
+        <td><span class="lbl">{{ L.r5l }}:</span><span class="val">{{ val(d.languages) }}</span></td>
+        <td class="right-col"><span class="lbl">{{ L.r5r }}:</span><span class="val">{{ val(d.military_rank) }}</span></td>
+      </tr>
+      <tr>
+        <td colspan="2" class="full"><span class="lbl">{{ L.rAw }}:</span><span class="val">{{ val(d.awards) }}</span></td>
+      </tr>
+      <tr>
+        <td colspan="2" class="full"><span class="lbl">{{ L.rDep }}:</span><span class="val">{{ val(d.deputy) }}</span></td>
+      </tr>
+    </table>
+
+    <div class="sect-work">{{ L.work }}</div>
+    {%- if d.work_experience and d.work_experience | length > 0 -%}
+      {%- for w in d.work_experience -%}
+      <div class="work-item">
+        {%- set yr = w.year or w.years or '' -%}
+        {%- set pos = w.position or w.desc or w.job or '' -%}
+        {%- if yr -%}<span class="work-yr">{{ yr }}:</span>{%- endif -%}
+        {%- if pos -%}<span class="work-pos">{{ pos }}</span>{%- endif -%}
+      </div>
+      {%- endfor -%}
+    {%- else -%}
+    <div class="empty">—</div>
+    {%- endif -%}
+  </div>
 </div>
 
 <div class="page">
-  {%- if fn -%}
-  <div class="rel-intro">{{ fn }}{{ L.rel_intro }}</div>
-  {%- endif -%}
-  <div class="rel-title">{{ L.rel_title }}</div>
-  <table class="rel">
-    <thead>
-      <tr>
-        <th style="width:14%">{{ L.qar }}</th>
-        <th style="width:24%">{{ L.fish }}</th>
-        <th style="width:18%">{{ L.tug }}</th>
-        <th style="width:24%">{{ L.ish }}</th>
-        <th style="width:20%">{{ L.tur }}</th>
-      </tr>
-    </thead>
-    <tbody>
-      {%- if d.relatives and d.relatives | length > 0 -%}
-        {%- for r in d.relatives -%}
+  {{ wm_layer() }}
+  <div class="page-content">
+    {%- if fn -%}
+    <div class="rel-intro">{{ fn }}{{ L.rel_intro }}</div>
+    {%- endif -%}
+    <div class="rel-title">{{ L.rel_title }}</div>
+    <table class="rel">
+      <thead>
         <tr>
-          <td class="rel-type">{{ r.degree or r.type or L.none }}</td>
-          <td>{{ r.fullname or r.name or L.none }}</td>
-          <td>{{ r.birth_year_place or r.birth or L.none }}</td>
-          <td>{{ r.work_place or r.job or L.none }}</td>
-          <td>{{ r.address or r.addr or L.none }}</td>
+          <th style="width:14%">{{ L.qar }}</th>
+          <th style="width:24%">{{ L.fish }}</th>
+          <th style="width:18%">{{ L.tug }}</th>
+          <th style="width:24%">{{ L.ish }}</th>
+          <th style="width:20%">{{ L.tur }}</th>
         </tr>
-        {%- endfor -%}
-      {%- else -%}
-        <tr><td colspan="5" class="empty">{{ L.no_rel }}</td></tr>
-      {%- endif -%}
-    </tbody>
-  </table>
+      </thead>
+      <tbody>
+        {%- if d.relatives and d.relatives | length > 0 -%}
+          {%- for r in d.relatives -%}
+          <tr>
+            <td class="rel-type">{{ r.degree or r.type or L.none }}</td>
+            <td>{{ (r.fullname or r.name or L.none) | safe }}</td>
+            <td>{{ (r.birth_year_place or r.birth or L.none) | safe }}</td>
+            <td>{{ (r.work_place or r.job or L.none) | safe }}</td>
+            <td>{{ (r.address or r.addr or L.none) | safe }}</td>
+          </tr>
+          {%- endfor -%}
+        {%- else -%}
+          <tr><td colspan="5" class="empty">{{ L.no_rel }}</td></tr>
+        {%- endif -%}
+      </tbody>
+    </table>
+  </div>
 </div>
 </body>
 </html>
