@@ -38,41 +38,27 @@
       -webkit-user-select: none;
       overflow: hidden;
     }
-    .wm-image {
-      position: absolute;
-      left: -25%;
-      top: -25%;
-      width: 150%;
-      height: 150%;
-      transform: rotate(-34deg);
-      transform-origin: center center;
-      background-repeat: repeat;
-      background-size: 38mm auto;
-      background-position: center;
-      opacity: {{ data.render.watermark_opacity | default(0.11) }};
-    }
     .wm-tile {
       position: absolute;
-      left: -20%;
-      top: -20%;
-      width: 140%;
-      height: 140%;
-      transform: rotate(-34deg);
+      left: -22%;
+      top: -22%;
+      width: 144%;
+      height: 144%;
+      transform: rotate(-42deg);
       transform-origin: center center;
       display: flex;
       flex-wrap: wrap;
       align-content: flex-start;
-      gap: 24mm 32mm;
-      opacity: {{ data.render.watermark_opacity | default(0.11) }};
+      gap: 22mm 28mm;
+      opacity: {{ data.render.watermark_opacity | default(0.08) }};
     }
     .wm-text {
       font-family: "Times New Roman", Times, serif;
-      font-size: 12pt;
+      font-size: 11pt;
       font-weight: 700;
-      letter-spacing: 0.1em;
-      color: #888;
+      letter-spacing: 0.02em;
+      color: #999;
       white-space: nowrap;
-      text-transform: uppercase;
       user-select: none;
       -webkit-user-select: none;
     }
@@ -136,7 +122,7 @@
 
     .rel-page-title {
       text-align: center;
-      font-size: 11pt;
+      font-size: 12pt;
       font-weight: bold;
       margin-bottom: 4mm;
       line-height: 1.2;
@@ -150,7 +136,7 @@
       line-height: 1.15;
       word-wrap: break-word;
     }
-    .rel th { font-weight: bold; font-size: 12pt; }
+    .rel th { font-weight: bold; font-size: 11pt; text-decoration: underline; }
     .rel td.rel-type { font-weight: bold; font-size: 11pt; }
     .rel td.data-left { text-align: left; }
     .empty { font-style: italic; color: #666; text-align: center; padding: 3mm; font-size: 11pt; }
@@ -158,7 +144,7 @@
     @media print {
       body { width: auto; }
       .page { padding: 0; min-height: auto; }
-      .wm-layer, .wm-image, .wm-tile, .pii-blur {
+      .wm-layer, .wm-tile, .pii-blur {
         -webkit-print-color-adjust: exact;
         print-color-adjust: exact;
       }
@@ -179,8 +165,8 @@
     'r4l': "Ilmiy darajasi", 'r4r': "Ilmiy unvoni",
     'r5l': "Qaysi chet tillarini biladi", 'r5r': "Harbiy (maxsus) unvoni",
     'rAw': "Davlat mukofotlari va premiyalari bilan taqdirlanganmi (qanaqa)",
-    'rIdo': "Idoraviy mukofotlar bilan taqdirlanganmi (qanaqa)",
-    'rDep': "Xalq deputatlari respublika, viloyat, shahar va tuman Kengashi deputatimi yoki boshqa saylanadigan organlarning a'zosimi (to'liq ko'rsatish lozim)",
+    'rIdo': "Ma'naviy mukofotlar bilan taqdirlanganmi (qanaqa)",
+    'rDep': "Xalq deputatlari respublika, viloyat, shahar va tuman Kengashi deputatimi yoki boshqa saylanadigan organlarning a'zosimi (to'liq ko'rsatib o'tish)",
     'work': "MEHNAT FAOLIYATI",
     'rel_suffix': "ning yaqin qarindoshlari haqida MA'LUMOT",
     'qar': "Qarindoshligi", 'fish': "Familiyasi, ismi va otasining ismi",
@@ -197,10 +183,10 @@
     'r4l': "Илмий даражаси", 'r4r': "Илмий унвони",
     'r5l': "Қайси чет тилларини билади", 'r5r': "Ҳарбий (махсус) унвони",
     'rAw': "Давлат мукофотлари ва премиялари билан тақдирланганми (қанақа)",
-    'rIdo': "Идоравий мукофотлар билан тақдирланганми (қанақа)",
-    'rDep': "Халқ депутатлари республика, вилоят, шаҳар ва туман Кенгаши депутатими ёки бошқа сайланadigan organlarning a'zosimi (to'liq ko'rsatish lozim)",
+    'rIdo': "Маънавий мукофотлар билан тақдирланганми (қанақа)",
+    'rDep': "Халқ депутатлари республика, вилоят, шаҳар ва tuman Kengashi deputatimi yoki boshqa saylanadigan organlarning a'zosimi (to'liq ko'rsatib o'tish)",
     'work': "МЕҲНАТ ФАОЛИЯТИ",
-    'rel_suffix': "нинг яқин қариндoshlari haqida МАЪЛУМОТ",
+    'rel_suffix': "нинг yaqin qarindoshlari haqida МАЪЛУМОТ",
     'qar': "Қариндошлиги", 'fish': "Фамилияси, исми ва отасининг исми",
     'tug': "Туғилган йили ва жойи", 'ish': "Иш жойи ва лавозими", 'tur': "Турар joyi",
     'none': "йўқ", 'no_rel': "Яқин qarindoshlar haqida ma'lumot kiritilmagan."
@@ -219,15 +205,11 @@
 {%- macro wm_layer() -%}
 {%- if R.watermark -%}
 <div class="wm-layer" aria-hidden="true">
-  {%- if R.watermark_image -%}
-  <div class="wm-image" style="background-image:url('{{ R.watermark_image }}');"></div>
-  {%- else -%}
   <div class="wm-tile">
-    {%- for i in range(42) -%}
-    <span class="wm-text">{{ R.watermark_text | default('DASTYOR AI') }}</span>
+    {%- for i in range(56) -%}
+    <span class="wm-text">{{ R.watermark_text | default('@DastyorAiBot') }}</span>
     {%- endfor -%}
   </div>
-  {%- endif -%}
 </div>
 {%- endif -%}
 {%- endmacro -%}

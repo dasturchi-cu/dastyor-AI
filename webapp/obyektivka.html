@@ -146,9 +146,6 @@
     @keyframes pulse{0%,100%{box-shadow:0 0 0 3px rgba(22,163,74,.2)}50%{box-shadow:0 0 0 6px rgba(22,163,74,.05)}}
     .live-badge{font-size:10px;background:#dcfce7;color:#15803d;padding:2px 7px;border-radius:20px;font-weight:700}
     .preview-note{font-size:10px;color:var(--muted);font-weight:600}
-    .wm-tools{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:10px;padding:10px 12px;background:#fff;border:1.5px solid var(--border);border-radius:10px}
-    .wm-tools-label{font-size:12px;font-weight:800;color:var(--text);margin-right:4px}
-    .wm-tools-status{font-size:10px;color:var(--muted);font-weight:600;flex:1;min-width:120px}
     .preview-zoom{display:flex;align-items:center;gap:6px;background:#fff;border:1.5px solid var(--border);border-radius:999px;padding:4px 8px}
     .preview-zoom button{width:28px;height:28px;border-radius:50%;border:1.5px solid var(--border);background:var(--card);color:var(--text);font-weight:800;font-size:14px;cursor:pointer;font-family:var(--font);-webkit-tap-highlight-color:transparent}
     .preview-zoom button:active{background:var(--blue-light)}
@@ -281,7 +278,7 @@
           <div class="field"><label id="lbl-military">Harbiy (maxsus) unvoni</label><input type="text" id="military" value="yo'q" oninput="saveToLocal();updatePreview()"></div>
           <div class="field"><label id="lbl-langs">Xorijiy tillar</label><input type="text" id="langs" value="yo'q" list="lang-list" oninput="saveToLocal();updatePreview()"><datalist id="lang-list"></datalist></div>
           <div class="field" style="grid-column:1/-1"><label id="lbl-awards">Davlat mukofotlari va premiyalari bilan taqdirlanganmi</label><input type="text" id="awards" value="yo'q" oninput="saveToLocal();updatePreview()"></div>
-          <div class="field" style="grid-column:1/-1"><label id="lbl-idor-awards">Idoraviy mukofotlar bilan taqdirlanganmi</label><input type="text" id="idor-awards" value="yo'q" oninput="saveToLocal();updatePreview()"></div>
+          <div class="field" style="grid-column:1/-1"><label id="lbl-idor-awards">Ma'naviy mukofotlar bilan taqdirlanganmi</label><input type="text" id="idor-awards" value="yo'q" oninput="saveToLocal();updatePreview()"></div>
           <div class="field" style="grid-column:1/-1"><label id="lbl-deputy">Xalq deputatlari Kengashi deputatimi yoki boshqa saylanadigan organlar a'zosimi</label><input type="text" id="deputy" value="yo'q" oninput="saveToLocal();updatePreview()"></div>
         </div>
         <hr />
@@ -365,13 +362,6 @@
 
     <!-- LIVE PREVIEW (server-rendered = PDF/Word maket) -->
     <div class="preview-wrap" id="preview-section" style="display:none">
-      <div class="wm-tools">
-        <span class="wm-tools-label">Watermark</span>
-        <label for="obyWatermarkInput" class="btn btn-outline btn-sm" style="cursor:pointer;margin:0">Yuklash</label>
-        <input type="file" id="obyWatermarkInput" accept="image/png,image/jpeg,image/webp" hidden />
-        <button type="button" class="btn btn-ghost btn-sm" id="obyWatermarkTestBtn">Test yuklash</button>
-        <span class="wm-tools-status" id="obyWatermarkStatus">Standart watermark (DASTYOR AI)</span>
-      </div>
       <div class="preview-bar">
         <div class="preview-label">
           <span class="live-dot"></span>
@@ -384,8 +374,9 @@
           <button type="button" id="obyZoomIn" title="Kattalashtirish">+</button>
           <button type="button" id="obyZoomReset" title="Asl o'lcham" style="width:auto;padding:0 10px;font-size:11px;border-radius:999px">100%</button>
         </div>
+        <button type="button" id="obyTestDownloadBtn" class="btn btn-ghost btn-sm" style="margin-left:4px">Test yuklash</button>
       </div>
-      <div class="preview-note" style="margin-bottom:10px">Rasmiy namuna maketi — preview va Word export bir xil. Watermark faqat preview uchun.</div>
+      <div class="preview-note" style="margin-bottom:10px">«Test yuklash» — formadagi ma'lumotlaringiz PDF bo'lib tushadi. @DastyorAiBot watermark avtomatik (matn, rasm yuklash shart emas). To'lovdan keyin Word toza chiqadi.</div>
       <div class="preview-port">
         <div class="preview-scroll">
           <div id="obyPreviewPane">

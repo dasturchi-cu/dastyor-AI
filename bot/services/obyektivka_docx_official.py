@@ -353,8 +353,8 @@ def generate_obyektivka_docx(
         (("Ilmiy darajasi", _to_text(data.get("degree"))), ("Ilmiy unvoni", _to_text(data.get("scientific_title"))), False),
         (("Qaysi chet tillarini biladi", _to_text(data.get("languages"))), ("Harbiy (maxsus) unvoni", _to_text(data.get("military_rank"))), False),
         (("Davlat mukofotlari va premiyalari bilan taqdirlanganmi (qanaqa)", _to_text(data.get("awards"))), None, True),
-        (("Idoraviy mukofotlar bilan taqdirlanganmi (qanaqa)", _to_text(data.get("departmental_awards"))), None, True),
-        (("Xalq deputatlari respublika, viloyat, shahar va tuman Kengashi deputatimi yoki boshqa saylanadigan organlarning a'zosimi (to'liq ko'rsatish lozim)", _to_text(data.get("deputy"))), None, True),
+        (("Ma'naviy mukofotlar bilan taqdirlanganmi (qanaqa)", _to_text(data.get("departmental_awards"))), None, True),
+        (("Xalq deputatlari respublika, viloyat, shahar va tuman Kengashi deputatimi yoki boshqa saylanadigan organlarning a'zosimi (to'liq ko'rsatib o'tish)", _to_text(data.get("deputy"))), None, True),
     ]
 
     for row_idx, (left_data, right_data, merge_row) in enumerate(info_rows):
@@ -422,7 +422,7 @@ def generate_obyektivka_docx(
     t1.alignment = WD_ALIGN_PARAGRAPH.CENTER
     r1 = t1.add_run(f"{full_name}ning yaqin qarindoshlari haqida MA'LUMOT")
     r1.bold = True
-    r1.font.size = Pt(11)
+    r1.font.size = Pt(12)
     t1.paragraph_format.space_after = Pt(6)
 
     rel_tbl = doc.add_table(rows=1, cols=5)
@@ -446,7 +446,8 @@ def generate_obyektivka_docx(
         p.alignment = WD_ALIGN_PARAGRAPH.CENTER
         run = p.add_run(h)
         run.bold = True
-        run.font.size = Pt(12)
+        run.font.size = Pt(11)
+        run.underline = True
 
     if relatives:
         for rel in relatives:

@@ -156,7 +156,6 @@ def build_obyektivka_render_context(
             "mask_pii": bool(mask_pii),
             "watermark_text": watermark_text(),
             "watermark_opacity": watermark_opacity(),
-            "watermark_image": _to_text(raw.get("watermark_image")),
         },
     }
     return ctx

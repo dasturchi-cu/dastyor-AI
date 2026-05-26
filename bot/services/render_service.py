@@ -456,13 +456,18 @@ async def generate_cv_pdf(data: dict, base_url: str | None = None) -> bytes | No
     return None
 
 
-async def generate_obyektivka_pdf(data: dict, base_url: str | None = None) -> bytes | None:
+async def generate_obyektivka_pdf(
+    data: dict,
+    base_url: str | None = None,
+    *,
+    watermark: bool = False,
+    mask_pii: bool = False,
+) -> bytes | None:
     """
     Render Obyektivka template → PDF bytes.
-    Default: Playwright first (mini-app iframe bilan bir xil Chromium) — preview ≈ PDF.
-    OBY_PDF_PLAYWRIGHT_FIRST=0 yoki WeasyPrint tez yo‘l.
+    watermark/mask_pii=True — test preview PDF (@DastyorAiBot orqasida).
     """
-    html_str = render_obyektivka_html(data, watermark=False, mask_pii=False)
+    html_str = render_obyektivka_html(data, watermark=watermark, mask_pii=mask_pii)
 
     bu = (base_url or "").strip().rstrip("/")
     if bu and "<head>" in html_str:

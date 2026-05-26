@@ -1,5 +1,5 @@
 /**
- * Obyektivka server-side document preview — same HTML/CSS as PDF/Word export.
+ * Obyektivka preview + test PDF yuklash (@DastyorAiBot watermark, rasm kerak emas).
  */
 (function (global) {
   'use strict';
@@ -11,7 +11,7 @@
   var _previewImgSrc = '';
   var _previewImgOut = '';
   var _previewImgPromise = null;
-  var watermarkData = '';
+  var _testDownloadBusy = false;
 
   function getApiBase() {
     try {
@@ -22,51 +22,7 @@
     return '';
   }
 
-  function setWatermarkStatus(text) {
-    var el = document.getElementById('obyWatermarkStatus');
-    if (el) el.textContent = text || '';
-  }
-
-  function loadWatermarkFromStorage() {
-    try {
-      var saved = localStorage.getItem('oby_watermark_data');
-      if (saved && String(saved).indexOf('data:image') === 0) {
-        watermarkData = saved;
-        setWatermarkStatus('Watermark yuklangan');
-      }
-    } catch (_) {}
-  }
-
-  function saveWatermarkToStorage() {
-    try {
-      if (watermarkData) localStorage.setItem('oby_watermark_data', watermarkData);
-      else localStorage.removeItem('oby_watermark_data');
-    } catch (_) {}
-  }
-
-  function buildTestWatermark() {
-    return new Promise(function (resolve) {
-      try {
-        var canvas = document.createElement('canvas');
-        canvas.width = 420;
-        canvas.height = 120;
-        var ctx = canvas.getContext('2d');
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.translate(canvas.width / 2, canvas.height / 2);
-        ctx.rotate(-0.55);
-        ctx.font = 'bold 28px Times New Roman';
-        ctx.fillStyle = 'rgba(120,120,120,0.35)';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText('DASTYOR AI', 0, 0);
-        resolve(canvas.toDataURL('image/png'));
-      } catch (_) {
-        resolve('');
-      }
-    });
-  }
-
-  function buildPreviewRequest(watermark, maskPii) {
+  function buildPreviewRequest() {
     if (typeof global.buildObyPayload !== 'function') return null;
     var p = global.buildObyPayload('pdf');
     return {
@@ -104,9 +60,8 @@
         };
       }),
       photo_data: p.photo_data || '',
-      watermark: watermark !== false,
-      mask_pii: maskPii !== false,
-      watermark_image: watermarkData || null,
+      watermark: true,
+      mask_pii: true,
     };
   }
 
@@ -150,6 +105,17 @@
       }
     });
     return _previewImgPromise;
+  }
+
+  async function preparePayload() {
+    var payload = buildPreviewRequest();
+    if (!payload) return null;
+    try {
+      if (payload.photo_data) {
+        payload.photo_data = await compressPreviewPhoto(payload.photo_data);
+      }
+    } catch (_) {}
+    return payload;
   }
 
   function applyPreviewHtmlToIframe(html, reqId) {
@@ -215,14 +181,8 @@
     }
     previewAbort = typeof AbortController !== 'undefined' ? new AbortController() : null;
     var reqId = ++previewRequestId;
-    var payload = buildPreviewRequest(true, true);
+    var payload = await preparePayload();
     if (!payload) return;
-
-    try {
-      if (payload.photo_data) {
-        payload.photo_data = await compressPreviewPhoto(payload.photo_data);
-      }
-    } catch (_) {}
 
     var base = getApiBase();
     try {
@@ -240,51 +200,77 @@
     }
   }
 
-  function bindPreviewControls() {
-    loadWatermarkFromStorage();
+  async function downloadTestPdf() {
+    if (_testDownloadBusy) return;
+    var btn = document.getElementById('obyTestDownloadBtn');
+    _testDownloadBusy = true;
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = 'Yuklanmoqda...';
+    }
+    try {
+      var payload = await preparePayload();
+      if (!payload) throw new Error('Ma\'lumot topilmadi');
 
+      var base = getApiBase();
+      var res = await fetch(base + '/api/test_obyektivka_pdf', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        var err = '';
+        try { err = await res.text(); } catch (_) {}
+        throw new Error(err || ('Server ' + res.status));
+      }
+
+      var blob = await res.blob();
+      var safeName = (payload.fullname || 'Obyektivka').replace(/[^\w\u0400-\u04FF]+/g, '_').slice(0, 40);
+      var filename = 'TEST_Malumotnoma_' + safeName + '_@DastyorAiBot.pdf';
+
+      var blobUrl = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      a.href = blobUrl;
+      a.download = filename;
+      a.rel = 'noopener';
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(function () {
+        try { URL.revokeObjectURL(blobUrl); } catch (_) {}
+        try { a.remove(); } catch (_) {}
+      }, 60000);
+
+      var tg = global.Telegram && global.Telegram.WebApp ? global.Telegram.WebApp : null;
+      if (tg && tg.HapticFeedback && tg.HapticFeedback.notificationOccurred) {
+        tg.HapticFeedback.notificationOccurred('success');
+      }
+    } catch (e) {
+      var msg = (e && e.message) ? String(e.message) : String(e);
+      alert('Test yuklash xato: ' + msg.slice(0, 180));
+    } finally {
+      _testDownloadBusy = false;
+      if (btn) {
+        btn.disabled = false;
+        btn.textContent = 'Test yuklash';
+      }
+    }
+  }
+
+  function bindPreviewControls() {
     var zoomIn = document.getElementById('obyZoomIn');
     var zoomOut = document.getElementById('obyZoomOut');
     var zoomReset = document.getElementById('obyZoomReset');
+    var testBtn = document.getElementById('obyTestDownloadBtn');
+
     if (zoomIn) zoomIn.addEventListener('click', function () { setPreviewZoom(previewZoom + 0.1); });
     if (zoomOut) zoomOut.addEventListener('click', function () { setPreviewZoom(previewZoom - 0.1); });
     if (zoomReset) zoomReset.addEventListener('click', function () { setPreviewZoom(1); });
-
-    var wmInput = document.getElementById('obyWatermarkInput');
-    var wmTest = document.getElementById('obyWatermarkTestBtn');
-    if (wmInput) {
-      wmInput.addEventListener('change', function () {
-        var f = wmInput.files && wmInput.files[0];
-        if (!f) return;
-        var reader = new FileReader();
-        reader.onload = function () {
-          watermarkData = String(reader.result || '');
-          saveWatermarkToStorage();
-          setWatermarkStatus('Watermark yuklandi: ' + (f.name || ''));
-          fetchServerPreview({ immediate: true });
-        };
-        reader.readAsDataURL(f);
-      });
-    }
-    if (wmTest) {
-      wmTest.addEventListener('click', async function () {
-        if (wmInput && wmInput.files && wmInput.files[0]) {
-          wmInput.dispatchEvent(new Event('change'));
-          return;
-        }
-        watermarkData = await buildTestWatermark();
-        saveWatermarkToStorage();
-        setWatermarkStatus('Test watermark yuklandi');
-        fetchServerPreview({ immediate: true });
-      });
-    }
+    if (testBtn) testBtn.addEventListener('click', downloadTestPdf);
 
     window.addEventListener('resize', function () {
       try { applyPreviewScale(); } catch (_) {}
     });
   }
-
-  global.getObyWatermarkData = function () { return watermarkData; };
 
   global.updatePreview = function updatePreview() {
     fetchServerPreview({ immediate: false });
@@ -297,6 +283,8 @@
   global.triggerObyPreviewNow = function triggerObyPreviewNow() {
     fetchServerPreview({ immediate: true });
   };
+
+  global.downloadTestObyektivka = downloadTestPdf;
 
   document.addEventListener('DOMContentLoaded', bindPreviewControls);
 })(window);

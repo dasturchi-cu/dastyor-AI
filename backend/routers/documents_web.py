@@ -1294,3 +1294,30 @@ async def api_preview_obyektivka(req: PreviewObyektivkaRequest):
     )
     oby_preview_cache_set(ck, html)
     return HTMLResponse(content=html)
+
+
+@router.post("/api/test_obyektivka_pdf")
+async def api_test_obyektivka_pdf(req: PreviewObyektivkaRequest):
+    """Test yuklash: to'ldirilgan ma'lumot + @DastyorAiBot watermark + PII mask (to'lovsiz)."""
+    from bot.services.render_service import generate_obyektivka_pdf
+
+    payload = req.dict()
+    payload["watermark"] = True
+    payload["mask_pii"] = True
+
+    pdf_bytes = await generate_obyektivka_pdf(
+        payload,
+        base_url=SITE_BASE_URL,
+        watermark=True,
+        mask_pii=True,
+    )
+    if not pdf_bytes:
+        raise HTTPException(status_code=500, detail="Test PDF yaratilmadi")
+
+    safe = safe_filename(req.fullname or "Obyektivka")
+    filename = f"TEST_Malumotnoma_{safe}_@DastyorAiBot.pdf"
+    return StreamingResponse(
+        io.BytesIO(pdf_bytes),
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )

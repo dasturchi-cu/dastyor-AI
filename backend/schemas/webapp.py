@@ -197,4 +197,3 @@ class PreviewObyektivkaRequest(BaseModel):
     current_job_year: Optional[str] = None
     watermark: bool = True
     mask_pii: bool = True
-    watermark_image: Optional[str] = None
