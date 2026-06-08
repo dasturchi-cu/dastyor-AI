@@ -112,7 +112,7 @@ def service_open_inline(webapp_base: str, uid: int, service: str) -> InlineKeybo
 
 
 def user_inline_start_menu(webapp_base: str, uid: int) -> InlineKeyboardMarkup:
-    """Inline — CV, Obyektivka, Murojaat."""
+    """Inline — CV, Obyektivka, Murojaat, Hujjatlar."""
     _ = webapp_base, uid
     return InlineKeyboardMarkup(
         inline_keyboard=[
@@ -121,7 +121,10 @@ def user_inline_start_menu(webapp_base: str, uid: int) -> InlineKeyboardMarkup:
                 InlineKeyboardButton(BTN_OBY, callback_data="intro_oby"),
             ],
             [
+                InlineKeyboardButton(BTN_MY_DOCS, callback_data="intro_my_docs"),
                 InlineKeyboardButton(BTN_HELP, callback_data="intro_help"),
+            ],
+            [
                 InlineKeyboardButton(BTN_CONTACT, callback_data="intro_contact"),
             ],
         ]

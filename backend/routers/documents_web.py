@@ -43,6 +43,21 @@ PAYMENT_CARD_NUMBER = (os.getenv("PAYMENT_CARD_NUMBER", "9860 1201 7225 8424") o
 PAYMENT_CARD_OWNER = (os.getenv("PAYMENT_CARD_OWNER", "DILNOZA MOMINOVA") or "DILNOZA MOMINOVA").strip()
 
 
+def _sanitize_oby_payload(payload: dict) -> dict:
+    from bot.services.document_render.photo import compress_payload_photo
+
+    cleaned = dict(payload or {})
+    cleaned.pop("watermark", None)
+    cleaned.pop("mask_pii", None)
+    return compress_payload_photo(cleaned)
+
+
+def _sanitize_cv_payload(payload: dict) -> dict:
+    from bot.services.document_render.photo import compress_payload_photo
+
+    return compress_payload_photo(dict(payload or {}))
+
+
 def _finish_single_doc_delivery(uid: int, category: str, *, request_id: int | None = None) -> None:
     """5 000 so'm = 1 hujjat: paid_doc so'rovlarini yopish, profil keshini yangilash."""
     from bot.services.plan_limits import CAT_CV, CAT_OBYEKTIVKA
@@ -167,12 +182,13 @@ async def api_generate_cv(
         str(req.telegram_id) if req.telegram_id else None,
         req.token,
     )
+    if not uid_str:
+        raise HTTPException(status_code=401, detail="Avtorizatsiya talab qilinadi. Telegram orqali qayta oching.")
     skip_quota_completion = False
-    if uid_str:
-        from bot.services.plan_limits import CAT_CV
+    from bot.services.plan_limits import CAT_CV
 
-        skip_quota_completion = await _prepare_paid_doc_export(int(uid_str), CAT_CV)
-    payload = req.dict(exclude={"telegram_id", "token"})
+    skip_quota_completion = await _prepare_paid_doc_export(int(uid_str), CAT_CV)
+    payload = _sanitize_cv_payload(req.dict(exclude={"telegram_id", "token"}))
 
     try:
         from bot.services.doc_generator import generate_cv_docx
@@ -255,7 +271,7 @@ async def api_request_paid_cv(req: CVRequest):
     if not uid_str:
         raise HTTPException(status_code=401, detail="Foydalanuvchi aniqlanmadi")
     uid = int(uid_str)
-    payload = req.dict(exclude={"telegram_id", "token"})
+    payload = _sanitize_cv_payload(req.dict(exclude={"telegram_id", "token"}))
     rid = None
     try:
         from bot.services.supabase_db import has_db, db_create_paid_doc_request, db_upsert_user
@@ -383,6 +399,8 @@ async def api_generate_obyektivka(
         from bot.services.plan_limits import CAT_OBYEKTIVKA
 
         skip_quota_completion = await _prepare_paid_doc_export(int(uid_str), CAT_OBYEKTIVKA)
+    else:
+        raise HTTPException(status_code=401, detail="Avtorizatsiya talab qilinadi. Telegram orqali qayta oching.")
 
     doc_data = {
         "lang": req.lang,
@@ -502,7 +520,7 @@ async def api_request_paid_obyektivka(req: ObyektivkaRequest):
     if not uid_str:
         raise HTTPException(status_code=401, detail="Foydalanuvchi aniqlanmadi")
     uid = int(uid_str)
-    payload = req.dict(exclude={"telegram_id", "token"})
+    payload = _sanitize_oby_payload(req.dict(exclude={"telegram_id", "token"}))
     rid = None
     try:
         from bot.services.supabase_db import has_db, db_create_paid_doc_request, db_upsert_user
@@ -925,16 +943,17 @@ async def api_export_cv(
 ):
     ts = int(time.time())
     uid_str = resolve_telegram_uid(str(req.telegram_id) if req.telegram_id else None, req.token)
+    if not uid_str:
+        raise HTTPException(status_code=401, detail="Avtorizatsiya talab qilinadi. Telegram orqali qayta oching.")
     skip_quota_completion = False
-    if uid_str:
-        from bot.services.plan_limits import CAT_CV
-        from backend.services.export_guard import (
-            mark_document_export_sent,
-            release_document_export,
-        )
+    from bot.services.plan_limits import CAT_CV
+    from backend.services.export_guard import (
+        mark_document_export_sent,
+        release_document_export,
+    )
 
-        uid_i = int(uid_str)
-        skip_quota_completion = await _prepare_paid_doc_export(uid_i, CAT_CV)
+    uid_i = int(uid_str)
+    skip_quota_completion = await _prepare_paid_doc_export(uid_i, CAT_CV)
     fmt = "pdf"
     data = req.dict(exclude={"telegram_id", "token", "format"})
     safe = safe_filename(req.name or "CV")
@@ -1096,16 +1115,17 @@ async def api_export_obyektivka(
     ts = int(time.time())
     os.makedirs("temp", exist_ok=True)
     uid_str = resolve_telegram_uid(str(req.telegram_id) if req.telegram_id else None, req.token)
+    if not uid_str:
+        raise HTTPException(status_code=401, detail="Avtorizatsiya talab qilinadi. Telegram orqali qayta oching.")
     skip_quota_completion = False
-    if uid_str:
-        from bot.services.plan_limits import CAT_OBYEKTIVKA
-        from backend.services.export_guard import (
-            mark_document_export_sent,
-            release_document_export,
-        )
+    from bot.services.plan_limits import CAT_OBYEKTIVKA
+    from backend.services.export_guard import (
+        mark_document_export_sent,
+        release_document_export,
+    )
 
-        uid_i = int(uid_str)
-        skip_quota_completion = await _prepare_paid_doc_export(uid_i, CAT_OBYEKTIVKA)
+    uid_i = int(uid_str)
+    skip_quota_completion = await _prepare_paid_doc_export(uid_i, CAT_OBYEKTIVKA)
     fmt = (req.format or "word").strip().lower()
     if fmt not in ("word", "pdf"):
         fmt = "word"
@@ -1281,6 +1301,9 @@ async def api_preview_obyektivka(req: PreviewObyektivkaRequest):
     from bot.services.render_service import render_obyektivka_html
 
     payload = req.dict()
+    # Preview is always watermarked + PII-masked — client cannot disable protection.
+    payload["watermark"] = True
+    payload["mask_pii"] = True
     ck = cache_key_for_oby_preview(payload)
     cached = oby_preview_cache_get(ck)
     if cached:
@@ -1289,8 +1312,8 @@ async def api_preview_obyektivka(req: PreviewObyektivkaRequest):
     html = await asyncio.to_thread(
         render_obyektivka_html,
         payload,
-        watermark=bool(req.watermark),
-        mask_pii=bool(req.mask_pii),
+        watermark=True,
+        mask_pii=True,
     )
     oby_preview_cache_set(ck, html)
     return HTMLResponse(content=html)
@@ -1298,7 +1321,7 @@ async def api_preview_obyektivka(req: PreviewObyektivkaRequest):
 
 @router.post("/api/test_obyektivka_pdf")
 async def api_test_obyektivka_pdf(req: PreviewObyektivkaRequest):
-    """Test yuklash: to'ldirilgan ma'lumot + @DastyorAiBot watermark + PII mask (to'lovsiz)."""
+    """Test yuklash: to'ldirilgan ma'lumot + DEMO watermark + PII mask (to'lovsiz)."""
     from bot.services.render_service import generate_obyektivka_pdf
 
     payload = req.dict()
@@ -1315,7 +1338,7 @@ async def api_test_obyektivka_pdf(req: PreviewObyektivkaRequest):
         raise HTTPException(status_code=500, detail="Test PDF yaratilmadi")
 
     safe = safe_filename(req.fullname or "Obyektivka")
-    filename = f"TEST_Malumotnoma_{safe}_@DastyorAiBot.pdf"
+    filename = f"DEMO_Malumotnoma_{safe}.pdf"
     return StreamingResponse(
         io.BytesIO(pdf_bytes),
         media_type="application/pdf",

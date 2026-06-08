@@ -9,8 +9,8 @@ import time
 from collections import OrderedDict
 
 _MAX = max(32, int(os.getenv("OBY_PREVIEW_CACHE_MAX", "256") or "256"))
-_TTL = float(os.getenv("OBY_PREVIEW_CACHE_TTL_SECONDS", "45") or "45")
-_TEMPLATE_REV = (os.getenv("OBY_PREVIEW_TEMPLATE_REVISION", "20260526-oby-v4") or "1").strip()
+_TTL = float(os.getenv("OBY_PREVIEW_CACHE_TTL_SECONDS", "60") or "60")
+_TEMPLATE_REV = (os.getenv("OBY_PREVIEW_TEMPLATE_REVISION", "20260608-demo-banner-v1") or "1").strip()
 
 _lock = threading.Lock()
 _store: OrderedDict[str, tuple[float, str]] = OrderedDict()

@@ -67,3 +67,40 @@ def process_passport_photo(data_url: str | None) -> str:
     except Exception as exc:
         logger.warning("Photo processing failed: %s", exc)
         return data_url
+
+
+def compress_payload_photo(payload: dict, *, max_width: int = 480, quality: int = 85) -> dict:
+    """Shrink base64 photo in API payloads before DB storage (faster saves/renders)."""
+    if not isinstance(payload, dict):
+        return payload
+    out = dict(payload)
+    for key in ("photo_data", "photo_base64", "img"):
+        val = out.get(key)
+        if not isinstance(val, str) or not val.startswith("data:image"):
+            continue
+        try:
+            from PIL import Image, ImageOps
+
+            m = _DATA_URL.match(val.strip())
+            if not m:
+                continue
+            raw = base64.b64decode(m.group(2))
+            img = ImageOps.exif_transpose(Image.open(io.BytesIO(raw)))
+            if img.mode not in ("RGB", "RGBA"):
+                img = img.convert("RGBA")
+            w, h = img.size
+            scale = min(1.0, max_width / max(w, 1))
+            if scale < 1.0:
+                img = img.resize((max(1, int(w * scale)), max(1, int(h * scale))), Image.Resampling.LANCZOS)
+            if img.mode == "RGBA":
+                bg = Image.new("RGB", img.size, (255, 255, 255))
+                bg.paste(img, mask=img.split()[3])
+                img = bg
+            else:
+                img = img.convert("RGB")
+            buf = io.BytesIO()
+            img.save(buf, format="JPEG", quality=quality, optimize=True)
+            out[key] = f"data:image/jpeg;base64,{base64.b64encode(buf.getvalue()).decode('ascii')}"
+        except Exception as exc:
+            logger.debug("compress_payload_photo skip %s: %s", key, exc)
+    return out

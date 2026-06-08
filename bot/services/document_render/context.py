@@ -8,7 +8,11 @@ from typing import Any
 
 from bot.services.document_render.pii_mask import mask_relatives_for_preview, mask_text_for_preview
 from bot.services.document_render.photo import process_passport_photo
-from bot.services.document_render.watermark import watermark_opacity, watermark_text
+from bot.services.document_render.watermark import (
+    preview_banner_text,
+    watermark_opacity,
+    watermark_text,
+)
 
 
 def _to_text(value: Any) -> str:
@@ -156,6 +160,7 @@ def build_obyektivka_render_context(
             "mask_pii": bool(mask_pii),
             "watermark_text": watermark_text(),
             "watermark_opacity": watermark_opacity(),
+            "preview_banner": preview_banner_text() if watermark else "",
         },
     }
     return ctx

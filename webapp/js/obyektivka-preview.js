@@ -226,7 +226,7 @@
 
       var blob = await res.blob();
       var safeName = (payload.fullname || 'Obyektivka').replace(/[^\w\u0400-\u04FF]+/g, '_').slice(0, 40);
-      var filename = 'TEST_Malumotnoma_' + safeName + '_@DastyorAiBot.pdf';
+      var filename = 'DEMO_Malumotnoma_' + safeName + '.pdf';
 
       var blobUrl = URL.createObjectURL(blob);
       var a = document.createElement('a');

@@ -1,5 +1,8 @@
+{%- set d = data -%}
+{%- set R = d.render if d.render is defined else {} -%}
+{%- set wm_opacity = R.watermark_opacity | default(0.10) -%}
 <!DOCTYPE html>
-<html lang="uz">
+<html lang="uz" style="--wm-opacity: {{ wm_opacity }};">
 <head>
   <meta charset="UTF-8">
   <title>Ma'lumotnoma — {{ data.fullname }}</title>
@@ -50,7 +53,7 @@
       flex-wrap: wrap;
       align-content: flex-start;
       gap: 22mm 28mm;
-      opacity: {{ data.render.watermark_opacity | default(0.08) }};
+      opacity: var(--wm-opacity, 0.10);
     }
     .wm-text {
       font-family: "Times New Roman", Times, serif;
@@ -61,6 +64,27 @@
       white-space: nowrap;
       user-select: none;
       -webkit-user-select: none;
+    }
+
+    .demo-banner {
+      position: absolute;
+      top: 8mm;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 10;
+      background: rgba(220, 38, 38, 0.92);
+      color: #fff;
+      font-family: Arial, sans-serif;
+      font-size: 9pt;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 2.5mm 8mm;
+      border-radius: 2mm;
+      box-shadow: 0 2px 8px rgba(0,0,0,.18);
+      pointer-events: none;
+      user-select: none;
+      white-space: nowrap;
     }
 
     .pii-blur { filter: blur(4px); -webkit-filter: blur(4px); user-select: none; }
@@ -152,8 +176,6 @@
   </style>
 </head>
 <body>
-{%- set d = data -%}
-{%- set R = d.render if d.render is defined else {} -%}
 {%- set ll = {
   'uz_lat': {
     'title': "MA'LUMOTNOMA",
@@ -204,10 +226,13 @@
 {%- endmacro -%}
 {%- macro wm_layer() -%}
 {%- if R.watermark -%}
+{%- if R.preview_banner -%}
+<div class="demo-banner" aria-hidden="true">{{ R.preview_banner }}</div>
+{%- endif -%}
 <div class="wm-layer" aria-hidden="true">
   <div class="wm-tile">
     {%- for i in range(56) -%}
-    <span class="wm-text">{{ R.watermark_text | default('@DastyorAiBot') }}</span>
+    <span class="wm-text">{{ R.watermark_text | default('DEMO VERSIYA') }}</span>
     {%- endfor -%}
   </div>
 </div>

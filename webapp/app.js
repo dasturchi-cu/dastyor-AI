@@ -42,9 +42,42 @@ const DastyorAI = (() => {
     const THEME_KEY = 'theme';
     const LANGUAGE_KEY = 'language';
     const SS_LANG = 'tg_lang';
-    const SUPPORTED_LANGS = ['uz', 'ru', 'en'];
+    const SUPPORTED_LANGS = ['uz'];
     const DEFAULT_THEME = 'light';
     const DEFAULT_LANG = 'uz';
+
+    /** Inline fallback — avoids failed /locales fetch on cold start (saves ~1 network round-trip). */
+    const INLINE_LOCALE_UZ = {
+        app_title: 'CV Yaratish',
+        step_1: 'Shaxsiy', step_2: 'Tajriba', step_3: 'Yutuqlar',
+        upload_img: 'Rasmni tanlang', drag_img: 'yoki rasmni shu yerga tortib tashlang',
+        photo_hint: 'JPG yoki PNG (3×4 rasm)',
+        name: 'Ism Familiya', name_ph: 'Ali Valiyev',
+        role: 'Kasb / Lavozim', role_ph: 'Masalan: Dasturchi',
+        phone: 'Telefon', cv_phone_ph: '+998 90 123 45 67',
+        email: 'Email', location: 'Manzil (Viloyat, Shahar)', loc_ph: 'Masalan: Toshkent shahri',
+        about: 'Men haqimda', about_ph: 'Men haqimda...',
+        next_btn: 'Keyingisi', back_btn: 'Orqaga',
+        edu_title: "Ta'lim", add_edu: "+ Ta'lim qo'shish",
+        exp_title: 'Ish Tajribasi', add_exp: "+ Tajriba qo'shish",
+        lang_title: 'Til Bilish', add_lang: "+ Til qo'shish",
+        skills_title: "Ko'nikmalar", cv_skills_ph: 'Masalan: Liderlik, Python...',
+        ach_title: 'Yutuqlar va Qobiliyatlar', cv_ach_name_ph: 'Nomi (masalan: IELTS 7.5)', cv_year_ph: 'Yili',
+        preview: "Jonli Ko'rinish", cv_color: 'Rang:',
+        download_pdf: 'PDF botga yuborish', pay_5000: "💳 5 000 so'm to'lash",
+        pay_help: "To'lov kerak bo'lsa — pastdagi tugma.",
+        cv_pay_shot_picked_title: 'Rasm tanlandi', cv_pay_shot_next: "Endi «Yuborish» tugmasini bosing.",
+        clear_data: "Ma'lumotlarni tozalash",
+        loading: 'Yuklanmoqda...', success: 'Muvaffaqiyatli!',
+        error_generic: "Xatolik yuz berdi. Qayta urinib ko'ring.",
+        error_network: "Internet aloqasi yo'q. Keyinroq urinib ko'ring.",
+        error_auth: 'Avtorizatsiya talab qilinadi. Telegram orqali qayta oching.',
+        payment_pending: "To'lov tekshirilmoqda...",
+        payment_approved: "To'lov tasdiqlandi! Hujjatni yuklab olishingiz mumkin.",
+        payment_rejected: "To'lov rad etildi. Qayta urinib ko'ring.",
+        demo_watermark_note: "Demo versiya — «DEMO VERSIYA» belgisi bilan. To'lovdan keyin toza fayl.",
+        test_download: 'Test yuklash', test_download_loading: 'Yuklanmoqda...',
+    };
 
     const SS_ID = 'tg_id';
     const SS_TOKEN = 'tg_token';
@@ -175,7 +208,7 @@ const DastyorAI = (() => {
             try {
                 // Telegram WebView sometimes hangs on fetch; use a short timeout.
                 const ac = ('AbortController' in window) ? new AbortController() : null;
-                const t = ac ? setTimeout(() => { try { ac.abort(); } catch (_) {} }, 3000) : null;
+                const t = ac ? setTimeout(() => { try { ac.abort(); } catch (_) {} }, 1500) : null;
                 const resp = await fetch(url, ac ? { signal: ac.signal } : undefined);
                 if (t) clearTimeout(t);
                 if (resp.ok) {
@@ -188,7 +221,7 @@ const DastyorAI = (() => {
                 }
             } catch (_) {}
         }
-        localeCache[safe] = {};
+        localeCache[safe] = safe === 'uz' ? { ...INLINE_LOCALE_UZ } : {};
         return localeCache[safe];
     }
 

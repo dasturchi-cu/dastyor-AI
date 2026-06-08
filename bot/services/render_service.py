@@ -20,6 +20,7 @@ import logging
 import os
 import re
 import time
+import asyncio
 from pathlib import Path
 
 _HEX_ACCENT_RE = re.compile(r"^#[0-9A-Fa-f]{3,8}$")
@@ -107,6 +108,56 @@ except Exception:
     logger.warning("WeasyPrint not installed — PDF will fall back to python-docx conversion")
 
 _PW_INSTALL_ATTEMPTED = False
+
+# Playwright browser pool — reuse Chromium across PDF requests (avoids cold launch ~2–5s)
+_pw_manager = None
+_pw_browser = None
+_pw_browser_lock: asyncio.Lock | None = None
+_pw_browser_uses = 0
+_PW_BROWSER_MAX_USES = max(10, int(os.getenv("PLAYWRIGHT_BROWSER_MAX_USES", "40") or "40"))
+
+
+def _browser_lock() -> asyncio.Lock:
+    global _pw_browser_lock
+    if _pw_browser_lock is None:
+        _pw_browser_lock = asyncio.Lock()
+    return _pw_browser_lock
+
+
+async def _get_shared_browser():
+    """Return a warm Chromium instance; recycle after N PDF renders."""
+    global _pw_manager, _pw_browser, _pw_browser_uses
+    if not PLAYWRIGHT_OK:
+        return None
+    async with _browser_lock():
+        needs_new = (
+            _pw_browser is None
+            or not _pw_browser.is_connected()
+            or _pw_browser_uses >= _PW_BROWSER_MAX_USES
+        )
+        if needs_new:
+            if _pw_browser is not None:
+                try:
+                    await _pw_browser.close()
+                except Exception:
+                    pass
+            if _pw_manager is not None:
+                try:
+                    await _pw_manager.stop()
+                except Exception:
+                    pass
+            _pw_manager = await async_playwright().start()
+            _pw_browser = await _pw_manager.chromium.launch(
+                args=[
+                    "--no-sandbox",
+                    "--disable-setuid-sandbox",
+                    "--disable-dev-shm-usage",
+                ]
+            )
+            _pw_browser_uses = 0
+            logger.info("Playwright: warm browser launched (pool)")
+        _pw_browser_uses += 1
+        return _pw_browser
 
 # Production: WeasyPrint tez; Playwright og'ir. Railway'da build vaqtida chromium o'rnatish yaxshi.
 def _playwright_disabled(*, cv_pdf: bool = False) -> bool:
@@ -353,15 +404,11 @@ async def _html_pdf_playwright(html_str: str, *, cv_pdf: bool = False) -> bytes 
     content_timeout_ms = 90_000 if cv_pdf else 60_000
 
     async def _once():
-        async with async_playwright() as p:
-            browser = await p.chromium.launch(
-                args=[
-                    "--no-sandbox",
-                    "--disable-setuid-sandbox",
-                    "--disable-dev-shm-usage",
-                ]
-            )
-            page = await browser.new_page()
+        browser = await _get_shared_browser()
+        if browser is None:
+            return None
+        page = await browser.new_page()
+        try:
             try:
                 await page.emulate_media(media="screen")
             except Exception:
@@ -384,8 +431,12 @@ async def _html_pdf_playwright(html_str: str, *, cv_pdf: bool = False) -> bytes 
                 prefer_css_page_size=True,
                 margin={"top": "0", "right": "0", "bottom": "0", "left": "0"},
             )
-            await browser.close()
             return pdf_bytes
+        finally:
+            try:
+                await page.close()
+            except Exception:
+                pass
 
     try:
         out = await _once()
