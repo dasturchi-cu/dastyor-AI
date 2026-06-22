@@ -48,6 +48,7 @@
       color: #1e293b;
       overflow-x: hidden;
       min-height: var(--app-vh);
+      padding-bottom: 16px;
     }
 
     /* Mobile touch targets */
@@ -130,22 +131,195 @@
     .lang-preview-dot.fill { opacity: 1; }
 
     /* CV matni endi iframe ichida server shabloni (cv_template.html) — bu yerdagi eski tpl-* stillar olib tashlandi */
+
+    /* Telegram WebApp: Tailwind kechiksa ham ixcham layout */
+    .cv-page-header {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      height: 52px;
+      min-height: 52px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 12px;
+      background: rgba(255, 255, 255, 0.82);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-bottom: 1px solid rgba(191, 219, 254, 0.9);
+      box-shadow: 0 1px 8px rgba(15, 23, 42, 0.06);
+    }
+    .cv-page-header .cv-brand {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+    }
+    .cv-page-header .cv-back-btn {
+      width: 34px;
+      height: 34px;
+      min-width: 34px;
+      min-height: 34px;
+      border-radius: 10px;
+      border: 1px solid #bfdbfe;
+      background: #fff;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      text-decoration: none;
+      color: #64748b;
+    }
+    .cv-page-header .cv-brand-logo-wrap {
+      width: 32px;
+      height: 32px;
+      min-width: 32px;
+      min-height: 32px;
+      border-radius: 10px;
+      overflow: hidden;
+      flex-shrink: 0;
+      box-shadow: 0 4px 12px rgba(37, 99, 235, 0.22);
+    }
+    .cv-page-header .cv-brand-logo {
+      width: 32px;
+      height: 32px;
+      max-width: 32px;
+      max-height: 32px;
+      object-fit: cover;
+      display: block;
+    }
+    .cv-page-header .cv-brand-title {
+      font-size: 15px;
+      font-weight: 800;
+      color: #1e293b;
+      letter-spacing: -0.02em;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .cv-main-shell {
+      max-width: 56rem;
+      margin: 10px auto 0;
+      padding: 0 12px 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .cv-form-card {
+      border-radius: 18px;
+      padding: 14px;
+      background: rgba(255, 255, 255, 0.72);
+      border: 1px solid rgba(255, 255, 255, 0.85);
+      box-shadow: 0 8px 28px rgba(37, 99, 235, 0.1);
+    }
+    .cv-step-bar {
+      display: flex;
+      gap: 4px;
+      padding: 4px;
+      margin-bottom: 12px;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.65);
+      border: 1px solid #dbeafe;
+    }
+    .cv-step-bar .step-btn {
+      padding: 8px 4px;
+      font-size: 10px;
+      letter-spacing: 0.02em;
+    }
+    .cv-step-bar .hyper-emoji {
+      font-size: 1rem;
+    }
+    .cv-tpl-scroll {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      overflow-y: hidden;
+      padding-bottom: 4px;
+      margin-bottom: 12px;
+      -webkit-overflow-scrolling: touch;
+      scroll-snap-type: x proximity;
+    }
+    .cv-tpl-scroll .tpl-card {
+      flex: 0 0 68px;
+      width: 68px;
+      min-width: 68px;
+      height: 88px;
+      aspect-ratio: auto;
+      scroll-snap-align: start;
+    }
+    .cv-tpl-label {
+      font-size: 11px;
+      font-weight: 800;
+      color: #475569;
+      margin: 0 0 8px;
+    }
+    .cv-photo-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 12px;
+      padding: 10px 12px;
+      border-radius: 14px;
+      background: #eff6ff;
+      border: 1px solid #dbeafe;
+    }
+    .cv-photo-row #photoPrev {
+      width: 64px !important;
+      height: 64px !important;
+      min-width: 64px;
+      flex-shrink: 0;
+    }
+    .cv-voice-block,
+    .cv-parse-block {
+      padding: 10px 12px;
+      margin-bottom: 10px;
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.65);
+      border: 1px solid #dbeafe;
+    }
+
+    @media (min-width: 640px) {
+      .cv-page-header { height: 64px; min-height: 64px; padding: 0 24px; }
+      .cv-page-header .cv-brand-logo-wrap,
+      .cv-page-header .cv-brand-logo { width: 40px; height: 40px; max-width: 40px; max-height: 40px; }
+      .cv-page-header .cv-brand-title { font-size: 18px; }
+      .cv-main-shell { margin-top: 24px; padding: 0 16px 40px; gap: 24px; }
+      .cv-form-card { padding: 24px; border-radius: 24px; }
+      .cv-step-bar { margin-bottom: 20px; }
+      .cv-step-bar .step-btn { padding: 12px 5px; font-size: 12px; }
+      .cv-tpl-scroll {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        overflow: visible;
+        gap: 12px;
+      }
+      .cv-tpl-scroll .tpl-card {
+        flex: unset;
+        width: auto;
+        min-width: 0;
+        height: auto;
+        aspect-ratio: 1 / 1.3;
+      }
+    }
+    @media (min-width: 1024px) {
+      .cv-tpl-scroll { grid-template-columns: repeat(8, minmax(0, 1fr)); }
+    }
   </style>
 </head>
 
 <body class="min-h-screen pb-10" data-disable-mobile-nav="true" data-da-skip-global-i18n="1">
 
-  <header class="sticky top-0 h-16 glass z-50 flex items-center justify-between px-4 sm:px-8 shadow-sm">
-    <div class="flex items-center gap-3">
-      <a href="index.html" class="w-9 h-9 rounded-xl border border-blue-200 bg-white hover:bg-blue-50 transition-all flex items-center justify-center flex-shrink-0 group">
+  <header class="cv-page-header glass sticky top-0 h-16 z-50 flex items-center justify-between px-4 sm:px-8 shadow-sm">
+    <div class="cv-brand flex items-center gap-3">
+      <a href="index.html" class="cv-back-btn w-9 h-9 rounded-xl border border-blue-200 bg-white hover:bg-blue-50 transition-all flex items-center justify-center flex-shrink-0 group">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="text-slate-500 group-hover:text-blue-600 transition-colors">
           <path d="m15 18-6-6 6-6"/>
         </svg>
       </a>
-      <div class="w-10 h-10 rounded-xl flex items-center justify-center shadow-lg overflow-hidden flex-shrink-0">
-        <img src="https://i.postimg.cc/rmM0b0qN/IMG-20260208-144233-549.jpg" class="w-full h-full object-cover" alt="Logo">
+      <div class="cv-brand-logo-wrap w-10 h-10 rounded-xl flex items-center justify-center shadow-lg overflow-hidden flex-shrink-0">
+        <img src="https://i.postimg.cc/rmM0b0qN/IMG-20260208-144233-549.jpg" class="cv-brand-logo w-full h-full object-cover" alt="Logo">
       </div>
-      <h1 class="font-display font-bold text-lg text-slate-800 tracking-tight" data-i18n="app_title">CV Builder</h1>
+      <h1 class="cv-brand-title font-display font-bold text-lg text-slate-800 tracking-tight" data-i18n="app_title">CV Builder</h1>
     </div>
     <div class="flex items-center gap-3">
       <select id="langSelect" onchange="setDocLang(this.value)" class="bg-white border border-blue-200 text-slate-700 text-xs rounded-lg px-2 py-1.5 outline-none font-semibold cursor-pointer">
@@ -157,18 +331,19 @@
     </div>
   </header>
 
-  <div class="max-w-4xl mx-auto mt-8 px-4 flex flex-col gap-8">
+  <div class="cv-main-shell max-w-4xl mx-auto mt-8 px-4 flex flex-col gap-8">
 
-    <div class="glass rounded-3xl p-6 shadow-xl">
+    <div class="cv-form-card glass rounded-3xl p-6 shadow-xl">
       
-      <div class="flex bg-white/60 p-1.5 rounded-xl mb-6 shadow-sm border border-blue-100">
+      <div class="cv-step-bar flex bg-white/60 p-1.5 rounded-xl mb-6 shadow-sm border border-blue-100">
         <div class="step-btn active" onclick="setStep(1)" id="btn-step-1"><span class="hyper-emoji">👤</span> <span data-i18n="step_1">Shaxsiy</span></div>
         <div class="step-btn" onclick="setStep(2)" id="btn-step-2"><span class="hyper-emoji">💼</span> <span data-i18n="step_2">Tajriba</span></div>
         <div class="step-btn" onclick="setStep(3)" id="btn-step-3"><span class="hyper-emoji">🏆</span> <span data-i18n="step_3">Yutuqlar</span></div>
       </div>
 
       <div id="step-1" class="step-content active">
-        <div class="grid grid-cols-4 sm:grid-cols-8 gap-3 mb-8">
+        <p class="cv-tpl-label">Shablon tanlang</p>
+        <div class="cv-tpl-scroll grid grid-cols-4 sm:grid-cols-8 gap-3">
           <div class="tpl-card tpl-active aspect-[1/1.3] rounded-xl flex flex-col items-center" onclick="setTpl('minimal')" id="tpl-minimal">
             <img src="https://i.postimg.cc/02nFbRTH/Screenshot-20260316-050751-WPS-Office.jpg" class="w-full h-full object-cover" alt="Minimal">
             <div class="tpl-name">Minimal</div>
@@ -203,7 +378,7 @@
           </div>
         </div>
 
-        <div class="flex items-center gap-5 mb-6 bg-blue-50 p-4 rounded-2xl border border-blue-100 relative">
+        <div class="cv-photo-row flex items-center gap-5 mb-6 bg-blue-50 p-4 rounded-2xl border border-blue-100 relative">
           <div id="photoPrev" class="w-20 h-20 z-10 rounded-full bg-white flex items-center justify-center overflow-hidden border-2 border-dashed border-blue-300 cursor-pointer shadow-sm hover:border-blue-500 transition-colors" onclick="document.getElementById('imgInput').click()">
             <span class="text-3xl hyper-emoji">📷</span>
           </div>
@@ -216,7 +391,7 @@
         </div>
 
         <!-- CV voice + text fill -->
-        <div class="bg-white/60 p-4 rounded-2xl mb-6 shadow-sm border border-blue-100">
+        <div class="cv-voice-block bg-white/60 p-4 rounded-2xl mb-6 shadow-sm border border-blue-100">
           <div class="text-xs font-extrabold text-slate-700 mb-2">🎤 Ovoz yoki matndan to'ldirish</div>
           <div class="flex flex-wrap gap-2 mb-2">
             <button type="button" class="px-4 py-2 bg-blue-50 border border-blue-200 text-blue-700 rounded-xl font-bold text-sm" onclick="startCvVoiceFill()" id="btn_cv_voice">🎤 Ovoz</button>
@@ -232,7 +407,7 @@
         </div>
 
         <!-- CV PARSER: upload an existing CV and autofill fields -->
-        <div class="bg-white/60 p-4 rounded-2xl mb-6 shadow-sm border border-blue-100">
+        <div class="cv-parse-block bg-white/60 p-4 rounded-2xl mb-6 shadow-sm border border-blue-100">
           <div class="text-xs font-extrabold text-slate-700 mb-2">📥 CV faylni tahlil qilish (Avto to‘ldirish)</div>
           <div class="flex flex-col sm:flex-row gap-2 items-stretch">
             <input type="file" id="cvParseInput" class="hidden" accept=".txt,.docx,.pptx,.pdf,.xlsx,text/plain,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.presentationml.presentation,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" />
@@ -533,6 +708,74 @@
     };
 
     let telegramId = '';
+    const CV_LEGACY_STORAGE_KEY = 'cvBuilderData';
+    const CV_OWNER_STORAGE_KEY = 'cvBuilderData_owner';
+
+    function resolveCvTelegramId() {
+      if (telegramId) return telegramId;
+      try {
+        if (
+          window.Telegram &&
+          window.Telegram.WebApp &&
+          window.Telegram.WebApp.initDataUnsafe &&
+          window.Telegram.WebApp.initDataUnsafe.user
+        ) {
+          telegramId = String(window.Telegram.WebApp.initDataUnsafe.user.id);
+          return telegramId;
+        }
+      } catch (_) {}
+      try {
+        const ss = sessionStorage.getItem('tg_id');
+        if (ss) {
+          telegramId = String(ss);
+          return telegramId;
+        }
+      } catch (_) {}
+      try {
+        const u = window.DastyorAI && window.DastyorAI.getUser ? window.DastyorAI.getUser() : null;
+        if (u && u.telegram_id) {
+          telegramId = String(u.telegram_id);
+          return telegramId;
+        }
+      } catch (_) {}
+      const up = new URLSearchParams(window.location.search).get('telegram_id');
+      if (up) {
+        telegramId = up;
+        return telegramId;
+      }
+      return '';
+    }
+
+    function cvDraftStorageKey() {
+      const tid = resolveCvTelegramId();
+      return tid ? `${CV_LEGACY_STORAGE_KEY}:${tid}` : CV_LEGACY_STORAGE_KEY;
+    }
+
+    function migrateLegacyCvDraft(tid) {
+      if (!tid) return;
+      const scoped = cvDraftStorageKey();
+      if (localStorage.getItem(scoped)) return;
+      let legacy = '';
+      let legacyOwner = '';
+      try {
+        legacy = localStorage.getItem(CV_LEGACY_STORAGE_KEY) || '';
+        legacyOwner = localStorage.getItem(CV_OWNER_STORAGE_KEY) || '';
+      } catch (_) {}
+      if (!legacy) return;
+      if (legacyOwner && legacyOwner !== String(tid)) {
+        try {
+          localStorage.removeItem(CV_LEGACY_STORAGE_KEY);
+          localStorage.removeItem(CV_OWNER_STORAGE_KEY);
+        } catch (_) {}
+        return;
+      }
+      try {
+        localStorage.setItem(scoped, legacy);
+        localStorage.setItem(CV_OWNER_STORAGE_KEY, String(tid));
+        localStorage.removeItem(CV_LEGACY_STORAGE_KEY);
+      } catch (_) {}
+    }
+
     try {
       if (
         window.Telegram &&
@@ -562,7 +805,9 @@
     })();
 
     // --- STATE & DATA ---
-    let avatarUrl = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjOTRhM2I4IiBzdHJva2Utd2lkdGg9IjIiPjxjaXJjbGUgY3g9IjEyIiBjeT0iOCIgcj0iNSIvPjxwYXRoIGQ9Ik0yMCAyMWE4IDggMCAwIDAtMTYgMCIvPjwvc3ZnPg==';
+    const CV_DEFAULT_AVATAR = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjOTRhM2I4IiBzdHJva2Utd2lkdGg9IjIiPjxjaXJjbGUgY3g9IjEyIiBjeT0iOCIgcj0iNSIvPjxwYXRoIGQ9Ik0yMCAyMWE4IDggMCAwIDAtMTYgMCIvPjwvc3ZnPg==';
+    const CV_PHOTO_PLACEHOLDER_HTML = '<span class="text-3xl hyper-emoji">📷</span>';
+    let avatarUrl = CV_DEFAULT_AVATAR;
     let activeTpl = 'minimal';
     let cvColor = '#3b82f6';
     let eduData = [], expData = [], achData = [], skillsData = [], langData = [];
@@ -1008,6 +1253,13 @@
 
     // --- AUTO SAVE LOGIC ---
     let _saveDebounceTimer = null;
+
+    function resetCvPhotoPreview() {
+      avatarUrl = CV_DEFAULT_AVATAR;
+      const prev = document.getElementById('photoPrev');
+      if (prev) prev.innerHTML = CV_PHOTO_PLACEHOLDER_HTML;
+    }
+
     function saveToLocalStorage() {
         const data = {
             f_name: document.getElementById('f_name').value, f_role: document.getElementById('f_role').value,
@@ -1015,7 +1267,12 @@
             f_loc: document.getElementById('f_loc').value, f_about: document.getElementById('f_about').value,
             avatarUrl, activeTpl, cvColor, eduData, expData, achData, skillsData, langData, currentLang: docLang
         };
-        localStorage.setItem('cvBuilderData', JSON.stringify(data));
+        const key = cvDraftStorageKey();
+        localStorage.setItem(key, JSON.stringify(data));
+        const tid = resolveCvTelegramId();
+        if (tid) {
+          try { localStorage.setItem(CV_OWNER_STORAGE_KEY, String(tid)); } catch (_) {}
+        }
     }
 
     function scheduleSaveToLocalStorage() {
@@ -1036,7 +1293,7 @@
     }
 
     function loadFromLocalStorage() {
-        const saved = localStorage.getItem('cvBuilderData');
+        const saved = localStorage.getItem(cvDraftStorageKey());
         if(saved) {
             const data = JSON.parse(saved);
             document.getElementById('f_name').value = data.f_name || '';
@@ -1046,8 +1303,12 @@
             document.getElementById('f_loc').value = data.f_loc || '';
             document.getElementById('f_about').value = data.f_about || '';
             
-            avatarUrl = data.avatarUrl || avatarUrl;
-            if(avatarUrl.length > 200) document.getElementById('photoPrev').innerHTML = `<img src="${avatarUrl}" class="w-full h-full object-cover">`;
+            avatarUrl = data.avatarUrl || CV_DEFAULT_AVATAR;
+            if(avatarUrl.length > 200 && avatarUrl !== CV_DEFAULT_AVATAR) {
+              document.getElementById('photoPrev').innerHTML = `<img src="${avatarUrl}" class="w-full h-full object-cover">`;
+            } else {
+              resetCvPhotoPreview();
+            }
             
             activeTpl = data.activeTpl || 'minimal'; setTpl(activeTpl, false);
             cvColor = data.cvColor || '#3b82f6';
@@ -1066,43 +1327,74 @@
             const sel = document.getElementById('langSelect');
             if (sel) sel.value = cvLang;
             setDocLang(cvLang, false);
+            resetCvPhotoPreview();
             triggerUpdate(false);
         }
         syncPreviewAccentChrome();
     }
 
+    function applyServerCvData(d) {
+      if (!d || !Object.keys(d).length) return false;
+      if (d.name) document.getElementById('f_name').value = d.name;
+      if (d.spec || d.role) document.getElementById('f_role').value = d.spec || d.role || '';
+      if (d.phone) document.getElementById('f_phone').value = d.phone;
+      if (d.email) document.getElementById('f_email').value = d.email;
+      if (d.loc || d.address) document.getElementById('f_loc').value = d.loc || d.address || '';
+      if (d.about) document.getElementById('f_about').value = d.about;
+      if (d.skills) {
+        skillsData = String(d.skills).split(/[,;\n]+/).map(s => s.trim()).filter(Boolean);
+        renderSkills();
+      }
+      resetCvPhotoPreview();
+      return true;
+    }
+
     async function loadFromServer() {
+      resolveCvTelegramId();
       const tid = telegramId || (function () {
         try { return sessionStorage.getItem('tg_id') || ''; } catch (_) { return ''; }
       })();
-      if (!tid) return;
+      if (!tid) return false;
       try {
         const base = getCvApiBase();
         let token = '';
         try { token = sessionStorage.getItem('tg_token') || ''; } catch (_) {}
+        if (!token && window.DastyorAI && window.DastyorAI.getToken) {
+          try { token = window.DastyorAI.getToken() || ''; } catch (_) {}
+        }
         const qs = new URLSearchParams({ telegram_id: String(tid) });
         if (token) qs.set('token', token);
         const r = await fetch(base + '/api/cv_saved_data?' + qs.toString(), { cache: 'no-store' });
-        if (!r.ok) return;
+        if (!r.ok) return false;
         const j = await r.json();
         const d = (j && j.data) || {};
-        if (!d || !Object.keys(d).length) return;
-        if (d.name && !document.getElementById('f_name').value) document.getElementById('f_name').value = d.name;
-        if ((d.spec || d.role) && !document.getElementById('f_role').value) document.getElementById('f_role').value = d.spec || d.role || '';
-        if (d.phone && (!document.getElementById('f_phone').value || document.getElementById('f_phone').value.trim() === '+998')) document.getElementById('f_phone').value = d.phone;
-        if (d.email && !document.getElementById('f_email').value) document.getElementById('f_email').value = d.email;
-        if ((d.loc || d.address) && !document.getElementById('f_loc').value) document.getElementById('f_loc').value = d.loc || d.address || '';
-        if (d.about && !document.getElementById('f_about').value) document.getElementById('f_about').value = d.about;
-        if (d.skills && (!skillsData || !skillsData.length)) {
-          skillsData = String(d.skills).split(/[,;\n]+/).map(s => s.trim()).filter(Boolean);
-          renderSkills();
-        }
+        if (!applyServerCvData(d)) return false;
         triggerUpdate(false);
-      } catch (_) {}
+        try { saveToLocalStorage(); } catch (_) {}
+        return true;
+      } catch (_) {
+        return false;
+      }
+    }
+
+    async function initCvData() {
+      resolveCvTelegramId();
+      migrateLegacyCvDraft(telegramId);
+      const fromServer = await loadFromServer();
+      if (!fromServer) {
+        loadFromLocalStorage();
+      }
+      try { triggerUpdate(false); } catch (_) {}
     }
 
     function clearAllData() {
-        if(confirm(cvT('clear_data', "Ma'lumotlarni tozalash") + ' ' + cvT('cv_clear_confirm', 'Ishonchingiz komilmi?'))) { localStorage.removeItem('cvBuilderData'); location.reload(); }
+        if(confirm(cvT('clear_data', "Ma'lumotlarni tozalash") + ' ' + cvT('cv_clear_confirm', 'Ishonchingiz komilmi?'))) {
+          try {
+            localStorage.removeItem(cvDraftStorageKey());
+            localStorage.removeItem(CV_LEGACY_STORAGE_KEY);
+          } catch (_) {}
+          location.reload();
+        }
     }
 
     // --- ZOOM LOGIC ---
@@ -2033,6 +2325,8 @@
         if (window.DastyorAI && window.DastyorAI.init) {
           await window.DastyorAI.init({ refreshProfile: true });
         }
+        resolveCvTelegramId();
+        migrateLegacyCvDraft(telegramId);
         await reconcileCvPaidRequestStatus();
         syncCvQuotaUi();
         if (window.DastyorAI && window.DastyorAI.resumePaidDocWatcher) {
@@ -2055,9 +2349,7 @@
         }
       } catch (_) {}
       setPreviewPlaceholder("⏳ Ko‘rinish yuklanmoqda…");
-      loadFromLocalStorage();
-      loadFromServer();
-      try { triggerUpdate(false); } catch (_) {}
+      await initCvData();
       try {
         window.addEventListener('dastyor:profile-updated', () => syncCvQuotaUi());
         window.addEventListener('dastyor:payment-approved', () => {

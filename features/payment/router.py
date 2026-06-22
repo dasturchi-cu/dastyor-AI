@@ -186,15 +186,14 @@ def _map_payment_status(status: str) -> str:
 
 
 async def _notify_user_payment_approved(bot, telegram_id: int, credits: int) -> None:
-    from config.settings import settings
+    from shared.keyboards import open_services_inline
+    from shared.marketing import payment_approved_message
 
-    price = f"{settings.single_doc_price_uzs:,}".replace(",", " ")
     try:
         await bot.send_message(
             telegram_id,
-            f"✅ To'lovingiz tasdiqlandi!\n"
-            f"💳 Pul balansi: <b>{credits}</b> ta hujjat\n"
-            f"ℹ️ Har biri <b>{price} so'm</b> — CV <b>yoki</b> Obyektivka.",
+            payment_approved_message(credits),
+            reply_markup=open_services_inline(telegram_id),
         )
     except Exception as e:
         logger.warning("User approve notify failed: %s", e)

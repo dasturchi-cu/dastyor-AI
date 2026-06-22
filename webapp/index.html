@@ -214,6 +214,117 @@
       -webkit-backdrop-filter: blur(12px);
     }
 
+    .home-promo {
+      padding: 14px 16px;
+      border-radius: var(--home-radius-sm);
+      background: linear-gradient(135deg, rgba(37, 99, 235, 0.1) 0%, rgba(14, 165, 233, 0.08) 100%);
+      border: 1px solid var(--da-blue-mid);
+      margin-bottom: 14px;
+      animation: home-in 0.5s ease 0.12s both;
+    }
+
+    .home-promo-price {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 800;
+      color: #1d4ed8;
+      background: #fff;
+      border: 1px solid #bfdbfe;
+      margin-bottom: 10px;
+    }
+
+    html[data-theme="dark"] .home-promo-price {
+      background: rgba(30, 41, 59, 0.9);
+      color: #93c5fd;
+      border-color: rgba(59, 130, 246, 0.35);
+    }
+
+    .home-promo p {
+      margin: 0 0 10px;
+      font-size: 13px;
+      line-height: 1.45;
+      font-weight: 600;
+      color: var(--text-color);
+    }
+
+    .home-steps {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+      display: grid;
+      gap: 6px;
+    }
+
+    .home-steps li {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .home-steps li span {
+      width: 20px;
+      height: 20px;
+      border-radius: 999px;
+      background: var(--da-primary);
+      color: #fff;
+      font-size: 11px;
+      font-weight: 800;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .service-hot {
+      display: inline-block;
+      margin-left: 6px;
+      padding: 2px 7px;
+      border-radius: 999px;
+      font-size: 9px;
+      font-weight: 800;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+      color: #b45309;
+      background: #fef3c7;
+      border: 1px solid #fde68a;
+      vertical-align: middle;
+    }
+
+    html[data-theme="dark"] .service-hot {
+      color: #fcd34d;
+      background: rgba(180, 83, 9, 0.25);
+      border-color: rgba(251, 191, 36, 0.35);
+    }
+
+    .home-cta-nocredit {
+      margin-top: 12px;
+      padding: 12px 14px;
+      border-radius: var(--home-radius-sm);
+      font-size: 12px;
+      font-weight: 700;
+      line-height: 1.4;
+      text-align: center;
+      color: #991b1b;
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      animation: home-in 0.5s ease 0.28s both;
+    }
+
+    html[data-theme="dark"] .home-cta-nocredit {
+      color: #fca5a5;
+      background: rgba(127, 29, 29, 0.35);
+      border-color: rgba(248, 113, 113, 0.35);
+    }
+
+    .home-cta-nocredit[hidden] { display: none !important; }
+
     /* Service cards */
     .service-grid {
       display: grid;
@@ -363,11 +474,21 @@
     <section class="home-hero">
       <div class="home-badge">⚡ AI Voice Fill</div>
       <h1 id="welcomeTitle">Salom 👋</h1>
-      <p>Professional hujjat yaratish. Bir bosish, tayyor natija.</p>
+      <p>Ovoz yuboring — AI to'ldiradi. 2–3 daqiqada professional hujjat.</p>
+    </section>
+
+    <section class="home-promo" aria-label="Qanday ishlaydi">
+      <div class="home-promo-price" id="homePriceTag">💰 7 999 so'm = 1 hujjat</div>
+      <p>Pul balansingizda qoladi — CV yoki Obyektivka tanlaysiz.</p>
+      <ol class="home-steps">
+        <li><span>1</span> Ovoz yoki matn yuboring</li>
+        <li><span>2</span> AI formani to'ldiradi</li>
+        <li><span>3</span> PDF / Word yuklab oling</li>
+      </ol>
     </section>
 
     <div class="home-chips" aria-label="Xususiyatlar">
-      <span class="home-chip">⚡ AI Voice</span>
+      <span class="home-chip">🎙 Ovoz bilan</span>
       <span class="home-chip">📄 CV PDF</span>
       <span class="home-chip">📋 DOCX</span>
     </div>
@@ -377,19 +498,23 @@
         <div class="service-icon-wrap cv" aria-hidden="true">📄</div>
         <div class="service-meta">
           <strong>CV Resume</strong>
-          <span>PDF · ATS Friendly · Ovoz yoki forma</span>
+          <span>PDF · Ish beruvchilar uchun · Ovoz yoki forma</span>
         </div>
         <span class="service-arrow" aria-hidden="true">→</span>
       </a>
       <a class="service-card" href="obyektivka.html?voice=1" id="linkOby">
         <div class="service-icon-wrap oby" aria-hidden="true">📋</div>
         <div class="service-meta">
-          <strong>Obyektivka</strong>
-          <span>Word (.docx) · AI Voice Fill</span>
+          <strong>Obyektivka <span class="service-hot">Mashhur</span></strong>
+          <span>Word (.docx) · Ovoz → AI · 3 daqiqada tayyor</span>
         </div>
         <span class="service-arrow" aria-hidden="true">→</span>
       </a>
     </nav>
+
+    <div class="home-cta-nocredit" id="homeNoCreditCta" hidden>
+      💳 Hozir pul yo'q — xizmatni tanlang, to'lov qiling va hujjatni yuklab oling.
+    </div>
 
     <footer class="home-footer">
       <span>@DastyorAiBot</span>
@@ -401,6 +526,8 @@
       var tg = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp : null;
       var titleEl = document.getElementById('welcomeTitle');
       var creditsEl = document.getElementById('homeCredits');
+      var priceTagEl = document.getElementById('homePriceTag');
+      var noCreditEl = document.getElementById('homeNoCreditCta');
       try { tg && tg.ready && tg.ready(); tg && tg.expand && tg.expand(); } catch (_) {}
 
       var theme = (tg && tg.colorScheme) || 'light';
@@ -433,6 +560,15 @@
         if (!creditsEl) return;
         creditsEl.hidden = false;
         creditsEl.textContent = '💳 ' + n + ' ta hujjat (pul)';
+        if (noCreditEl) noCreditEl.hidden = Number(n) > 0;
+      }
+
+      function showPrice(amount) {
+        if (!priceTagEl || !amount) return;
+        var p = Number(amount);
+        if (!p) return;
+        var formatted = p.toLocaleString('fr-FR').replace(/\u202f/g, ' ').replace(/,/g, ' ');
+        priceTagEl.textContent = '💰 ' + formatted + " so'm = 1 hujjat";
       }
 
       document.addEventListener('DOMContentLoaded', function () {
@@ -442,6 +578,7 @@
           if (!me) return;
           var n = DA.getCredits ? DA.getCredits(me) : Number(me.credits || 0);
           showCredits(n);
+          if (DA.docPriceUzs) showPrice(DA.docPriceUzs(me));
         }).catch(function () {});
         if (DA.bindPrefetchOnHover) DA.bindPrefetchOnHover('.service-card');
       });

@@ -59,6 +59,24 @@ def open_webapp_inline(uid: int, service: str) -> InlineKeyboardMarkup:
     )
 
 
+def open_services_inline(uid: int) -> InlineKeyboardMarkup:
+    """To'lovdan keyin yoki marketing — ikkala xizmat tugmasi."""
+    rows: list[list[InlineKeyboardButton]] = []
+    cv_url = webapp_url(uid, "cv.html")
+    oby_url = webapp_url(uid, "obyektivka.html")
+    if oby_url:
+        oby_url = f"{oby_url}&voice=1&autoload=1"
+    if cv_url:
+        rows.append(
+            [InlineKeyboardButton(text="📄 CV yaratish", web_app=WebAppInfo(url=cv_url))]
+        )
+    if oby_url:
+        rows.append(
+            [InlineKeyboardButton(text="✍️ Obyektivka yaratish", web_app=WebAppInfo(url=oby_url))]
+        )
+    return InlineKeyboardMarkup(inline_keyboard=rows)
+
+
 def open_oby_preview_inline(uid: int, *, missing_count: int = 0) -> InlineKeyboardMarkup:
     base = settings.webapp_base.rstrip("/")
     if not base.startswith("https://"):

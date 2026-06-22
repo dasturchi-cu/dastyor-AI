@@ -127,37 +127,84 @@
       try { applyPreviewScale(); } catch (_) {}
     }
     iframe.srcdoc = html;
-    iframe.onload = layoutOnce;
+    iframe.onload = function () {
+      layoutOnce();
+      setTimeout(layoutOnce, 100);
+      setTimeout(layoutOnce, 350);
+    };
     requestAnimationFrame(function () { requestAnimationFrame(layoutOnce); });
+  }
+
+  var A4_WIDTH_PX = 794;
+  var A4_HEIGHT_PX = 1123;
+
+  function readIframeDocSize(iframe) {
+    var w = A4_WIDTH_PX;
+    var h = A4_HEIGHT_PX;
+    if (!iframe) return { width: w, height: h };
+    try {
+      var doc = iframe.contentDocument || iframe.contentWindow.document;
+      if (doc && doc.body) {
+        w = Math.max(
+          A4_WIDTH_PX,
+          doc.body.scrollWidth || 0,
+          doc.documentElement.scrollWidth || 0,
+          doc.body.offsetWidth || 0
+        );
+        h = Math.max(
+          A4_HEIGHT_PX,
+          doc.body.scrollHeight || 0,
+          doc.documentElement.scrollHeight || 0,
+          doc.body.offsetHeight || 0
+        );
+      }
+    } catch (_) {}
+    return { width: w, height: h };
   }
 
   function resizePreviewIframe() {
     var iframe = document.getElementById('oby-preview-frame');
     if (!iframe) return;
-    try {
-      var doc = iframe.contentDocument || iframe.contentWindow.document;
-      if (!doc || !doc.body) return;
-      var h = Math.max(doc.body.scrollHeight, doc.documentElement.scrollHeight, 297 * 3.78);
-      iframe.style.height = Math.ceil(h) + 'px';
-    } catch (_) {
-      iframe.style.minHeight = '297mm';
-    }
+    var size = readIframeDocSize(iframe);
+    iframe.style.width = Math.ceil(size.width) + 'px';
+    iframe.style.height = Math.ceil(size.height) + 'px';
+    iframe.style.minHeight = Math.ceil(size.height) + 'px';
   }
 
   function applyPreviewScale() {
     var pane = document.getElementById('obyPreviewPane');
     var wrap = document.getElementById('obyPreviewScaleWrapper');
     var iframe = document.getElementById('oby-preview-frame');
+    var scroll = document.querySelector('.preview-scroll');
     if (!pane || !wrap || !iframe) return;
 
-    var paneWidth = Math.max(0, pane.clientWidth - 24);
-    var docWidth = Math.max(1, iframe.offsetWidth || 794);
-    var fitScale = Math.min(paneWidth / docWidth, 1);
-    var scale = fitScale * previewZoom;
-    wrap.style.transform = 'scale(' + scale + ')';
-    wrap.style.transformOrigin = 'top center';
-    var h = Math.max(1, iframe.offsetHeight || wrap.scrollHeight);
-    wrap.style.height = Math.ceil(h * scale) + 'px';
+    resizePreviewIframe();
+    var size = readIframeDocSize(iframe);
+    var docWidth = size.width;
+    var docHeight = size.height;
+
+    var paneWidth = scroll
+      ? Math.max(0, scroll.clientWidth - 28)
+      : Math.max(0, pane.clientWidth - 8);
+    if (!paneWidth) paneWidth = global.innerWidth - 48;
+
+    var fitScale = paneWidth / docWidth;
+    var scale = Math.min(fitScale, 1) * previewZoom;
+    scale = Math.max(0.32, Math.min(1.6, scale));
+
+    var scaledW = Math.ceil(docWidth * scale);
+    var scaledH = Math.ceil(docHeight * scale);
+
+    wrap.style.width = scaledW + 'px';
+    wrap.style.height = scaledH + 'px';
+    wrap.style.margin = '0 auto';
+    wrap.style.transform = 'none';
+
+    iframe.style.width = Math.ceil(docWidth) + 'px';
+    iframe.style.height = Math.ceil(docHeight) + 'px';
+    iframe.style.transform = 'scale(' + scale + ')';
+    iframe.style.transformOrigin = 'top left';
+
     var label = document.getElementById('obyZoomLabel');
     if (label) label.textContent = Math.round(scale * 100) + '%';
   }

@@ -9,6 +9,7 @@ from aiogram.types import Message
 from config.settings import settings
 from database.repositories import users as users_repo
 from features.bot.states import CvStates
+from shared.marketing import cv_intro_header, welcome_message
 from shared.keyboards import (
     BTN_BACK,
     BTN_CREDITS,
@@ -22,22 +23,9 @@ from shared.keyboards import (
 
 router = Router()
 
-WELCOME = (
-    "👋 <b>HUJJATCHI AI</b> ga xush kelibsiz!\n\n"
-    "📄 <b>CV</b> — forma yoki ovoz → <b>PDF</b>\n"
-    "✍️ <b>Obyektivka</b> — ovoz yuboring → AI to'ldiradi → <b>Word (.docx)</b>\n\n"
-    "💳 To'lov qilsangiz <b>pul balansingizda qoladi</b> — <b>1 ta hujjat</b> (CV yoki Obyektivka).\n"
-    "🎙 Ovoz yuboring — AI forma maydonlarini avtomatik to'ldiradi.\n\n"
-    "👇 Xizmatni tanlang."
-)
+WELCOME = welcome_message()
 
-CV_INTRO = (
-    "📄 <b>CV Resume</b>\n\n"
-    "• Forma orqali to'ldiring, ovoz yoki matn yuboring\n"
-    "• AI ma'lumotlarni ajratadi va formani to'ldiradi\n"
-    "• Shablon: Modern / Classic / Corporate\n"
-    "• Natija: <b>PDF</b> (ATS-friendly)"
-)
+CV_INTRO = cv_intro_header()
 
 HELP_TEXT = (
     "ℹ️ <b>Yordam</b>\n\n"

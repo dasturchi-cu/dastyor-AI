@@ -20,6 +20,7 @@ from features.obyektivka import service as oby_service
 from shared.ai_errors import AI_QUOTA_USER_MSG, AiQuotaError
 from shared.async_db import run as db_run
 from shared.keyboards import BTN_BACK, BTN_OBY, back_menu, open_oby_preview_inline, user_menu
+from shared.marketing import cross_sell_cv_line, oby_intro_hook
 from shared.progress import STEP_AI, STEP_AUDIO, STEP_EXTRACTED, STEP_READY, telegram_message
 from shared.telegram_progress import set_step
 from shared.voice import download_voice_message
@@ -28,7 +29,8 @@ logger = logging.getLogger(__name__)
 router = Router()
 
 OBY_INSTRUCTION = (
-    "📌 <b>Obyektivka tayyorlash uchun quyidagi ma'lumotlarni bitta audio xabar "
+    oby_intro_hook()
+    + "📌 <b>Obyektivka tayyorlash uchun quyidagi ma'lumotlarni bitta audio xabar "
     "ko'rinishida yuboring:</b>\n\n"
     "1. F.I.Sh.\n"
     "2. Tug'ilgan sana\n"
@@ -164,7 +166,8 @@ async def _process_voice_background(
             f"<b>Obyektivka tayyorlandi!</b> (~{filled}% to'ldirildi)\n"
             f"{('👤 ' + fn) if fn else ''}"
             f"{missing_text}\n\n"
-            "👇 Preview ni ko'ring va <b>Tasdiqlash</b> tugmasini bosing.",
+            "👇 Preview ni ko'ring va <b>Tasdiqlash</b> tugmasini bosing."
+            f"{cross_sell_cv_line()}",
             reply_markup=open_oby_preview_inline(uid, missing_count=len(missing)),
         )
     except AiQuotaError:
@@ -224,7 +227,8 @@ async def obyektivka_text(message: Message, bot: Bot, state: FSMContext) -> None
             f"{telegram_message(STEP_READY)}\n\n"
             f"<b>Obyektivka tayyorlandi!</b> (~{filled}% to'ldirildi)\n"
             f"{('👤 ' + fn) if fn else ''}\n\n"
-            "👇 Preview ni ko'ring va tasdiqlang.",
+            "👇 Preview ni ko'ring va tasdiqlang."
+            f"{cross_sell_cv_line()}",
             reply_markup=open_oby_preview_inline(uid, missing_count=len(missing)),
         )
     except AiQuotaError:

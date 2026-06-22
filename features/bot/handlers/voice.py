@@ -16,6 +16,7 @@ from features.cv import service as cv_service
 from shared.ai_errors import AI_QUOTA_USER_MSG, AiQuotaError
 from shared.async_db import run as db_run
 from shared.keyboards import BTN_BACK, BTN_OBY, open_webapp_inline
+from shared.marketing import cross_sell_oby_line
 from shared.progress import STEP_AI, STEP_AUDIO, STEP_EXTRACTED, STEP_READY, telegram_message
 from shared.telegram_progress import set_step
 from shared.voice import download_voice_message
@@ -79,7 +80,8 @@ async def cv_text_fill(message: Message, state: FSMContext) -> None:
             missing_text = "\n\n⚠️ Yetishmayotgan: " + ", ".join(cv_missing)
         await status.edit_text(
             f"{telegram_message(STEP_READY)}\n\n"
-            f"CV formasi to'ldirildi.{missing_text}",
+            f"CV formasi to'ldirildi.{missing_text}"
+            f"{cross_sell_oby_line()}",
             reply_markup=open_webapp_inline(uid, "cv"),
         )
     except AiQuotaError:
@@ -119,7 +121,8 @@ async def _handle_cv_voice_flow(
             missing_text = "\n\n⚠️ Yetishmayotgan: " + ", ".join(cv_missing)
         await status.edit_text(
             f"{telegram_message(STEP_READY)}\n\n"
-            f"Formani tekshiring.{missing_text}",
+            f"Formani tekshiring.{missing_text}"
+            f"{cross_sell_oby_line()}",
             reply_markup=open_webapp_inline(uid, "cv"),
         )
     except AiQuotaError:
