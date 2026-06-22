@@ -132,9 +132,17 @@ def stop_dashboard(admin_id: int) -> None:
 
 async def start_dashboard(bot: Bot, *, admin_id: int, chat_id: int) -> int:
     stop_dashboard(admin_id)
-    snapshot = await asyncio.to_thread(stats_repo.dashboard_snapshot)
-    text = build_dashboard_text(snapshot)
-    msg = await bot.send_message(chat_id, text)
+    try:
+        snapshot = await asyncio.to_thread(stats_repo.dashboard_snapshot)
+        text = build_dashboard_text(snapshot)
+        msg = await bot.send_message(chat_id, text)
+    except Exception as exc:
+        logger.exception("Dashboard start failed: %s", exc)
+        msg = await bot.send_message(
+            chat_id,
+            "❌ Dashboard yuklanmadi. /admin ni qayta bosing yoki «🔄 Dashboard» tugmasini bosing.",
+        )
+        return msg.message_id
     session = DashboardSession(admin_id=admin_id, chat_id=chat_id, message_id=msg.message_id)
     session.task = asyncio.create_task(_refresh_loop(bot, session), name=f"dash_{admin_id}")
     _sessions[admin_id] = session
