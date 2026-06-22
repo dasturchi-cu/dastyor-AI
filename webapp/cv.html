@@ -1395,10 +1395,17 @@
       if (payload.img && String(payload.img).startsWith('data:image')) {
         payload.img = await maybeCompressDataUrl(payload.img);
       }
-      let sessionToken = null;
-      try {
-        if (window.DastyorAI && window.DastyorAI.getToken) sessionToken = window.DastyorAI.getToken();
-      } catch (_) {}
+      const DA = window.DastyorAI || {};
+      if (DA.ensureAuth) {
+        try { await DA.ensureAuth(); } catch (_) {}
+      }
+      const authExtras = DA.getAuthExtras ? DA.getAuthExtras() : {};
+      let sessionToken = authExtras.token || null;
+      if (!sessionToken) {
+        try {
+          if (DA.getToken) sessionToken = DA.getToken();
+        } catch (_) {}
+      }
       if (!sessionToken) {
         try {
           sessionToken = sessionStorage.getItem('tg_token');
@@ -1408,6 +1415,7 @@
         telegram_id: telegramId ? parseInt(telegramId, 10) : null,
         send_only: true,
         token: sessionToken || undefined,
+        init_data: authExtras.init_data || undefined,
       });
       console.info('[CV] export_cv: bytes≈', JSON.stringify(req).length, 'tpl=', payload.template, 'has_img=', !!(payload.img && payload.img.length > 64));
       const DA = window.DastyorAI || {};
@@ -1592,7 +1600,12 @@
       if (_cvExportInFlight) return;
       _cvExportInFlight = true;
       if (mainBtn) { mainBtn.disabled = true; }
-      try { if (window.DastyorAI && window.DastyorAI.refreshProfile) await window.DastyorAI.refreshProfile(); } catch (_) {}
+      try {
+        if (window.DastyorAI && window.DastyorAI.ensureAuth) {
+          await window.DastyorAI.ensureAuth();
+        }
+      } catch (_) {}
+      try { if (window.DastyorAI && window.DastyorAI.refreshProfile) await window.DastyorAI.refreshProfile(true); } catch (_) {}
       const uNow = window.DastyorAI && window.DastyorAI.getUser ? window.DastyorAI.getUser() : null;
       const creditsNow = window.DastyorAI && window.DastyorAI.getCredits ? window.DastyorAI.getCredits(uNow) : 0;
       if (creditsNow < 1) {

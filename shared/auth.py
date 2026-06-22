@@ -28,6 +28,50 @@ def resolve_uid(telegram_id: Optional[str] = None, token: Optional[str] = None) 
     return None
 
 
+def resolve_uid_from_webapp(
+    telegram_id: Optional[str | int] = None,
+    token: Optional[str] = None,
+    init_data: Optional[str] = None,
+) -> Optional[int]:
+    """
+    Session token first; fallback to Telegram WebApp initData (export after redeploy).
+    """
+    uid = resolve_uid(
+        str(telegram_id) if telegram_id is not None else None,
+        token,
+    )
+    if uid:
+        return uid
+
+    raw_init = (init_data or "").strip()
+    if not raw_init:
+        return None
+
+    from config.settings import settings
+    from core.telegram_auth import extract_telegram_user_id, validate_init_data
+
+    if not settings.bot_token:
+        return None
+
+    validated = validate_init_data(
+        raw_init,
+        settings.bot_token,
+        max_age_seconds=settings.init_data_max_age_seconds,
+    )
+    if not validated:
+        return None
+
+    verified_id = extract_telegram_user_id(validated)
+    if not verified_id:
+        return None
+
+    if telegram_id is not None and str(telegram_id).strip().isdigit():
+        if int(telegram_id) != int(verified_id):
+            return None
+
+    return int(verified_id)
+
+
 def is_admin(telegram_id: int | None) -> bool:
     if not telegram_id:
         return False

@@ -21,7 +21,7 @@ from features.ai.service import (
 from features.obyektivka import service as oby_service
 from shared import async_db
 from shared.ai_errors import AI_QUOTA_USER_MSG, AiQuotaError
-from shared.auth import resolve_uid
+from shared.auth import resolve_uid_from_webapp
 from shared import voice_jobs
 from shared.export_delivery import send_bytes_to_telegram
 
@@ -30,9 +30,10 @@ router = APIRouter(tags=["obyektivka"])
 
 
 def _uid_from_req(req) -> int:
-    uid = resolve_uid(
-        str(req.telegram_id) if getattr(req, "telegram_id", None) else None,
+    uid = resolve_uid_from_webapp(
+        getattr(req, "telegram_id", None),
         getattr(req, "token", None),
+        getattr(req, "init_data", None),
     )
     if not uid:
         raise HTTPException(status_code=401, detail="Avtorizatsiya talab qilinadi.")
@@ -209,7 +210,7 @@ async def api_preview_oby(req: PreviewObyektivkaRequest) -> dict:
     )
     from backend.services.render_service import render_obyektivka_html
 
-    payload = req.model_dump(exclude={"telegram_id", "token"})
+    payload = req.model_dump(exclude={"telegram_id", "token", "init_data"})
     cache_key = cache_key_for_oby_preview(payload)
     cached = oby_preview_cache_get(cache_key)
     if cached is not None:
@@ -225,7 +226,7 @@ async def api_preview_oby(req: PreviewObyektivkaRequest) -> dict:
 async def api_export_oby(req: ExportObyektivkaRequest, request: Request) -> StreamingResponse:
     await rate_limit(request)
     uid = _uid_from_req(req)
-    payload = req.model_dump(exclude={"telegram_id", "token", "send_only", "format"})
+    payload = req.model_dump(exclude={"telegram_id", "token", "send_only", "format", "init_data"})
     try:
         docx_bytes, filename = await oby_service.export_docx(uid, payload)
     except PermissionError as e:

@@ -118,6 +118,7 @@ class ObyektivkaRequest(BaseModel):
 class ExportCVRequest(BaseModel):
     telegram_id: Optional[int] = None
     token: Optional[str] = None  # session from /api/auth (required for some deployments)
+    init_data: Optional[str] = None  # Telegram WebApp initData fallback
     format: str = "pdf"
     lang: str = "uz_lat"
     send_only: Optional[bool] = False
@@ -145,6 +146,7 @@ class ExportCVRequest(BaseModel):
 class ExportObyektivkaRequest(BaseModel):
     telegram_id: Optional[int] = None
     token: Optional[str] = None
+    init_data: Optional[str] = None
     format: str = "word"
     lang: str = "uz_lat"
     fullname: str = ""

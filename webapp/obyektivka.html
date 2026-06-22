@@ -1157,7 +1157,10 @@ async function toggleObyLiveRecording(){
 async function sendObyektivkaViaApi(fmt){
   var DA = window.DastyorAI || {};
   try {
-    if (DA.showProgressFlow) DA.showProgressFlow('doc');
+  if (DA.ensureAuth) {
+    try { await DA.ensureAuth(); } catch (_) {}
+  }
+  if (DA.showProgressFlow) DA.showProgressFlow('doc');
     else if (DA.showDocumentLoading) DA.showDocumentLoading('Hujjat yaratilmoqda...', 'Bitta marta bosing');
   var payload = buildObyPayload(fmt);
   var req = {
@@ -1196,8 +1199,10 @@ async function sendObyektivkaViaApi(fmt){
     }),
     photo_data: payload.photo_data || ''
   };
-  var tok = getDastyorSessionToken();
+  var authExtras = DA.getAuthExtras ? DA.getAuthExtras() : {};
+  var tok = getDastyorSessionToken() || authExtras.token || null;
   if (tok) req.token = tok;
+  if (authExtras.init_data) req.init_data = authExtras.init_data;
   if (DA.setProgressStep) DA.setProgressStep(4, 'DOCX tayyorlanmoqda...');
   var res = await fetch(getApiUrl() + '/api/export_obyektivka', {
     method: 'POST',
@@ -1238,7 +1243,12 @@ async function sendObyektivkaToBot(fmt){
   if(_obyExportInFlight) return;
   _obyExportInFlight = true;
   if(btn) btn.disabled=true;
-  try{ if(window.DastyorAI&&window.DastyorAI.refreshProfile) await window.DastyorAI.refreshProfile(); }catch(_){}
+  try {
+    if (window.DastyorAI && window.DastyorAI.ensureAuth) {
+      await window.DastyorAI.ensureAuth();
+    }
+  } catch (_) {}
+  try{ if(window.DastyorAI&&window.DastyorAI.refreshProfile) await window.DastyorAI.refreshProfile(true); }catch(_){}
   var uNow = window.DastyorAI&&window.DastyorAI.getUser?window.DastyorAI.getUser():null;
   var creditsNow = window.DastyorAI&&window.DastyorAI.getCredits?window.DastyorAI.getCredits(uNow):0;
   if(creditsNow < 1){

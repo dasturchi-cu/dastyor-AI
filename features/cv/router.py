@@ -18,7 +18,7 @@ from core.security import rate_limit
 from features.cv import service as cv_service
 from features.cv.render import preview_html
 from shared import async_db
-from shared.auth import resolve_uid
+from shared.auth import resolve_uid_from_webapp
 from shared.export_delivery import send_bytes_to_telegram
 
 logger = logging.getLogger(__name__)
@@ -26,9 +26,10 @@ router = APIRouter(tags=["cv"])
 
 
 def _uid_from_req(req) -> int:
-    uid = resolve_uid(
-        str(req.telegram_id) if getattr(req, "telegram_id", None) else None,
+    uid = resolve_uid_from_webapp(
+        getattr(req, "telegram_id", None),
         getattr(req, "token", None),
+        getattr(req, "init_data", None),
     )
     if not uid:
         raise HTTPException(status_code=401, detail="Avtorizatsiya talab qilinadi.")
@@ -65,7 +66,7 @@ async def api_cv_preview(req: ExportCVRequest) -> HTMLResponse:
 async def api_export_cv(req: ExportCVRequest, request: Request) -> StreamingResponse:
     await rate_limit(request)
     uid = _uid_from_req(req)
-    payload = req.model_dump(exclude={"telegram_id", "token", "send_only", "format"})
+    payload = req.model_dump(exclude={"telegram_id", "token", "send_only", "format", "init_data"})
     try:
         pdf_bytes, filename = await cv_service.export_pdf(uid, payload)
     except PermissionError as e:

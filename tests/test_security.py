@@ -94,6 +94,24 @@ class TestPaymentAtomic(unittest.TestCase):
         self.assertIsNone(result)
         self.assertEqual(users_repo.get_credits(tid), before)
 
+    def test_resolve_uid_from_init_data(self):
+        from shared.auth import resolve_uid_from_webapp
+
+        token = "123456:ABC-DEF"
+        init_data = _make_init_data(token, 77112233)
+        with patch("config.settings.settings") as mock_settings:
+            mock_settings.bot_token = token
+            mock_settings.init_data_max_age_seconds = 86_400
+            uid = resolve_uid_from_webapp(77112233, token=None, init_data=init_data)
+        self.assertEqual(uid, 77112233)
+
+        with patch("config.settings.settings") as mock_settings:
+            mock_settings.bot_token = token
+            mock_settings.init_data_max_age_seconds = 86_400
+            with patch("shared.auth.resolve_uid", return_value=None):
+                uid_mismatch = resolve_uid_from_webapp(99999, token=None, init_data=init_data)
+        self.assertIsNone(uid_mismatch)
+
 
 if __name__ == "__main__":
     unittest.main()

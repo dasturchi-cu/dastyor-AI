@@ -586,6 +586,79 @@ const DastyorAI = (() => {
     let _profileRefreshLastAt = 0;
     const PROFILE_REFRESH_MIN_MS = 2800;
 
+    function getAuthExtras() {
+        const t =
+            token ||
+            (() => {
+                try {
+                    return sessionStorage.getItem(SS_TOKEN);
+                } catch (_) {
+                    return null;
+                }
+            })();
+        const init_data = (tg && tg.initData) || '';
+        const out = {};
+        if (t) out.token = t;
+        if (init_data) out.init_data = init_data;
+        return out;
+    }
+
+    async function ensureAuth() {
+        const identity = readIdentity();
+        if (!identity) return null;
+
+        const verifyToken = async (t) => {
+            if (!t) return false;
+            try {
+                const r = await apiFetch(
+                    `/api/me?telegram_id=${identity.telegram_id}&token=${encodeURIComponent(t)}`,
+                );
+                return r.ok;
+            } catch (_) {
+                return false;
+            }
+        };
+
+        let t =
+            token ||
+            (() => {
+                try {
+                    return sessionStorage.getItem(SS_TOKEN);
+                } catch (_) {
+                    return null;
+                }
+            })();
+
+        if (t && (await verifyToken(t))) {
+            token = t;
+            return t;
+        }
+
+        token = null;
+        try {
+            sessionStorage.removeItem(SS_TOKEN);
+        } catch (_) {}
+
+        const authResp = await auth(identity);
+        const profileResp = await apiFetch(
+            `/api/me?telegram_id=${identity.telegram_id}&token=${authResp.token}`,
+        );
+        const profile = profileResp.ok ? await profileResp.json() : {};
+        const fullUser = {
+            telegram_id: identity.telegram_id,
+            first_name: identity.first_name || profile.first_name || '',
+            username: identity.username || profile.username || '',
+            photo_url: identity.photo_url || profile.photo_url || '',
+            is_premium: profile.is_premium ?? false,
+            files_processed: profile.files_processed ?? 0,
+            joined_at: profile.joined_at || '',
+            ..._pickTariffFields(profile),
+        };
+        persistSession(fullUser, authResp.token);
+        if (shouldShowTariffStrip()) renderTariffBanner(fullUser);
+        return authResp.token;
+    }
+
     async function init(opts = {}) {
         restoreSession();
         if (tg) {
@@ -662,16 +735,18 @@ const DastyorAI = (() => {
                         Object.assign(user, _pickTariffFields(p));
                         persistSession(user, t);
                         token = t;
+                    } else if (r.status === 401) {
+                        try {
+                            await ensureAuth();
+                        } catch (_) {
+                            /* keep stale user cleared on next export */
+                        }
                     }
                 } else {
-                    const r = await apiFetch(`/api/me?telegram_id=${identity.telegram_id}`);
-                    if (r.ok) {
-                        const p = await r.json();
-                        if (!user) user = { telegram_id: identity.telegram_id };
-                        Object.assign(user, _pickTariffFields(p));
-                        try {
-                            sessionStorage.setItem(SS_USER, JSON.stringify(user));
-                        } catch (_) {}
+                    try {
+                        await ensureAuth();
+                    } catch (_) {
+                        /* ignore */
                     }
                 }
             } catch (_) { /* ignore */ }
@@ -1181,7 +1256,11 @@ html[data-theme="dark"] .da-doc-loading-ring{border-color:#334155;border-top-col
         showProgressFlow('doc');
         try {
             const tid = getTelegramId();
-            const enriched = { ...payload, telegram_id: tid ? parseInt(tid, 10) : null, token: token || undefined };
+            const enriched = {
+                ...payload,
+                telegram_id: tid ? parseInt(tid, 10) : null,
+                ...getAuthExtras(),
+            };
             setProgressStep(4, 'PDF/DOCX tayyorlanmoqda...');
             const resp = await fetch(BASE + endpoint, {
                 method: 'POST',
@@ -1460,6 +1539,8 @@ html[data-theme="dark"] .da-doc-loading-ring{border-color:#334155;border-top-col
     }
 
     const api = {
+        ensureAuth,
+        getAuthExtras,
         init,
         initUI,
         renderTariffBanner,
