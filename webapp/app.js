@@ -1030,6 +1030,37 @@ const DastyorAI = (() => {
         } catch (_) {}
     }
 
+    function bindInstantTapFeedback() {
+        if (document.documentElement.dataset.daTapBound === '1') return;
+        document.documentElement.dataset.daTapBound = '1';
+        document.addEventListener(
+            'pointerdown',
+            (e) => {
+                const el = e.target.closest('button, a.service-card, .btn, [role="button"]');
+                if (!el || el.disabled || el.getAttribute('aria-disabled') === 'true') return;
+                el.classList.add('da-tap-active');
+                haptic('light');
+            },
+            { passive: true, capture: true }
+        );
+        document.addEventListener(
+            'pointerup',
+            (e) => {
+                const el = e.target.closest('.da-tap-active');
+                if (!el) return;
+                setTimeout(() => el.classList.remove('da-tap-active'), 100);
+            },
+            { passive: true, capture: true }
+        );
+        document.addEventListener(
+            'pointercancel',
+            () => {
+                document.querySelectorAll('.da-tap-active').forEach((el) => el.classList.remove('da-tap-active'));
+            },
+            { passive: true, capture: true }
+        );
+    }
+
     function bindPrefetchOnHover(selector) {
         document.querySelectorAll(selector).forEach((el) => {
             const href = el.getAttribute('href');
@@ -1633,6 +1664,7 @@ html[data-theme="dark"] .da-doc-loading-ring{border-color:#334155;border-top-col
         createDebouncedSaver,
         prefetchPage,
         bindPrefetchOnHover,
+        bindInstantTapFeedback,
         initNetworkBanner,
         showDocumentLoading,
         hideDocumentLoading,
@@ -1715,6 +1747,7 @@ html[data-theme="dark"] .da-doc-loading-ring{border-color:#334155;border-top-col
         try {
             _bindViewportVars();
             initNetworkBanner();
+            bindInstantTapFeedback();
             _ensureBottomNav();
             bindPrefetchOnHover('a.service-card, a[href$="cv.html"], a[href*="obyektivka.html"]');
         } catch (_) {}

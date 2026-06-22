@@ -15,7 +15,7 @@ from features.bot.states import CvStates, ObyektivkaStates
 from features.cv import service as cv_service
 from shared.ai_errors import AI_QUOTA_USER_MSG, AiQuotaError
 from shared.async_db import run as db_run
-from shared.keyboards import BTN_BACK, BTN_OBY, open_webapp_inline
+from shared.keyboards import BTN_BACK, BTN_OBY, is_menu_button, open_webapp_inline
 from shared.marketing import cross_sell_oby_line
 from shared.progress import STEP_AI, STEP_AUDIO, STEP_EXTRACTED, STEP_READY, telegram_message
 from shared.telegram_progress import set_step
@@ -48,11 +48,6 @@ async def handle_voice(message: Message, bot: Bot, state: FSMContext) -> None:
 
     uid = message.from_user.id if message.from_user else 0
     status = await message.answer(telegram_message(STEP_AUDIO))
-
-    if current == CvStates.waiting_input.state:
-        asyncio.create_task(_handle_cv_voice_flow(message, bot, status, uid, state))
-        return
-
     asyncio.create_task(_handle_cv_voice_flow(message, bot, status, uid, state))
 
 
@@ -62,10 +57,19 @@ async def cv_text_fill(message: Message, state: FSMContext) -> None:
         return
     if message.text == BTN_BACK or message.text.casefold() == "bekor":
         return
+    if is_menu_button(message.text):
+        from features.bot.handlers.start import menu_from_flow_waiting
+
+        await menu_from_flow_waiting(message, state)
+        return
     uid = message.from_user.id if message.from_user else 0
-    status = await message.answer("⏳ Matn tahlil qilinmoqda...")
+    status = await message.answer("✅ Matn qabul qilindi\n⏳ AI tahlil qilmoqda...")
+    asyncio.create_task(_handle_cv_text_flow(message.text or "", status, uid, state))
+
+
+async def _handle_cv_text_flow(text: str, status: Message, uid: int, state: FSMContext) -> None:
     try:
-        transcript, cv_data, cv_missing = await process_text_for_cv(message.text or "")
+        transcript, cv_data, cv_missing = await process_text_for_cv(text)
         if not cv_data or len(cv_missing) > 6:
             await status.edit_text(
                 "ℹ️ CV uchun yetarli ma'lumot topilmadi.\n"
@@ -73,7 +77,7 @@ async def cv_text_fill(message: Message, state: FSMContext) -> None:
             )
             return
         await db_run(cv_service.save_user_data, uid, cv_data)
-        await db_run(sessions_repo.create_session, uid, "cv_text", transcript, cv_data)
+        await db_run(sessions_repo.create_session, uid, "cv_voice", transcript, cv_data)
         await state.clear()
         missing_text = ""
         if cv_missing:

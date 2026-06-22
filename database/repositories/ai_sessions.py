@@ -2,10 +2,30 @@
 from __future__ import annotations
 
 import json
+import logging
 from typing import Any
 
 from database.connection import get_connection, row_to_dict
 from database.repositories import users as users_repo
+
+logger = logging.getLogger(__name__)
+
+_ALLOWED_SESSION_TYPES = frozenset({"cv_voice", "oby_voice"})
+_LEGACY_SESSION_TYPES = {
+    "cv_text": "cv_voice",
+    "oby_text": "oby_voice",
+}
+
+
+def normalize_session_type(session_type: str) -> str:
+    """Map legacy session labels to DB CHECK values."""
+    raw = (session_type or "").strip()
+    mapped = _LEGACY_SESSION_TYPES.get(raw, raw)
+    if mapped not in _ALLOWED_SESSION_TYPES:
+        raise ValueError(f"Invalid session_type: {session_type!r}")
+    if mapped != raw:
+        logger.warning("Legacy session_type %r normalized to %r", raw, mapped)
+    return mapped
 
 
 def create_session(
@@ -16,6 +36,7 @@ def create_session(
 ) -> dict[str, Any] | None:
     user = users_repo.upsert_user(telegram_id)
     uid = int(user["id"])
+    session_type = normalize_session_type(session_type)
     with get_connection() as conn:
         cur = conn.execute(
             """

@@ -41,29 +41,36 @@
       -webkit-user-select: none;
       overflow: hidden;
     }
-    .wm-tile {
+    .wm-grid {
       position: absolute;
-      left: -22%;
-      top: -22%;
-      width: 144%;
-      height: 144%;
-      transform: rotate(-42deg);
+      left: 50%;
+      top: 50%;
+      width: 195mm;
+      height: 265mm;
+      transform: translate(-50%, -50%) rotate(-36deg);
       transform-origin: center center;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      grid-template-rows: repeat(4, 1fr);
+      gap: 10mm 6mm;
+      opacity: var(--wm-opacity, 0.14);
+    }
+    .wm-cell {
       display: flex;
-      flex-wrap: wrap;
-      align-content: flex-start;
-      gap: 22mm 28mm;
-      opacity: var(--wm-opacity, 0.10);
+      align-items: center;
+      justify-content: center;
+      min-height: 0;
     }
     .wm-text {
-      font-family: "Times New Roman", Times, serif;
-      font-size: 11pt;
-      font-weight: 700;
-      letter-spacing: 0.02em;
-      color: #999;
+      font-family: Arial, Helvetica, sans-serif;
+      font-size: 12.5pt;
+      font-weight: 800;
+      letter-spacing: 0.06em;
+      color: #1d6fe8;
       white-space: nowrap;
       user-select: none;
       -webkit-user-select: none;
+      line-height: 1;
     }
 
     .demo-banner {
@@ -168,7 +175,7 @@
     @media print {
       body { width: auto; }
       .page { padding: 0; min-height: auto; }
-      .wm-layer, .wm-tile, .pii-blur {
+      .wm-layer, .wm-grid, .pii-blur {
         -webkit-print-color-adjust: exact;
         print-color-adjust: exact;
       }
@@ -230,9 +237,9 @@
 <div class="demo-banner" aria-hidden="true">{{ R.preview_banner }}</div>
 {%- endif -%}
 <div class="wm-layer" aria-hidden="true">
-  <div class="wm-tile">
-    {%- for i in range(56) -%}
-    <span class="wm-text">{{ R.watermark_text | default('DEMO VERSIYA') }}</span>
+  <div class="wm-grid">
+    {%- for i in range(10) -%}
+    <div class="wm-cell"><span class="wm-text">{{ R.watermark_text | default('@DastyorAiBot') }}</span></div>
     {%- endfor -%}
   </div>
 </div>

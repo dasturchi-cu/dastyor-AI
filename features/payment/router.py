@@ -15,6 +15,7 @@ from core.telegram_auth import extract_telegram_user_id, validate_init_data
 from database.repositories import payments as payments_repo
 from database.repositories import users as users_repo
 from features.payment import service as payment_service
+from shared import async_db
 from shared.auth import is_admin, resolve_uid
 
 logger = logging.getLogger(__name__)
@@ -35,7 +36,9 @@ async def api_me(token: str | None = Query(None), telegram_id: str | None = Quer
     from shared.session_service import get_session_by_telegram_id
     from database.repositories import users as users_repo
 
-    user = users_repo.get_by_telegram_id(uid) or users_repo.upsert_user(uid)
+    user = await async_db.run(users_repo.get_by_telegram_id, uid)
+    if not user:
+        user = await async_db.run(users_repo.upsert_user, uid)
     session = get_session_by_telegram_id(uid) or {}
     return {
         "ok": True,
@@ -45,7 +48,7 @@ async def api_me(token: str | None = Query(None), telegram_id: str | None = Quer
         "credits": int(user.get("credits") or 0),
         "single_doc_price_uzs": settings.single_doc_price_uzs,
         "has_access": int(user.get("credits") or 0) > 0,
-        "credit_note": "7 999 so'm = 1 ta hujjat (CV yoki Obyektivka) — pul balansida qoladi",
+        "credit_note": "Ovoz/matn bepul. Tayyor fayl: 7 999 so'm = 1 ta hujjat (CV yoki Obyektivka)",
     }
 
 
@@ -71,12 +74,14 @@ async def api_auth(req: AuthRequest) -> dict:
         if not verified_id or int(verified_id) != int(body.telegram_id):
             raise HTTPException(status_code=401, detail="Foydalanuvchi tasdiqlanmadi")
 
-    users_repo.upsert_user(
+    await async_db.run(
+        users_repo.upsert_user,
         body.telegram_id,
         username=body.username,
         first_name=body.first_name,
     )
-    token = create_session(
+    token = await async_db.run(
+        create_session,
         telegram_id=body.telegram_id,
         first_name=body.first_name,
         username=body.username,

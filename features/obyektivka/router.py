@@ -12,7 +12,7 @@ import re
 from fastapi import APIRouter, File, Form, HTTPException, Query, Request, UploadFile
 from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
 
-from backend.schemas.webapp import ExportObyektivkaRequest, ObyektivkaRequest, PreviewObyektivkaRequest
+from backend.schemas.webapp import ExportObyektivkaRequest, ObyektivkaRequest, PreviewObyektivkaRequest, TestObyektivkaPdfRequest
 from core.security import rate_limit
 from database.repositories import obyektivka_data as oby_repo
 from features.ai.service import (
@@ -40,6 +40,33 @@ def _uid_from_req(req) -> int:
     if not uid:
         raise HTTPException(status_code=401, detail="Avtorizatsiya talab qilinadi.")
     return uid
+
+
+async def _run_oby_text_job(job_id: str, uid: int, text: str) -> None:
+    from database.repositories import ai_sessions as sessions_repo
+    from features.ai.service import process_text_for_obyektivka
+
+    try:
+        voice_jobs.set_step(job_id, 2)
+        transcript, data, missing = await process_text_for_obyektivka(text)
+        if not data:
+            voice_jobs.fail_job(job_id, "Ma'lumot ajratilmadi")
+            return
+        await async_db.run(oby_service.save_pending, uid, data)
+        await async_db.run(sessions_repo.create_session, uid, "oby_voice", transcript, data)
+        voice_jobs.complete_job(
+            job_id,
+            data,
+            missing,
+            max(10, 100 - len(missing) * 8),
+            transcript=transcript,
+        )
+    except AiQuotaError:
+        logger.warning("oby text job %s quota exceeded", job_id)
+        voice_jobs.fail_job(job_id, AI_QUOTA_USER_MSG)
+    except Exception as e:
+        logger.exception("oby text job %s failed", job_id)
+        voice_jobs.fail_job(job_id, str(e)[:200])
 
 
 async def _run_oby_voice_job(job_id: str, uid: int, raw: bytes, ext: str) -> None:
@@ -116,9 +143,6 @@ async def api_oby_voice_fill(
 
 @router.post("/api/oby_text_fill")
 async def api_oby_text_fill(body: dict, request: Request) -> dict:
-    from database.repositories import ai_sessions as sessions_repo
-    from features.ai.service import process_text_for_obyektivka
-
     await rate_limit(request)
     uid = resolve_uid(str(body.get("telegram_id") or ""), body.get("token"))
     if not uid:
@@ -126,21 +150,10 @@ async def api_oby_text_fill(body: dict, request: Request) -> dict:
     text = str(body.get("text") or "").strip()
     if not text:
         raise HTTPException(status_code=400, detail="Matn bo'sh")
-    try:
-        transcript, data, missing = await process_text_for_obyektivka(text)
-    except AiQuotaError as e:
-        raise HTTPException(status_code=503, detail=AI_QUOTA_USER_MSG) from e
-    if not data:
-        raise HTTPException(status_code=422, detail="Ma'lumot ajratilmadi")
-    await async_db.run(oby_service.save_pending, uid, data)
-    await async_db.run(sessions_repo.create_session, uid, "oby_text", transcript, data)
-    return {
-        "ok": True,
-        "data": data,
-        "transcript": transcript[:1200],
-        "missing_fields": missing,
-        "fill_percent": max(10, 100 - len(missing) * 8),
-    }
+
+    job_id = voice_jobs.create_job(uid, "oby")
+    asyncio.create_task(_run_oby_text_job(job_id, uid, text))
+    return {"ok": True, "job_id": job_id, "step": 1, "status": "running"}
 
 
 @router.get("/api/oby_voice_job/{job_id}")
@@ -225,13 +238,15 @@ async def api_preview_oby(req: PreviewObyektivkaRequest) -> HTMLResponse:
 
 
 @router.post("/api/test_obyektivka_pdf")
-async def api_test_obyektivka_pdf(req: PreviewObyektivkaRequest, request: Request) -> StreamingResponse:
-    """Demo PDF with watermark — no auth, for WebApp «Test yuklash»."""
+async def api_test_obyektivka_pdf(req: TestObyektivkaPdfRequest, request: Request):
+    """Demo PDF with @bot watermark — WebApp «Test yuklash» → Telegram chat."""
     from backend.services.render_service import generate_obyektivka_pdf
     from config.settings import settings
 
     await rate_limit(request)
-    payload = req.model_dump(exclude={"watermark", "mask_pii"})
+    payload = req.model_dump(
+        exclude={"watermark", "mask_pii", "telegram_id", "token", "init_data", "send_to_bot"}
+    )
     base_url = (settings.site_base_url or "").strip().rstrip("/")
     if not base_url:
         base_url = settings.webapp_base.replace("/webapp", "").rstrip("/")
@@ -247,6 +262,27 @@ async def api_test_obyektivka_pdf(req: PreviewObyektivkaRequest, request: Reques
 
     safe_name = re.sub(r"[^\w\u0400-\u04FF]+", "_", (payload.get("fullname") or "Obyektivka"))[:40]
     filename = f"DEMO_Malumotnoma_{safe_name or 'Obyektivka'}.pdf"
+    bot_handle = f"@{settings.bot_username.lstrip('@')}"
+
+    if req.send_to_bot:
+        uid = resolve_uid_from_webapp(req.telegram_id, req.token, req.init_data)
+        if not uid:
+            raise HTTPException(status_code=401, detail="Bot orqali oching va qayta urinib ko'ring.")
+        bot = getattr(request.app.state, "bot", None)
+        sent = await send_bytes_to_telegram(
+            bot,
+            uid,
+            pdf_bytes,
+            filename,
+            caption=(
+                f"📄 DEMO PDF — orqasida {bot_handle} belgisi bilan.\n"
+                "Ma'lumotlarni tekshiring. To'lovdan keyin toza Word fayl olasiz."
+            ),
+        )
+        if not sent:
+            raise HTTPException(status_code=500, detail="Telegramga yuborib bo'lmadi")
+        return JSONResponse({"ok": True, "sent": True, "filename": filename})
+
     return StreamingResponse(
         io.BytesIO(pdf_bytes),
         media_type="application/pdf",

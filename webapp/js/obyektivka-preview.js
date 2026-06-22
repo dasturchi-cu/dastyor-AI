@@ -1,5 +1,5 @@
 /**
- * Obyektivka preview + test PDF yuklash (@DastyorAiBot watermark, rasm kerak emas).
+ * Obyektivka preview + test PDF botga yuborish (@bot watermark).
  */
 (function (global) {
   'use strict';
@@ -258,17 +258,49 @@
     }
   }
 
+  function resolveTgId() {
+    try {
+      if (typeof global.resolveTelegramId === 'function') return global.resolveTelegramId();
+    } catch (_) {}
+    return null;
+  }
+
+  function resolveSessionToken() {
+    try {
+      if (typeof global.getDastyorSessionToken === 'function') return global.getDastyorSessionToken();
+    } catch (_) {}
+    return '';
+  }
+
+  function showToast(msg, type) {
+    try {
+      if (global.DastyorAI && global.DastyorAI.showToast) {
+        global.DastyorAI.showToast(msg, type || 'info');
+        return;
+      }
+    } catch (_) {}
+    alert(msg);
+  }
+
   async function downloadTestPdf() {
     if (_testDownloadBusy) return;
     var btn = document.getElementById('obyTestDownloadBtn');
     _testDownloadBusy = true;
     if (btn) {
       btn.disabled = true;
-      btn.textContent = 'Yuklanmoqda...';
+      btn.textContent = 'Botga yuborilmoqda...';
     }
     try {
       var payload = await preparePayload();
       if (!payload) throw new Error('Ma\'lumot topilmadi');
+
+      var tid = resolveTgId();
+      if (!tid) throw new Error('Foydalanuvchi aniqlanmadi. Botdan qayta oching.');
+
+      payload.telegram_id = parseInt(tid, 10);
+      payload.send_to_bot = true;
+      var tok = resolveSessionToken();
+      if (tok) payload.token = tok;
 
       var base = getApiBase();
       var res = await fetch(base + '/api/test_obyektivka_pdf', {
@@ -282,29 +314,20 @@
         throw new Error(err || ('Server ' + res.status));
       }
 
-      var blob = await res.blob();
-      var safeName = (payload.fullname || 'Obyektivka').replace(/[^\w\u0400-\u04FF]+/g, '_').slice(0, 40);
-      var filename = 'DEMO_Malumotnoma_' + safeName + '.pdf';
-
-      var blobUrl = URL.createObjectURL(blob);
-      var a = document.createElement('a');
-      a.href = blobUrl;
-      a.download = filename;
-      a.rel = 'noopener';
-      document.body.appendChild(a);
-      a.click();
-      setTimeout(function () {
-        try { URL.revokeObjectURL(blobUrl); } catch (_) {}
-        try { a.remove(); } catch (_) {}
-      }, 60000);
+      var js = await res.json();
+      if (!js || !js.sent) throw new Error('Telegramga yuborib bo\'lmadi');
 
       var tg = global.Telegram && global.Telegram.WebApp ? global.Telegram.WebApp : null;
       if (tg && tg.HapticFeedback && tg.HapticFeedback.notificationOccurred) {
         tg.HapticFeedback.notificationOccurred('success');
       }
+      showToast('✅ Demo PDF botga yuborildi. Chatda watermark bilan oching.', 'success');
+      setTimeout(function () {
+        try { if (tg && tg.close) tg.close(); } catch (_) {}
+      }, 900);
     } catch (e) {
       var msg = (e && e.message) ? String(e.message) : String(e);
-      alert('Test yuklash xato: ' + msg.slice(0, 180));
+      showToast('Test yuklash xato: ' + msg.slice(0, 180), 'error');
     } finally {
       _testDownloadBusy = false;
       if (btn) {

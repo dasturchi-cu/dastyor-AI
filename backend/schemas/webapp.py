@@ -200,3 +200,10 @@ class PreviewObyektivkaRequest(BaseModel):
     current_job_year: Optional[str] = None
     watermark: bool = True
     mask_pii: bool = True
+
+
+class TestObyektivkaPdfRequest(PreviewObyektivkaRequest):
+    telegram_id: Optional[int] = None
+    token: Optional[str] = None
+    init_data: Optional[str] = None
+    send_to_bot: bool = True

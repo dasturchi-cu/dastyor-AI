@@ -6,248 +6,207 @@
   <meta name="description" content="Dastyor AI — CV PDF va Obyektivka DOCX yaratish xizmati.">
   <meta name="theme-color" content="#2563eb">
   <title>Dastyor AI</title>
-  <link rel="preload" href="theme.css" as="style">
   <link rel="stylesheet" href="theme.css">
-  <link rel="prefetch" href="cv.html">
-  <link rel="prefetch" href="obyektivka.html">
+  <link rel="preload" href="app.js" as="script">
   <script src="https://telegram.org/js/telegram-web-app.js" defer></script>
   <script src="app.js" defer></script>
   <style>
-    :root {
-      --home-font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      --home-radius: 18px;
-      --home-radius-sm: 12px;
-      --home-accent: var(--da-primary);
-      --home-glass: rgba(255, 255, 255, 0.72);
-      --home-glass-border: rgba(255, 255, 255, 0.55);
-      --home-blob-1: rgba(37, 99, 235, 0.18);
-      --home-blob-2: rgba(14, 165, 233, 0.14);
-      --home-blob-3: rgba(99, 102, 241, 0.1);
-    }
-
-    html[data-theme="dark"] {
-      --home-glass: rgba(30, 41, 59, 0.78);
-      --home-glass-border: rgba(255, 255, 255, 0.1);
-      --home-blob-1: rgba(59, 130, 246, 0.22);
-      --home-blob-2: rgba(56, 189, 248, 0.12);
-      --home-blob-3: rgba(129, 140, 248, 0.14);
-    }
-
     body.home-page {
       margin: 0;
       min-height: 100dvh;
-      font-family: var(--home-font);
       background: var(--bg-color);
       color: var(--text-color);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       -webkit-font-smoothing: antialiased;
-      overflow-x: hidden;
-    }
-
-    .home-bg {
-      position: fixed;
-      inset: 0;
-      z-index: 0;
-      pointer-events: none;
-      overflow: hidden;
-    }
-
-    .home-bg::before {
-      content: "";
-      position: absolute;
-      inset: 0;
-      background:
-        radial-gradient(ellipse 80% 50% at 50% -10%, var(--home-blob-1), transparent 55%),
-        radial-gradient(ellipse 60% 40% at 100% 20%, var(--home-blob-2), transparent 50%),
-        radial-gradient(ellipse 50% 35% at 0% 80%, var(--home-blob-3), transparent 45%);
     }
 
     .home-shell {
-      position: relative;
-      z-index: 1;
-      max-width: 440px;
+      box-sizing: border-box;
+      max-width: 420px;
       margin: 0 auto;
       min-height: 100dvh;
-      padding: calc(12px + env(safe-area-inset-top, 0px)) 16px calc(24px + env(safe-area-inset-bottom, 0px));
+      padding:
+        calc(12px + env(safe-area-inset-top, 0px))
+        16px
+        calc(16px + env(safe-area-inset-bottom, 0px));
       display: flex;
       flex-direction: column;
     }
 
-    /* Brand bar */
-    .home-credits {
-      display: inline-flex;
+    .home-top {
+      display: flex;
       align-items: center;
-      gap: 6px;
-      margin-left: auto;
-      padding: 6px 11px;
-      border-radius: 999px;
-      font-size: 11px;
+      justify-content: space-between;
+      gap: 12px;
+      min-height: 40px;
+      margin-bottom: 16px;
+      flex-shrink: 0;
+    }
+
+    .home-title {
+      margin: 0;
+      font-size: 17px;
       font-weight: 800;
+      line-height: 1.2;
+      letter-spacing: -0.01em;
+    }
+
+    .home-credits {
+      font-size: 11px;
+      font-weight: 700;
+      line-height: 1;
       color: var(--da-primary);
       background: var(--da-blue-soft);
       border: 1px solid var(--da-blue-mid);
+      padding: 7px 10px;
+      border-radius: 8px;
       white-space: nowrap;
     }
 
-    .home-brand {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      margin-bottom: 20px;
-      animation: home-in 0.45s ease both;
+    .home-credits[hidden] { display: none !important; }
+
+    .home-credits--loading {
+      color: transparent;
+      background: linear-gradient(90deg, var(--da-blue-soft) 25%, #e8f0fe 50%, var(--da-blue-soft) 75%);
+      background-size: 200% 100%;
+      animation: homeCreditsShimmer 1s ease-in-out infinite;
+      min-width: 72px;
     }
 
-    .home-brand-mark {
-      width: 38px;
-      height: 38px;
-      border-radius: 11px;
-      background: linear-gradient(145deg, #3b82f6 0%, #1d4ed8 100%);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: #fff;
-      font-size: 15px;
+    @keyframes homeCreditsShimmer {
+      0% { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+
+    /* Yuqori — qisqa intro */
+    .home-intro {
+      flex-shrink: 0;
+      margin-bottom: 16px;
+    }
+
+    .home-intro h1 {
+      margin: 0 0 8px;
+      font-size: 22px;
       font-weight: 800;
-      letter-spacing: -0.03em;
-      box-shadow: 0 8px 20px rgba(37, 99, 235, 0.35);
-    }
-
-    .home-brand-text {
-      display: flex;
-      flex-direction: column;
-      gap: 1px;
-    }
-
-    .home-brand-text strong {
-      font-size: 15px;
-      font-weight: 800;
-      letter-spacing: 0.04em;
-      color: var(--text-color);
-    }
-
-    .home-brand-text span {
-      font-size: 11px;
-      font-weight: 600;
-      color: var(--text-muted);
-    }
-
-    /* Hero glass card */
-    .home-hero {
-      padding: 22px 20px;
-      border-radius: var(--home-radius);
-      background: var(--home-glass);
-      border: 1px solid var(--home-glass-border);
-      backdrop-filter: blur(20px) saturate(160%);
-      -webkit-backdrop-filter: blur(20px) saturate(160%);
-      box-shadow:
-        inset 0 1px 0 rgba(255, 255, 255, 0.45),
-        var(--da-shadow-sm);
-      margin-bottom: 14px;
-      animation: home-in 0.5s ease 0.05s both;
-    }
-
-    html[data-theme="dark"] .home-hero {
-      box-shadow:
-        inset 0 1px 0 rgba(255, 255, 255, 0.08),
-        var(--da-shadow-sm);
-    }
-
-    @media (prefers-reduced-transparency: reduce) {
-      .home-hero {
-        background: var(--card-color);
-        backdrop-filter: none;
-        -webkit-backdrop-filter: none;
-      }
-    }
-
-    .home-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 5px;
-      padding: 5px 11px;
-      border-radius: 999px;
-      font-size: 11px;
-      font-weight: 700;
-      background: var(--da-blue-soft);
-      color: var(--da-primary);
-      margin-bottom: 14px;
-      border: 1px solid var(--da-blue-mid);
-    }
-
-    .home-hero h1 {
-      margin: 0 0 6px;
-      font-size: 24px;
-      font-weight: 800;
-      letter-spacing: -0.03em;
       line-height: 1.2;
-      color: var(--text-color);
+      letter-spacing: -0.02em;
     }
 
-    .home-hero p {
+    .home-intro p {
       margin: 0;
       font-size: 14px;
       line-height: 1.45;
       color: var(--text-muted);
-      font-weight: 500;
     }
 
-    /* Feature chips */
-    .home-chips {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      margin-bottom: 16px;
-      animation: home-in 0.5s ease 0.1s both;
-    }
-
-    .home-chip {
-      display: inline-flex;
-      align-items: center;
-      gap: 5px;
-      padding: 7px 12px;
-      border-radius: 999px;
-      font-size: 12px;
-      font-weight: 700;
-      color: var(--text-muted);
-      background: var(--home-glass);
-      border: 1px solid var(--border-color);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-    }
-
-    .home-promo {
-      padding: 14px 16px;
-      border-radius: var(--home-radius-sm);
-      background: linear-gradient(135deg, rgba(37, 99, 235, 0.1) 0%, rgba(14, 165, 233, 0.08) 100%);
-      border: 1px solid var(--da-blue-mid);
-      margin-bottom: 14px;
-      animation: home-in 0.5s ease 0.12s both;
-    }
-
-    .home-promo-price {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
+    .home-free-tag {
+      display: inline-block;
+      margin-top: 10px;
       padding: 5px 10px;
-      border-radius: 999px;
-      font-size: 12px;
+      border-radius: 6px;
+      font-size: 11px;
       font-weight: 800;
-      color: #1d4ed8;
-      background: #fff;
-      border: 1px solid #bfdbfe;
-      margin-bottom: 10px;
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
+      color: #166534;
+      background: #ecfdf5;
+      border: 1px solid #86efac;
     }
 
-    html[data-theme="dark"] .home-promo-price {
-      background: rgba(30, 41, 59, 0.9);
-      color: #93c5fd;
-      border-color: rgba(59, 130, 246, 0.35);
+    html[data-theme="dark"] .home-free-tag {
+      color: #86efac;
+      background: rgba(22, 101, 52, 0.2);
+      border-color: rgba(134, 239, 172, 0.35);
     }
 
-    .home-promo p {
-      margin: 0 0 10px;
+    /* O'rta — xizmatlar */
+    .service-grid {
+      display: grid;
+      gap: 10px;
+      flex: 1 1 auto;
+      align-content: start;
+      min-height: 0;
+      margin-bottom: 16px;
+    }
+
+    .service-card {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-height: 64px;
+      padding: 12px 14px;
+      border-radius: 12px;
+      border: 1px solid var(--border-color);
+      background: var(--card-color);
+      text-decoration: none;
+      color: inherit;
+      box-sizing: border-box;
+    }
+
+    .service-card:active {
+      background: var(--da-bg-elevated);
+    }
+
+    .service-icon {
+      width: 28px;
+      font-size: 22px;
+      line-height: 1;
+      text-align: center;
+      flex-shrink: 0;
+    }
+
+    .service-meta {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .service-meta strong {
+      display: block;
+      font-size: 15px;
+      font-weight: 800;
+      line-height: 1.25;
+      margin-bottom: 2px;
+    }
+
+    .service-meta span {
+      display: block;
+      font-size: 12px;
+      line-height: 1.35;
+      color: var(--text-muted);
+    }
+
+    .service-arrow {
+      width: 24px;
+      font-size: 18px;
+      font-weight: 700;
+      line-height: 1;
+      text-align: center;
+      color: var(--da-primary);
+      flex-shrink: 0;
+    }
+
+    /* Past — qadamlar va narx */
+    .home-bottom {
+      flex-shrink: 0;
+      margin-top: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .home-guide {
+      padding: 14px;
+      border-radius: 12px;
+      background: var(--card-color);
+      border: 1px solid var(--border-color);
+      box-sizing: border-box;
+    }
+
+    .home-guide-title {
+      margin: 0 0 12px;
       font-size: 13px;
-      line-height: 1.45;
-      font-weight: 600;
+      font-weight: 800;
+      line-height: 1.2;
       color: var(--text-color);
     }
 
@@ -256,65 +215,63 @@
       padding: 0;
       list-style: none;
       display: grid;
-      gap: 6px;
-    }
-
-    .home-steps li {
-      font-size: 12px;
-      font-weight: 600;
-      color: var(--text-muted);
-      display: flex;
-      align-items: center;
       gap: 8px;
     }
 
+    .home-steps li {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      font-size: 13px;
+      line-height: 1.35;
+      color: var(--text-muted);
+    }
+
     .home-steps li span {
-      width: 20px;
-      height: 20px;
-      border-radius: 999px;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
       background: var(--da-primary);
       color: #fff;
       font-size: 11px;
       font-weight: 800;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
+      line-height: 22px;
+      text-align: center;
       flex-shrink: 0;
     }
 
-    .service-hot {
-      display: inline-block;
-      margin-left: 6px;
-      padding: 2px 7px;
-      border-radius: 999px;
-      font-size: 9px;
-      font-weight: 800;
-      letter-spacing: 0.03em;
-      text-transform: uppercase;
-      color: #b45309;
-      background: #fef3c7;
-      border: 1px solid #fde68a;
-      vertical-align: middle;
+    .home-steps li b {
+      color: var(--text-color);
+      font-weight: 700;
     }
 
-    html[data-theme="dark"] .service-hot {
-      color: #fcd34d;
-      background: rgba(180, 83, 9, 0.25);
-      border-color: rgba(251, 191, 36, 0.35);
+    .home-price {
+      margin: 12px 0 0;
+      padding: 10px 12px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 800;
+      line-height: 1.35;
+      color: #1d4ed8;
+      background: var(--da-blue-soft);
+      border: 1px solid var(--da-blue-mid);
+      text-align: center;
+    }
+
+    html[data-theme="dark"] .home-price {
+      color: #93c5fd;
     }
 
     .home-cta-nocredit {
-      margin-top: 12px;
-      padding: 12px 14px;
-      border-radius: var(--home-radius-sm);
+      padding: 10px 12px;
+      border-radius: 10px;
       font-size: 12px;
-      font-weight: 700;
+      font-weight: 600;
       line-height: 1.4;
       text-align: center;
       color: #991b1b;
       background: #fef2f2;
       border: 1px solid #fecaca;
-      animation: home-in 0.5s ease 0.28s both;
     }
 
     html[data-theme="dark"] .home-cta-nocredit {
@@ -325,200 +282,67 @@
 
     .home-cta-nocredit[hidden] { display: none !important; }
 
-    /* Service cards */
-    .service-grid {
-      display: grid;
-      gap: 10px;
-      flex: 1;
-    }
-
-    .service-card {
-      display: flex;
-      align-items: center;
-      gap: 14px;
-      padding: 16px 16px 16px 14px;
-      border-radius: var(--home-radius);
-      border: 1px solid var(--home-glass-border);
-      background: var(--home-glass);
-      backdrop-filter: blur(18px) saturate(150%);
-      -webkit-backdrop-filter: blur(18px) saturate(150%);
-      text-decoration: none;
-      color: inherit;
-      box-shadow:
-        inset 0 1px 0 rgba(255, 255, 255, 0.4),
-        var(--da-shadow-xs);
-      transition: transform 0.18s ease, box-shadow 0.18s ease;
-      animation: home-in 0.5s ease both;
-    }
-
-    .service-card:nth-child(1) { animation-delay: 0.15s; }
-    .service-card:nth-child(2) { animation-delay: 0.22s; }
-
-    .service-card:active {
-      transform: scale(0.98);
-      box-shadow: var(--da-shadow-xs);
-    }
-
-    html[data-theme="dark"] .service-card {
-      box-shadow:
-        inset 0 1px 0 rgba(255, 255, 255, 0.06),
-        var(--da-shadow-xs);
-    }
-
-    @media (prefers-reduced-transparency: reduce) {
-      .service-card, .home-chip {
-        background: var(--card-color);
-        backdrop-filter: none;
-        -webkit-backdrop-filter: none;
-      }
-    }
-
-    .service-icon-wrap {
-      width: 46px;
-      height: 46px;
-      border-radius: var(--home-radius-sm);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 22px;
-      flex-shrink: 0;
-    }
-
-    .service-icon-wrap.cv {
-      background: linear-gradient(145deg, rgba(37, 99, 235, 0.15), rgba(37, 99, 235, 0.06));
-      border: 1px solid rgba(37, 99, 235, 0.2);
-    }
-
-    .service-icon-wrap.oby {
-      background: linear-gradient(145deg, rgba(14, 165, 233, 0.15), rgba(14, 165, 233, 0.06));
-      border: 1px solid rgba(14, 165, 233, 0.22);
-    }
-
-    .service-meta {
-      flex: 1;
-      min-width: 0;
-    }
-
-    .service-meta strong {
-      display: block;
-      font-size: 16px;
-      font-weight: 800;
-      letter-spacing: -0.02em;
-      margin-bottom: 3px;
-      color: var(--text-color);
-    }
-
-    .service-meta span {
-      display: block;
-      font-size: 12px;
-      font-weight: 600;
-      color: var(--text-muted);
-      line-height: 1.35;
-    }
-
-    .service-arrow {
-      width: 32px;
-      height: 32px;
-      border-radius: 10px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: var(--da-blue-soft);
-      color: var(--da-primary);
-      font-size: 16px;
-      font-weight: 800;
-      flex-shrink: 0;
-    }
-
-    /* Footer */
     .home-footer {
-      margin-top: auto;
-      padding-top: 28px;
       text-align: center;
-      animation: home-in 0.5s ease 0.3s both;
-    }
-
-    .home-footer span {
       font-size: 12px;
-      font-weight: 600;
+      line-height: 1.2;
       color: var(--text-muted);
-      opacity: 0.7;
-    }
-
-    @keyframes home-in {
-      from { opacity: 0; transform: translateY(10px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-
-    @media (prefers-reduced-motion: reduce) {
-      .home-brand, .home-hero, .home-chips, .service-card, .home-footer {
-        animation: none;
-      }
-      .service-card:active { transform: none; }
+      padding-top: 4px;
     }
   </style>
 </head>
 <body class="home-page" data-disable-mobile-nav="true">
-  <div class="home-bg" aria-hidden="true"></div>
-
   <div class="home-shell">
-    <header class="home-brand">
-      <div class="home-brand-mark" aria-hidden="true">DA</div>
-      <div class="home-brand-text">
-        <strong>DASTYOR AI</strong>
-        <span>CV PDF · Obyektivka DOCX</span>
-      </div>
-      <span class="home-credits" id="homeCredits" hidden>💳 —</span>
+    <header class="home-top">
+      <p class="home-title">Dastyor AI</p>
+      <span class="home-credits home-credits--loading" id="homeCredits">💳</span>
     </header>
 
-    <section class="home-hero">
-      <div class="home-badge">⚡ AI Voice Fill</div>
+    <section class="home-intro">
       <h1 id="welcomeTitle">Salom 👋</h1>
-      <p>Ovoz yuboring — AI to'ldiradi. 2–3 daqiqada professional hujjat.</p>
+      <p>Ovoz yoki matn yuboring — AI formani to'ldiradi.</p>
+      <span class="home-free-tag">Ovoz va matn — bepul</span>
     </section>
-
-    <section class="home-promo" aria-label="Qanday ishlaydi">
-      <div class="home-promo-price" id="homePriceTag">💰 7 999 so'm = 1 hujjat</div>
-      <p>Pul balansingizda qoladi — CV yoki Obyektivka tanlaysiz.</p>
-      <ol class="home-steps">
-        <li><span>1</span> Ovoz yoki matn yuboring</li>
-        <li><span>2</span> AI formani to'ldiradi</li>
-        <li><span>3</span> PDF / Word yuklab oling</li>
-      </ol>
-    </section>
-
-    <div class="home-chips" aria-label="Xususiyatlar">
-      <span class="home-chip">🎙 Ovoz bilan</span>
-      <span class="home-chip">📄 CV PDF</span>
-      <span class="home-chip">📋 DOCX</span>
-    </div>
 
     <nav class="service-grid" aria-label="Xizmatlar">
       <a class="service-card" href="cv.html" id="linkCv">
-        <div class="service-icon-wrap cv" aria-hidden="true">📄</div>
+        <span class="service-icon" aria-hidden="true">📄</span>
         <div class="service-meta">
           <strong>CV Resume</strong>
-          <span>PDF · Ish beruvchilar uchun · Ovoz yoki forma</span>
+          <span>PDF · Ovoz yoki forma</span>
         </div>
         <span class="service-arrow" aria-hidden="true">→</span>
       </a>
       <a class="service-card" href="obyektivka.html?voice=1" id="linkOby">
-        <div class="service-icon-wrap oby" aria-hidden="true">📋</div>
+        <span class="service-icon" aria-hidden="true">📋</span>
         <div class="service-meta">
-          <strong>Obyektivka <span class="service-hot">Mashhur</span></strong>
-          <span>Word (.docx) · Ovoz → AI · 3 daqiqada tayyor</span>
+          <strong>Obyektivka</strong>
+          <span>Word · Ovoz bilan tez to'ldirish</span>
         </div>
         <span class="service-arrow" aria-hidden="true">→</span>
       </a>
     </nav>
 
-    <div class="home-cta-nocredit" id="homeNoCreditCta" hidden>
-      💳 Hozir pul yo'q — xizmatni tanlang, to'lov qiling va hujjatni yuklab oling.
-    </div>
+    <div class="home-bottom">
+      <section class="home-guide" aria-label="Qanday ishlaydi">
+        <p class="home-guide-title">Qanday ishlaydi</p>
+        <ol class="home-steps">
+          <li><span>1</span><span><b>Ovoz yoki matn</b> — bepul</span></li>
+          <li><span>2</span><span><b>AI to'ldiradi</b> — bepul</span></li>
+          <li><span>3</span><span><b>Test yuklash</b> — bepul (watermark bilan)</span></li>
+          <li><span>4</span><span><b>Tayyor fayl</b> — to'lov kerak</span></li>
+        </ol>
+        <p class="home-price" id="homePriceTag">💰 Tayyor fayl: 7 999 so'm</p>
+      </section>
 
-    <footer class="home-footer">
-      <span>@DastyorAiBot</span>
-    </footer>
+      <div class="home-cta-nocredit" id="homeNoCreditCta" hidden>
+        💳 Tayyor fayl uchun to'lov qiling yoki oldin to'langan hujjatdan foydalaning.
+      </div>
+
+      <footer class="home-footer">
+        <span>@DastyorAiBot</span>
+      </footer>
+    </div>
   </div>
 
   <script>
@@ -558,8 +382,9 @@
 
       function showCredits(n) {
         if (!creditsEl) return;
+        creditsEl.classList.remove('home-credits--loading');
         creditsEl.hidden = false;
-        creditsEl.textContent = '💳 ' + n + ' ta hujjat (pul)';
+        creditsEl.textContent = '💳 ' + n + ' ta tayyor';
         if (noCreditEl) noCreditEl.hidden = Number(n) > 0;
       }
 
@@ -568,7 +393,7 @@
         var p = Number(amount);
         if (!p) return;
         var formatted = p.toLocaleString('fr-FR').replace(/\u202f/g, ' ').replace(/,/g, ' ');
-        priceTagEl.textContent = '💰 ' + formatted + " so'm = 1 hujjat";
+        priceTagEl.textContent = '💰 Tayyor fayl: ' + formatted + " so'm";
       }
 
       document.addEventListener('DOMContentLoaded', function () {

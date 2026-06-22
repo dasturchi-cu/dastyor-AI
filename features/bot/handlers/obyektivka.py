@@ -19,7 +19,7 @@ from features.bot.handlers.start import WELCOME
 from features.obyektivka import service as oby_service
 from shared.ai_errors import AI_QUOTA_USER_MSG, AiQuotaError
 from shared.async_db import run as db_run
-from shared.keyboards import BTN_BACK, BTN_OBY, back_menu, open_oby_preview_inline, user_menu
+from shared.keyboards import BTN_BACK, BTN_OBY, back_menu, is_menu_button, open_oby_preview_inline, user_menu
 from shared.marketing import cross_sell_cv_line, oby_intro_hook
 from shared.progress import STEP_AI, STEP_AUDIO, STEP_EXTRACTED, STEP_READY, telegram_message
 from shared.telegram_progress import set_step
@@ -207,11 +207,20 @@ async def obyektivka_text(message: Message, bot: Bot, state: FSMContext) -> None
         return
     if message.text == BTN_BACK or message.text.casefold() == "bekor":
         return
+    if is_menu_button(message.text):
+        from features.bot.handlers.start import menu_from_flow_waiting
+
+        await menu_from_flow_waiting(message, state)
+        return
     await _delete_waiting_prompt(bot, state)
-    status = await message.answer("⏳ Matn tahlil qilinmoqda...")
+    status = await message.answer("✅ Matn qabul qilindi\n⏳ AI tahlil qilmoqda...")
     uid = message.from_user.id if message.from_user else 0
+    asyncio.create_task(_handle_oby_text_flow(message.text or "", status, uid, state))
+
+
+async def _handle_oby_text_flow(text: str, status: Message, uid: int, state: FSMContext) -> None:
     try:
-        transcript, data, missing = await process_text_for_obyektivka(message.text or "")
+        transcript, data, missing = await process_text_for_obyektivka(text)
         if not data or not data.get("fullname"):
             await status.edit_text(
                 "❌ Ma'lumotlarni ajratib bo'lmadi.\n"
@@ -219,7 +228,7 @@ async def obyektivka_text(message: Message, bot: Bot, state: FSMContext) -> None
             )
             return
         await db_run(oby_service.save_pending, uid, data)
-        await db_run(sessions_repo.create_session, uid, "oby_text", transcript, data)
+        await db_run(sessions_repo.create_session, uid, "oby_voice", transcript, data)
         await state.clear()
         filled = max(10, min(95, 100 - len(missing) * 8))
         fn = data.get("fullname") or ""

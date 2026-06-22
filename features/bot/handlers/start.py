@@ -8,7 +8,8 @@ from aiogram.types import Message
 
 from config.settings import settings
 from database.repositories import users as users_repo
-from features.bot.states import CvStates
+from features.bot.states import CvStates, ObyektivkaStates
+from shared.async_db import run as db_run
 from shared.marketing import cv_intro_header, welcome_message
 from shared.keyboards import (
     BTN_BACK,
@@ -16,7 +17,10 @@ from shared.keyboards import (
     BTN_CV,
     BTN_HELP,
     BTN_OBY,
+    LEGACY_BTN_CREDITS,
     back_menu,
+    is_credits_button,
+    is_menu_button,
     open_webapp_inline,
     user_menu,
 )
@@ -43,7 +47,8 @@ async def cmd_start(message: Message, state: FSMContext) -> None:
     await state.clear()
     user = message.from_user
     if user:
-        users_repo.upsert_user(
+        await db_run(
+            users_repo.upsert_user,
             user.id,
             username=user.username,
             first_name=user.first_name,
@@ -56,6 +61,26 @@ async def cmd_start(message: Message, state: FSMContext) -> None:
 @router.message(F.text == BTN_HELP)
 async def cmd_help(message: Message) -> None:
     await message.answer(HELP_TEXT, reply_markup=user_menu())
+
+
+@router.message(CvStates.waiting_input, F.text.func(is_menu_button))
+@router.message(ObyektivkaStates.waiting_voice, F.text.func(is_menu_button))
+async def menu_from_flow_waiting(message: Message, state: FSMContext) -> None:
+    """CV/Obyektivka kutish holatida menyu tugmalari — matn to'ldirish emas."""
+    await state.clear()
+    text = message.text or ""
+    if is_credits_button(text):
+        await show_credits(message)
+    elif text == BTN_CV:
+        await cv_intro(message, state)
+    elif text == BTN_OBY:
+        from features.bot.handlers.obyektivka import obyektivka_start
+
+        await obyektivka_start(message, state)
+    elif text == BTN_HELP:
+        await cmd_help(message)
+    elif text == BTN_BACK:
+        await menu_back(message, state)
 
 
 @router.message(F.text == BTN_CV)
@@ -77,13 +102,14 @@ async def menu_back(message: Message, state: FSMContext) -> None:
 
 
 @router.message(F.text == BTN_CREDITS)
+@router.message(F.text.in_(LEGACY_BTN_CREDITS))
 async def show_credits(message: Message) -> None:
     uid = message.from_user.id if message.from_user else 0
-    status = users_repo.get_credits(uid)
+    status = await db_run(users_repo.get_credits, uid)
     await message.answer(
-        f"💳 <b>Pul balansi:</b> {status} ta hujjat\n"
-        f"ℹ️ Har biri <b>CV yoki Obyektivka</b> uchun\n"
-        f"💰 Narx: <b>{settings.single_doc_price_uzs:,} so'm</b> = 1 ta hujjat\n"
+        f"💳 <b>To'langan hujjatlar:</b> {status} ta\n"
+        f"ℹ️ Ovoz va matn to'ldirish — <b>bepul</b>\n"
+        f"💰 Tayyor fayl: <b>{settings.single_doc_price_uzs:,} so'm</b> (1 ta)\n"
         f"Karta: <code>{settings.payment_card_number}</code>\n"
         f"Egasi: {settings.payment_card_owner}\n\n"
         "To'lov chekini WebApp orqali yuboring.",

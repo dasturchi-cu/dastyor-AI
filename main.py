@@ -37,8 +37,8 @@ def create_dispatcher() -> Dispatcher:
     storage = _create_fsm_storage()
     dp = Dispatcher(storage=storage)
     dp.include_router(admin_handlers.router)
-    dp.include_router(obyektivka_handlers.router)
     dp.include_router(start_handlers.router)
+    dp.include_router(obyektivka_handlers.router)
     dp.include_router(voice_handlers.router)
     return dp
 

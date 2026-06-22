@@ -13,6 +13,7 @@ from database.repositories import generated_files as files_repo
 from database.repositories import payments as payments_repo
 from database.repositories import users as users_repo
 from features.payment import service as payment_service
+from shared.async_db import run as db_run
 from shared.keyboards import (
     ADMIN_BTN_CLOSE,
     ADMIN_BTN_FILES,
@@ -145,7 +146,7 @@ async def payment_callback(query: CallbackQuery) -> None:
         await query.answer("Faqat admin.", show_alert=True)
         return
 
-    await query.answer("⏳")
+    await query.answer()
 
     parts = (query.data or "").split("_")
     if len(parts) != 3:
@@ -162,10 +163,10 @@ async def payment_callback(query: CallbackQuery) -> None:
         return
 
     if action == "approve":
-        result = payment_service.approve_payment(pid)
+        result = await db_run(payment_service.approve_payment, pid)
         if result:
             tid = int(result["telegram_id"])
-            credits = users_repo.get_credits(tid)
+            credits = await db_run(users_repo.get_credits, tid)
             await _update_payment_review_message(
                 query.message,
                 f"✅ To'lov #{pid} tasdiqlandi.\n"
@@ -180,9 +181,9 @@ async def payment_callback(query: CallbackQuery) -> None:
         elif query.message:
             await query.message.reply("Tasdiqlash xatosi.")
     else:
-        ok = payment_service.reject_payment(pid)
+        ok = await db_run(payment_service.reject_payment, pid)
         if ok:
-            payment = payments_repo.get_payment(pid)
+            payment = await db_run(payments_repo.get_payment, pid)
             await _update_payment_review_message(
                 query.message,
                 f"❌ To'lov #{pid} rad etildi.",

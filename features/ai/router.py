@@ -25,10 +25,40 @@ logger = logging.getLogger(__name__)
 router = APIRouter(tags=["ai"])
 
 
+def _write_bytes(path: str, data: bytes) -> None:
+    with open(path, "wb") as fh:
+        fh.write(data)
+
+
 class TextFillRequest(BaseModel):
     telegram_id: int | None = None
     token: str | None = None
     text: str = ""
+
+
+async def _run_cv_text_job(job_id: str, uid: int, text: str) -> None:
+    try:
+        voice_jobs.set_step(job_id, 2)
+        transcript, data, missing = await process_text_for_cv(text)
+        if not data or len(missing) > 6:
+            voice_jobs.fail_job(job_id, "CV uchun yetarli ma'lumot topilmadi")
+            return
+        await async_db.run(cv_service.save_user_data, uid, data)
+        await async_db.run(sessions_repo.create_session, uid, "cv_voice", transcript, data)
+        saved = await async_db.run(cv_service.get_saved_data, uid) or data
+        voice_jobs.complete_job(
+            job_id,
+            saved,
+            missing,
+            max(10, 100 - len(missing) * 12),
+            transcript=transcript,
+        )
+    except AiQuotaError:
+        logger.exception("cv text job %s quota", job_id)
+        voice_jobs.fail_job(job_id, AI_QUOTA_USER_MSG)
+    except Exception as e:
+        logger.exception("cv text job %s failed", job_id)
+        voice_jobs.fail_job(job_id, str(e)[:200])
 
 
 async def _run_cv_voice_job(job_id: str, uid: int, temp_path: str) -> None:
@@ -78,8 +108,7 @@ async def api_cv_voice_fill(
     os.makedirs("temp", exist_ok=True)
     ext = os.path.splitext(audio.filename or "")[1] or ".ogg"
     temp_path = os.path.join("temp", f"cv_voice_{uid}_{uuid.uuid4().hex[:8]}{ext}")
-    with open(temp_path, "wb") as fh:
-        fh.write(raw)
+    await asyncio.to_thread(_write_bytes, temp_path, raw)
 
     job_id = voice_jobs.create_job(uid, "cv")
     asyncio.create_task(_run_cv_voice_job(job_id, uid, temp_path))
@@ -112,20 +141,10 @@ async def api_cv_text_fill(body: TextFillRequest, request: Request) -> dict:
     )
     if not uid:
         raise HTTPException(status_code=401, detail="Foydalanuvchi aniqlanmadi")
+    text = (body.text or "").strip()
+    if not text:
+        raise HTTPException(status_code=400, detail="Matn bo'sh")
 
-    try:
-        transcript, data, missing = await process_text_for_cv(body.text)
-    except AiQuotaError as e:
-        raise HTTPException(status_code=503, detail=AI_QUOTA_USER_MSG) from e
-    if not data or len(missing) > 6:
-        raise HTTPException(status_code=422, detail="CV uchun yetarli ma'lumot topilmadi")
-    cv_service.save_user_data(uid, data)
-    sessions_repo.create_session(uid, "cv_text", transcript, data)
-    saved = cv_service.get_saved_data(uid) or data
-    return {
-        "ok": True,
-        "data": saved,
-        "transcript": transcript[:1200],
-        "missing_fields": missing,
-        "fill_percent": max(10, 100 - len(missing) * 12),
-    }
+    job_id = voice_jobs.create_job(uid, "cv")
+    asyncio.create_task(_run_cv_text_job(job_id, uid, text))
+    return {"ok": True, "job_id": job_id, "step": 1, "status": "running"}

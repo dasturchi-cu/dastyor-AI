@@ -47,6 +47,8 @@ def _apply_migrations(conn: sqlite3.Connection) -> None:
             ON ai_sessions(user_id, session_type, created_at DESC);
         CREATE INDEX IF NOT EXISTS idx_users_telegram ON users(telegram_id);
         CREATE INDEX IF NOT EXISTS idx_payments_user_status ON payments(user_id, status);
+        CREATE INDEX IF NOT EXISTS idx_payments_created ON payments(created_at DESC);
+        CREATE INDEX IF NOT EXISTS idx_generated_files_created ON generated_files(created_at DESC);
         """
     )
 

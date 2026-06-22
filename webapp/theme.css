@@ -378,6 +378,21 @@ input::placeholder, textarea::placeholder { color: var(--text-muted); }
     border-radius: 14px;
     margin: 12px 0;
 }
+
+button.da-tap-active,
+a.da-tap-active,
+.btn.da-tap-active,
+[role="button"].da-tap-active {
+    transform: scale(0.97);
+    opacity: 0.92;
+    transition: transform 0.08s ease, opacity 0.08s ease;
+}
+
+.service-card.da-tap-active {
+    transform: scale(0.98);
+    box-shadow: 0 0 0 2px var(--da-blue-mid);
+}
+
 .da-empty-state {
     text-align: center;
     padding: 32px 20px;

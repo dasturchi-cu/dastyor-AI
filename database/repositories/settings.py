@@ -1,7 +1,12 @@
 """App settings repository."""
 from __future__ import annotations
 
+import time
+
 from database.connection import get_connection
+
+_MAINT_CACHE: dict[str, float | bool] = {"v": False, "ts": 0.0}
+_MAINT_TTL = 5.0
 
 
 def get(key: str, default: str = "") -> str:
@@ -19,7 +24,15 @@ def set_value(key: str, value: str) -> None:
             """,
             (key, value),
         )
+    if key == "maintenance_mode":
+        _MAINT_CACHE["ts"] = 0.0
 
 
 def is_maintenance() -> bool:
-    return get("maintenance_mode", "0").strip() in ("1", "true", "yes")
+    now = time.monotonic()
+    if now - float(_MAINT_CACHE["ts"]) < _MAINT_TTL:
+        return bool(_MAINT_CACHE["v"])
+    v = get("maintenance_mode", "0").strip().lower() in ("1", "true", "yes")
+    _MAINT_CACHE["v"] = v
+    _MAINT_CACHE["ts"] = now
+    return v

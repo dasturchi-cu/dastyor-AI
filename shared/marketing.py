@@ -20,11 +20,12 @@ def welcome_message() -> str:
         "🎯 <b>3 qadamda tayyor:</b>\n"
         "1️⃣ Ovoz yoki matn yuboring\n"
         "2️⃣ AI formani to'ldiradi\n"
-        "3️⃣ PDF yoki Word yuklab oling\n\n"
+        "3️⃣ Test yuklash — bepul (watermark)\n"
+        "4️⃣ Tayyor fayl — to'lov kerak\n\n"
         "📄 <b>CV Resume</b> — zamonaviy PDF (ish beruvchilar uchun)\n"
         "✍️ <b>Obyektivka</b> — rasmiy Word (.docx)\n\n"
-        f"💰 <b>{p} so'm</b> = 1 hujjat · pul balansingizda qoladi\n"
-        "⭐ Ovoz bilan 2–3 daqiqada — qo'lda yozish shart emas\n\n"
+        f"💰 <b>Tayyor fayl:</b> {p} so'm (1 ta hujjat)\n"
+        "🎙 Ovoz va matn to'ldirish — <b>bepul</b>\n\n"
         "👇 Qaysi hujjat kerak?"
     )
 
@@ -41,9 +42,8 @@ def cv_intro_header() -> str:
 
 
 def oby_intro_hook() -> str:
-    p = format_price_uzs()
     return (
-        f"⭐ <b>Eng tez yo'l:</b> ovoz yuboring — AI to'ldiradi ({p} so'm = 1 hujjat)\n\n"
+        "🎙 <b>Ovoz va matn — bepul.</b> Tayyor Word fayl uchun to'lov kerak.\n\n"
     )
 
 
@@ -59,7 +59,7 @@ def payment_approved_message(credits: int) -> str:
     p = format_price_uzs()
     return (
         "✅ <b>To'lovingiz tasdiqlandi!</b>\n\n"
-        f"💳 Pul balansi: <b>{credits}</b> ta hujjat\n"
-        f"ℹ️ Har biri <b>{p} so'm</b> — CV <b>yoki</b> Obyektivka.\n\n"
+        f"💳 Oldin to'langan: <b>{credits}</b> ta tayyor hujjat\n"
+        f"ℹ️ Yangi tayyor fayl: <b>{p} so'm</b> (CV yoki Obyektivka).\n\n"
         "👇 Hujjatni tanlang va yaratishni boshlang:"
     )

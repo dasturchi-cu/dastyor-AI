@@ -36,6 +36,18 @@ def _spa_entry_fallback_path(path: str) -> bool:
 
 def register_webapp_middleware(app: FastAPI) -> None:
     @app.middleware("http")
+    async def cache_static_webapp_assets(request: Request, call_next: Callable):
+        response = await call_next(request)
+        if request.method != "GET":
+            return response
+        path = request.url.path.lower()
+        if not path.startswith("/webapp/"):
+            return response
+        if path.endswith((".js", ".css", ".woff2", ".woff", ".png", ".jpg", ".jpeg", ".webp", ".svg", ".ico")):
+            response.headers.setdefault("Cache-Control", "public, max-age=86400, immutable")
+        return response
+
+    @app.middleware("http")
     async def log_webapp_gets(request: Request, call_next: Callable):
         if request.method == "GET" and request.url.path.lower().startswith("/webapp"):
             response = await call_next(request)

@@ -15,28 +15,10 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&family=Sora:wght@600;700&display=swap" rel="stylesheet" />
   
-  <link rel="prefetch" href="obyektivka.html">
+  <link rel="preload" href="app.js" as="script" />
   <script src="https://telegram.org/js/telegram-web-app.js" defer></script>
   <script src="app.js" defer></script>
-  <script defer src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          fontFamily: {
-            sans: ['Plus Jakarta Sans', 'sans-serif'],
-            display: ['Sora', 'sans-serif'],
-          },
-          colors: {
-            brand: {
-              50: '#eff6ff', 100: '#dbeafe', 200: '#bfdbfe', 300: '#93c5fd',
-              400: '#60a5fa', 500: '#3b82f6', 600: '#2563eb', 700: '#1d4ed8',
-            }
-          }
-        }
-      }
-    }
-  </script>
+  <script defer src="https://cdn.tailwindcss.com" onload="(function(){try{if(window.tailwind){tailwind.config={theme:{extend:{fontFamily:{sans:['Plus Jakarta Sans','sans-serif'],display:['Sora','sans-serif']},colors:{brand:{50:'#eff6ff',100:'#dbeafe',200:'#bfdbfe',300:'#93c5fd',400:'#60a5fa',500:'#3b82f6',600:'#2563eb',700:'#1d4ed8'}}}}}};}catch(_){}})()"></script>
 
   <style>
     * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
@@ -114,7 +96,7 @@
     
     .entry-card { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px; padding: 16px; margin-bottom: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
     
-    .cv-canvas-wrapper { position: relative; transform-origin: top center; transition: transform 0.2s ease-out; }
+    .cv-canvas-wrapper { position: relative; transform-origin: top center; transition: transform 0.2s ease-out; min-height: 280px; }
     .cv-canvas { width: 210mm; min-height: 297mm; background: #fff; box-shadow: 0 10px 30px rgba(0,0,0,0.1); margin: 0 auto; overflow: visible; }
 
     /* Preview: avoid fixed 800px on small screens */
@@ -345,35 +327,35 @@
         <p class="cv-tpl-label">Shablon tanlang</p>
         <div class="cv-tpl-scroll grid grid-cols-4 sm:grid-cols-8 gap-3">
           <div class="tpl-card tpl-active aspect-[1/1.3] rounded-xl flex flex-col items-center" onclick="setTpl('minimal')" id="tpl-minimal">
-            <img src="https://i.postimg.cc/02nFbRTH/Screenshot-20260316-050751-WPS-Office.jpg" class="w-full h-full object-cover" alt="Minimal">
+            <img src="https://i.postimg.cc/02nFbRTH/Screenshot-20260316-050751-WPS-Office.jpg" class="w-full h-full object-cover" loading="lazy" decoding="async" alt="Minimal">
             <div class="tpl-name">Minimal</div>
           </div>
           <div class="tpl-card aspect-[1/1.3] rounded-xl flex flex-col items-center" onclick="setTpl('split')" id="tpl-split">
-            <img src="https://i.postimg.cc/xdhGkWZb/Screenshot-20260316-050655-WPS-Office.jpg" class="w-full h-full object-cover" alt="Split">
+            <img src="https://i.postimg.cc/xdhGkWZb/Screenshot-20260316-050655-WPS-Office.jpg" class="w-full h-full object-cover" loading="lazy" decoding="async" alt="Split">
             <div class="tpl-name">Split</div>
           </div>
           <div class="tpl-card aspect-[1/1.3] rounded-xl flex flex-col items-center" onclick="setTpl('modern')" id="tpl-modern">
-            <img src="https://i.postimg.cc/hjJc0PB9/Screenshot-20260316-102843-WPS-Office.jpg" class="w-full h-full object-cover" alt="Modern">
+            <img src="https://i.postimg.cc/hjJc0PB9/Screenshot-20260316-102843-WPS-Office.jpg" class="w-full h-full object-cover" loading="lazy" decoding="async" alt="Modern">
             <div class="tpl-name">Modern</div>
           </div>
           <div class="tpl-card aspect-[1/1.3] rounded-xl flex flex-col items-center" onclick="setTpl('ats')" id="tpl-ats">
-            <img src="https://i.postimg.cc/pTvT1ChK/Screenshot-20260316-050609-WPS-Office.jpg" class="w-full h-full object-cover" alt="ATS">
+            <img src="https://i.postimg.cc/pTvT1ChK/Screenshot-20260316-050609-WPS-Office.jpg" class="w-full h-full object-cover" loading="lazy" decoding="async" alt="ATS">
             <div class="tpl-name">ATS</div>
           </div>
           <div class="tpl-card aspect-[1/1.3] rounded-xl flex flex-col items-center" onclick="setTpl('elegant')" id="tpl-elegant">
-            <img src="https://i.postimg.cc/j5nXZsfH/Screenshot-20260316-050836-WPS-Office.jpg" class="w-full h-full object-cover" alt="Elegant">
+            <img src="https://i.postimg.cc/j5nXZsfH/Screenshot-20260316-050836-WPS-Office.jpg" class="w-full h-full object-cover" loading="lazy" decoding="async" alt="Elegant">
             <div class="tpl-name">Elegant</div>
           </div>
           <div class="tpl-card aspect-[1/1.3] rounded-xl flex flex-col items-center" onclick="setTpl('corporate')" id="tpl-corporate">
-            <img src="https://i.postimg.cc/8PX7PL91/Screenshot-20260316-050001-WPS-Office.jpg" class="w-full h-full object-cover" alt="Corporate">
+            <img src="https://i.postimg.cc/8PX7PL91/Screenshot-20260316-050001-WPS-Office.jpg" class="w-full h-full object-cover" loading="lazy" decoding="async" alt="Corporate">
             <div class="tpl-name">Corporate</div>
           </div>
           <div class="tpl-card aspect-[1/1.3] rounded-xl flex flex-col items-center" onclick="setTpl('creative')" id="tpl-creative">
-            <img src="https://i.postimg.cc/2ST259mr/Screenshot-20260316-050942-WPS-Office.jpg" class="w-full h-full object-cover" alt="Creative">
+            <img src="https://i.postimg.cc/2ST259mr/Screenshot-20260316-050942-WPS-Office.jpg" class="w-full h-full object-cover" loading="lazy" decoding="async" alt="Creative">
             <div class="tpl-name">Creative</div>
           </div>
           <div class="tpl-card aspect-[1/1.3] rounded-xl flex flex-col items-center" onclick="setTpl('prof')" id="tpl-prof">
-            <img src="https://i.postimg.cc/3w15YFfC/Screenshot-20260316-052841-WPS-Office.jpg" class="w-full h-full object-cover" alt="Prof">
+            <img src="https://i.postimg.cc/3w15YFfC/Screenshot-20260316-052841-WPS-Office.jpg" class="w-full h-full object-cover" loading="lazy" decoding="async" alt="Prof">
             <div class="tpl-name">Prof</div>
           </div>
         </div>
@@ -460,7 +442,7 @@
         </div>
         
         <div class="mt-6 flex justify-end">
-          <button onclick="setStep(2)" class="btn-primary px-8 py-3 rounded-xl font-bold text-sm flex items-center gap-2"><span data-i18n="next_btn">Keyingisi</span> <span class="hyper-emoji text-lg">➡️</span></button>
+          <button type="button" onclick="setStep(2)" class="btn-primary px-8 py-3 rounded-xl font-bold text-sm flex items-center gap-2"><span data-i18n="next_btn">Keyingisi</span> <span class="hyper-emoji text-lg">➡️</span></button>
         </div>
       </div>
 
@@ -478,8 +460,8 @@
         <button onclick="addLang()" class="w-full py-3 border-2 border-dashed border-blue-300 text-blue-600 bg-blue-50 rounded-xl font-bold text-sm hover:bg-blue-100 transition-colors" data-i18n="add_lang">+ Til qo'shish</button>
 
         <div class="mt-8 flex justify-between">
-          <button onclick="setStep(1)" class="px-6 py-3 bg-white border border-slate-200 text-slate-600 rounded-xl font-bold text-sm" data-i18n="back_btn">Orqaga</button>
-          <button onclick="setStep(3)" class="btn-primary px-8 py-3 rounded-xl font-bold text-sm flex items-center gap-2"><span data-i18n="next_btn">Keyingisi</span> ➡️</button>
+          <button type="button" onclick="setStep(1)" class="px-6 py-3 bg-white border border-slate-200 text-slate-600 rounded-xl font-bold text-sm" data-i18n="back_btn">Orqaga</button>
+          <button type="button" onclick="setStep(3)" class="btn-primary px-8 py-3 rounded-xl font-bold text-sm flex items-center gap-2"><span data-i18n="next_btn">Keyingisi</span> ➡️</button>
         </div>
       </div>
 
@@ -512,7 +494,7 @@
         </div>
 
         <div class="mt-8 flex justify-between items-center border-t border-slate-200 pt-6">
-          <button onclick="setStep(2)" class="px-6 py-3 bg-white border border-slate-200 text-slate-600 rounded-xl font-bold text-sm" data-i18n="back_btn">Orqaga</button>
+          <button type="button" onclick="setStep(2)" class="px-6 py-3 bg-white border border-slate-200 text-slate-600 rounded-xl font-bold text-sm" data-i18n="back_btn">Orqaga</button>
         </div>
       </div>
     </div>
@@ -879,12 +861,16 @@
 
     // --- STEPS LOGIC ---
     function setStep(num) {
-      document.querySelectorAll('.step-content').forEach(el => el.classList.remove('active'));
-      document.querySelectorAll('.step-btn').forEach(el => el.classList.remove('active'));
-      document.getElementById('step-' + num).classList.add('active');
-      document.getElementById('btn-step-' + num).classList.add('active');
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      const n = Number(num) || 1;
+      document.querySelectorAll('.step-content').forEach(function (el) { el.classList.remove('active'); });
+      document.querySelectorAll('.step-btn').forEach(function (el) { el.classList.remove('active'); });
+      const stepEl = document.getElementById('step-' + n);
+      const btnEl = document.getElementById('btn-step-' + n);
+      if (stepEl) stepEl.classList.add('active');
+      if (btnEl) btnEl.classList.add('active');
+      try { window.scrollTo({ top: 0, behavior: 'smooth' }); } catch (_) { window.scrollTo(0, 0); }
     }
+    window.setStep = setStep;
 
     // --- IMAGE UPLOAD (Telegram WebApp: fayl ko‘rinishi / HEIC / bo‘sh MIME) ---
     let _heic2anyPromise = null;
@@ -982,7 +968,7 @@
       _previewImgOut = '';
       _previewImgPromise = null;
       const prev = document.getElementById('photoPrev');
-      if (prev) prev.innerHTML = '<img src="' + avatarUrl + '" class="w-full h-full object-cover" alt="">';
+      if (prev) prev.innerHTML = '<img src="' + avatarUrl + '" class="w-full h-full object-cover" loading="lazy" decoding="async" alt="">';
       triggerUpdate();
     }
     async function handleImage(input) {
@@ -1305,7 +1291,7 @@
             
             avatarUrl = data.avatarUrl || CV_DEFAULT_AVATAR;
             if(avatarUrl.length > 200 && avatarUrl !== CV_DEFAULT_AVATAR) {
-              document.getElementById('photoPrev').innerHTML = `<img src="${avatarUrl}" class="w-full h-full object-cover">`;
+              document.getElementById('photoPrev').innerHTML = `<img src="${avatarUrl}" class="w-full h-full object-cover" loading="lazy" decoding="async">`;
             } else {
               resetCvPhotoPreview();
             }
@@ -1384,7 +1370,7 @@
       if (!fromServer) {
         loadFromLocalStorage();
       }
-      try { triggerUpdate(false); } catch (_) {}
+      try { triggerUpdate(false, { immediatePreview: true }); } catch (_) {}
     }
 
     function clearAllData() {
@@ -1401,15 +1387,16 @@
     function autoScale() {
       const pane = document.getElementById('previewPane');
       const box = document.getElementById('cv-preview-frame');
-      if (!pane || !box) return;
-      const paneWidth = Math.max(0, pane.clientWidth - 24);
-      const actualWidth = Math.max(1, box.offsetWidth);
-      const scale = Math.min(paneWidth / actualWidth, 1);
-
       const wrap = document.getElementById('previewScaleWrapper');
-      wrap.style.transform = `scale(${scale})`;
-      const h = Math.max(1, box.offsetHeight);
-      wrap.style.height = `${h * scale}px`;
+      if (!pane || !box || !wrap) return;
+      const paneWidth = Math.max(0, pane.clientWidth - 24);
+      const actualWidth = Math.max(box.offsetWidth || 0, box.scrollWidth || 0, 320);
+      const scale = Math.max(0.28, Math.min(paneWidth / actualWidth, 1));
+      const h = Math.max(box.offsetHeight || 0, box.scrollHeight || 0, 400);
+      wrap.style.transform = 'scale(' + scale + ')';
+      wrap.style.height = Math.ceil(h * scale) + 'px';
+      wrap.style.width = Math.ceil(actualWidth * scale) + 'px';
+      wrap.style.margin = '0 auto';
     }
     window.addEventListener('resize', autoScale);
 
@@ -1710,7 +1697,6 @@
         init_data: authExtras.init_data || undefined,
       });
       console.info('[CV] export_cv: bytes≈', JSON.stringify(req).length, 'tpl=', payload.template, 'has_img=', !!(payload.img && payload.img.length > 64));
-      const DA = window.DastyorAI || {};
       if (DA.setProgressStep) DA.setProgressStep(4, 'PDF tayyorlanmoqda...');
       const res = await fetch(getCvApiBase() + '/api/export_cv', {
         method: 'POST',
@@ -2050,6 +2036,7 @@
       if (btn) { btn.disabled = true; btn.textContent = '⏳ Tahlil...'; }
       const DA = window.DastyorAI || {};
       try {
+        if (DA.showProgressFlow) DA.showProgressFlow('text');
         let tok = null;
         try { if (DA.getToken) tok = DA.getToken(); } catch (_) {}
         if (!tok) { try { tok = sessionStorage.getItem('tg_token'); } catch (_) {} }
@@ -2063,12 +2050,24 @@
           try { const j = await res.json(); d = j.detail || ''; } catch (_) {}
           throw new Error(d || ('Server ' + res.status));
         }
-        const js = await res.json();
+        const startJs = await res.json();
+        let js = startJs;
+        if (startJs.job_id && DA.pollCvVoiceJob) {
+          if (DA.showProgressFlow) DA.showProgressFlow('text');
+          js = await DA.pollCvVoiceJob(startJs.job_id, telegramId, tok, (step) => {
+            if (DA.setProgressStep) DA.setProgressStep(step);
+            if (status) status.textContent = '⏳ ' + step + '/5 ...';
+          });
+        }
+        if (!js || !js.data) throw new Error("Ma'lumot topilmadi");
         applyCvVoiceData(js.data);
-        if (status) status.textContent = '✅ Matndan to\'ldirildi';
+        if (status) status.textContent = '✅ Matndan to\'ldirildi (~' + (js.fill_percent || 80) + '%)';
+        if (DA.setProgressStep) DA.setProgressStep(5, 'Tayyor!');
+        daToast('✅ CV formasi to\'ldirildi', 'success');
       } catch (e) {
-        alert("❌ Matndan to'ldirishda xatolik: " + ((e && e.message) || e));
+        daToast("❌ Matndan to'ldirishda xatolik: " + ((e && e.message) || e), 'error');
       } finally {
+        if (DA.hideDocumentLoading) DA.hideDocumentLoading();
         if (btn) { btn.disabled = false; btn.textContent = '⚡ To\'ldirish'; }
       }
     }
@@ -2350,6 +2349,7 @@
       } catch (_) {}
       setPreviewPlaceholder("⏳ Ko‘rinish yuklanmoqda…");
       await initCvData();
+      try { triggerUpdate(false, { immediatePreview: true }); } catch (_) {}
       try {
         window.addEventListener('dastyor:profile-updated', () => syncCvQuotaUi());
         window.addEventListener('dastyor:payment-approved', () => {

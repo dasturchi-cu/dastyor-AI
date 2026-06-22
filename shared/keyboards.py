@@ -17,6 +17,36 @@ BTN_BACK = "🔙 Orqaga"
 BTN_HELP = "ℹ️ Yordam"
 BTN_CREDITS = "💳 Pul balansi"
 
+# Eski Telegram klaviatura (cache) — menyu tugmasi sifatida tanish
+LEGACY_BTN_CREDITS = ("💳 Kreditlar", "Kreditlar", "💳 Kredit")
+
+MENU_BUTTON_TEXTS = frozenset(
+    {BTN_CV, BTN_OBY, BTN_CREDITS, BTN_HELP, BTN_BACK, *LEGACY_BTN_CREDITS}
+)
+
+
+def is_credits_button(text: str | None) -> bool:
+    t = (text or "").strip()
+    if not t:
+        return False
+    if t == BTN_CREDITS or t in LEGACY_BTN_CREDITS:
+        return True
+    low = t.casefold()
+    return t.startswith("💳") and ("kredit" in low or "pul balans" in low)
+
+
+def is_menu_button(text: str | None) -> bool:
+    t = (text or "").strip()
+    if not t:
+        return False
+    if t in MENU_BUTTON_TEXTS:
+        return True
+    if t.casefold() in ("bekor",):
+        return True
+    if is_credits_button(t):
+        return True
+    return False
+
 ADMIN_BTN_USERS = "👥 Foydalanuvchilar"
 ADMIN_BTN_PAYMENTS = "💳 To'lovlar"
 ADMIN_BTN_FILES = "📁 Fayllar"

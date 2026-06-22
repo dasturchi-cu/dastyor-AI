@@ -141,6 +141,13 @@
 
     /* FORM FOOTER */
     .form-footer{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;padding:14px 18px 20px;border-top:1.5px solid var(--blue-light);margin-top:16px}
+    .form-footer-compact{flex-direction:column;align-items:stretch;gap:10px;padding:12px 16px 16px}
+    .fill-toolbar{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+    .fill-toolbar .btn{padding:8px 4px;font-size:12px;border-radius:9px;width:100%;min-height:36px}
+    .footer-actions{display:flex;align-items:center;gap:8px}
+    .btn-clear-link{padding:8px 10px;font-size:12px;font-weight:700;color:var(--danger);background:transparent;border:none;cursor:pointer;font-family:var(--font);flex-shrink:0;-webkit-tap-highlight-color:transparent}
+    .btn-clear-link:active{opacity:.7}
+    .footer-actions .btn-primary{flex:1;padding:11px 14px;font-size:14px}
 
     /* HINT */
     .hint{background:var(--blue-light);border:1px solid var(--blue-mid);border-radius:9px;padding:8px 11px;font-size:12px;color:var(--blue-dark);font-weight:500;display:flex;align-items:flex-start;gap:6px;margin-bottom:12px}
@@ -319,29 +326,24 @@
         <div id="work-container"></div>
         <button type="button" class="btn-add" onclick="addWorkRow()" id="btn_add_work">+ Yangi ish joyi qo'shish</button>
       </div>
-      <div class="form-footer" id="footer-p1">
-        <button type="button" class="btn btn-dang" onclick="clearForm()" id="btn_clear_1">
-          <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg>Tozalash
-        </button>
-        <button type="button" class="btn btn-ghost" onclick="startObyVoiceFill()" id="btn_voice_fill">
-          🎤 Ovozdan to'ldirish
-        </button>
-        <button type="button" class="btn btn-ghost" onclick="toggleObyLiveRecording()" id="btn_voice_live">
-          ⏺ Jonli yozish
-        </button>
-        <button type="button" class="btn btn-ghost" onclick="toggleObyTextFill()" id="btn_text_fill">
-          📝 Matndan to'ldirish
-        </button>
+      <div class="form-footer form-footer-compact" id="footer-p1">
+        <div class="fill-toolbar">
+          <button type="button" class="btn btn-ghost" onclick="startObyVoiceFill()" id="btn_voice_fill">🎤 Ovoz</button>
+          <button type="button" class="btn btn-ghost" onclick="toggleObyLiveRecording()" id="btn_voice_live">⏺ Jonli</button>
+          <button type="button" class="btn btn-ghost" onclick="toggleObyTextFill()" id="btn_text_fill">📝 Matn</button>
+        </div>
         <input type="file" id="obyVoiceInput" accept="audio/*" capture style="display:none" />
-        <div id="obyTextFillPanel" class="hidden" style="width:100%;margin-top:10px;padding:12px;border:1.5px dashed var(--blue-mid);border-radius:10px;background:var(--blue-light);">
-          <div style="font-size:12px;font-weight:700;color:var(--blue-dark);margin-bottom:6px;">Namuna:</div>
-          <div style="font-size:11px;color:var(--muted);margin-bottom:8px;line-height:1.45;">Aliyev Ali Aliyevich, 15.03.1990, Toshkent. Oliy ma'lumotli, TDYU tamomlagan. 2020-2024 ... kompaniyada dasturchi...</div>
-          <textarea id="obyTextFillInput" rows="4" placeholder="Ma'lumotlaringizni shu yerga yozing..." style="width:100%;margin-bottom:8px;"></textarea>
+        <div id="obyTextFillPanel" class="hidden" style="width:100%;padding:10px;border:1.5px dashed var(--blue-mid);border-radius:10px;background:var(--blue-light);">
+          <div style="font-size:11px;color:var(--muted);margin-bottom:8px;line-height:1.45;">Masalan: Aliyev Ali, 15.03.1990, Toshkent. Oliy ma'lumotli...</div>
+          <textarea id="obyTextFillInput" rows="3" placeholder="Ma'lumotlaringizni yozing..." style="width:100%;margin-bottom:8px;"></textarea>
           <button type="button" class="btn btn-primary btn-sm" onclick="submitObyTextFill()" id="btn_text_submit">⚡ To'ldirish</button>
         </div>
-        <button type="button" class="btn btn-primary" onclick="goToStep(2)" id="btn_next_1">
-          Keyingisi <svg viewBox="0 0 24 24"><path d="m9 18 6-6-6-6" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        </button>
+        <div class="footer-actions">
+          <button type="button" class="btn-clear-link" onclick="clearForm()" id="btn_clear_1">Tozalash</button>
+          <button type="button" class="btn btn-primary" onclick="goToStep(2)" id="btn_next_1">
+            <span id="btn_next_1_label">Keyingisi</span> <svg viewBox="0 0 24 24"><path d="m9 18 6-6-6-6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+        </div>
       </div>
 
       <!-- PAGE 2 -->
@@ -411,7 +413,7 @@
         </div>
         <button type="button" id="obyTestDownloadBtn" class="btn btn-ghost btn-sm" style="margin-left:4px">Test yuklash</button>
       </div>
-      <div class="preview-note" style="margin-bottom:10px">AI ovozdan to'ldirilgan ma'lumotlarni tekshiring. <strong>Tasdiqlash</strong> — Word (.docx) yaratiladi.</div>
+      <div class="preview-note" style="margin-bottom:10px">Ma'lumotlarni tekshiring. <strong>Test yuklash</strong> — bot nomi watermarkli PDF botga yuboriladi. <strong>Tasdiqlash</strong> — toza Word.</div>
       <div class="preview-port">
         <div id="previewSkeleton" class="da-skeleton da-skeleton-preview hidden" aria-hidden="true"></div>
         <div class="preview-scroll">
@@ -464,7 +466,7 @@
   </div>
 </div>
 
-<script src="js/obyektivka-preview.js"></script>
+<script src="js/obyektivka-preview.js" defer></script>
 <script>
 function daToast(msg, type) {
   if (window.DastyorAI && DastyorAI.showToast) DastyorAI.showToast(msg, type || 'info');
@@ -598,6 +600,7 @@ uz_l:{
   ui_step1:"Shaxsiy",ui_step2:"Qarindoshlar",ui_sec_basic:"Asosiy ma'lumotlar",ui_sec_edu_other:"Ta'lim va boshqalar",ui_photo:"Fotosurat",ui_upload_3x4:"YUKLASH\n3x4 sm",
   ui_add_work:"+ Yangi ish joyi qo'shish",ui_add_rel:"+ Qarindosh qo'shish",
   ui_next:"Keyingisi",ui_back:"Orqaga",ui_clear:"Tozalash",
+  ui_voice:"🎤 Ovoz",ui_live:"⏺ Jonli",ui_text:"📝 Matn",
   ui_word_bot:"Word botga yuborish",
   ui_pay_5000:"💳 7 999 so'm to'lash",
   ui_pay_help:"Limit tugasa alohida to'lov tugmasi orqali davom etasiz (7 999 so'm = 1 hujjat).",
@@ -620,6 +623,7 @@ uz_k:{
   ui_step1:"\u0428\u0430\u0445\u0441\u0438\u0439",ui_step2:"\u049a\u0430\u0440\u0438\u043d\u0434\u043e\u0448\u043b\u0430\u0440",ui_sec_basic:"\u0410\u0441\u043e\u0441\u0438\u0439 \u043c\u0430\u044a\u043b\u0443\u043c\u043e\u0442\u043bb\u0430\u0440",ui_sec_edu_other:"\u0422\u0430\u044a\u043b\u0438\u043c \u0432\u0430 \u0431\u043e\u0448\u049b\u0430\u043b\u0430\u0440",ui_photo:"\u0424\u043e\u0442\u043e\u0441\u0443\u0440\u0430\u0442",ui_upload_3x4:"\u042e\u041a\u041b\u0410\u0428\n3x4 \u0441\u043c",
   ui_add_work:"+ \u042f\u043d\u0433\u0438 \u0438\u0448 \u0436\u043e\u0439\u0438 \u049b\u045e\u0448\u0438\u0448",ui_add_rel:"+ \u049a\u0430\u0440\u0438\u043d\u0434\u043e\u0448 \u049b\u045e\u0448\u0438\u0448",
   ui_next:"\u041a\u0435\u0439\u0438\u043d\u0433\u0438\u0441\u0438",ui_back:"\u041e\u0440\u049b\u0430\u0433\u0430",ui_clear:"\u0422\u043e\u0437\u0430\u043b\u0430\u0448",
+  ui_voice:"\ud83c\udfa4 \u041e\u0432\u043e\u0437",ui_live:"\u23fa \u0416\u043e\u043d\u043b\u0438",ui_text:"\ud83d\udcdd \u041c\u0430\u0442\u043d",
   ui_word_bot:"Word \u0431\u043e\u0442\u0433\u0430",
   ui_rel_modal:"\u049a\u0430\u0440\u0438\u043d\u0434\u043e\u0448 \u043c\u0430\u044a\u043bb\u0443\u043c\u043e\u0442\u043bb\u0430\u0440\u0438",ui_cancel:"\u0411\u0435\u043a\u043e\u0440 \u049b\u0438\u043bb\u0438\u0448",ui_save:"\u0421\u0430\u049b\u043bb\u0430\u0448",
   ui_m_type:"\u049a\u0430\u0440\u0438\u043d\u0434\u043e\u0448\u043b\u0438\u0433\u0438",ui_m_name:"\u0424.\u0418.\u0428",ui_m_birth:"\u0422\u0443\u0493\u0438\u043b\u0433\u0430\u043d \u0439\u0438\u043b\u0438 \u0432\u0430 \u0436\u043e\u0439\u0438",ui_m_job:"\u0418\u0448 \u0436\u043e\u0439\u0438 \u0432\u0430 \u043b\u0430\u0432\u043e\u0437\u0438\u043c\u0438",ui_m_job_custom:"\u0411\u043e\u0448\u049b\u0430 \u0438\u0448 \u0436\u043e\u0439\u0438 / \u043b\u0430\u0432\u043e\u0437\u0438\u043c\u0438",ui_m_addr:"\u0422\u0443\u0440\u0430\u0440 \u0436\u043e\u0439\u0438"
@@ -633,7 +637,8 @@ function applyUiLang(){
     step_lbl_1:'ui_step1',step_lbl_2:'ui_step2',
     sec_basic:'ui_sec_basic',sec_edu_other:'ui_sec_edu_other','lbl-photo':'ui_photo',
     btn_add_work:'ui_add_work',btn_add_rel:'ui_add_rel',
-    btn_next_1:'ui_next',btn_back_2:'ui_back',btn_clear_1:'ui_clear',btn_clear_2:'ui_clear',
+    btn_next_1_label:'ui_next',btn_back_2:'ui_back',btn_clear_1:'ui_clear',btn_clear_2:'ui_clear',
+    btn_voice_fill:'ui_voice',btn_voice_live:'ui_live',btn_text_fill:'ui_text',
     btn_word_bot:'ui_word_bot',
     btn_pay_5000:'ui_pay_5000',
     pay_help_oby:'ui_pay_help',
@@ -1036,7 +1041,7 @@ async function uploadObyVoiceFile(file){
     if(DA.hideDocumentLoading) DA.hideDocumentLoading();
     if(voiceBtn){
       voiceBtn.disabled = false;
-      voiceBtn.textContent = oldText || "🎤 Ovozdan to'ldirish";
+      voiceBtn.textContent = oldText || "🎤 Ovoz";
     }
   }
 }
@@ -1062,7 +1067,7 @@ async function submitObyTextFill(){
   if(btn){ btn.disabled = true; btn.textContent = '⏳ Tahlil...'; }
   var DA = window.DastyorAI || {};
   try{
-    if(DA.showProgressFlow) DA.showProgressFlow('voice');
+    if(DA.showProgressFlow) DA.showProgressFlow('text');
   var tok = getDastyorSessionToken();
   var res = await fetch(getApiUrl() + '/api/oby_text_fill', {
     method:'POST',
@@ -1070,7 +1075,13 @@ async function submitObyTextFill(){
     body: JSON.stringify({ telegram_id: parseInt(telegramId,10), token: tok || undefined, text: input.value.trim() })
   });
   if(!res.ok) throw new Error(await dastyorReadApiError(res));
-  var js = await res.json();
+  var startJs = await res.json();
+  var js = startJs;
+  if(startJs.job_id && DA.pollObyVoiceJob){
+    js = await DA.pollObyVoiceJob(startJs.job_id, telegramId, tok, function(step){
+      if(DA.setProgressStep) DA.setProgressStep(step);
+    });
+  }
   if(!js || !js.data) throw new Error("Ma'lumot topilmadi");
   if(DA.setProgressStep) DA.setProgressStep(3, 'Formaga yozilmoqda...');
   applyServerObyData(js.data);
@@ -1101,7 +1112,7 @@ function _resetLiveVoiceBtn(){
   var liveBtn = document.getElementById('btn_voice_live');
   if(!liveBtn) return;
   liveBtn.disabled = false;
-  liveBtn.textContent = "⏺ Jonli yozish";
+  liveBtn.textContent = "⏺ Jonli";
 }
 
 async function _stopObyLiveRecording(){
