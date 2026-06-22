@@ -22,6 +22,8 @@ class PerformanceMiddleware(BaseHTTPMiddleware):
         t0 = time.perf_counter()
         try:
             response = await call_next(request)
+            if response is None:
+                raise RuntimeError("No response returned.")
             ok = True
         except Exception as e:
             ok = False

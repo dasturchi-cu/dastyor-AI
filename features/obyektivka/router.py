@@ -71,8 +71,10 @@ async def _run_oby_text_job(job_id: str, uid: int, text: str) -> None:
 
 
 async def _run_oby_voice_job(job_id: str, uid: int, raw: bytes, ext: str) -> None:
-    os.makedirs("temp", exist_ok=True)
-    temp_path = os.path.join("temp", f"oby_voice_{uid}_{uuid.uuid4().hex[:8]}{ext}")
+    from config.paths import temp_dir
+
+    tmp = temp_dir()
+    temp_path = str(tmp / f"oby_voice_{uid}_{uuid.uuid4().hex[:8]}{ext}")
     try:
         with open(temp_path, "wb") as fh:
             fh.write(raw)
@@ -187,9 +189,11 @@ async def api_oby_voice_fill_sync(
     if not uid:
         raise HTTPException(status_code=401, detail="Foydalanuvchi aniqlanmadi")
 
-    os.makedirs("temp", exist_ok=True)
+    from config.paths import temp_dir
+
+    tmp = temp_dir()
     ext = os.path.splitext(audio.filename or "")[1] or ".ogg"
-    temp_path = os.path.join("temp", f"oby_voice_{uid}_{os.getpid()}{ext}")
+    temp_path = str(tmp / f"oby_voice_{uid}_{os.getpid()}{ext}")
     raw = await audio.read()
     if not raw:
         raise HTTPException(status_code=400, detail="Audio bo'sh")
@@ -215,8 +219,19 @@ async def api_oby_voice_fill_sync(
             pass
 
 
+def _pdf_inline_response(pdf_bytes: bytes, *, filename: str = "obyektivka_preview.pdf") -> Response:
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": f'inline; filename="{filename}"',
+            "Cache-Control": "private, max-age=120",
+        },
+    )
+
+
 @router.post("/api/preview_obyektivka")
-async def api_preview_oby(req: PreviewObyektivkaRequest) -> StreamingResponse:
+async def api_preview_oby(req: PreviewObyektivkaRequest) -> Response:
     """Preview = generated DOCX → PDF (reference template, no HTML render)."""
     import asyncio
 
@@ -232,11 +247,7 @@ async def api_preview_oby(req: PreviewObyektivkaRequest) -> StreamingResponse:
     cache_key = cache_key_for_oby_preview(payload)
     cached = oby_preview_cache_get(cache_key)
     if cached is not None:
-        return StreamingResponse(
-            io.BytesIO(cached),
-            media_type="application/pdf",
-            headers={"Content-Disposition": 'inline; filename="obyektivka_preview.pdf"'},
-        )
+        return _pdf_inline_response(cached)
 
     def _build_pdf() -> bytes:
         docx_bytes = generate_obyektivka_docx_bytes(payload)
@@ -252,11 +263,7 @@ async def api_preview_oby(req: PreviewObyektivkaRequest) -> StreamingResponse:
         raise HTTPException(status_code=500, detail=str(exc)[:200]) from exc
 
     oby_preview_cache_set(cache_key, pdf_bytes)
-    return StreamingResponse(
-        io.BytesIO(pdf_bytes),
-        media_type="application/pdf",
-        headers={"Content-Disposition": 'inline; filename="obyektivka_preview.pdf"'},
-    )
+    return _pdf_inline_response(pdf_bytes)
 
 
 @router.post("/api/test_obyektivka_pdf")

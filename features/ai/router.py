@@ -106,9 +106,11 @@ async def api_cv_voice_fill(
     if not raw:
         raise HTTPException(status_code=400, detail="Audio bo'sh")
 
-    os.makedirs("temp", exist_ok=True)
+    from config.paths import temp_dir
+
+    tmp = temp_dir()
     ext = os.path.splitext(audio.filename or "")[1] or ".ogg"
-    temp_path = os.path.join("temp", f"cv_voice_{uid}_{uuid.uuid4().hex[:8]}{ext}")
+    temp_path = str(tmp / f"cv_voice_{uid}_{uuid.uuid4().hex[:8]}{ext}")
     await asyncio.to_thread(_write_bytes, temp_path, raw)
 
     job_id = voice_jobs.create_job(uid, "cv")

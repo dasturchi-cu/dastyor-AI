@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Any
 
 from backend.services.document_render.photo import process_passport_photo
+from config.paths import temp_dir
 from config.settings import TEMPLATES_DIR
 from features.obyektivka.docx_zip import count_page_breaks, read_parts, render_template, write_parts
 from features.obyektivka.placeholders import build_placeholder_context
@@ -36,8 +37,8 @@ def _decode_photo_data(data: dict[str, Any]) -> str | None:
         header, b64 = photo_data.split(",", 1)
         mime = header.split(";")[0].split(":")[1].lower()
         ext = {"image/png": "png", "image/jpeg": "jpg", "image/jpg": "jpg", "image/webp": "webp"}.get(mime, "jpg")
-        os.makedirs("temp", exist_ok=True)
-        path = os.path.join("temp", f"oby_tpl_photo_{os.getpid()}.{ext}")
+        os.makedirs(str(temp_dir()), exist_ok=True)
+        path = str(temp_dir() / f"oby_tpl_photo_{os.getpid()}.{ext}")
         with open(path, "wb") as fh:
             fh.write(base64.b64decode(b64))
         return path
@@ -94,9 +95,9 @@ def generate_obyektivka_docx(
     resolved_photo = photo_path if photo_path and os.path.exists(photo_path) else temp_photo
 
     if not output_filepath:
-        os.makedirs("temp", exist_ok=True)
+        os.makedirs(str(temp_dir()), exist_ok=True)
         safe = (_to_text(data.get("fullname")) or "Obyektivka").replace(" ", "_").replace("/", "_")
-        output_filepath = os.path.join("temp", f"obyektivka_{safe}_{os.getpid()}.docx")
+        output_filepath = str(temp_dir() / f"obyektivka_{safe}_{os.getpid()}.docx")
     else:
         os.makedirs(os.path.dirname(output_filepath) or ".", exist_ok=True)
 

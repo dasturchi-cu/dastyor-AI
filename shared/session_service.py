@@ -10,7 +10,7 @@ from typing import Optional
 
 from core.redis_client import get_sync_redis, is_redis_live, key
 
-from config.paths import sessions_file, temp_dir
+from config.paths import sessions_file
 
 logger = logging.getLogger(__name__)
 

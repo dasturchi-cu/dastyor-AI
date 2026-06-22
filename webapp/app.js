@@ -381,47 +381,36 @@ const DastyorAI = (() => {
 
     function getCredits(u) {
         const subject = u || user;
-        if (subject && (subject.credits !== undefined && subject.credits !== null)) {
-            return Math.max(0, Number(subject.credits || 0));
-        }
-        if (subject && subject.has_access === true) {
-            return Math.max(1, Number(subject.credits || 0));
-        }
-        try {
-            const raw = sessionStorage.getItem(SS_USER);
-            if (raw) {
-                const p = JSON.parse(raw);
-                return Math.max(0, Number(p.credits || 0));
-            }
-        } catch (_) {}
-        return 0;
+        if (!subject) return 0;
+        let n = 0;
+        if (subject.has_cv_access) n += 1;
+        if (subject.has_objective_access) n += 1;
+        return n;
     }
 
     function hasUniversalCredit(u) {
-        const subject = u || user;
-        if (getCredits(subject) > 0) return true;
-        return !!(subject && subject.has_access === true);
+        return false;
     }
 
     function universalCreditMessage(u, category) {
-        const n = getCredits(u || user);
-        if (n < 1) return '';
-        const price = formatPriceUzs(docPriceUzs(u));
-        const cat = String(category || '').toLowerCase();
-        const doc =
-            cat === 'cv' ? 'PDF (CV)' : cat === 'obyektivka' ? 'Word (Obyektivka)' : 'hujjat';
-        if (n === 1) {
-            return `💳 Pul bor — 1 ta hujjat (${price} so'm). Hozir ${doc} yaratishingiz mumkin.`;
+        const subject = u || user;
+        if (!subject || !category) return '';
+        const cat = String(category).toLowerCase();
+        if (cat === 'cv' && subject.has_cv_access) {
+            return '📄 CV uchun kirish ochildi — tayyor PDF yuklashingiz mumkin.';
         }
-        return `💳 Pul bor — ${n} ta hujjat (${price} so'mdan). CV yoki Obyektivka yaratishingiz mumkin.`;
+        if (cat === 'obyektivka' && subject.has_objective_access) {
+            return '📋 Obyektivka uchun kirish ochildi — tayyor Word yuklashingiz mumkin.';
+        }
+        return '';
     }
 
     /**
      * Free tarif: CV/obyektivka faqat to'lov (pul balansi) yoki obuna.
      */
     function needsSingleDocPayment(u, category) {
-        if (!u || !category) return !hasUniversalCredit(u);
-        if (hasUniversalCredit(u)) return false;
+        if (!u || !category) return true;
+        if (hasSingleDocAccess(u, category)) return false;
         const cat = String(category).toLowerCase();
         if (cat !== 'cv' && cat !== 'obyektivka') return false;
         const plan = String(u.plan || u.user_plan || 'free').toLowerCase();
@@ -470,7 +459,6 @@ const DastyorAI = (() => {
 
     /** has_cv_access / has_objective_access — admin tasdiqlagan 1 ta yuborish huquqi */
     function hasSingleDocAccess(u, category) {
-        if (hasUniversalCredit(u)) return true;
         if (!u || !category) return false;
         const cat = String(category).toLowerCase();
         if (cat === 'cv') return !!u.has_cv_access;
