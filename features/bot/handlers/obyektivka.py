@@ -13,6 +13,7 @@ from aiogram.types import FSInputFile, Message
 
 from config.settings import PROJECT_ROOT
 from database.repositories import ai_sessions as sessions_repo
+from database.repositories import users as users_repo
 from features.ai.service import process_text_for_obyektivka, process_voice_for_obyektivka, oby_fill_is_acceptable
 from features.bot.states import ObyektivkaStates
 from features.bot.handlers.start import WELCOME
@@ -86,6 +87,10 @@ async def _delete_waiting_prompt(bot: Bot, state: FSMContext) -> None:
 
 @router.message(F.text == BTN_OBY)
 async def obyektivka_start(message: Message, state: FSMContext) -> None:
+    uid = message.from_user.id if message.from_user else 0
+    if uid and users_repo.is_blocked(uid):
+        await message.answer("⛔ Siz bloklangansiz.")
+        return
     await state.set_state(ObyektivkaStates.waiting_voice)
     await message.answer(OBY_INSTRUCTION, reply_markup=back_menu())
 

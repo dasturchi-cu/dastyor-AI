@@ -47,6 +47,9 @@ async def cmd_start(message: Message, state: FSMContext) -> None:
     await state.clear()
     user = message.from_user
     if user:
+        if users_repo.is_blocked(user.id):
+            await message.answer("⛔ Siz bloklangansiz.")
+            return
         await db_run(
             users_repo.upsert_user,
             user.id,
@@ -85,9 +88,11 @@ async def menu_from_flow_waiting(message: Message, state: FSMContext) -> None:
 
 @router.message(F.text == BTN_CV)
 async def cv_intro(message: Message, state: FSMContext) -> None:
-    from features.bot.handlers.voice import CV_INSTRUCTION
-
     uid = message.from_user.id if message.from_user else 0
+    if uid and users_repo.is_blocked(uid):
+        await message.answer("⛔ Siz bloklangansiz.")
+        return
+    from features.bot.handlers.voice import CV_INSTRUCTION
     await state.set_state(CvStates.waiting_input)
     await message.answer(
         f"{CV_INTRO}\n\n{CV_INSTRUCTION}",

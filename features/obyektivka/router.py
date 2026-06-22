@@ -246,6 +246,9 @@ async def api_preview_oby(req: PreviewObyektivkaRequest) -> StreamingResponse:
         pdf_bytes = await asyncio.to_thread(_build_pdf)
     except Exception as exc:
         logger.exception("preview_obyektivka pdf")
+        from shared.error_log import record_error
+
+        record_error("docx", f"Obyektivka preview: {exc}")
         raise HTTPException(status_code=500, detail=str(exc)[:200]) from exc
 
     oby_preview_cache_set(cache_key, pdf_bytes)

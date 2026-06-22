@@ -421,12 +421,12 @@
       }, 900);
     } catch (e) {
       var msg = (e && e.message) ? String(e.message) : String(e);
-      showToast('Test yuklash xato: ' + msg.slice(0, 180), 'error');
+      showToast('Demo yuklash xato: ' + msg.slice(0, 180), 'error');
     } finally {
       _testDownloadBusy = false;
       if (btn) {
         btn.disabled = false;
-        btn.textContent = 'Test yuklash';
+        btn.textContent = 'Demo yuklash';
       }
     }
   }

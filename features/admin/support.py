@@ -5,6 +5,7 @@ import html
 import logging
 
 from aiogram import F, Router
+from aiogram.fsm.context import FSMContext
 from aiogram.types import Message
 
 from config.settings import settings
@@ -44,18 +45,20 @@ def _support_header(message: Message) -> str:
     )
 
 
-@router.message(
-    F.chat.type == "private",
-    ~F.text.startswith("/"),
-    ~F.text.func(is_menu_button),
-    ~F.text.func(is_admin_menu_button),
-)
-async def relay_private_to_support(message: Message) -> None:
+@router.message(F.chat.type == "private")
+async def relay_private_to_support(message: Message, state: FSMContext) -> None:
     if not message.from_user or _is_admin(message.from_user.id):
+        return
+    if await state.get_state():
         return
     if users_repo.is_blocked(message.from_user.id):
         await message.answer("⛔ Siz bloklangansiz. Murojaat qabul qilinmaydi.")
         return
+    if message.text:
+        if message.text.startswith("/"):
+            return
+        if is_menu_button(message.text) or is_admin_menu_button(message.text):
+            return
 
     group_id = settings.support_group_id
     if not group_id:

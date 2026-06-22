@@ -12,7 +12,8 @@ from aiogram.fsm.storage.memory import MemoryStorage
 
 from config.settings import settings
 from database.connection import init_db
-from features.admin import handlers as admin_handlers
+from features.admin import router as admin_router
+from features.admin import support as admin_support
 from features.bot.handlers import obyektivka as obyektivka_handlers
 from features.bot.handlers import start as start_handlers
 from features.bot.handlers import voice as voice_handlers
@@ -36,10 +37,11 @@ def create_bot() -> Bot:
 def create_dispatcher() -> Dispatcher:
     storage = _create_fsm_storage()
     dp = Dispatcher(storage=storage)
-    dp.include_router(admin_handlers.router)
+    dp.include_router(admin_router)
     dp.include_router(start_handlers.router)
     dp.include_router(obyektivka_handlers.router)
     dp.include_router(voice_handlers.router)
+    dp.include_router(admin_support.router)
     return dp
 
 

@@ -53,6 +53,9 @@ def _libreoffice_pdf(docx_path: Path, out_dir: Path) -> bytes | None:
             return pdf_path.read_bytes()
     except Exception as exc:
         logger.warning("LibreOffice DOCX→PDF failed: %s", exc)
+        from shared.error_log import record_error
+
+        record_error("pdf", f"LibreOffice DOCX→PDF: {exc}")
     return None
 
 

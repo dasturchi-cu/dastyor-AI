@@ -78,7 +78,7 @@ const DastyorAI = (() => {
         payment_approved: "To'lov tasdiqlandi! Hujjatni yuklab olishingiz mumkin.",
         payment_rejected: "To'lov rad etildi. Qayta urinib ko'ring.",
         demo_watermark_note: "Demo versiya — «DEMO VERSIYA» belgisi bilan. To'lovdan keyin toza fayl.",
-        test_download: 'Test yuklash', test_download_loading: 'Yuklanmoqda...',
+        test_download: 'Demo yuklash', test_download_loading: 'Yuklanmoqda...',
     };
 
     const SS_ID = 'tg_id';

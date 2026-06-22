@@ -20,7 +20,7 @@ def welcome_message() -> str:
         "🎯 <b>3 qadamda tayyor:</b>\n"
         "1️⃣ Ovoz yoki matn yuboring\n"
         "2️⃣ AI formani to'ldiradi\n"
-        "3️⃣ Test yuklash — bepul (watermark)\n"
+        "3️⃣ Demo yuklash — bepul (watermark)\n"
         "4️⃣ Tayyor fayl — to'lov kerak\n\n"
         "📄 <b>CV Resume</b> — zamonaviy PDF (ish beruvchilar uchun)\n"
         "✍️ <b>Obyektivka</b> — rasmiy Word (.docx)\n\n"

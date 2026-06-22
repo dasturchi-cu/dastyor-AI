@@ -151,6 +151,9 @@ async def generate_text_with_fallback(
                 logger.warning("Gemini quota on %s — trying next model", model_name)
                 continue
             logger.error("Gemini generate error (%s): %s", model_name, e)
+            from shared.error_log import record_error
+
+            record_error("gemini", f"{model_name}: {e}")
             raise
 
     if last_quota:
@@ -338,6 +341,9 @@ async def transcribe_audio(audio_file_path: str) -> str:
 
     except Exception as e:
         logger.error(f"Gemini Async Transcription error: {e}", exc_info=True)
+        from shared.error_log import record_error
+
+        record_error("gemini", f"Transcription: {e}")
         return "Audio transkripsiya xatoligi."
     finally:
         if temp_conv:
