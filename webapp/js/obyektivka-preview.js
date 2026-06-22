@@ -163,6 +163,36 @@
   var _pageWidthPx = 794;
   var _pageHeightPx = 1123;
 
+  function isPdfBuffer(buf) {
+    if (!buf || buf.byteLength < 4) return false;
+    var u8 = new Uint8Array(buf, 0, 4);
+    return u8[0] === 0x25 && u8[1] === 0x50 && u8[2] === 0x44 && u8[3] === 0x46;
+  }
+
+  async function normalizePdfBuffer(buf) {
+    if (isPdfBuffer(buf)) return buf;
+    var u8 = new Uint8Array(buf);
+    if (u8.length >= 2 && u8[0] === 0x1f && u8[1] === 0x8b && typeof DecompressionStream !== 'undefined') {
+      try {
+        var out = await new Response(new Blob([u8]).stream().pipeThrough(new DecompressionStream('gzip'))).arrayBuffer();
+        if (isPdfBuffer(out)) return out;
+      } catch (_) {}
+    }
+    var head = '';
+    try {
+      head = String.fromCharCode(u8[0], u8[1], u8[2], u8[3]);
+    } catch (_) {}
+    if (head === '{' || head === '[{"') {
+      try {
+        var js = JSON.parse(new TextDecoder().decode(u8));
+        throw new Error((js && (js.detail || js.message)) || 'Server JSON xato qaytardi');
+      } catch (e) {
+        if (e && e.message && e.message.indexOf('Server') === 0) throw e;
+      }
+    }
+    throw new Error('Server PDF emas qaytardi');
+  }
+
   function configurePdfWorker(pdfjs, workerIndex) {
     if (!pdfjs || !pdfjs.GlobalWorkerOptions) return;
     var idx = workerIndex || 0;
@@ -639,7 +669,11 @@
     try {
       var fetchPromise = fetch(base + '/api/preview_obyektivka', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/pdf',
+          'Accept-Encoding': 'identity',
+        },
         body: JSON.stringify(payload),
         signal: previewAbort ? previewAbort.signal : undefined,
       });
@@ -656,6 +690,7 @@
       if (!buf || buf.byteLength < 100) {
         throw new Error('Serverdan bo\'sh PDF keldi');
       }
+      buf = await normalizePdfBuffer(buf);
       if (reqId !== previewRequestId) return;
 
       var blob = new Blob([buf], { type: 'application/pdf' });

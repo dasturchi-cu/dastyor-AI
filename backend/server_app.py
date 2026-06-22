@@ -10,7 +10,7 @@ from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from starlette.middleware.gzip import GZipMiddleware
+from backend.middleware.gzip_safe import SelectiveGZipMiddleware
 
 from backend.exception_handlers import register_exception_handlers
 from backend.middleware.maintenance import register_maintenance_middleware
@@ -99,7 +99,7 @@ def create_webhook_app() -> FastAPI:
         allow_methods=["GET", "POST", "OPTIONS"],
         allow_headers=["*"],
     )
-    app.add_middleware(GZipMiddleware, minimum_size=512)
+    app.add_middleware(SelectiveGZipMiddleware, minimum_size=512)
     register_request_id_middleware(app)
     app.add_middleware(PerformanceMiddleware)
     register_webapp_middleware(app)

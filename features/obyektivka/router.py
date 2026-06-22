@@ -233,6 +233,7 @@ def _pdf_inline_response(pdf_bytes: bytes, *, filename: str = "obyektivka_previe
         headers={
             "Content-Disposition": f'inline; filename="{filename}"',
             "Cache-Control": "private, max-age=120",
+            "Content-Encoding": "identity",
         },
     )
 
