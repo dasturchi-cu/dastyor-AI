@@ -1,15 +1,18 @@
-"""Official Obyektivka (ma'lumotnoma) layout — namuna hujjatdan olingan o'lchamlar."""
+"""Official Obyektivka layout — barcha o'lchamlar «Намуна Объективка (18).doc» dan."""
 
 from __future__ import annotations
 
 from docx.shared import Emu
 
-# A4 sahifa chetlari (mm) — «Намуна Объективка (18).doc»
-PAGE_MARGIN_TOP_MM = 15
-PAGE_MARGIN_RIGHT_MM = 10
-PAGE_MARGIN_BOTTOM_MM = 6
-PAGE_MARGIN_LEFT_MM = 27
+# Namuna DOCX section margins va sahifa (mm)
+PAGE_WIDTH_MM = 209.99
+PAGE_HEIGHT_MM = 296.99
+PAGE_MARGIN_TOP_MM = 15.01
+PAGE_MARGIN_RIGHT_MM = 10.0
+PAGE_MARGIN_BOTTOM_MM = 5.93
+PAGE_MARGIN_LEFT_MM = 26.9
 
+FONT_FAMILY = "Times New Roman"
 FONT_BODY_PT = 11
 FONT_TITLE_PT = 14
 FONT_REL_TITLE_PT = 12
@@ -18,13 +21,31 @@ LINE_HEIGHT = 1.0
 PHOTO_WIDTH_MM = 30
 PHOTO_HEIGHT_MM = 40
 
-# Ikki ustunli maydonlar uchun tab (namuna DOCX: 2684780 EMU ≈ 74.6 mm)
+# Tab stops (EMU) — namuna DOCX
 TAB_COL_POS = Emu(2684780)
+TAB_PHOTO_POS = Emu(5600700)
+TAB_NAME_CENTER_POS = Emu(3023870)
+TAB_YEAR_POS = Emu(428625)
+TAB_WORK_TITLE_POS = Emu(2620010)
 
-# Qarindoshlar jadvali ustunlari (dxa) — namuna DOCX tblGrid
+# Paragraph indents (twips) — namuna DOCX
+IND_HDR_RIGHT_TWIPS = 1204
+IND_JOB_RIGHT_TWIPS = 2547
+IND_VALUE_LEFT_TWIPS = 4320
+IND_VALUE_RIGHT_TWIPS = 2016
+IND_VALUE_HANGING_TWIPS = 4320
+IND_INLINE_LEFT_TWIPS = 1622
+IND_INLINE_HANGING_TWIPS = 1622
+IND_STACK_LEFT_TWIPS = 1622
+IND_STACK_HANGING_TWIPS = 1622
+IND_DEP_STACK_LEFT_TWIPS = 1512
+IND_DEP_STACK_HANGING_TWIPS = 1512
+IND_WORK_HANGING_TWIPS = 1622
+IND_REL_COL0_TWIPS = -113
+
+# Qarindoshlar jadvali ustunlari (dxa)
 REL_COL_DXA = (1260, 2160, 1830, 3027, 2057)
 
-# Foiz (preview CSS uchun)
 _REL_TOTAL = sum(REL_COL_DXA)
 REL_COL_PCT = tuple(round(w * 100 / _REL_TOTAL, 2) for w in REL_COL_DXA)
 

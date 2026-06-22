@@ -12,25 +12,46 @@ from typing import Any
 
 from docx import Document
 from docx.enum.table import WD_ALIGN_VERTICAL
-from docx.enum.text import WD_ALIGN_PARAGRAPH
+from docx.enum.text import WD_ALIGN_PARAGRAPH, WD_COLOR_INDEX, WD_TAB_ALIGNMENT
 from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
-from docx.shared import Cm, Pt
+from docx.shared import Cm, Emu, Pt, Twips
 
 from backend.services.document_render.photo import process_passport_photo
+from features.obyektivka.docx_picture import add_floating_picture
 from features.obyektivka.layout import (
     FONT_BODY_PT,
+    FONT_FAMILY,
     FONT_REL_TITLE_PT,
     FONT_TITLE_PT,
+    IND_DEP_STACK_HANGING_TWIPS,
+    IND_DEP_STACK_LEFT_TWIPS,
+    IND_HDR_RIGHT_TWIPS,
+    IND_INLINE_HANGING_TWIPS,
+    IND_INLINE_LEFT_TWIPS,
+    IND_JOB_RIGHT_TWIPS,
+    IND_REL_COL0_TWIPS,
+    IND_STACK_HANGING_TWIPS,
+    IND_STACK_LEFT_TWIPS,
+    IND_VALUE_HANGING_TWIPS,
+    IND_VALUE_LEFT_TWIPS,
+    IND_VALUE_RIGHT_TWIPS,
+    IND_WORK_HANGING_TWIPS,
     LINE_HEIGHT,
     PAGE_MARGIN_BOTTOM_MM,
     PAGE_MARGIN_LEFT_MM,
     PAGE_MARGIN_RIGHT_MM,
     PAGE_MARGIN_TOP_MM,
+    PAGE_HEIGHT_MM,
+    PAGE_WIDTH_MM,
     PHOTO_HEIGHT_MM,
     PHOTO_WIDTH_MM,
     REL_COL_DXA,
     TAB_COL_POS,
+    TAB_NAME_CENTER_POS,
+    TAB_PHOTO_POS,
+    TAB_WORK_TITLE_POS,
+    TAB_YEAR_POS,
     labels_for,
 )
 
@@ -57,11 +78,39 @@ def _parse_list(value: Any) -> list[dict[str, Any]]:
     return []
 
 
-def _set_run_font(run, *, size: int = FONT_BODY_PT, bold: bool | None = None) -> None:
+def _set_run_font(
+    run,
+    *,
+    size: int = FONT_BODY_PT,
+    bold: bool | None = None,
+    underline: bool = False,
+    highlight: bool = False,
+) -> None:
     if bold is not None:
         run.bold = bold
     run.font.size = Pt(size)
-    run.font.name = "Times New Roman"
+    run.font.name = FONT_FAMILY
+    if underline:
+        run.underline = True
+    if highlight:
+        run.font.highlight_color = WD_COLOR_INDEX.YELLOW
+
+
+def _apply_hdr_right(p) -> None:
+    p.paragraph_format.right_indent = Twips(IND_HDR_RIGHT_TWIPS)
+
+
+def _apply_hanging(p, left_twips: int, hanging_twips: int, right_twips: int | None = None) -> None:
+    pf = p.paragraph_format
+    pf.left_indent = Twips(left_twips)
+    pf.first_line_indent = Twips(-hanging_twips)
+    if right_twips is not None:
+        pf.right_indent = Twips(right_twips)
+
+
+def _apply_rel_col0_indent(p) -> None:
+    p.paragraph_format.left_indent = Twips(IND_REL_COL0_TWIPS)
+    p.paragraph_format.right_indent = Twips(IND_REL_COL0_TWIPS)
 
 
 def _set_cell_no_borders(cell) -> None:
@@ -160,6 +209,88 @@ def _para_tab(p, before: float = 0, after: float = 0) -> None:
     p.paragraph_format.tab_stops.add_tab_stop(TAB_COL_POS)
 
 
+def _make_photo_placeholder(hint: str, out_path: str) -> str:
+    """3x4 sm ramkali foto joyi (namuna VML pict o'rniga)."""
+    from PIL import Image, ImageDraw, ImageFont
+
+    w, h = 354, 472
+    img = Image.new("RGB", (w, h), "white")
+    draw = ImageDraw.Draw(img)
+    draw.rectangle([0, 0, w - 1, h - 1], outline="black", width=2)
+    try:
+        font = ImageFont.truetype("arial.ttf", 14)
+    except OSError:
+        font = ImageFont.load_default()
+    words = hint.split()
+    lines: list[str] = []
+    line = ""
+    for word in words:
+        test = f"{line} {word}".strip()
+        if draw.textlength(test, font=font) <= w - 20:
+            line = test
+        else:
+            if line:
+                lines.append(line)
+            line = word
+    if line:
+        lines.append(line)
+    y = 24
+    for ln in lines[:8]:
+        tw = draw.textlength(ln, font=font)
+        draw.text(((w - tw) / 2, y), ln, fill="black", font=font)
+        y += 18
+    os.makedirs(os.path.dirname(out_path) or ".", exist_ok=True)
+    img.save(out_path)
+    return out_path
+
+
+def _resolve_photo_path(photo_path: str | None, hint: str) -> tuple[str, bool]:
+    """Return (path, is_temp_placeholder)."""
+    if photo_path and os.path.exists(photo_path):
+        return photo_path, False
+    temp = os.path.join("temp", f"oby_photo_placeholder_{os.getpid()}.png")
+    return _make_photo_placeholder(hint, temp), True
+
+
+def _add_header_block(doc: Document, *, title: str, full_name: str, photo_path: str | None, photo_hint: str) -> str | None:
+    """Namuna DOCX: Heading 6 sarlavha, P1 bo'sh, FISH, P3 bo'sh, float foto."""
+    temp_photo: str | None = None
+    resolved, is_temp = _resolve_photo_path(photo_path, photo_hint)
+    if is_temp:
+        temp_photo = resolved
+
+    photo_w = Cm(PHOTO_WIDTH_MM / 10)
+    photo_h = Cm(PHOTO_HEIGHT_MM / 10)
+
+    try:
+        p0 = doc.add_paragraph(style="Heading 6")
+    except KeyError:
+        p0 = doc.add_paragraph()
+        p0.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    _apply_hdr_right(p0)
+    p0.paragraph_format.tab_stops.add_tab_stop(TAB_PHOTO_POS)
+    p0.paragraph_format.line_spacing = 1.0
+    add_floating_picture(p0, resolved, width=photo_w, height=photo_h)
+    tr = p0.add_run(title)
+    _set_run_font(tr, size=FONT_TITLE_PT)
+
+    p1 = doc.add_paragraph()
+    p1.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    _apply_hdr_right(p1)
+    p1.paragraph_format.tab_stops.add_tab_stop(TAB_PHOTO_POS)
+
+    p2 = doc.add_paragraph()
+    p2.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    _apply_hdr_right(p2)
+    p2.paragraph_format.tab_stops.add_tab_stop(TAB_NAME_CENTER_POS, WD_TAB_ALIGNMENT.CENTER)
+    p2.paragraph_format.tab_stops.add_tab_stop(TAB_PHOTO_POS)
+    nr = p2.add_run(full_name)
+    _set_run_font(nr, size=FONT_TITLE_PT, bold=True)
+
+    doc.add_paragraph()
+    return temp_photo
+
+
 def _add_two_col_pair(
     doc: Document,
     left_label: str,
@@ -168,6 +299,7 @@ def _add_two_col_pair(
     right_value: str,
     *,
     none: str,
+    first_row: bool = False,
 ) -> None:
     p = doc.add_paragraph()
     _para_tab(p, before=8)
@@ -179,6 +311,10 @@ def _add_two_col_pair(
 
     p2 = doc.add_paragraph()
     _para_tab(p2)
+    if first_row:
+        _apply_hanging(p2, IND_VALUE_LEFT_TWIPS, IND_VALUE_HANGING_TWIPS, IND_VALUE_RIGHT_TWIPS)
+    else:
+        _apply_hanging(p2, IND_VALUE_LEFT_TWIPS, IND_VALUE_HANGING_TWIPS)
     v1 = p2.add_run(left_value or none)
     _set_run_font(v1)
     p2.add_run("\t")
@@ -192,11 +328,12 @@ def _add_inline_field(doc: Document, label: str, value: str, *, none: str) -> No
     lr = p.add_run(f"{label}:")
     _set_run_font(lr, bold=True)
     p.add_run("\t")
+    _apply_hanging(p, IND_INLINE_LEFT_TWIPS, IND_INLINE_HANGING_TWIPS)
     vr = p.add_run(value or none)
     _set_run_font(vr)
 
 
-def _add_stacked_field(doc: Document, label: str, value: str) -> None:
+def _add_stacked_field(doc: Document, label: str, value: str, *, highlight: bool = False) -> None:
     p = doc.add_paragraph()
     _para_tab(p, before=8)
     lr = p.add_run(f"{label}:")
@@ -204,9 +341,9 @@ def _add_stacked_field(doc: Document, label: str, value: str) -> None:
 
     if value:
         p2 = doc.add_paragraph()
-        _para_tab(p2)
+        _apply_hanging(p2, IND_STACK_LEFT_TWIPS, IND_STACK_HANGING_TWIPS)
         vr = p2.add_run(value)
-        _set_run_font(vr)
+        _set_run_font(vr, highlight=highlight)
 
 
 def _add_split_label_field(doc: Document, line1: str, line2: str, value: str) -> None:
@@ -222,7 +359,7 @@ def _add_split_label_field(doc: Document, line1: str, line2: str, value: str) ->
 
     if value:
         p3 = doc.add_paragraph()
-        _para_tab(p3)
+        _apply_hanging(p3, IND_DEP_STACK_LEFT_TWIPS, IND_DEP_STACK_HANGING_TWIPS)
         vr = p3.add_run(value)
         _set_run_font(vr)
 
@@ -273,11 +410,13 @@ def generate_obyektivka_docx(
 
     doc = Document()
     style = doc.styles["Normal"]
-    style.font.name = "Times New Roman"
+    style.font.name = FONT_FAMILY
     style.font.size = Pt(FONT_BODY_PT)
     style.paragraph_format.line_spacing = LINE_HEIGHT
     style.paragraph_format.space_after = Pt(0)
     for section in doc.sections:
+        section.page_width = Cm(PAGE_WIDTH_MM / 10)
+        section.page_height = Cm(PAGE_HEIGHT_MM / 10)
         section.top_margin = Cm(PAGE_MARGIN_TOP_MM / 10)
         section.bottom_margin = Cm(PAGE_MARGIN_BOTTOM_MM / 10)
         section.left_margin = Cm(PAGE_MARGIN_LEFT_MM / 10)
@@ -311,56 +450,30 @@ def generate_obyektivka_docx(
                 break
 
     section = doc.sections[0]
-    total_width = section.page_width - section.left_margin - section.right_margin
-    photo_col_width = Cm(PHOTO_WIDTH_MM / 10 + 0.2)
-    text_col_width = int(total_width - photo_col_width)
+    temp_header_photo: str | None = None
 
-    hdr_tbl = doc.add_table(rows=1, cols=2)
-    hdr_tbl.autofit = False
-    hdr_tbl.columns[0].width = text_col_width
-    hdr_tbl.columns[1].width = photo_col_width
-    _set_table_no_borders_strict(hdr_tbl)
-    left_hdr = hdr_tbl.cell(0, 0)
-    right_hdr = hdr_tbl.cell(0, 1)
-    left_hdr.vertical_alignment = WD_ALIGN_VERTICAL.TOP
-    right_hdr.vertical_alignment = WD_ALIGN_VERTICAL.TOP
-
-    t_p = left_hdr.paragraphs[0]
-    t_p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    tr = t_p.add_run(L["title"])
-    _set_run_font(tr, size=FONT_TITLE_PT, bold=True)
-    t_p.paragraph_format.space_after = Pt(4)
-
-    n_p = left_hdr.add_paragraph()
-    n_p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    nr = n_p.add_run(full_name)
-    _set_run_font(nr, size=FONT_TITLE_PT, bold=True)
-    n_p.paragraph_format.space_after = Pt(4)
-
-    photo_p = right_hdr.paragraphs[0]
-    photo_p.alignment = WD_ALIGN_PARAGRAPH.RIGHT
-    if photo_path and os.path.exists(photo_path):
-        try:
-            run = photo_p.add_run()
-            run.add_picture(photo_path, width=Cm(PHOTO_WIDTH_MM / 10), height=Cm(PHOTO_HEIGHT_MM / 10))
-        except Exception as exc:
-            logger.warning("Failed to insert photo: %s", exc)
-            ph = photo_p.add_run(L["photo_hint"])
-            _set_run_font(ph, size=7)
-    else:
-        ph = photo_p.add_run(L["photo_hint"])
-        _set_run_font(ph, size=7)
+    temp_header_photo = _add_header_block(
+        doc,
+        title=L["title"],
+        full_name=full_name,
+        photo_path=photo_path,
+        photo_hint=L["photo_hint"],
+    )
 
     if current_job:
         if current_job_year:
             yr_p = doc.add_paragraph()
-            _para_tab(yr_p)
+            yr_p.paragraph_format.tab_stops.add_tab_stop(TAB_YEAR_POS)
             yr_run = yr_p.add_run(f"{current_job_year.rstrip('.')}:")
             _set_run_font(yr_run)
-        job_p = doc.add_paragraph()
-        _para_tab(job_p, after=4)
+        try:
+            job_p = doc.add_paragraph(style="Heading 2")
+        except KeyError:
+            job_p = doc.add_paragraph()
+        job_p.paragraph_format.right_indent = Twips(IND_JOB_RIGHT_TWIPS)
+        job_p.paragraph_format.space_after = Pt(4)
         pos_run = job_p.add_run(current_job)
-        _set_run_font(pos_run)
+        _set_run_font(pos_run, bold=True)
 
     _add_two_col_pair(
         doc,
@@ -369,6 +482,7 @@ def generate_obyektivka_docx(
         L["r1r"],
         _to_text(data.get("birthplace")),
         none=none,
+        first_row=True,
     )
     _add_two_col_pair(
         doc,
@@ -404,15 +518,17 @@ def generate_obyektivka_docx(
         none=none,
     )
     _add_stacked_field(doc, L["rAw"], _to_text(data.get("awards")))
-    _add_stacked_field(doc, L["rIdo"], _to_text(data.get("departmental_awards")))
+    _add_stacked_field(doc, L["rIdo"], _to_text(data.get("departmental_awards")), highlight=True)
     _add_split_label_field(doc, L["rDep1"], L["rDep2"], _to_text(data.get("deputy")))
 
     work_title = doc.add_paragraph()
     work_title.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    wr = work_title.add_run(L["work"])
-    _set_run_font(wr, size=FONT_TITLE_PT, bold=True)
+    work_title.paragraph_format.tab_stops.add_tab_stop(TAB_WORK_TITLE_POS)
     work_title.paragraph_format.space_before = Pt(0)
     work_title.paragraph_format.space_after = Pt(4)
+    _set_run_font(work_title.add_run(), size=FONT_BODY_PT)
+    wr = work_title.add_run(L["work"])
+    _set_run_font(wr, size=FONT_TITLE_PT, bold=True)
 
     yy_suffix = "йй." if lang == "uz_cyr" else "yy."
     if work_items:
@@ -426,7 +542,8 @@ def generate_obyektivka_docx(
             if not (year or position):
                 continue
             p = doc.add_paragraph()
-            _para_tab(p, before=4)
+            p.paragraph_format.space_before = Pt(4)
+            _apply_hanging(p, IND_WORK_HANGING_TWIPS, IND_WORK_HANGING_TWIPS)
             if year and position:
                 yshow = year if (yy_suffix.rstrip(".") in year.lower()) else f"{year} {yy_suffix}"
                 line = f"{yshow} - {position}"
@@ -441,7 +558,10 @@ def generate_obyektivka_docx(
     relatives = _parse_list(data.get("relatives"))
     doc.add_page_break()
 
-    t1 = doc.add_paragraph()
+    try:
+        t1 = doc.add_paragraph(style="Heading 1")
+    except KeyError:
+        t1 = doc.add_paragraph()
     t1.alignment = WD_ALIGN_PARAGRAPH.CENTER
     r1 = t1.add_run(f"{full_name}{L['rel_line1_suffix']}")
     _set_run_font(r1, size=FONT_REL_TITLE_PT, bold=True)
@@ -458,15 +578,32 @@ def generate_obyektivka_docx(
     _set_col_widths_dxa(rel_tbl, REL_COL_DXA)
     _set_table_borders(rel_tbl, size_pt=1.0)
 
-    headers = [L["qar"], L["fish"], L["tug"], L["ish"], L["tur"]]
-    for i, h in enumerate(headers):
-        cell = rel_tbl.rows[0].cells[i]
+    header_cells = rel_tbl.rows[0].cells
+    # col0
+    c0 = header_cells[0]
+    c0.vertical_alignment = WD_ALIGN_VERTICAL.CENTER
+    p0 = c0.paragraphs[0]
+    p0.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    _apply_rel_col0_indent(p0)
+    if lang == "uz_cyr":
+        for part in ("Қариндош", "-", "лиги"):
+            _set_run_font(p0.add_run(part), bold=True)
+    else:
+        _set_run_font(p0.add_run(L["qar"]), bold=True)
+    # col1-4 headers (namuna: qator bo'lib, underline yo'q)
+    hdr_texts = [
+        None,
+        "Familiyasi, ismi \nva otasining ismi " if lang != "uz_cyr" else "Фамилияси, исми \nва отасининг исми ",
+        "Tug'ilgan yili \nva joyi" if lang != "uz_cyr" else "Туғилган йили \nва жойи",
+        L["ish"],
+        L["tur"],
+    ]
+    for i in range(1, 5):
+        cell = header_cells[i]
         cell.vertical_alignment = WD_ALIGN_VERTICAL.CENTER
         p = cell.paragraphs[0]
         p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        run = p.add_run(h.replace(" ", "\n", 1) if i in (1, 2, 3) and "\n" not in h else h)
-        _set_run_font(run, bold=True)
-        run.underline = True
+        _set_run_font(p.add_run(hdr_texts[i]), bold=True)
 
     if relatives:
         for rel in relatives:
@@ -483,6 +620,8 @@ def generate_obyektivka_docx(
                 cell.vertical_alignment = WD_ALIGN_VERTICAL.CENTER
                 p = cell.paragraphs[0]
                 p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                if i == 0:
+                    _apply_rel_col0_indent(p)
                 rr = p.add_run(val or none)
                 _set_run_font(rr, bold=(i == 0))
     else:
@@ -494,9 +633,10 @@ def generate_obyektivka_docx(
         _set_run_font(run)
 
     doc.save(output_filepath)
-    if temp_photo_from_data and os.path.exists(temp_photo_from_data):
-        try:
-            os.remove(temp_photo_from_data)
-        except Exception:
-            pass
+    for tmp in (temp_photo_from_data, temp_header_photo):
+        if tmp and os.path.exists(tmp):
+            try:
+                os.remove(tmp)
+            except Exception:
+                pass
     return output_filepath

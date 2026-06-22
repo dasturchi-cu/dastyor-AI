@@ -7,7 +7,7 @@
   <meta charset="UTF-8">
   <title>Ma'lumotnoma — {{ data.fullname }}</title>
   <style>
-    @page { size: A4; margin: 15mm 10mm 6mm 27mm; }
+    @page { size: A4; margin: 15.01mm 10mm 5.93mm 26.9mm; }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     html, body {
       font-family: "Times New Roman", Times, "Liberation Serif", serif;
@@ -18,13 +18,13 @@
       -webkit-print-color-adjust: exact;
       print-color-adjust: exact;
     }
-    body { width: 210mm; margin: 0 auto; }
+    body { width: 209.99mm; margin: 0 auto; }
 
     .page {
       position: relative;
-      width: 210mm;
-      min-height: 297mm;
-      padding: 15mm 10mm 6mm 27mm;
+      width: 209.99mm;
+      min-height: 296.99mm;
+      padding: 15.01mm 10mm 5.93mm 26.9mm;
       page-break-after: always;
       overflow: hidden;
       background: #fff;
@@ -97,18 +97,15 @@
     .pii-blur { filter: blur(4px); -webkit-filter: blur(4px); user-select: none; }
     .pii-partial { user-select: none; letter-spacing: 0.02em; }
 
-    .hdr { width: 100%; border-collapse: collapse; margin-bottom: 2mm; table-layout: fixed; }
-    .hdr td { vertical-align: top; border: none; padding: 0; }
-    .hdr-left { text-align: center; padding-right: 2mm; }
-    .hdr-title { font-size: 14pt; font-weight: bold; margin-bottom: 1.5mm; line-height: 1; }
-    .hdr-name { font-size: 14pt; font-weight: bold; line-height: 1; }
-    .hdr-photo { width: 32mm; text-align: right; vertical-align: top; }
-
-    .photo-box {
+    .hdr-block { position: relative; min-height: 42mm; margin-bottom: 1mm; padding-right: 21.24mm; }
+    .photo-float {
+      position: absolute;
+      top: 0;
+      right: 0;
       width: 30mm;
       height: 40mm;
       border: 1px solid #000;
-      display: inline-flex;
+      display: flex;
       align-items: center;
       justify-content: center;
       overflow: hidden;
@@ -118,8 +115,9 @@
       background: #fff;
       line-height: 1.2;
       padding: 1.5mm;
+      z-index: 3;
     }
-    .photo-box img {
+    .photo-float img {
       width: 100%;
       height: 100%;
       object-fit: cover;
@@ -127,9 +125,23 @@
       display: block;
       background: #fff;
     }
+    .hdr-title {
+      font-size: 14pt;
+      font-weight: bold;
+      text-align: center;
+      line-height: 1;
+    }
+    .hdr-gap { height: 2mm; }
+    .hdr-name {
+      font-size: 14pt;
+      font-weight: bold;
+      text-align: center;
+      line-height: 1;
+    }
 
     .current-job { margin: 0 0 2mm; font-size: 11pt; line-height: 1; }
     .current-job .line { display: block; }
+    .current-job .job-line { font-weight: bold; margin-right: 44.93mm; }
 
     .fields { width: 100%; border-collapse: collapse; table-layout: fixed; }
     .fields td { border: none; vertical-align: top; padding: 0; font-size: 11pt; line-height: 1; }
@@ -137,7 +149,15 @@
     .fields .right { width: 57%; }
     .fields tr.gap td { padding-top: 2.8mm; }
     .fields .lbl { font-weight: bold; }
-    .fields .inline-val { padding-left: 4mm; }
+    .fields .val-row td {
+      padding-left: 76.2mm;
+      text-indent: -76.2mm;
+    }
+    .fields .val-row.first td { padding-right: 35.56mm; }
+    .fields .inline-row td { padding-left: 28.61mm; text-indent: -28.61mm; }
+    .fields .stack-val td { padding-left: 28.61mm; text-indent: -28.61mm; }
+    .fields .stack-val.hl td { background: #ffff00; }
+    .fields .dep-val td { padding-left: 26.67mm; text-indent: -26.67mm; }
 
     .sect-work {
       text-align: center;
@@ -146,7 +166,13 @@
       margin: 2mm 0 1.5mm;
       line-height: 1;
     }
-    .work-item { margin: 1.4mm 0 0; font-size: 11pt; line-height: 1; }
+    .work-item {
+      margin: 1.4mm 0 0;
+      font-size: 11pt;
+      line-height: 1;
+      padding-left: 28.61mm;
+      text-indent: -28.61mm;
+    }
 
     .rel-page-title {
       text-align: center;
@@ -165,7 +191,7 @@
       line-height: 1;
       word-wrap: break-word;
     }
-    .rel th { font-weight: bold; font-size: 11pt; text-decoration: underline; }
+    .rel th { font-weight: bold; font-size: 11pt; }
     .rel td.rel-type { font-weight: bold; }
     .empty { font-style: italic; color: #666; text-align: center; padding: 3mm; font-size: 11pt; }
 
@@ -228,13 +254,13 @@
 {%- set fn = d.fullname or '' -%}
 {%- macro val(x) -%}{{ x if x else L.none }}{%- endmacro -%}
 {%- macro safe_html(x) -%}{% if x %}{{ x | safe }}{% else %}{{ L.none }}{% endif %}{%- endmacro -%}
-{%- macro two_col(left_l, left_v, right_l, right_v, masked=false) -%}
+{%- macro two_col(left_l, left_v, right_l, right_v, masked=false, first=false) -%}
 <tr class="gap"><td class="left lbl">{{ left_l }}:</td><td class="right lbl">{{ right_l }}:</td></tr>
-<tr><td class="left">{% if masked %}{{ safe_html(val(left_v)) }}{% else %}{{ val(left_v) }}{% endif %}</td><td class="right">{% if masked %}{{ safe_html(val(right_v)) }}{% else %}{{ val(right_v) }}{% endif %}</td></tr>
+<tr class="val-row{% if first %} first{% endif %}"><td class="left">{% if masked %}{{ safe_html(val(left_v)) }}{% else %}{{ val(left_v) }}{% endif %}</td><td class="right">{% if masked %}{{ safe_html(val(right_v)) }}{% else %}{{ val(right_v) }}{% endif %}</td></tr>
 {%- endmacro -%}
-{%- macro stacked(label, value) -%}
+{%- macro stacked(label, value, highlight=false) -%}
 <tr class="gap"><td colspan="2" class="lbl">{{ label }}:</td></tr>
-{%- if value -%}<tr><td colspan="2">{{ value | safe }}</td></tr>{%- endif -%}
+{%- if value -%}<tr class="stack-val{% if highlight %} hl{% endif %}"><td colspan="2">{{ value | safe }}</td></tr>{%- endif -%}
 {%- endmacro -%}
 {%- macro wm_layer() -%}
 {%- if R.watermark -%}
@@ -254,45 +280,40 @@
 <div class="page">
   {{ wm_layer() }}
   <div class="page-content">
-    <table class="hdr">
-      <tr>
-        <td class="hdr-left">
-          <div class="hdr-title">{{ L.title }}</div>
-          <div class="hdr-name">{{ fn }}</div>
-        </td>
-        <td class="hdr-photo">
-          <div class="photo-box">
-            {%- if d.img -%}
-            <img src="{{ d.img }}" alt="">
-            {%- else -%}
-            {{ L.photo_hint }}
-            {%- endif -%}
-          </div>
-        </td>
-      </tr>
-    </table>
+    <div class="hdr-block">
+      <div class="photo-float">
+        {%- if d.img -%}
+        <img src="{{ d.img }}" alt="">
+        {%- else -%}
+        {{ L.photo_hint }}
+        {%- endif -%}
+      </div>
+      <div class="hdr-title">{{ L.title }}</div>
+      <div class="hdr-gap"></div>
+      <div class="hdr-name">{{ fn }}</div>
+    </div>
 
     {%- if d.current_job -%}
     <div class="current-job">
       {%- if d.current_job_year -%}
       <span class="line">{{ d.current_job_year | safe }}:</span>
       {%- endif -%}
-      <span class="line">{{ d.current_job | safe }}</span>
+      <span class="line job-line">{{ d.current_job | safe }}</span>
     </div>
     {%- endif -%}
 
     <table class="fields">
-      {{ two_col(L.r1l, d.birthdate, L.r1r, d.birthplace, true) }}
+      {{ two_col(L.r1l, d.birthdate, L.r1r, d.birthplace, true, true) }}
       {{ two_col(L.r2l, d.nation, L.r2r, d.party) }}
       {{ two_col(L.r3l, d.education, L.r3r, d.graduated) }}
-      <tr class="gap"><td colspan="2"><span class="lbl">{{ L.rSpec }}:</span><span class="inline-val">{{ val(d.specialty) }}</span></td></tr>
+      <tr class="gap"><td colspan="2" class="lbl inline-row"><span class="lbl">{{ L.rSpec }}:</span><span style="padding-left:28.61mm;text-indent:0;display:inline-block">{{ val(d.specialty) }}</span></td></tr>
       {{ two_col(L.r4l, d.degree, L.r4r, d.scientific_title) }}
       {{ two_col(L.r5l, d.languages, L.r5r, d.military_rank) }}
       {{ stacked(L.rAw, d.awards) }}
-      {{ stacked(L.rIdo, d.departmental_awards) }}
+      {{ stacked(L.rIdo, d.departmental_awards, true) }}
       <tr class="gap"><td colspan="2" class="lbl">{{ L.rDep1 }}</td></tr>
       <tr><td colspan="2" class="lbl">{{ L.rDep2 }}:</td></tr>
-      {%- if d.deputy -%}<tr><td colspan="2">{{ d.deputy | safe }}</td></tr>{%- endif -%}
+      {%- if d.deputy -%}<tr class="dep-val"><td colspan="2">{{ d.deputy | safe }}</td></tr>{%- endif -%}
     </table>
 
     <div class="sect-work">{{ L.work }}</div>
@@ -330,9 +351,9 @@
     <table class="rel">
       <thead>
         <tr>
-          <th style="width:12.18%">{{ L.qar }}</th>
-          <th style="width:20.90%">{{ L.fish }}</th>
-          <th style="width:17.71%">{{ L.tug }}</th>
+          <th style="width:12.18%">{%- if d.lang == 'uz_cyr' -%}Қариндош-<br>лиги{%- else -%}{{ L.qar }}{%- endif -%}</th>
+          <th style="width:20.90%">{%- if d.lang == 'uz_cyr' -%}Фамилияси, исми <br>ва отасининг исми {%- else -%}Familiyasi, ismi <br>va otasining ismi {%- endif -%}</th>
+          <th style="width:17.71%">{%- if d.lang == 'uz_cyr' -%}Туғилган йили <br>ва жойи{%- else -%}Tug'ilgan yili <br>va joyi{%- endif -%}</th>
           <th style="width:29.29%">{{ L.ish }}</th>
           <th style="width:19.91%">{{ L.tur }}</th>
         </tr>
