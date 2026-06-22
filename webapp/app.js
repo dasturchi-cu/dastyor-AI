@@ -7,9 +7,11 @@
 const DastyorAI = (() => {
     'use strict';
 
+    /** Production fallback — Railway (file:// yoki origin yo'q bo'lsa). */
+    const PROD_API_FALLBACK = 'https://dastyor-ai-production.up.railway.app';
+
     /**
      * API bazasi: avvalo ?api=, keyin meta[name=dastyor-api-base], keyin joriy origin.
-     * Railway / boshqa hostda Render ga «qolib ketmasin».
      */
     function resolveApiBase() {
         try {
@@ -27,7 +29,7 @@ const DastyorAI = (() => {
             }
         } catch (_) {}
         if (location.protocol === 'file:') {
-            return 'https://dastyor-ai.onrender.com';
+            return PROD_API_FALLBACK;
         }
         try {
             const o = location.origin;
@@ -35,7 +37,7 @@ const DastyorAI = (() => {
                 return String(o).replace(/\/+$/, '');
             }
         } catch (_) {}
-        return 'https://dastyor-ai.onrender.com';
+        return PROD_API_FALLBACK;
     }
 
     const BASE = resolveApiBase();

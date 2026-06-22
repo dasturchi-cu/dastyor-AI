@@ -85,7 +85,7 @@ class Settings:
     )
     redis_url: str = field(default_factory=lambda: _env("REDIS_URL", "redis://localhost:6379/0"))
     use_redis: bool = field(
-        default_factory=lambda: _env("USE_REDIS", "1").lower() not in ("0", "false", "no", "off")
+        default_factory=lambda: _env("USE_REDIS", "0").lower() in ("1", "true", "yes", "on")
     )
     ai_max_retries: int = field(default_factory=lambda: _env_int("AI_MAX_RETRIES", 3))
     gemini_timeout: int = field(default_factory=lambda: _env_int("GEMINI_TIMEOUT", 90))

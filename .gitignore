@@ -55,3 +55,7 @@ temp/
 *.log
 *.bak
 *.backup
+flake8_report.txt
+test_*.docx
+test_*.pdf
+pytest-cache-files-*/

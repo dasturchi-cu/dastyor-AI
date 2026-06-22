@@ -556,7 +556,7 @@
           return;
         }
       } catch (_) {}
-      if (window.location.protocol === 'file:') API_URL = 'https://dastyor-ai.onrender.com';
+      if (window.location.protocol === 'file:') API_URL = 'https://dastyor-ai-production.up.railway.app';
       else if (/localhost|127\.0\.0\.1/.test(window.location.origin)) API_URL = 'http://localhost:8000';
       else API_URL = window.location.origin.replace(/\/+$/, '');
     })();
