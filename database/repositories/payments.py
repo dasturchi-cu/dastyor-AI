@@ -95,14 +95,14 @@ def set_status(payment_id: int, status: str, admin_note: str | None = None) -> b
 
 def approve_atomic(payment_id: int, admin_note: str | None = None) -> dict[str, Any] | None:
     """
-    Atomically: PENDING → APPROVED + grant 1 credit.
-    Idempotent if already APPROVED (no extra credit).
+    Atomically: PENDING → APPROVED + unlock document access.
+    Idempotent if already APPROVED (no extra access).
     """
     pid = int(payment_id)
     with get_connection() as conn:
         row = conn.execute(
             """
-            SELECT p.id, p.status, p.user_id, u.telegram_id
+            SELECT p.id, p.status, p.user_id, p.document_type, u.telegram_id
             FROM payments p
             JOIN users u ON u.id = p.user_id
             WHERE p.id = ?
@@ -128,14 +128,16 @@ def approve_atomic(payment_id: int, admin_note: str | None = None) -> dict[str, 
             )
             if cur.rowcount != 1:
                 return None
-            conn.execute(
-                """
-                UPDATE users
-                SET credits = credits + 1, updated_at = datetime('now')
-                WHERE id = ?
-                """,
-                (int(row["user_id"]),),
-            )
+            doc_types = users_repo.grant_access_for_payment_document(row["document_type"])
+            for doc in doc_types:
+                col = users_repo._access_column(doc)
+                conn.execute(
+                    f"""
+                    UPDATE users SET {col} = 1, updated_at = datetime('now')
+                    WHERE id = ?
+                    """,
+                    (int(row["user_id"]),),
+                )
             users_repo.invalidate_cache(int(row["telegram_id"]))
         else:
             return None
@@ -266,6 +268,22 @@ def set_document_type(payment_id: int, document_type: str) -> bool:
             (doc, int(payment_id)),
         )
         return cur.rowcount > 0
+
+
+def get_latest_pending_for_user(telegram_id: int) -> dict[str, Any] | None:
+    with get_connection() as conn:
+        row = conn.execute(
+            """
+            SELECT p.*, u.telegram_id, u.first_name, u.last_name, u.username
+            FROM payments p
+            JOIN users u ON u.id = p.user_id
+            WHERE u.telegram_id = ? AND p.status = 'PENDING'
+            ORDER BY p.created_at DESC
+            LIMIT 1
+            """,
+            (int(telegram_id),),
+        ).fetchone()
+    return row_to_dict(row)
 
 
 def list_filtered(

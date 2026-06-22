@@ -40,15 +40,18 @@ async def api_me(token: str | None = Query(None), telegram_id: str | None = Quer
     if not user:
         user = await async_db.run(users_repo.upsert_user, uid)
     session = get_session_by_telegram_id(uid) or {}
+    access = users_repo.access_status(uid)
+    has_any = access["has_cv_access"] or access["has_objective_access"]
     return {
         "ok": True,
         "telegram_id": uid,
         "first_name": session.get("first_name", user.get("first_name", "")),
         "username": session.get("username", user.get("username", "")),
-        "credits": int(user.get("credits") or 0),
+        "has_cv_access": access["has_cv_access"],
+        "has_objective_access": access["has_objective_access"],
+        "has_access": has_any,
         "single_doc_price_uzs": settings.single_doc_price_uzs,
-        "has_access": int(user.get("credits") or 0) > 0,
-        "credit_note": "Ovoz/matn bepul. Tayyor fayl: 7 999 so'm = 1 ta hujjat (CV yoki Obyektivka)",
+        "access_note": "Ovoz/matn bepul. Tayyor fayl uchun to'lov va admin tasdiqlash kerak.",
     }
 
 
@@ -190,18 +193,10 @@ def _map_payment_status(status: str) -> str:
     return "pending"
 
 
-async def _notify_user_payment_approved(bot, telegram_id: int, credits: int) -> None:
-    from shared.keyboards import open_services_inline
-    from shared.marketing import payment_approved_message
+async def _notify_user_payment_approved(bot, telegram_id: int, payment: dict) -> None:
+    from features.admin.payments import notify_payment_approved
 
-    try:
-        await bot.send_message(
-            telegram_id,
-            payment_approved_message(credits),
-            reply_markup=open_services_inline(telegram_id),
-        )
-    except Exception as e:
-        logger.warning("User approve notify failed: %s", e)
+    await notify_payment_approved(bot, payment)
 
 
 async def _notify_admin_payment(
@@ -211,7 +206,6 @@ async def _notify_admin_payment(
     bot,
     *,
     auto_approved: bool = False,
-    credits: int = 0,
 ) -> None:
     try:
         from aiogram.types import FSInputFile
@@ -227,7 +221,7 @@ async def _notify_admin_payment(
             kind=kind,
             purchase_number=purchase_number,
             auto_approved=auto_approved,
-            credits=credits,
+            access_open=auto_approved,
         )
         kb = None if auto_approved else payment_review_kb(pid)
         receipt_path = payment.get("receipt_path")
@@ -275,12 +269,11 @@ async def _finalize_payment_submission(
         result = await asyncio.to_thread(payment_service.try_auto_approve, pid)
         if result:
             tid = int(result["telegram_id"])
-            credits = users_repo.get_credits(tid)
             payment = result
             await _notify_admin_payment(
-                payment, uid, kind, bot, auto_approved=True, credits=credits
+                payment, uid, kind, bot, auto_approved=True
             )
-            await _notify_user_payment_approved(bot, tid, credits)
+            await _notify_user_payment_approved(bot, tid, payment)
             return "approved"
         logger.warning("Auto-approve failed for payment #%s", pid)
 
@@ -397,9 +390,15 @@ async def api_paid_doc_status(
     if not payment:
         raise HTTPException(status_code=404, detail="So'rov topilmadi")
     st = _map_payment_status(str(payment.get("status") or ""))
-    credits = payment_service.user_status(uid)["credits"]
-    if st == "approved" and credits < 1:
-        st = "completed"
+    access = users_repo.access_status(uid)
+    doc_type = str(payment.get("document_type") or "").lower()
+    if st == "approved":
+        if doc_type == "cv" and not access["has_cv_access"]:
+            st = "completed"
+        elif doc_type in ("obyektivka", "oby") and not access["has_objective_access"]:
+            st = "completed"
+        elif doc_type == "manual" and not (access["has_cv_access"] or access["has_objective_access"]):
+            st = "completed"
     return {"ok": True, "request_id": request_id, "status": st}
 
 

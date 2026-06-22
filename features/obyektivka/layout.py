@@ -13,9 +13,11 @@ PAGE_MARGIN_BOTTOM_MM = 5.93
 PAGE_MARGIN_LEFT_MM = 26.9
 
 FONT_FAMILY = "Times Uzb Roman"
-FONT_BODY_PT = 11
-FONT_TITLE_PT = 14
-FONT_REL_TITLE_PT = 12
+# Reference DOCX audit (pt) — do not change without re-measuring namuna
+FONT_TITLE_PT = 14  # MA'LUMOTNOMA, F.I.Sh, MEHNAT FAOLIYATI
+FONT_REL_SECTION_PT = 12  # «…qarindoshlari haqida», MA'LUMOT (p2)
+FONT_BODY_PT = 11  # body, work history, family table
+FONT_PHOTO_HINT_PT = 10  # photo caption block
 LINE_HEIGHT = 1.0
 
 PHOTO_WIDTH_MM = 30

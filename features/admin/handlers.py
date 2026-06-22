@@ -19,6 +19,7 @@ from features.admin import service as admin_service
 from features.admin.dispatch import dispatch_admin_menu, is_admin
 from features.admin.keyboards import (
     broadcast_confirm_kb,
+    document_access_kb,
     error_filter_kb,
     payment_filter_kb,
     user_profile_kb,
@@ -34,6 +35,20 @@ router = Router()
 
 _NOT_MENU = ~F.text.func(is_admin_menu_button)
 
+
+async def _show_user_profile(message: Message, telegram_id: int) -> None:
+    profile = await asyncio.to_thread(users_repo.get_profile_stats, telegram_id)
+    if not profile:
+        await message.answer("Foydalanuvchi topilmadi.", reply_markup=admin_menu())
+        return
+    pending_id = profile.get("pending_payment_id")
+    await message.answer(
+        admin_service.build_profile_text(profile),
+        reply_markup=user_profile_kb(
+            telegram_id,
+            pending_payment_id=int(pending_id) if pending_id else None,
+        ),
+    )
 
 async def _update_payment_review_message(message: Message | None, text: str) -> None:
     if not message:
@@ -93,15 +108,8 @@ async def admin_search_run(message: Message, state: FSMContext) -> None:
             await message.answer("Hech narsa topilmadi.", reply_markup=admin_menu())
             return
         if len(rows) == 1:
-            profile = await asyncio.to_thread(
-                users_repo.get_profile_stats, int(rows[0]["telegram_id"])
-            )
-            if profile:
-                await message.answer(
-                    admin_service.build_profile_text(profile),
-                    reply_markup=user_profile_kb(int(profile["telegram_id"])),
-                )
-                return
+            await _show_user_profile(message, int(rows[0]["telegram_id"]))
+            return
         await message.answer(
             f"<b>{len(rows)} ta natija:</b>",
             reply_markup=user_search_results_kb(rows),
@@ -126,29 +134,37 @@ async def admin_broadcast_preview(message: Message, state: FSMContext) -> None:
     )
 
 
-@router.message(AdminStates.credit_amount, _NOT_MENU, F.text)
-async def admin_credit_amount(message: Message, state: FSMContext) -> None:
+@router.message(AdminStates.reject_reason, _NOT_MENU, F.text)
+async def admin_reject_reason(message: Message, state: FSMContext) -> None:
     if not message.from_user or not is_admin(message.from_user.id):
         return
     data = await state.get_data()
     await state.clear()
+    pid = int(data.get("reject_payment_id") or 0)
+    reason = (message.text or "").strip()
+    if not pid:
+        await message.answer("To'lov topilmadi.", reply_markup=admin_menu())
+        return
+    if not reason:
+        await message.answer("Sabab bo'sh bo'lmasligi kerak.", reply_markup=admin_menu())
+        return
     try:
-        amount = max(1, int((message.text or "").strip()))
-    except ValueError:
-        await message.answer("Raqam kiriting.", reply_markup=admin_menu())
-        return
-    tid = int(data.get("credit_target") or 0)
-    action = data.get("credit_action")
-    if not tid:
-        await message.answer("Foydalanuvchi topilmadi.", reply_markup=admin_menu())
-        return
-    if action == "add":
-        credits = await asyncio.to_thread(users_repo.add_credits, tid, amount)
-        await message.answer(f"✅ +{amount} kredit. Jami: {credits}", reply_markup=admin_menu())
-    else:
-        credits = await asyncio.to_thread(users_repo.remove_credits, tid, amount)
-        await message.answer(f"✅ -{amount} kredit. Jami: {credits}", reply_markup=admin_menu())
-    logger.info("Admin credit %s %s for %s", action, amount, tid)
+        ok = await db_run(payment_service.reject_payment, pid, reason)
+        if not ok:
+            await message.answer("Rad etish xatosi.", reply_markup=admin_menu())
+            return
+        payment = await db_run(payments_repo.get_payment, pid)
+        if payment:
+            from features.admin.payments import (
+                admin_reject_summary,
+                notify_payment_rejected,
+            )
+
+            await notify_payment_rejected(message.bot, payment, reason=reason)
+            await message.answer(admin_reject_summary(payment, reason=reason), reply_markup=admin_menu())
+    except Exception as exc:
+        logger.exception("Reject reason failed: %s", exc)
+        await message.answer(f"❌ Rad etish xatosi: {exc}", reply_markup=admin_menu())
 
 
 @router.message(AdminStates.dm_user_text, _NOT_MENU, F.text)
@@ -323,10 +339,7 @@ async def user_profile_callback(query: CallbackQuery) -> None:
             return
         await query.answer()
         if query.message:
-            await query.message.answer(
-                admin_service.build_profile_text(profile),
-                reply_markup=user_profile_kb(tid),
-            )
+            await _show_user_profile(query.message, tid)
     except Exception as exc:
         logger.exception("Profile load failed: %s", exc)
         await query.answer("Xatolik.", show_alert=True)
@@ -335,40 +348,86 @@ async def user_profile_callback(query: CallbackQuery) -> None:
 
 
 @router.callback_query(
-    F.data.startswith("adm_cred_add_")
-    | F.data.startswith("adm_cred_sub_")
-    | F.data.startswith("adm_block_")
+    F.data.startswith("adm_block_")
     | F.data.startswith("adm_unblock_")
     | F.data.startswith("adm_msg_")
+    | F.data.startswith("adm_profile_")
+    | F.data.startswith("adm_doc_open_")
+    | F.data.startswith("adm_doc_close_")
+    | F.data.startswith("adm_doc_reset_")
+    | F.data.startswith("adm_doc_grant_")
+    | F.data.startswith("adm_doc_revoke_")
 )
 async def user_action_callback(query: CallbackQuery, state: FSMContext) -> None:
     if not query.from_user or not is_admin(query.from_user.id):
         await query.answer("Faqat admin.", show_alert=True)
         return
     data = query.data or ""
-    parts = data.rsplit("_", 1)
-    if len(parts) != 2:
-        await query.answer("Xato.", show_alert=True)
-        return
-    action_key, tid_s = parts[0], parts[1]
-    try:
-        tid = int(tid_s)
-    except ValueError:
-        await query.answer("ID xato.", show_alert=True)
-        return
     await query.answer()
     try:
-        if action_key == "adm_cred_add":
-            await state.set_state(AdminStates.credit_amount)
-            await state.update_data(credit_target=tid, credit_action="add")
+        if data.startswith("adm_doc_grant_cv_"):
+            tid = int(data.replace("adm_doc_grant_cv_", ""))
+            await asyncio.to_thread(users_repo.grant_document_access, tid, "cv")
             if query.message:
-                await query.message.answer(f"<code>{tid}</code> uchun nechta kredit qo'shilsin?")
-        elif action_key == "adm_cred_sub":
-            await state.set_state(AdminStates.credit_amount)
-            await state.update_data(credit_target=tid, credit_action="sub")
+                await query.message.answer(f"✅ CV kirish ochildi (<code>{tid}</code>).")
+                await _show_user_profile(query.message, tid)
+            return
+        if data.startswith("adm_doc_grant_oby_"):
+            tid = int(data.replace("adm_doc_grant_oby_", ""))
+            await asyncio.to_thread(users_repo.grant_document_access, tid, "obyektivka")
             if query.message:
-                await query.message.answer(f"<code>{tid}</code> dan nechta kredit olib tashlansin?")
-        elif action_key == "adm_block":
+                await query.message.answer(f"✅ Obyektivka kirish ochildi (<code>{tid}</code>).")
+                await _show_user_profile(query.message, tid)
+            return
+        if data.startswith("adm_doc_revoke_cv_"):
+            tid = int(data.replace("adm_doc_revoke_cv_", ""))
+            await asyncio.to_thread(users_repo.revoke_document_access, tid, "cv")
+            if query.message:
+                await query.message.answer(f"🔒 CV kirish yopildi (<code>{tid}</code>).")
+                await _show_user_profile(query.message, tid)
+            return
+        if data.startswith("adm_doc_revoke_oby_"):
+            tid = int(data.replace("adm_doc_revoke_oby_", ""))
+            await asyncio.to_thread(users_repo.revoke_document_access, tid, "obyektivka")
+            if query.message:
+                await query.message.answer(f"🔒 Obyektivka kirish yopildi (<code>{tid}</code>).")
+                await _show_user_profile(query.message, tid)
+            return
+        if data.startswith("adm_doc_open_"):
+            tid = int(data.replace("adm_doc_open_", ""))
+            if query.message:
+                await query.message.answer(
+                    f"<code>{tid}</code> — qaysi hujjatni ochamiz?",
+                    reply_markup=document_access_kb(tid, action="open"),
+                )
+            return
+        if data.startswith("adm_doc_close_"):
+            tid = int(data.replace("adm_doc_close_", ""))
+            if query.message:
+                await query.message.answer(
+                    f"<code>{tid}</code> — qaysi hujjatni yopamiz?",
+                    reply_markup=document_access_kb(tid, action="close"),
+                )
+            return
+        if data.startswith("adm_doc_reset_"):
+            tid = int(data.replace("adm_doc_reset_", ""))
+            await asyncio.to_thread(users_repo.reset_document_access, tid)
+            if query.message:
+                await query.message.answer(f"🔄 Hujjat kirish tiklandi (<code>{tid}</code>).")
+                await _show_user_profile(query.message, tid)
+            return
+        if data.startswith("adm_profile_"):
+            tid = int(data.replace("adm_profile_", ""))
+            if query.message:
+                await _show_user_profile(query.message, tid)
+            return
+
+        parts = data.rsplit("_", 1)
+        if len(parts) != 2:
+            return
+        action_key, tid_s = parts[0], parts[1]
+        tid = int(tid_s)
+        if action_key == "adm_block":
             await asyncio.to_thread(users_repo.set_blocked, tid, True)
             if query.message:
                 await query.message.answer(f"🚫 <code>{tid}</code> bloklandi.")
@@ -427,11 +486,10 @@ async def error_filter_callback(query: CallbackQuery) -> None:
 
 
 @router.callback_query(F.data.startswith("pay_approve_") | F.data.startswith("pay_reject_"))
-async def payment_callback(query: CallbackQuery) -> None:
+async def payment_callback(query: CallbackQuery, state: FSMContext) -> None:
     if not query.from_user or not is_admin(query.from_user.id):
         await query.answer("Faqat admin.", show_alert=True)
         return
-    await query.answer()
 
     parts = (query.data or "").split("_")
     if len(parts) != 3:
@@ -447,40 +505,30 @@ async def payment_callback(query: CallbackQuery) -> None:
             await query.message.reply("ID xato.")
         return
 
+    if action == "reject":
+        await query.answer()
+        await state.set_state(AdminStates.reject_reason)
+        await state.update_data(reject_payment_id=pid)
+        if query.message:
+            await query.message.answer(
+                f"❌ To'lov <b>#{pid}</b> rad etish sababini yozing:",
+                reply_markup=admin_menu(),
+            )
+        return
+
+    await query.answer()
     try:
-        if action == "approve":
-            result = await db_run(payment_service.approve_payment, pid)
-            if result:
-                tid = int(result["telegram_id"])
-                credits = await db_run(users_repo.get_credits, tid)
-                await _update_payment_review_message(
-                    query.message,
-                    f"✅ To'lov #{pid} tasdiqlandi.\n"
-                    f"Foydalanuvchi pul balansi: {credits} ta hujjat",
-                )
-                await query.bot.send_message(
-                    tid,
-                    f"✅ To'lovingiz tasdiqlandi!\n"
-                    f"💳 Pul balansi: <b>{credits}</b> ta hujjat\n"
-                    f"ℹ️ Har biri CV <b>yoki</b> Obyektivka uchun.",
-                )
-            elif query.message:
-                await query.message.reply("Tasdiqlash xatosi — to'lov allaqachon ko'rib chiqilgan.")
-        else:
-            ok = await db_run(payment_service.reject_payment, pid)
-            if ok:
-                payment = await db_run(payments_repo.get_payment, pid)
-                await _update_payment_review_message(
-                    query.message,
-                    f"❌ To'lov #{pid} rad etildi.",
-                )
-                if payment:
-                    await query.bot.send_message(
-                        int(payment["telegram_id"]),
-                        "❌ To'lovingiz rad etildi. Qayta urinib ko'ring.",
-                    )
-            elif query.message:
-                await query.message.reply("Rad etish xatosi.")
+        from features.admin.payments import admin_approve_summary, notify_payment_approved
+
+        result = await db_run(payment_service.approve_payment, pid)
+        if result:
+            await _update_payment_review_message(
+                query.message,
+                admin_approve_summary(result),
+            )
+            await notify_payment_approved(query.bot, result)
+        elif query.message:
+            await query.message.reply("Tasdiqlash xatosi — to'lov allaqachon ko'rib chiqilgan.")
     except Exception as exc:
         logger.exception("Payment callback failed: %s", exc)
         from shared.error_log import record_error

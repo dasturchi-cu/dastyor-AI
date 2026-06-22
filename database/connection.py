@@ -60,6 +60,12 @@ def _apply_migrations(conn: sqlite3.Connection) -> None:
         conn.execute("ALTER TABLE users ADD COLUMN is_blocked INTEGER NOT NULL DEFAULT 0")
     if "last_active_at" not in user_cols:
         conn.execute("ALTER TABLE users ADD COLUMN last_active_at TEXT")
+    if "has_cv_access" not in user_cols:
+        conn.execute("ALTER TABLE users ADD COLUMN has_cv_access INTEGER NOT NULL DEFAULT 0")
+    if "has_objective_access" not in user_cols:
+        conn.execute(
+            "ALTER TABLE users ADD COLUMN has_objective_access INTEGER NOT NULL DEFAULT 0"
+        )
 
     if "pending_reminder_sent_at" not in pay_cols:
         conn.execute("ALTER TABLE payments ADD COLUMN pending_reminder_sent_at TEXT")

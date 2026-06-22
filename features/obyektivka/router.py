@@ -10,7 +10,7 @@ import uuid
 import re
 
 from fastapi import APIRouter, File, Form, HTTPException, Query, Request, UploadFile
-from fastapi.responses import JSONResponse, StreamingResponse
+from fastapi.responses import JSONResponse, Response, StreamingResponse
 
 from backend.schemas.webapp import ExportObyektivkaRequest, ObyektivkaRequest, PreviewObyektivkaRequest, TestObyektivkaPdfRequest
 from core.security import rate_limit

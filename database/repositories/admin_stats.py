@@ -45,7 +45,7 @@ def export_users_rows() -> list[dict[str, Any]]:
         rows = conn.execute(
             """
             SELECT u.telegram_id, u.username, u.first_name, u.last_name,
-                   u.credits, u.is_blocked, u.created_at,
+                   u.has_cv_access, u.has_objective_access, u.is_blocked, u.created_at,
                    COALESCE(u.last_active_at, u.updated_at) AS last_activity,
                    (SELECT COUNT(*) FROM payments p WHERE p.user_id = u.id) AS payments_count,
                    (SELECT COUNT(*) FROM generated_files g

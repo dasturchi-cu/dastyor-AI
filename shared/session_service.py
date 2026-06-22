@@ -10,23 +10,28 @@ from typing import Optional
 
 from core.redis_client import get_sync_redis, is_redis_live, key
 
+from config.paths import sessions_file, temp_dir
+
 logger = logging.getLogger(__name__)
 
-SESSION_FILE = "temp/sessions.json"
 SESSION_TTL = 60 * 60 * 24
 
 _cache: dict[str, dict] = {}
 _loaded = False
 
 
+def _session_path() -> str:
+    return str(sessions_file())
+
+
 def _load_file() -> None:
     global _cache, _loaded
     if _loaded:
         return
-    os.makedirs("temp", exist_ok=True)
+    path = _session_path()
     try:
-        if os.path.exists(SESSION_FILE):
-            with open(SESSION_FILE, encoding="utf-8") as f:
+        if os.path.exists(path):
+            with open(path, encoding="utf-8") as f:
                 _cache = json.load(f)
     except Exception as exc:
         logger.warning("session file load error: %s", exc)
@@ -35,9 +40,9 @@ def _load_file() -> None:
 
 
 def _save_file() -> None:
-    os.makedirs("temp", exist_ok=True)
+    path = _session_path()
     try:
-        with open(SESSION_FILE, "w", encoding="utf-8") as f:
+        with open(path, "w", encoding="utf-8") as f:
             json.dump(_cache, f, ensure_ascii=False, indent=2)
     except Exception as exc:
         logger.warning("session file save error: %s", exc)

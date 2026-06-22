@@ -14,25 +14,30 @@ from config.settings import settings
 BTN_CV = "📄 CV Resume"
 BTN_OBY = "✍️ Obyektivka yaratish"
 BTN_BACK = "🔙 Orqaga"
+BTN_ACCESS = "📄 Hujjat holati"
 BTN_HELP = "ℹ️ Yordam"
-BTN_CREDITS = "💳 Pul balansi"
 
-# Eski Telegram klaviatura (cache) — menyu tugmasi sifatida tanish
-LEGACY_BTN_CREDITS = ("💳 Kreditlar", "Kreditlar", "💳 Kredit")
+LEGACY_BTN_ACCESS = ("💳 Pul balansi", "💳 Kreditlar", "Kreditlar", "💳 Kredit")
 
 MENU_BUTTON_TEXTS = frozenset(
-    {BTN_CV, BTN_OBY, BTN_CREDITS, BTN_HELP, BTN_BACK, *LEGACY_BTN_CREDITS}
+    {BTN_CV, BTN_OBY, BTN_ACCESS, BTN_HELP, BTN_BACK, *LEGACY_BTN_ACCESS}
 )
 
 
-def is_credits_button(text: str | None) -> bool:
+def is_access_button(text: str | None) -> bool:
     t = (text or "").strip()
     if not t:
         return False
-    if t == BTN_CREDITS or t in LEGACY_BTN_CREDITS:
+    if t == BTN_ACCESS or t in LEGACY_BTN_ACCESS:
         return True
     low = t.casefold()
-    return t.startswith("💳") and ("kredit" in low or "pul balans" in low)
+    return t.startswith(("📄", "💳")) and (
+        "hujjat" in low or "kredit" in low or "pul balans" in low
+    )
+
+
+def is_credits_button(text: str | None) -> bool:
+    return is_access_button(text)
 
 
 def is_menu_button(text: str | None) -> bool:
@@ -97,7 +102,7 @@ def user_menu() -> ReplyKeyboardMarkup:
     return ReplyKeyboardMarkup(
         keyboard=[
             [KeyboardButton(text=BTN_CV), KeyboardButton(text=BTN_OBY)],
-            [KeyboardButton(text=BTN_CREDITS), KeyboardButton(text=BTN_HELP)],
+            [KeyboardButton(text=BTN_ACCESS), KeyboardButton(text=BTN_HELP)],
         ],
         resize_keyboard=True,
         input_field_placeholder="Xizmatni tanlang",
@@ -176,8 +181,14 @@ def payment_review_kb(payment_id: int) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         inline_keyboard=[
             [
-                InlineKeyboardButton(text="✅ Tasdiqlash", callback_data=f"pay_approve_{payment_id}"),
-                InlineKeyboardButton(text="❌ Rad etish", callback_data=f"pay_reject_{payment_id}"),
+                InlineKeyboardButton(
+                    text="✅ To'lovni tasdiqlash",
+                    callback_data=f"pay_approve_{payment_id}",
+                ),
+                InlineKeyboardButton(
+                    text="❌ To'lovni rad etish",
+                    callback_data=f"pay_reject_{payment_id}",
+                ),
             ]
         ]
     )
