@@ -97,14 +97,39 @@
     
     .entry-card { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px; padding: 16px; margin-bottom: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
     
-    .cv-canvas-wrapper { position: relative; transform-origin: top center; transition: transform 0.2s ease-out; min-height: 280px; }
+    .cv-canvas-wrapper {
+      position: relative;
+      margin-left: auto;
+      margin-right: auto;
+      overflow: hidden;
+      max-width: 100%;
+      min-height: 280px;
+      transition: height 0.2s ease-out, width 0.2s ease-out;
+    }
+    #cv-preview-frame {
+      position: absolute;
+      left: 0;
+      top: 0;
+      display: block;
+      transform-origin: top left;
+      border: 0;
+      background: #fff;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    }
     .cv-canvas { width: 210mm; min-height: 297mm; background: #fff; box-shadow: 0 10px 30px rgba(0,0,0,0.1); margin: 0 auto; overflow: visible; }
 
     /* Preview: avoid fixed 800px on small screens */
-    #previewPane { height: min(calc(var(--app-vh) - 240px), 720px); }
+    #previewPane {
+      height: min(calc(var(--app-vh) - 240px), 720px);
+      overflow-x: hidden;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
 
     @media (max-width: 480px) {
-      #previewPane { padding: 12px !important; }
+      #previewPane { padding: 8px !important; }
+      #cvLivePreviewCard { padding: 12px !important; }
     }
 
     /* Lang Level Inputs CSS */
@@ -213,22 +238,17 @@
       font-size: 1rem;
     }
     .cv-tpl-scroll {
-      display: flex;
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
       gap: 8px;
-      overflow-x: auto;
-      overflow-y: hidden;
-      padding-bottom: 4px;
       margin-bottom: 12px;
-      -webkit-overflow-scrolling: touch;
-      scroll-snap-type: x proximity;
+      overflow: visible;
     }
     .cv-tpl-scroll .tpl-card {
-      flex: 0 0 68px;
-      width: 68px;
-      min-width: 68px;
-      height: 88px;
-      aspect-ratio: auto;
-      scroll-snap-align: start;
+      width: 100%;
+      min-width: 0;
+      height: auto;
+      aspect-ratio: 1 / 1.3;
     }
     .cv-tpl-label {
       font-size: 11px;
@@ -326,7 +346,7 @@
 
       <div id="step-1" class="step-content active">
         <p class="cv-tpl-label">Shablon tanlang</p>
-        <div class="cv-tpl-scroll grid grid-cols-4 sm:grid-cols-8 gap-3">
+        <div class="cv-tpl-scroll">
           <div class="tpl-card tpl-active aspect-[1/1.3] rounded-xl flex flex-col items-center" onclick="setTpl('minimal')" id="tpl-minimal">
             <img src="https://i.postimg.cc/02nFbRTH/Screenshot-20260316-050751-WPS-Office.jpg" class="w-full h-full object-cover" loading="lazy" decoding="async" alt="Minimal">
             <div class="tpl-name">Minimal</div>
@@ -554,16 +574,14 @@
         <div class="mt-3"></div>
       </div>
 
-      <div id="previewPane" class="preview-pane-light relative w-full flex items-start justify-center p-4 sm:p-10 scroller overflow-y-auto rounded-2xl">
+      <div id="previewPane" class="preview-pane-light relative w-full p-4 sm:p-8 scroller overflow-y-auto rounded-2xl">
         <div id="cvPreviewLoading" class="da-preview-loading" aria-hidden="true">
           <div class="da-spinner"></div>
           <span data-i18n="loading">Yuklanmoqda...</span>
         </div>
         <div class="cv-canvas-wrapper" id="previewScaleWrapper">
-          <!-- sandbox faqat allow-same-origin bo‘lsa TG WebView / iOS da srcdoc ba’zan bo‘sh; skriptlar shablon uchun -->
           <iframe id="cv-preview-frame" title="CV preview" sandbox="allow-scripts allow-same-origin"
-            class="bg-white mx-auto block border-0"
-            style="width:210mm;min-height:297mm;background:#fff;vertical-align:top;"></iframe>
+            style="width:210mm;min-height:297mm;"></iframe>
         </div>
       </div>
       
@@ -1390,13 +1408,26 @@
       const box = document.getElementById('cv-preview-frame');
       const wrap = document.getElementById('previewScaleWrapper');
       if (!pane || !box || !wrap) return;
-      const paneWidth = Math.max(0, pane.clientWidth - 24);
+
+      const paneStyle = getComputedStyle(pane);
+      const paneWidth = Math.max(
+        0,
+        pane.clientWidth
+          - parseFloat(paneStyle.paddingLeft || '0')
+          - parseFloat(paneStyle.paddingRight || '0')
+      );
       const actualWidth = Math.max(box.offsetWidth || 0, box.scrollWidth || 0, 320);
+      const rawH = Math.max(box.offsetHeight || 0, box.scrollHeight || 0, 400);
       const scale = Math.max(0.28, Math.min(paneWidth / actualWidth, 1));
-      const h = Math.max(box.offsetHeight || 0, box.scrollHeight || 0, 400);
-      wrap.style.transform = 'scale(' + scale + ')';
-      wrap.style.height = Math.ceil(h * scale) + 'px';
-      wrap.style.width = Math.ceil(actualWidth * scale) + 'px';
+      const scaledW = Math.ceil(actualWidth * scale);
+      const scaledH = Math.ceil(rawH * scale);
+
+      box.style.width = actualWidth + 'px';
+      box.style.minHeight = rawH + 'px';
+      box.style.transform = 'scale(' + scale + ')';
+      wrap.style.width = scaledW + 'px';
+      wrap.style.maxWidth = '100%';
+      wrap.style.height = scaledH + 'px';
       wrap.style.margin = '0 auto';
     }
     window.addEventListener('resize', autoScale);
