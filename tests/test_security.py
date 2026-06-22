@@ -6,6 +6,7 @@ import hmac
 import json
 import time
 import unittest
+from unittest.mock import patch
 from urllib.parse import urlencode
 
 from core.telegram_auth import extract_telegram_user_id, validate_init_data
@@ -62,6 +63,36 @@ class TestPaymentAtomic(unittest.TestCase):
         second = payments_repo.approve_atomic(pid)
         self.assertIsNotNone(second)
         self.assertEqual(users_repo.get_credits(tid), before + 1)
+
+    def test_try_auto_approve_when_enabled(self):
+        from features.payment import service as payment_service
+
+        tid = 88003344
+        users_repo.upsert_user(tid)
+        payment = payments_repo.create_payment(tid, payer_name="Auto User")
+        pid = int(payment["id"])
+        before = users_repo.get_credits(tid)
+
+        with patch("features.payment.service.settings") as mock_settings:
+            mock_settings.auto_approve_payments = True
+            result = payment_service.try_auto_approve(pid)
+        self.assertIsNotNone(result)
+        self.assertEqual(result["status"], "APPROVED")
+        self.assertEqual(users_repo.get_credits(tid), before + 1)
+
+    def test_try_auto_approve_skipped_when_disabled(self):
+        from features.payment import service as payment_service
+
+        tid = 88005566
+        payment = payments_repo.create_payment(tid, payer_name="Manual User")
+        pid = int(payment["id"])
+        before = users_repo.get_credits(tid)
+
+        with patch("features.payment.service.settings") as mock_settings:
+            mock_settings.auto_approve_payments = False
+            result = payment_service.try_auto_approve(pid)
+        self.assertIsNone(result)
+        self.assertEqual(users_repo.get_credits(tid), before)
 
 
 if __name__ == "__main__":

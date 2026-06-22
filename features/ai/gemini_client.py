@@ -17,13 +17,9 @@ import shutil
 from concurrent.futures import ThreadPoolExecutor
 
 # Eski paket: google-generativeai; keyinroq google-genai ga ko'chirish mumkin
-warnings.filterwarnings(
-    "ignore",
-    message=".*google.generativeai.*",
-    category=DeprecationWarning,
-)
+warnings.filterwarnings("ignore", category=FutureWarning)
 
-import google.generativeai as genai
+import google.generativeai as genai  # noqa: E402
 from config import GOOGLE_API_KEY
 from config.settings import settings
 from features.ai.reliable import (

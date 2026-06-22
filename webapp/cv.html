@@ -1450,8 +1450,13 @@
       const rid = _cvApprovedRequestId || Number(localStorage.getItem('cv_paid_request_id') || 0);
       if (!rid || !window.DastyorAI || !window.DastyorAI.fetchPaidDocStatus) return;
       try {
-        const js = await window.DastyorAI.fetchPaidDocStatus(rid);
+        const js = await window.DastyorAI.fetchPaidDocStatus(rid, 'cv_paid_request_id');
         if (!js) return;
+        if (js.stale) {
+          _cvApprovedRequestId = 0;
+          syncCvQuotaUi();
+          return;
+        }
         const s = String(js.status || '').toLowerCase();
         if (s === 'pending' || s === 'pending_payment' || s === 'payment_submitted') {
           _cvApprovedRequestId = rid;
@@ -1940,6 +1945,19 @@
                 status.classList.add("text-red-700", "font-semibold");
               }
               if (sendBtn) { sendBtn.disabled = false; sendBtn.textContent = "📤 Yuborish"; }
+              return;
+            }
+            let submitJson = {};
+            try { submitJson = await r2.json(); } catch (_) {}
+            if (submitJson.status === 'approved' && window.DastyorAI) {
+              _cvApprovedRequestId = 0;
+              try { localStorage.removeItem('cv_paid_request_id'); } catch (_) {}
+              try { if (window.DastyorAI.refreshProfile) await window.DastyorAI.refreshProfile(true); } catch (_) {}
+              setCvPayUiState('approved');
+              syncCvQuotaUi();
+              if (window.DastyorAI.processPaidDocStatus) {
+                await window.DastyorAI.processPaidDocStatus('cv', _cvPayState.requestId, 'approved', { silent: true });
+              }
               return;
             }
             setCvPayUiState('sent');

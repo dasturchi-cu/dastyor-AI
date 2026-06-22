@@ -1261,7 +1261,14 @@ html[data-theme="dark"] .da-doc-loading-ring{border-color:#334155;border-top-col
         return `paid_notify_${kind}_${requestId}_${status}`;
     }
 
-    async function fetchPaidDocStatus(requestId) {
+    function clearPaidRequestId(storageKey) {
+        if (!storageKey) return;
+        try {
+            localStorage.removeItem(storageKey);
+        } catch (_) {}
+    }
+
+    async function fetchPaidDocStatus(requestId, storageKey) {
         const tid = getTelegramId();
         const rid = Number(requestId || 0);
         if (!tid || !rid) return null;
@@ -1272,11 +1279,17 @@ html[data-theme="dark"] .da-doc-loading-ring{border-color:#334155;border-top-col
         if (token) params.set('token', token);
         try {
             const r = await fetch(`${BASE}/api/paid_doc_status?${params}`, { cache: 'no-store' });
+            if (r.status === 404) {
+                clearPaidRequestId(storageKey);
+                return { status: 'not_found', stale: true };
+            }
             return r.ok ? r.json() : null;
         } catch (_) {
             return null;
         }
     }
+
+    const PAID_DOC_TERMINAL_STATUSES = new Set(['rejected', 'completed', 'cancelled']);
 
     function showPaymentResultPopup(kind, status) {
         const label = kind === 'cv' ? 'CV (PDF)' : 'Obyektivka (Word)';
@@ -1405,9 +1418,25 @@ html[data-theme="dark"] .da-doc-loading-ring{border-color:#334155;border-top-col
                 rid = Number(opts.getRequestId() || 0);
             }
             if (!rid) return;
-            const js = await fetchPaidDocStatus(rid);
-            if (!js || !js.status) return;
+            const js = await fetchPaidDocStatus(rid, storageKey);
+            if (!js) return;
+            if (js.stale) {
+                stopPaidDocWatcher(kind);
+                return;
+            }
+            if (!js.status) return;
+            const st = String(js.status || '').toLowerCase();
             await processPaidDocStatus(kind, rid, js.status, opts);
+            if (PAID_DOC_TERMINAL_STATUSES.has(st)) {
+                stopPaidDocWatcher(kind);
+                return;
+            }
+            if (st === 'approved' || st === 'delivered') {
+                const cat = kind === 'obyektivka' ? 'obyektivka' : 'cv';
+                if (hasSingleDocAccess(getUser(), cat)) {
+                    stopPaidDocWatcher(kind);
+                }
+            }
         };
 
         tick();

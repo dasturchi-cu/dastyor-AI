@@ -13,6 +13,7 @@ from config.settings import settings
 from core.security import allowed_image, rate_limit, validate_phone
 from core.telegram_auth import extract_telegram_user_id, validate_init_data
 from database.repositories import payments as payments_repo
+from database.repositories import users as users_repo
 from features.payment import service as payment_service
 from shared.auth import is_admin, resolve_uid
 
@@ -117,14 +118,19 @@ async def api_submit_payment(
         filename=receipt.filename or "receipt.jpg",
     )
 
-    asyncio.create_task(
-        _notify_admin_payment(payment, uid, "manual", request.app.state.bot)
+    status = await _finalize_payment_submission(
+        payment, uid, "manual", request.app.state.bot
     )
 
     return {
         "ok": True,
         "payment_id": payment["id"],
-        "message": "To'lov yuborildi. Admin tasdiqlashini kuting.",
+        "status": status,
+        "message": (
+            "To'lov tasdiqlandi. Hujjatni yuklab olishingiz mumkin."
+            if status == "approved"
+            else "To'lov yuborildi. Admin tasdiqlashini kuting."
+        ),
     }
 
 
@@ -179,7 +185,27 @@ def _map_payment_status(status: str) -> str:
     return "pending"
 
 
-async def _notify_admin_payment(payment: dict, uid: int, kind: str, bot) -> None:
+async def _notify_user_payment_approved(bot, telegram_id: int, credits: int) -> None:
+    try:
+        await bot.send_message(
+            telegram_id,
+            f"✅ To'lovingiz tasdiqlandi!\n"
+            f"💳 Kredit: <b>{credits}</b> ta\n"
+            f"ℹ️ 1 kredit = 1 hujjat (CV <b>yoki</b> Obyektivka).",
+        )
+    except Exception as e:
+        logger.warning("User approve notify failed: %s", e)
+
+
+async def _notify_admin_payment(
+    payment: dict,
+    uid: int,
+    kind: str,
+    bot,
+    *,
+    auto_approved: bool = False,
+    credits: int = 0,
+) -> None:
     try:
         from aiogram.types import FSInputFile
         from shared.keyboards import payment_review_kb
@@ -187,13 +213,23 @@ async def _notify_admin_payment(payment: dict, uid: int, kind: str, bot) -> None
         pid = int(payment["id"])
         admin_chat = settings.premium_admin_group_id
         payer = str(payment.get("payer_name") or uid)
-        if kind == "manual":
+        if auto_approved:
+            text = (
+                f"✅ <b>Avtomatik tasdiqlandi</b> #{pid}\n"
+                f"👤 {payer}\n"
+                f"🆔 <code>{uid}</code>\n"
+                f"📄 Xizmat: <b>{kind}</b>\n"
+                f"💳 Kredit: <b>{credits}</b> ta"
+            )
+            kb = None
+        elif kind == "manual":
             text = (
                 f"💳 <b>Yangi to'lov #{pid}</b>\n"
                 f"👤 {payer}\n"
                 f"🆔 <code>{uid}</code>\n"
                 f"💳 <code>{payment.get('card_number') or '-'}</code>"
             )
+            kb = payment_review_kb(pid)
         else:
             text = (
                 f"💰 <b>Yangi to'lov</b>\n"
@@ -202,7 +238,7 @@ async def _notify_admin_payment(payment: dict, uid: int, kind: str, bot) -> None
                 f"Xizmat: <b>{kind}</b>\n"
                 f"Narx: <b>{settings.single_doc_price_uzs:,} so'm</b>"
             )
-        kb = payment_review_kb(pid)
+            kb = payment_review_kb(pid)
         receipt_path = payment.get("receipt_path")
         if receipt_path and os.path.isfile(receipt_path):
             await bot.send_photo(
@@ -215,6 +251,31 @@ async def _notify_admin_payment(payment: dict, uid: int, kind: str, bot) -> None
             await bot.send_message(admin_chat, text, reply_markup=kb)
     except Exception as e:
         logger.warning("Admin notify failed: %s", e)
+
+
+async def _finalize_payment_submission(
+    payment: dict,
+    uid: int,
+    kind: str,
+    bot,
+) -> str:
+    """Skrinshot kelgach: avtomatik tasdiqlash yoki admin kanaliga yuborish."""
+    pid = int(payment["id"])
+    if settings.auto_approve_payments:
+        result = await asyncio.to_thread(payment_service.try_auto_approve, pid)
+        if result:
+            tid = int(result["telegram_id"])
+            credits = users_repo.get_credits(tid)
+            payment = result
+            await _notify_admin_payment(
+                payment, uid, kind, bot, auto_approved=True, credits=credits
+            )
+            await _notify_user_payment_approved(bot, tid, credits)
+            return "approved"
+        logger.warning("Auto-approve failed for payment #%s", pid)
+
+    await _notify_admin_payment(payment, uid, kind, bot)
+    return "queued_to_admin"
 
 
 @router.post("/api/request_paid_cv")
@@ -307,8 +368,8 @@ async def api_paid_doc_submit_screenshot(
     await asyncio.to_thread(payments_repo.update_receipt, request_id, str(path))
 
     payment = await asyncio.to_thread(payments_repo.get_payment, request_id) or payment
-    asyncio.create_task(_notify_admin_payment(payment, uid, kind, request.app.state.bot))
-    return {"ok": True, "payment_id": request_id, "status": "queued_to_admin"}
+    status = await _finalize_payment_submission(payment, uid, kind, request.app.state.bot)
+    return {"ok": True, "payment_id": request_id, "status": status}
 
 
 @router.get("/api/paid_doc_status")

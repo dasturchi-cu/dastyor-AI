@@ -4,7 +4,7 @@ from __future__ import annotations
 import time
 
 from fastapi import APIRouter
-from fastapi.responses import FileResponse, RedirectResponse
+from fastapi.responses import FileResponse, RedirectResponse, Response
 
 from backend.paths import webapp_index_path
 from core.redis_client import ping_async, redis_enabled
@@ -28,6 +28,11 @@ def _index_response():
             headers=_NO_CACHE_HTML,
         )
     return RedirectResponse(url="/webapp/index.html")
+
+
+@router.get("/favicon.ico", include_in_schema=False)
+async def favicon():
+    return Response(status_code=204)
 
 
 @router.get("/health")

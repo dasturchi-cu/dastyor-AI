@@ -13,17 +13,29 @@ load_dotenv(override=True)
 logger = logging.getLogger(__name__)
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
-DATA_DIR = PROJECT_ROOT / "data"
-UPLOADS_DIR = DATA_DIR / "uploads"
-RECEIPTS_DIR = UPLOADS_DIR / "receipts"
-GENERATED_DIR = UPLOADS_DIR / "generated"
-DB_PATH = DATA_DIR / "hujjatchi.db"
-TEMPLATES_DIR = PROJECT_ROOT / "templates"
-WEBAPP_DIR = PROJECT_ROOT / "webapp"
 
 
 def _env(key: str, default: str = "") -> str:
     return (os.getenv(key) or os.getenv(f"\ufeff{key}") or default).strip()
+
+
+def _resolve_data_dir() -> Path:
+    explicit = _env("DATA_DIR")
+    if explicit:
+        return Path(explicit)
+    vol = _env("RAILWAY_VOLUME_MOUNT_PATH")
+    if vol:
+        return Path(vol)
+    return PROJECT_ROOT / "data"
+
+
+DATA_DIR = _resolve_data_dir()
+UPLOADS_DIR = DATA_DIR / "uploads"
+RECEIPTS_DIR = UPLOADS_DIR / "receipts"
+GENERATED_DIR = UPLOADS_DIR / "generated"
+DB_PATH = Path(_env("DB_PATH")) if _env("DB_PATH") else DATA_DIR / "hujjatchi.db"
+TEMPLATES_DIR = PROJECT_ROOT / "templates"
+WEBAPP_DIR = PROJECT_ROOT / "webapp"
 
 
 def _env_int(key: str, default: int = 0) -> int:
@@ -89,6 +101,9 @@ class Settings:
     )
     ai_max_retries: int = field(default_factory=lambda: _env_int("AI_MAX_RETRIES", 3))
     gemini_timeout: int = field(default_factory=lambda: _env_int("GEMINI_TIMEOUT", 90))
+    auto_approve_payments: bool = field(
+        default_factory=lambda: _env("AUTO_APPROVE_PAYMENTS", "1").lower() in ("1", "true", "yes", "on")
+    )
 
 
 def _resolve_webhook_secret() -> str:

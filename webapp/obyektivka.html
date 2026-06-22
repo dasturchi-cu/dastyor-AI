@@ -774,8 +774,13 @@ async function reconcileObyPaidRequestStatus(){
   var rid = _obyApprovedRequestId || Number(localStorage.getItem('oby_paid_request_id') || 0);
   if(!rid || !window.DastyorAI || !window.DastyorAI.fetchPaidDocStatus) return;
   try{
-    var js = await window.DastyorAI.fetchPaidDocStatus(rid);
+    var js = await window.DastyorAI.fetchPaidDocStatus(rid, 'oby_paid_request_id');
     if(!js) return;
+    if(js.stale){
+      _obyApprovedRequestId = 0;
+      syncObyQuotaUi();
+      return;
+    }
     var s = String(js.status || '').toLowerCase();
     if(s === 'pending' || s === 'pending_payment' || s === 'payment_submitted'){
       _obyApprovedRequestId = rid;
@@ -1447,6 +1452,19 @@ async function payObySingle(fmt){
           if(!r2.ok){
             var err=await dastyorReadApiError(r2);
             throw new Error(err || ('Server ' + r2.status));
+          }
+          var submitJson = {};
+          try{ submitJson = await r2.json(); }catch(e){}
+          if(submitJson.status === 'approved' && window.DastyorAI){
+            _obyApprovedRequestId = 0;
+            try{ localStorage.removeItem('oby_paid_request_id'); }catch(e){}
+            try{ if(window.DastyorAI.refreshProfile) await window.DastyorAI.refreshProfile(true); }catch(e){}
+            setObyPayUiState('approved');
+            syncObyQuotaUi();
+            if(window.DastyorAI.processPaidDocStatus){
+              await window.DastyorAI.processPaidDocStatus('obyektivka', _obyPayState.requestId, 'approved', { silent: true });
+            }
+            return;
           }
         }catch(e0){
           var em0 = (e0 && e0.message) ? String(e0.message) : String(e0);
