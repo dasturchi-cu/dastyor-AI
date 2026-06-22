@@ -114,14 +114,15 @@
       overflow: hidden;
       max-width: 100%;
       min-height: 280px;
+      flex-shrink: 0;
       transition: height 0.2s ease-out, width 0.2s ease-out;
     }
     #cv-preview-frame {
       position: absolute;
-      left: 0;
+      left: 50%;
       top: 0;
       display: block;
-      transform-origin: top left;
+      transform-origin: top center;
       border: 0;
       background: #fff;
       box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
@@ -132,9 +133,13 @@
     #previewPane {
       height: min(calc(var(--app-vh) - 240px), 720px);
       overflow-x: hidden;
+      overflow-y: auto;
       display: flex;
       flex-direction: column;
       align-items: center;
+      justify-content: flex-start;
+      width: 100%;
+      box-sizing: border-box;
     }
 
     @media (max-width: 480px) {
@@ -1407,11 +1412,29 @@
     }
 
     // --- ZOOM LOGIC ---
+    function getPreviewDocSize(box) {
+      const a4w = Math.round(210 * (96 / 25.4));
+      const a4h = Math.round(297 * (96 / 25.4));
+      let w = a4w;
+      let h = a4h;
+      try {
+        const doc = box.contentDocument || (box.contentWindow && box.contentWindow.document);
+        if (!doc) return { w: w, h: h };
+        const root = doc.querySelector('.cv-canvas') || doc.body;
+        const html = doc.documentElement;
+        w = Math.max(a4w, root.scrollWidth || 0, root.offsetWidth || 0, html.scrollWidth || 0);
+        h = Math.max(a4h, root.scrollHeight || 0, root.offsetHeight || 0, html.scrollHeight || 0);
+      } catch (_) {}
+      return { w: w, h: h };
+    }
+
     function autoScale() {
       const pane = document.getElementById('previewPane');
       const box = document.getElementById('cv-preview-frame');
       const wrap = document.getElementById('previewScaleWrapper');
       if (!pane || !box || !wrap) return;
+
+      try { resizePreviewIframe(); } catch (_) {}
 
       const paneStyle = getComputedStyle(pane);
       const paneWidth = Math.max(
@@ -1420,19 +1443,27 @@
           - parseFloat(paneStyle.paddingLeft || '0')
           - parseFloat(paneStyle.paddingRight || '0')
       );
-      const actualWidth = Math.max(box.offsetWidth || 0, box.scrollWidth || 0, 320);
-      const rawH = Math.max(box.offsetHeight || 0, box.scrollHeight || 0, 400);
-      const scale = Math.max(0.28, Math.min(paneWidth / actualWidth, 1));
-      const scaledW = Math.ceil(actualWidth * scale);
-      const scaledH = Math.ceil(rawH * scale);
+      const size = getPreviewDocSize(box);
+      const actualWidth = Math.max(size.w, 320);
+      const rawH = Math.max(size.h, 400);
+      const scale = Math.max(0.22, Math.min(paneWidth / actualWidth, 1));
+      const scaledW = Math.max(1, Math.ceil(actualWidth * scale));
+      const scaledH = Math.max(1, Math.ceil(rawH * scale));
 
+      box.style.position = 'absolute';
+      box.style.left = '50%';
+      box.style.top = '0';
       box.style.width = actualWidth + 'px';
+      box.style.height = rawH + 'px';
       box.style.minHeight = rawH + 'px';
-      box.style.transform = 'scale(' + scale + ')';
+      box.style.transform = 'translateX(-50%) scale(' + scale + ')';
+      box.style.transformOrigin = 'top center';
+
       wrap.style.width = scaledW + 'px';
       wrap.style.maxWidth = '100%';
       wrap.style.height = scaledH + 'px';
-      wrap.style.margin = '0 auto';
+      wrap.style.marginLeft = 'auto';
+      wrap.style.marginRight = 'auto';
     }
     window.addEventListener('resize', autoScale);
 
@@ -1623,10 +1654,9 @@
     function resizePreviewIframe() {
       const iframe = document.getElementById('cv-preview-frame');
       if (!iframe || !iframe.contentDocument || !iframe.contentDocument.body) return;
-      const body = iframe.contentDocument.body;
-      const html = iframe.contentDocument.documentElement;
-      const h = Math.max(body.scrollHeight, body.offsetHeight, html.scrollHeight, 1123);
-      iframe.style.height = Math.ceil(h) + 'px';
+      const size = getPreviewDocSize(iframe);
+      iframe.style.width = size.w + 'px';
+      iframe.style.height = Math.ceil(size.h) + 'px';
     }
 
     function setPreviewPlaceholder(msg) {
