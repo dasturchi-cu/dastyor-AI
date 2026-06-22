@@ -8,3 +8,7 @@ class ObyektivkaStates(StatesGroup):
 
 class CvStates(StatesGroup):
     waiting_input = State()
+
+
+class ContactStates(StatesGroup):
+    waiting_message = State()

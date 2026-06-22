@@ -6,17 +6,13 @@ from typing import Any
 
 from config.settings import settings
 from database.connection import get_connection, row_to_dict
-from shared import cache as ttl_cache
 
 logger = logging.getLogger(__name__)
 
-_CACHE_KEY = "admin:metrics"
-_CACHE_TTL = 3.0
-
 
 def invalidate_metrics_cache() -> None:
-    ttl_cache.invalidate(_CACHE_KEY)
-    ttl_cache.invalidate("admin:dashboard")
+    """Backward-compatible no-op (admin metrics cache removed — SQLite only)."""
+    return None
 
 
 def _scalar(conn, sql: str, params: tuple = ()) -> int:
@@ -26,10 +22,6 @@ def _scalar(conn, sql: str, params: tuple = ()) -> int:
 
 def get_global_metrics() -> dict[str, Any]:
     """Barcha asosiy hisob-kitoblar — faqat SQLite."""
-    hit = ttl_cache.get(_CACHE_KEY)
-    if hit is not None:
-        return hit
-
     online_m = max(1, settings.online_user_minutes)
     inactive_d = max(1, settings.inactive_user_days)
     price = settings.single_doc_price_uzs
@@ -157,7 +149,6 @@ def get_global_metrics() -> dict[str, Any]:
         "top_users": [row_to_dict(r) for r in top_purchase if r],
         "single_doc_price_uzs": price,
     }
-    ttl_cache.set(_CACHE_KEY, data, _CACHE_TTL)
     logger.debug(
         "admin metrics: users=%s pending=%s approved=%s cv=%s oby=%s",
         users_count,

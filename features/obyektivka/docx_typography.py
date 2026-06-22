@@ -70,13 +70,18 @@ def _set_color_black(rpr: etree._Element) -> None:
     c.set(VAL, "000000")
 
 
-def apply_value_rpr(r_el: etree._Element) -> None:
-    """Value: black, normal weight, no underline (reference form)."""
+def apply_value_rpr(r_el: etree._Element, *, underline: bool = True) -> None:
+    """Form value: 11 pt, regular, underlined (PPT namuna)."""
     rpr = _r_pr(r_el)
     _set_bool(rpr, "b", False)
     _set_bool(rpr, "bCs", False)
-    _set_underline(rpr, False)
+    _set_underline(rpr, underline)
     _set_color_black(rpr)
+
+
+def apply_plain_value_rpr(r_el: etree._Element) -> None:
+    """Table / work history: regular, no underline."""
+    apply_value_rpr(r_el, underline=False)
 
 
 def apply_fish_rpr(r_el: etree._Element) -> None:
@@ -221,12 +226,15 @@ def find_runs_containing(root: etree._Element, needle: str) -> list[etree._Eleme
 def typography_summary(root: etree._Element) -> dict[str, Any]:
     labels = 0
     values = 0
+    underlined = 0
     for r_el in root.findall(f".//{W}r"):
         text = _run_text(r_el).strip()
         if not text:
             continue
-        if run_has_underline(r_el):
-            values += 1
-        elif _is_bold_run(r_el):
+        if _is_bold_run(r_el):
             labels += 1
-    return {"label_runs": labels, "value_runs": values}
+        else:
+            values += 1
+        if run_has_underline(r_el):
+            underlined += 1
+    return {"label_runs": labels, "value_runs": values, "underlined_runs": underlined}

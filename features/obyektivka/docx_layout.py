@@ -17,6 +17,7 @@ from features.obyektivka.docx_typography import (
     _set_underline,
     apply_current_job_rpr,
     apply_label_rpr,
+    apply_plain_value_rpr,
     apply_value_rpr,
 )
 
@@ -28,10 +29,10 @@ def _paragraph_text(p_el: etree._Element) -> str:
 SP_AFTER_FISH = 480  # ~24 pt — ism va hozirgi ish orasidagi ochiq joy (namuna)
 SP_AFTER_CURRENT_YEAR = 40  # 2 pt — sana va lavozim orasi
 SP_BEFORE_CURRENT_JOB = 0
-SP_WORK_LINE_BEFORE = 80  # 4 pt — reference bracket on first work line
+SP_WORK_LINE_BEFORE = 227  # 4 mm — MEHNAT ro'yxati oldidan (PPT)
 SP_WORK_LINE_AFTER = 0
-SP_WORK_LINE_HEIGHT = 240  # single spacing
-SP_TABLE_LINE = 240
+SP_WORK_LINE_HEIGHT = 276  # 1.15 interval
+SP_TABLE_LINE = 276
 
 _CURRENT_YEAR_RE = re.compile(
     r"(yildan|йилдан|октябрдан|oktabrdan|январдан|yanvardan)\s*:?\s*$",
@@ -105,17 +106,6 @@ def _is_work_line(text: str) -> bool:
 
 def _is_current_year_line(text: str) -> bool:
     return bool(_CURRENT_YEAR_RE.search(text.strip()))
-
-
-def _strip_value_underline(root: etree._Element) -> None:
-    for r_el in root.findall(f".//{W}r"):
-        if not _run_text(r_el).strip():
-            continue
-        rpr = _r_pr(r_el)
-        _set_underline(rpr, False)
-        if not _is_bold_run(r_el):
-            _set_bool(rpr, "b", False)
-            _set_bool(rpr, "bCs", False)
 
 
 def _style_fish_paragraph(p_el: etree._Element) -> None:
@@ -274,8 +264,7 @@ def _fix_work_history_spacing(body: etree._Element) -> None:
         for r_el in p_el.findall(f".//{W}r"):
             if not _run_text(r_el).strip():
                 continue
-            rpr = _r_pr(r_el)
-            _set_underline(rpr, False)
+            apply_plain_value_rpr(r_el)
 
 
 def _is_relatives_table(tbl: etree._Element) -> bool:
@@ -319,7 +308,7 @@ def _fix_relatives_table(root: etree._Element) -> None:
                         if ri == 0 or ci == 0:
                             apply_label_rpr(r_el)
                         else:
-                            apply_value_rpr(r_el)
+                            apply_plain_value_rpr(r_el)
 
 
 def _dedupe_cell_none_values(root: etree._Element) -> None:
@@ -335,15 +324,13 @@ def _dedupe_cell_none_values(root: etree._Element) -> None:
         r_el = etree.SubElement(p_el, f"{W}r")
         t = etree.SubElement(r_el, f"{W}t")
         t.text = word
-        _set_underline(_r_pr(r_el), False)
+        apply_plain_value_rpr(r_el)
 
 
 def enforce_reference_layout(root: etree._Element, context: dict[str, str] | None = None) -> dict[str, Any]:
     ctx = context or {}
     fish = (ctx.get("fish") or "").strip()
     stats: dict[str, Any] = {}
-
-    _strip_value_underline(root)
 
     body = root.find(f"{W}body")
     if body is not None:

@@ -36,8 +36,12 @@ def _configure_connection(conn: sqlite3.Connection) -> None:
 
 
 def _legacy_db_candidates() -> list[Path]:
+    """Older DB locations — imported into settings.db_path when target is missing."""
     return [
+        DATA_DIR / "app.db",
         DATA_DIR / "hujjatchi.db",
+        PROJECT_ROOT / "database" / "app.db",
+        PROJECT_ROOT / "data" / "app.db",
         PROJECT_ROOT / "data" / "hujjatchi.db",
         PROJECT_ROOT / "database" / "hujjatchi.db",
     ]
@@ -104,9 +108,20 @@ def initialize_database() -> dict[str, Any]:
         else:
             logger.info(
                 "SQLite ready: %s (%d tables, integrity=%s)",
-                db_path,
+                db_path.resolve(),
                 len(report["tables"]),
                 msg,
+            )
+
+        canonical = (DATA_DIR / "app.db").resolve()
+        resolved = db_path.resolve()
+        if resolved != canonical:
+            logger.warning(
+                "DB_PATH (%s) is outside DATA_DIR (%s). "
+                "Mount a volume at DATA_DIR and use DB_PATH=%s for deploy persistence.",
+                resolved,
+                DATA_DIR.resolve(),
+                canonical,
             )
         return report
 
@@ -123,6 +138,11 @@ def get_connection() -> Iterator[sqlite3.Connection]:
     try:
         yield conn
         conn.commit()
+        # Ensure WAL pages are visible to other connections / after restart.
+        try:
+            conn.execute("PRAGMA wal_checkpoint(PASSIVE)")
+        except sqlite3.Error:
+            pass
     except Exception:
         conn.rollback()
         raise

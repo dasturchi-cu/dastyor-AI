@@ -1,20 +1,21 @@
-"""User repository."""
+"""User repository — SQLite is the single source of truth."""
 from __future__ import annotations
 
 from typing import Any
 
 from database.connection import get_connection, row_to_dict
-from shared import cache as ttl_cache
-
-_USER_TTL = 20.0
-
-
-def _invalidate(telegram_id: int) -> None:
-    ttl_cache.invalidate(f"user:{int(telegram_id)}")
 
 
 def invalidate_cache(telegram_id: int) -> None:
-    _invalidate(int(telegram_id))
+    """Backward-compatible no-op (in-memory user cache removed)."""
+    del telegram_id
+
+
+def _exists_in_db(telegram_id: int) -> bool:
+    tid = int(telegram_id)
+    with get_connection() as conn:
+        row = conn.execute("SELECT 1 FROM users WHERE telegram_id = ?", (tid,)).fetchone()
+    return row is not None
 
 
 def upsert_user(
@@ -25,7 +26,7 @@ def upsert_user(
     last_name: str | None = None,
 ) -> dict[str, Any]:
     tid = int(telegram_id)
-    existed = get_by_telegram_id(tid) is not None
+    existed = _exists_in_db(tid)
     full_name = " ".join(filter(None, [first_name, last_name])).strip() or None
     with get_connection() as conn:
         conn.execute(
@@ -52,10 +53,7 @@ def upsert_user(
             (tid, username, first_name, last_name, full_name),
         )
         row = conn.execute("SELECT * FROM users WHERE telegram_id = ?", (tid,)).fetchone()
-    _invalidate(tid)
     data = row_to_dict(row) or {}
-    if data:
-        ttl_cache.set(f"user:{tid}", data, _USER_TTL)
     if not existed and data:
         from shared.activity import log_register
 
@@ -66,16 +64,9 @@ def upsert_user(
 
 def get_by_telegram_id(telegram_id: int) -> dict[str, Any] | None:
     tid = int(telegram_id)
-    key = f"user:{tid}"
-    hit = ttl_cache.get(key)
-    if hit is not None:
-        return hit
     with get_connection() as conn:
         row = conn.execute("SELECT * FROM users WHERE telegram_id = ?", (tid,)).fetchone()
-    data = row_to_dict(row)
-    if data:
-        ttl_cache.set(key, data, _USER_TTL)
-    return data
+    return row_to_dict(row)
 
 
 def get_by_id(user_id: int) -> dict[str, Any] | None:
@@ -115,7 +106,6 @@ def add_credits(telegram_id: int, amount: int = 1) -> int:
             (max(0, int(amount)), tid),
         )
         row = conn.execute("SELECT credits FROM users WHERE telegram_id = ?", (tid,)).fetchone()
-    _invalidate(tid)
     return int(row["credits"]) if row else 0
 
 
@@ -130,8 +120,6 @@ def consume_credit(telegram_id: int) -> bool:
             (tid,),
         )
         ok = cur.rowcount > 0
-    if ok:
-        _invalidate(tid)
     return ok
 
 
@@ -151,8 +139,6 @@ def set_blocked(telegram_id: int, blocked: bool) -> bool:
             (1 if blocked else 0, tid),
         )
         ok = cur.rowcount > 0
-    if ok:
-        _invalidate(tid)
     return ok
 
 
@@ -170,7 +156,6 @@ def remove_credits(telegram_id: int, amount: int = 1) -> int:
             (amount, amount, tid),
         )
         row = conn.execute("SELECT credits FROM users WHERE telegram_id = ?", (tid,)).fetchone()
-    _invalidate(tid)
     return int(row["credits"]) if row else 0
 
 

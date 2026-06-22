@@ -17,12 +17,12 @@ VAL = f"{{{W_NS}}}val"
 # Reference hierarchy (half-points = pt * 2) — PPT namuna
 SZ_TITLE = 28  # 14 pt — MA'LUMOTNOMA, F.I.Sh, MEHNAT FAOLIYATI
 SZ_REL_LINE = 24  # 12 pt — «…qarindoshlari haqida», MA'LUMOT, jadval
-SZ_BODY = 22  # 11 pt — body, work history
+SZ_BODY = 22  # 11 pt — body, work history, form values, photo note
 SZ_TABLE = 24  # 12 pt — qarindoshlar jadvali (PPT)
-SZ_PHOTO = 20  # 10 pt — photo hint (reference)
-SZ_PHOTO_NOTE = 18  # 9 pt — «(rasmiy kiyimda).» fragment in reference
+SZ_PHOTO = 22  # 11 pt — photo hint (PPT)
+SZ_PHOTO_NOTE = 22  # 11 pt — «(rasmiy kiyimda).» (PPT)
 
-ALLOWED_FONT_PTS = (9.0, 10.0, 11.0, 12.0, 14.0)
+ALLOWED_FONT_PTS = (11.0, 12.0, 14.0)
 
 
 def _run_text(r_el: etree._Element) -> str:
@@ -133,7 +133,7 @@ def enforce_reference_fonts(root: etree._Element, context: dict[str, str] | None
             continue
 
         if _is_relatives_intro(text):
-            _set_paragraph_runs_sz(p_el, SZ_REL_LINE, bold=True)
+            _set_paragraph_runs_sz(p_el, SZ_BODY, bold=False)
             continue
 
         if _is_fish_name_line(text, fish):
@@ -141,12 +141,7 @@ def enforce_reference_fonts(root: etree._Element, context: dict[str, str] | None
             continue
 
         if _is_photo_hint_paragraph(text):
-            for r_el in p_el.findall(f".//{W}r"):
-                t = _run_text(r_el).strip()
-                if t in {"(расмий кийимда).", "(rasmiy kiyimda)."}:
-                    _set_sz(_r_pr(r_el), SZ_PHOTO_NOTE)
-                else:
-                    _set_sz(_r_pr(r_el), SZ_PHOTO)
+            _set_paragraph_runs_sz(p_el, SZ_PHOTO, bold=False)
             continue
 
         # Body rows, current job, work history placeholders/lines

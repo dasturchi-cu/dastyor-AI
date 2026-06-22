@@ -33,11 +33,20 @@ DATA_DIR = _resolve_data_dir()
 UPLOADS_DIR = DATA_DIR / "uploads"
 RECEIPTS_DIR = UPLOADS_DIR / "receipts"
 GENERATED_DIR = UPLOADS_DIR / "generated"
-DB_PATH = (
-    Path(_env("DB_PATH"))
-    if _env("DB_PATH")
-    else PROJECT_ROOT / "database" / "app.db"
-)
+
+
+def _resolve_db_path() -> Path:
+    """
+    SQLite must live on the same persistent volume as uploads/sessions.
+    Default: DATA_DIR/app.db (Railway volume, docker-compose /data, local data/).
+    """
+    explicit = _env("DB_PATH")
+    if explicit:
+        return Path(explicit)
+    return DATA_DIR / "app.db"
+
+
+DB_PATH = _resolve_db_path()
 TEMPLATES_DIR = PROJECT_ROOT / "templates"
 WEBAPP_DIR = PROJECT_ROOT / "webapp"
 

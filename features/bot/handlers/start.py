@@ -8,7 +8,7 @@ from aiogram.types import Message
 
 from config.settings import settings
 from database.repositories import users as users_repo
-from features.bot.states import CvStates, ObyektivkaStates
+from features.bot.states import ContactStates, CvStates, ObyektivkaStates
 from shared.async_db import run as db_run
 from shared.marketing import cv_intro_header, welcome_message
 from shared.keyboards import (
@@ -111,12 +111,30 @@ async def cmd_balance(message: Message, state: FSMContext) -> None:
 
 @router.message(Command("contact"))
 async def cmd_contact(message: Message, state: FSMContext) -> None:
-    await state.clear()
+    await state.set_state(ContactStates.waiting_message)
     admin = settings.support_admin_username
     await message.answer(
         _contact_text(),
         reply_markup=contact_admin_kb(admin),
     )
+
+
+@router.message(ContactStates.waiting_message, F.text.func(is_menu_button))
+async def menu_from_contact(message: Message, state: FSMContext) -> None:
+    await state.clear()
+    text = message.text or ""
+    if is_credits_button(text):
+        await show_credits(message)
+    elif text == BTN_CV:
+        await cv_intro(message, state)
+    elif text == BTN_OBY:
+        from features.bot.handlers.obyektivka import obyektivka_start
+
+        await obyektivka_start(message, state)
+    elif text == BTN_HELP:
+        await cmd_help(message)
+    elif text == BTN_BACK:
+        await menu_back(message, state)
 
 
 @router.message(CvStates.waiting_input, F.text.func(is_menu_button))

@@ -29,6 +29,19 @@ class TestDatabaseInit(unittest.TestCase):
         self.assertGreater(len(info["indexes"]), 0)
         self.assertIn("total_bytes", info["size"])
 
+    def test_user_survives_reopen_connection(self) -> None:
+        """User row must persist after simulated process restart (new connection)."""
+        from database.connection import _local
+
+        tid = 999_777_001
+        users_repo.upsert_user(tid, username="persist_test", first_name="Persist")
+        if getattr(_local, "conn", None) is not None:
+            _local.conn.close()
+            _local.conn = None
+        row = users_repo.get_by_telegram_id(tid)
+        self.assertIsNotNone(row)
+        self.assertEqual(row.get("username"), "persist_test")
+
     def test_admin_db_info_endpoint(self) -> None:
         from fastapi.testclient import TestClient
 

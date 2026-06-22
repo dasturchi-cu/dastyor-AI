@@ -37,6 +37,9 @@ def create_bot() -> Bot:
 def create_dispatcher() -> Dispatcher:
     storage = _create_fsm_storage()
     dp = Dispatcher(storage=storage)
+    from features.bot.middleware.user_persistence import UserPersistenceMiddleware
+
+    dp.update.middleware(UserPersistenceMiddleware())
     dp.include_router(admin_router)
     dp.include_router(start_handlers.router)
     dp.include_router(obyektivka_handlers.router)
