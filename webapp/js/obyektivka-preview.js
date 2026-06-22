@@ -454,9 +454,41 @@
 
   function resolveSessionToken() {
     try {
+      if (global.DastyorAI && global.DastyorAI.getToken) return global.DastyorAI.getToken() || null;
+    } catch (_) {}
+    try {
       if (typeof global.getDastyorSessionToken === 'function') return global.getDastyorSessionToken();
     } catch (_) {}
     return '';
+  }
+
+  function attachWebappAuth(payload) {
+    var authExtras = {};
+    try {
+      if (global.DastyorAI && global.DastyorAI.getAuthExtras) {
+        authExtras = global.DastyorAI.getAuthExtras() || {};
+      }
+    } catch (_) {}
+
+    var tok = resolveSessionToken() || authExtras.token || null;
+    if (tok) payload.token = tok;
+
+    if (authExtras.init_data) {
+      payload.init_data = authExtras.init_data;
+    } else {
+      try {
+        var tg = global.Telegram && global.Telegram.WebApp;
+        if (tg && tg.initData) payload.init_data = tg.initData;
+      } catch (_) {}
+    }
+    return payload;
+  }
+
+  async function readApiError(res) {
+    if (typeof global.dastyorReadApiError === 'function') {
+      try { return await global.dastyorReadApiError(res); } catch (_) {}
+    }
+    try { return await res.text(); } catch (_) { return ''; }
   }
 
   function showToast(msg, type) {
@@ -478,6 +510,12 @@
       btn.textContent = 'Botga yuborilmoqda...';
     }
     try {
+      if (global.DastyorAI && global.DastyorAI.ensureAuth) {
+        await global.DastyorAI.ensureAuth();
+      }
+    } catch (_) {}
+
+    try {
       var payload = await preparePayload();
       if (!payload) throw new Error('Ma\'lumot topilmadi');
 
@@ -486,8 +524,7 @@
 
       payload.telegram_id = parseInt(tid, 10);
       payload.send_to_bot = true;
-      var tok = resolveSessionToken();
-      if (tok) payload.token = tok;
+      attachWebappAuth(payload);
 
       var base = getApiBase();
       var res = await fetch(base + '/api/test_obyektivka_pdf', {
@@ -496,9 +533,8 @@
         body: JSON.stringify(payload),
       });
       if (!res.ok) {
-        var err = '';
-        try { err = await res.text(); } catch (_) {}
-        throw new Error(err || ('Server ' + res.status));
+        var errMsg = await readApiError(res);
+        throw new Error(errMsg || ('Server ' + res.status));
       }
 
       var js = await res.json();

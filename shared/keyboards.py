@@ -50,12 +50,16 @@ def is_menu_button(text: str | None) -> bool:
 ADMIN_BTN_USERS = "👥 Foydalanuvchilar"
 ADMIN_BTN_SEARCH = "🔍 Qidirish"
 ADMIN_BTN_PAYMENTS = "💳 To'lovlar"
+ADMIN_BTN_PENDING = "📥 Kutilayotgan"
 ADMIN_BTN_STATS = "📊 Statistika"
+ADMIN_BTN_ACTIVITY = "🔥 Faollik"
 ADMIN_BTN_BROADCAST = "📢 Xabar yuborish"
 ADMIN_BTN_EXPORT = "📥 Export"
 ADMIN_BTN_TOP = "🏆 TOP 10"
 ADMIN_BTN_ERRORS = "⚠️ Xatolar"
 ADMIN_BTN_FILES = "📁 Fayllar"
+ADMIN_BTN_SETTINGS = "⚙️ Sozlamalar"
+ADMIN_BTN_DASHBOARD = "🔄 Dashboard"
 ADMIN_BTN_CLOSE = "🚪 Yopish"
 
 ADMIN_MENU_TEXTS = frozenset(
@@ -63,12 +67,16 @@ ADMIN_MENU_TEXTS = frozenset(
         ADMIN_BTN_USERS,
         ADMIN_BTN_SEARCH,
         ADMIN_BTN_PAYMENTS,
+        ADMIN_BTN_PENDING,
         ADMIN_BTN_STATS,
+        ADMIN_BTN_ACTIVITY,
         ADMIN_BTN_BROADCAST,
         ADMIN_BTN_EXPORT,
         ADMIN_BTN_TOP,
         ADMIN_BTN_ERRORS,
         ADMIN_BTN_FILES,
+        ADMIN_BTN_SETTINGS,
+        ADMIN_BTN_DASHBOARD,
         ADMIN_BTN_CLOSE,
     }
 )
@@ -153,10 +161,12 @@ def admin_menu() -> ReplyKeyboardMarkup:
     return ReplyKeyboardMarkup(
         keyboard=[
             [KeyboardButton(text=ADMIN_BTN_USERS), KeyboardButton(text=ADMIN_BTN_SEARCH)],
-            [KeyboardButton(text=ADMIN_BTN_PAYMENTS), KeyboardButton(text=ADMIN_BTN_STATS)],
+            [KeyboardButton(text=ADMIN_BTN_PAYMENTS), KeyboardButton(text=ADMIN_BTN_PENDING)],
+            [KeyboardButton(text=ADMIN_BTN_STATS), KeyboardButton(text=ADMIN_BTN_ACTIVITY)],
             [KeyboardButton(text=ADMIN_BTN_BROADCAST), KeyboardButton(text=ADMIN_BTN_EXPORT)],
-            [KeyboardButton(text=ADMIN_BTN_TOP), KeyboardButton(text=ADMIN_BTN_ERRORS)],
-            [KeyboardButton(text=ADMIN_BTN_FILES), KeyboardButton(text=ADMIN_BTN_CLOSE)],
+            [KeyboardButton(text=ADMIN_BTN_TOP), KeyboardButton(text=ADMIN_BTN_SETTINGS)],
+            [KeyboardButton(text=ADMIN_BTN_FILES), KeyboardButton(text=ADMIN_BTN_DASHBOARD)],
+            [KeyboardButton(text=ADMIN_BTN_ERRORS), KeyboardButton(text=ADMIN_BTN_CLOSE)],
         ],
         resize_keyboard=True,
     )
