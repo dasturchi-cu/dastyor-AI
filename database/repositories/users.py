@@ -28,12 +28,13 @@ def upsert_user(
     with get_connection() as conn:
         conn.execute(
             """
-            INSERT INTO users (telegram_id, username, first_name, last_name)
-            VALUES (?, ?, ?, ?)
+            INSERT INTO users (telegram_id, username, first_name, last_name, last_active_at)
+            VALUES (?, ?, ?, ?, datetime('now'))
             ON CONFLICT(telegram_id) DO UPDATE SET
                 username = COALESCE(excluded.username, users.username),
                 first_name = COALESCE(excluded.first_name, users.first_name),
                 last_name = COALESCE(excluded.last_name, users.last_name),
+                last_active_at = datetime('now'),
                 updated_at = datetime('now')
             """,
             (tid, username, first_name, last_name),
@@ -115,3 +116,111 @@ def consume_credit(telegram_id: int) -> bool:
     if ok:
         _invalidate(tid)
     return ok
+
+
+def is_blocked(telegram_id: int) -> bool:
+    user = get_by_telegram_id(telegram_id)
+    return bool(int(user.get("is_blocked") or 0)) if user else False
+
+
+def set_blocked(telegram_id: int, blocked: bool) -> bool:
+    tid = int(telegram_id)
+    with get_connection() as conn:
+        cur = conn.execute(
+            """
+            UPDATE users SET is_blocked = ?, updated_at = datetime('now')
+            WHERE telegram_id = ?
+            """,
+            (1 if blocked else 0, tid),
+        )
+        ok = cur.rowcount > 0
+    if ok:
+        _invalidate(tid)
+    return ok
+
+
+def remove_credits(telegram_id: int, amount: int = 1) -> int:
+    tid = int(telegram_id)
+    amount = max(0, int(amount))
+    with get_connection() as conn:
+        conn.execute(
+            """
+            UPDATE users
+            SET credits = CASE WHEN credits >= ? THEN credits - ? ELSE 0 END,
+                updated_at = datetime('now')
+            WHERE telegram_id = ?
+            """,
+            (amount, amount, tid),
+        )
+        row = conn.execute("SELECT credits FROM users WHERE telegram_id = ?", (tid,)).fetchone()
+    _invalidate(tid)
+    return int(row["credits"]) if row else 0
+
+
+def search_users(query: str, limit: int = 10) -> list[dict[str, Any]]:
+    q = (query or "").strip()
+    if not q:
+        return []
+    with get_connection() as conn:
+        if q.isdigit():
+            rows = conn.execute(
+                """
+                SELECT * FROM users
+                WHERE CAST(telegram_id AS TEXT) LIKE ?
+                ORDER BY created_at DESC LIMIT ?
+                """,
+                (f"%{q}%", limit),
+            ).fetchall()
+        else:
+            term = q.lstrip("@").strip()
+            like = f"%{term}%"
+            rows = conn.execute(
+                """
+                SELECT * FROM users
+                WHERE username LIKE ? COLLATE NOCASE
+                   OR first_name LIKE ? COLLATE NOCASE
+                   OR last_name LIKE ? COLLATE NOCASE
+                   OR (first_name || ' ' || COALESCE(last_name, '')) LIKE ? COLLATE NOCASE
+                ORDER BY created_at DESC LIMIT ?
+                """,
+                (like, like, like, like, limit),
+            ).fetchall()
+    return [row_to_dict(r) for r in rows if r]
+
+
+def list_broadcast_targets() -> list[int]:
+    with get_connection() as conn:
+        rows = conn.execute(
+            "SELECT telegram_id FROM users WHERE is_blocked = 0 ORDER BY id"
+        ).fetchall()
+    return [int(r["telegram_id"]) for r in rows if r]
+
+
+def get_profile_stats(telegram_id: int) -> dict[str, Any] | None:
+    user = get_by_telegram_id(telegram_id)
+    if not user:
+        return None
+    uid = int(user["id"])
+    with get_connection() as conn:
+        cv_row = conn.execute(
+            "SELECT COUNT(*) AS c FROM generated_files WHERE user_id = ? AND file_type = 'cv'",
+            (uid,),
+        ).fetchone()
+        oby_row = conn.execute(
+            """
+            SELECT COUNT(*) AS c FROM generated_files
+            WHERE user_id = ? AND file_type = 'obyektivka'
+            """,
+            (uid,),
+        ).fetchone()
+        pay_row = conn.execute(
+            "SELECT COUNT(*) AS c FROM payments WHERE user_id = ?",
+            (uid,),
+        ).fetchone()
+    return {
+        **user,
+        "cv_count": int(cv_row["c"]) if cv_row else 0,
+        "obyektivka_count": int(oby_row["c"]) if oby_row else 0,
+        "payments_count": int(pay_row["c"]) if pay_row else 0,
+        "last_activity": user.get("last_active_at") or user.get("updated_at"),
+    }

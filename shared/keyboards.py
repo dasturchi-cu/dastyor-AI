@@ -48,9 +48,34 @@ def is_menu_button(text: str | None) -> bool:
     return False
 
 ADMIN_BTN_USERS = "👥 Foydalanuvchilar"
+ADMIN_BTN_SEARCH = "🔍 Qidirish"
 ADMIN_BTN_PAYMENTS = "💳 To'lovlar"
+ADMIN_BTN_STATS = "📊 Statistika"
+ADMIN_BTN_BROADCAST = "📢 Xabar yuborish"
+ADMIN_BTN_EXPORT = "📥 Export"
+ADMIN_BTN_TOP = "🏆 TOP 10"
+ADMIN_BTN_ERRORS = "⚠️ Xatolar"
 ADMIN_BTN_FILES = "📁 Fayllar"
 ADMIN_BTN_CLOSE = "🚪 Yopish"
+
+ADMIN_MENU_TEXTS = frozenset(
+    {
+        ADMIN_BTN_USERS,
+        ADMIN_BTN_SEARCH,
+        ADMIN_BTN_PAYMENTS,
+        ADMIN_BTN_STATS,
+        ADMIN_BTN_BROADCAST,
+        ADMIN_BTN_EXPORT,
+        ADMIN_BTN_TOP,
+        ADMIN_BTN_ERRORS,
+        ADMIN_BTN_FILES,
+        ADMIN_BTN_CLOSE,
+    }
+)
+
+
+def is_admin_menu_button(text: str | None) -> bool:
+    return (text or "").strip() in ADMIN_MENU_TEXTS
 
 
 def webapp_url(uid: int, page: str) -> str | None:
@@ -127,7 +152,10 @@ def open_oby_preview_inline(uid: int, *, missing_count: int = 0) -> InlineKeyboa
 def admin_menu() -> ReplyKeyboardMarkup:
     return ReplyKeyboardMarkup(
         keyboard=[
-            [KeyboardButton(text=ADMIN_BTN_USERS), KeyboardButton(text=ADMIN_BTN_PAYMENTS)],
+            [KeyboardButton(text=ADMIN_BTN_USERS), KeyboardButton(text=ADMIN_BTN_SEARCH)],
+            [KeyboardButton(text=ADMIN_BTN_PAYMENTS), KeyboardButton(text=ADMIN_BTN_STATS)],
+            [KeyboardButton(text=ADMIN_BTN_BROADCAST), KeyboardButton(text=ADMIN_BTN_EXPORT)],
+            [KeyboardButton(text=ADMIN_BTN_TOP), KeyboardButton(text=ADMIN_BTN_ERRORS)],
             [KeyboardButton(text=ADMIN_BTN_FILES), KeyboardButton(text=ADMIN_BTN_CLOSE)],
         ],
         resize_keyboard=True,

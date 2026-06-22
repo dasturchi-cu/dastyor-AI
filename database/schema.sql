@@ -10,6 +10,8 @@ CREATE TABLE IF NOT EXISTS users (
     first_name      TEXT,
     last_name       TEXT,
     credits         INTEGER NOT NULL DEFAULT 0 CHECK (credits >= 0),
+    is_blocked      INTEGER NOT NULL DEFAULT 0,
+    last_active_at  TEXT,
     created_at      TEXT NOT NULL DEFAULT (datetime('now')),
     updated_at      TEXT NOT NULL DEFAULT (datetime('now'))
 );
@@ -87,3 +89,13 @@ CREATE TABLE IF NOT EXISTS settings (
 INSERT OR IGNORE INTO settings (key, value) VALUES ('maintenance_mode', '0');
 INSERT OR IGNORE INTO settings (key, value) VALUES ('payment_card_number', '');
 INSERT OR IGNORE INTO settings (key, value) VALUES ('payment_card_owner', '');
+
+CREATE TABLE IF NOT EXISTS error_logs (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    category        TEXT NOT NULL,
+    message         TEXT NOT NULL,
+    details         TEXT,
+    created_at      TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_error_logs_category ON error_logs(category, created_at DESC);

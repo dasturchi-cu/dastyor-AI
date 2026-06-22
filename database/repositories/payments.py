@@ -198,3 +198,34 @@ def set_document_type(payment_id: int, document_type: str) -> bool:
             (doc, int(payment_id)),
         )
         return cur.rowcount > 0
+
+
+def list_filtered(
+    *,
+    period: str | None = None,
+    status: str | None = None,
+    limit: int = 50,
+) -> list[dict[str, Any]]:
+    clauses: list[str] = []
+    params: list[Any] = []
+    period_key = (period or "").lower()
+    if period_key == "today":
+        clauses.append("date(p.created_at) = date('now')")
+    elif period_key == "week":
+        clauses.append("p.created_at >= datetime('now', '-7 days')")
+    elif period_key == "month":
+        clauses.append("p.created_at >= datetime('now', '-30 days')")
+    if status:
+        clauses.append("p.status = ?")
+        params.append(status.upper())
+    where = f"WHERE {' AND '.join(clauses)}" if clauses else ""
+    params.append(limit)
+    sql = f"""
+        SELECT p.*, u.telegram_id, u.first_name, u.last_name, u.username
+        FROM payments p JOIN users u ON u.id = p.user_id
+        {where}
+        ORDER BY p.created_at DESC LIMIT ?
+    """
+    with get_connection() as conn:
+        rows = conn.execute(sql, params).fetchall()
+    return [row_to_dict(r) for r in rows if r]

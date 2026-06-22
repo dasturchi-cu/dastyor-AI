@@ -51,9 +51,29 @@ def _apply_migrations(conn: sqlite3.Connection) -> None:
         CREATE INDEX IF NOT EXISTS idx_generated_files_created ON generated_files(created_at DESC);
         """
     )
-    cols = {row[1] for row in conn.execute("PRAGMA table_info(payments)").fetchall()}
-    if "document_type" not in cols:
+    pay_cols = {row[1] for row in conn.execute("PRAGMA table_info(payments)").fetchall()}
+    if "document_type" not in pay_cols:
         conn.execute("ALTER TABLE payments ADD COLUMN document_type TEXT")
+
+    user_cols = {row[1] for row in conn.execute("PRAGMA table_info(users)").fetchall()}
+    if "is_blocked" not in user_cols:
+        conn.execute("ALTER TABLE users ADD COLUMN is_blocked INTEGER NOT NULL DEFAULT 0")
+    if "last_active_at" not in user_cols:
+        conn.execute("ALTER TABLE users ADD COLUMN last_active_at TEXT")
+
+    conn.executescript(
+        """
+        CREATE TABLE IF NOT EXISTS error_logs (
+            id              INTEGER PRIMARY KEY AUTOINCREMENT,
+            category        TEXT NOT NULL,
+            message         TEXT NOT NULL,
+            details         TEXT,
+            created_at      TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+        CREATE INDEX IF NOT EXISTS idx_error_logs_category
+            ON error_logs(category, created_at DESC);
+        """
+    )
 
 
 def init_db() -> None:

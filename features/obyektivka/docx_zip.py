@@ -22,7 +22,7 @@ def escape_xml_text(value: str) -> str:
 
 def read_parts(path: Path) -> dict[str, bytes]:
     with zipfile.ZipFile(path, "r") as zin:
-        return {name: zin.read(name) for name in zin.infolist()}
+        return {name: zin.read(name) for name in zin.namelist()}
 
 
 def write_parts(path: Path, parts: dict[str, bytes]) -> None:

@@ -1,22 +1,17 @@
-"""Generate Obyektivka DOCX from master template — layout clone + placeholder replace only."""
+"""Generate Obyektivka DOCX — ZIP/XML clone of master template (no layout rebuild)."""
 
 from __future__ import annotations
 
 import base64
 import logging
 import os
-import re
 import tempfile
 from pathlib import Path
 from typing import Any
 
-from docx import Document
-from docx.shared import Cm
-from docxtpl import DocxTemplate
-
 from backend.services.document_render.photo import process_passport_photo
 from config.settings import TEMPLATES_DIR
-from features.obyektivka.docx_picture import add_floating_picture
+from features.obyektivka.docx_zip import count_page_breaks, read_parts, render_template, write_parts
 from features.obyektivka.placeholders import build_placeholder_context
 
 logger = logging.getLogger(__name__)
@@ -51,27 +46,38 @@ def _decode_photo_data(data: dict[str, Any]) -> str | None:
         return None
 
 
-def _inject_photo(doc: Document, photo_path: str) -> None:
-    """Insert uploaded photo into header without changing template structure."""
+def _inject_photo_zip(output_path: str, photo_path: str) -> None:
+    """Inject photo via python-docx only when needed; verify page breaks survive."""
     if not photo_path or not os.path.isfile(photo_path):
         return
-    target = None
-    for p in doc.paragraphs[:4]:
-        if "MA" in (p.text or "").upper() and "LUMOT" in (p.text or "").upper():
-            target = p
-            break
-    if target is None and doc.paragraphs:
-        target = doc.paragraphs[0]
-    if target is None:
-        return
-    add_floating_picture(target, photo_path, width=Cm(3), height=Cm(4))
+    before = count_page_breaks(Path(output_path))
+    try:
+        from docx import Document
+        from docx.shared import Cm
 
+        from features.obyektivka.docx_picture import add_floating_picture
 
-def _clear_photo_hint_marker(doc: Document) -> None:
-    for p in doc.paragraphs:
-        for run in p.runs:
-            if "{{photo}}" in run.text:
-                run.text = run.text.replace("{{photo}}", "")
+        doc = Document(output_path)
+        target = None
+        for p in doc.paragraphs[:6]:
+            if "MA" in (p.text or "").upper() and "LUMOT" in (p.text or "").upper():
+                target = p
+                break
+        if target is None and doc.paragraphs:
+            target = doc.paragraphs[0]
+        if target is None:
+            return
+        add_floating_picture(target, photo_path, width=Cm(3), height=Cm(4))
+        for p in doc.paragraphs:
+            for run in p.runs:
+                if "{{photo}}" in run.text:
+                    run.text = run.text.replace("{{photo}}", "")
+        doc.save(output_path)
+        after = count_page_breaks(Path(output_path))
+        if before != after:
+            logger.warning("photo inject changed page breaks (%s -> %s)", before, after)
+    except Exception as exc:
+        logger.warning("photo inject skipped: %s", exc)
 
 
 def generate_obyektivka_docx(
@@ -80,10 +86,6 @@ def generate_obyektivka_docx(
     output_filepath: str | None = None,
     **kwargs: Any,
 ) -> str:
-    """
-    Master template → placeholder replace → DOCX.
-    Layout/styles come only from templates/obyektivka_master.docx (reference clone).
-    """
     data = user_data or kwargs.get("data") or {}
     if not isinstance(data, dict):
         raise ValueError("user_data must be a dictionary")
@@ -96,7 +98,6 @@ def generate_obyektivka_docx(
     temp_photo: str | None = None
     if not photo_path or not os.path.exists(photo_path):
         temp_photo = _decode_photo_data(data)
-
     resolved_photo = photo_path if photo_path and os.path.exists(photo_path) else temp_photo
 
     if not output_filepath:
@@ -107,16 +108,17 @@ def generate_obyektivka_docx(
         os.makedirs(os.path.dirname(output_filepath) or ".", exist_ok=True)
 
     ctx = build_placeholder_context(data)
-    tpl = DocxTemplate(str(MASTER_TEMPLATE))
-    tpl.render(ctx)
+    render_template(MASTER_TEMPLATE, ctx, Path(output_filepath))
 
     if resolved_photo:
-        doc = tpl.docx
-        _inject_photo(doc, resolved_photo)
-        _clear_photo_hint_marker(doc)
-        tpl.save(output_filepath)
+        _inject_photo_zip(output_filepath, resolved_photo)
     else:
-        tpl.save(output_filepath)
+        parts = read_parts(Path(output_filepath))
+        xml = parts["word/document.xml"].decode("utf-8")
+        if "{{photo}}" in xml:
+            xml = xml.replace("{{photo}}", ctx.get("photo", ""))
+            parts["word/document.xml"] = xml.encode("utf-8")
+            write_parts(Path(output_filepath), parts)
 
     if temp_photo:
         try:
