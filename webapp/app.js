@@ -88,6 +88,10 @@ const DastyorAI = (() => {
     let tg = window.Telegram?.WebApp;
     let user = null;
     let token = null;
+
+    function getUser() {
+        return user;
+    }
     let currentTheme = DEFAULT_THEME;
     let currentLang = DEFAULT_LANG;
     let localeMap = {};
@@ -1136,6 +1140,19 @@ html[data-theme="dark"] .da-doc-loading-ring{border-color:#334155;border-top-col
         return getCredits(u) > 0;
     }
 
+    /** CV/Obyektivka eksport: pul balansi, kategoriya huquqi yoki obuna limiti */
+    function canExportForCategory(u, category) {
+        const subject = u || user;
+        if (!subject) return false;
+        if (Number(subject.credits || 0) > 0) return true;
+        if (hasSingleDocAccess(subject, category)) return true;
+        const plan = String(subject.plan || subject.user_plan || 'free').toLowerCase();
+        if (plan === 'standard' || plan === 'premium') {
+            return !isQuotaBlockedForCategory(subject, category);
+        }
+        return false;
+    }
+
     /** PDF/Word tugmasi: ready | locked (pul yo'q) | waiting (admin/export) */
     function applyExportButtonState(btn, state, kind) {
         if (!btn) return;
@@ -1586,6 +1603,7 @@ html[data-theme="dark"] .da-doc-loading-ring{border-color:#334155;border-top-col
         docPriceUzs,
         getCredits,
         canExportWithCredit,
+        canExportForCategory,
         applyExportButtonState,
         hasUniversalCredit,
         universalCreditMessage,
@@ -1597,7 +1615,7 @@ html[data-theme="dark"] .da-doc-loading-ring{border-color:#334155;border-top-col
         needsSingleDocPayment,
         applyServiceQuotaUi,
         shouldShowTariffStrip,
-        getUser: () => user,
+        getUser,
         getToken: () => token,
         getTelegramId,
         navigate,

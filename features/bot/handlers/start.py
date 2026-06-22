@@ -36,8 +36,7 @@ CV_INTRO = (
     "• Forma orqali to'ldiring, ovoz yoki matn yuboring\n"
     "• AI ma'lumotlarni ajratadi va formani to'ldiradi\n"
     "• Shablon: Modern / Classic / Corporate\n"
-    "• Natija: <b>PDF</b> (ATS-friendly)\n\n"
-    "🎙 Ovozli xabar yoki 📝 matn yuboring — namuna keyin keladi."
+    "• Natija: <b>PDF</b> (ATS-friendly)"
 )
 
 HELP_TEXT = (
@@ -77,8 +76,10 @@ async def cv_intro(message: Message, state: FSMContext) -> None:
 
     uid = message.from_user.id if message.from_user else 0
     await state.set_state(CvStates.waiting_input)
-    await message.answer(CV_INTRO, reply_markup=open_webapp_inline(uid, "cv"))
-    await message.answer(CV_INSTRUCTION, reply_markup=open_webapp_inline(uid, "cv"))
+    await message.answer(
+        f"{CV_INTRO}\n\n{CV_INSTRUCTION}",
+        reply_markup=open_webapp_inline(uid, "cv"),
+    )
 
 
 @router.message(F.text == BTN_BACK)

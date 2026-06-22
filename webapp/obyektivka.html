@@ -362,9 +362,9 @@
             <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg>Tozalash
           </button>
           <button type="button" class="btn btn-primary da-export-btn da-export-locked" id="dlBtn" aria-disabled="true">
-            <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg><span id="btn_word_bot">Word botga yuborish</span>
+            <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg><span id="btn_word_bot">🔒 Word botga yuborish</span>
           </button>
-          <button type="button" class="btn btn-outline hidden" id="payBtn" onclick="payObySingle('word')">
+          <button type="button" class="btn btn-outline" id="payBtn" onclick="payObySingle('word')">
             <svg viewBox="0 0 24 24"><path d="M12 2v20"/><path d="M16 6a4 4 0 0 0-8 0c0 2.2 2 3.2 4 3.8s4 1.6 4 3.8a4 4 0 0 1-8 0"/></svg>
             <span id="btn_pay_5000">💳 7 999 so'm to'lash</span>
           </button>
@@ -893,13 +893,14 @@ function syncObyQuotaUi() {
   var payBtn = document.getElementById('payBtn');
   var warn = document.getElementById('obyQuotaWarn');
 
-  if (!DA.getCredits) {
-    if (warn) warn.classList.add('hidden');
-    return;
+  var canExport = false;
+  if (DA.canExportForCategory) {
+    canExport = !!DA.canExportForCategory(u, 'obyektivka');
+  } else if (DA.getCredits) {
+    canExport = DA.getCredits(u) > 0
+      || (DA.hasSingleDocAccess && DA.hasSingleDocAccess(u, 'obyektivka'));
   }
 
-  var credits = DA.getCredits(u);
-  var canExport = DA.canExportWithCredit ? DA.canExportWithCredit(u) : credits > 0;
   var pendingAdmin = !!(_obyApprovedRequestId && !canExport);
 
   if (btn) {
@@ -1258,8 +1259,10 @@ async function sendObyektivkaToBot(fmt){
   } catch (_) {}
   try{ if(window.DastyorAI&&window.DastyorAI.refreshProfile) await window.DastyorAI.refreshProfile(true); }catch(_){}
   var uNow = window.DastyorAI&&window.DastyorAI.getUser?window.DastyorAI.getUser():null;
-  var creditsNow = window.DastyorAI&&window.DastyorAI.getCredits?window.DastyorAI.getCredits(uNow):0;
-  if(creditsNow < 1){
+  var canExportNow = window.DastyorAI&&window.DastyorAI.canExportForCategory
+    ? window.DastyorAI.canExportForCategory(uNow, 'obyektivka')
+    : (window.DastyorAI&&window.DastyorAI.getCredits?window.DastyorAI.getCredits(uNow):0) > 0;
+  if(!canExportNow){
     _obyExportInFlight = false;
     syncObyQuotaUi();
     try{ await payObySingle(fmt); }catch(_){}
@@ -1769,6 +1772,7 @@ function goToStep(s){
   document.getElementById('page-2').classList.toggle('hidden',s!==2);document.getElementById('footer-p2').classList.toggle('hidden',s!==2);
   document.getElementById('st1').className='step-item'+(s===1?' active':' done');
   document.getElementById('st2').className='step-item'+(s===2?' active':'');
+  if(s===2){ try{ syncObyQuotaUi(); }catch(e){} }
   window.scrollTo({top:0,behavior:'smooth'});
 }
 

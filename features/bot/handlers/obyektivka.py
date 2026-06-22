@@ -69,6 +69,19 @@ def _find_sample_audio() -> Path | None:
     return None
 
 
+async def _delete_waiting_prompt(bot: Bot, state: FSMContext) -> None:
+    data = await state.get_data()
+    msg_id = data.get("waiting_prompt_msg_id")
+    chat_id = data.get("waiting_prompt_chat_id")
+    if not msg_id or not chat_id:
+        return
+    try:
+        await bot.delete_message(chat_id=chat_id, message_id=msg_id)
+    except Exception:
+        pass
+    await state.update_data(waiting_prompt_msg_id=None, waiting_prompt_chat_id=None)
+
+
 @router.message(F.text == BTN_OBY)
 async def obyektivka_start(message: Message, state: FSMContext) -> None:
     await state.set_state(ObyektivkaStates.waiting_voice)
@@ -78,10 +91,14 @@ async def obyektivka_start(message: Message, state: FSMContext) -> None:
     if sample:
         asyncio.create_task(_send_sample_audio(message, sample))
 
-    await message.answer(
+    waiting_msg = await message.answer(
         "⏳ <b>Ovozli xabar yoki matn kutmoqdamiz...</b>\n"
         "Audio yozuv yoki matn ko'rinishida yuboring.",
         reply_markup=back_menu(),
+    )
+    await state.update_data(
+        waiting_prompt_msg_id=waiting_msg.message_id,
+        waiting_prompt_chat_id=waiting_msg.chat.id,
     )
 
 
@@ -165,6 +182,7 @@ async def _process_voice_background(
 
 @router.message(ObyektivkaStates.waiting_voice, F.voice | F.audio)
 async def obyektivka_voice(message: Message, bot: Bot, state: FSMContext) -> None:
+    await _delete_waiting_prompt(bot, state)
     status = await message.answer(telegram_message(STEP_AUDIO))
     asyncio.create_task(_process_voice_background(message, bot, state, status))
 
@@ -186,6 +204,7 @@ async def obyektivka_text(message: Message, bot: Bot, state: FSMContext) -> None
         return
     if message.text == BTN_BACK or message.text.casefold() == "bekor":
         return
+    await _delete_waiting_prompt(bot, state)
     status = await message.answer("⏳ Matn tahlil qilinmoqda...")
     uid = message.from_user.id if message.from_user else 0
     try:
