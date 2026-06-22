@@ -59,7 +59,7 @@ def parse_cv_facts(text: str) -> dict[str, Any]:
             out["spec"] = "Dasturchi"
 
     edu_m = re.search(
-        r"(\d{4})\s*[-–]\s*(\d{4})\s+(.+?)\s+da\s+(.+?)\s+bo[''`ʻ]yicha\s+o[''`ʻ]qidim",
+        r"(\d{4})\s*[-–]\s*(\d{4})\s+(.+?)\s+da\s+(.+?)\s+bo\W*yicha\s+o\W*qidim",
         t,
         re.I,
     )
@@ -73,16 +73,18 @@ def parse_cv_facts(text: str) -> dict[str, Any]:
         ]
 
     work_m = re.search(
-        r"(\d{4})\s*-?(?:yil)?dan\s+beri\s+(.+?)\s+(?:da|da)\s+ishlayman",
+        r"(\d{4})\s*-?(?:yil)?dan\s+beri\s+(.+?)\s*ishlayman",
         t,
         re.I,
     )
     if work_m:
+        company = _clean(work_m.group(2))
+        company = re.sub(r"da$", "", company, flags=re.I).strip()
         out["works"] = [
             {
                 "from": work_m.group(1),
                 "to": "hozir",
-                "company": _clean(work_m.group(2)),
+                "company": company,
                 "title": out.get("spec", ""),
             }
         ]
