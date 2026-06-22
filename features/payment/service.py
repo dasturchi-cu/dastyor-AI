@@ -1,4 +1,4 @@
-"""Manual payment flow with document access unlock."""
+"""Manual payment flow with credit grants."""
 from __future__ import annotations
 
 import time
@@ -21,9 +21,8 @@ def payment_info() -> dict[str, Any]:
 
 def user_status(telegram_id: int) -> dict[str, Any]:
     user = users_repo.upsert_user(telegram_id)
-    access = users_repo.access_status(telegram_id)
     return {
-        **access,
+        "credits": int(user.get("credits") or 0),
         "telegram_id": telegram_id,
         "pending_payments": payments_repo.count_user_pending(telegram_id),
     }

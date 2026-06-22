@@ -55,28 +55,11 @@ def cross_sell_oby_line() -> str:
     return "\n\n💡 <b>Obyektivka ham kerakmi?</b> Bosh menyudan ✍️ Obyektivka tugmasini bosing."
 
 
-def payment_approved_message(documents: list[str] | str) -> str:
-    if isinstance(documents, str):
-        docs = [documents]
-    else:
-        docs = [d for d in documents if d]
-    doc_line = ", ".join(docs) if docs else "Hujjat"
+def payment_approved_message(credits: int) -> str:
+    p = format_price_uzs()
     return (
         "✅ <b>To'lovingiz tasdiqlandi!</b>\n\n"
-        f"📄 <b>{doc_line}</b> uchun kirish ochildi.\n"
-        "Endi tayyor faylni yuklab olishingiz mumkin.\n\n"
+        f"💳 Oldin to'langan: <b>{credits}</b> ta tayyor hujjat\n"
+        f"ℹ️ Yangi tayyor fayl: <b>{p} so'm</b> (CV yoki Obyektivka).\n\n"
         "👇 Hujjatni tanlang va yaratishni boshlang:"
     )
-
-
-def payment_rejected_message(document: str, *, reason: str = "") -> str:
-    doc = (document or "Hujjat").strip()
-    lines = [
-        "❌ <b>To'lovingiz rad etildi.</b>",
-        "",
-        f"Hujjat: <b>{doc}</b>",
-    ]
-    if reason.strip():
-        lines.extend(["", f"Sabab: {reason.strip()}"])
-    lines.extend(["", "Qayta urinib ko'ring yoki support bilan bog'laning."])
-    return "\n".join(lines)

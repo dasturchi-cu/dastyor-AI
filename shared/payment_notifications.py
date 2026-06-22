@@ -73,7 +73,7 @@ def build_payment_notification_text(
     kind: str,
     purchase_number: int,
     auto_approved: bool = False,
-    access_open: bool = False,
+    credits: int = 0,
 ) -> str:
     pid = int(payment["id"])
     telegram_id = int(payment.get("telegram_id") or 0)
@@ -119,7 +119,7 @@ def build_payment_notification_text(
         time_s,
     ]
     if auto_approved:
-        lines.extend(["", "Hujjat kirish:", "✅ <b>Ochildi</b>" if access_open else "🔒 Yopiq"])
+        lines.extend(["", "Kredit balansi:", f"<b>{credits}</b>"])
     return "\n".join(lines)
 
 

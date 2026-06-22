@@ -10,8 +10,6 @@ CREATE TABLE IF NOT EXISTS users (
     first_name      TEXT,
     last_name       TEXT,
     credits         INTEGER NOT NULL DEFAULT 0 CHECK (credits >= 0),
-    has_cv_access   INTEGER NOT NULL DEFAULT 0,
-    has_objective_access INTEGER NOT NULL DEFAULT 0,
     is_blocked      INTEGER NOT NULL DEFAULT 0,
     last_active_at  TEXT,
     created_at      TEXT NOT NULL DEFAULT (datetime('now')),

@@ -69,15 +69,11 @@ def _export_docx_sync(telegram_id: int, payload: dict[str, Any]) -> tuple[bytes,
 
 
 async def export_docx(telegram_id: int, payload: dict[str, Any]) -> tuple[bytes, str]:
-    if not await async_db.run(users_repo.consume_document_access, telegram_id, "obyektivka"):
-        raise PermissionError(
-            "Obyektivka uchun kirish yo'q. Avval to'lov qiling yoki admin tasdiqlasin."
-        )
+    if not await async_db.run(users_repo.consume_credit, telegram_id):
+        raise PermissionError("Pul yetarli emas. Avval to'lov qiling.")
 
     try:
         return await async_db.run(_export_docx_sync, telegram_id, payload)
-    except PermissionError:
-        raise
     except Exception:
-        await async_db.run(users_repo.grant_document_access, telegram_id, "obyektivka")
+        await async_db.run(users_repo.add_credits, telegram_id, 1)
         raise

@@ -46,76 +46,53 @@ class TestPaymentAtomic(unittest.TestCase):
     def setUp(self):
         init_db()
 
-    def test_approve_atomic_grants_access_once(self):
+    def test_approve_atomic_grants_once(self):
         tid = 88001122
         users_repo.upsert_user(tid)
         users_repo.invalidate_cache(tid)
-        users_repo.reset_document_access(tid)
-        payment = payments_repo.create_payment(
-            tid,
-            payer_name="Test User",
-            card_number="8600000000000000",
-            document_type="cv",
-        )
+        before = users_repo.get_credits(tid)
+        payment = payments_repo.create_payment(tid, payer_name="Test User")
         self.assertIsNotNone(payment)
         pid = int(payment["id"])
 
         first = payments_repo.approve_atomic(pid)
         self.assertIsNotNone(first)
         self.assertEqual(first["status"], "APPROVED")
-        self.assertTrue(users_repo.has_document_access(tid, "cv"))
+        self.assertEqual(users_repo.get_credits(tid), before + 1)
 
         second = payments_repo.approve_atomic(pid)
         self.assertIsNotNone(second)
-        self.assertTrue(users_repo.has_document_access(tid, "cv"))
+        self.assertEqual(users_repo.get_credits(tid), before + 1)
 
     def test_try_auto_approve_when_enabled(self):
         from features.payment import service as payment_service
 
         tid = 88003344
         users_repo.upsert_user(tid)
-        users_repo.reset_document_access(tid)
-        payment = payments_repo.create_payment(
-            tid,
-            payer_name="Auto User",
-            card_number="8600000000000000",
-            document_type="obyektivka",
-        )
+        payment = payments_repo.create_payment(tid, payer_name="Auto User")
         pid = int(payment["id"])
+        before = users_repo.get_credits(tid)
 
         with patch("features.payment.service.settings") as mock_settings:
             mock_settings.auto_approve_payments = True
             result = payment_service.try_auto_approve(pid)
         self.assertIsNotNone(result)
         self.assertEqual(result["status"], "APPROVED")
-        self.assertTrue(users_repo.has_document_access(tid, "obyektivka"))
+        self.assertEqual(users_repo.get_credits(tid), before + 1)
 
     def test_try_auto_approve_skipped_when_disabled(self):
         from features.payment import service as payment_service
 
         tid = 88005566
-        users_repo.upsert_user(tid)
-        users_repo.reset_document_access(tid)
-        payment = payments_repo.create_payment(
-            tid,
-            payer_name="Manual User",
-            card_number="8600000000000000",
-            document_type="cv",
-        )
+        payment = payments_repo.create_payment(tid, payer_name="Manual User")
         pid = int(payment["id"])
+        before = users_repo.get_credits(tid)
 
         with patch("features.payment.service.settings") as mock_settings:
             mock_settings.auto_approve_payments = False
             result = payment_service.try_auto_approve(pid)
         self.assertIsNone(result)
-        self.assertFalse(users_repo.has_document_access(tid, "cv"))
-
-    def test_consume_document_access(self):
-        tid = 88007788
-        users_repo.upsert_user(tid)
-        users_repo.grant_document_access(tid, "cv")
-        self.assertTrue(users_repo.consume_document_access(tid, "cv"))
-        self.assertFalse(users_repo.has_document_access(tid, "cv"))
+        self.assertEqual(users_repo.get_credits(tid), before)
 
     def test_resolve_uid_from_init_data(self):
         from shared.auth import resolve_uid_from_webapp

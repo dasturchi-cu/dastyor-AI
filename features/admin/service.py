@@ -28,15 +28,9 @@ def build_profile_text(profile: dict[str, Any]) -> str:
     name = html.escape(display_name(profile))
     username = html.escape(format_username(profile.get("username")))
     blocked = bool(int(profile.get("is_blocked") or 0))
-    cv_open = bool(int(profile.get("has_cv_access") or 0))
-    oby_open = bool(int(profile.get("has_objective_access") or 0))
     user_line = (
         f'<a href="tg://user?id={tid}">{name}</a>' if tid else name
     )
-    pending = profile.get("pending_payment_id")
-    pending_line = ""
-    if pending:
-        pending_line = f"\nKutilayotgan to'lov: <b>#{int(pending)}</b>"
     return (
         f"<b>👤 Foydalanuvchi profili</b>\n\n"
         f"ID: <code>{tid}</code>\n"
@@ -46,11 +40,9 @@ def build_profile_text(profile: dict[str, Any]) -> str:
         f"CV soni: <b>{profile.get('cv_count', 0)}</b>\n"
         f"Obyektivka soni: <b>{profile.get('obyektivka_count', 0)}</b>\n"
         f"To'lovlar soni: <b>{profile.get('payments_count', 0)}</b>\n"
-        f"CV kirish: {'✅ Ochiq' if cv_open else '🔒 Yopiq'}\n"
-        f"Obyektivka kirish: {'✅ Ochiq' if oby_open else '🔒 Yopiq'}\n"
+        f"Kredit: <b>{profile.get('credits', 0)}</b>\n"
         f"Oxirgi aktivlik: {profile.get('last_activity') or '—'}\n"
         f"Holat: {'🚫 Bloklangan' if blocked else '✅ Faol'}"
-        f"{pending_line}"
     )
 
 
@@ -131,8 +123,7 @@ def build_users_xlsx() -> Path:
             r.get("username"),
             r.get("first_name"),
             r.get("last_name"),
-            r.get("has_cv_access"),
-            r.get("has_objective_access"),
+            r.get("credits"),
             r.get("payments_count"),
             r.get("cv_count"),
             r.get("obyektivka_count"),
@@ -148,8 +139,7 @@ def build_users_xlsx() -> Path:
             "username",
             "first_name",
             "last_name",
-            "cv_access",
-            "obyektivka_access",
+            "credits",
             "payments",
             "cv",
             "obyektivka",

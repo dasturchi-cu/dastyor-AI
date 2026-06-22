@@ -12,14 +12,13 @@ from features.bot.states import CvStates, ObyektivkaStates
 from shared.async_db import run as db_run
 from shared.marketing import cv_intro_header, welcome_message
 from shared.keyboards import (
-    BTN_ACCESS,
     BTN_BACK,
+    BTN_CREDITS,
     BTN_CV,
     BTN_HELP,
     BTN_OBY,
-    LEGACY_BTN_ACCESS,
+    LEGACY_BTN_CREDITS,
     back_menu,
-    is_access_button,
     is_credits_button,
     is_menu_button,
     open_webapp_inline,
@@ -37,7 +36,7 @@ HELP_TEXT = (
     "/start — bosh menyu\n"
     "📄 CV — PDF resume\n"
     "✍️ Obyektivka — rasmiy Word hujjat (ovoz orqali)\n"
-    "📄 Hujjat holati — kirish va to'lov holati\n"
+    "💳 Pul balansi — to'langan mablag' va hujjat\n"
     "🎙 Ovoz — AI avtomatik to'ldirish\n\n"
     f"Narx: <b>{settings.single_doc_price_uzs:,} so'm</b> = 1 hujjat"
 )
@@ -74,7 +73,7 @@ async def menu_from_flow_waiting(message: Message, state: FSMContext) -> None:
     await state.clear()
     text = message.text or ""
     if is_credits_button(text):
-        await show_access_status(message)
+        await show_credits(message)
     elif text == BTN_CV:
         await cv_intro(message, state)
     elif text == BTN_OBY:
@@ -107,21 +106,17 @@ async def menu_back(message: Message, state: FSMContext) -> None:
     await message.answer("Bosh menyu:", reply_markup=user_menu())
 
 
-@router.message(F.text == BTN_ACCESS)
-@router.message(F.text.in_(LEGACY_BTN_ACCESS))
-async def show_access_status(message: Message) -> None:
+@router.message(F.text == BTN_CREDITS)
+@router.message(F.text.in_(LEGACY_BTN_CREDITS))
+async def show_credits(message: Message) -> None:
     uid = message.from_user.id if message.from_user else 0
-    access = await db_run(users_repo.access_status, uid)
-    cv = "✅ Ochiq" if access.get("has_cv_access") else "🔒 Yopiq"
-    oby = "✅ Ochiq" if access.get("has_objective_access") else "🔒 Yopiq"
+    status = await db_run(users_repo.get_credits, uid)
     await message.answer(
-        f"📄 <b>Hujjat kirish holati</b>\n\n"
-        f"CV: <b>{cv}</b>\n"
-        f"Obyektivka: <b>{oby}</b>\n\n"
+        f"💳 <b>To'langan hujjatlar:</b> {status} ta\n"
         f"ℹ️ Ovoz va matn to'ldirish — <b>bepul</b>\n"
-        f"💰 Tayyor fayl: <b>{settings.single_doc_price_uzs:,} so'm</b>\n"
+        f"💰 Tayyor fayl: <b>{settings.single_doc_price_uzs:,} so'm</b> (1 ta)\n"
         f"Karta: <code>{settings.payment_card_number}</code>\n"
         f"Egasi: {settings.payment_card_owner}\n\n"
-        "To'lov chekini WebApp orqali yuboring. Admin tasdiqlagach hujjat ochiladi.",
+        "To'lov chekini WebApp orqali yuboring.",
         reply_markup=user_menu(),
     )

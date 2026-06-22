@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import asyncio
+import io
 import logging
 import os
 import uuid
@@ -9,7 +10,7 @@ import uuid
 import re
 
 from fastapi import APIRouter, File, Form, HTTPException, Query, Request, UploadFile
-from fastapi.responses import JSONResponse, Response
+from fastapi.responses import JSONResponse, StreamingResponse
 
 from backend.schemas.webapp import ExportObyektivkaRequest, ObyektivkaRequest, PreviewObyektivkaRequest, TestObyektivkaPdfRequest
 from core.security import rate_limit
@@ -70,10 +71,8 @@ async def _run_oby_text_job(job_id: str, uid: int, text: str) -> None:
 
 
 async def _run_oby_voice_job(job_id: str, uid: int, raw: bytes, ext: str) -> None:
-    from config.paths import temp_dir
-
-    tmp = temp_dir()
-    temp_path = str(tmp / f"oby_voice_{uid}_{uuid.uuid4().hex[:8]}{ext}")
+    os.makedirs("temp", exist_ok=True)
+    temp_path = os.path.join("temp", f"oby_voice_{uid}_{uuid.uuid4().hex[:8]}{ext}")
     try:
         with open(temp_path, "wb") as fh:
             fh.write(raw)
@@ -188,11 +187,9 @@ async def api_oby_voice_fill_sync(
     if not uid:
         raise HTTPException(status_code=401, detail="Foydalanuvchi aniqlanmadi")
 
-    from config.paths import temp_dir
-
-    tmp = temp_dir()
+    os.makedirs("temp", exist_ok=True)
     ext = os.path.splitext(audio.filename or "")[1] or ".ogg"
-    temp_path = str(tmp / f"oby_voice_{uid}_{os.getpid()}{ext}")
+    temp_path = os.path.join("temp", f"oby_voice_{uid}_{os.getpid()}{ext}")
     raw = await audio.read()
     if not raw:
         raise HTTPException(status_code=400, detail="Audio bo'sh")
@@ -218,19 +215,8 @@ async def api_oby_voice_fill_sync(
             pass
 
 
-def _pdf_inline_response(pdf_bytes: bytes, *, filename: str = "obyektivka_preview.pdf") -> Response:
-    return Response(
-        content=pdf_bytes,
-        media_type="application/pdf",
-        headers={
-            "Content-Disposition": f'inline; filename="{filename}"',
-            "Cache-Control": "private, max-age=120",
-        },
-    )
-
-
 @router.post("/api/preview_obyektivka")
-async def api_preview_oby(req: PreviewObyektivkaRequest) -> Response:
+async def api_preview_oby(req: PreviewObyektivkaRequest) -> StreamingResponse:
     """Preview = generated DOCX → PDF (reference template, no HTML render)."""
     import asyncio
 
@@ -246,7 +232,11 @@ async def api_preview_oby(req: PreviewObyektivkaRequest) -> Response:
     cache_key = cache_key_for_oby_preview(payload)
     cached = oby_preview_cache_get(cache_key)
     if cached is not None:
-        return _pdf_inline_response(cached)
+        return StreamingResponse(
+            io.BytesIO(cached),
+            media_type="application/pdf",
+            headers={"Content-Disposition": 'inline; filename="obyektivka_preview.pdf"'},
+        )
 
     def _build_pdf() -> bytes:
         docx_bytes = generate_obyektivka_docx_bytes(payload)
@@ -262,7 +252,11 @@ async def api_preview_oby(req: PreviewObyektivkaRequest) -> Response:
         raise HTTPException(status_code=500, detail=str(exc)[:200]) from exc
 
     oby_preview_cache_set(cache_key, pdf_bytes)
-    return _pdf_inline_response(pdf_bytes)
+    return StreamingResponse(
+        io.BytesIO(pdf_bytes),
+        media_type="application/pdf",
+        headers={"Content-Disposition": 'inline; filename="obyektivka_preview.pdf"'},
+    )
 
 
 @router.post("/api/test_obyektivka_pdf")
@@ -309,15 +303,15 @@ async def api_test_obyektivka_pdf(req: TestObyektivkaPdfRequest, request: Reques
             raise HTTPException(status_code=500, detail="Telegramga yuborib bo'lmadi")
         return JSONResponse({"ok": True, "sent": True, "filename": filename})
 
-    return Response(
-        content=pdf_bytes,
+    return StreamingResponse(
+        io.BytesIO(pdf_bytes),
         media_type="application/pdf",
         headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )
 
 
 @router.post("/api/export_obyektivka")
-async def api_export_oby(req: ExportObyektivkaRequest, request: Request) -> Response:
+async def api_export_oby(req: ExportObyektivkaRequest, request: Request) -> StreamingResponse:
     await rate_limit(request)
     uid = _uid_from_req(req)
     payload = req.model_dump(exclude={"telegram_id", "token", "send_only", "format", "init_data"})
@@ -342,14 +336,14 @@ async def api_export_oby(req: ExportObyektivkaRequest, request: Request) -> Resp
             raise HTTPException(status_code=500, detail="Telegramga yuborib bo'lmadi")
         return JSONResponse({"ok": True, "sent": True, "filename": filename})
 
-    return Response(
-        content=docx_bytes,
+    return StreamingResponse(
+        io.BytesIO(docx_bytes),
         media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
         headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )
 
 
 @router.post("/api/generate_obyektivka")
-async def api_generate_oby(req: ObyektivkaRequest, request: Request) -> Response:
+async def api_generate_oby(req: ObyektivkaRequest, request: Request) -> StreamingResponse:
     export_req = ExportObyektivkaRequest(**req.model_dump())
     return await api_export_oby(export_req, request)

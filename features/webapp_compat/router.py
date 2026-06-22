@@ -78,7 +78,6 @@ async def api_stats(
     return {
         "ok": True,
         "telegram_id": uid,
-        "has_cv_access": bool(int(user.get("has_cv_access") or 0)),
-        "has_objective_access": bool(int(user.get("has_objective_access") or 0)),
+        "credits": int(user.get("credits") or 0),
         "users_total": users_repo.count_users(),
     }

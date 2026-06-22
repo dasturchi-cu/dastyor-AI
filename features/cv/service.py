@@ -33,19 +33,17 @@ def _export_pdf_sync(telegram_id: int, payload: dict[str, Any], pdf: bytes) -> t
 
 
 async def export_pdf(telegram_id: int, payload: dict[str, Any]) -> tuple[bytes, str]:
-    if not await async_db.run(users_repo.consume_document_access, telegram_id, "cv"):
-        raise PermissionError("CV uchun kirish yo'q. Avval to'lov qiling yoki admin tasdiqlasin.")
+    if not await async_db.run(users_repo.consume_credit, telegram_id):
+        raise PermissionError("Pul yetarli emas. Avval to'lov qiling.")
 
     try:
         pdf = await generate_cv_pdf(payload, base_url=settings.site_base_url or settings.webapp_base)
         if not pdf:
-            await async_db.run(users_repo.grant_document_access, telegram_id, "cv")
+            await async_db.run(users_repo.add_credits, telegram_id, 1)
             raise RuntimeError("PDF yaratib bo'lmadi")
         return await async_db.run(_export_pdf_sync, telegram_id, payload, pdf)
-    except PermissionError:
-        raise
     except Exception:
-        await async_db.run(users_repo.grant_document_access, telegram_id, "cv")
+        await async_db.run(users_repo.add_credits, telegram_id, 1)
         raise
 
 

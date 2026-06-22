@@ -20,23 +20,11 @@ SZ_PHOTO_NOTE = 18  # 9 pt — «(rasmiy kiyimda).» fragment in reference
 
 ALLOWED_FONT_PTS = (9.0, 10.0, 11.0, 12.0, 14.0)
 
-GARBAGE_EXACT = frozenset(
-    {
-        "Шрифт 11",
-        "Шрифт 14",
-        "Шрифт 12",
-        "Шрифт 1",
-        "1",
-        "8",
-        "пт",
-        "0 пт",
-        "4",
-        "8 пт0 пт",
-        "4 пт0 пт",
-    }
+from features.obyektivka.docx_annotations import (
+    GARBAGE_EXACT,
+    is_garbage_run,
+    strip_reference_annotations,
 )
-
-_GARBAGE_RE = re.compile(r"^Шрифт\s+\d+$|^\d+\s*пт0\s*пт$", re.IGNORECASE)
 
 
 def _run_text(r_el: etree._Element) -> str:
@@ -89,25 +77,6 @@ def _set_paragraph_runs_sz(p_el: etree._Element, half_points: int, *, bold: bool
             _set_bool(rpr, "bCs", bold)
 
 
-def _is_garbage_run(text: str) -> bool:
-    t = text.strip()
-    if not t:
-        return False
-    if t in GARBAGE_EXACT:
-        return True
-    return bool(_GARBAGE_RE.match(t))
-
-
-def remove_garbage_runs(root: etree._Element) -> int:
-    removed = 0
-    for p_el in root.findall(f".//{W}p"):
-        for r_el in list(p_el.findall(f"{W}r")):
-            if _is_garbage_run(_run_text(r_el)):
-                p_el.remove(r_el)
-                removed += 1
-    return removed
-
-
 def _is_photo_hint_paragraph(text: str) -> bool:
     low = text.lower()
     return any(
@@ -144,7 +113,7 @@ def enforce_reference_fonts(root: etree._Element, context: dict[str, str] | None
     """Apply reference font sizes after placeholder fill."""
     ctx = context or {}
     fish = (ctx.get("fish") or "").strip()
-    remove_garbage_runs(root)
+    strip_reference_annotations(root)
 
     for p_el in root.findall(f".//{W}p"):
         if _in_table(p_el):
@@ -220,7 +189,7 @@ def collect_font_sizes(root: etree._Element) -> dict[float, int]:
     c: Counter[float] = Counter()
     for r_el in root.findall(f".//{W}r"):
         text = _run_text(r_el).strip()
-        if not text or _is_garbage_run(text):
+        if not text or is_garbage_run(text):
             continue
         pt = effective_sz_pt(r_el)
         if pt is not None:

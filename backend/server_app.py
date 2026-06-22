@@ -34,38 +34,13 @@ logger = logging.getLogger(__name__)
 
 def _cors_origins() -> list[str]:
     origins: list[str] = []
-    candidates = (
-        settings.site_base_url,
-        settings.webapp_base,
-        settings.webhook_url,
-    )
-    for raw in candidates:
+    for raw in (settings.site_base_url, settings.webapp_base):
         url = (raw or "").strip().rstrip("/")
-        if not url.startswith("http://") and not url.startswith("https://"):
-            continue
-        origins.append(url)
-        if "/webapp" in url:
-            origins.append(url.split("/webapp", 1)[0].rstrip("/"))
-        if "/webhook" in url:
-            origins.append(url.split("/webhook", 1)[0].rstrip("/"))
-
-    extra = os.getenv("CORS_EXTRA_ORIGINS", "")
-    for part in extra.split(","):
-        url = part.strip().rstrip("/")
         if url.startswith("http://") or url.startswith("https://"):
             origins.append(url)
-
     if settings.allow_insecure_auth:
         origins.extend(["http://127.0.0.1:8000", "http://localhost:8000"])
-
-    # Dedupe while preserving order
-    seen: set[str] = set()
-    unique: list[str] = []
-    for o in origins:
-        if o not in seen:
-            seen.add(o)
-            unique.append(o)
-    return unique
+    return origins or ["https://localhost"]
 
 
 def create_webhook_app() -> FastAPI:
@@ -77,15 +52,6 @@ def create_webhook_app() -> FastAPI:
 
     @asynccontextmanager
     async def lifespan(app: FastAPI):
-        from config.paths import ensure_data_dirs
-        from config.validate import _is_production, validate_settings
-
-        errors = validate_settings()
-        for msg in errors:
-            logger.critical("CONFIG: %s", msg)
-        if errors and _is_production():
-            raise RuntimeError("Invalid production configuration: " + "; ".join(errors))
-        ensure_data_dirs()
         init_db()
         app.state.bot = bot
         app.state.dp = dp
@@ -125,9 +91,8 @@ def create_webhook_app() -> FastAPI:
     app.add_middleware(
         CORSMiddleware,
         allow_origins=cors_origins,
-        allow_origin_regex=r"https://.*\.(railway\.app|up\.railway\.app|onrender\.com)$",
         allow_credentials=True,
-        allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+        allow_methods=["GET", "POST", "OPTIONS"],
         allow_headers=["*"],
     )
     app.add_middleware(GZipMiddleware, minimum_size=512)

@@ -65,7 +65,7 @@ def resolve_webapp_base() -> str:
         root = webhook.split("/webhook")[0].split("/api/webhook")[0].rstrip("/")
         return root if root.endswith("/webapp") else f"{root}/webapp"
 
-    return "https://example.invalid/webapp"
+    return "https://localhost/webapp"
 
 
 @dataclass(frozen=True)
@@ -74,15 +74,12 @@ class Settings:
     bot_username: str = field(default_factory=lambda: _env("BOT_USERNAME", "DastyorAiBot").lstrip("@"))
     google_api_key: str = field(default_factory=lambda: _env("GOOGLE_API_KEY"))
     admin_user_ids: frozenset[int] = field(default_factory=lambda: frozenset(_admin_ids()))
-    support_group_id: int = field(default_factory=lambda: _env_int("SUPPORT_GROUP_ID", 0))
+    support_group_id: int = field(default_factory=lambda: _env_int("SUPPORT_GROUP_ID", -1003457224552))
     premium_admin_group_id: int = field(
-        default_factory=lambda: _env_int(
-            "PREMIUM_ADMIN_GROUP_ID",
-            _env_int("SUPPORT_GROUP_ID", 0),
-        )
+        default_factory=lambda: _env_int("PREMIUM_ADMIN_GROUP_ID", _env_int("SUPPORT_GROUP_ID", -1003457224552))
     )
-    payment_card_number: str = field(default_factory=lambda: _env("PAYMENT_CARD_NUMBER"))
-    payment_card_owner: str = field(default_factory=lambda: _env("PAYMENT_CARD_OWNER"))
+    payment_card_number: str = field(default_factory=lambda: _env("PAYMENT_CARD_NUMBER", "9860 1201 7225 8424"))
+    payment_card_owner: str = field(default_factory=lambda: _env("PAYMENT_CARD_OWNER", "DILNOZA MOMINOVA"))
     single_doc_price_uzs: int = field(default_factory=lambda: _env_int("SINGLE_DOC_PRICE_UZS", 7999))
     webapp_base: str = field(default_factory=resolve_webapp_base)
     webapp_version: str = field(default_factory=lambda: _env("WEBAPP_VERSION", "20260622i"))

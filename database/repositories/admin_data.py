@@ -163,7 +163,7 @@ def list_users_enriched(limit: int = 20, offset: int = 0) -> list[dict[str, Any]
         rows = conn.execute(
             """
             SELECT u.id, u.telegram_id, u.username, u.first_name, u.last_name,
-                   u.has_cv_access, u.has_objective_access, u.is_blocked, u.created_at,
+                   u.credits, u.is_blocked, u.created_at,
                    COALESCE(u.last_active_at, u.updated_at) AS last_activity,
                    (SELECT COUNT(*) FROM payments p WHERE p.user_id = u.id) AS payments_count,
                    (SELECT COUNT(*) FROM generated_files g
@@ -185,7 +185,7 @@ def search_users_enriched(query: str, limit: int = 10) -> list[dict[str, Any]]:
         return []
     base_sql = """
         SELECT u.id, u.telegram_id, u.username, u.first_name, u.last_name,
-               u.has_cv_access, u.has_objective_access, u.created_at,
+               u.credits, u.created_at,
                COALESCE(u.last_active_at, u.updated_at) AS last_activity,
                (SELECT COUNT(*) FROM payments p WHERE p.user_id = u.id) AS payments_count,
                (SELECT COUNT(*) FROM generated_files g

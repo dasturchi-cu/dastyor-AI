@@ -88,65 +88,33 @@ def count_users() -> int:
     return int(row["c"]) if row else 0
 
 
-def _access_column(doc_type: str) -> str:
-    key = (doc_type or "").strip().lower()
-    if key in ("cv",):
-        return "has_cv_access"
-    if key in ("obyektivka", "oby", "objective"):
-        return "has_objective_access"
-    raise ValueError(f"Unknown document type: {doc_type}")
-
-
-def has_document_access(telegram_id: int, doc_type: str) -> bool:
+def get_credits(telegram_id: int) -> int:
     user = get_by_telegram_id(telegram_id)
-    if not user:
-        return False
-    col = _access_column(doc_type)
-    return bool(int(user.get(col) or 0))
+    return int(user.get("credits") or 0) if user else 0
 
 
-def grant_document_access(telegram_id: int, doc_type: str) -> bool:
+def add_credits(telegram_id: int, amount: int = 1) -> int:
     tid = int(telegram_id)
-    col = _access_column(doc_type)
     with get_connection() as conn:
-        cur = conn.execute(
-            f"""
-            UPDATE users SET {col} = 1, updated_at = datetime('now')
+        conn.execute(
+            """
+            UPDATE users SET credits = credits + ?, updated_at = datetime('now')
             WHERE telegram_id = ?
             """,
-            (tid,),
+            (max(0, int(amount)), tid),
         )
-        ok = cur.rowcount > 0
-    if ok:
-        _invalidate(tid)
-    return ok
+        row = conn.execute("SELECT credits FROM users WHERE telegram_id = ?", (tid,)).fetchone()
+    _invalidate(tid)
+    return int(row["credits"]) if row else 0
 
 
-def revoke_document_access(telegram_id: int, doc_type: str) -> bool:
-    tid = int(telegram_id)
-    col = _access_column(doc_type)
-    with get_connection() as conn:
-        cur = conn.execute(
-            f"""
-            UPDATE users SET {col} = 0, updated_at = datetime('now')
-            WHERE telegram_id = ?
-            """,
-            (tid,),
-        )
-        ok = cur.rowcount > 0
-    if ok:
-        _invalidate(tid)
-    return ok
-
-
-def reset_document_access(telegram_id: int) -> bool:
+def consume_credit(telegram_id: int) -> bool:
     tid = int(telegram_id)
     with get_connection() as conn:
         cur = conn.execute(
             """
-            UPDATE users
-            SET has_cv_access = 0, has_objective_access = 0, updated_at = datetime('now')
-            WHERE telegram_id = ?
+            UPDATE users SET credits = credits - 1, updated_at = datetime('now')
+            WHERE telegram_id = ? AND credits > 0
             """,
             (tid,),
         )
@@ -154,43 +122,6 @@ def reset_document_access(telegram_id: int) -> bool:
     if ok:
         _invalidate(tid)
     return ok
-
-
-def consume_document_access(telegram_id: int, doc_type: str) -> bool:
-    tid = int(telegram_id)
-    col = _access_column(doc_type)
-    with get_connection() as conn:
-        cur = conn.execute(
-            f"""
-            UPDATE users SET {col} = 0, updated_at = datetime('now')
-            WHERE telegram_id = ? AND {col} = 1
-            """,
-            (tid,),
-        )
-        ok = cur.rowcount > 0
-    if ok:
-        _invalidate(tid)
-    return ok
-
-
-def access_status(telegram_id: int) -> dict[str, bool]:
-    user = get_by_telegram_id(telegram_id)
-    if not user:
-        return {"has_cv_access": False, "has_objective_access": False}
-    return {
-        "has_cv_access": bool(int(user.get("has_cv_access") or 0)),
-        "has_objective_access": bool(int(user.get("has_objective_access") or 0)),
-    }
-
-
-def grant_access_for_payment_document(document_type: str | None) -> list[str]:
-    """Return document types unlocked by payment approval."""
-    key = (document_type or "manual").strip().lower()
-    if key == "cv":
-        return ["cv"]
-    if key in ("obyektivka", "oby"):
-        return ["obyektivka"]
-    return ["cv", "obyektivka"]
 
 
 def is_blocked(telegram_id: int) -> bool:
@@ -212,6 +143,24 @@ def set_blocked(telegram_id: int, blocked: bool) -> bool:
     if ok:
         _invalidate(tid)
     return ok
+
+
+def remove_credits(telegram_id: int, amount: int = 1) -> int:
+    tid = int(telegram_id)
+    amount = max(0, int(amount))
+    with get_connection() as conn:
+        conn.execute(
+            """
+            UPDATE users
+            SET credits = CASE WHEN credits >= ? THEN credits - ? ELSE 0 END,
+                updated_at = datetime('now')
+            WHERE telegram_id = ?
+            """,
+            (amount, amount, tid),
+        )
+        row = conn.execute("SELECT credits FROM users WHERE telegram_id = ?", (tid,)).fetchone()
+    _invalidate(tid)
+    return int(row["credits"]) if row else 0
 
 
 def search_users(query: str, limit: int = 10) -> list[dict[str, Any]]:
@@ -274,19 +223,10 @@ def get_profile_stats(telegram_id: int) -> dict[str, Any] | None:
             "SELECT COUNT(*) AS c FROM payments WHERE user_id = ?",
             (uid,),
         ).fetchone()
-        pending_row = conn.execute(
-            """
-            SELECT id FROM payments
-            WHERE user_id = ? AND status = 'PENDING'
-            ORDER BY created_at DESC LIMIT 1
-            """,
-            (uid,),
-        ).fetchone()
     return {
         **user,
         "cv_count": int(cv_row["c"]) if cv_row else 0,
         "obyektivka_count": int(oby_row["c"]) if oby_row else 0,
         "payments_count": int(pay_row["c"]) if pay_row else 0,
         "last_activity": user.get("last_active_at") or user.get("updated_at"),
-        "pending_payment_id": int(pending_row["id"]) if pending_row else None,
     }

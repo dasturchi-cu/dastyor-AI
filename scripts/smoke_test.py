@@ -67,8 +67,7 @@ def main() -> int:
 
     init_db()
     users_repo.upsert_user(TID)
-    users_repo.grant_document_access(TID, "cv")
-    users_repo.grant_document_access(TID, "obyektivka")
+    users_repo.add_credits(TID, 5)
 
     check("me", lambda: _get(f"/api/me?telegram_id={TID}&token={token}"))
     check("stats", lambda: _get(f"/api/stats?telegram_id={TID}&token={token}"))
