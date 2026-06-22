@@ -7,7 +7,6 @@
   var previewDebounceTimer = null;
   var previewAbort = null;
   var previewRequestId = 0;
-  var previewZoom = 1;
   var _previewImgSrc = '';
   var _previewImgOut = '';
   var _previewImgPromise = null;
@@ -175,9 +174,7 @@
       : Math.max(0, pane.clientWidth - 8);
     if (!paneWidth) paneWidth = global.innerWidth - 48;
 
-    var fitScale = paneWidth / docWidth;
-    var scale = Math.min(fitScale, 1) * previewZoom;
-    scale = Math.max(0.32, Math.min(1.6, scale));
+    var scale = Math.min(paneWidth / docWidth, 1);
 
     var scaledW = Math.ceil(docWidth * scale);
     var scaledH = Math.ceil(docHeight * scale);
@@ -191,14 +188,6 @@
     iframe.style.height = Math.ceil(docHeight) + 'px';
     iframe.style.transform = 'scale(' + scale + ')';
     iframe.style.transformOrigin = 'top left';
-
-    var label = document.getElementById('obyZoomLabel');
-    if (label) label.textContent = Math.round(scale * 100) + '%';
-  }
-
-  function setPreviewZoom(value) {
-    previewZoom = Math.max(0.45, Math.min(1.6, Number(value) || 1));
-    applyPreviewScale();
   }
 
   async function fetchServerPreview(opts) {
@@ -326,14 +315,7 @@
   }
 
   function bindPreviewControls() {
-    var zoomIn = document.getElementById('obyZoomIn');
-    var zoomOut = document.getElementById('obyZoomOut');
-    var zoomReset = document.getElementById('obyZoomReset');
     var testBtn = document.getElementById('obyTestDownloadBtn');
-
-    if (zoomIn) zoomIn.addEventListener('click', function () { setPreviewZoom(previewZoom + 0.1); });
-    if (zoomOut) zoomOut.addEventListener('click', function () { setPreviewZoom(previewZoom - 0.1); });
-    if (zoomReset) zoomReset.addEventListener('click', function () { setPreviewZoom(1); });
     if (testBtn) testBtn.addEventListener('click', downloadTestPdf);
 
     window.addEventListener('resize', function () {
