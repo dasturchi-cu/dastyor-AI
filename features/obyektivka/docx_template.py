@@ -64,7 +64,7 @@ def _inject_photo_zip(output_path: str, photo_path: str) -> None:
         add_reference_photo(target, photo_path)
         for p in doc.paragraphs:
             for run in p.runs:
-                if "{{photo}}" in run.text:
+                if "{{photo}}" in (run.text or ""):
                     run.text = run.text.replace("{{photo}}", "")
         doc.save(output_path)
         after = count_page_breaks(Path(output_path))
@@ -110,7 +110,7 @@ def generate_obyektivka_docx(
         parts = read_parts(Path(output_filepath))
         xml = parts["word/document.xml"].decode("utf-8")
         if "{{photo}}" in xml:
-            xml = xml.replace("{{photo}}", ctx.get("photo", ""))
+            xml = xml.replace("{{photo}}", "")
             parts["word/document.xml"] = xml.encode("utf-8")
             write_parts(Path(output_filepath), parts)
 

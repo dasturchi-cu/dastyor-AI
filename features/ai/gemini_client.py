@@ -1018,7 +1018,8 @@ async def extract_obyektivka_data(text: str) -> dict:
     Qoidalar:
     - Faqat aniq aytilgan ma'lumotni joylashtir, qolgani bo'sh.
     - fullname: "Familiya Ism Sharif" (imkon qadar).
-    - work_experience va relatives ro'yxat bo'lsin.
+    - work_experience: yillar "1977-1982 yy." yoki "2007-h.v." formatida; hozirgi ish "2007 yildan" + lavozim alohida.
+    - Hozirgi ish (h.v.) bo'lsa year maydonida "2007-h.v." yoki "2007 yildan" yoz.
     - Javob faqat JSON bo'lsin (markdownsiz).
 
     Matn: {text}

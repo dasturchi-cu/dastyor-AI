@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import logging
+import re
 
 from features.ai.gemini_client import (
     extract_obyektivka_data,
@@ -36,6 +37,55 @@ __all__ = [
 ]
 
 _SKIP_VALUES = {"", "yo'q", "yoq", "йўқ", "йўқ.", "нет", "no", "n/a", "—", "-"}
+
+_HV_YEAR_RE = re.compile(
+    r"h\.?\s*v\.?|ҳ\.?\s*в|hozirgacha|ҳозиргача|present|current|yildan|йилдан",
+    re.IGNORECASE,
+)
+
+
+def _normalize_oby_work_year(year: str) -> str:
+    y = (year or "").strip()
+    if not y:
+        return y
+    norm = re.sub(r"[\s.\-_/]", "", y.lower())
+    if any(tok in norm for tok in ("hv", "hvgacha", "hozirgacha", "ҳв", "ҳвгача", "ҳозиргача", "present", "current")):
+        m = re.search(r"(19|20)\d{2}", y)
+        return f"{m.group(0)}-h.v." if m else "h.v."
+    m = re.match(r"^(\d{4})\s*[-–—]\s*(\d{4})\s*(йй|yy)?\.?$", y, re.IGNORECASE)
+    if m:
+        return f"{m.group(1)}-{m.group(2)} yy."
+    if re.match(r"^\d{4}-\d{4}$", y) and "yy" not in y.lower() and "йй" not in y:
+        return f"{y} yy."
+    return y
+
+
+def _split_current_job_from_works(
+    works: list[dict],
+) -> tuple[str, str, list[dict]]:
+    items = [dict(w) for w in works if isinstance(w, dict)]
+    for idx, item in enumerate(items):
+        year_raw = str(item.get("year") or item.get("period") or "").strip()
+        year_norm = re.sub(r"[\s.\-_/]", "", year_raw.lower())
+        is_current = any(
+            tok in year_norm
+            for tok in ("hv", "hvgacha", "hozirgacha", "ҳв", "ҳвгача", "ҳозиргача", "present", "current")
+        ) or bool(_HV_YEAR_RE.search(year_raw))
+        pos = str(
+            item.get("position")
+            or item.get("description")
+            or item.get("work_place")
+            or item.get("d")
+            or ""
+        ).strip()
+        if is_current and pos:
+            m = re.search(r"(19|20)\d{2}", year_raw)
+            yr = m.group(0) if m else year_raw
+            if yr and not yr.endswith(":"):
+                yr = f"{yr}-yildan:" if "yildan" not in year_raw.lower() and "йилдан" not in year_raw else year_raw
+            items.pop(idx)
+            return pos, yr.rstrip(":"), items
+    return "", "", items
 
 # WebApp field id → (data keys, label)
 OBY_FIELD_MAP = [
@@ -102,17 +152,28 @@ def map_obyektivka_fields(raw: dict) -> dict:
                 continue
             year = str(w.get("year") or w.get("period") or "").strip()
             if not year and (w.get("from") or w.get("to")):
-                year = f"{w.get('from', '')}-{w.get('to', '')}".strip("-")
+                f = str(w.get("from") or "").strip()
+                t = str(w.get("to") or "").strip()
+                year = f"{f}-{t}".strip("-") if f or t else ""
             pos = str(
                 w.get("position")
                 or w.get("description")
                 or w.get("work_place")
                 or w.get("place")
+                or w.get("d")
                 or ""
             ).strip()
             if year or pos:
-                normalized.append({"year": year, "position": pos})
+                normalized.append({"year": _normalize_oby_work_year(year), "position": pos})
         out["work_experience"] = normalized
+
+    # Hozirgi ish (h.v.) — ajratib olish
+    if not _present(out.get("current_job")):
+        cj, cy, rest = _split_current_job_from_works(out.get("work_experience") or [])
+        if cj:
+            out["current_job"] = cj
+            out["current_job_year"] = cy
+            out["work_experience"] = rest
 
     # relatives normalization
     rels = out.get("relatives") or []

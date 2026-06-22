@@ -168,8 +168,32 @@ def add_floating_picture(
     inline.getparent().replace(inline, anchor)
 
 
+def clear_photo_hint_from_paragraph(paragraph: Paragraph) -> None:
+    """Foto yuklanganda VML matn ramkasi va dublikat izohni olib tashlash."""
+    p_el = paragraph._p
+    w_pict = f"{{{W_NS}}}pict"
+    for pict in list(p_el.iter(w_pict)):
+        parent = pict.getparent()
+        if parent is not None:
+            parent.remove(pict)
+    for run in list(paragraph.runs):
+        text = run.text or ""
+        low = text.lower()
+        if (
+            "{{photo}}" in text
+            or "fotosurat" in low
+            or "фотосурат" in low
+            or "3x4" in low
+            or "3х4" in low
+            or "rasmiy kiyimda" in low
+            or "расмий кийимда" in low
+        ):
+            run.text = ""
+
+
 def add_reference_photo(paragraph: Paragraph, image_path: str) -> None:
-    """Namuna VML o'lcham va koordinatalarida rasm (405pt, 1.9pt, 85.05×113.4pt)."""
+    """3×4 ramka koordinatalarida rasm (VML izoh o'rniga)."""
+    clear_photo_hint_from_paragraph(paragraph)
     add_floating_picture(
         paragraph,
         image_path,

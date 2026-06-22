@@ -741,6 +741,52 @@ function formatWorkPeriod(from,to){
   return '';
 }
 
+function parseWorkYearString(yr){
+  yr=String(yr||'').trim();
+  if(!yr) return {from:'',to:''};
+  if(isPresentToken(yr) || /(yildan|йилдан|oktabr|октябр|yanvar|январ)/i.test(yr)){
+    var ym=yr.match(/(19|20)\d{2}/);
+    return {from: ym?ym[0]:'', to:'h.v'};
+  }
+  var m=yr.match(/^(\d{4})\s*[-–—]\s*(.+)$/);
+  if(m){
+    var tail=m[2].trim();
+    if(isPresentToken(tail) || /h\.?\s*v|ҳ\.?\s*в/i.test(tail)) return {from:m[1],to:'h.v'};
+    var ey=tail.match(/^(\d{4})/);
+    return {from:m[1], to: ey?ey[1]:tail.replace(/\s*(йй|yy)\.?.*$/i,'').trim()};
+  }
+  var sy=yr.match(/^(19|20)\d{2}/);
+  if(sy) return {from:sy[0], to:''};
+  return {from:yr,to:''};
+}
+function workItemsToRows(items, currentJob, currentYear){
+  var rows=[];
+  var cj=String(currentJob||'').trim();
+  var cy=String(currentYear||'').trim();
+  (items||[]).forEach(function(w){
+    var yr=String(w.year||w.period||'').trim();
+    var pos=String(w.position||w.desc||w.description||'').trim();
+    if(!cj && pos && (isPresentToken(yr) || /yildan|йилдан|h\.?\s*v|ҳ\.?\s*в/i.test(yr))){
+      cj=pos;
+      var cp=parseWorkYearString(yr);
+      cy=cp.from||yr;
+      return;
+    }
+    var p=parseWorkYearString(yr);
+    rows.push({f:p.from,t:p.to,d:pos});
+  });
+  if(cj){
+    var start=parseWorkYearString(cy);
+    var fromY=start.from;
+    if(!fromY){
+      var ym=String(cy||'').match(/(19|20)\d{2}/);
+      fromY=ym?ym[0]:'';
+    }
+    rows.unshift({f:fromY,t:'h.v',d:cj});
+  }
+  return rows;
+}
+
 function splitCurrentJobFromWorks(works){
   var out=[], cj='', cy='';
   (works||[]).forEach(function(w){
@@ -2049,13 +2095,8 @@ function applyServerObyData(d){
   var wc=document.getElementById('work-container');
   if(wc){
     wc.innerHTML='';
-    (d.work_experience||[]).forEach(function(w){
-      var yr=String(w.year||'').trim();
-      var f='',t='';
-      var ix=yr.indexOf('-');
-      if(ix>=0){f=yr.slice(0,ix).trim();t=yr.slice(ix+1).trim();}
-      else if(yr)f=yr;
-      addWorkRow(f,t,w.position||'');
+    workItemsToRows(d.work_experience||d.works||[], d.current_job, d.current_job_year).forEach(function(r){
+      addWorkRow(r.f,r.t,r.d);
     });
   }
   relatives=[];
