@@ -20,6 +20,7 @@ from features.ai.service import (
 )
 from features.obyektivka import service as oby_service
 from shared import async_db
+from shared.ai_errors import AI_QUOTA_USER_MSG, AiQuotaError
 from shared.auth import resolve_uid
 from shared import voice_jobs
 from shared.export_delivery import send_bytes_to_telegram
@@ -57,6 +58,9 @@ async def _run_oby_voice_job(job_id: str, uid: int, raw: bytes, ext: str) -> Non
             max(10, 100 - len(missing) * 8),
             transcript=transcript,
         )
+    except AiQuotaError:
+        logger.warning("oby voice job %s quota exceeded", job_id)
+        voice_jobs.fail_job(job_id, AI_QUOTA_USER_MSG)
     except Exception as e:
         logger.exception("oby voice job %s failed", job_id)
         voice_jobs.fail_job(job_id, str(e)[:200])
@@ -119,7 +123,10 @@ async def api_oby_text_fill(body: dict, request: Request) -> dict:
     text = str(body.get("text") or "").strip()
     if not text:
         raise HTTPException(status_code=400, detail="Matn bo'sh")
-    transcript, data, missing = await process_text_for_obyektivka(text)
+    try:
+        transcript, data, missing = await process_text_for_obyektivka(text)
+    except AiQuotaError as e:
+        raise HTTPException(status_code=503, detail=AI_QUOTA_USER_MSG) from e
     if not data:
         raise HTTPException(status_code=422, detail="Ma'lumot ajratilmadi")
     await async_db.run(oby_service.save_pending, uid, data)
@@ -202,7 +209,7 @@ async def api_preview_oby(req: PreviewObyektivkaRequest) -> dict:
     )
     from bot.services.render_service import render_obyektivka_html
 
-    payload = req.dict(exclude={"telegram_id", "token"})
+    payload = req.model_dump(exclude={"telegram_id", "token"})
     cache_key = cache_key_for_oby_preview(payload)
     cached = oby_preview_cache_get(cache_key)
     if cached is not None:
@@ -218,7 +225,7 @@ async def api_preview_oby(req: PreviewObyektivkaRequest) -> dict:
 async def api_export_oby(req: ExportObyektivkaRequest, request: Request) -> StreamingResponse:
     await rate_limit(request)
     uid = _uid_from_req(req)
-    payload = req.dict(exclude={"telegram_id", "token", "send_only", "format"})
+    payload = req.model_dump(exclude={"telegram_id", "token", "send_only", "format"})
     try:
         docx_bytes, filename = await oby_service.export_docx(uid, payload)
     except PermissionError as e:
@@ -249,5 +256,5 @@ async def api_export_oby(req: ExportObyektivkaRequest, request: Request) -> Stre
 
 @router.post("/api/generate_obyektivka")
 async def api_generate_oby(req: ObyektivkaRequest, request: Request) -> StreamingResponse:
-    export_req = ExportObyektivkaRequest(**req.dict())
+    export_req = ExportObyektivkaRequest(**req.model_dump())
     return await api_export_oby(export_req, request)

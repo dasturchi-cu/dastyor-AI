@@ -18,6 +18,7 @@ from features.ai.service import (
 from features.cv import service as cv_service
 from features.obyektivka import service as oby_service
 from shared import async_db
+from shared.ai_errors import AI_QUOTA_USER_MSG, AiQuotaError
 from shared.auth import resolve_uid
 from shared import voice_jobs
 
@@ -46,6 +47,9 @@ async def _run_cv_voice_job(job_id: str, uid: int, temp_path: str) -> None:
             max(10, 100 - len(missing) * 12),
             transcript=transcript,
         )
+    except AiQuotaError:
+        logger.exception("cv voice job %s quota", job_id)
+        voice_jobs.fail_job(job_id, AI_QUOTA_USER_MSG)
     except Exception as e:
         logger.exception("cv voice job %s failed", job_id)
         voice_jobs.fail_job(job_id, str(e)[:200])
@@ -110,7 +114,10 @@ async def api_cv_text_fill(body: TextFillRequest, request: Request) -> dict:
     if not uid:
         raise HTTPException(status_code=401, detail="Foydalanuvchi aniqlanmadi")
 
-    transcript, data, missing = await process_text_for_cv(body.text)
+    try:
+        transcript, data, missing = await process_text_for_cv(body.text)
+    except AiQuotaError as e:
+        raise HTTPException(status_code=503, detail=AI_QUOTA_USER_MSG) from e
     if not data or len(missing) > 6:
         raise HTTPException(status_code=422, detail="CV uchun yetarli ma'lumot topilmadi")
     cv_service.save_user_data(uid, data)

@@ -17,6 +17,7 @@ from features.ai.service import process_text_for_obyektivka, process_voice_for_o
 from features.bot.states import ObyektivkaStates
 from features.bot.handlers.start import WELCOME
 from features.obyektivka import service as oby_service
+from shared.ai_errors import AI_QUOTA_USER_MSG, AiQuotaError
 from shared.async_db import run as db_run
 from shared.keyboards import BTN_BACK, BTN_OBY, back_menu, open_oby_preview_inline, user_menu
 from shared.progress import STEP_AI, STEP_AUDIO, STEP_EXTRACTED, STEP_READY, telegram_message
@@ -150,6 +151,8 @@ async def _process_voice_background(
             "👇 Preview ni ko'ring va <b>Tasdiqlash</b> tugmasini bosing.",
             reply_markup=open_oby_preview_inline(uid, missing_count=len(missing)),
         )
+    except AiQuotaError:
+        await status_msg.edit_text(AI_QUOTA_USER_MSG)
     except Exception as e:
         logger.exception("Obyektivka voice error: %s", e)
         await status_msg.edit_text(f"❌ Xatolik: {str(e)[:200]}")
@@ -206,6 +209,8 @@ async def obyektivka_text(message: Message, bot: Bot, state: FSMContext) -> None
             "👇 Preview ni ko'ring va tasdiqlang.",
             reply_markup=open_oby_preview_inline(uid, missing_count=len(missing)),
         )
+    except AiQuotaError:
+        await status.edit_text(AI_QUOTA_USER_MSG)
     except Exception as e:
         logger.exception("Obyektivka text error: %s", e)
         await status.edit_text(f"❌ Xatolik: {str(e)[:200]}")

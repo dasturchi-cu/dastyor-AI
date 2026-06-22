@@ -6,11 +6,13 @@ import logging
 
 from bot.services.ai_service import (
     extract_obyektivka_data,
+    generate_text_with_fallback,
     get_model,
     is_valid_transcription_text,
     transcribe_audio,
     _gcall,
 )
+from shared.ai_errors import AiQuotaError
 
 logger = logging.getLogger(__name__)
 
@@ -167,10 +169,6 @@ def get_missing_oby_fields(data: dict) -> list[dict]:
 
 async def extract_cv_data(text: str) -> dict:
     """Extract CV fields from transcribed speech via Gemini."""
-    model = await get_model()
-    if not model:
-        return {}
-
     prompt = f"""
 Quyidagi matndan CV uchun faktlarni JSONga ajrat.
 Qoidalar:
@@ -199,15 +197,17 @@ JSON:
 }}
 """
     try:
-        response = await _gcall(model.generate_content_async(prompt), timeout=35)
-        if not response or not response.text:
+        raw_text = await generate_text_with_fallback(prompt, timeout=35)
+        if not raw_text:
             return {}
-        cleaned = response.text.replace("```json", "").replace("```", "").strip()
+        cleaned = raw_text.replace("```json", "").replace("```", "").strip()
         start, end = cleaned.find("{"), cleaned.rfind("}") + 1
         if start == -1 or end <= start:
             return {}
         parsed = json.loads(cleaned[start:end])
         return parsed if isinstance(parsed, dict) else {}
+    except AiQuotaError:
+        raise
     except Exception as e:
         logger.error("CV extraction error: %s", e)
         return {}

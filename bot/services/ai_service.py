@@ -25,6 +25,7 @@ warnings.filterwarnings(
 
 import google.generativeai as genai
 from config import GOOGLE_API_KEY
+from shared.ai_errors import AiQuotaError, is_quota_error
 
 logger = logging.getLogger(__name__)
 
@@ -45,8 +46,8 @@ if GOOGLE_API_KEY:
 # Models to try in order (newest first — keeps working as Gemini releases progress)
 GEMINI_MODELS = [
     'gemini-2.5-flash',
-    'gemini-2.0-flash',
     'gemini-1.5-flash-latest',
+    'gemini-2.0-flash',
 ]
 
 _MODEL_CACHE = None
@@ -99,6 +100,50 @@ async def _gcall(coro, timeout: int = GEMINI_TIMEOUT):
     except asyncio.TimeoutError:
         logger.error(f"Gemini API call timed out after {timeout}s")
         return None
+    except Exception as e:
+        if is_quota_error(e):
+            raise AiQuotaError(str(e)) from e
+        raise
+
+
+async def generate_text_with_fallback(
+    prompt: str,
+    *,
+    preferred_models: list[str] | None = None,
+    timeout: int = 35,
+) -> str:
+    """Try Gemini models in order; on quota errors fall through to the next model."""
+    global _MODEL_CACHE, _MODEL_CACHE_NAME
+    if not GOOGLE_API_KEY:
+        return ""
+
+    order = preferred_models or GEMINI_MODELS
+    last_quota: Exception | None = None
+
+    for model_name in order:
+        try:
+            model = genai.GenerativeModel(model_name)
+            response = await _gcall(model.generate_content_async(prompt), timeout=timeout)
+            if response and getattr(response, "text", None):
+                _MODEL_CACHE = model
+                _MODEL_CACHE_NAME = model_name
+                logger.info("Gemini response via model: %s", model_name)
+                return response.text
+        except AiQuotaError as e:
+            last_quota = e
+            logger.warning("Gemini quota on %s — trying next model", model_name)
+            continue
+        except Exception as e:
+            if is_quota_error(e):
+                last_quota = e
+                logger.warning("Gemini quota on %s — trying next model", model_name)
+                continue
+            logger.error("Gemini generate error (%s): %s", model_name, e)
+            raise
+
+    if last_quota:
+        raise AiQuotaError(str(last_quota))
+    return ""
 
 
 def _set_para_text(para, text: str):
@@ -973,13 +1018,6 @@ async def extract_obyektivka_data(text: str) -> dict:
     """
     Extract structured data from text using Gemini asynchronously
     """
-    model = await get_model(preferred_models=[
-        "gemini-2.0-flash",
-        "gemini-1.5-flash-latest",
-        "gemini-2.5-flash",
-    ])
-    if not model: return {}
-    
     prompt = f"""
     Quyidagi matndan obyektivka uchun faktlarni JSONga ajrat.
     Qoidalar:
@@ -1010,12 +1048,20 @@ async def extract_obyektivka_data(text: str) -> dict:
         "relatives": [{{"degree": "Qarindoshligi", "fullname": "F.I.SH", "birth_year_place": "Tug'ilgan yili va joyi", "work_place": "Ish joyi", "address": "Yashash manzili"}}]
     }}
     """
-    
+
     try:
-        response = await _gcall(model.generate_content_async(prompt), timeout=35)
-        if not response or not response.text:
+        raw_text = await generate_text_with_fallback(
+            prompt,
+            preferred_models=[
+                "gemini-2.5-flash",
+                "gemini-1.5-flash-latest",
+                "gemini-2.0-flash",
+            ],
+            timeout=35,
+        )
+        if not raw_text:
             return {}
-        cleaned = response.text.replace('```json', '').replace('```', '').strip()
+        cleaned = raw_text.replace('```json', '').replace('```', '').strip()
         start = cleaned.find('{')
         end = cleaned.rfind('}') + 1
         if start != -1 and end != -1:
@@ -1025,6 +1071,8 @@ async def extract_obyektivka_data(text: str) -> dict:
             return parsed
         return {}
 
+    except AiQuotaError:
+        raise
     except Exception as e:
         logger.error(f"Async Data extraction error: {e}")
         return {}

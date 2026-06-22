@@ -542,6 +542,9 @@ async function dastyorReadApiError(res){
   if (status === 429) {
     return "⛔ Bu xizmat pullik. Davom etish uchun Premium/Pro tarifni oling.";
   }
+  if (status === 503) {
+    return "⛔ AI limiti vaqtincha tugadi. 1–2 daqiqa kutib qayta urinib ko'ring.";
+  }
   if (status === 401) return "Foydalanuvchi aniqlanmadi. Bot orqali qayta kiring.";
   return "Server " + status;
 }

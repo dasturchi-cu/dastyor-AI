@@ -13,6 +13,7 @@ from database.repositories import ai_sessions as sessions_repo
 from features.ai.service import process_text_for_cv, process_voice_for_cv
 from features.bot.states import CvStates, ObyektivkaStates
 from features.cv import service as cv_service
+from shared.ai_errors import AI_QUOTA_USER_MSG, AiQuotaError
 from shared.async_db import run as db_run
 from shared.keyboards import BTN_BACK, BTN_OBY, open_webapp_inline
 from shared.progress import STEP_AI, STEP_AUDIO, STEP_EXTRACTED, STEP_READY, telegram_message
@@ -81,6 +82,8 @@ async def cv_text_fill(message: Message, state: FSMContext) -> None:
             f"CV formasi to'ldirildi.{missing_text}",
             reply_markup=open_webapp_inline(uid, "cv"),
         )
+    except AiQuotaError:
+        await status.edit_text(AI_QUOTA_USER_MSG)
     except Exception as e:
         logger.exception("CV text fill failed: %s", e)
         await status.edit_text(f"❌ Xatolik: {str(e)[:200]}")
@@ -119,6 +122,8 @@ async def _handle_cv_voice_flow(
             f"Formani tekshiring.{missing_text}",
             reply_markup=open_webapp_inline(uid, "cv"),
         )
+    except AiQuotaError:
+        await status.edit_text(AI_QUOTA_USER_MSG)
     except Exception as e:
         logger.exception("Voice processing failed: %s", e)
         await status.edit_text(f"❌ Xatolik: {str(e)[:200]}")
