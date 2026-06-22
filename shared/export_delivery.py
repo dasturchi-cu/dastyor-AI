@@ -1,10 +1,9 @@
-"""Send generated documents to the user's Telegram chat."""
+"""Send generated documents to the user's Telegram chat (aiogram)."""
 from __future__ import annotations
 
 import logging
-from io import BytesIO
 
-from telegram import InputFile
+from aiogram.types import BufferedInputFile
 
 logger = logging.getLogger(__name__)
 
@@ -22,7 +21,7 @@ async def send_bytes_to_telegram(
     try:
         await bot.send_document(
             chat_id=int(chat_id),
-            document=InputFile(BytesIO(data), filename=filename),
+            document=BufferedInputFile(data, filename=filename),
             caption=caption,
         )
         return True
