@@ -14,6 +14,7 @@ VAL = f"{{{W_NS}}}val"
 
 # Hint text only — not a data value field.
 VALUE_EXCLUDE = frozenset({"photo"})
+FISH_KEYS = frozenset({"fish"})
 
 _PLACEHOLDER_RE = re.compile(r"\{\{([^{}]+)\}\}")
 
@@ -69,11 +70,20 @@ def _set_color_black(rpr: etree._Element) -> None:
 
 
 def apply_value_rpr(r_el: etree._Element) -> None:
-    """Value: black, normal weight, single underline."""
+    """Value: black, normal weight, no underline (reference form)."""
     rpr = _r_pr(r_el)
     _set_bool(rpr, "b", False)
     _set_bool(rpr, "bCs", False)
-    _set_underline(rpr, True)
+    _set_underline(rpr, False)
+    _set_color_black(rpr)
+
+
+def apply_fish_rpr(r_el: etree._Element) -> None:
+    """Name line: black, bold, centered style, no underline."""
+    rpr = _r_pr(r_el)
+    _set_bool(rpr, "b", True)
+    _set_bool(rpr, "bCs", True)
+    _set_underline(rpr, False)
     _set_color_black(rpr)
 
 
@@ -94,9 +104,14 @@ def _is_bold_run(r_el: etree._Element) -> bool:
     return b is not None and b.get(VAL) != "0"
 
 
+def _paragraph_text(p_el: etree._Element) -> str:
+    return "".join(t.text or "" for t in p_el.findall(f".//{W}t")).strip()
+
+
 def apply_document_typography(root: etree._Element, context: dict[str, str]) -> None:
     """Replace placeholders and apply label/value styles across the document."""
     value_run_ids: set[int] = set()
+    fish_run_ids: set[int] = set()
     sorted_items = sorted(context.items(), key=lambda item: -len(item[0]))
 
     for r_el in root.findall(f".//{W}r"):
@@ -106,24 +121,30 @@ def apply_document_typography(root: etree._Element, context: dict[str, str]) -> 
 
         new_text = text
         touches_value = False
+        touches_fish = False
         for key, raw in sorted_items:
             ph = f"{{{{{key}}}}}"
             if ph not in new_text:
                 continue
             new_text = new_text.replace(ph, escape_xml_text(raw))
-            if key not in VALUE_EXCLUDE:
+            if key in FISH_KEYS:
+                touches_fish = True
+            elif key not in VALUE_EXCLUDE:
                 touches_value = True
 
         if new_text == text:
             continue
 
         _set_text_on_run(r_el, new_text)
-        if touches_value:
+        if touches_fish:
+            fish_run_ids.add(id(r_el))
+            apply_fish_rpr(r_el)
+        elif touches_value:
             value_run_ids.add(id(r_el))
             apply_value_rpr(r_el)
 
     for r_el in root.findall(f".//{W}r"):
-        if id(r_el) in value_run_ids:
+        if id(r_el) in value_run_ids or id(r_el) in fish_run_ids:
             continue
         if not _is_bold_run(r_el):
             continue
@@ -136,7 +157,9 @@ def apply_master_template_styles(root: etree._Element) -> None:
     """Style placeholder runs as values; reinforce label runs in the master template."""
     for r_el in root.findall(f".//{W}r"):
         text = _run_text(r_el)
-        if "{{" in text and "}}" in text:
+        if "{{fish}}" in text:
+            apply_fish_rpr(r_el)
+        elif "{{" in text and "}}" in text:
             apply_value_rpr(r_el)
 
     for r_el in root.findall(f".//{W}r"):
@@ -150,11 +173,13 @@ def apply_master_template_styles(root: etree._Element) -> None:
 def render_document_xml(xml_bytes: bytes, context: dict[str, str]) -> bytes:
     from features.obyektivka.docx_annotations import strip_reference_annotations
     from features.obyektivka.docx_fonts import enforce_reference_fonts
+    from features.obyektivka.docx_layout import enforce_reference_layout
 
     root = etree.fromstring(xml_bytes)
     apply_document_typography(root, context)
     strip_reference_annotations(root)
     enforce_reference_fonts(root, context)
+    enforce_reference_layout(root, context)
     return etree.tostring(root, xml_declaration=True, encoding="UTF-8", standalone=True)
 
 

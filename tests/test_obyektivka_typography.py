@@ -1,4 +1,4 @@
-"""Obyektivka DOCX typography — label bold, value underlined."""
+"""Obyektivka DOCX typography — label bold, values plain (no underline)."""
 from __future__ import annotations
 
 import unittest
@@ -24,7 +24,7 @@ def _load_doc_xml(path: Path) -> etree._Element:
 
 
 class TestObyektivkaTypography(unittest.TestCase):
-    def test_value_underlined_label_bold(self):
+    def test_values_plain_no_underline_labels_bold(self):
         if not MASTER.is_file():
             self.skipTest("master docx missing")
 
@@ -55,15 +55,19 @@ class TestObyektivkaTypography(unittest.TestCase):
 
         date_runs = find_runs_containing(root, "25.10.1960")
         self.assertTrue(date_runs, "birthdate value missing")
-        self.assertTrue(run_has_underline(date_runs[0]))
+        self.assertFalse(run_has_underline(date_runs[0]))
 
         nation_runs = find_runs_containing(root, "O'zbek")
         self.assertTrue(nation_runs)
-        self.assertTrue(run_has_underline(nation_runs[0]))
+        self.assertFalse(run_has_underline(nation_runs[0]))
 
         rel_runs = find_runs_containing(root, "Aliyev Vali")
         self.assertTrue(rel_runs)
-        self.assertTrue(run_has_underline(rel_runs[0]))
+        self.assertFalse(run_has_underline(rel_runs[0]))
+
+        name_runs = find_runs_containing(root, "Test User")
+        self.assertTrue(name_runs)
+        self.assertFalse(run_has_underline(name_runs[0]))
 
         label_runs = find_runs_containing(root, "Миллати:")
         self.assertTrue(label_runs)
@@ -74,7 +78,7 @@ class TestObyektivkaTypography(unittest.TestCase):
 
         summary = typography_summary(root)
         self.assertGreater(summary["label_runs"], 10)
-        self.assertGreater(summary["value_runs"], 5)
+        self.assertEqual(summary["value_runs"], 0)
 
 
 if __name__ == "__main__":
