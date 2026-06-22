@@ -357,7 +357,7 @@
         </div>
 
         <div class="flex flex-col sm:flex-row items-stretch gap-2">
-        <button type="button" id="cvSendBotBtn" class="bg-red-600 hover:bg-red-700 text-white px-5 py-2 rounded-lg font-semibold text-sm shadow-md transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-red-600" aria-label="PDF botga yuborish">
+        <button type="button" id="cvSendBotBtn" class="da-export-btn da-export-locked bg-red-600 hover:bg-red-700 text-white px-5 py-2 rounded-lg font-semibold text-sm shadow-md transition-all flex items-center justify-center gap-2 disabled:cursor-not-allowed" aria-label="PDF botga yuborish" aria-disabled="true">
           <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
             <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
           </svg>
@@ -1549,8 +1549,14 @@
 
       if (btn) {
         btn.disabled = _cvExportInFlight || !canExport || pendingAdmin;
+        let exportState = 'ready';
+        if (!canExport && !pendingAdmin) exportState = 'locked';
+        else if (pendingAdmin || _cvExportInFlight) exportState = 'waiting';
+        if (DA.applyExportButtonState) DA.applyExportButtonState(btn, exportState, 'cv');
         if (btnSpan) {
-          btnSpan.textContent = (!canExport && !pendingAdmin) ? '🔒 PDF botga yuborish' : (cvT('download_pdf', 'PDF botga yuborish'));
+          btnSpan.textContent = (!canExport && !pendingAdmin)
+            ? '🔒 PDF botga yuborish'
+            : (pendingAdmin ? '⏳ PDF botga yuborish' : cvT('download_pdf', 'PDF botga yuborish'));
         }
       }
       if (payBtn) {

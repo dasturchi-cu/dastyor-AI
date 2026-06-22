@@ -361,7 +361,7 @@
           <button type="button" class="btn btn-dang" onclick="clearForm()" id="btn_clear_2">
             <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg>Tozalash
           </button>
-          <button type="button" class="btn btn-primary" id="dlBtn">
+          <button type="button" class="btn btn-primary da-export-btn da-export-locked" id="dlBtn" aria-disabled="true">
             <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg><span id="btn_word_bot">Word botga yuborish</span>
           </button>
           <button type="button" class="btn btn-outline hidden" id="payBtn" onclick="payObySingle('word')">
@@ -904,8 +904,16 @@ function syncObyQuotaUi() {
 
   if (btn) {
     btn.disabled = _obyExportInFlight || !canExport || pendingAdmin;
+    var exportState = 'ready';
+    if (!canExport && !pendingAdmin) exportState = 'locked';
+    else if (pendingAdmin || _obyExportInFlight) exportState = 'waiting';
+    if (DA.applyExportButtonState) DA.applyExportButtonState(btn, exportState, 'obyektivka');
     var wordLbl = document.getElementById('btn_word_bot');
-    if (wordLbl) wordLbl.textContent = (!canExport && !pendingAdmin) ? '🔒 Word botga yuborish' : 'Word botga yuborish';
+    if (wordLbl) {
+      wordLbl.textContent = (!canExport && !pendingAdmin)
+        ? '🔒 Word botga yuborish'
+        : (pendingAdmin ? '⏳ Word botga yuborish' : 'Word botga yuborish');
+    }
   }
   if (payBtn) {
     if (!canExport || pendingAdmin) payBtn.classList.remove('hidden');

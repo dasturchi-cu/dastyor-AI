@@ -1123,6 +1123,30 @@ html[data-theme="dark"] .da-doc-loading-ring{border-color:#334155;border-top-col
         return getCredits(u) > 0;
     }
 
+    /** PDF/Word tugmasi: ready | locked (kredit yo'q) | waiting (admin/export) */
+    function applyExportButtonState(btn, state, kind) {
+        if (!btn) return;
+        btn.classList.add('da-export-btn');
+        btn.classList.remove(
+            'da-export-locked',
+            'da-export-waiting',
+            'da-export-ready-cv',
+            'da-export-ready-oby',
+        );
+        if (state === 'locked') {
+            btn.classList.add('da-export-locked');
+            btn.setAttribute('aria-disabled', 'true');
+            return;
+        }
+        if (state === 'waiting') {
+            btn.classList.add('da-export-waiting');
+            btn.setAttribute('aria-disabled', 'true');
+            return;
+        }
+        btn.removeAttribute('aria-disabled');
+        btn.classList.add(kind === 'cv' ? 'da-export-ready-cv' : 'da-export-ready-oby');
+    }
+
     async function ensureJpegDataUrl(dataUrl) {
         if (!dataUrl) return dataUrl;
         const s = String(dataUrl);
@@ -1547,6 +1571,7 @@ html[data-theme="dark"] .da-doc-loading-ring{border-color:#334155;border-top-col
         refreshProfile,
         getCredits,
         canExportWithCredit,
+        applyExportButtonState,
         hasUniversalCredit,
         universalCreditMessage,
         isQuotaBlockedForCategory,
