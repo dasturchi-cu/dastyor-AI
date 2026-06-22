@@ -195,67 +195,137 @@
     }
 
     .home-guide {
-      padding: 14px;
-      border-radius: 12px;
+      padding: 16px;
+      border-radius: 14px;
       background: var(--card-color);
       border: 1px solid var(--border-color);
       box-sizing: border-box;
     }
 
     .home-guide-title {
-      margin: 0 0 12px;
-      font-size: 13px;
+      margin: 0 0 14px;
+      font-size: 14px;
       font-weight: 800;
       line-height: 1.2;
       color: var(--text-color);
+      letter-spacing: -0.01em;
     }
 
     .home-steps {
       margin: 0;
       padding: 0;
       list-style: none;
-      display: grid;
-      gap: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 0;
     }
 
-    .home-steps li {
+    .home-step {
       display: flex;
       align-items: flex-start;
-      gap: 10px;
-      font-size: 13px;
-      line-height: 1.35;
-      color: var(--text-muted);
+      gap: 12px;
+      padding: 10px 0;
+      position: relative;
     }
 
-    .home-steps li span {
-      width: 22px;
-      height: 22px;
+    .home-step:not(:last-child)::after {
+      content: "";
+      position: absolute;
+      left: 11px;
+      top: 34px;
+      bottom: -2px;
+      width: 2px;
+      background: linear-gradient(180deg, var(--da-blue-mid) 0%, transparent 100%);
+      border-radius: 1px;
+    }
+
+    .home-step-num {
+      width: 24px;
+      height: 24px;
       border-radius: 50%;
       background: var(--da-primary);
       color: #fff;
-      font-size: 11px;
+      font-size: 12px;
       font-weight: 800;
-      line-height: 22px;
+      line-height: 24px;
       text-align: center;
       flex-shrink: 0;
+      position: relative;
+      z-index: 1;
+      box-shadow: 0 2px 6px rgba(37, 99, 235, 0.25);
     }
 
-    .home-steps li b {
-      color: var(--text-color);
-      font-weight: 700;
+    .home-step-body {
+      flex: 1;
+      min-width: 0;
+      padding-top: 2px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
     }
 
-    .home-price {
-      margin: 12px 0 0;
-      padding: 10px 12px;
-      border-radius: 8px;
-      font-size: 13px;
-      font-weight: 800;
+    .home-step-label {
+      font-size: 14px;
       line-height: 1.35;
+      font-weight: 700;
+      color: var(--text-color);
+    }
+
+    .home-step-badge {
+      flex-shrink: 0;
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+      padding: 4px 8px;
+      border-radius: 6px;
+      line-height: 1;
+      white-space: nowrap;
+    }
+
+    .home-step-badge--free {
+      color: #166534;
+      background: #ecfdf5;
+      border: 1px solid #86efac;
+    }
+
+    .home-step-badge--paid {
       color: #1d4ed8;
       background: var(--da-blue-soft);
       border: 1px solid var(--da-blue-mid);
+    }
+
+    html[data-theme="dark"] .home-step-badge--free {
+      color: #86efac;
+      background: rgba(22, 101, 52, 0.2);
+      border-color: rgba(134, 239, 172, 0.35);
+    }
+
+    html[data-theme="dark"] .home-step-badge--paid {
+      color: #93c5fd;
+    }
+
+    .home-price {
+      margin: 14px 0 0;
+      padding: 12px 14px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      font-size: 14px;
+      font-weight: 800;
+      line-height: 1.3;
+      color: #1d4ed8;
+      background: linear-gradient(135deg, var(--da-blue-soft) 0%, #eff6ff 100%);
+      border: 1px solid var(--da-blue-mid);
       text-align: center;
+    }
+
+    .home-price-icon {
+      font-size: 18px;
+      line-height: 1;
     }
 
     html[data-theme="dark"] .home-price {
@@ -327,12 +397,39 @@
       <section class="home-guide" aria-label="Qanday ishlaydi">
         <p class="home-guide-title">Qanday ishlaydi</p>
         <ol class="home-steps">
-          <li><span>1</span><span><b>Ovoz yoki matn</b> — bepul</span></li>
-          <li><span>2</span><span><b>AI to'ldiradi</b> — bepul</span></li>
-          <li><span>3</span><span><b>Test yuklash</b> — bepul (watermark bilan)</span></li>
-          <li><span>4</span><span><b>Tayyor fayl</b> — to'lov kerak</span></li>
+          <li class="home-step">
+            <span class="home-step-num" aria-hidden="true">1</span>
+            <div class="home-step-body">
+              <span class="home-step-label">Ovoz yoki matn</span>
+              <span class="home-step-badge home-step-badge--free">Bepul</span>
+            </div>
+          </li>
+          <li class="home-step">
+            <span class="home-step-num" aria-hidden="true">2</span>
+            <div class="home-step-body">
+              <span class="home-step-label">AI to'ldiradi</span>
+              <span class="home-step-badge home-step-badge--free">Bepul</span>
+            </div>
+          </li>
+          <li class="home-step">
+            <span class="home-step-num" aria-hidden="true">3</span>
+            <div class="home-step-body">
+              <span class="home-step-label">Test yuklash</span>
+              <span class="home-step-badge home-step-badge--free">Watermark</span>
+            </div>
+          </li>
+          <li class="home-step">
+            <span class="home-step-num" aria-hidden="true">4</span>
+            <div class="home-step-body">
+              <span class="home-step-label">Tayyor fayl</span>
+              <span class="home-step-badge home-step-badge--paid">To'lov</span>
+            </div>
+          </li>
         </ol>
-        <p class="home-price" id="homePriceTag">💰 Tayyor fayl: 7 999 so'm</p>
+        <p class="home-price" id="homePriceTag">
+          <span class="home-price-icon" aria-hidden="true">💰</span>
+          <span>Tayyor fayl: 7 999 so'm</span>
+        </p>
       </section>
 
       <div class="home-cta-nocredit" id="homeNoCreditCta" hidden>
@@ -393,7 +490,12 @@
         var p = Number(amount);
         if (!p) return;
         var formatted = p.toLocaleString('fr-FR').replace(/\u202f/g, ' ').replace(/,/g, ' ');
-        priceTagEl.textContent = '💰 Tayyor fayl: ' + formatted + " so'm";
+        var textSpan = priceTagEl.querySelector('span:last-child');
+        if (textSpan) {
+          textSpan.textContent = 'Tayyor fayl: ' + formatted + " so'm";
+        } else {
+          priceTagEl.textContent = '💰 Tayyor fayl: ' + formatted + " so'm";
+        }
       }
 
       document.addEventListener('DOMContentLoaded', function () {
