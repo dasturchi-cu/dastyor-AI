@@ -15,7 +15,7 @@ BTN_CV = "📄 CV Resume"
 BTN_OBY = "✍️ Obyektivka yaratish"
 BTN_BACK = "🔙 Orqaga"
 BTN_HELP = "ℹ️ Yordam"
-BTN_CREDITS = "💳 Kreditlar"
+BTN_CREDITS = "💳 Pul balansi"
 
 ADMIN_BTN_USERS = "👥 Foydalanuvchilar"
 ADMIN_BTN_PAYMENTS = "💳 To'lovlar"

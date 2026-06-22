@@ -274,7 +274,7 @@ async def api_export_oby(req: ExportObyektivkaRequest, request: Request) -> Stre
             uid,
             docx_bytes,
             filename,
-            caption="✅ Obyektivka Word tayyor! Keyingi hujjat uchun kredit kerak.",
+            caption="✅ Obyektivka Word tayyor! Keyingi hujjat uchun pul to'lov qiling.",
         )
         if not sent:
             raise HTTPException(status_code=500, detail="Telegramga yuborib bo'lmadi")

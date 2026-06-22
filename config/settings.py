@@ -80,7 +80,7 @@ class Settings:
     )
     payment_card_number: str = field(default_factory=lambda: _env("PAYMENT_CARD_NUMBER", "9860 1201 7225 8424"))
     payment_card_owner: str = field(default_factory=lambda: _env("PAYMENT_CARD_OWNER", "DILNOZA MOMINOVA"))
-    single_doc_price_uzs: int = field(default_factory=lambda: _env_int("SINGLE_DOC_PRICE_UZS", 5000))
+    single_doc_price_uzs: int = field(default_factory=lambda: _env_int("SINGLE_DOC_PRICE_UZS", 7999))
     webapp_base: str = field(default_factory=resolve_webapp_base)
     webapp_version: str = field(default_factory=lambda: _env("WEBAPP_VERSION", "20260622"))
     site_base_url: str = field(default_factory=lambda: _env("SITE_BASE_URL").rstrip("/"))

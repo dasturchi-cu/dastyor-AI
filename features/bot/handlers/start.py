@@ -26,7 +26,7 @@ WELCOME = (
     "👋 <b>HUJJATCHI AI</b> ga xush kelibsiz!\n\n"
     "📄 <b>CV</b> — forma yoki ovoz → <b>PDF</b>\n"
     "✍️ <b>Obyektivka</b> — ovoz yuboring → AI to'ldiradi → <b>Word (.docx)</b>\n\n"
-    "💳 Har bir tasdiqlangan to'lov = <b>1 kredit</b> = <b>1 ta hujjat</b> (CV yoki Obyektivka).\n"
+    "💳 To'lov qilsangiz <b>pul balansingizda qoladi</b> — <b>1 ta hujjat</b> (CV yoki Obyektivka).\n"
     "🎙 Ovoz yuboring — AI forma maydonlarini avtomatik to'ldiradi.\n\n"
     "👇 Xizmatni tanlang."
 )
@@ -45,7 +45,7 @@ HELP_TEXT = (
     "/start — bosh menyu\n"
     "📄 CV — PDF resume\n"
     "✍️ Obyektivka — rasmiy Word hujjat (ovoz orqali)\n"
-    "💳 Kreditlar — balans va to'lov\n"
+    "💳 Pul balansi — to'langan mablag' va hujjat\n"
     "🎙 Ovoz — AI avtomatik to'ldirish\n\n"
     f"Narx: <b>{settings.single_doc_price_uzs:,} so'm</b> = 1 hujjat"
 )
@@ -92,9 +92,9 @@ async def show_credits(message: Message) -> None:
     uid = message.from_user.id if message.from_user else 0
     status = users_repo.get_credits(uid)
     await message.answer(
-        f"💳 <b>Kreditlar:</b> {status}\n"
-        f"ℹ️ 1 kredit = 1 ta hujjat (<b>CV yoki Obyektivka</b>)\n"
-        f"💰 Narx: {settings.single_doc_price_uzs:,} so'm = 1 kredit\n"
+        f"💳 <b>Pul balansi:</b> {status} ta hujjat\n"
+        f"ℹ️ Har biri <b>CV yoki Obyektivka</b> uchun\n"
+        f"💰 Narx: <b>{settings.single_doc_price_uzs:,} so'm</b> = 1 ta hujjat\n"
         f"Karta: <code>{settings.payment_card_number}</code>\n"
         f"Egasi: {settings.payment_card_owner}\n\n"
         "To'lov chekini WebApp orqali yuboring.",

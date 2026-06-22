@@ -90,7 +90,7 @@ async def admin_users(message: Message) -> None:
     for u in rows:
         lines.append(
             f"• <code>{u['telegram_id']}</code> — {u.get('first_name') or '-'} "
-            f"| kredit: {u.get('credits', 0)}"
+            f"| pul: {u.get('credits', 0)} ta hujjat"
         )
     await message.answer("\n".join(lines))
 
@@ -169,13 +169,13 @@ async def payment_callback(query: CallbackQuery) -> None:
             await _update_payment_review_message(
                 query.message,
                 f"✅ To'lov #{pid} tasdiqlandi.\n"
-                f"Foydalanuvchi krediti: {credits}",
+                f"Foydalanuvchi pul balansi: {credits} ta hujjat",
             )
             await query.bot.send_message(
                 tid,
                 f"✅ To'lovingiz tasdiqlandi!\n"
-                f"💳 Kredit: <b>{credits}</b> ta\n"
-                f"ℹ️ 1 kredit = 1 hujjat (CV <b>yoki</b> Obyektivka).",
+                f"💳 Pul balansi: <b>{credits}</b> ta hujjat\n"
+                f"ℹ️ Har biri CV <b>yoki</b> Obyektivka uchun.",
             )
         elif query.message:
             await query.message.reply("Tasdiqlash xatosi.")

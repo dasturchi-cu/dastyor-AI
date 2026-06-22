@@ -34,7 +34,7 @@ def _export_pdf_sync(telegram_id: int, payload: dict[str, Any], pdf: bytes) -> t
 
 async def export_pdf(telegram_id: int, payload: dict[str, Any]) -> tuple[bytes, str]:
     if not await async_db.run(users_repo.consume_credit, telegram_id):
-        raise PermissionError("Kredit yetarli emas. To'lov qiling.")
+        raise PermissionError("Pul yetarli emas. Avval to'lov qiling.")
 
     try:
         pdf = await generate_cv_pdf(payload, base_url=settings.site_base_url or settings.webapp_base)

@@ -82,7 +82,7 @@ async def api_export_cv(req: ExportCVRequest, request: Request) -> StreamingResp
             uid,
             pdf_bytes,
             filename,
-            caption="✅ CV PDF tayyor! Keyingi hujjat uchun kredit kerak.",
+            caption="✅ CV PDF tayyor! Keyingi hujjat uchun pul to'lov qiling.",
         )
         if not sent:
             raise HTTPException(status_code=500, detail="Telegramga yuborib bo'lmadi")

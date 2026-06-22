@@ -66,7 +66,7 @@ const DastyorAI = (() => {
         skills_title: "Ko'nikmalar", cv_skills_ph: 'Masalan: Liderlik, Python...',
         ach_title: 'Yutuqlar va Qobiliyatlar', cv_ach_name_ph: 'Nomi (masalan: IELTS 7.5)', cv_year_ph: 'Yili',
         preview: "Jonli Ko'rinish", cv_color: 'Rang:',
-        download_pdf: 'PDF botga yuborish', pay_5000: "💳 5 000 so'm to'lash",
+        download_pdf: 'PDF botga yuborish', pay_5000: "💳 7 999 so'm to'lash",
         pay_help: "To'lov kerak bo'lsa — pastdagi tugma.",
         cv_pay_shot_picked_title: 'Rasm tanlandi', cv_pay_shot_next: "Endi «Yuborish» tugmasini bosing.",
         clear_data: "Ma'lumotlarni tozalash",
@@ -363,6 +363,18 @@ const DastyorAI = (() => {
         return o;
     }
 
+    function formatPriceUzs(amount) {
+        const n = Number(amount || 0);
+        if (!n) return '0';
+        return n.toLocaleString('fr-FR').replace(/\u202f/g, ' ').replace(/,/g, ' ');
+    }
+
+    function docPriceUzs(u) {
+        const subject = u || user;
+        const p = subject && subject.single_doc_price_uzs;
+        return Number(p) > 0 ? Number(p) : 7999;
+    }
+
     function getCredits(u) {
         const subject = u || user;
         if (subject && (subject.credits !== undefined && subject.credits !== null)) {
@@ -390,17 +402,18 @@ const DastyorAI = (() => {
     function universalCreditMessage(u, category) {
         const n = getCredits(u || user);
         if (n < 1) return '';
+        const price = formatPriceUzs(docPriceUzs(u));
         const cat = String(category || '').toLowerCase();
         const doc =
             cat === 'cv' ? 'PDF (CV)' : cat === 'obyektivka' ? 'Word (Obyektivka)' : 'hujjat';
         if (n === 1) {
-            return `💳 Sizda 1 ta kredit bor — CV yoki Obyektivka uchun. Hozir ${doc} yaratishingiz mumkin.`;
+            return `💳 Pul bor — 1 ta hujjat (${price} so'm). Hozir ${doc} yaratishingiz mumkin.`;
         }
-        return `💳 Sizda ${n} ta kredit bor — har biri CV yoki Obyektivka uchun (1 kredit = 1 hujjat).`;
+        return `💳 Pul bor — ${n} ta hujjat (${price} so'mdan). CV yoki Obyektivka yaratishingiz mumkin.`;
     }
 
     /**
-     * Free tarif: CV/obyektivka faqat 5 000 so'm (admin tasdiq) yoki obuna.
+     * Free tarif: CV/obyektivka faqat to'lov (pul balansi) yoki obuna.
      */
     function needsSingleDocPayment(u, category) {
         if (!u || !category) return !hasUniversalCredit(u);
@@ -461,7 +474,7 @@ const DastyorAI = (() => {
         return false;
     }
 
-    /** 5 000 so'mlik bitta yuborish allaqachon ishlatilgan */
+    /** To'langan bitta hujjat allaqachon ishlatilgan */
     function isSingleDocLimitExhausted(u, category) {
         if (!u || !category) return false;
         if (hasSingleDocAccess(u, category)) return false;
@@ -479,7 +492,7 @@ const DastyorAI = (() => {
     function singleDocLimitMessage(category) {
         const cat = String(category || '').toLowerCase();
         const label = cat === 'cv' ? 'CV' : 'Obyektivka';
-        return `❌ Limitiz tugagan. Yana 5 000 so'm to'lov qiling (${label}).`;
+        return `❌ Limitiz tugagan. Yana ${formatPriceUzs(docPriceUzs())} so'm to'lov qiling (${label}).`;
     }
 
     /**
@@ -1123,7 +1136,7 @@ html[data-theme="dark"] .da-doc-loading-ring{border-color:#334155;border-top-col
         return getCredits(u) > 0;
     }
 
-    /** PDF/Word tugmasi: ready | locked (kredit yo'q) | waiting (admin/export) */
+    /** PDF/Word tugmasi: ready | locked (pul yo'q) | waiting (admin/export) */
     function applyExportButtonState(btn, state, kind) {
         if (!btn) return;
         btn.classList.add('da-export-btn');
@@ -1569,6 +1582,8 @@ html[data-theme="dark"] .da-doc-loading-ring{border-color:#334155;border-top-col
         initUI,
         renderTariffBanner,
         refreshProfile,
+        formatPriceUzs,
+        docPriceUzs,
         getCredits,
         canExportWithCredit,
         applyExportButtonState,

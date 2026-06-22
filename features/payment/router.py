@@ -45,7 +45,7 @@ async def api_me(token: str | None = Query(None), telegram_id: str | None = Quer
         "credits": int(user.get("credits") or 0),
         "single_doc_price_uzs": settings.single_doc_price_uzs,
         "has_access": int(user.get("credits") or 0) > 0,
-        "credit_note": "1 kredit = 1 ta hujjat (CV yoki Obyektivka)",
+        "credit_note": "7 999 so'm = 1 ta hujjat (CV yoki Obyektivka) — pul balansida qoladi",
     }
 
 
@@ -186,12 +186,15 @@ def _map_payment_status(status: str) -> str:
 
 
 async def _notify_user_payment_approved(bot, telegram_id: int, credits: int) -> None:
+    from config.settings import settings
+
+    price = f"{settings.single_doc_price_uzs:,}".replace(",", " ")
     try:
         await bot.send_message(
             telegram_id,
             f"✅ To'lovingiz tasdiqlandi!\n"
-            f"💳 Kredit: <b>{credits}</b> ta\n"
-            f"ℹ️ 1 kredit = 1 hujjat (CV <b>yoki</b> Obyektivka).",
+            f"💳 Pul balansi: <b>{credits}</b> ta hujjat\n"
+            f"ℹ️ Har biri <b>{price} so'm</b> — CV <b>yoki</b> Obyektivka.",
         )
     except Exception as e:
         logger.warning("User approve notify failed: %s", e)
@@ -219,7 +222,7 @@ async def _notify_admin_payment(
                 f"👤 {payer}\n"
                 f"🆔 <code>{uid}</code>\n"
                 f"📄 Xizmat: <b>{kind}</b>\n"
-                f"💳 Kredit: <b>{credits}</b> ta"
+                f"💳 Pul: <b>{credits}</b> ta hujjat"
             )
             kb = None
         elif kind == "manual":
