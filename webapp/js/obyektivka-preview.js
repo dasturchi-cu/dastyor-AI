@@ -118,15 +118,22 @@
     return payload;
   }
 
-  function applyPreviewHtmlToIframe(html, reqId) {
+  var previewBlobUrl = '';
+
+  function applyPreviewPdfToIframe(blob, reqId) {
     var iframe = document.getElementById('oby-preview-frame');
     if (!iframe) return;
+    if (previewBlobUrl) {
+      try { URL.revokeObjectURL(previewBlobUrl); } catch (_) {}
+      previewBlobUrl = '';
+    }
+    previewBlobUrl = URL.createObjectURL(blob);
     function layoutOnce() {
       if (reqId != null && reqId !== previewRequestId) return;
-      try { resizePreviewIframe(); } catch (_) {}
       try { applyPreviewScale(); } catch (_) {}
     }
-    iframe.srcdoc = html;
+    iframe.removeAttribute('srcdoc');
+    iframe.src = previewBlobUrl;
     iframe.onload = function () {
       layoutOnce();
       setTimeout(layoutOnce, 100);
@@ -136,30 +143,10 @@
   }
 
   var A4_WIDTH_PX = 794;
-  var A4_HEIGHT_PX = 1123;
+  var A4_HEIGHT_PX = 2246;
 
   function readIframeDocSize(iframe) {
-    var w = A4_WIDTH_PX;
-    var h = A4_HEIGHT_PX;
-    if (!iframe) return { width: w, height: h };
-    try {
-      var doc = iframe.contentDocument || iframe.contentWindow.document;
-      if (doc && doc.body) {
-        w = Math.max(
-          A4_WIDTH_PX,
-          doc.body.scrollWidth || 0,
-          doc.documentElement.scrollWidth || 0,
-          doc.body.offsetWidth || 0
-        );
-        h = Math.max(
-          A4_HEIGHT_PX,
-          doc.body.scrollHeight || 0,
-          doc.documentElement.scrollHeight || 0,
-          doc.body.offsetHeight || 0
-        );
-      }
-    } catch (_) {}
-    return { width: w, height: h };
+    return { width: A4_WIDTH_PX, height: A4_HEIGHT_PX };
   }
 
   function resizePreviewIframe() {
@@ -243,8 +230,9 @@
         signal: previewAbort ? previewAbort.signal : undefined,
       });
       if (!res.ok || reqId !== previewRequestId) return;
-      var html = await res.text();
-      applyPreviewHtmlToIframe(html, reqId);
+      var blob = await res.blob();
+      if (!blob || blob.size < 100) return;
+      applyPreviewPdfToIframe(blob, reqId);
     } catch (e) {
       if (e && e.name === 'AbortError') return;
       if (reqId !== previewRequestId) return;

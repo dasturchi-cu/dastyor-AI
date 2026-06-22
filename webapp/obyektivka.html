@@ -372,9 +372,6 @@
           </button>
         </div>
       </div>
-      <div style="margin:8px 0 0;color:#64748b;font-size:12px;font-weight:600;text-align:center" id="pay_help_oby">
-        To'lov kerak bo'lsa — pastdagi tugma.
-      </div>
       <div id="obyPayPanel" class="hidden" style="margin-top:10px;border:1px solid #86efac;background:#ecfdf5;border-radius:12px;padding:12px 12px;">
         <div style="font-size:13px;font-weight:800;color:#166534;margin-bottom:8px;">💳 To'lov (7 999 so'm)</div>
         <div id="obyPayCardInfo" style="white-space:pre-line;font-size:12px;color:#334155;margin-bottom:8px;">Karta ma'lumotlari yuklanmoqda...</div>
@@ -413,13 +410,12 @@
         </div>
         <button type="button" id="obyTestDownloadBtn" class="btn btn-ghost btn-sm" style="margin-left:4px">Test yuklash</button>
       </div>
-      <div class="preview-note" style="margin-bottom:10px">Ma'lumotlarni tekshiring. <strong>Test yuklash</strong> — bot nomi watermarkli PDF botga yuboriladi. <strong>Tasdiqlash</strong> — toza Word.</div>
       <div class="preview-port">
         <div id="previewSkeleton" class="da-skeleton da-skeleton-preview hidden" aria-hidden="true"></div>
         <div class="preview-scroll">
           <div id="obyPreviewPane">
             <div id="obyPreviewScaleWrapper">
-              <iframe id="oby-preview-frame" title="Obyektivka preview" sandbox="allow-scripts allow-same-origin"></iframe>
+              <iframe id="oby-preview-frame" title="Obyektivka preview" type="application/pdf"></iframe>
             </div>
           </div>
         </div>
@@ -641,7 +637,6 @@ function applyUiLang(){
     btn_voice_fill:'ui_voice',btn_voice_live:'ui_live',btn_text_fill:'ui_text',
     btn_word_bot:'ui_word_bot',
     btn_pay_5000:'ui_pay_5000',
-    pay_help_oby:'ui_pay_help',
     m_title:'ui_rel_modal',m_btn_cancel:'ui_cancel',m_btn_save:'ui_save',
     m_lbl_type:'ui_m_type',m_lbl_name:'ui_m_name',m_lbl_birth:'ui_m_birth',m_lbl_job:'ui_m_job',m_lbl_job_custom:'ui_m_job_custom',m_lbl_addr:'ui_m_addr'
   };

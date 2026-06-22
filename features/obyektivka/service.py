@@ -1,4 +1,4 @@
-"""Obyektivka DOCX generation — preserves official layout."""
+"""Obyektivka DOCX — master template placeholder replace (reference clone)."""
 from __future__ import annotations
 
 import time
@@ -7,7 +7,7 @@ from typing import Any
 
 from backend.services.document_render.photo import compress_payload_photo
 from backend.services.document_render.context import build_obyektivka_render_context
-from features.obyektivka.docx_official import generate_obyektivka_docx
+from features.obyektivka.docx_template import generate_obyektivka_docx
 from config.settings import GENERATED_DIR
 from database.repositories import generated_files as files_repo
 from database.repositories import obyektivka_data as oby_repo

@@ -10,7 +10,7 @@ import uuid
 import re
 
 from fastapi import APIRouter, File, Form, HTTPException, Query, Request, UploadFile
-from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 
 from backend.schemas.webapp import ExportObyektivkaRequest, ObyektivkaRequest, PreviewObyektivkaRequest, TestObyektivkaPdfRequest
 from core.security import rate_limit
@@ -215,48 +215,64 @@ async def api_oby_voice_fill_sync(
 
 
 @router.post("/api/preview_obyektivka")
-async def api_preview_oby(req: PreviewObyektivkaRequest) -> HTMLResponse:
+async def api_preview_oby(req: PreviewObyektivkaRequest) -> StreamingResponse:
+    """Preview = generated DOCX → PDF (reference template, no HTML render)."""
     import asyncio
 
+    from backend.services.docx_to_pdf import docx_bytes_to_pdf
     from backend.services.oby_preview_cache import (
         cache_key_for_oby_preview,
         oby_preview_cache_get,
         oby_preview_cache_set,
     )
-    from backend.services.render_service import render_obyektivka_html
+    from features.obyektivka.docx_template import generate_obyektivka_docx_bytes
 
     payload = req.model_dump(exclude={"watermark", "mask_pii"})
-    cache_key = cache_key_for_oby_preview({**payload, "watermark": True, "mask_pii": False})
+    cache_key = cache_key_for_oby_preview(payload)
     cached = oby_preview_cache_get(cache_key)
     if cached is not None:
-        return HTMLResponse(content=cached, media_type="text/html; charset=utf-8")
-    html = await asyncio.to_thread(
-        render_obyektivka_html, payload, watermark=True, mask_pii=False
+        return StreamingResponse(
+            io.BytesIO(cached),
+            media_type="application/pdf",
+            headers={"Content-Disposition": 'inline; filename="obyektivka_preview.pdf"'},
+        )
+
+    def _build_pdf() -> bytes:
+        docx_bytes = generate_obyektivka_docx_bytes(payload)
+        return docx_bytes_to_pdf(docx_bytes)
+
+    try:
+        pdf_bytes = await asyncio.to_thread(_build_pdf)
+    except Exception as exc:
+        logger.exception("preview_obyektivka pdf")
+        raise HTTPException(status_code=500, detail=str(exc)[:200]) from exc
+
+    oby_preview_cache_set(cache_key, pdf_bytes)
+    return StreamingResponse(
+        io.BytesIO(pdf_bytes),
+        media_type="application/pdf",
+        headers={"Content-Disposition": 'inline; filename="obyektivka_preview.pdf"'},
     )
-    oby_preview_cache_set(cache_key, html)
-    return HTMLResponse(content=html, media_type="text/html; charset=utf-8")
 
 
 @router.post("/api/test_obyektivka_pdf")
 async def api_test_obyektivka_pdf(req: TestObyektivkaPdfRequest, request: Request):
-    """Demo PDF with @bot watermark — WebApp «Test yuklash» → Telegram chat."""
-    from backend.services.render_service import generate_obyektivka_pdf
+    """Demo PDF — DOCX template → PDF (same as live preview)."""
+    import asyncio
+
+    from backend.services.docx_to_pdf import docx_bytes_to_pdf
     from config.settings import settings
+    from features.obyektivka.docx_template import generate_obyektivka_docx_bytes
 
     await rate_limit(request)
     payload = req.model_dump(
         exclude={"watermark", "mask_pii", "telegram_id", "token", "init_data", "send_to_bot"}
     )
-    base_url = (settings.site_base_url or "").strip().rstrip("/")
-    if not base_url:
-        base_url = settings.webapp_base.replace("/webapp", "").rstrip("/")
 
-    pdf_bytes = await generate_obyektivka_pdf(
-        payload,
-        base_url=base_url or None,
-        watermark=True,
-        mask_pii=False,
-    )
+    def _build_pdf() -> bytes:
+        return docx_bytes_to_pdf(generate_obyektivka_docx_bytes(payload))
+
+    pdf_bytes = await asyncio.to_thread(_build_pdf)
     if not pdf_bytes:
         raise HTTPException(status_code=500, detail="PDF yaratib bo'lmadi")
 

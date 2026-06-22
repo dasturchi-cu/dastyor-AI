@@ -350,7 +350,6 @@
 
     <section class="home-intro">
       <h1 id="welcomeTitle">Salom 👋</h1>
-      <p>Ovoz yoki matn yuboring — AI formani to'ldiradi.</p>
     </section>
 
     <nav class="service-grid" aria-label="Xizmatlar">
@@ -358,7 +357,6 @@
         <span class="service-icon" aria-hidden="true">📄</span>
         <div class="service-meta">
           <strong>CV Resume</strong>
-          <span>PDF · Ovoz yoki forma</span>
         </div>
         <span class="service-arrow" aria-hidden="true">→</span>
       </a>
@@ -366,7 +364,6 @@
         <span class="service-icon" aria-hidden="true">📋</span>
         <div class="service-meta">
           <strong>Obyektivka</strong>
-          <span>Word · Ovoz bilan tez to'ldirish</span>
         </div>
         <span class="service-arrow" aria-hidden="true">→</span>
       </a>
@@ -411,10 +408,6 @@
         </p>
       </section>
 
-      <div class="home-cta-nocredit" id="homeNoCreditCta" hidden>
-        💳 Tayyor fayl uchun to'lov qiling yoki oldin to'langan hujjatdan foydalaning.
-      </div>
-
       <footer class="home-footer">
         <span>@DastyorAiBot</span>
       </footer>
@@ -427,7 +420,6 @@
       var titleEl = document.getElementById('welcomeTitle');
       var creditsEl = document.getElementById('homeCredits');
       var priceTagEl = document.getElementById('homePriceTag');
-      var noCreditEl = document.getElementById('homeNoCreditCta');
       try { tg && tg.ready && tg.ready(); tg && tg.expand && tg.expand(); } catch (_) {}
 
       var theme = (tg && tg.colorScheme) || 'light';
@@ -461,7 +453,6 @@
         creditsEl.classList.remove('home-credits--loading');
         creditsEl.hidden = false;
         creditsEl.textContent = '💳 ' + n + ' ta tayyor';
-        if (noCreditEl) noCreditEl.hidden = Number(n) > 0;
       }
 
       function showPrice(amount) {

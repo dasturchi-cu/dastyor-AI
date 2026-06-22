@@ -24,6 +24,8 @@ RUN apt-get update \
       shared-mime-info \
       ffmpeg \
       ca-certificates \
+      libreoffice-writer \
+      libreoffice-java-common \
     && rm -rf /var/lib/apt/lists/*
 
 RUN pip install --no-cache-dir --upgrade pip
