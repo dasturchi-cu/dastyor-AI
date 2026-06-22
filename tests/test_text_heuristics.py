@@ -5,7 +5,14 @@ import asyncio
 import unittest
 from unittest.mock import AsyncMock, patch
 
-from features.ai.service import cv_fill_is_acceptable, oby_fill_is_acceptable, process_text_for_cv, process_text_for_obyektivka
+from features.ai.service import (
+    count_cv_populated_fields,
+    count_oby_populated_fields,
+    cv_fill_is_acceptable,
+    oby_fill_is_acceptable,
+    process_text_for_cv,
+    process_text_for_obyektivka,
+)
 from features.ai.text_heuristics import parse_cv_facts, parse_obyektivka_facts
 
 SAMPLE = (
@@ -32,12 +39,19 @@ class TestTextHeuristics(unittest.TestCase):
 
     def test_cv_fill_acceptable_requires_name_and_more(self):
         self.assertFalse(cv_fill_is_acceptable({"about": "Men Ali"}, ["F.I.SH"]))
+        self.assertFalse(cv_fill_is_acceptable({}, []))
         self.assertTrue(
             cv_fill_is_acceptable(
                 {"name": "Ali Valiyev", "phone": "+998901234567"},
                 ["Email"],
             )
         )
+
+    def test_populated_field_counts(self):
+        data = parse_cv_facts(SAMPLE)
+        self.assertGreaterEqual(count_cv_populated_fields(data), 4)
+        oby = parse_obyektivka_facts(SAMPLE)
+        self.assertGreaterEqual(count_oby_populated_fields(oby), 1)
 
 
 class TestTextPipelineWithoutAi(unittest.TestCase):

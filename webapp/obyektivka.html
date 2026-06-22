@@ -1018,8 +1018,11 @@ async function uploadObyVoiceFile(file){
     if(!js || !js.data){
       throw new Error("Ma'lumot topilmadi");
     }
+    if(DA.voiceFillHasContent && !DA.voiceFillHasContent(js, 'oby')){
+      throw new Error("Ma'lumot ajratilmadi — formaga yozilmadi");
+    }
     if(DA.setProgressStep) DA.setProgressStep(3, 'Formaga yozilmoqda...');
-    applyServerObyData(js.data);
+    assertObyFormPopulated(js.data);
     enterVoiceFirstMode(js.missing_fields || []);
     goToStep(1);
     if(DA.setProgressStep) DA.setProgressStep(5, 'Tayyor!');
@@ -1078,8 +1081,11 @@ async function submitObyTextFill(){
     });
   }
   if(!js || !js.data) throw new Error("Ma'lumot topilmadi");
+  if(DA.voiceFillHasContent && !DA.voiceFillHasContent(js, 'oby')){
+    throw new Error("Ma'lumot ajratilmadi — formaga yozilmadi");
+  }
   if(DA.setProgressStep) DA.setProgressStep(3, 'Formaga yozilmoqda...');
-  applyServerObyData(js.data);
+  assertObyFormPopulated(js.data);
   enterVoiceFirstMode(js.missing_fields || []);
   goToStep(1);
   if(DA.setProgressStep) DA.setProgressStep(5, 'Tayyor!');
@@ -1991,7 +1997,7 @@ async function downloadDoc(){
 })();
 
 function applyServerObyData(d){
-  if(!d)return;
+  if(!d) return 0;
   function setv(id,val){var el=document.getElementById(id);if(el&&val!=null&&String(val).trim()!=='')el.value=String(val);}
   setv('fullname',d.fullname);
   setv('birthdate',d.birthdate);
@@ -2028,6 +2034,24 @@ function applyServerObyData(d){
   try{saveToLocal();}catch(e){}
   try{updatePreview();scaleLivePreview();}catch(e){}
   try{validateAllDateFields();}catch(e){}
+  var DA = window.DastyorAI || {};
+  return DA.countObyDomFields ? DA.countObyDomFields() : 0;
+}
+
+function assertObyFormPopulated(data){
+  var DA = window.DastyorAI || {};
+  if(DA.countObyDataFields && DA.countObyDataFields(data) < 1){
+    throw new Error("Ma'lumot ajratilmadi — formaga yozilmadi");
+  }
+  var langCard = document.getElementById('lang-card');
+  var mainCard = document.getElementById('main-card');
+  if(langCard) langCard.classList.add('hidden');
+  if(mainCard) mainCard.classList.remove('hidden');
+  var domCount = applyServerObyData(data);
+  if(domCount < 1){
+    throw new Error("Ma'lumot ajratilmadi — formaga yozilmadi");
+  }
+  return domCount;
 }
 
 var _voiceFirstMode=false;
@@ -2124,11 +2148,15 @@ function runAutoloadObyData(){
   var tries=0,maxTries=8,delayMs=400;
   function attempt(){
     tries++;
-    fetch(getApiUrl()+'/api/get_oby_data?telegram_id='+encodeURIComponent(telegramId),{cache:'no-store'})
+    var tok = getDastyorSessionToken();
+    var qs = new URLSearchParams({ telegram_id: String(telegramId) });
+    if(tok) qs.set('token', tok);
+    fetch(getApiUrl()+'/api/get_oby_data?'+qs.toString(),{cache:'no-store'})
       .then(function(r){return r.json();})
       .then(function(js){
-        if(js&&js.ok&&js.data){
-          applyServerObyData(js.data);
+        var DA = window.DastyorAI || {};
+        if(js&&js.ok&&js.data&&(DA.countObyDataFields?DA.countObyDataFields(js.data)>0:true)){
+          assertObyFormPopulated(js.data);
           if(voiceMode) enterVoiceFirstMode(js.missing_fields||[]);
           return;
         }
@@ -2190,6 +2218,12 @@ document.addEventListener('DOMContentLoaded',function(){
           }
         });
       }
+      try{
+        var up=new URLSearchParams(window.location.search);
+        if(up.get('autoload')==='1' && telegramId){
+          runAutoloadObyData();
+        }
+      }catch(e){console.warn(e);}
     }catch(e){console.warn(e);}
   })();
   try{
@@ -2199,15 +2233,6 @@ document.addEventListener('DOMContentLoaded',function(){
       syncObyQuotaUi();
     });
   }catch(e){}
-  try{
-    var up=new URLSearchParams(window.location.search);
-    if(up.get('autoload')==='1'&&telegramId){
-      if(window.Telegram&&window.Telegram.WebApp&&typeof window.Telegram.WebApp.ready==='function'){
-        try{window.Telegram.WebApp.ready();}catch(e){}
-        setTimeout(runAutoloadObyData,80);
-      }else runAutoloadObyData();
-    }
-  }catch(e){console.warn(e);}
   try{updatePreview();scaleLivePreview();}catch(e){}
   try{
     var voiceInput = document.getElementById('obyVoiceInput');

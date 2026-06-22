@@ -220,35 +220,83 @@ async def api_oby_voice_fill_sync(
             pass
 
 
-@router.post("/api/preview_obyektivka")
-async def api_preview_oby(req: PreviewObyektivkaRequest) -> StreamingResponse:
-    """Preview = generated DOCX → PDF (reference template, no HTML render)."""
+def _valid_pdf(pdf_bytes: bytes | None) -> bool:
+    return bool(pdf_bytes) and len(pdf_bytes) >= 100 and pdf_bytes[:4] == b"%PDF"
+
+
+def _pdf_inline_response(pdf_bytes: bytes, *, filename: str = "obyektivka_preview.pdf") -> Response:
+    if not _valid_pdf(pdf_bytes):
+        raise HTTPException(status_code=500, detail="PDF yaratib bo'lmadi (noto'g'ri fayl)")
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": f'inline; filename="{filename}"',
+            "Cache-Control": "private, max-age=120",
+        },
+    )
+
+
+async def _build_oby_preview_pdf(payload: dict) -> bytes:
+    """DOCX template → PDF; HTML template → PDF fallback."""
     import asyncio
 
     from backend.services.docx_to_pdf import docx_bytes_to_pdf
+    from backend.services.render_service import generate_obyektivka_pdf
+    from config.settings import settings
+    from features.obyektivka.docx_template import generate_obyektivka_docx_bytes
+
+    def _docx_pdf() -> bytes:
+        docx_bytes = generate_obyektivka_docx_bytes(payload)
+        return docx_bytes_to_pdf(docx_bytes)
+
+    try:
+        pdf_bytes = await asyncio.to_thread(_docx_pdf)
+        if _valid_pdf(pdf_bytes):
+            return pdf_bytes
+        logger.warning("preview_obyektivka: DOCX→PDF returned invalid bytes (%s)", len(pdf_bytes or b""))
+    except Exception as exc:
+        logger.exception("preview_obyektivka docx pdf failed, trying HTML fallback")
+        from shared.error_log import record_error
+
+        record_error("docx", f"Obyektivka preview DOCX: {exc}")
+
+    html_payload = dict(payload)
+    html_payload.setdefault("watermark", True)
+    html_payload.setdefault("mask_pii", False)
+    pdf_bytes = await generate_obyektivka_pdf(
+        html_payload,
+        base_url=settings.webapp_base or settings.site_base_url,
+        watermark=bool(html_payload.get("watermark")),
+        mask_pii=bool(html_payload.get("mask_pii")),
+    )
+    if not _valid_pdf(pdf_bytes):
+        raise RuntimeError("PDF yaratib bo'lmadi (DOCX va HTML fallback muvaffaqiyatsiz)")
+    logger.info("preview_obyektivka: served via HTML fallback PDF")
+    return pdf_bytes
+
+
+@router.post("/api/preview_obyektivka")
+async def api_preview_oby(req: PreviewObyektivkaRequest) -> Response:
+    """Preview = DOCX → PDF (reference template); HTML → PDF fallback."""
     from backend.services.oby_preview_cache import (
         cache_key_for_oby_preview,
         oby_preview_cache_get,
         oby_preview_cache_set,
     )
-    from features.obyektivka.docx_template import generate_obyektivka_docx_bytes
 
     payload = req.model_dump(exclude={"watermark", "mask_pii"})
     cache_key = cache_key_for_oby_preview(payload)
     cached = oby_preview_cache_get(cache_key)
     if cached is not None:
-        return StreamingResponse(
-            io.BytesIO(cached),
-            media_type="application/pdf",
-            headers={"Content-Disposition": 'inline; filename="obyektivka_preview.pdf"'},
-        )
-
-    def _build_pdf() -> bytes:
-        docx_bytes = generate_obyektivka_docx_bytes(payload)
-        return docx_bytes_to_pdf(docx_bytes)
+        if _valid_pdf(cached):
+            return _pdf_inline_response(cached)
+        logger.warning("preview_obyektivka: dropping invalid cached PDF key=%s", cache_key[:12])
 
     try:
-        pdf_bytes = await asyncio.to_thread(_build_pdf)
+        pdf_bytes = await _build_oby_preview_pdf(payload)
+    except HTTPException:
+        raise
     except Exception as exc:
         logger.exception("preview_obyektivka pdf")
         from shared.error_log import record_error
@@ -257,11 +305,7 @@ async def api_preview_oby(req: PreviewObyektivkaRequest) -> StreamingResponse:
         raise HTTPException(status_code=500, detail=str(exc)[:200]) from exc
 
     oby_preview_cache_set(cache_key, pdf_bytes)
-    return StreamingResponse(
-        io.BytesIO(pdf_bytes),
-        media_type="application/pdf",
-        headers={"Content-Disposition": 'inline; filename="obyektivka_preview.pdf"'},
-    )
+    return _pdf_inline_response(pdf_bytes)
 
 
 @router.post("/api/test_obyektivka_pdf")

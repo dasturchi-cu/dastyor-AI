@@ -29,6 +29,10 @@ __all__ = [
     "get_missing_cv_fields",
     "get_missing_oby_fields",
     "map_obyektivka_fields",
+    "count_cv_populated_fields",
+    "count_oby_populated_fields",
+    "cv_fill_is_acceptable",
+    "oby_fill_is_acceptable",
 ]
 
 _SKIP_VALUES = {"", "yo'q", "yoq", "йўқ", "йўқ.", "нет", "no", "n/a", "—", "-"}

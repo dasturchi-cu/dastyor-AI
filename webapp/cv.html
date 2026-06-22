@@ -1400,6 +1400,8 @@
         if (!r.ok) return false;
         const j = await r.json();
         const d = (j && j.data) || {};
+        const DA = window.DastyorAI || {};
+        if (DA.countCvDataFields && DA.countCvDataFields(d) < 1) return false;
         if (!applyServerCvData(d)) return false;
         triggerUpdate(false);
         try { saveToLocalStorage(); } catch (_) {}
@@ -1409,11 +1411,28 @@
       }
     }
 
+    async function loadFromServerWithRetry(maxTries, delayMs) {
+      const triesMax = maxTries || 8;
+      const delay = delayMs || 400;
+      for (let i = 0; i < triesMax; i++) {
+        if (await loadFromServer()) return true;
+        await new Promise((r) => setTimeout(r, delay));
+      }
+      return false;
+    }
+
     async function initCvData() {
       resolveCvTelegramId();
       migrateLegacyCvDraft(telegramId);
-      const fromServer = await loadFromServer();
-      if (!fromServer) {
+      let autoload = false;
+      try { autoload = new URLSearchParams(window.location.search).get('autoload') === '1'; } catch (_) {}
+      let fromServer = false;
+      if (autoload && telegramId) {
+        fromServer = await loadFromServerWithRetry();
+      } else {
+        fromServer = await loadFromServer();
+      }
+      if (!fromServer && !autoload) {
         loadFromLocalStorage();
       }
       try { triggerUpdate(false, { immediatePreview: true }); } catch (_) {}
@@ -2074,26 +2093,25 @@
     }
 
     function applyCvVoiceData(data) {
-      if (!data || typeof data !== 'object') return;
-      if (data.name) document.getElementById('f_name').value = data.name;
-      if (data.spec || data.role) document.getElementById('f_role').value = data.spec || data.role || '';
-      if (data.phone) document.getElementById('f_phone').value = data.phone;
-      if (data.email) document.getElementById('f_email').value = data.email;
-      if (data.loc) document.getElementById('f_loc').value = data.loc;
-      if (data.about) document.getElementById('f_about').value = data.about;
-      if (Array.isArray(data.education_list) && data.education_list.length) {
-        eduData = data.education_list.map((x) => ({ title: x.title || x.company || '', place: x.place || x.company || '', date: x.date || '' }));
-        renderList('eduList', eduData, 'edu');
-      }
-      if (Array.isArray(data.works) && data.works.length) {
-        expData = data.works.map((x) => ({ title: x.title || '', place: x.place || x.company || '', date: ((x.from || '') + (x.to ? '-' + x.to : '')).replace(/^-|-$/g, '') || x.date || '', desc: x.description || '' }));
-        renderList('expList', expData, 'exp');
-      }
-      if (data.skills) {
-        skillsData = String(data.skills).split(',').map((s) => s.trim()).filter(Boolean);
-        renderSkills();
-      }
+      const ok = applyServerCvData(data);
+      if (!ok) return 0;
       triggerUpdate(true, { immediatePreview: true });
+      try { saveToLocalStorage(); } catch (_) {}
+      const DA = window.DastyorAI || {};
+      return DA.countCvDomFields ? DA.countCvDomFields() : 0;
+    }
+
+    function assertCvFormPopulated(data, minFields) {
+      const DA = window.DastyorAI || {};
+      const fromData = DA.countCvDataFields ? DA.countCvDataFields(data) : 0;
+      if (fromData < (minFields || 1)) {
+        throw new Error("Ma'lumot ajratilmadi — formaga yozilmadi");
+      }
+      const domCount = applyCvVoiceData(data);
+      if (domCount < 1) {
+        throw new Error("Ma'lumot ajratilmadi — formaga yozilmadi");
+      }
+      return domCount;
     }
 
     async function uploadCvVoiceFile(file) {
@@ -2122,7 +2140,10 @@
           });
         }
         if (!js || !js.data) throw new Error("Ma'lumot topilmadi");
-        applyCvVoiceData(js.data);
+        if (DA.voiceFillHasContent && !DA.voiceFillHasContent(js, 'cv')) {
+          throw new Error("Ma'lumot ajratilmadi — formaga yozilmadi");
+        }
+        assertCvFormPopulated(js.data);
         if (status) status.textContent = '✅ Forma to\'ldirildi (~' + (js.fill_percent || 80) + '%)';
         if (DA.setProgressStep) DA.setProgressStep(5, 'Tayyor!');
         daToast('✅ CV formasi to\'ldirildi', 'success');
@@ -2168,7 +2189,10 @@
           });
         }
         if (!js || !js.data) throw new Error("Ma'lumot topilmadi");
-        applyCvVoiceData(js.data);
+        if (DA.voiceFillHasContent && !DA.voiceFillHasContent(js, 'cv')) {
+          throw new Error("Ma'lumot ajratilmadi — formaga yozilmadi");
+        }
+        assertCvFormPopulated(js.data);
         if (status) status.textContent = '✅ Matndan to\'ldirildi (~' + (js.fill_percent || 80) + '%)';
         if (DA.setProgressStep) DA.setProgressStep(5, 'Tayyor!');
         daToast('✅ CV formasi to\'ldirildi', 'success');
