@@ -23,6 +23,10 @@ from shared.keyboards import (
     payment_review_kb,
     user_menu,
 )
+from shared.payment_notifications import (
+    build_payment_notification_text,
+    build_pending_payments_list,
+)
 
 logger = logging.getLogger(__name__)
 router = Router()
@@ -104,13 +108,17 @@ async def admin_payments(message: Message) -> None:
     if not pending:
         await message.answer("Kutilayotgan to'lovlar yo'q.")
         return
+    summary = build_pending_payments_list(pending[:10])
+    if summary:
+        await message.answer(summary)
     for p in pending[:10]:
         pid = int(p["id"])
-        text = (
-            f"💳 <b>Yangi to'lov #{pid}</b>\n"
-            f"👤 {p.get('payer_name')} (<code>{p.get('telegram_id')}</code>)\n"
-            f"💳 Karta: <code>{p.get('card_number')}</code>\n"
-            f"📅 {p.get('created_at')}"
+        purchase_number = payments_repo.count_user_payments(int(p.get("user_id") or 0))
+        kind = str(p.get("document_type") or "manual")
+        text = build_payment_notification_text(
+            p,
+            kind=kind,
+            purchase_number=purchase_number,
         )
         receipt = p.get("receipt_path")
         if receipt and Path(receipt).is_file():

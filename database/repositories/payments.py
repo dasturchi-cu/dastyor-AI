@@ -12,16 +12,19 @@ def create_payment(
     payer_name: str,
     card_number: str = "",
     receipt_path: str | None = None,
+    *,
+    document_type: str | None = None,
 ) -> dict[str, Any] | None:
     user = users_repo.upsert_user(telegram_id)
     uid = int(user["id"])
+    doc = (document_type or "").strip().lower()[:32] or None
     with get_connection() as conn:
         cur = conn.execute(
             """
-            INSERT INTO payments (user_id, payer_name, card_number, receipt_path, status)
-            VALUES (?, ?, ?, ?, 'PENDING')
+            INSERT INTO payments (user_id, payer_name, card_number, receipt_path, document_type, status)
+            VALUES (?, ?, ?, ?, ?, 'PENDING')
             """,
-            (uid, payer_name.strip()[:120], card_number.strip()[:32], receipt_path),
+            (uid, payer_name.strip()[:120], card_number.strip()[:32], receipt_path, doc),
         )
         pid = cur.lastrowid
         row = conn.execute("SELECT * FROM payments WHERE id = ?", (pid,)).fetchone()
@@ -170,3 +173,28 @@ def count_user_pending(telegram_id: int) -> int:
             (int(telegram_id),),
         ).fetchone()
     return int(row["c"]) if row else 0
+
+
+def count_user_payments(user_id: int) -> int:
+    """Total payment submissions for a user (purchase counter)."""
+    with get_connection() as conn:
+        row = conn.execute(
+            "SELECT COUNT(*) AS c FROM payments WHERE user_id = ?",
+            (int(user_id),),
+        ).fetchone()
+    return int(row["c"]) if row else 0
+
+
+def set_document_type(payment_id: int, document_type: str) -> bool:
+    doc = (document_type or "").strip().lower()[:32]
+    if not doc:
+        return False
+    with get_connection() as conn:
+        cur = conn.execute(
+            """
+            UPDATE payments SET document_type = ?, updated_at = datetime('now')
+            WHERE id = ?
+            """,
+            (doc, int(payment_id)),
+        )
+        return cur.rowcount > 0

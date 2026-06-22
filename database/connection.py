@@ -51,6 +51,9 @@ def _apply_migrations(conn: sqlite3.Connection) -> None:
         CREATE INDEX IF NOT EXISTS idx_generated_files_created ON generated_files(created_at DESC);
         """
     )
+    cols = {row[1] for row in conn.execute("PRAGMA table_info(payments)").fetchall()}
+    if "document_type" not in cols:
+        conn.execute("ALTER TABLE payments ADD COLUMN document_type TEXT")
 
 
 def init_db() -> None:

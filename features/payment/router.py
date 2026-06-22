@@ -215,47 +215,41 @@ async def _notify_admin_payment(
 ) -> None:
     try:
         from aiogram.types import FSInputFile
+
         from shared.keyboards import payment_review_kb
+        from shared.payment_notifications import build_payment_notification_text
 
         pid = int(payment["id"])
-        admin_chat = settings.premium_admin_group_id
-        payer = str(payment.get("payer_name") or uid)
-        if auto_approved:
-            text = (
-                f"✅ <b>Avtomatik tasdiqlandi</b> #{pid}\n"
-                f"👤 {payer}\n"
-                f"🆔 <code>{uid}</code>\n"
-                f"📄 Xizmat: <b>{kind}</b>\n"
-                f"💳 Pul: <b>{credits}</b> ta hujjat"
-            )
-            kb = None
-        elif kind == "manual":
-            text = (
-                f"💳 <b>Yangi to'lov #{pid}</b>\n"
-                f"👤 {payer}\n"
-                f"🆔 <code>{uid}</code>\n"
-                f"💳 <code>{payment.get('card_number') or '-'}</code>"
-            )
-            kb = payment_review_kb(pid)
-        else:
-            text = (
-                f"💰 <b>Yangi to'lov</b>\n"
-                f"Payment ID: <code>{pid}</code>\n"
-                f"User: <code>{uid}</code>\n"
-                f"Xizmat: <b>{kind}</b>\n"
-                f"Narx: <b>{settings.single_doc_price_uzs:,} so'm</b>"
-            )
-            kb = payment_review_kb(pid)
+        payment = payments_repo.get_payment(pid) or payment
+        purchase_number = payments_repo.count_user_payments(int(payment.get("user_id") or 0))
+        text = build_payment_notification_text(
+            payment,
+            kind=kind,
+            purchase_number=purchase_number,
+            auto_approved=auto_approved,
+            credits=credits,
+        )
+        kb = None if auto_approved else payment_review_kb(pid)
         receipt_path = payment.get("receipt_path")
-        if receipt_path and os.path.isfile(receipt_path):
-            await bot.send_photo(
-                admin_chat,
-                FSInputFile(receipt_path),
-                caption=text,
-                reply_markup=kb,
-            )
-        else:
-            await bot.send_message(admin_chat, text, reply_markup=kb)
+
+        admin_chat = settings.premium_admin_group_id
+        support_chat = settings.support_group_id
+        targets: list[tuple[int, object | None]] = []
+        if admin_chat:
+            targets.append((admin_chat, kb))
+        if support_chat and support_chat != admin_chat:
+            targets.append((support_chat, None))
+
+        for chat_id, reply_markup in targets:
+            if receipt_path and os.path.isfile(receipt_path):
+                await bot.send_photo(
+                    chat_id,
+                    FSInputFile(receipt_path),
+                    caption=text,
+                    reply_markup=reply_markup,
+                )
+            else:
+                await bot.send_message(chat_id, text, reply_markup=reply_markup)
     except Exception as e:
         logger.warning("Admin notify failed: %s", e)
 
@@ -295,7 +289,7 @@ async def api_request_paid_cv(body: dict) -> dict:
     payload = {k: v for k, v in body.items() if k not in ("telegram_id", "token")}
     cv_repo.save(uid, payload)
     name = str(payload.get("name") or "User")[:80]
-    payment = payments_repo.create_payment(uid, payer_name=name)
+    payment = payments_repo.create_payment(uid, payer_name=name, document_type="cv")
     if not payment:
         raise HTTPException(status_code=500, detail="So'rov saqlanmadi")
     return {
@@ -315,7 +309,7 @@ async def api_request_paid_obyektivka(body: dict) -> dict:
     payload = {k: v for k, v in body.items() if k not in ("telegram_id", "token")}
     oby_repo.save_payload(uid, payload)
     name = str(payload.get("fullname") or "User")[:80]
-    payment = payments_repo.create_payment(uid, payer_name=name)
+    payment = payments_repo.create_payment(uid, payer_name=name, document_type="obyektivka")
     if not payment:
         raise HTTPException(status_code=500, detail="So'rov saqlanmadi")
     return {
@@ -373,6 +367,8 @@ async def api_paid_doc_submit_screenshot(
     path = RECEIPTS_DIR / f"{uid}_{request_id}_{uuid.uuid4().hex[:8]}.jpg"
     await asyncio.to_thread(path.write_bytes, raw)
     await asyncio.to_thread(payments_repo.update_receipt, request_id, str(path))
+    if kind:
+        await asyncio.to_thread(payments_repo.set_document_type, request_id, kind)
 
     payment = await asyncio.to_thread(payments_repo.get_payment, request_id) or payment
     status = await _finalize_payment_submission(payment, uid, kind, request.app.state.bot)
