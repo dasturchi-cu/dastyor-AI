@@ -1,6 +1,12 @@
 """Full-stack smoke test — run before deploy."""
 from __future__ import annotations
 
+import os
+
+# Local smoke: production auth requires initData; enable dev fallback for tests only.
+os.environ.setdefault("ALLOW_INSECURE_AUTH", "1")
+os.environ.setdefault("USE_REDIS", "0")
+
 import asyncio
 import json
 import sys

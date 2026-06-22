@@ -1,17 +1,32 @@
 """Telegram webhook ingress — Aiogram 3."""
 from __future__ import annotations
 
+import hmac
 import logging
 
 from aiogram.types import Update
 from fastapi import APIRouter, Request, Response
 
+from config.settings import settings
+
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["telegram-webhook"])
 
 
+def _verify_webhook_secret(request: Request) -> bool:
+    secret = (getattr(request.app.state, "webhook_secret", None) or settings.webhook_secret or "").strip()
+    if not secret:
+        return True
+    got = (request.headers.get("X-Telegram-Bot-Api-Secret-Token") or "").strip()
+    return bool(got) and hmac.compare_digest(got, secret)
+
+
 @router.post("/webhook")
 async def webhook(request: Request) -> Response:
+    if not _verify_webhook_secret(request):
+        logger.warning("Webhook rejected: invalid secret token")
+        return Response(status_code=403)
+
     try:
         bot = request.app.state.bot
         dp = request.app.state.dp

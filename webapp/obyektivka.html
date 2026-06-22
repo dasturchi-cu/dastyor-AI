@@ -466,6 +466,10 @@
 
 <script src="js/obyektivka-preview.js"></script>
 <script>
+function daToast(msg, type) {
+  if (window.DastyorAI && DastyorAI.showToast) DastyorAI.showToast(msg, type || 'info');
+  else alert(msg);
+}
 var currentLang='uz_l',photoData='',photoReadyPromise=null,relatives=[],editingRelIndex=-1;
 var telegramId='';
 function resolveTelegramId(){
@@ -930,7 +934,7 @@ async function uploadObyVoiceFile(file){
   if(!file) return;
   if(_obyVoiceUploading) return;
   if(!telegramId){
-    alert("Foydalanuvchi aniqlanmadi. Botdan qayta oching.");
+    daToast("Foydalanuvchi aniqlanmadi. Botdan qayta oching.", 'error');
     return;
   }
   _obyVoiceUploading = true;
@@ -983,7 +987,7 @@ async function uploadObyVoiceFile(file){
       }
     }catch(_){}
   }catch(e){
-    alert("❌ Ovozli to'ldirishda xatolik: " + (e.message || e));
+    daToast("❌ Ovozli to'ldirishda xatolik: " + (e.message || e), 'error');
   }finally{
     _obyVoiceUploading = false;
     if(DA.hideDocumentLoading) DA.hideDocumentLoading();
@@ -1009,7 +1013,7 @@ async function submitObyTextFill(){
   }
   telegramId = resolveTelegramId();
   if(!telegramId){
-    alert("Foydalanuvchi aniqlanmadi. Botdan qayta oching.");
+    daToast("Foydalanuvchi aniqlanmadi. Botdan qayta oching.", 'error');
     return;
   }
   if(btn){ btn.disabled = true; btn.textContent = '⏳ Tahlil...'; }
@@ -1887,9 +1891,15 @@ async function downloadDoc(){
         t = null;
         try{
           if (typeof requestIdleCallback === 'function') {
-            requestIdleCallback(function(){ try{ _save(); }catch(e){} }, { timeout: 800 });
+            requestIdleCallback(function(){
+              try{
+                _save();
+                if (window.DastyorAI && DastyorAI.showDraftSaved) DastyorAI.showDraftSaved('Draft saqlandi');
+              }catch(e){}
+            }, { timeout: 800 });
           } else {
             _save();
+            if (window.DastyorAI && DastyorAI.showDraftSaved) DastyorAI.showDraftSaved('Draft saqlandi');
           }
         }catch(e){ try{ _save(); }catch(_){} }
       }, 520);

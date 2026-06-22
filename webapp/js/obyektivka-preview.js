@@ -172,7 +172,7 @@
     if (!immediate) {
       previewDebounceTimer = setTimeout(function () {
         fetchServerPreview({ immediate: true });
-      }, 420);
+      }, 500);
       return;
     }
 
@@ -199,6 +199,12 @@
       applyPreviewHtmlToIframe(html, reqId);
     } catch (e) {
       if (e && e.name === 'AbortError') return;
+      if (reqId !== previewRequestId) return;
+      try {
+        if (global.DastyorAI && global.DastyorAI.showToast) {
+          global.DastyorAI.showToast('Preview yuklanmadi. Qayta urinib ko\'ring.', 'error');
+        }
+      } catch (_) {}
     } finally {
       if (skel) skel.classList.add('hidden');
     }

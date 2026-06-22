@@ -8,7 +8,10 @@
   <title>Dastyor AI</title>
   <link rel="preload" href="theme.css" as="style">
   <link rel="stylesheet" href="theme.css">
+  <link rel="prefetch" href="cv.html">
+  <link rel="prefetch" href="obyektivka.html">
   <script src="https://telegram.org/js/telegram-web-app.js" defer></script>
+  <script src="app.js" defer></script>
   <style>
     :root {
       --home-font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -70,6 +73,21 @@
     }
 
     /* Brand bar */
+    .home-credits {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin-left: auto;
+      padding: 6px 11px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 800;
+      color: var(--da-primary);
+      background: var(--da-blue-soft);
+      border: 1px solid var(--da-blue-mid);
+      white-space: nowrap;
+    }
+
     .home-brand {
       display: flex;
       align-items: center;
@@ -339,6 +357,7 @@
         <strong>DASTYOR AI</strong>
         <span>CV PDF · Obyektivka DOCX</span>
       </div>
+      <span class="home-credits" id="homeCredits" hidden>💳 —</span>
     </header>
 
     <section class="home-hero">
@@ -381,6 +400,7 @@
     (function () {
       var tg = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp : null;
       var titleEl = document.getElementById('welcomeTitle');
+      var creditsEl = document.getElementById('homeCredits');
       try { tg && tg.ready && tg.ready(); tg && tg.expand && tg.expand(); } catch (_) {}
 
       var theme = (tg && tg.colorScheme) || 'light';
@@ -408,6 +428,23 @@
         if (cv) cv.href = 'cv.html' + q;
         if (oby) oby.href = 'obyektivka.html' + q + '&voice=1&autoload=1';
       }
+
+      function showCredits(n) {
+        if (!creditsEl) return;
+        creditsEl.hidden = false;
+        creditsEl.textContent = '💳 ' + n + ' kredit';
+      }
+
+      document.addEventListener('DOMContentLoaded', function () {
+        var DA = window.DastyorAI;
+        if (!DA || !DA.init) return;
+        DA.init({ refreshProfile: true }).then(function (me) {
+          if (!me) return;
+          var n = DA.getCredits ? DA.getCredits(me) : Number(me.credits || 0);
+          showCredits(n);
+        }).catch(function () {});
+        if (DA.bindPrefetchOnHover) DA.bindPrefetchOnHover('.service-card');
+      });
     })();
   </script>
 </body>

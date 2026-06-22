@@ -1,16 +1,18 @@
 """AI voice pipeline: STT → extraction → field mapping."""
 from __future__ import annotations
 
-import json
 import logging
 
 from features.ai.gemini_client import (
     extract_obyektivka_data,
     generate_text_with_fallback,
-    get_model,
     is_valid_transcription_text,
     transcribe_audio,
-    _gcall,
+)
+from features.ai.reliable import (
+    cv_extract_has_content,
+    normalize_cv_data,
+    parse_json_object,
 )
 from shared.ai_errors import AiQuotaError
 
@@ -200,12 +202,11 @@ JSON:
         raw_text = await generate_text_with_fallback(prompt, timeout=35)
         if not raw_text:
             return {}
-        cleaned = raw_text.replace("```json", "").replace("```", "").strip()
-        start, end = cleaned.find("{"), cleaned.rfind("}") + 1
-        if start == -1 or end <= start:
+        parsed = parse_json_object(raw_text)
+        if not isinstance(parsed, dict):
             return {}
-        parsed = json.loads(cleaned[start:end])
-        return parsed if isinstance(parsed, dict) else {}
+        data = normalize_cv_data(parsed)
+        return data if cv_extract_has_content(data) else {}
     except AiQuotaError:
         raise
     except Exception as e:
@@ -241,7 +242,7 @@ async def process_text_for_cv(text: str) -> tuple[str, dict, list[str]]:
     transcript = (text or "").strip()
     if not transcript:
         return "", {}, ["Matn bo'sh"]
-    data = await extract_cv_data(transcript)
+    data = normalize_cv_data(await extract_cv_data(transcript))
     missing = get_missing_cv_fields(data) if data else ["Ma'lumot ajratilmadi"]
     return transcript, data, missing
 

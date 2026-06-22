@@ -55,19 +55,7 @@ def submit_payment(
 
 
 def approve_payment(payment_id: int, admin_note: str | None = None) -> dict[str, Any] | None:
-    payment = payments_repo.get_payment(payment_id)
-    if not payment:
-        return None
-    if payment.get("status") == "APPROVED":
-        return payment
-
-    ok = payments_repo.set_status(payment_id, "APPROVED", admin_note)
-    if not ok:
-        return None
-
-    tid = int(payment["telegram_id"])
-    users_repo.add_credits(tid, 1)
-    return payments_repo.get_payment(payment_id)
+    return payments_repo.approve_atomic(payment_id, admin_note)
 
 
 def reject_payment(payment_id: int, admin_note: str | None = None) -> bool:

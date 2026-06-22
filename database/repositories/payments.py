@@ -77,6 +77,56 @@ def set_status(payment_id: int, status: str, admin_note: str | None = None) -> b
         return cur.rowcount > 0
 
 
+def approve_atomic(payment_id: int, admin_note: str | None = None) -> dict[str, Any] | None:
+    """
+    Atomically: PENDING → APPROVED + grant 1 credit.
+    Idempotent if already APPROVED (no extra credit).
+    """
+    pid = int(payment_id)
+    with get_connection() as conn:
+        row = conn.execute(
+            """
+            SELECT p.id, p.status, p.user_id, u.telegram_id
+            FROM payments p
+            JOIN users u ON u.id = p.user_id
+            WHERE p.id = ?
+            """,
+            (pid,),
+        ).fetchone()
+        if not row:
+            return None
+
+        status = str(row["status"] or "").upper()
+        if status == "APPROVED":
+            pass
+        elif status == "PENDING":
+            cur = conn.execute(
+                """
+                UPDATE payments
+                SET status = 'APPROVED',
+                    admin_note = COALESCE(?, admin_note),
+                    updated_at = datetime('now')
+                WHERE id = ? AND status = 'PENDING'
+                """,
+                (admin_note, pid),
+            )
+            if cur.rowcount != 1:
+                return None
+            conn.execute(
+                """
+                UPDATE users
+                SET credits = credits + 1, updated_at = datetime('now')
+                WHERE id = ?
+                """,
+                (int(row["user_id"]),),
+            )
+            users_repo.invalidate_cache(int(row["telegram_id"]))
+        else:
+            return None
+
+    return get_payment(pid)
+
+
 def list_payments(status: str | None = None, limit: int = 50) -> list[dict[str, Any]]:
     with get_connection() as conn:
         if status:

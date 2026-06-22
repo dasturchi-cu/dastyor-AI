@@ -56,12 +56,8 @@ def _export_docx_sync(telegram_id: int, payload: dict[str, Any]) -> tuple[bytes,
 
 
 async def export_docx(telegram_id: int, payload: dict[str, Any]) -> tuple[bytes, str]:
-    credits = await async_db.run(users_repo.get_credits, telegram_id)
-    if credits < 1:
-        raise PermissionError("Kredit yetarli emas. To'lov qiling.")
-
     if not await async_db.run(users_repo.consume_credit, telegram_id):
-        raise PermissionError("Kredit yetarli emas")
+        raise PermissionError("Kredit yetarli emas. To'lov qiling.")
 
     try:
         return await async_db.run(_export_docx_sync, telegram_id, payload)

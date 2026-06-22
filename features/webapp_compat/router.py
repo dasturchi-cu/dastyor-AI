@@ -1,4 +1,4 @@
-"""Legacy WebApp API routes (translit, translate, notify, stats)."""
+"""WebApp compatibility API (translit, translate, notify, stats)."""
 from __future__ import annotations
 
 import logging
@@ -7,13 +7,13 @@ from fastapi import APIRouter, HTTPException, Request
 
 from backend.schemas.webapp import NotifyRequest, TranslateRequest, TranslitRequest
 from backend.services.auto_script import auto_cyrillic_latin
-from features.ai.gemini_client import translate_text
 from core.security import rate_limit
 from database.repositories import users as users_repo
+from features.ai.gemini_client import translate_text
 from shared.auth import resolve_uid
 
 logger = logging.getLogger(__name__)
-router = APIRouter(tags=["legacy"])
+router = APIRouter(tags=["webapp-compat"])
 
 
 @router.post("/api/translit")

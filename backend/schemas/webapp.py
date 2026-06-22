@@ -11,6 +11,7 @@ class AuthRequest(BaseModel):
     first_name: str = ""
     username: str = ""
     photo_url: str = ""
+    init_data: str = ""
 
 
 class TranslitRequest(BaseModel):

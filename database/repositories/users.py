@@ -13,6 +13,10 @@ def _invalidate(telegram_id: int) -> None:
     ttl_cache.invalidate(f"user:{int(telegram_id)}")
 
 
+def invalidate_cache(telegram_id: int) -> None:
+    _invalidate(int(telegram_id))
+
+
 def upsert_user(
     telegram_id: int,
     *,

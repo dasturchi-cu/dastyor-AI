@@ -34,12 +34,28 @@ def create_bot() -> Bot:
 
 
 def create_dispatcher() -> Dispatcher:
-    dp = Dispatcher(storage=MemoryStorage())
+    storage = _create_fsm_storage()
+    dp = Dispatcher(storage=storage)
     dp.include_router(admin_handlers.router)
     dp.include_router(obyektivka_handlers.router)
     dp.include_router(start_handlers.router)
     dp.include_router(voice_handlers.router)
     return dp
+
+
+def _create_fsm_storage():
+    from core.redis_client import is_redis_live, redis_enabled
+
+    if redis_enabled() and is_redis_live():
+        from aiogram.fsm.storage.redis import RedisStorage
+
+        logger.info("FSM storage: Redis")
+        return RedisStorage.from_url(
+            settings.redis_url,
+            connection_kwargs={"decode_responses": True},
+        )
+    logger.info("FSM storage: Memory")
+    return MemoryStorage()
 
 
 async def run_polling() -> None:

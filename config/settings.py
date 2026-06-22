@@ -76,6 +76,31 @@ class Settings:
     port: int = field(default_factory=lambda: _env_int("PORT", 8000))
     db_path: Path = field(default_factory=lambda: DB_PATH)
     rate_limit_per_minute: int = field(default_factory=lambda: _env_int("RATE_LIMIT_PER_MINUTE", 60))
+    webhook_secret: str = field(default_factory=lambda: _resolve_webhook_secret())
+    allow_insecure_auth: bool = field(
+        default_factory=lambda: _env("ALLOW_INSECURE_AUTH", "").lower() in ("1", "true", "yes", "on")
+    )
+    init_data_max_age_seconds: int = field(
+        default_factory=lambda: _env_int("INIT_DATA_MAX_AGE_SECONDS", 86_400)
+    )
+    redis_url: str = field(default_factory=lambda: _env("REDIS_URL", "redis://localhost:6379/0"))
+    use_redis: bool = field(
+        default_factory=lambda: _env("USE_REDIS", "1").lower() not in ("0", "false", "no", "off")
+    )
+    ai_max_retries: int = field(default_factory=lambda: _env_int("AI_MAX_RETRIES", 3))
+    gemini_timeout: int = field(default_factory=lambda: _env_int("GEMINI_TIMEOUT", 90))
+
+
+def _resolve_webhook_secret() -> str:
+    explicit = _env("WEBHOOK_SECRET")
+    if explicit:
+        return explicit
+    token = _env("BOT_TOKEN")
+    if token:
+        import hashlib
+
+        return hashlib.sha256(f"wh:{token}".encode()).hexdigest()[:32]
+    return ""
 
 
 settings = Settings()

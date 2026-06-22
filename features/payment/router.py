@@ -11,9 +11,10 @@ from fastapi.responses import FileResponse
 from backend.schemas.webapp import AuthRequest
 from config.settings import settings
 from core.security import allowed_image, rate_limit, validate_phone
+from core.telegram_auth import extract_telegram_user_id, validate_init_data
 from database.repositories import payments as payments_repo
 from features.payment import service as payment_service
-from shared.auth import resolve_uid
+from shared.auth import is_admin, resolve_uid
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["payment"])
@@ -53,6 +54,22 @@ async def api_auth(req: AuthRequest) -> dict:
     from database.repositories import users as users_repo
 
     body = req
+    init_data = (body.init_data or "").strip()
+
+    if not settings.allow_insecure_auth:
+        if not init_data:
+            raise HTTPException(status_code=401, detail="init_data talab qilinadi")
+        validated = validate_init_data(
+            init_data,
+            settings.bot_token,
+            max_age_seconds=settings.init_data_max_age_seconds,
+        )
+        if not validated:
+            raise HTTPException(status_code=401, detail="init_data noto'g'ri yoki muddati o'tgan")
+        verified_id = extract_telegram_user_id(validated)
+        if not verified_id or int(verified_id) != int(body.telegram_id):
+            raise HTTPException(status_code=401, detail="Foydalanuvchi tasdiqlanmadi")
+
     users_repo.upsert_user(
         body.telegram_id,
         username=body.username,
@@ -131,10 +148,20 @@ async def api_payment_status(
 
 
 @router.get("/api/receipt/{payment_id}")
-async def api_receipt(payment_id: int) -> FileResponse:
+async def api_receipt(
+    payment_id: int,
+    token: str | None = Query(None),
+    telegram_id: str | None = Query(None),
+) -> FileResponse:
+    uid = resolve_uid(telegram_id, token)
     payment = payments_repo.get_payment(payment_id)
     if not payment or not payment.get("receipt_path"):
         raise HTTPException(status_code=404, detail="Chek topilmadi")
+
+    owner_id = int(payment.get("telegram_id") or 0)
+    if not uid or (not is_admin(uid) and int(uid) != owner_id):
+        raise HTTPException(status_code=403, detail="Ruxsat yo'q")
+
     path = payment["receipt_path"]
     if not os.path.isfile(path):
         raise HTTPException(status_code=404, detail="Fayl topilmadi")

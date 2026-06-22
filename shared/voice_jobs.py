@@ -1,14 +1,17 @@
-"""In-memory async voice-fill jobs (instant HTTP ack + client polling)."""
+"""Async voice-fill jobs — Redis primary, in-memory fallback."""
 from __future__ import annotations
 
+import json
 import threading
 import time
 import uuid
 from typing import Any
 
+from core.redis_client import get_sync_redis, is_redis_live, key
+
 _lock = threading.Lock()
 _jobs: dict[str, dict[str, Any]] = {}
-_TTL_SECONDS = 600.0
+_TTL_SECONDS = 600
 
 
 def _purge_stale() -> None:
@@ -18,34 +21,85 @@ def _purge_stale() -> None:
         _jobs.pop(k, None)
 
 
+def _job_key(job_id: str) -> str:
+    return key(f"voice_job:{job_id}")
+
+
+def _redis_get(job_id: str) -> dict[str, Any] | None:
+    r = get_sync_redis()
+    if not r:
+        return None
+    raw = r.get(_job_key(job_id))
+    if not raw:
+        return None
+    try:
+        return json.loads(raw)
+    except json.JSONDecodeError:
+        return None
+
+
+def _redis_set(job_id: str, job: dict[str, Any]) -> None:
+    r = get_sync_redis()
+    if not r:
+        return
+    payload = {k: v for k, v in job.items() if k != "ts"}
+    r.setex(_job_key(job_id), int(_TTL_SECONDS), json.dumps(payload, ensure_ascii=False))
+
+
+def _new_job(uid: int, kind: str) -> dict[str, Any]:
+    return {
+        "id": "",
+        "uid": int(uid),
+        "kind": kind,
+        "step": 1,
+        "status": "running",
+        "data": None,
+        "missing_fields": [],
+        "fill_percent": 0,
+        "transcript": "",
+        "error": None,
+        "ts": time.monotonic(),
+    }
+
+
 def create_job(uid: int, kind: str = "oby") -> str:
     job_id = uuid.uuid4().hex
+    job = _new_job(uid, kind)
+    job["id"] = job_id
+
+    if is_redis_live():
+        _redis_set(job_id, job)
+        return job_id
+
     with _lock:
         _purge_stale()
-        _jobs[job_id] = {
-            "id": job_id,
-            "uid": int(uid),
-            "kind": kind,
-            "step": 1,
-            "status": "running",
-            "data": None,
-            "missing_fields": [],
-            "fill_percent": 0,
-            "transcript": "",
-            "error": None,
-            "ts": time.monotonic(),
-        }
+        _jobs[job_id] = job
     return job_id
 
 
-def set_step(job_id: str, step: int, **extra: Any) -> None:
+def _update(job_id: str, updater) -> None:
+    if is_redis_live():
+        job = _redis_get(job_id)
+        if not job:
+            return
+        updater(job)
+        _redis_set(job_id, job)
+        return
+
     with _lock:
         job = _jobs.get(job_id)
         if not job:
             return
-        job["step"] = int(step)
+        updater(job)
         job["ts"] = time.monotonic()
+
+
+def set_step(job_id: str, step: int, **extra: Any) -> None:
+    def _apply(job: dict[str, Any]) -> None:
+        job["step"] = int(step)
         job.update(extra)
+
+    _update(job_id, _apply)
 
 
 def complete_job(
@@ -71,11 +125,16 @@ def fail_job(job_id: str, error: str) -> None:
 
 
 def get_job(job_id: str, uid: int) -> dict[str, Any] | None:
-    with _lock:
-        job = _jobs.get(job_id)
-        if not job or int(job.get("uid") or 0) != int(uid):
-            return None
-        out = {k: v for k, v in job.items() if k != "ts"}
-        if out.get("data") is not None:
-            out["ok"] = True
-        return out
+    if is_redis_live():
+        job = _redis_get(job_id)
+    else:
+        with _lock:
+            job = _jobs.get(job_id)
+
+    if not job or int(job.get("uid") or 0) != int(uid):
+        return None
+
+    out = {k: v for k, v in job.items() if k != "ts"}
+    if out.get("data") is not None:
+        out["ok"] = True
+    return out

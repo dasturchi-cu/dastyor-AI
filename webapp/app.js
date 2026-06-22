@@ -158,11 +158,28 @@ const DastyorAI = (() => {
 
     async function apiFetch(path, opts = {}) {
         const headers = Object.assign({ 'Content-Type': 'application/json' }, opts.headers || {});
-        return fetch(BASE + path, { ...opts, headers });
+        const timeoutMs = Number(opts.timeoutMs) > 0 ? Number(opts.timeoutMs) : 30000;
+        const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+        const timer = controller
+            ? setTimeout(() => {
+                try {
+                    controller.abort();
+                } catch (_) {}
+            }, timeoutMs)
+            : null;
+        try {
+            const fetchOpts = { ...opts, headers };
+            if (controller && !fetchOpts.signal) fetchOpts.signal = controller.signal;
+            return await fetch(BASE + path, fetchOpts);
+        } finally {
+            if (timer) clearTimeout(timer);
+        }
     }
 
     async function auth(identity) {
-        const resp = await apiFetch('/api/auth', { method: 'POST', body: JSON.stringify(identity) });
+        const body = { ...identity };
+        if (tg?.initData) body.init_data = tg.initData;
+        const resp = await apiFetch('/api/auth', { method: 'POST', body: JSON.stringify(body) });
         if (!resp.ok) throw new Error(`/api/auth failed: ${resp.status}`);
         return resp.json();
     }
@@ -847,6 +864,133 @@ const DastyorAI = (() => {
         else tg.HapticFeedback.notificationOccurred(type);
     }
 
+    function debounce(fn, waitMs = 400) {
+        let timer = null;
+        return function debounced(...args) {
+            clearTimeout(timer);
+            timer = setTimeout(() => fn.apply(this, args), waitMs);
+        };
+    }
+
+    function throttle(fn, waitMs = 400) {
+        let last = 0;
+        let trailing = null;
+        return function throttled(...args) {
+            const now = Date.now();
+            const remaining = waitMs - (now - last);
+            if (remaining <= 0) {
+                last = now;
+                fn.apply(this, args);
+            } else {
+                clearTimeout(trailing);
+                trailing = setTimeout(() => {
+                    last = Date.now();
+                    fn.apply(this, args);
+                }, remaining);
+            }
+        };
+    }
+
+    function createDebouncedSaver(saveFn, waitMs = 500) {
+        let timer = null;
+        return function scheduleSave(...args) {
+            clearTimeout(timer);
+            timer = setTimeout(() => {
+                const run = () => {
+                    try {
+                        saveFn(...args);
+                    } catch (_) {}
+                };
+                if (typeof requestIdleCallback === 'function') {
+                    requestIdleCallback(run, { timeout: 900 });
+                } else {
+                    run();
+                }
+            }, waitMs);
+        };
+    }
+
+    let _toastTimer = null;
+    function showToast(message, type = 'success', durationMs = 3200) {
+        const text = String(message || '').trim();
+        if (!text) return;
+        let el = document.getElementById('da-toast-root');
+        if (!el) {
+            el = document.createElement('div');
+            el.id = 'da-toast-root';
+            el.setAttribute('role', 'status');
+            el.setAttribute('aria-live', 'polite');
+            document.body.appendChild(el);
+        }
+        const kind = type === 'error' ? 'error' : type === 'info' ? 'info' : 'success';
+        el.className = `da-toast-${kind}`;
+        el.textContent = text.slice(0, 280);
+        el.style.display = 'block';
+        clearTimeout(_toastTimer);
+        try {
+            if (kind === 'success') haptic('success');
+            else if (kind === 'error') haptic('error');
+        } catch (_) {}
+        _toastTimer = setTimeout(() => {
+            el.style.display = 'none';
+        }, durationMs);
+    }
+
+    function showDraftSaved(label = 'Saqlandi') {
+        let pill = document.getElementById('da-draft-pill');
+        if (!pill) {
+            pill = document.createElement('div');
+            pill.id = 'da-draft-pill';
+            pill.className = 'da-draft-pill';
+            pill.setAttribute('aria-live', 'polite');
+            document.body.appendChild(pill);
+        }
+        pill.textContent = '✓ ' + label;
+        pill.classList.add('is-visible');
+        clearTimeout(pill._hideTimer);
+        pill._hideTimer = setTimeout(() => pill.classList.remove('is-visible'), 1800);
+    }
+
+    function initNetworkBanner() {
+        if (document.getElementById('da-network-banner')) return;
+        const banner = document.createElement('div');
+        banner.id = 'da-network-banner';
+        banner.className = 'da-offline-banner';
+        banner.hidden = navigator.onLine !== false;
+        banner.textContent = translate('error_network', "Internet aloqasi yo'q. Draft mahalliy saqlanadi.");
+        document.body.appendChild(banner);
+        window.addEventListener('online', () => {
+            banner.hidden = true;
+            showToast(translate('success', 'Muvaffaqiyatli!'), 'success', 2000);
+        });
+        window.addEventListener('offline', () => {
+            banner.hidden = false;
+            showToast(translate('error_network', "Internet aloqasi yo'q"), 'error', 2800);
+        });
+    }
+
+    function prefetchPage(href) {
+        try {
+            const url = new URL(href, window.location.href).toString();
+            if (document.querySelector(`link[rel="prefetch"][href="${url}"]`)) return;
+            const link = document.createElement('link');
+            link.rel = 'prefetch';
+            link.href = url;
+            link.as = 'document';
+            document.head.appendChild(link);
+        } catch (_) {}
+    }
+
+    function bindPrefetchOnHover(selector) {
+        document.querySelectorAll(selector).forEach((el) => {
+            const href = el.getAttribute('href');
+            if (!href || href.startsWith('http')) return;
+            const once = () => prefetchPage(href);
+            el.addEventListener('mouseenter', once, { once: true, passive: true });
+            el.addEventListener('touchstart', once, { once: true, passive: true });
+        });
+    }
+
     /** To‘liq ekran: hujjat tayyorlash (CV, obyektivka, PDF, OCR, …) */
     let _docLoadingRef = 0;
     let _docLoadingEl = null;
@@ -1111,6 +1255,7 @@ html[data-theme="dark"] .da-doc-loading-ring{border-color:#334155;border-top-col
 
         await initPreferences();
         _bindViewportVars();
+        initNetworkBanner();
 
         if (autoNavLinks) {
             document.querySelectorAll('a[href]').forEach((a) => {
@@ -1356,6 +1501,14 @@ html[data-theme="dark"] .da-doc-loading-ring{border-color:#334155;border-top-col
         translit,
         generateDoc,
         haptic,
+        showToast,
+        showDraftSaved,
+        debounce,
+        throttle,
+        createDebouncedSaver,
+        prefetchPage,
+        bindPrefetchOnHover,
+        initNetworkBanner,
         showDocumentLoading,
         hideDocumentLoading,
         setProgressStep,
@@ -1436,7 +1589,9 @@ html[data-theme="dark"] .da-doc-loading-ring{border-color:#334155;border-top-col
     const _bootMobile = () => {
         try {
             _bindViewportVars();
+            initNetworkBanner();
             _ensureBottomNav();
+            bindPrefetchOnHover('a.service-card, a[href$="cv.html"], a[href*="obyektivka.html"]');
         } catch (_) {}
     };
     if (document.readyState === 'loading') {

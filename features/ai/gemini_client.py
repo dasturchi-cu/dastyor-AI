@@ -25,6 +25,13 @@ warnings.filterwarnings(
 
 import google.generativeai as genai
 from config import GOOGLE_API_KEY
+from config.settings import settings
+from features.ai.reliable import (
+    oby_extract_has_content,
+    parse_json_object,
+    response_text_or_empty,
+    retry_ai,
+)
 from shared.ai_errors import AiQuotaError, is_quota_error
 
 logger = logging.getLogger(__name__)
@@ -88,7 +95,7 @@ async def get_model(preferred_models: list[str] | None = None):
         return None
 
 
-GEMINI_TIMEOUT = 90  # seconds per API call
+GEMINI_TIMEOUT = settings.gemini_timeout  # seconds per API call
 STT_FILE_PROCESS_MAX_WAIT_SECONDS = float(os.getenv("STT_FILE_PROCESS_MAX_WAIT_SECONDS", "45") or "45")
 STT_FILE_PROCESS_POLL_SECONDS = float(os.getenv("STT_FILE_PROCESS_POLL_SECONDS", "0.5") or "0.5")
 STT_SKIP_AUDIO_NORMALIZE = str(os.getenv("STT_SKIP_AUDIO_NORMALIZE", "0") or "0").strip().lower() in ("1", "true", "yes")
@@ -123,12 +130,21 @@ async def generate_text_with_fallback(
     for model_name in order:
         try:
             model = genai.GenerativeModel(model_name)
-            response = await _gcall(model.generate_content_async(prompt), timeout=timeout)
-            if response and getattr(response, "text", None):
+
+            async def _generate(m=model):
+                return await _gcall(m.generate_content_async(prompt), timeout=timeout)
+
+            response = await retry_ai(
+                _generate,
+                attempts=settings.ai_max_retries,
+                label=f"gemini:{model_name}",
+            )
+            text = response_text_or_empty(response)
+            if text:
                 _MODEL_CACHE = model
                 _MODEL_CACHE_NAME = model_name
                 logger.info("Gemini response via model: %s", model_name)
-                return response.text
+                return text
         except AiQuotaError as e:
             last_quota = e
             logger.warning("Gemini quota on %s — trying next model", model_name)
@@ -317,6 +333,8 @@ async def transcribe_audio(audio_file_path: str) -> str:
             return "Audio tanilmadi."
 
         raw = (result.text or "").strip()
+        if not raw:
+            raw = response_text_or_empty(result)
         if raw.upper() in ("[EMPTY]", "[BO'SH]", "[BOSH]"):
             return ""
         logger.info("STT raw len=%s preview=%r", len(raw), raw[:160])
@@ -986,32 +1004,7 @@ async def generate_objective(role: str, experience: str = "junior", extra: str =
 
 
 def _oby_extract_has_content(d: dict) -> bool:
-    """Hech bo'lmaganda bitta mazmunli maydon bor-yo'qligini tekshirish."""
-    if not d:
-        return False
-    skip = {"", "yo'q", "yoq", "yok", "нет", "no", "none"}
-    for k, v in d.items():
-        if k == "relatives" and isinstance(v, list):
-            for r in v:
-                if isinstance(r, dict) and any(
-                    str(x).strip() for x in r.values() if x is not None
-                ):
-                    return True
-            continue
-        if k == "work_experience" and isinstance(v, list):
-            for w in v:
-                if not isinstance(w, dict):
-                    continue
-                for x in w.values():
-                    s = str(x).strip().lower() if x is not None else ""
-                    if s and s not in skip:
-                        return True
-            continue
-        if isinstance(v, str):
-            s = v.strip().lower()
-            if s and s not in skip:
-                return True
-    return False
+    return oby_extract_has_content(d)
 
 
 async def extract_obyektivka_data(text: str) -> dict:
@@ -1061,12 +1054,7 @@ async def extract_obyektivka_data(text: str) -> dict:
         )
         if not raw_text:
             return {}
-        cleaned = raw_text.replace('```json', '').replace('```', '').strip()
-        start = cleaned.find('{')
-        end = cleaned.rfind('}') + 1
-        if start != -1 and end != -1:
-            cleaned = cleaned[start:end]
-        parsed = json.loads(cleaned)
+        parsed = parse_json_object(raw_text)
         if isinstance(parsed, dict) and _oby_extract_has_content(parsed):
             return parsed
         return {}

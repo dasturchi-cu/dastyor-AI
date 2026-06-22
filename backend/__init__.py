@@ -1,2 +1,2 @@
-"""Backend package for Dastyor AI (FastAPI + Redis + Celery)."""
+"""Backend package for Dastyor AI (FastAPI + optional Redis)."""
 

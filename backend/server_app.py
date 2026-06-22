@@ -23,13 +23,24 @@ from config.settings import WEBAPP_DIR, settings
 from database.connection import init_db
 from features.ai.router import router as ai_router
 from features.cv.router import router as cv_router
-from features.legacy.router import router as legacy_router
+from features.webapp_compat.router import router as webapp_compat_router
 from features.obyektivka.router import router as oby_router
 from features.payment.router import router as payment_router
 from main import create_bot, create_dispatcher
 
 load_dotenv()
 logger = logging.getLogger(__name__)
+
+
+def _cors_origins() -> list[str]:
+    origins: list[str] = []
+    for raw in (settings.site_base_url, settings.webapp_base):
+        url = (raw or "").strip().rstrip("/")
+        if url.startswith("http://") or url.startswith("https://"):
+            origins.append(url)
+    if settings.allow_insecure_auth:
+        origins.extend(["http://127.0.0.1:8000", "http://localhost:8000"])
+    return origins or ["https://localhost"]
 
 
 def create_webhook_app() -> FastAPI:
@@ -45,13 +56,23 @@ def create_webhook_app() -> FastAPI:
         app.state.bot = bot
         app.state.dp = dp
         skip_webhook = os.getenv("SKIP_WEBHOOK", "").strip().lower() in ("1", "true", "yes")
+        webhook_secret = settings.webhook_secret
+        app.state.webhook_secret = webhook_secret
         await bot.delete_webhook(drop_pending_updates=True)
         if settings.webhook_url and not skip_webhook:
-            await bot.set_webhook(url=settings.webhook_url, drop_pending_updates=True)
-            logger.info("Webhook set: %s", settings.webhook_url)
+            await bot.set_webhook(
+                url=settings.webhook_url,
+                secret_token=webhook_secret or None,
+                drop_pending_updates=True,
+            )
+            logger.info("Webhook set: %s (secret=%s)", settings.webhook_url, bool(webhook_secret))
         elif skip_webhook:
             logger.info("SKIP_WEBHOOK=1 — polling mode (webhook o'rnatilmadi)")
         yield
+        from core.redis_client import close_async, close_sync
+
+        await close_async()
+        close_sync()
         await bot.session.close()
         logger.info("Webhook application stopped")
 
@@ -60,11 +81,12 @@ def create_webhook_app() -> FastAPI:
         title="Hujjatchi AI",
         version="3.0",
     )
+    cors_origins = _cors_origins()
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["*"],
+        allow_origins=cors_origins,
         allow_credentials=True,
-        allow_methods=["*"],
+        allow_methods=["GET", "POST", "OPTIONS"],
         allow_headers=["*"],
     )
     app.add_middleware(GZipMiddleware, minimum_size=512)
@@ -79,7 +101,7 @@ def create_webhook_app() -> FastAPI:
     app.include_router(cv_router)
     app.include_router(oby_router)
     app.include_router(ai_router)
-    app.include_router(legacy_router)
+    app.include_router(webapp_compat_router)
     app.include_router(tg_update_router)
 
     webapp_path = Path(WEBAPP_DIR)

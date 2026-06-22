@@ -15,6 +15,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&family=Sora:wght@600;700&display=swap" rel="stylesheet" />
   
+  <link rel="prefetch" href="obyektivka.html">
   <script src="https://telegram.org/js/telegram-web-app.js" defer></script>
   <script src="app.js" defer></script>
   <script defer src="https://cdn.tailwindcss.com"></script>
@@ -395,7 +396,11 @@
         <div class="mt-3"></div>
       </div>
 
-      <div id="previewPane" class="preview-pane-light w-full flex items-start justify-center p-4 sm:p-10 scroller overflow-y-auto rounded-2xl">
+      <div id="previewPane" class="preview-pane-light relative w-full flex items-start justify-center p-4 sm:p-10 scroller overflow-y-auto rounded-2xl">
+        <div id="cvPreviewLoading" class="da-preview-loading" aria-hidden="true">
+          <div class="da-spinner"></div>
+          <span data-i18n="loading">Yuklanmoqda...</span>
+        </div>
         <div class="cv-canvas-wrapper" id="previewScaleWrapper">
           <!-- sandbox faqat allow-same-origin bo‘lsa TG WebView / iOS da srcdoc ba’zan bo‘sh; skriptlar shablon uchun -->
           <iframe id="cv-preview-frame" title="CV preview" sandbox="allow-scripts allow-same-origin"
@@ -410,6 +415,16 @@
   </div>
 
   <script>
+    function daToast(msg, type) {
+      if (window.DastyorAI && DastyorAI.showToast) DastyorAI.showToast(msg, type || 'info');
+      else alert(msg);
+    }
+    function setCvPreviewLoading(on) {
+      const el = document.getElementById('cvPreviewLoading');
+      if (!el) return;
+      el.classList.toggle('is-active', !!on);
+      el.setAttribute('aria-hidden', on ? 'false' : 'true');
+    }
     // --- UI: faqat hujjat tili (#langSelect / docLang); ilova sozlamalari tiliga bog‘lanmaydi ---
     const cvDocPack = {
       uz_lat: {"app_title":"CV Builder","step_1":"Shaxsiy","step_2":"Tajriba","step_3":"Yutuqlar","upload_img":"Rasmni tanlang","drag_img":"yoki rasmni shu yerga tortib tashlang","photo_hint":"JPG yoki PNG (3×4 rasm)","img_wrong_doc":"Bu CV fayli (PDF/Word). Rasm uchun «Rasmni tanlang» tugmasini bosing.","img_bad_format":"Rasm ochilmadi. JPG yoki PNG tanlang.","img_heic_hint":"iPhone HEIC: galereyada «Eng mos format» yoki JPG qilib saqlang.","name":"Ism Familiya","name_ph":"Ali Valiyev","role":"Kasb / Lavozim","role_ph":"Masalan: Dasturchi","phone":"Telefon","cv_phone_ph":"+998 90 123 45 67","email":"Email","location":"Manzil (Viloyat, Shahar)","loc_ph":"Masalan: Toshkent shahri","about":"Men haqimda","about_ph":"Men haqimda...","next_btn":"Keyingisi","back_btn":"Orqaga","edu_title":"Ta'lim","add_edu":"+ Ta'lim qo'shish","exp_title":"Ish tajribasi","add_exp":"+ Tajriba qo'shish","lang_title":"Til bilish","add_lang":"+ Til qo'shish","skills_title":"Ko'nikmalar (Skills)","ach_title":"Yutuqlar va qobiliyatlar","preview":"Jonli ko'rinish","cv_color":"Rang:","download_pdf":"PDF botga yuborish","pay_5000":"💳 5 000 so'm to'lash","pay_help":"Limit tugasa pastdagi '5 000 so'm to'lash' tugmasi orqali davom etasiz.","cv_pay_shot_picked_title":"Rasm tanlandi","cv_pay_shot_next":"Endi «Yuborish» tugmasini bosing.","clear_data":"Ma'lumotlarni tozalash","cv_clear_confirm":"Ishonchingiz komilmi?","cv_select_lang":"Til tanlang","cv_lang_en":"Ingliz tili","cv_lang_ru":"Rus tili","cv_lang_de":"Nemis tili","cv_lang_tr":"Turk tili","cv_lang_other":"Boshqa","cv_listen":"Tinglash","cv_read":"O'qish","cv_speak":"Gapirish","cv_write":"Yozish","cv_cert":"Sertifikat","cv_dip":"Diplom","cv_honor":"Faxriy yorliq","cv_prize":"Sovrin","cv_ach_name_ph":"Nomi (masalan: IELTS 7.5)","cv_year_ph":"Yili","cv_title_ph":"Sarlavha","cv_place_ph":"Joy nomi","cv_date_ph":"2020-2024","cv_quick_skills":"Tezkor tanlash:","cv_skills_ph":"Masalan: Liderlik, Python...","cv_sug_skills":"Microsoft Word, Microsoft Excel, PowerPoint, Jamoaviy ishlash, Muammoni hal qilish"},
@@ -1006,8 +1021,18 @@
     function scheduleSaveToLocalStorage() {
       clearTimeout(_saveDebounceTimer);
       _saveDebounceTimer = setTimeout(function () {
-        try { saveToLocalStorage(); } catch (_) {}
-      }, 450);
+        const run = function () {
+          try {
+            saveToLocalStorage();
+            if (window.DastyorAI && DastyorAI.showDraftSaved) DastyorAI.showDraftSaved('Draft saqlandi');
+          } catch (_) {}
+        };
+        if (typeof requestIdleCallback === 'function') {
+          requestIdleCallback(run, { timeout: 900 });
+        } else {
+          run();
+        }
+      }, 520);
     }
 
     function loadFromLocalStorage() {
@@ -1143,7 +1168,7 @@
       }
       previewDebounceTimer = setTimeout(function () {
         fetchServerPreview();
-      }, 420);
+      }, 500);
     }
 
     async function getPreviewImageFast(src) {
@@ -1312,6 +1337,7 @@
       if (previewAbort) previewAbort.abort();
       previewAbort = new AbortController();
       const base = getCvApiBase();
+      setCvPreviewLoading(true);
       try {
         const html = await fetchPreviewHtmlForTemplate(tpl, previewAbort.signal);
         if (reqId !== previewRequestId) return;
@@ -1327,6 +1353,8 @@
           if (reqId !== previewRequestId) return;
           autoScale();
         };
+      } finally {
+        if (reqId === previewRequestId) setCvPreviewLoading(false);
       }
     }
 
@@ -1687,9 +1715,10 @@
         applyCvVoiceData(js.data);
         if (status) status.textContent = '✅ Forma to\'ldirildi (~' + (js.fill_percent || 80) + '%)';
         if (DA.setProgressStep) DA.setProgressStep(5, 'Tayyor!');
+        daToast('✅ CV formasi to\'ldirildi', 'success');
       } catch (e) {
         if (status) status.textContent = '';
-        alert("❌ Ovozli to'ldirishda xatolik: " + ((e && e.message) || e));
+        daToast("❌ Ovozli to'ldirishda xatolik: " + ((e && e.message) || e), 'error');
       } finally {
         _cvVoiceUploading = false;
         if (DA.hideDocumentLoading) DA.hideDocumentLoading();

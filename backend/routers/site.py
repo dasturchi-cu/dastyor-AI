@@ -7,6 +7,7 @@ from fastapi import APIRouter
 from fastapi.responses import FileResponse, RedirectResponse
 
 from backend.paths import webapp_index_path
+from core.redis_client import ping_async, redis_enabled
 
 router = APIRouter(tags=["site"])
 
@@ -31,10 +32,14 @@ def _index_response():
 
 @router.get("/health")
 async def health():
+    redis_status = "disabled"
+    if redis_enabled():
+        redis_status = "ok" if await ping_async() else "unavailable"
     return {
         "ok": True,
         "status": "healthy",
         "webapp_mounted": True,
+        "redis": redis_status,
         "time": time.time(),
     }
 
