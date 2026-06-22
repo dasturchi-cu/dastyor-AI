@@ -7,8 +7,10 @@ import logging
 import os
 import uuid
 
+import re
+
 from fastapi import APIRouter, File, Form, HTTPException, Query, Request, UploadFile
-from fastapi.responses import JSONResponse, StreamingResponse
+from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
 
 from backend.schemas.webapp import ExportObyektivkaRequest, ObyektivkaRequest, PreviewObyektivkaRequest
 from core.security import rate_limit
@@ -21,7 +23,7 @@ from features.ai.service import (
 from features.obyektivka import service as oby_service
 from shared import async_db
 from shared.ai_errors import AI_QUOTA_USER_MSG, AiQuotaError
-from shared.auth import resolve_uid_from_webapp
+from shared.auth import resolve_uid, resolve_uid_from_webapp
 from shared import voice_jobs
 from shared.export_delivery import send_bytes_to_telegram
 
@@ -200,7 +202,7 @@ async def api_oby_voice_fill_sync(
 
 
 @router.post("/api/preview_obyektivka")
-async def api_preview_oby(req: PreviewObyektivkaRequest) -> dict:
+async def api_preview_oby(req: PreviewObyektivkaRequest) -> HTMLResponse:
     import asyncio
 
     from backend.services.oby_preview_cache import (
@@ -210,16 +212,46 @@ async def api_preview_oby(req: PreviewObyektivkaRequest) -> dict:
     )
     from backend.services.render_service import render_obyektivka_html
 
-    payload = req.model_dump(exclude={"telegram_id", "token", "init_data"})
-    cache_key = cache_key_for_oby_preview(payload)
+    payload = req.model_dump(exclude={"watermark", "mask_pii"})
+    cache_key = cache_key_for_oby_preview({**payload, "watermark": True, "mask_pii": True})
     cached = oby_preview_cache_get(cache_key)
     if cached is not None:
-        return {"ok": True, "html": cached}
+        return HTMLResponse(content=cached, media_type="text/html; charset=utf-8")
     html = await asyncio.to_thread(
         render_obyektivka_html, payload, watermark=True, mask_pii=True
     )
     oby_preview_cache_set(cache_key, html)
-    return {"ok": True, "html": html}
+    return HTMLResponse(content=html, media_type="text/html; charset=utf-8")
+
+
+@router.post("/api/test_obyektivka_pdf")
+async def api_test_obyektivka_pdf(req: PreviewObyektivkaRequest, request: Request) -> StreamingResponse:
+    """Demo PDF with watermark — no auth, for WebApp «Test yuklash»."""
+    from backend.services.render_service import generate_obyektivka_pdf
+    from config.settings import settings
+
+    await rate_limit(request)
+    payload = req.model_dump(exclude={"watermark", "mask_pii"})
+    base_url = (settings.site_base_url or "").strip().rstrip("/")
+    if not base_url:
+        base_url = settings.webapp_base.replace("/webapp", "").rstrip("/")
+
+    pdf_bytes = await generate_obyektivka_pdf(
+        payload,
+        base_url=base_url or None,
+        watermark=True,
+        mask_pii=True,
+    )
+    if not pdf_bytes:
+        raise HTTPException(status_code=500, detail="PDF yaratib bo'lmadi")
+
+    safe_name = re.sub(r"[^\w\u0400-\u04FF]+", "_", (payload.get("fullname") or "Obyektivka"))[:40]
+    filename = f"DEMO_Malumotnoma_{safe_name or 'Obyektivka'}.pdf"
+    return StreamingResponse(
+        io.BytesIO(pdf_bytes),
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
 
 
 @router.post("/api/export_obyektivka")
