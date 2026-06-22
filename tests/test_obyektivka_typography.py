@@ -1,0 +1,81 @@
+"""Obyektivka DOCX typography — label bold, value underlined."""
+from __future__ import annotations
+
+import unittest
+import zipfile
+from pathlib import Path
+
+from features.obyektivka.docx_template import generate_obyektivka_docx
+from features.obyektivka.docx_typography import (
+    W,
+    find_runs_containing,
+    run_has_underline,
+    typography_summary,
+)
+from lxml import etree
+
+ROOT = Path(__file__).resolve().parent.parent
+MASTER = ROOT / "templates" / "obyektivka_master.docx"
+
+
+def _load_doc_xml(path: Path) -> etree._Element:
+    xml = zipfile.ZipFile(path).read("word/document.xml")
+    return etree.fromstring(xml)
+
+
+class TestObyektivkaTypography(unittest.TestCase):
+    def test_value_underlined_label_bold(self):
+        if not MASTER.is_file():
+            self.skipTest("master docx missing")
+
+        out = ROOT / "temp" / "test_typography.docx"
+        path = generate_obyektivka_docx(
+            {
+                "fullname": "Test User",
+                "lang": "uz_cyr",
+                "birthdate": "25.10.1960",
+                "birthplace": "Toshkent viloyati",
+                "nation": "O'zbek",
+                "education": "Oliy",
+                "scientific_title": "Professor",
+                "work_experience": [{"year": "1977-1982", "position": "Talaba"}],
+                "relatives": [
+                    {
+                        "degree": "Otasi",
+                        "fullname": "Aliyev Vali",
+                        "birth_year_place": "1950",
+                        "work_place": "Nafaqada",
+                        "address": "Toshkent",
+                    }
+                ],
+            },
+            output_filepath=str(out),
+        )
+        root = _load_doc_xml(Path(path))
+
+        date_runs = find_runs_containing(root, "25.10.1960")
+        self.assertTrue(date_runs, "birthdate value missing")
+        self.assertTrue(run_has_underline(date_runs[0]))
+
+        nation_runs = find_runs_containing(root, "O'zbek")
+        self.assertTrue(nation_runs)
+        self.assertTrue(run_has_underline(nation_runs[0]))
+
+        rel_runs = find_runs_containing(root, "Aliyev Vali")
+        self.assertTrue(rel_runs)
+        self.assertTrue(run_has_underline(rel_runs[0]))
+
+        label_runs = find_runs_containing(root, "Миллати:")
+        self.assertTrue(label_runs)
+        rpr = label_runs[0].find(f"{W}rPr")
+        self.assertIsNotNone(rpr)
+        self.assertIsNotNone(rpr.find(f"{W}b"))
+        self.assertFalse(run_has_underline(label_runs[0]))
+
+        summary = typography_summary(root)
+        self.assertGreater(summary["label_runs"], 10)
+        self.assertGreater(summary["value_runs"], 5)
+
+
+if __name__ == "__main__":
+    unittest.main()

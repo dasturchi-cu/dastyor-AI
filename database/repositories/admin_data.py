@@ -310,6 +310,11 @@ def top_users_report(limit: int = 5) -> dict[str, list[dict[str, Any]]]:
     }
 
 
+def count_users() -> int:
+    with get_connection() as conn:
+        return _scalar(conn, "SELECT COUNT(*) FROM users")
+
+
 def export_statistics_rows() -> list[dict[str, Any]]:
     price = settings.single_doc_price_uzs
     periods = [

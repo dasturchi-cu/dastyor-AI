@@ -167,6 +167,17 @@ def main() -> None:
     parts["word/document.xml"] = xml.encode("utf-8")
     write_parts(OUT, parts)
 
+    from features.obyektivka.docx_typography import apply_master_template_styles
+    from lxml import etree
+
+    parts = read_parts(OUT)
+    root = etree.fromstring(parts["word/document.xml"])
+    apply_master_template_styles(root)
+    parts["word/document.xml"] = etree.tostring(
+        root, xml_declaration=True, encoding="UTF-8", standalone=True
+    )
+    write_parts(OUT, parts)
+
     ref_pb = count_page_breaks(src)
     out_pb = count_page_breaks(OUT)
     print("written", OUT)

@@ -12,6 +12,7 @@ from aiogram.types import CallbackQuery, FSInputFile, Message
 from config.settings import settings
 from database.repositories import error_logs as error_logs_repo
 from database.repositories import payments as payments_repo
+from database.repositories import admin_stats as stats_repo
 from database.repositories import users as users_repo
 from features.admin import actions as admin_actions
 from features.admin import service as admin_service
@@ -19,6 +20,7 @@ from features.admin.dispatch import dispatch_admin_menu, is_admin
 from features.admin.keyboards import (
     broadcast_confirm_kb,
     error_filter_kb,
+    payment_filter_kb,
     user_profile_kb,
     user_search_results_kb,
 )
@@ -86,7 +88,7 @@ async def admin_search_run(message: Message, state: FSMContext) -> None:
     query = (message.text or "").strip()
     try:
         await state.clear()
-        rows = await asyncio.to_thread(users_repo.search_users, query, 10)
+        rows = await asyncio.to_thread(stats_repo.search_users_enriched, query, 10)
         if not rows:
             await message.answer("Hech narsa topilmadi.", reply_markup=admin_menu())
             return
@@ -239,13 +241,13 @@ async def export_callback(query: CallbackQuery) -> None:
     try:
         if kind == "users":
             path = await asyncio.to_thread(admin_service.build_users_xlsx)
-            caption = "Users.xlsx"
+            caption = "users.xlsx"
         elif kind == "payments":
             path = await asyncio.to_thread(admin_service.build_payments_xlsx)
-            caption = "Payments.xlsx"
+            caption = "payments.xlsx"
         else:
             path = await asyncio.to_thread(admin_service.build_statistics_xlsx)
-            caption = "Statistics.xlsx"
+            caption = "statistics.xlsx"
         if query.message:
             await query.message.answer_document(FSInputFile(path), caption=caption)
     except Exception as exc:
@@ -265,31 +267,40 @@ async def payment_filter_callback(query: CallbackQuery) -> None:
     key = (query.data or "").replace("adm_pay_", "")
     period = None
     status = None
+    title = key
     if key == "today":
         period = "today"
+        title = "Bugungi to'lovlar"
     elif key == "week":
         period = "week"
+        title = "Haftalik to'lovlar"
     elif key == "month":
         period = "month"
+        title = "Oylik to'lovlar"
     elif key in ("pending", "approved", "rejected"):
         status = key.upper()
+        title = f"{status} to'lovlar"
+    elif key == "all":
+        title = "Barcha to'lovlar"
     try:
+        from features.admin.formatters import build_payments_list_text
+
         rows = await asyncio.to_thread(
-            payments_repo.list_filtered,
+            stats_repo.list_payments_enriched,
             period=period,
             status=status,
             limit=15,
         )
-        if key == "all":
-            rows = await asyncio.to_thread(payments_repo.list_filtered, limit=15)
         if not rows:
             await query.message.answer(
-                f"💳 Filtr «{key}»: to'lovlar topilmadi.",
+                f"💳 {title}: to'lovlar topilmadi.",
                 reply_markup=admin_menu(),
             )
             return
-        await query.message.answer(f"<b>Filtr:</b> {key} ({len(rows)} ta)")
-        await admin_actions._send_payment_rows(query.message, rows)
+        text = build_payments_list_text(rows, title=title)
+        await query.message.answer(text, reply_markup=payment_filter_kb())
+        if status == "PENDING":
+            await admin_actions._send_payment_rows(query.message, rows)
     except Exception as exc:
         logger.exception("Payment filter failed: %s", exc)
         await query.message.answer(f"❌ To'lovlar xatosi: {exc}")
@@ -472,5 +483,8 @@ async def payment_callback(query: CallbackQuery) -> None:
                 await query.message.reply("Rad etish xatosi.")
     except Exception as exc:
         logger.exception("Payment callback failed: %s", exc)
+        from shared.error_log import record_error
+
+        record_error("payment", f"Admin callback #{pid}: {exc}")
         if query.message:
             await query.message.reply(f"❌ To'lov amali xatosi: {exc}")

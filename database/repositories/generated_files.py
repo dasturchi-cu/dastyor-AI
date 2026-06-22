@@ -4,6 +4,7 @@ from __future__ import annotations
 from typing import Any
 
 from database.connection import get_connection, row_to_dict
+from database.repositories import admin_data
 from database.repositories import users as users_repo
 
 
@@ -44,9 +45,7 @@ def record_file(
         else:
             log_obyektivka(int(telegram_id), name)
         log_download(int(telegram_id), name, document=ft)
-        from shared import cache as ttl_cache
-
-        ttl_cache.invalidate("admin:dashboard")
+        admin_data.invalidate_metrics_cache()
     return data
 
 

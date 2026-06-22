@@ -11,13 +11,11 @@ from pathlib import Path
 
 from lxml import etree
 
+from features.obyektivka.docx_typography import escape_xml_text, render_document_xml
+
 W_NS = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
 XML_NS = "http://www.w3.org/XML/1998/namespace"
 W = f"{{{W_NS}}}"
-
-
-def escape_xml_text(value: str) -> str:
-    return html.escape(value or "", quote=False)
 
 
 def read_parts(path: Path) -> dict[str, bytes]:
@@ -131,9 +129,8 @@ def clone_with_replacements(
 def render_template(template: Path, context: dict[str, str], output: Path) -> None:
     shutil.copy2(template, output)
     parts = read_parts(output)
-    xml = parts["word/document.xml"].decode("utf-8")
-    xml = apply_placeholder_context(xml, context)
-    parts["word/document.xml"] = xml.encode("utf-8")
+    xml_bytes = parts["word/document.xml"]
+    parts["word/document.xml"] = render_document_xml(xml_bytes, context)
     write_parts(output, parts)
 
 

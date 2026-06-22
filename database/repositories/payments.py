@@ -5,7 +5,7 @@ from typing import Any
 
 from database.connection import get_connection, row_to_dict
 from database.repositories import users as users_repo
-from shared import cache as ttl_cache
+from database.repositories import admin_data
 
 
 def create_payment(
@@ -37,7 +37,7 @@ def create_payment(
         tid = int(user["telegram_id"]) if user else 0
         name = payer_name.strip()[:80] or "Foydalanuvchi"
         log_payment(tid, name, document=doc or "")
-        ttl_cache.invalidate("admin:dashboard")
+        admin_data.invalidate_metrics_cache()
     return payment
 
 
@@ -87,7 +87,10 @@ def set_status(payment_id: int, status: str, admin_note: str | None = None) -> b
             """,
             (status, admin_note, int(payment_id)),
         )
-        return cur.rowcount > 0
+        ok = cur.rowcount > 0
+    if ok:
+        admin_data.invalidate_metrics_cache()
+    return ok
 
 
 def approve_atomic(payment_id: int, admin_note: str | None = None) -> dict[str, Any] | None:
@@ -137,6 +140,7 @@ def approve_atomic(payment_id: int, admin_note: str | None = None) -> dict[str, 
         else:
             return None
 
+    admin_data.invalidate_metrics_cache()
     return get_payment(pid)
 
 

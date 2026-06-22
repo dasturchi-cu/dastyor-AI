@@ -60,23 +60,23 @@ def export_users_rows() -> list[dict[str, Any]]:
 
 
 def export_payments_rows() -> list[dict[str, Any]]:
-  price = settings.single_doc_price_uzs
-  with get_connection() as conn:
-      rows = conn.execute(
-          """
-          SELECT p.id, u.telegram_id, u.username, u.first_name, u.last_name,
-                 p.payer_name, p.document_type, p.status, p.created_at
-          FROM payments p
-          JOIN users u ON u.id = p.user_id
-          ORDER BY p.created_at DESC
-          """
-      ).fetchall()
-  result = []
-  for r in rows:
-      d = row_to_dict(r) or {}
-      d["amount_uzs"] = price
-      result.append(d)
-  return result
+    price = settings.single_doc_price_uzs
+    with get_connection() as conn:
+        rows = conn.execute(
+            """
+            SELECT p.id, u.telegram_id, u.username, u.first_name, u.last_name,
+                   p.payer_name, p.document_type, p.status, p.created_at
+            FROM payments p
+            JOIN users u ON u.id = p.user_id
+            ORDER BY p.created_at DESC
+            """
+        ).fetchall()
+    result = []
+    for r in rows:
+        d = row_to_dict(r) or {}
+        d["amount_uzs"] = price
+        result.append(d)
+    return result
 
 
 export_statistics_rows = admin_data.export_statistics_rows
@@ -84,4 +84,4 @@ list_users_enriched = admin_data.list_users_enriched
 search_users_enriched = admin_data.search_users_enriched
 list_payments_enriched = admin_data.list_payments_enriched
 top_users_report = admin_data.top_users_report
-count_users = lambda: admin_data.get_global_metrics().get("users_count", 0)
+count_users = admin_data.count_users

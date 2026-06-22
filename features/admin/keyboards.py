@@ -86,7 +86,11 @@ def error_filter_kb() -> InlineKeyboardMarkup:
         inline_keyboard=[
             [
                 InlineKeyboardButton(text="Barchasi", callback_data="adm_err_all"),
+                InlineKeyboardButton(text="Bot", callback_data="adm_err_bot"),
+            ],
+            [
                 InlineKeyboardButton(text="Gemini", callback_data="adm_err_gemini"),
+                InlineKeyboardButton(text="To'lov", callback_data="adm_err_payment"),
             ],
             [
                 InlineKeyboardButton(text="PDF", callback_data="adm_err_pdf"),

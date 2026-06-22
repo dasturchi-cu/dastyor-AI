@@ -116,7 +116,7 @@ def _write_xlsx(headers: list[str], rows: list[list[Any]], path: Path) -> None:
 
 def build_users_xlsx() -> Path:
     rows = stats_repo.export_users_rows()
-    path = Path(tempfile.gettempdir()) / "Users.xlsx"
+    path = Path(tempfile.gettempdir()) / "users.xlsx"
     data = [
         [
             r.get("telegram_id"),
@@ -126,10 +126,10 @@ def build_users_xlsx() -> Path:
             r.get("credits"),
             r.get("payments_count"),
             r.get("cv_count"),
-            r.get("oby_count"),
+            r.get("obyektivka_count"),
             r.get("is_blocked"),
             r.get("created_at"),
-            r.get("last_active_at"),
+            r.get("last_activity"),
         ]
         for r in rows
     ]
@@ -145,7 +145,7 @@ def build_users_xlsx() -> Path:
             "obyektivka",
             "blocked",
             "registered",
-            "last_active",
+            "last_activity",
         ],
         data,
         path,
@@ -155,7 +155,7 @@ def build_users_xlsx() -> Path:
 
 def build_payments_xlsx() -> Path:
     rows = stats_repo.export_payments_rows()
-    path = Path(tempfile.gettempdir()) / "Payments.xlsx"
+    path = Path(tempfile.gettempdir()) / "payments.xlsx"
     data = [
         [
             r.get("id"),
@@ -163,8 +163,8 @@ def build_payments_xlsx() -> Path:
             r.get("username"),
             r.get("payer_name"),
             r.get("document_type"),
+            r.get("amount_uzs"),
             r.get("status"),
-            r.get("card_number"),
             r.get("created_at"),
         ]
         for r in rows
@@ -176,8 +176,8 @@ def build_payments_xlsx() -> Path:
             "username",
             "payer_name",
             "document_type",
+            "amount_uzs",
             "status",
-            "card_number",
             "created_at",
         ],
         data,
@@ -188,13 +188,15 @@ def build_payments_xlsx() -> Path:
 
 def build_statistics_xlsx() -> Path:
     rows = stats_repo.export_statistics_rows()
-    path = Path(tempfile.gettempdir()) / "Statistics.xlsx"
+    path = Path(tempfile.gettempdir()) / "statistics.xlsx"
     data = [
         [
             r.get("period"),
-            r.get("new_users"),
+            r.get("users"),
             r.get("payments"),
-            r.get("approved_payments"),
+            r.get("approved"),
+            r.get("rejected"),
+            r.get("pending"),
             r.get("cv"),
             r.get("obyektivka"),
             r.get("revenue_uzs"),
@@ -204,9 +206,11 @@ def build_statistics_xlsx() -> Path:
     _write_xlsx(
         [
             "period",
-            "new_users",
+            "users",
             "payments",
-            "approved_payments",
+            "approved",
+            "rejected",
+            "pending",
             "cv",
             "obyektivka",
             "revenue_uzs",

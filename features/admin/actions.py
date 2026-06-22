@@ -13,9 +13,14 @@ from database.repositories import admin_stats as stats_repo
 from database.repositories import error_logs as error_logs_repo
 from database.repositories import generated_files as files_repo
 from database.repositories import payments as payments_repo
-from database.repositories import users as users_repo
 from features.admin import service as admin_service
 from features.admin.dashboard import build_dashboard_text, start_dashboard
+from features.admin.formatters import (
+    build_payments_list_text,
+    build_statistics_text,
+    build_top_users_report,
+    build_users_list_text,
+)
 from features.admin.keyboards import (
     error_filter_kb,
     export_kb,
@@ -27,7 +32,6 @@ from shared.keyboards import admin_menu, user_menu
 from shared.payment_notifications import (
     build_payment_notification_text,
     build_pending_payments_list,
-    format_username,
 )
 
 logger = logging.getLogger(__name__)
@@ -35,18 +39,10 @@ logger = logging.getLogger(__name__)
 
 async def handle_users(message: Message, state: FSMContext) -> None:
     await state.clear()
-    rows = await _run_sync(users_repo.list_users, 20)
-    if not rows:
-        await message.answer("👥 Hozircha foydalanuvchilar yo'q.", reply_markup=admin_menu())
-        return
-    lines = ["<b>👥 Foydalanuvchilar (oxirgi 20)</b>\n"]
-    for u in rows:
-        uname = format_username(u.get("username"))
-        lines.append(
-            f"• <code>{u['telegram_id']}</code> | {uname} | {u.get('first_name') or '—'}"
-        )
-    lines.append("\n🔍 Aniq qidirish: «Qidirish» tugmasi.")
-    await message.answer("\n".join(lines), reply_markup=admin_menu())
+    rows = await _run_sync(stats_repo.list_users_enriched, 20)
+    total = await _run_sync(stats_repo.count_users)
+    text = build_users_list_text(rows, total=total)
+    await message.answer(text, reply_markup=admin_menu())
 
 
 async def handle_search_prompt(message: Message, state: FSMContext) -> None:
@@ -59,15 +55,15 @@ async def handle_search_prompt(message: Message, state: FSMContext) -> None:
 
 async def handle_stats(message: Message, state: FSMContext) -> None:
     await state.clear()
-    snap = await _run_sync(stats_repo.dashboard_snapshot)
-    text = build_dashboard_text(snap)
+    metrics = await _run_sync(stats_repo.dashboard_snapshot)
+    text = build_statistics_text(metrics)
     await message.answer(text, reply_markup=admin_menu())
 
 
 async def handle_top(message: Message, state: FSMContext) -> None:
     await state.clear()
-    rows = await _run_sync(stats_repo.top_payers, 10)
-    text = admin_service.build_top_users_text(rows)
+    report = await _run_sync(stats_repo.top_users_report, 10)
+    text = build_top_users_report(report)
     await message.answer(text, reply_markup=admin_menu())
 
 
@@ -95,19 +91,19 @@ async def handle_errors(message: Message, state: FSMContext) -> None:
 
 async def handle_payments_menu(message: Message, state: FSMContext) -> None:
     await state.clear()
-    await message.answer("💳 To'lovlar — filtr tanlang:", reply_markup=payment_filter_kb())
+    rows = await _run_sync(stats_repo.list_payments_enriched, limit=15)
+    text = build_payments_list_text(rows, title="Oxirgi to'lovlar")
+    await message.answer(text, reply_markup=payment_filter_kb())
 
 
 async def handle_pending_payments(message: Message, state: FSMContext) -> None:
     await state.clear()
-    rows = await _run_sync(payments_repo.list_filtered, status="PENDING", limit=15)
+    rows = await _run_sync(stats_repo.list_payments_enriched, status="PENDING", limit=15)
     if not rows:
         await message.answer("📥 Kutilayotgan to'lovlar yo'q.", reply_markup=admin_menu())
         return
-    await message.answer(
-        f"<b>📥 Kutilayotgan to'lovlar ({len(rows)} ta)</b>",
-        reply_markup=admin_menu(),
-    )
+    text = build_payments_list_text(rows, title="Kutilayotgan to'lovlar")
+    await message.answer(text, reply_markup=admin_menu())
     await _send_payment_rows(message, rows)
 
 

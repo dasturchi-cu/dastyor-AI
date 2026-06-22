@@ -4,7 +4,7 @@ from __future__ import annotations
 from typing import Any
 
 from database.connection import get_connection, row_to_dict
-from shared import cache as ttl_cache
+from database.repositories import admin_data
 
 _FEED_TTL = 3.0
 _DASH_CACHE_KEY = "admin:dashboard"
@@ -35,7 +35,7 @@ def record(
             """,
             (et, user_id, name or None, det or None),
         )
-    ttl_cache.invalidate(_DASH_CACHE_KEY)
+    admin_data.invalidate_metrics_cache()
 
 
 def list_recent(limit: int = 8) -> list[dict[str, Any]]:
