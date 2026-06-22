@@ -1353,7 +1353,10 @@
       if (d.phone) document.getElementById('f_phone').value = d.phone;
       if (d.email) document.getElementById('f_email').value = d.email;
       if (d.loc || d.address) document.getElementById('f_loc').value = d.loc || d.address || '';
-      if (d.birthdate) document.getElementById('f_birth') && (document.getElementById('f_birth').value = d.birthdate);
+      if (d.birthdate) {
+        const birthEl = document.getElementById('f_birth');
+        if (birthEl) birthEl.value = d.birthdate;
+      }
       if (d.about) document.getElementById('f_about').value = d.about;
       const eduItems = d.education_list || d.education;
       if (Array.isArray(eduItems) && eduItems.length) {

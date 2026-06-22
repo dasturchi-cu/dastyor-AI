@@ -1177,8 +1177,10 @@ html[data-theme="dark"] .da-doc-loading-ring{border-color:#334155;border-top-col
     }
 
     function showProgressFlow(mode) {
+        _progressMode = mode === 'text' ? 'text' : 'voice';
+        const steps = _activeProgressSteps();
         const start = mode === 'doc' ? 4 : 1;
-        showDocumentLoading(PROGRESS_STEPS[start - 1], '');
+        showDocumentLoading(steps[start - 1], '');
         setProgressStep(start);
     }
 
