@@ -67,7 +67,7 @@ const DastyorAI = (() => {
         ach_title: 'Yutuqlar va Qobiliyatlar', cv_ach_name_ph: 'Nomi (masalan: IELTS 7.5)', cv_year_ph: 'Yili',
         preview: "Jonli Ko'rinish", cv_color: 'Rang:',
         download_pdf: 'PDF botga yuborish', pay_5000: "💳 7 999 so'm to'lash",
-        pay_help: "To'lov kerak bo'lsa — pastdagi tugma.",
+        pay_help: "Limit tugasa pastdagi '7 999 so'm to'lash' tugmasi orqali davom etasiz.",
         cv_pay_shot_picked_title: 'Rasm tanlandi', cv_pay_shot_next: "Endi «Yuborish» tugmasini bosing.",
         clear_data: "Ma'lumotlarni tozalash",
         loading: 'Yuklanmoqda...', success: 'Muvaffaqiyatli!',

@@ -18,7 +18,7 @@ from docx.oxml.ns import qn
 from docx.shared import Cm, Emu, Pt, Twips
 
 from backend.services.document_render.photo import process_passport_photo
-from features.obyektivka.docx_picture import add_floating_picture
+from features.obyektivka.docx_picture import add_vml_photo
 from features.obyektivka.layout import (
     FONT_BODY_PT,
     FONT_FAMILY,
@@ -90,6 +90,13 @@ def _set_run_font(
         run.bold = bold
     run.font.size = Pt(size)
     run.font.name = FONT_FAMILY
+    r_pr = run._r.get_or_add_rPr()
+    r_fonts = r_pr.find(qn("w:rFonts"))
+    if r_fonts is None:
+        r_fonts = OxmlElement("w:rFonts")
+        r_pr.insert(0, r_fonts)
+    for attr in ("ascii", "hAnsi", "cs", "eastAsia"):
+        r_fonts.set(qn(f"w:{attr}"), FONT_FAMILY)
     if underline:
         run.underline = True
     if highlight:
@@ -253,14 +260,11 @@ def _resolve_photo_path(photo_path: str | None, hint: str) -> tuple[str, bool]:
 
 
 def _add_header_block(doc: Document, *, title: str, full_name: str, photo_path: str | None, photo_hint: str) -> str | None:
-    """Namuna DOCX: Heading 6 sarlavha, P1 bo'sh, FISH, P3 bo'sh, float foto."""
+    """Namuna DOCX: Heading 6 sarlavha, P1 bo'sh, FISH (VML v:rect foto birinchi run)."""
     temp_photo: str | None = None
     resolved, is_temp = _resolve_photo_path(photo_path, photo_hint)
     if is_temp:
         temp_photo = resolved
-
-    photo_w = Cm(PHOTO_WIDTH_MM / 10)
-    photo_h = Cm(PHOTO_HEIGHT_MM / 10)
 
     try:
         p0 = doc.add_paragraph(style="Heading 6")
@@ -270,7 +274,6 @@ def _add_header_block(doc: Document, *, title: str, full_name: str, photo_path: 
     _apply_hdr_right(p0)
     p0.paragraph_format.tab_stops.add_tab_stop(TAB_PHOTO_POS)
     p0.paragraph_format.line_spacing = 1.0
-    add_floating_picture(p0, resolved, width=photo_w, height=photo_h)
     tr = p0.add_run(title)
     _set_run_font(tr, size=FONT_TITLE_PT)
 
@@ -284,6 +287,10 @@ def _add_header_block(doc: Document, *, title: str, full_name: str, photo_path: 
     _apply_hdr_right(p2)
     p2.paragraph_format.tab_stops.add_tab_stop(TAB_NAME_CENTER_POS, WD_TAB_ALIGNMENT.CENTER)
     p2.paragraph_format.tab_stops.add_tab_stop(TAB_PHOTO_POS)
+    if is_temp:
+        add_vml_photo(p2, None, hint_text=photo_hint)
+    else:
+        add_vml_photo(p2, resolved)
     nr = p2.add_run(full_name)
     _set_run_font(nr, size=FONT_TITLE_PT, bold=True)
 
@@ -414,6 +421,12 @@ def generate_obyektivka_docx(
     style.font.size = Pt(FONT_BODY_PT)
     style.paragraph_format.line_spacing = LINE_HEIGHT
     style.paragraph_format.space_after = Pt(0)
+    for sname in ("Heading 2", "Heading 6"):
+        try:
+            hs = doc.styles[sname]
+            hs.font.name = FONT_FAMILY
+        except KeyError:
+            pass
     for section in doc.sections:
         section.page_width = Cm(PAGE_WIDTH_MM / 10)
         section.page_height = Cm(PAGE_HEIGHT_MM / 10)

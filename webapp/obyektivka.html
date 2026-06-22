@@ -1437,7 +1437,8 @@ async function payObySingle(fmt){
         var c = await cardRes.json();
         var cardNum = String(c.card_number||'');
         var owner = String(c.card_owner||'');
-        var price = String(c.single_doc_price_uzs||7999);
+        var priceNum = Number(c.single_doc_price_uzs) > 0 ? Number(c.single_doc_price_uzs) : 7999;
+        var price = priceNum.toLocaleString('fr-FR').replace(/\u202f/g, ' ').replace(/,/g, ' ');
         _obyPayState.cardNumber = cardNum;
         if(cardInfo) cardInfo.textContent = "💳 Karta: "+cardNum+"\n👤 Ega: "+owner+"\n💰 Narx: "+price+" so'm";
       } else if(cardInfo) cardInfo.textContent = "Karta ma'lumotlari yuklanmadi. Qayta urinib ko'ring.";
