@@ -218,8 +218,49 @@ JSON:
         return heuristic if cv_extract_has_content(heuristic) else {}
 
 
-def cv_fill_is_acceptable(data: dict | None, missing: list[str] | None = None) -> bool:
+def count_cv_populated_fields(data: dict | None) -> int:
+    """Count non-empty CV scalar/list fields extracted for WebApp autofill."""
     if not data:
+        return 0
+    count = sum(
+        1
+        for key in ("name", "phone", "email", "loc", "spec", "about", "birthdate")
+        if _present(data.get(key))
+    )
+    if data.get("works"):
+        count += 1
+    if data.get("education_list"):
+        count += 1
+    if data.get("skills"):
+        count += 1
+    return count
+
+
+def count_oby_populated_fields(data: dict | None) -> int:
+    """Count non-empty obyektivka fields (excludes default yo'q placeholders)."""
+    if not data:
+        return 0
+    count = 0
+    for field_id, keys, _label in OBY_FIELD_MAP:
+        if field_id == "photo":
+            if any(_present(data.get(k)) for k in keys):
+                count += 1
+            continue
+        if field_id == "work_experience":
+            if data.get("work_experience"):
+                count += 1
+            continue
+        if field_id == "relatives":
+            if data.get("relatives"):
+                count += 1
+            continue
+        if any(_present(data.get(k)) for k in keys):
+            count += 1
+    return count
+
+
+def cv_fill_is_acceptable(data: dict | None, missing: list[str] | None = None) -> bool:
+    if count_cv_populated_fields(data) < 1:
         return False
     name = str(data.get("name") or "").strip()
     if not name:
@@ -238,9 +279,7 @@ def cv_fill_is_acceptable(data: dict | None, missing: list[str] | None = None) -
 
 
 def oby_fill_is_acceptable(data: dict | None) -> bool:
-    if not data:
-        return False
-    return bool(str(data.get("fullname") or "").strip())
+    return count_oby_populated_fields(data) >= 1 and bool(str(data.get("fullname") or "").strip())
 
 
 def get_missing_cv_fields(data: dict) -> list[str]:

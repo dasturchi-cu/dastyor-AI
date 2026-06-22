@@ -1254,7 +1254,88 @@ html[data-theme="dark"] .da-doc-loading-ring{border-color:#334155;border-top-col
         }).then((out) => compressReceiptDataUrl(out));
     }
 
-    async function pollVoiceJob(pathPrefix, jobId, telegramId, token, onStep) {
+    function countCvDataFields(data) {
+        if (!data || typeof data !== 'object') return 0;
+        let n = 0;
+        ['name', 'phone', 'email', 'loc', 'spec', 'about', 'birthdate', 'role'].forEach((k) => {
+            const v = data[k];
+            if (v != null && String(v).trim()) n += 1;
+        });
+        if (Array.isArray(data.works) && data.works.length) n += 1;
+        if (Array.isArray(data.education_list) && data.education_list.length) n += 1;
+        if (Array.isArray(data.experience) && data.experience.length) n += 1;
+        if (data.skills && String(data.skills).trim()) n += 1;
+        return n;
+    }
+
+    function countObyDataFields(data) {
+        if (!data || typeof data !== 'object') return 0;
+        let n = 0;
+        const skip = new Set(["yo'q", 'yoq', 'йўқ', 'нет', 'no', 'n/a', '—', '-']);
+        const present = (v) => {
+            if (v == null) return false;
+            if (Array.isArray(v)) return v.length > 0;
+            const s = String(v).trim().toLowerCase();
+            return !!s && !skip.has(s);
+        };
+        [
+            'fullname', 'birthdate', 'birthplace', 'nation', 'education', 'edu',
+            'graduated', 'specialty', 'spec', 'degree', 'scientific_title',
+            'languages', 'langs', 'military_rank', 'awards', 'deputy',
+        ].forEach((k) => {
+            if (present(data[k])) n += 1;
+        });
+        if (present(data.work_experience) || present(data.works)) n += 1;
+        if (present(data.relatives)) n += 1;
+        if (present(data.photo_data) || present(data.photo_base64)) n += 1;
+        return n;
+    }
+
+    function countCvDomFields() {
+        let n = 0;
+        ['f_name', 'f_role', 'f_phone', 'f_email', 'f_loc', 'f_about', 'f_birth'].forEach((id) => {
+            const el = document.getElementById(id);
+            const v = el ? String(el.value || '').trim() : '';
+            if (v && v !== '+998') n += 1;
+        });
+        try {
+            if (typeof eduData !== 'undefined' && Array.isArray(eduData) && eduData.length) n += 1;
+            if (typeof expData !== 'undefined' && Array.isArray(expData) && expData.length) n += 1;
+            if (typeof skillsData !== 'undefined' && Array.isArray(skillsData) && skillsData.length) n += 1;
+        } catch (_) {}
+        return n;
+    }
+
+    function countObyDomFields() {
+        let n = 0;
+        const skip = new Set(["yo'q", 'yoq']);
+        const val = (id) => {
+            const el = document.getElementById(id);
+            const v = el ? String(el.value || '').trim() : '';
+            return v && !skip.has(v.toLowerCase());
+        };
+        [
+            'fullname', 'birthdate', 'birthplace', 'nation', 'edu', 'graduated',
+            'spec', 'degree', 'scititle', 'langs', 'awards', 'deputy',
+        ].forEach((id) => {
+            if (val(id)) n += 1;
+        });
+        try {
+            if (document.querySelectorAll('#work-container .work-row').length) n += 1;
+            if (typeof relatives !== 'undefined' && Array.isArray(relatives) && relatives.length) n += 1;
+            if (typeof photoData !== 'undefined' && photoData) n += 1;
+        } catch (_) {}
+        return n;
+    }
+
+    function voiceFillHasContent(js, kind) {
+        if (!js || !js.data || typeof js.data !== 'object') return false;
+        const populated = Number(js.populated_fields);
+        if (Number.isFinite(populated) && populated > 0) return true;
+        return kind === 'cv' ? countCvDataFields(js.data) > 0 : countObyDataFields(js.data) > 0;
+    }
+
+    async function pollVoiceJob(pathPrefix, jobId, telegramId, token, onStep, kind) {
         const base = BASE;
         const q = new URLSearchParams();
         if (telegramId) q.set('telegram_id', String(telegramId));
@@ -1268,19 +1349,28 @@ html[data-theme="dark"] .da-doc-loading-ring{border-color:#334155;border-top-col
                 throw new Error(err.detail || ('Server ' + res.status));
             }
             const js = await res.json();
-            if (typeof onStep === 'function' && js.step) onStep(js.step);
-            if (js.status === 'done' && js.data) return js;
+            if (js.status === 'running' && typeof onStep === 'function' && js.step) {
+                const step = Math.min(2, Number(js.step) || 1);
+                onStep(step);
+            }
+            if (js.status === 'done') {
+                if (!voiceFillHasContent(js, kind)) {
+                    throw new Error("Ma'lumot ajratilmadi — formaga yozilmadi");
+                }
+                if (typeof onStep === 'function') onStep(3);
+                return js;
+            }
             if (js.status === 'error') throw new Error(js.error || 'Xatolik');
         }
         throw new Error('Vaqt tugadi. Qayta urinib ko\'ring.');
     }
 
     async function pollObyVoiceJob(jobId, telegramId, token, onStep) {
-        return pollVoiceJob('oby_voice_job', jobId, telegramId, token, onStep);
+        return pollVoiceJob('oby_voice_job', jobId, telegramId, token, onStep, 'oby');
     }
 
     async function pollCvVoiceJob(jobId, telegramId, token, onStep) {
-        return pollVoiceJob('cv_voice_job', jobId, telegramId, token, onStep);
+        return pollVoiceJob('cv_voice_job', jobId, telegramId, token, onStep, 'cv');
     }
 
     function showDocumentLoading(title, sub) {

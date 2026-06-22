@@ -108,7 +108,12 @@ def complete_job(
     missing_fields: list,
     fill_percent: int,
     transcript: str = "",
+    *,
+    populated_fields: int | None = None,
 ) -> None:
+    if populated_fields is not None and populated_fields < 1:
+        fail_job(job_id, "Ma'lumot ajratilmadi")
+        return
     set_step(
         job_id,
         3,
@@ -117,6 +122,7 @@ def complete_job(
         missing_fields=missing_fields,
         fill_percent=fill_percent,
         transcript=transcript[:1200],
+        populated_fields=populated_fields or 0,
     )
 
 

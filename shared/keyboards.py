@@ -114,6 +114,10 @@ def back_menu() -> ReplyKeyboardMarkup:
 def open_webapp_inline(uid: int, service: str) -> InlineKeyboardMarkup:
     page = "cv.html" if service == "cv" else "obyektivka.html"
     url = webapp_url(uid, page)
+    if url and service == "cv":
+        url = f"{url}&autoload=1&voice=1"
+    elif url and service == "obyektivka":
+        url = f"{url}&autoload=1&voice=1"
     label = "🚀 CV formasini ochish" if service == "cv" else "🚀 Obyektivka formasini ochish"
     if not url:
         return InlineKeyboardMarkup(inline_keyboard=[])
@@ -127,6 +131,8 @@ def open_services_inline(uid: int) -> InlineKeyboardMarkup:
     rows: list[list[InlineKeyboardButton]] = []
     cv_url = webapp_url(uid, "cv.html")
     oby_url = webapp_url(uid, "obyektivka.html")
+    if cv_url:
+        cv_url = f"{cv_url}&voice=1&autoload=1"
     if oby_url:
         oby_url = f"{oby_url}&voice=1&autoload=1"
     if cv_url:

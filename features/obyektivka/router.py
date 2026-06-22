@@ -16,6 +16,7 @@ from backend.schemas.webapp import ExportObyektivkaRequest, ObyektivkaRequest, P
 from core.security import rate_limit
 from database.repositories import obyektivka_data as oby_repo
 from features.ai.service import (
+    count_oby_populated_fields,
     get_missing_oby_fields,
     map_obyektivka_fields,
     oby_fill_is_acceptable,
@@ -55,12 +56,14 @@ async def _run_oby_text_job(job_id: str, uid: int, text: str) -> None:
             return
         await async_db.run(oby_service.save_pending, uid, data)
         await async_db.run(sessions_repo.create_session, uid, "oby_voice", transcript, data)
+        populated = count_oby_populated_fields(data)
         voice_jobs.complete_job(
             job_id,
             data,
             missing,
             max(10, 100 - len(missing) * 8),
             transcript=transcript,
+            populated_fields=populated,
         )
     except AiQuotaError:
         logger.warning("oby text job %s quota exceeded", job_id)
@@ -82,12 +85,14 @@ async def _run_oby_voice_job(job_id: str, uid: int, raw: bytes, ext: str) -> Non
             voice_jobs.fail_job(job_id, "Ma'lumot ajratilmadi")
             return
         await async_db.run(oby_service.save_pending, uid, data)
+        populated = count_oby_populated_fields(data)
         voice_jobs.complete_job(
             job_id,
             data,
             missing,
             max(10, 100 - len(missing) * 8),
             transcript=transcript,
+            populated_fields=populated,
         )
     except AiQuotaError:
         logger.warning("oby voice job %s quota exceeded", job_id)

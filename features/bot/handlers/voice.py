@@ -108,13 +108,14 @@ async def _handle_cv_voice_flow(
         await set_step(status, STEP_AI)
         transcript, cv_data, cv_missing = await process_voice_for_cv(path)
 
-        await set_step(status, STEP_EXTRACTED)
         if not cv_fill_is_acceptable(cv_data, cv_missing):
             await status.edit_text(
                 f"ℹ️ CV uchun yetarli ma'lumot topilmadi.\n\n"
                 f"Namunadagi tartibda qayta yuboring yoki <b>{BTN_OBY}</b> tanlang."
             )
             return
+
+        await set_step(status, STEP_EXTRACTED)
 
         await db_run(cv_service.save_user_data, uid, cv_data)
         await db_run(sessions_repo.create_session, uid, "cv_voice", transcript, cv_data)

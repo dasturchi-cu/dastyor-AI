@@ -12,6 +12,7 @@ from pydantic import BaseModel
 from core.security import rate_limit
 from database.repositories import ai_sessions as sessions_repo
 from features.ai.service import (
+    count_cv_populated_fields,
     cv_fill_is_acceptable,
     process_text_for_cv,
     process_voice_for_cv,
@@ -47,12 +48,14 @@ async def _run_cv_text_job(job_id: str, uid: int, text: str) -> None:
         await async_db.run(cv_service.save_user_data, uid, data)
         await async_db.run(sessions_repo.create_session, uid, "cv_voice", transcript, data)
         saved = await async_db.run(cv_service.get_saved_data, uid) or data
+        populated = count_cv_populated_fields(saved)
         voice_jobs.complete_job(
             job_id,
             saved,
             missing,
             max(10, 100 - len(missing) * 12),
             transcript=transcript,
+            populated_fields=populated,
         )
     except AiQuotaError:
         logger.exception("cv text job %s quota", job_id)
@@ -70,12 +73,14 @@ async def _run_cv_voice_job(job_id: str, uid: int, temp_path: str) -> None:
             voice_jobs.fail_job(job_id, "Ma'lumot ajratilmadi")
             return
         await async_db.run(cv_service.save_user_data, uid, data)
+        populated = count_cv_populated_fields(data)
         voice_jobs.complete_job(
             job_id,
             data,
             missing,
             max(10, 100 - len(missing) * 12),
             transcript=transcript,
+            populated_fields=populated,
         )
     except AiQuotaError:
         logger.exception("cv voice job %s quota", job_id)

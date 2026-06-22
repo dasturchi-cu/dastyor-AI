@@ -2,10 +2,13 @@
 
 from __future__ import annotations
 
-import re
-from typing import Iterable
-
 from lxml import etree
+
+from features.obyektivka.docx_annotations import (
+    GARBAGE_EXACT,
+    is_garbage_run,
+    strip_reference_annotations,
+)
 
 W_NS = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
 W = f"{{{W_NS}}}"
@@ -19,12 +22,6 @@ SZ_PHOTO = 20  # 10 pt — photo hint (reference)
 SZ_PHOTO_NOTE = 18  # 9 pt — «(rasmiy kiyimda).» fragment in reference
 
 ALLOWED_FONT_PTS = (9.0, 10.0, 11.0, 12.0, 14.0)
-
-from features.obyektivka.docx_annotations import (
-    GARBAGE_EXACT,
-    is_garbage_run,
-    strip_reference_annotations,
-)
 
 
 def _run_text(r_el: etree._Element) -> str:

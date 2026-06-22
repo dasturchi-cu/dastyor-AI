@@ -17,7 +17,7 @@ from core.security import rate_limit
 from features.cv import service as cv_service
 from features.cv.render import preview_html
 from shared import async_db
-from shared.auth import resolve_uid_from_webapp
+from shared.auth import resolve_uid, resolve_uid_from_webapp
 from shared.export_delivery import send_bytes_to_telegram
 
 logger = logging.getLogger(__name__)

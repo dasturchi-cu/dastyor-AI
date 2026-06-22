@@ -136,13 +136,14 @@ async def _process_voice_background(
         await set_step(status_msg, STEP_AI)
         transcript, data, missing = await process_voice_for_obyektivka(path)
 
-        await set_step(status_msg, STEP_EXTRACTED)
         if not oby_fill_is_acceptable(data):
             await status_msg.edit_text(
                 "❌ Ma'lumotlarni ajratib bo'lmadi.\n"
                 "Iltimos, namunadagi tartibda to'liqroq o'qib yuboring."
             )
             return
+
+        await set_step(status_msg, STEP_EXTRACTED)
 
         await db_run(oby_service.save_pending, uid, data)
         await db_run(
