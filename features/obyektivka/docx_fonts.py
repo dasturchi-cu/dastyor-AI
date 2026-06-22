@@ -14,10 +14,11 @@ W_NS = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
 W = f"{{{W_NS}}}"
 VAL = f"{{{W_NS}}}val"
 
-# Reference hierarchy (half-points = pt * 2)
+# Reference hierarchy (half-points = pt * 2) — PPT namuna
 SZ_TITLE = 28  # 14 pt — MA'LUMOTNOMA, F.I.Sh, MEHNAT FAOLIYATI
-SZ_REL_LINE = 24  # 12 pt — «…ning yaqin qarindoshlari haqida», MA'LUMOT (p2)
-SZ_BODY = 22  # 11 pt — body, work history, family table
+SZ_REL_LINE = 24  # 12 pt — «…qarindoshlari haqida», MA'LUMOT, jadval
+SZ_BODY = 22  # 11 pt — body, work history
+SZ_TABLE = 24  # 12 pt — qarindoshlar jadvali (PPT)
 SZ_PHOTO = 20  # 10 pt — photo hint (reference)
 SZ_PHOTO_NOTE = 18  # 9 pt — «(rasmiy kiyimda).» fragment in reference
 
@@ -120,7 +121,7 @@ def enforce_reference_fonts(root: etree._Element, context: dict[str, str] | None
             continue
 
         if "МАЪЛУМОТНОМА" in text or "MA'LUMOTNOMA" in text:
-            _set_paragraph_runs_sz(p_el, SZ_TITLE)
+            _set_paragraph_runs_sz(p_el, SZ_TITLE, bold=True)
             continue
 
         if text in ("МАЪЛУМОТ", "MA'LUMOT"):
@@ -151,20 +152,30 @@ def enforce_reference_fonts(root: etree._Element, context: dict[str, str] | None
         # Body rows, current job, work history placeholders/lines
         _set_paragraph_runs_sz(p_el, SZ_BODY)
 
-    # Family table — reference: 11 pt all cells
-    for tc in root.findall(f".//{W}tc"):
-        for p_el in tc.findall(f".//{W}p"):
-            _set_paragraph_runs_sz(p_el, SZ_BODY)
-        first_p = tc.find(f".//{W}p")
-        if first_p is None:
-            continue
-        label = _paragraph_text(first_p)
-        if not label or label.startswith("{{") or "Фамилияси" in label or "Қариндош" in label:
-            continue
-        for r_el in first_p.findall(f".//{W}r"):
-            rpr = _r_pr(r_el)
-            _set_bool(rpr, "b", True)
-            _set_bool(rpr, "bCs", True)
+    # Family table — PPT: 12 pt; bold faqat sarlavha + 1-ustun
+    for tbl in root.findall(f".//{W}tbl"):
+        rows = tbl.findall(f"{W}tr")
+        is_rel = _is_relatives_table(tbl)
+        table_sz = SZ_TABLE if is_rel else SZ_BODY
+        for ri, tr in enumerate(rows):
+            for ci, tc in enumerate(tr.findall(f"{W}tc")):
+                for p_el in tc.findall(f".//{W}p"):
+                    _set_paragraph_runs_sz(p_el, table_sz)
+                if not is_rel:
+                    continue
+                if ri == 0 or ci == 0:
+                    continue
+                for p_el in tc.findall(f".//{W}p"):
+                    for r_el in p_el.findall(f".//{W}r"):
+                        rpr = _r_pr(r_el)
+                        _set_bool(rpr, "b", False)
+                        _set_bool(rpr, "bCs", False)
+
+
+def _is_relatives_table(tbl: etree._Element) -> bool:
+    text_blob = _paragraph_text(tbl)
+    low = text_blob.lower()
+    return "qarindosh" in low or "қариндош" in text_blob
 
 
 def effective_sz_pt(r_el: etree._Element) -> float | None:

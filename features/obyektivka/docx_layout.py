@@ -15,6 +15,7 @@ from features.obyektivka.docx_typography import (
     _r_pr,
     _set_bool,
     _set_underline,
+    apply_current_job_rpr,
     apply_label_rpr,
     apply_value_rpr,
 )
@@ -24,7 +25,8 @@ def _paragraph_text(p_el: etree._Element) -> str:
     return "".join(t.text or "" for t in p_el.findall(f".//{W}t")).strip()
 
 # Twentieths of a point (Word spacing units): 4 pt = 80
-SP_AFTER_FISH = 360  # ~18 pt gap name → current job (reference open space)
+SP_AFTER_FISH = 480  # ~24 pt — ism va hozirgi ish orasidagi ochiq joy (namuna)
+SP_AFTER_CURRENT_YEAR = 40  # 2 pt — sana va lavozim orasi
 SP_BEFORE_CURRENT_JOB = 0
 SP_WORK_LINE_BEFORE = 80  # 4 pt — reference bracket on first work line
 SP_WORK_LINE_AFTER = 0
@@ -132,51 +134,113 @@ def _style_fish_paragraph(p_el: etree._Element) -> None:
         _set_underline(rpr, False)
 
 
-def _merge_current_job_paragraphs(body: etree._Element) -> int:
-    """Merge «2024-yildan:» + job title into one paragraph below the name."""
-    merged = 0
+_NONE_VALUES = frozenset({"yo'q", "йўқ", ""})
+
+
+def _norm_job_text(text: str) -> str:
+    return text.strip().rstrip(":")
+
+
+def _is_current_job_year_paragraph(text: str, year: str) -> bool:
+    t = _norm_job_text(text)
+    y = _norm_job_text(year)
+    if not t:
+        return False
+    if y and t == y:
+        return True
+    return bool(_CURRENT_YEAR_RE.search(t))
+
+
+def _is_current_job_title_paragraph(text: str, job: str) -> bool:
+    t = text.strip()
+    j = job.strip()
+    if not t or not j:
+        return False
+    if t == j:
+        return True
+    return False
+
+
+def _style_current_job_block(body: etree._Element, ctx: dict[str, str]) -> int:
+    """Namuna: ism → ochiq joy → sana qatori → lavozim (qalin, chiziqli)."""
+    year = (ctx.get("hozirgi_yil") or "").strip()
+    job = (ctx.get("hozirgi_ish") or "").strip()
+    if not job or job in _NONE_VALUES:
+        _remove_empty_current_job_paragraphs(body, (ctx.get("fish") or "").strip())
+        return 0
+
     paragraphs = body.findall(f"{W}p")
-    i = 0
-    while i < len(paragraphs) - 1:
-        p_year = paragraphs[i]
-        p_job = paragraphs[i + 1]
-        if _in_table(p_year):
-            i += 1
-            continue
-        year_text = _paragraph_text(p_year)
-        job_text = _paragraph_text(p_job)
-        if not year_text or not job_text:
-            i += 1
-            continue
-        if not _is_current_year_line(year_text):
-            i += 1
-            continue
-        if _is_mehnat_header(job_text) or _is_work_line(job_text):
-            i += 1
-            continue
+    styled = 0
+    year_idx: int | None = None
+    job_idx: int | None = None
 
-        combined = year_text.rstrip()
-        if not combined.endswith(":"):
-            combined += ":"
-        combined += f" {job_text.strip()}"
+    for i, p_el in enumerate(paragraphs):
+        if _in_table(p_el):
+            continue
+        text = _paragraph_text(p_el)
+        if not text:
+            continue
+        if _is_mehnat_header(text):
+            break
+        if year and _is_current_job_year_paragraph(text, year):
+            year_idx = i
+        if _is_current_job_title_paragraph(text, job):
+            job_idx = i
 
-        for r_el in list(p_year.findall(f"{W}r")):
-            p_year.remove(r_el)
-        r_el = etree.SubElement(p_year, f"{W}r")
-        t = etree.SubElement(r_el, f"{W}t")
-        t.text = combined
-        rpr = _r_pr(r_el)
-        _set_bool(rpr, "b", True)
-        _set_bool(rpr, "bCs", True)
-        _set_underline(rpr, False)
+    if year_idx is None and job_idx is None:
+        return 0
 
+    if year_idx is not None:
+        p_year = paragraphs[year_idx]
         ppr = _p_pr(p_year)
-        _set_spacing(ppr, before=SP_BEFORE_CURRENT_JOB, after=SP_AFTER_FISH // 2, line=SP_WORK_LINE_HEIGHT)
+        _set_spacing(
+            ppr,
+            before=SP_BEFORE_CURRENT_JOB,
+            after=SP_AFTER_CURRENT_YEAR,
+            line=SP_WORK_LINE_HEIGHT,
+        )
+        for r_el in p_year.findall(f".//{W}r"):
+            if _run_text(r_el).strip():
+                apply_value_rpr(r_el)
+        styled += 1
 
-        body.remove(p_job)
-        paragraphs = body.findall(f"{W}p")
-        merged += 1
-    return merged
+    if job_idx is not None:
+        p_job = paragraphs[job_idx]
+        ppr = _p_pr(p_job)
+        _set_spacing(
+            ppr,
+            before=0 if year_idx is not None else SP_BEFORE_CURRENT_JOB,
+            after=SP_AFTER_FISH // 3,
+            line=SP_WORK_LINE_HEIGHT,
+        )
+        for r_el in p_job.findall(f".//{W}r"):
+            if _run_text(r_el).strip():
+                apply_current_job_rpr(r_el)
+        styled += 1
+
+    return styled
+
+
+def _remove_empty_current_job_paragraphs(body: etree._Element, fish: str = "") -> None:
+    """Hozirgi ish bo'lmasa — ism tagidagi bo'sh qatorlarni olib tashlash."""
+    paragraphs = body.findall(f"{W}p")
+    fish_seen = False
+    to_remove: list[etree._Element] = []
+    for p_el in paragraphs:
+        if _in_table(p_el):
+            continue
+        text = _paragraph_text(p_el)
+        if _is_fish_paragraph(text, fish):
+            fish_seen = True
+            continue
+        if not fish_seen:
+            continue
+        if _is_mehnat_header(text):
+            break
+        if not text:
+            to_remove.append(p_el)
+    for p_el in to_remove:
+        body.remove(p_el)
 
 
 def _fix_work_history_spacing(body: etree._Element) -> None:
@@ -288,7 +352,7 @@ def enforce_reference_layout(root: etree._Element, context: dict[str, str] | Non
                 continue
             if _is_fish_paragraph(_paragraph_text(p_el), fish):
                 _style_fish_paragraph(p_el)
-        stats["merged_current_job"] = _merge_current_job_paragraphs(body)
+        stats["styled_current_job"] = _style_current_job_block(body, ctx)
         _fix_work_history_spacing(body)
 
     _fix_relatives_table(root)

@@ -8,6 +8,7 @@ from pathlib import Path
 from features.obyektivka.docx_template import generate_obyektivka_docx
 from features.obyektivka.docx_typography import (
     W,
+    _is_bold_run,
     find_runs_containing,
     run_has_underline,
     typography_summary,
@@ -64,6 +65,7 @@ class TestObyektivkaTypography(unittest.TestCase):
         rel_runs = find_runs_containing(root, "Aliyev Vali")
         self.assertTrue(rel_runs)
         self.assertFalse(run_has_underline(rel_runs[0]))
+        self.assertFalse(_is_bold_run(rel_runs[0]), "relatives table values must be normal weight")
 
         name_runs = find_runs_containing(root, "Test User")
         self.assertTrue(name_runs)
@@ -79,6 +81,33 @@ class TestObyektivkaTypography(unittest.TestCase):
         summary = typography_summary(root)
         self.assertGreater(summary["label_runs"], 10)
         self.assertEqual(summary["value_runs"], 0)
+
+    def test_current_job_block_separate_lines(self):
+        if not MASTER.is_file():
+            self.skipTest("master docx missing")
+
+        out = ROOT / "temp" / "test_current_job.docx"
+        job = "Andijon viloyati rahbari"
+        year = "2007 yil 5 oktabrdan"
+        path = generate_obyektivka_docx(
+            {
+                "fullname": "Test User",
+                "lang": "uz_lat",
+                "current_job": job,
+                "current_job_year": year,
+                "work_experience": [],
+                "relatives": [],
+            },
+            output_filepath=str(out),
+        )
+        root = _load_doc_xml(Path(path))
+
+        year_runs = find_runs_containing(root, "2007 yil 5 oktabrdan")
+        job_runs = find_runs_containing(root, job)
+        self.assertTrue(year_runs)
+        self.assertTrue(job_runs)
+        self.assertFalse(_is_bold_run(year_runs[0]))
+        self.assertTrue(run_has_underline(job_runs[0]))
 
 
 if __name__ == "__main__":

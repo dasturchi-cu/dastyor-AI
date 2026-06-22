@@ -15,6 +15,7 @@ VAL = f"{{{W_NS}}}val"
 # Hint text only — not a data value field.
 VALUE_EXCLUDE = frozenset({"photo"})
 FISH_KEYS = frozenset({"fish"})
+CURRENT_JOB_KEYS = frozenset({"hozirgi_ish"})
 
 _PLACEHOLDER_RE = re.compile(r"\{\{([^{}]+)\}\}")
 
@@ -87,6 +88,15 @@ def apply_fish_rpr(r_el: etree._Element) -> None:
     _set_color_black(rpr)
 
 
+def apply_current_job_rpr(r_el: etree._Element) -> None:
+    """Hozirgi ish lavozimi: qalin + tagi chiziqli (namuna)."""
+    rpr = _r_pr(r_el)
+    _set_bool(rpr, "b", True)
+    _set_bool(rpr, "bCs", True)
+    _set_underline(rpr, True)
+    _set_color_black(rpr)
+
+
 def apply_label_rpr(r_el: etree._Element) -> None:
     """Label: black, bold, no underline."""
     rpr = _r_pr(r_el)
@@ -112,6 +122,7 @@ def apply_document_typography(root: etree._Element, context: dict[str, str]) -> 
     """Replace placeholders and apply label/value styles across the document."""
     value_run_ids: set[int] = set()
     fish_run_ids: set[int] = set()
+    current_job_run_ids: set[int] = set()
     sorted_items = sorted(context.items(), key=lambda item: -len(item[0]))
 
     for r_el in root.findall(f".//{W}r"):
@@ -122,6 +133,7 @@ def apply_document_typography(root: etree._Element, context: dict[str, str]) -> 
         new_text = text
         touches_value = False
         touches_fish = False
+        touches_current_job = False
         for key, raw in sorted_items:
             ph = f"{{{{{key}}}}}"
             if ph not in new_text:
@@ -129,6 +141,8 @@ def apply_document_typography(root: etree._Element, context: dict[str, str]) -> 
             new_text = new_text.replace(ph, escape_xml_text(raw))
             if key in FISH_KEYS:
                 touches_fish = True
+            elif key in CURRENT_JOB_KEYS:
+                touches_current_job = True
             elif key not in VALUE_EXCLUDE:
                 touches_value = True
 
@@ -139,12 +153,15 @@ def apply_document_typography(root: etree._Element, context: dict[str, str]) -> 
         if touches_fish:
             fish_run_ids.add(id(r_el))
             apply_fish_rpr(r_el)
+        elif touches_current_job:
+            current_job_run_ids.add(id(r_el))
+            apply_current_job_rpr(r_el)
         elif touches_value:
             value_run_ids.add(id(r_el))
             apply_value_rpr(r_el)
 
     for r_el in root.findall(f".//{W}r"):
-        if id(r_el) in value_run_ids or id(r_el) in fish_run_ids:
+        if id(r_el) in value_run_ids or id(r_el) in fish_run_ids or id(r_el) in current_job_run_ids:
             continue
         if not _is_bold_run(r_el):
             continue
@@ -174,12 +191,14 @@ def render_document_xml(xml_bytes: bytes, context: dict[str, str]) -> bytes:
     from features.obyektivka.docx_annotations import strip_reference_annotations
     from features.obyektivka.docx_fonts import enforce_reference_fonts
     from features.obyektivka.docx_layout import enforce_reference_layout
+    from features.obyektivka.docx_polish import enforce_reference_polish
 
     root = etree.fromstring(xml_bytes)
     apply_document_typography(root, context)
     strip_reference_annotations(root)
     enforce_reference_fonts(root, context)
     enforce_reference_layout(root, context)
+    enforce_reference_polish(root, context)
     return etree.tostring(root, xml_declaration=True, encoding="UTF-8", standalone=True)
 
 

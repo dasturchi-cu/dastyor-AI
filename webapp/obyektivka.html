@@ -741,6 +741,22 @@ function formatWorkPeriod(from,to){
   return '';
 }
 
+function splitCurrentJobFromWorks(works){
+  var out=[], cj='', cy='';
+  (works||[]).forEach(function(w){
+    var f=String(w.f||'').trim();
+    var t=String(w.t||'').trim();
+    var d=String(w.d||'').trim();
+    if(!cj && d && isPresentToken(t)){
+      cj=toCurrentScript(d);
+      cy=toCurrentScript(formatWorkPeriod(f,t).replace(/:$/,''));
+      return;
+    }
+    out.push(w);
+  });
+  return {current_job:cj, current_job_year:cy, works:out};
+}
+
 function initApp(lang){
   var prevLang=currentLang;
   var oldD=dict[currentLang];
@@ -780,6 +796,8 @@ function buildObyPayload(fmt){
       d: (row.querySelector('.work-desc')?row.querySelector('.work-desc').value:'')||''
     });
   });
+  var jobSplit = splitCurrentJobFromWorks(works);
+  works = jobSplit.works;
   var rels=(relatives||[]).map(function(r){
     return{ type:r.type||'', name:r.name||'', birth:r.birth||'', job:r.job||'', addr:r.addr||'' };
   });
@@ -803,8 +821,8 @@ function buildObyPayload(fmt){
     award: v('awards'),
     idor: v('idor-awards'),
     dep: v('deputy'),
-    current_job: '',
-    current_job_year: '',
+    current_job: jobSplit.current_job || '',
+    current_job_year: jobSplit.current_job_year || '',
     works: works,
     rels: rels,
     photo_data: photoData || ''
