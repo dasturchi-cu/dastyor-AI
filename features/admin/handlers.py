@@ -31,6 +31,31 @@ def _is_admin(user_id: int) -> bool:
     return user_id in settings.admin_user_ids
 
 
+async def _update_payment_review_message(message: Message | None, text: str) -> None:
+    """Photo+caption yoki matnli admin xabarini tasdiqlash/rad keyin yangilash."""
+    if not message:
+        return
+    try:
+        if message.photo:
+            await message.edit_caption(caption=text, reply_markup=None)
+            return
+        if message.text:
+            await message.edit_text(text, reply_markup=None)
+            return
+        await message.edit_reply_markup(reply_markup=None)
+        await message.answer(text)
+    except Exception as exc:
+        logger.warning("Payment review message update failed: %s", exc)
+        try:
+            await message.edit_reply_markup(reply_markup=None)
+        except Exception:
+            pass
+        try:
+            await message.answer(text)
+        except Exception:
+            pass
+
+
 @router.message(Command("admin"))
 async def admin_panel(message: Message) -> None:
     if not message.from_user or not _is_admin(message.from_user.id):
@@ -141,9 +166,10 @@ async def payment_callback(query: CallbackQuery) -> None:
         if result:
             tid = int(result["telegram_id"])
             credits = users_repo.get_credits(tid)
-            await query.message.edit_text(
+            await _update_payment_review_message(
+                query.message,
                 f"✅ To'lov #{pid} tasdiqlandi.\n"
-                f"Foydalanuvchi krediti: {credits}"
+                f"Foydalanuvchi krediti: {credits}",
             )
             await query.bot.send_message(
                 tid,
@@ -157,7 +183,10 @@ async def payment_callback(query: CallbackQuery) -> None:
         ok = payment_service.reject_payment(pid)
         if ok:
             payment = payments_repo.get_payment(pid)
-            await query.message.edit_text(f"❌ To'lov #{pid} rad etildi.")
+            await _update_payment_review_message(
+                query.message,
+                f"❌ To'lov #{pid} rad etildi.",
+            )
             if payment:
                 await query.bot.send_message(
                     int(payment["telegram_id"]),
