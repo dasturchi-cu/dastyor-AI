@@ -1707,13 +1707,19 @@
             if (!_cvPayState.screenshot) return;
             if (status) status.textContent = "🔄 Yuborilmoqda...";
             if (sendBtn) { sendBtn.disabled = true; sendBtn.textContent = "Yuborilmoqda..."; }
+            let shot = _cvPayState.screenshot;
+            try {
+              if (window.DastyorAI && window.DastyorAI.compressReceiptDataUrl) {
+                shot = await window.DastyorAI.compressReceiptDataUrl(shot);
+              }
+            } catch (_) {}
             const qs = new URLSearchParams({ request_id: String(_cvPayState.requestId), kind: 'cv' });
             if (_cvPayState.telegramId) qs.set('telegram_id', String(_cvPayState.telegramId));
             if (_cvPayState.token) qs.set('token', String(_cvPayState.token));
             const r2 = await fetch(base + '/api/paid_doc_submit_screenshot?' + qs.toString(), {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ screenshot: _cvPayState.screenshot }),
+              body: JSON.stringify({ screenshot: shot }),
             });
             if (!r2.ok) {
               let d = '';
@@ -1731,11 +1737,11 @@
               status.classList.remove("text-red-700");
               status.classList.add("text-emerald-800", "font-semibold");
             }
+            if (sendBtn) { sendBtn.disabled = true; sendBtn.textContent = "✅ Yuborildi"; }
             const spin = setInterval(() => {
               if (!status) return;
               status.textContent = status.textContent.endsWith("...") ? "⏳ Admin tekshirmoqda." : (status.textContent.endsWith(".") ? "⏳ Admin tekshirmoqda.." : "⏳ Admin tekshirmoqda...");
             }, 450);
-            if (sendBtn) sendBtn.disabled = true;
             if (window.DastyorAI && window.DastyorAI.startPaidDocWatcher) {
               window.DastyorAI.startPaidDocWatcher({
                 kind: 'cv',

@@ -1,6 +1,7 @@
 """Payment API routes."""
 from __future__ import annotations
 
+import asyncio
 import logging
 import os
 
@@ -98,26 +99,9 @@ async def api_submit_payment(
         filename=receipt.filename or "receipt.jpg",
     )
 
-    # Notify admin group
-    try:
-        from aiogram.types import FSInputFile
-        from shared.keyboards import payment_review_kb
-
-        bot = request.app.state.bot
-        pid = int(payment["id"])
-        admin_chat = settings.premium_admin_group_id
-        text = (
-            f"💳 <b>Yangi to'lov #{pid}</b>\n"
-            f"👤 {payer_name}\n"
-            f"🆔 <code>{uid}</code>\n"
-            f"💳 <code>{card_number}</code>"
-        )
-        await bot.send_message(admin_chat, text, reply_markup=payment_review_kb(pid))
-        receipt_path = payment.get("receipt_path")
-        if receipt_path and os.path.isfile(receipt_path):
-            await bot.send_photo(admin_chat, FSInputFile(receipt_path), caption=f"Chek #{pid}")
-    except Exception as e:
-        logger.warning("Admin notify failed: %s", e)
+    asyncio.create_task(
+        _notify_admin_payment(payment, uid, "manual", request.app.state.bot)
+    )
 
     return {
         "ok": True,
@@ -174,13 +158,22 @@ async def _notify_admin_payment(payment: dict, uid: int, kind: str, bot) -> None
 
         pid = int(payment["id"])
         admin_chat = settings.premium_admin_group_id
-        text = (
-            f"💰 <b>Yangi to'lov</b>\n"
-            f"Payment ID: <code>{pid}</code>\n"
-            f"User: <code>{uid}</code>\n"
-            f"Xizmat: <b>{kind}</b>\n"
-            f"Narx: <b>{settings.single_doc_price_uzs:,} so'm</b>"
-        )
+        payer = str(payment.get("payer_name") or uid)
+        if kind == "manual":
+            text = (
+                f"💳 <b>Yangi to'lov #{pid}</b>\n"
+                f"👤 {payer}\n"
+                f"🆔 <code>{uid}</code>\n"
+                f"💳 <code>{payment.get('card_number') or '-'}</code>"
+            )
+        else:
+            text = (
+                f"💰 <b>Yangi to'lov</b>\n"
+                f"Payment ID: <code>{pid}</code>\n"
+                f"User: <code>{uid}</code>\n"
+                f"Xizmat: <b>{kind}</b>\n"
+                f"Narx: <b>{settings.single_doc_price_uzs:,} so'm</b>"
+            )
         await bot.send_message(admin_chat, text, reply_markup=payment_review_kb(pid))
         receipt_path = payment.get("receipt_path")
         if receipt_path and os.path.isfile(receipt_path):
@@ -264,19 +257,22 @@ async def api_paid_doc_submit_screenshot(
 
     try:
         _, b64 = data_url.split(",", 1)
-        raw = base64.b64decode(b64)
+        raw = await asyncio.to_thread(base64.b64decode, b64)
     except Exception as exc:
         raise HTTPException(status_code=400, detail="screenshot decode xato") from exc
+
+    if len(raw) > 6_000_000:
+        raise HTTPException(status_code=400, detail="Rasm juda katta — qayta tanlang")
 
     from config.settings import RECEIPTS_DIR
 
     RECEIPTS_DIR.mkdir(parents=True, exist_ok=True)
     path = RECEIPTS_DIR / f"{uid}_{request_id}_{uuid.uuid4().hex[:8]}.jpg"
-    path.write_bytes(raw)
-    payments_repo.update_receipt(request_id, str(path))
+    await asyncio.to_thread(path.write_bytes, raw)
+    await asyncio.to_thread(payments_repo.update_receipt, request_id, str(path))
 
-    payment = payments_repo.get_payment(request_id) or payment
-    await _notify_admin_payment(payment, uid, kind, request.app.state.bot)
+    payment = await asyncio.to_thread(payments_repo.get_payment, request_id) or payment
+    asyncio.create_task(_notify_admin_payment(payment, uid, kind, request.app.state.bot))
     return {"ok": True, "payment_id": request_id, "status": "queued_to_admin"}
 
 

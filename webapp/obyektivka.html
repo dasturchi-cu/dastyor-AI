@@ -1294,9 +1294,15 @@ async function payObySingle(fmt){
     if(sendBtn){
       sendBtn.onclick = async function(){
         if(!_obyPayState.screenshot) return;
-        if(!_obyPayState.requestId){
-          if(statusEl){ statusEl.textContent = "⏳ So'rov saqlanmoqda..."; statusEl.style.color = '#334155'; }
-          try{
+        if(sendBtn){ sendBtn.disabled = true; sendBtn.textContent = "Yuborilmoqda..."; sendBtn.style.opacity = '0.7'; }
+        if(statusEl){ statusEl.textContent = "🔄 Yuborilmoqda..."; statusEl.style.color = '#334155'; }
+        try{
+          var shot = _obyPayState.screenshot;
+          if(window.DastyorAI && window.DastyorAI.compressReceiptDataUrl){
+            shot = await window.DastyorAI.compressReceiptDataUrl(shot);
+          }
+          if(!_obyPayState.requestId){
+            if(statusEl){ statusEl.textContent = "⏳ So'rov saqlanmoqda..."; }
             var res0 = await fetch(API_URL + '/api/request_paid_obyektivka', {
               method:'POST',
               headers:{'Content-Type':'application/json'},
@@ -1307,25 +1313,24 @@ async function payObySingle(fmt){
             _obyPayState.requestId = d0 && d0.request_id ? Number(d0.request_id) : 0;
             if(!_obyPayState.requestId) throw new Error("request_id yo'q");
             try{ localStorage.setItem('oby_paid_request_id', String(_obyPayState.requestId)); }catch(e){}
-          }catch(e0){
-            var em0 = (e0 && e0.message) ? String(e0.message) : String(e0);
-            if(statusEl){ statusEl.textContent = "Xatolik: "+em0; statusEl.style.color = '#b91c1c'; }
-            if(sendBtn){ sendBtn.disabled = false; sendBtn.textContent = "📤 Yuborish"; sendBtn.style.opacity = '1'; }
-            return;
           }
-        }
-        var qs=new URLSearchParams({ request_id:String(_obyPayState.requestId), kind:'obyektivka' });
-        if(_obyPayState.telegramId) qs.set('telegram_id', String(_obyPayState.telegramId));
-        if(_obyPayState.token) qs.set('token', String(_obyPayState.token));
-        var r2=await fetch(API_URL + '/api/paid_doc_submit_screenshot?' + qs.toString(), { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ screenshot:_obyPayState.screenshot }) });
-        if(!r2.ok){
-          var err=await dastyorReadApiError(r2);
-          if(statusEl){ statusEl.textContent = "Xatolik: "+err; statusEl.style.color = '#b91c1c'; statusEl.style.fontWeight = '800'; }
+          if(statusEl){ statusEl.textContent = "🔄 Chek yuborilmoqda..."; }
+          var qs=new URLSearchParams({ request_id:String(_obyPayState.requestId), kind:'obyektivka' });
+          if(_obyPayState.telegramId) qs.set('telegram_id', String(_obyPayState.telegramId));
+          if(_obyPayState.token) qs.set('token', String(_obyPayState.token));
+          var r2=await fetch(API_URL + '/api/paid_doc_submit_screenshot?' + qs.toString(), { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ screenshot: shot }) });
+          if(!r2.ok){
+            var err=await dastyorReadApiError(r2);
+            throw new Error(err || ('Server ' + r2.status));
+          }
+        }catch(e0){
+          var em0 = (e0 && e0.message) ? String(e0.message) : String(e0);
+          if(statusEl){ statusEl.textContent = "Xatolik: "+em0; statusEl.style.color = '#b91c1c'; statusEl.style.fontWeight = '800'; }
           if(sendBtn){ sendBtn.disabled = false; sendBtn.textContent = "📤 Yuborish"; sendBtn.style.opacity = '1'; }
           return;
         }
         if(statusEl){ statusEl.textContent = "✅ Chek yuborildi. Admin tasdiqlashini kuting..."; statusEl.style.color = '#166534'; }
-        if(sendBtn){ sendBtn.disabled = true; sendBtn.textContent = "Yuborilmoqda..."; }
+        if(sendBtn){ sendBtn.disabled = true; sendBtn.textContent = "✅ Yuborildi"; }
         try{ localStorage.setItem('oby_paid_request_id', String(_obyPayState.requestId)); }catch(e){}
         if(window.DastyorAI && window.DastyorAI.stopPaidDocWatcher) window.DastyorAI.stopPaidDocWatcher('obyektivka');
         var spin = setInterval(function(){

@@ -960,6 +960,39 @@ html[data-theme="dark"] .da-doc-loading-ring{border-color:#334155;border-top-col
         } catch (_) {}
     }
 
+    /** Chek skrinshoti — yuborishdan oldin siqish (tezroq upload) */
+    function compressReceiptDataUrl(dataUrl, maxLen = 320000, maxSide = 1280) {
+        return new Promise((resolve) => {
+            if (!dataUrl || !String(dataUrl).startsWith('data:image') || dataUrl.length <= maxLen) {
+                resolve(dataUrl);
+                return;
+            }
+            const img = new Image();
+            img.onload = () => {
+                try {
+                    const c = document.createElement('canvas');
+                    let w = img.width;
+                    let h = img.height;
+                    const scale = Math.min(1, maxSide / Math.max(w, h, 1));
+                    w = Math.max(1, Math.round(w * scale));
+                    h = Math.max(1, Math.round(h * scale));
+                    c.width = w;
+                    c.height = h;
+                    const ctx = c.getContext('2d');
+                    ctx.drawImage(img, 0, 0, w, h);
+                    let out = c.toDataURL('image/jpeg', 0.82);
+                    if (out.length > maxLen) out = c.toDataURL('image/jpeg', 0.65);
+                    if (out.length > maxLen) out = c.toDataURL('image/jpeg', 0.5);
+                    resolve(out);
+                } catch (_) {
+                    resolve(dataUrl);
+                }
+            };
+            img.onerror = () => resolve(dataUrl);
+            img.src = dataUrl;
+        });
+    }
+
     async function generateDoc(endpoint, payload, filename) {
         showProgressFlow('doc');
         try {
@@ -1242,6 +1275,7 @@ html[data-theme="dark"] .da-doc-loading-ring{border-color:#334155;border-top-col
         showProgressFlow,
         pollObyVoiceJob,
         PROGRESS_STEPS,
+        compressReceiptDataUrl,
 
         fetchPaidDocStatus,
         processPaidDocStatus,
