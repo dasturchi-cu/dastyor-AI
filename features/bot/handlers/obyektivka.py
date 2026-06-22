@@ -207,9 +207,9 @@ async def obyektivka_back(message: Message, state: FSMContext) -> None:
     await message.answer(text, reply_markup=user_menu())
 
 
-@router.message(ObyektivkaStates.waiting_voice, F.text)
+@router.message(ObyektivkaStates.waiting_voice, F.text, ~F.text.startswith("/"))
 async def obyektivka_text(message: Message, bot: Bot, state: FSMContext) -> None:
-    if not message.text or message.text.startswith("/"):
+    if not message.text:
         return
     if message.text == BTN_BACK or message.text.casefold() == "bekor":
         return

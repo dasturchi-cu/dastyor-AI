@@ -51,9 +51,9 @@ async def handle_voice(message: Message, bot: Bot, state: FSMContext) -> None:
     asyncio.create_task(_handle_cv_voice_flow(message, bot, status, uid, state))
 
 
-@router.message(CvStates.waiting_input, F.text)
+@router.message(CvStates.waiting_input, F.text, ~F.text.startswith("/"))
 async def cv_text_fill(message: Message, state: FSMContext) -> None:
-    if not message.text or message.text.startswith("/"):
+    if not message.text:
         return
     if message.text == BTN_BACK or message.text.casefold() == "bekor":
         return

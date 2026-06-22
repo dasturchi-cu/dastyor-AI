@@ -1,6 +1,6 @@
 /**
  * Obyektivka preview + demo PDF botga yuborish (@bot watermark).
- * Telegram WebView: PDF.js worker often blocked — iframe blob URL is primary.
+ * Telegram WebView: iframe PDF ko'rsatmaydi — canvas (PDF.js) asosiy yo'l.
  */
 (function (global) {
   'use strict';
@@ -167,6 +167,20 @@
     if (!pdfjs || !pdfjs.GlobalWorkerOptions) return;
     var idx = workerIndex || 0;
     pdfjs.GlobalWorkerOptions.workerSrc = webappAssetUrl(PDF_WORKER_URLS[idx] || PDF_WORKER_URLS[0]);
+  }
+
+  function loadPdfDocument(pdfjs, buf) {
+    var baseOpts = { data: buf, disableFontFace: true, useSystemFonts: true };
+    return pdfjs.getDocument(baseOpts).promise.catch(function (workerErr) {
+      try {
+        return pdfjs.getDocument(Object.assign({}, baseOpts, {
+          useWorkerFetch: false,
+          isEvalSupported: false,
+        })).promise;
+      } catch (_) {
+        throw workerErr;
+      }
+    });
   }
 
   function loadScriptOnce(url) {
@@ -360,7 +374,15 @@
       }
       iframe.onload = function () { finish(true); };
       iframe.onerror = function () { finish(false); };
-      setTimeout(function () { finish(true); }, 2500);
+      setTimeout(function () {
+        try {
+          var doc = iframe.contentDocument || (iframe.contentWindow && iframe.contentWindow.document);
+          if (doc && doc.body && doc.body.childNodes && doc.body.childNodes.length) finish(true);
+          else finish(false);
+        } catch (_) {
+          finish(false);
+        }
+      }, 1800);
     });
   }
 
@@ -384,7 +406,7 @@
     if (reqId != null && reqId !== previewRequestId) return;
 
     var pdf = await withTimeout(
-      pdfjs.getDocument({ data: buf, disableFontFace: true }).promise,
+      loadPdfDocument(pdfjs, buf),
       RENDER_TIMEOUT_MS,
       'PDF render'
     );
@@ -420,20 +442,16 @@
       var canvas = document.createElement('canvas');
       canvas.width = pw;
       canvas.height = ph;
+      canvas.className = 'oby-preview-page';
+      canvas.dataset.pageWidth = String(pw);
+      canvas.dataset.pageHeight = String(ph);
       await page.render({
         canvasContext: canvas.getContext('2d'),
         viewport: viewport,
       }).promise;
       if (reqId != null && reqId !== previewRequestId) return;
 
-      var img = document.createElement('img');
-      img.className = 'oby-preview-page';
-      img.alt = 'Sahifa ' + pageNum;
-      img.draggable = false;
-      img.dataset.pageWidth = String(pw);
-      img.dataset.pageHeight = String(ph);
-      img.src = canvas.toDataURL('image/jpeg', 0.9);
-      host.appendChild(img);
+      host.appendChild(canvas);
 
       if (pageNum === 1) {
         firstPageW = pw;
@@ -456,17 +474,7 @@
 
   async function applyPreviewPdf(blob, reqId) {
     ensurePreviewVisible();
-    var tgFirst = isTelegramWebView();
     var errors = [];
-
-    if (tgFirst) {
-      try {
-        await showPdfIframe(blob, reqId);
-        return;
-      } catch (err) {
-        errors.push(err);
-      }
-    }
 
     try {
       await renderPreviewPdfImages(blob, reqId);
@@ -475,13 +483,11 @@
       errors.push(err);
     }
 
-    if (!tgFirst) {
-      try {
-        await showPdfIframe(blob, reqId);
-        return;
-      } catch (err) {
-        errors.push(err);
-      }
+    try {
+      await showPdfIframe(blob, reqId);
+      return;
+    } catch (err) {
+      errors.push(err);
     }
 
     var msg = errors.map(function (e) { return (e && e.message) || String(e); }).join(' | ');
@@ -500,8 +506,8 @@
       var first = host.querySelector('.oby-preview-page');
       if (first) {
         return {
-          width: Number(first.dataset.pageWidth || first.naturalWidth || A4_WIDTH_PX),
-          height: Number(first.dataset.pageHeight || first.naturalHeight || A4_HEIGHT_PX),
+          width: Number(first.dataset.pageWidth || first.naturalWidth || first.width || A4_WIDTH_PX),
+          height: Number(first.dataset.pageHeight || first.naturalHeight || first.height || A4_HEIGHT_PX),
         };
       }
     }
@@ -543,8 +549,8 @@
 
     for (var i = 0; i < pages.length; i++) {
       var el = pages[i];
-      var pw = Number(el.dataset.pageWidth || pageSize.width);
-      var ph = Number(el.dataset.pageHeight || pageSize.height);
+      var pw = Number(el.dataset.pageWidth || el.naturalWidth || el.width || pageSize.width);
+      var ph = Number(el.dataset.pageHeight || el.naturalHeight || el.height || pageSize.height);
       var w = Math.max(1, Math.round(pw * scale));
       var h = Math.max(1, Math.round(ph * scale));
       el.style.width = w + 'px';

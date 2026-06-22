@@ -111,6 +111,15 @@ def back_menu() -> ReplyKeyboardMarkup:
     )
 
 
+def contact_admin_kb(username: str) -> InlineKeyboardMarkup:
+    handle = username.lstrip("@")
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text="✉️ Adminga yozish", url=f"https://t.me/{handle}")]
+        ]
+    )
+
+
 def open_webapp_inline(uid: int, service: str) -> InlineKeyboardMarkup:
     page = "cv.html" if service == "cv" else "obyektivka.html"
     url = webapp_url(uid, page)

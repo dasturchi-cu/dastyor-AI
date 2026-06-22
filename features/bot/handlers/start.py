@@ -18,7 +18,7 @@ from shared.keyboards import (
     BTN_HELP,
     BTN_OBY,
     LEGACY_BTN_CREDITS,
-    back_menu,
+    contact_admin_kb,
     is_credits_button,
     is_menu_button,
     open_webapp_inline,
@@ -34,12 +34,31 @@ CV_INTRO = cv_intro_header()
 HELP_TEXT = (
     "ℹ️ <b>Yordam</b>\n\n"
     "/start — bosh menyu\n"
-    "📄 CV — PDF resume\n"
-    "✍️ Obyektivka — rasmiy Word hujjat (ovoz orqali)\n"
-    "💳 Pul balansi — to'langan mablag' va hujjat\n"
-    "🎙 Ovoz — AI avtomatik to'ldirish\n\n"
+    "/cv — PDF resume\n"
+    "/obyektivka — rasmiy Word hujjat\n"
+    "/balance — to'langan mablag' va hujjat\n"
+    "/contact — admin bilan bog'lanish\n"
+    "/help — yordam\n\n"
+    "🎙 Ovoz yoki matn — AI avtomatik to'ldirish (bepul)\n\n"
     f"Narx: <b>{settings.single_doc_price_uzs:,} so'm</b> = 1 hujjat"
 )
+
+
+def _contact_text() -> str:
+    admin = settings.support_admin_username.lstrip("@")
+    return (
+        "📞 <b>Bog'lanish</b>\n\n"
+        f"Savol yoki muammo bo'lsa, <a href=\"https://t.me/{admin}\">@{admin}</a> ga yozing.\n\n"
+        "Yoki shu chatga oddiy xabar yozing — operatorlarga yetkazamiz."
+    )
+
+
+async def _blocked_reply(message: Message) -> bool:
+    uid = message.from_user.id if message.from_user else 0
+    if uid and users_repo.is_blocked(uid):
+        await message.answer("⛔ Siz bloklangansiz.")
+        return True
+    return False
 
 
 @router.message(CommandStart())
@@ -64,6 +83,40 @@ async def cmd_start(message: Message, state: FSMContext) -> None:
 @router.message(F.text == BTN_HELP)
 async def cmd_help(message: Message) -> None:
     await message.answer(HELP_TEXT, reply_markup=user_menu())
+
+
+@router.message(Command("cv"))
+async def cmd_cv(message: Message, state: FSMContext) -> None:
+    if await _blocked_reply(message):
+        return
+    await state.clear()
+    await cv_intro(message, state)
+
+
+@router.message(Command("obyektivka"))
+async def cmd_obyektivka(message: Message, state: FSMContext) -> None:
+    if await _blocked_reply(message):
+        return
+    await state.clear()
+    from features.bot.handlers.obyektivka import obyektivka_start
+
+    await obyektivka_start(message, state)
+
+
+@router.message(Command("balance"))
+async def cmd_balance(message: Message, state: FSMContext) -> None:
+    await state.clear()
+    await show_credits(message)
+
+
+@router.message(Command("contact"))
+async def cmd_contact(message: Message, state: FSMContext) -> None:
+    await state.clear()
+    admin = settings.support_admin_username
+    await message.answer(
+        _contact_text(),
+        reply_markup=contact_admin_kb(admin),
+    )
 
 
 @router.message(CvStates.waiting_input, F.text.func(is_menu_button))

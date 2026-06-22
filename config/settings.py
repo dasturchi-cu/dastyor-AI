@@ -76,6 +76,9 @@ def resolve_webapp_base() -> str:
 class Settings:
     bot_token: str = field(default_factory=lambda: _env("BOT_TOKEN"))
     bot_username: str = field(default_factory=lambda: _env("BOT_USERNAME", "DastyorAiBot").lstrip("@"))
+    support_admin_username: str = field(
+        default_factory=lambda: _env("SUPPORT_ADMIN_USERNAME", "DastyorAiAdmin").lstrip("@")
+    )
     google_api_key: str = field(default_factory=lambda: _env("GOOGLE_API_KEY"))
     admin_user_ids: frozenset[int] = field(default_factory=lambda: frozenset(_admin_ids()))
     support_group_id: int = field(default_factory=lambda: _env_int("SUPPORT_GROUP_ID", -1003457224552))

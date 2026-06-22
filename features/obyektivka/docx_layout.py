@@ -16,6 +16,7 @@ from features.obyektivka.docx_typography import (
     _set_bool,
     _set_underline,
     apply_label_rpr,
+    apply_value_rpr,
 )
 
 
@@ -213,17 +214,23 @@ def _fix_work_history_spacing(body: etree._Element) -> None:
             _set_underline(rpr, False)
 
 
+def _is_relatives_table(tbl: etree._Element) -> bool:
+    text_blob = _paragraph_text(tbl)
+    low = text_blob.lower()
+    return "qarindosh" in low or "қариндош" in text_blob
+
+
 def _fix_relatives_table(root: etree._Element) -> None:
     for tbl in root.findall(f".//{W}tbl"):
-        text_blob = _paragraph_text(tbl)
-        if "qarindosh" not in text_blob.lower() and "қариндош" not in text_blob:
+        if not _is_relatives_table(tbl):
             continue
-        for tr in tbl.findall(f"{W}tr"):
+        rows = tbl.findall(f"{W}tr")
+        for ri, tr in enumerate(rows):
             tr_pr = tr.find(f"{W}trPr")
             if tr_pr is not None:
                 for h in tr_pr.findall(f"{W}trHeight"):
                     tr_pr.remove(h)
-            for tc in tr.findall(f"{W}tc"):
+            for ci, tc in enumerate(tr.findall(f"{W}tc")):
                 tc_pr = tc.find(f"{W}tcPr")
                 if tc_pr is not None:
                     for shd in tc_pr.findall(f"{W}shd"):
@@ -245,10 +252,10 @@ def _fix_relatives_table(root: etree._Element) -> None:
                     for r_el in p_el.findall(f".//{W}r"):
                         if not _run_text(r_el).strip():
                             continue
-                        rpr = _r_pr(r_el)
-                        _set_underline(rpr, False)
-                        if _is_bold_run(r_el):
+                        if ri == 0 or ci == 0:
                             apply_label_rpr(r_el)
+                        else:
+                            apply_value_rpr(r_el)
 
 
 def _dedupe_cell_none_values(root: etree._Element) -> None:

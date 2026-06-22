@@ -71,7 +71,9 @@ def create_webhook_app() -> FastAPI:
         elif skip_webhook:
             logger.info("SKIP_WEBHOOK=1 — polling mode (webhook o'rnatilmadi)")
         from features.admin.jobs import start_admin_jobs
+        from shared.bot_commands import register_bot_commands
 
+        await register_bot_commands(bot)
         start_admin_jobs(bot)
         yield
         from features.admin.jobs import stop_admin_jobs
