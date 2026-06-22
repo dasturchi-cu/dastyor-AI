@@ -776,59 +776,14 @@ const DastyorAI = (() => {
         return data.result;
     }
 
-    function _navIcon(name) {
-        const common = 'fill="none" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"';
-        if (name === 'home') return `<svg ${common}><path d="M3 10.5 12 3l9 7.5"/><path d="M5 10v10h14V10"/></svg>`;
-        if (name === 'tools') return `<svg ${common}><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>`;
-        if (name === 'translate') return `<svg ${common}><path d="M5 8h10"/><path d="M10 5v3c0 4-2.5 6.5-5 8"/><path d="M10 13l3 6 3-6"/><path d="M16 13h4"/></svg>`;
-        if (name === 'settings') return `<svg ${common}><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-1.8-.3 1.6 1.6 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.6 1.6 0 0 0-1-1.5 1.6 1.6 0 0 0-1.8.3l-.1.1a2 2 0 0 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0 .3-1.8 1.6 1.6 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.6 1.6 0 0 0 1.5-1 1.6 1.6 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.8.3h.1a1.6 1.6 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 1 1.5h.1a1.6 1.6 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8v.1a1.6 1.6 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1z"/></svg>`;
-        return '';
-    }
-
-    function _activeNavKey() {
-        const path = location.pathname.toLowerCase();
-        if (path.endsWith('/index.html') || path === '/' || path.endsWith('/')) return 'home';
-        if (path.endsWith('/more.html')) return 'tools';
-        if (path.endsWith('/translate.html')) return 'translate';
-        return 'settings';
-    }
-
     function _ensureMobileShell() {
-        const body = document.body;
-        if (!body) return;
-        if (body.dataset.disableMobileNav === 'true') return;
-        body.classList.add('da-mobile-shell');
+        // CV + Obyektivka only — bottom nav olib tashlangan.
     }
 
     function _ensureBottomNav() {
-        _ensureMobileShell();
-        const body = document.body;
-        if (!body) return;
-        if (body.dataset.disableMobileNav === 'true') return;
-        if (document.querySelector('.da-bottom-nav') || document.querySelector('.bottom-nav')) return;
-
-        const active = _activeNavKey();
-        const nav = document.createElement('nav');
-        nav.className = 'da-bottom-nav';
-        nav.innerHTML = `
-          <a class="da-nav-item ${active === 'home' ? 'active' : ''}" href="index.html">
-            ${_navIcon('home')}
-            <span>${translate('tabHome', 'Bosh sahifa')}</span>
-          </a>
-          <a class="da-nav-item ${active === 'tools' ? 'active' : ''}" href="more.html">
-            ${_navIcon('tools')}
-            <span>${translate('nav_tools', 'Asboblar')}</span>
-          </a>
-          <a class="da-nav-item ${active === 'translate' ? 'active' : ''}" href="translate.html">
-            ${_navIcon('translate')}
-            <span>${translate('nav_translator', 'Tarjimon')}</span>
-          </a>
-          <a class="da-nav-item ${active === 'settings' ? 'active' : ''}" href="index.html?open=settings">
-            ${_navIcon('settings')}
-            <span>${translate('nav_settings', 'Sozlamalar')}</span>
-          </a>
-        `;
-        body.appendChild(nav);
+        try {
+            document.querySelectorAll('.da-bottom-nav, .bottom-nav').forEach((el) => el.remove());
+        } catch (_) {}
     }
 
     function _bindViewportVars() {
