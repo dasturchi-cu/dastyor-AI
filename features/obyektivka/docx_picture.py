@@ -1,12 +1,14 @@
-"""VML pict (v:rect) — namuna «Намуна Объективка (18).doc» bilan 1:1."""
+"""Obyektivka header foto: VML placeholder (namuna) + wp:anchor (yuklangan rasm)."""
 
 from __future__ import annotations
 
 import html
+from copy import deepcopy
 
 from docx.image.image import Image
-from docx.oxml import parse_xml
+from docx.oxml import OxmlElement, parse_xml
 from docx.oxml.ns import qn
+from docx.shared import Emu, Length
 from docx.text.paragraph import Paragraph
 
 from features.obyektivka.layout import (
@@ -25,6 +27,10 @@ R_NS = "http://schemas.openxmlformats.org/officeDocument/2006/relationships"
 _spid = 1029
 
 
+def _emu(length: Length | int) -> int:
+    return int(length)
+
+
 def _next_spid() -> str:
     global _spid
     _spid += 1
@@ -38,12 +44,6 @@ def _vml_rect_style() -> str:
         f"width:{PHOTO_VML_WIDTH_PT}pt;z-index:{PHOTO_VML_Z_INDEX};"
         "mso-width-relative:page;mso-height-relative:page;"
     )
-
-
-def _embed_image_rid(paragraph: Paragraph, image_path: str) -> str:
-    image = Image.from_file(image_path)
-    _, rid = paragraph.part.get_or_add_image(image)
-    return rid
 
 
 def _hint_textbox_xml(hint_text: str) -> str:
@@ -67,28 +67,12 @@ def _hint_textbox_xml(hint_text: str) -> str:
     """
 
 
-def _append_vml_rect(run, *, rid: str | None = None, hint_text: str | None = None) -> None:
+def add_vml_photo_placeholder(paragraph: Paragraph, *, hint_text: str) -> None:
+    """Namuna p1: v:rect + matn (foto yuklanmaganda)."""
+    run = paragraph.add_run()
     spid = _next_spid()
     style = html.escape(_vml_rect_style(), quote=True)
-    if rid:
-        inner = f"""
-          <v:path/>
-          <v:fill r:id="{rid}" type="frame"/>
-          <v:stroke/>
-          <v:imagedata r:id="{rid}" o:title=""/>
-          <o:lock v:ext="edit"/>
-        """
-    else:
-        hint_box = _hint_textbox_xml(hint_text or " ") if hint_text else ""
-        inner = f"""
-          <v:path/>
-          <v:fill focussize="0,0"/>
-          <v:stroke/>
-          <v:imagedata o:title=""/>
-          <o:lock v:ext="edit"/>
-          {hint_box}
-        """
-
+    hint_box = _hint_textbox_xml(hint_text or " ")
     pict_xml = f"""
     <w:pict
       xmlns:w="{W_NS}"
@@ -97,23 +81,87 @@ def _append_vml_rect(run, *, rid: str | None = None, hint_text: str | None = Non
       xmlns:r="{R_NS}">
       <v:rect id="{spid}" o:spid="{spid}" o:spt="1"
         style="{style}" coordsize="21600,21600">
-        {inner}
+        <v:path/>
+        <v:fill focussize="0,0"/>
+        <v:stroke/>
+        <v:imagedata o:title=""/>
+        <o:lock v:ext="edit"/>
+        {hint_box}
       </v:rect>
     </w:pict>
     """
     run._r.append(parse_xml(pict_xml))
 
 
-def add_vml_photo(
+def add_floating_picture(
     paragraph: Paragraph,
-    image_path: str | None,
+    image_path: str,
     *,
-    hint_text: str = "",
+    width: Length,
+    height: Length,
+    pos_x: Length | None = None,
+    pos_y: Length | None = None,
 ) -> None:
-    """Namuna kabi v:rect (VML pict) — foto yoki matnli placeholder."""
+    """Yuklangan rasm — o'ng yuqori (preview bilan bir xil, Wordda barqaror)."""
     run = paragraph.add_run()
-    if image_path:
-        rid = _embed_image_rid(paragraph, image_path)
-        _append_vml_rect(run, rid=rid)
+    run.add_picture(image_path, width=width, height=height)
+    inlines = run._r.xpath(".//wp:inline")
+    if not inlines:
+        return
+    inline = inlines[0]
+    anchor = OxmlElement("wp:anchor")
+    anchor.set(qn("wp:distT"), "0")
+    anchor.set(qn("wp:distB"), "0")
+    anchor.set(qn("wp:distL"), "0")
+    anchor.set(qn("wp:distR"), "0")
+    anchor.set(qn("wp:simplePos"), "0")
+    anchor.set(qn("wp:relativeHeight"), "251658240")
+    anchor.set(qn("wp:behindDoc"), "0")
+    anchor.set(qn("wp:locked"), "0")
+    anchor.set(qn("wp:layoutInCell"), "1")
+    anchor.set(qn("wp:allowOverlap"), "1")
+
+    simple_pos = OxmlElement("wp:simplePos")
+    simple_pos.set("x", "0")
+    simple_pos.set("y", "0")
+    anchor.append(simple_pos)
+
+    pos_h = OxmlElement("wp:positionH")
+    pos_h.set(qn("wp:relativeFrom"), "column")
+    if pos_x is not None:
+        off = OxmlElement("wp:posOffset")
+        off.text = str(_emu(pos_x))
+        pos_h.append(off)
     else:
-        _append_vml_rect(run, hint_text=hint_text)
+        align = OxmlElement("wp:align")
+        align.text = "right"
+        pos_h.append(align)
+    anchor.append(pos_h)
+
+    pos_v = OxmlElement("wp:positionV")
+    pos_v.set(qn("wp:relativeFrom"), "paragraph")
+    off_v = OxmlElement("wp:posOffset")
+    off_v.text = str(_emu(pos_y or Emu(0)))
+    pos_v.append(off_v)
+    anchor.append(pos_v)
+
+    extent = inline.find(qn("wp:extent"))
+    if extent is not None:
+        anchor.append(deepcopy(extent))
+    effect = inline.find(qn("wp:effectExtent"))
+    if effect is not None:
+        anchor.append(deepcopy(effect))
+
+    doc_pr = inline.find(qn("wp:docPr"))
+    if doc_pr is not None:
+        anchor.append(deepcopy(doc_pr))
+
+    c_nv = inline.find(qn("wp:cNvGraphicFramePr"))
+    if c_nv is not None:
+        anchor.append(deepcopy(c_nv))
+
+    graphic = inline.find(qn("a:graphic"))
+    if graphic is not None:
+        anchor.append(deepcopy(graphic))
+
+    inline.getparent().replace(inline, anchor)

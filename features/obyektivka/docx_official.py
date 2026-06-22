@@ -18,7 +18,7 @@ from docx.oxml.ns import qn
 from docx.shared import Cm, Emu, Pt, Twips
 
 from backend.services.document_render.photo import process_passport_photo
-from features.obyektivka.docx_picture import add_vml_photo
+from features.obyektivka.docx_picture import add_floating_picture, add_vml_photo_placeholder
 from features.obyektivka.layout import (
     FONT_BODY_PT,
     FONT_FAMILY,
@@ -251,20 +251,21 @@ def _make_photo_placeholder(hint: str, out_path: str) -> str:
     return out_path
 
 
-def _resolve_photo_path(photo_path: str | None, hint: str) -> tuple[str, bool]:
-    """Return (path, is_temp_placeholder)."""
+def _resolve_photo_path(photo_path: str | None, hint: str) -> tuple[str | None, bool]:
+    """Return (path, is_placeholder). Placeholder = VML matn, PNG kerak emas."""
+    del hint
     if photo_path and os.path.exists(photo_path):
         return photo_path, False
-    temp = os.path.join("temp", f"oby_photo_placeholder_{os.getpid()}.png")
-    return _make_photo_placeholder(hint, temp), True
+    return None, True
 
 
 def _add_header_block(doc: Document, *, title: str, full_name: str, photo_path: str | None, photo_hint: str) -> str | None:
-    """Namuna DOCX: Heading 6 sarlavha, P1 bo'sh, FISH (VML v:rect foto birinchi run)."""
+    """Namuna: p0 sarlavha (+ foto agar bor), p1 bo'sh (+ VML hint), p2 FISH."""
     temp_photo: str | None = None
     resolved, is_temp = _resolve_photo_path(photo_path, photo_hint)
-    if is_temp:
-        temp_photo = resolved
+
+    photo_w = Cm(PHOTO_WIDTH_MM / 10)
+    photo_h = Cm(PHOTO_HEIGHT_MM / 10)
 
     try:
         p0 = doc.add_paragraph(style="Heading 6")
@@ -274,6 +275,8 @@ def _add_header_block(doc: Document, *, title: str, full_name: str, photo_path: 
     _apply_hdr_right(p0)
     p0.paragraph_format.tab_stops.add_tab_stop(TAB_PHOTO_POS)
     p0.paragraph_format.line_spacing = 1.0
+    if not is_temp:
+        add_floating_picture(p0, resolved, width=photo_w, height=photo_h)
     tr = p0.add_run(title)
     _set_run_font(tr, size=FONT_TITLE_PT)
 
@@ -281,16 +284,14 @@ def _add_header_block(doc: Document, *, title: str, full_name: str, photo_path: 
     p1.alignment = WD_ALIGN_PARAGRAPH.CENTER
     _apply_hdr_right(p1)
     p1.paragraph_format.tab_stops.add_tab_stop(TAB_PHOTO_POS)
+    if is_temp:
+        add_vml_photo_placeholder(p1, hint_text=photo_hint)
 
     p2 = doc.add_paragraph()
     p2.alignment = WD_ALIGN_PARAGRAPH.CENTER
     _apply_hdr_right(p2)
     p2.paragraph_format.tab_stops.add_tab_stop(TAB_NAME_CENTER_POS, WD_TAB_ALIGNMENT.CENTER)
     p2.paragraph_format.tab_stops.add_tab_stop(TAB_PHOTO_POS)
-    if is_temp:
-        add_vml_photo(p2, None, hint_text=photo_hint)
-    else:
-        add_vml_photo(p2, resolved)
     nr = p2.add_run(full_name)
     _set_run_font(nr, size=FONT_TITLE_PT, bold=True)
 
