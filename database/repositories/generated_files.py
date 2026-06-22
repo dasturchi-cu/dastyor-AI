@@ -30,7 +30,24 @@ def record_file(
         )
         fid = cur.lastrowid
         row = conn.execute("SELECT * FROM generated_files WHERE id = ?", (fid,)).fetchone()
-    return row_to_dict(row)
+    data = row_to_dict(row)
+    if data:
+        from shared.activity import log_cv, log_download, log_obyektivka
+
+        name = (
+            str(user.get("first_name") or "").strip()
+            or str(user.get("username") or "").strip()
+            or "Foydalanuvchi"
+        )
+        if ft == "cv":
+            log_cv(int(telegram_id), name)
+        else:
+            log_obyektivka(int(telegram_id), name)
+        log_download(int(telegram_id), name, document=ft)
+        from shared import cache as ttl_cache
+
+        ttl_cache.invalidate("admin:dashboard")
+    return data
 
 
 def list_by_user(telegram_id: int, limit: int = 20) -> list[dict[str, Any]]:

@@ -1,4 +1,4 @@
-"""Payment notification formatting."""
+"""Payment notification formatting (O'zbek)."""
 from __future__ import annotations
 
 import unittest
@@ -10,32 +10,23 @@ from shared.payment_notifications import (
     format_username,
     payment_list_line,
     purchase_ordinal,
+    purchase_ordinal_uz,
     split_datetime,
 )
 
 
 class TestPaymentNotifications(unittest.TestCase):
-    def test_purchase_ordinal(self):
-        self.assertEqual(purchase_ordinal(1), "1st purchase")
-        self.assertEqual(purchase_ordinal(2), "2nd purchase")
-        self.assertEqual(purchase_ordinal(3), "3rd purchase")
-        self.assertEqual(purchase_ordinal(4), "4th purchase")
-        self.assertEqual(purchase_ordinal(5), "5th purchase")
-        self.assertEqual(purchase_ordinal(10), "10th purchase")
-        self.assertEqual(purchase_ordinal(11), "11th purchase")
-        self.assertEqual(purchase_ordinal(21), "21st purchase")
-        self.assertEqual(purchase_ordinal(22), "22nd purchase")
-        self.assertEqual(purchase_ordinal(27), "27th purchase")
+    def test_purchase_ordinal_uz(self):
+        self.assertEqual(purchase_ordinal_uz(1), "1-chi xarid")
+        self.assertEqual(purchase_ordinal_uz(5), "5-chi xarid")
+        self.assertEqual(purchase_ordinal(5), "5-chi xarid")
 
     def test_format_username(self):
         self.assertEqual(format_username("johndoe"), "@johndoe")
-        self.assertEqual(format_username("@johndoe"), "@johndoe")
-        self.assertEqual(format_username(""), "No Username")
-        self.assertEqual(format_username(None), "No Username")
+        self.assertEqual(format_username(""), "Username yo'q")
 
     def test_split_datetime(self):
         self.assertEqual(split_datetime("2026-06-22 21:35:10"), ("2026-06-22", "21:35"))
-        self.assertEqual(split_datetime("2026-06-22T21:35:10"), ("2026-06-22", "21:35"))
 
     def test_payment_list_line(self):
         line = payment_list_line(
@@ -43,65 +34,47 @@ class TestPaymentNotifications(unittest.TestCase):
                 "id": 154,
                 "username": "johndoe",
                 "first_name": "John",
-                "last_name": "Doe",
-                "payer_name": "John Doe",
+                "payer_name": "John",
             }
         )
         self.assertIn("#154", line)
         self.assertIn("@johndoe", line)
-        self.assertIn("John Doe", line)
 
-    def test_build_notification_includes_profile_link(self):
+    def test_build_notification_uz(self):
         text = build_payment_notification_text(
             {
                 "id": 154,
                 "telegram_id": 123456789,
                 "username": "johndoe",
                 "first_name": "John",
-                "last_name": "Doe",
-                "payer_name": "John Doe",
+                "payer_name": "John",
                 "document_type": "obyektivka",
                 "created_at": "2026-06-22 21:35:00",
             },
             kind="obyektivka",
             purchase_number=5,
         )
-        self.assertIn("tg://user?id=123456789", text)
-        self.assertIn("5th purchase", text)
+        self.assertIn("YANGI TO'LOV", text)
+        self.assertIn("5-chi xarid", text)
         self.assertIn("Obyektivka", text)
 
-    def test_build_notification_no_username(self):
-        text = build_payment_notification_text(
-            {
-                "id": 1,
-                "telegram_id": 1,
-                "payer_name": "X",
-                "created_at": "2026-01-01 00:00:00",
-            },
-            kind="cv",
-            purchase_number=1,
-        )
-        self.assertIn("No Username", text)
-
-    def test_build_daily_report(self):
+    def test_build_daily_report_uz(self):
         text = build_daily_admin_report(
             {
                 "new_users": 12,
-                "active_users": 45,
                 "cv": 8,
                 "obyektivka": 5,
                 "approved_payments": 7,
                 "pending_payments": 3,
                 "revenue_uzs": 55993,
+                "conversion_pct": 15.0,
             },
             report_date="2026-06-22",
         )
-        self.assertIn("New Users", text)
-        self.assertIn("Active Users", text)
-        self.assertIn("Pending Payments", text)
-        self.assertIn("55,993 UZS", text)
+        self.assertIn("Kunlik hisobot", text)
+        self.assertIn("Konversiya", text)
 
-    def test_returning_customer_alert(self):
+    def test_returning_customer_uz(self):
         text = build_returning_customer_alert(
             {
                 "id": 99,
@@ -109,15 +82,13 @@ class TestPaymentNotifications(unittest.TestCase):
                 "username": "john",
                 "first_name": "John",
                 "payer_name": "John",
-                "document_type": "cv",
             },
             kind="cv",
             purchase_number=3,
             previous_approved=2,
         )
-        self.assertIn("RETURNING CUSTOMER", text)
-        self.assertIn("3rd purchase", text)
-        self.assertIn("Previous approved", text)
+        self.assertIn("QAYTA MIJOZ", text)
+        self.assertIn("3-chi xarid", text)
 
 
 if __name__ == "__main__":

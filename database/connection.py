@@ -75,6 +75,19 @@ def _apply_migrations(conn: sqlite3.Connection) -> None:
         );
         CREATE INDEX IF NOT EXISTS idx_error_logs_category
             ON error_logs(category, created_at DESC);
+        CREATE TABLE IF NOT EXISTS activity_events (
+            id              INTEGER PRIMARY KEY AUTOINCREMENT,
+            event_type      TEXT NOT NULL,
+            user_id         INTEGER REFERENCES users(id) ON DELETE SET NULL,
+            actor_name      TEXT,
+            detail          TEXT,
+            created_at      TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+        CREATE INDEX IF NOT EXISTS idx_activity_created
+            ON activity_events(created_at DESC);
+        CREATE INDEX IF NOT EXISTS idx_users_last_active ON users(last_active_at);
+        CREATE INDEX IF NOT EXISTS idx_generated_type_created
+            ON generated_files(file_type, created_at DESC);
         """
     )
 

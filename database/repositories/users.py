@@ -25,6 +25,7 @@ def upsert_user(
     last_name: str | None = None,
 ) -> dict[str, Any]:
     tid = int(telegram_id)
+    existed = get_by_telegram_id(tid) is not None
     with get_connection() as conn:
         conn.execute(
             """
@@ -44,6 +45,11 @@ def upsert_user(
     data = row_to_dict(row) or {}
     if data:
         ttl_cache.set(f"user:{tid}", data, _USER_TTL)
+    if not existed and data:
+        from shared.activity import log_register
+
+        name = " ".join(filter(None, [first_name, last_name])).strip() or "Foydalanuvchi"
+        log_register(tid, name)
     return data
 
 

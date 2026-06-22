@@ -1,4 +1,4 @@
-"""Admin / support payment notification formatting."""
+"""Admin / support payment notification formatting (O'zbek)."""
 from __future__ import annotations
 
 import html
@@ -8,21 +8,21 @@ from typing import Any
 from config.settings import settings
 
 
-def purchase_ordinal(n: int) -> str:
-    """Return e.g. '5th purchase' for n=5."""
+def purchase_ordinal_uz(n: int) -> str:
+    """Masalan: 5 → '5-chi xarid'."""
     n = int(n)
     if n < 1:
         return "—"
-    if 11 <= (n % 100) <= 13:
-        suffix = "th"
-    else:
-        suffix = {1: "st", 2: "nd", 3: "rd"}.get(n % 10, "th")
-    return f"{n}{suffix} purchase"
+    return f"{n}-chi xarid"
+
+
+def purchase_ordinal(n: int) -> str:
+    return purchase_ordinal_uz(n)
 
 
 def format_username(username: str | None) -> str:
     u = (username or "").strip().lstrip("@")
-    return f"@{u}" if u else "No Username"
+    return f"@{u}" if u else "Username yo'q"
 
 
 def format_document_type(kind: str | None, payment: dict[str, Any] | None = None) -> str:
@@ -32,7 +32,7 @@ def format_document_type(kind: str | None, payment: dict[str, Any] | None = None
         "cv": "CV",
         "obyektivka": "Obyektivka",
         "oby": "Obyektivka",
-        "manual": "Manual",
+        "manual": "Qo'lda",
     }
     return labels.get(key, raw.title() if raw else "—")
 
@@ -81,20 +81,20 @@ def build_payment_notification_text(
     username = html.escape(format_username(payment.get("username")))
     document = html.escape(format_document_type(kind, payment))
     date_s, time_s = split_datetime(payment.get("created_at"))
-    amount = f"{settings.single_doc_price_uzs:,} UZS"
+    amount = f"{settings.single_doc_price_uzs:,} so'm"
 
     user_line = full_name
     if telegram_id:
         user_line = f'<a href="tg://user?id={telegram_id}">{full_name}</a>'
 
-    header = "✅ AUTO-APPROVED PAYMENT" if auto_approved else "💳 NEW PAYMENT"
+    header = "✅ AVTOMATIK TASDIQLANDI" if auto_approved else "💳 YANGI TO'LOV"
     lines = [
         f"<b>{header}</b>",
         "",
-        "Payment ID:",
+        "To'lov ID:",
         f"#{pid}",
         "",
-        "User:",
+        "Foydalanuvchi:",
         user_line,
         "",
         "Username:",
@@ -103,45 +103,46 @@ def build_payment_notification_text(
         "User ID:",
         f"<code>{telegram_id}</code>" if telegram_id else "—",
         "",
-        "Purchase Number:",
-        html.escape(purchase_ordinal(purchase_number)),
+        "Xarid raqami:",
+        html.escape(purchase_ordinal_uz(purchase_number)),
         "",
-        "Document:",
+        "Hujjat turi:",
         document,
         "",
-        "Amount:",
+        "Summa:",
         amount,
         "",
-        "Date:",
+        "Sana:",
         date_s,
         "",
-        "Time:",
+        "Vaqt:",
         time_s,
     ]
     if auto_approved:
-        lines.extend(["", "Credits balance:", f"<b>{credits}</b>"])
+        lines.extend(["", "Kredit balansi:", f"<b>{credits}</b>"])
     return "\n".join(lines)
 
 
 def build_pending_payments_list(payments: list[dict[str, Any]]) -> str:
     if not payments:
         return ""
-    lines = ["<b>Pending payments</b>", ""]
+    lines = ["<b>Kutilayotgan to'lovlar</b>", ""]
     lines.extend(payment_list_line(p) for p in payments)
     return "\n".join(lines)
 
 
 def build_daily_admin_report(stats: dict[str, Any], *, report_date: str) -> str:
     revenue = int(stats.get("revenue_uzs") or 0)
+    conv = stats.get("conversion_pct", 0)
     return (
-        f"<b>📊 Daily Report — {html.escape(report_date)}</b>\n\n"
-        f"New Users: <b>{stats.get('new_users', 0)}</b>\n"
-        f"Active Users: <b>{stats.get('active_users', 0)}</b>\n"
-        f"CV Generated: <b>{stats.get('cv', 0)}</b>\n"
-        f"Obyektivka Generated: <b>{stats.get('obyektivka', 0)}</b>\n"
-        f"Approved Payments: <b>{stats.get('approved_payments', 0)}</b>\n"
-        f"Pending Payments: <b>{stats.get('pending_payments', 0)}</b>\n"
-        f"Revenue: <b>{revenue:,} UZS</b>"
+        f"<b>📊 Kunlik hisobot — {html.escape(report_date)}</b>\n\n"
+        f"Yangi userlar: <b>{stats.get('new_users', 0)}</b>\n"
+        f"CV soni: <b>{stats.get('cv', 0)}</b>\n"
+        f"Obyektivka soni: <b>{stats.get('obyektivka', 0)}</b>\n"
+        f"Tushum: <b>{revenue:,} so'm</b>\n"
+        f"Kutilayotgan to'lovlar: <b>{stats.get('pending_payments', 0)}</b>\n"
+        f"Tasdiqlangan to'lovlar: <b>{stats.get('approved_payments', 0)}</b>\n"
+        f"Konversiya: <b>{conv}%</b>"
     )
 
 
@@ -156,14 +157,14 @@ def build_pending_payment_reminder(payment: dict[str, Any], *, hours_pending: in
     if telegram_id:
         user_line = f'<a href="tg://user?id={telegram_id}">{full_name}</a>'
     return (
-        f"<b>⏰ PENDING PAYMENT REMINDER</b>\n\n"
-        f"Payment ID: #{pid}\n"
-        f"Pending: <b>{hours_pending}+ hours</b>\n\n"
-        f"User: {user_line}\n"
+        f"<b>⚠️ Kutilayotgan to'lov</b>\n\n"
+        f"To'lov ID: #{pid}\n"
+        f"Kutilmoqda: <b>{hours_pending}+ soat</b>\n\n"
+        f"Foydalanuvchi: {user_line}\n"
         f"Username: {username}\n"
         f"User ID: <code>{telegram_id}</code>\n"
-        f"Document: {document}\n"
-        f"Submitted: {date_s} {time_s}"
+        f"Hujjat: {document}\n"
+        f"Yuborilgan: {date_s} {time_s}"
     )
 
 
@@ -177,17 +178,14 @@ def build_returning_customer_alert(
     telegram_id = int(payment.get("telegram_id") or 0)
     full_name = html.escape(full_name_from_payment(payment))
     username = html.escape(format_username(payment.get("username")))
-    document = html.escape(format_document_type(kind, payment))
     user_line = full_name
     if telegram_id:
         user_line = f'<a href="tg://user?id={telegram_id}">{full_name}</a>'
     return (
-        f"<b>🔄 RETURNING CUSTOMER</b>\n\n"
-        f"Purchase: {html.escape(purchase_ordinal(purchase_number))}\n"
-        f"Previous approved: <b>{previous_approved}</b>\n\n"
-        f"User: {user_line}\n"
+        f"<b>🔥 QAYTA MIJOZ</b>\n\n"
+        f"Ism: {user_line}\n"
         f"Username: {username}\n"
-        f"User ID: <code>{telegram_id}</code>\n"
-        f"Document: {document}\n"
-        f"Payment ID: #{int(payment['id'])}"
+        f"Xarid: {html.escape(purchase_ordinal_uz(purchase_number))}\n"
+        f"Oldingi tasdiqlangan: <b>{previous_approved}</b>\n"
+        f"To'lov ID: #{int(payment['id'])}"
     )

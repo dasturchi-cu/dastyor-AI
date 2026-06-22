@@ -5,6 +5,7 @@ from typing import Any
 
 from database.connection import get_connection, row_to_dict
 from database.repositories import users as users_repo
+from shared import cache as ttl_cache
 
 
 def create_payment(
@@ -28,7 +29,16 @@ def create_payment(
         )
         pid = cur.lastrowid
         row = conn.execute("SELECT * FROM payments WHERE id = ?", (pid,)).fetchone()
-    return row_to_dict(row)
+    payment = row_to_dict(row)
+    if payment:
+        from shared.activity import log_payment
+
+        user = users_repo.get_by_id(uid)
+        tid = int(user["telegram_id"]) if user else 0
+        name = payer_name.strip()[:80] or "Foydalanuvchi"
+        log_payment(tid, name, document=doc or "")
+        ttl_cache.invalidate("admin:dashboard")
+    return payment
 
 
 def update_receipt(payment_id: int, receipt_path: str) -> bool:

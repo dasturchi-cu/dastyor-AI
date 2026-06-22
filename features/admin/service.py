@@ -66,15 +66,9 @@ def build_top_users_text(rows: list[dict[str, Any]]) -> str:
         return "Hali to'lov qilgan foydalanuvchilar yo'q."
     lines = ["<b>🏆 TOP 10 — ko'p to'lov qilganlar</b>\n"]
     for i, row in enumerate(rows, 1):
-        tid = int(row.get("telegram_id") or 0)
-        name = html.escape(display_name(row))
         username = html.escape(format_username(row.get("username")))
         approved = int(row.get("approved_count") or 0)
-        total = int(row.get("payment_count") or 0)
-        lines.append(
-            f"{i}. {name} ({username})\n"
-            f"   ID: <code>{tid}</code> | ✅ {approved} / jami {total}"
-        )
+        lines.append(f"{i}. {username}\n   <b>{approved}</b> ta xarid")
     return "\n".join(lines)
 
 

@@ -1,5 +1,6 @@
 /**
- * Obyektivka preview + test PDF botga yuborish (@bot watermark).
+ * Obyektivka preview + demo PDF botga yuborish (@bot watermark).
+ * Telegram WebView: canvas + CSS transform is unreliable — render to <img>.
  */
 (function (global) {
   'use strict';
@@ -12,8 +13,19 @@
   var _previewImgPromise = null;
   var _testDownloadBusy = false;
   var zoomCtrl = null;
-  var ZOOM_TRANSITION = 'transform 200ms cubic-bezier(0.4, 0, 0.2, 1)';
   var WRAP_TRANSITION = 'width 200ms cubic-bezier(0.4, 0, 0.2, 1), height 200ms cubic-bezier(0.4, 0, 0.2, 1)';
+  var PAGE_GAP = 12;
+
+  var PDF_JS_URLS = [
+    'vendor/pdf.min.js',
+    'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js',
+    'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js',
+  ];
+  var PDF_WORKER_URLS = [
+    'vendor/pdf.worker.min.js',
+    'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js',
+    'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js',
+  ];
 
   function getApiBase() {
     try {
@@ -120,43 +132,65 @@
     return payload;
   }
 
-  var previewBlobUrl = '';
   var _pdfJsPromise = null;
-
-  var _fitPageScale = 1;
   var _pageWidthPx = 794;
   var _pageHeightPx = 1123;
 
+  function configurePdfWorker(pdfjs) {
+    if (!pdfjs || !pdfjs.GlobalWorkerOptions) return;
+    if (pdfjs.GlobalWorkerOptions.workerSrc) return;
+    pdfjs.GlobalWorkerOptions.workerSrc = PDF_WORKER_URLS[0];
+  }
+
+  function loadScriptOnce(url) {
+    return new Promise(function (resolve, reject) {
+      var s = document.createElement('script');
+      s.src = url;
+      s.async = true;
+      s.onload = function () { resolve(); };
+      s.onerror = function () { reject(new Error('Script yuklanmadi: ' + url)); };
+      document.head.appendChild(s);
+    });
+  }
+
   function loadPdfJs() {
     if (global.pdfjsLib) {
-      if (!global.pdfjsLib.GlobalWorkerOptions.workerSrc) {
-        global.pdfjsLib.GlobalWorkerOptions.workerSrc =
-          'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-      }
+      configurePdfWorker(global.pdfjsLib);
       return Promise.resolve(global.pdfjsLib);
     }
     if (_pdfJsPromise) return _pdfJsPromise;
-    _pdfJsPromise = new Promise(function (resolve, reject) {
-      var s = document.createElement('script');
-      s.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
-      s.async = true;
-      s.onload = function () {
+
+    _pdfJsPromise = (async function () {
+      var lastErr = null;
+      for (var i = 0; i < PDF_JS_URLS.length; i++) {
         try {
-          global.pdfjsLib.GlobalWorkerOptions.workerSrc =
-            'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-          resolve(global.pdfjsLib);
+          await loadScriptOnce(PDF_JS_URLS[i]);
+          if (!global.pdfjsLib) throw new Error('pdfjsLib topilmadi');
+          global.pdfjsLib.GlobalWorkerOptions.workerSrc = PDF_WORKER_URLS[i] || PDF_WORKER_URLS[0];
+          return global.pdfjsLib;
         } catch (err) {
-          reject(err);
+          lastErr = err;
         }
-      };
-      s.onerror = reject;
-      document.head.appendChild(s);
-    });
+      }
+      throw lastErr || new Error('PDF.js yuklanmadi');
+    })();
+
     return _pdfJsPromise;
   }
 
   function getPreviewHost() {
     return document.getElementById('oby-preview-pdf-host');
+  }
+
+  function schedulePreviewLayout(reqId) {
+    function layoutOnce() {
+      if (reqId != null && reqId !== previewRequestId) return;
+      try { applyPreviewScale(); } catch (_) {}
+    }
+    requestAnimationFrame(function () { requestAnimationFrame(layoutOnce); });
+    setTimeout(layoutOnce, 60);
+    setTimeout(layoutOnce, 220);
+    setTimeout(layoutOnce, 500);
   }
 
   async function renderPreviewPdf(blob, reqId) {
@@ -165,7 +199,9 @@
 
     var buf = await blob.arrayBuffer();
     if (reqId != null && reqId !== previewRequestId) return;
-    if (!buf || buf.byteLength < 100) return;
+    if (!buf || buf.byteLength < 100) {
+      throw new Error('Serverdan bo\'sh javob keldi');
+    }
 
     var header = String.fromCharCode.apply(null, new Uint8Array(buf.slice(0, 4)));
     if (header !== '%PDF') {
@@ -179,40 +215,49 @@
     if (reqId != null && reqId !== previewRequestId) return;
 
     host.innerHTML = '';
-    var renderScale = 2;
-    var maxW = 0;
-    var totalH = 0;
-    var gap = 12;
-    var firstPageH = 0;
+    host.style.transform = 'none';
+    host.style.width = 'auto';
+    host.style.height = 'auto';
+
+    var renderScale = 1.5;
     var firstPageW = 0;
+    var firstPageH = 0;
+    var totalH = 0;
+    var maxW = 0;
 
     for (var pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
       var page = await pdf.getPage(pageNum);
       if (reqId != null && reqId !== previewRequestId) return;
       var viewport = page.getViewport({ scale: renderScale });
+      var pw = Math.floor(viewport.width);
+      var ph = Math.floor(viewport.height);
+
       var canvas = document.createElement('canvas');
-      canvas.className = 'oby-preview-page';
-      canvas.width = Math.floor(viewport.width);
-      canvas.height = Math.floor(viewport.height);
-      canvas.style.width = Math.floor(viewport.width) + 'px';
-      canvas.style.height = Math.floor(viewport.height) + 'px';
-      canvas.dataset.pageWidth = String(Math.floor(viewport.width));
-      canvas.dataset.pageHeight = String(Math.floor(viewport.height));
-      if (pageNum === 1) {
-        firstPageW = Math.floor(viewport.width);
-        firstPageH = Math.floor(viewport.height);
-      }
-      host.appendChild(canvas);
+      canvas.width = pw;
+      canvas.height = ph;
       await page.render({
         canvasContext: canvas.getContext('2d'),
         viewport: viewport,
       }).promise;
-      maxW = Math.max(maxW, viewport.width);
-      totalH += viewport.height + (pageNum < pdf.numPages ? gap : 0);
+      if (reqId != null && reqId !== previewRequestId) return;
+
+      var img = document.createElement('img');
+      img.className = 'oby-preview-page';
+      img.alt = 'Sahifa ' + pageNum;
+      img.draggable = false;
+      img.dataset.pageWidth = String(pw);
+      img.dataset.pageHeight = String(ph);
+      img.src = canvas.toDataURL('image/jpeg', 0.9);
+      host.appendChild(img);
+
+      if (pageNum === 1) {
+        firstPageW = pw;
+        firstPageH = ph;
+      }
+      maxW = Math.max(maxW, pw);
+      totalH += ph + (pageNum < pdf.numPages ? PAGE_GAP : 0);
     }
 
-    host.style.width = Math.ceil(maxW) + 'px';
-    host.style.height = Math.ceil(totalH) + 'px';
     host.dataset.docWidth = String(Math.ceil(maxW));
     host.dataset.docHeight = String(Math.ceil(totalH));
     host.dataset.pageWidth = String(firstPageW || Math.ceil(maxW));
@@ -221,14 +266,7 @@
     _pageHeightPx = Number(host.dataset.pageHeight) || 1123;
 
     if (zoomCtrl && zoomCtrl.reset) zoomCtrl.reset();
-
-    function layoutOnce() {
-      if (reqId != null && reqId !== previewRequestId) return;
-      try { applyPreviewScale(); } catch (_) {}
-    }
-    requestAnimationFrame(function () { requestAnimationFrame(layoutOnce); });
-    setTimeout(layoutOnce, 80);
-    setTimeout(layoutOnce, 300);
+    schedulePreviewLayout(reqId);
   }
 
   function applyPreviewPdfToIframe(blob, reqId) {
@@ -254,28 +292,15 @@
       var first = host.querySelector('.oby-preview-page');
       if (first) {
         return {
-          width: Number(first.dataset.pageWidth || first.offsetWidth || A4_WIDTH_PX),
-          height: Number(first.dataset.pageHeight || first.offsetHeight || A4_HEIGHT_PX),
+          width: Number(first.dataset.pageWidth || first.naturalWidth || A4_WIDTH_PX),
+          height: Number(first.dataset.pageHeight || first.naturalHeight || A4_HEIGHT_PX),
         };
       }
     }
     return { width: _pageWidthPx || A4_WIDTH_PX, height: _pageHeightPx || A4_HEIGHT_PX };
   }
 
-  function readIframeDocSize() {
-    var host = getPreviewHost();
-    if (host) {
-      var w = Number(host.dataset.docWidth || 0);
-      var h = Number(host.dataset.docHeight || 0);
-      if (w > 0 && h > 0) return { width: w, height: h };
-      if (host.scrollWidth > 0 && host.scrollHeight > 0) {
-        return { width: host.scrollWidth, height: host.scrollHeight };
-      }
-    }
-    return { width: A4_WIDTH_PX, height: A4_HEIGHT_PX };
-  }
-
-  function computeFitPageScale(scroll, pageSize, docSize) {
+  function computeFitPageScale(scroll, pageSize) {
     var padX = 32;
     var padY = 36;
     var paneWidth = scroll
@@ -287,57 +312,57 @@
     if (!paneWidth || !paneHeight) return 1;
     var scaleW = paneWidth / Math.max(1, pageSize.width);
     var scaleH = paneHeight / Math.max(1, pageSize.height);
-    return Math.min(scaleW, scaleH);
-  }
-
-  function resizePreviewIframe() {
-    var host = getPreviewHost();
-    var iframe = document.getElementById('oby-preview-frame');
-    var target = host || iframe;
-    if (!target) return;
-    var size = readIframeDocSize(target);
-    target.style.width = Math.ceil(size.width) + 'px';
-    target.style.height = Math.ceil(size.height) + 'px';
-    if (target.style.minHeight !== undefined) target.style.minHeight = Math.ceil(size.height) + 'px';
+    return Math.min(scaleW, scaleH, 1.25);
   }
 
   function applyPreviewScale() {
-    var pane = document.getElementById('obyPreviewPane');
     var wrap = document.getElementById('obyPreviewScaleWrapper');
     var host = getPreviewHost();
-    var iframe = document.getElementById('oby-preview-frame');
-    var target = host || iframe;
     var scroll = document.querySelector('.preview-scroll');
-    if (!pane || !wrap || !target) return;
+    if (!wrap || !host) return;
 
-    resizePreviewIframe();
-    var docSize = readIframeDocSize();
+    var pages = host.querySelectorAll('.oby-preview-page');
+    if (!pages.length) return;
+
     var pageSize = readPageSize();
-    var docWidth = docSize.width;
-    var docHeight = docSize.height;
-
-    _fitPageScale = computeFitPageScale(scroll, pageSize, docSize);
+    var fitScale = computeFitPageScale(scroll, pageSize);
     var userMul = zoomCtrl ? zoomCtrl.getMultiplier() : 1;
-    var scale = _fitPageScale * userMul;
+    var scale = fitScale * userMul;
     var animate = !zoomCtrl || !zoomCtrl.isDragging();
 
-    var scaledW = Math.ceil(docWidth * scale);
-    var scaledH = Math.ceil(docHeight * scale);
+    var totalH = 0;
+    var maxW = 0;
 
-    wrap.style.width = scaledW + 'px';
-    wrap.style.height = scaledH + 'px';
-    wrap.style.minWidth = scaledW + 'px';
-    wrap.style.minHeight = scaledH + 'px';
+    for (var i = 0; i < pages.length; i++) {
+      var el = pages[i];
+      var pw = Number(el.dataset.pageWidth || pageSize.width);
+      var ph = Number(el.dataset.pageHeight || pageSize.height);
+      var w = Math.max(1, Math.round(pw * scale));
+      var h = Math.max(1, Math.round(ph * scale));
+      el.style.width = w + 'px';
+      el.style.height = h + 'px';
+      el.style.display = 'block';
+      el.style.margin = '0 auto';
+      el.style.marginBottom = (i < pages.length - 1) ? PAGE_GAP + 'px' : '0';
+      maxW = Math.max(maxW, w);
+      totalH += h + (i < pages.length - 1 ? PAGE_GAP : 0);
+    }
+
+    wrap.style.width = maxW + 'px';
+    wrap.style.height = totalH + 'px';
+    wrap.style.minWidth = maxW + 'px';
+    wrap.style.minHeight = totalH + 'px';
     wrap.style.margin = '0 auto';
     wrap.style.transform = 'none';
     wrap.style.transition = animate ? WRAP_TRANSITION : 'none';
     wrap.style.overflow = 'visible';
 
-    target.style.width = Math.ceil(docWidth) + 'px';
-    target.style.height = Math.ceil(docHeight) + 'px';
-    target.style.transform = 'scale(' + scale + ')';
-    target.style.transformOrigin = 'top left';
-    target.style.transition = animate ? ZOOM_TRANSITION : 'none';
+    host.style.width = maxW + 'px';
+    host.style.height = totalH + 'px';
+    host.style.transform = 'none';
+    host.style.transition = 'none';
+    host.dataset.docWidth = String(maxW);
+    host.dataset.docHeight = String(totalH);
   }
 
   function initPreviewZoom() {
@@ -352,6 +377,17 @@
     zoomCtrl.onChange(function () {
       try { applyPreviewScale(); } catch (_) {}
     });
+  }
+
+  function initPreviewResizeObserver() {
+    var scroll = document.querySelector('.preview-scroll');
+    if (!scroll || typeof ResizeObserver === 'undefined') return;
+    var ro = new ResizeObserver(function () {
+      try { applyPreviewScale(); } catch (_) {}
+    });
+    ro.observe(scroll);
+    var section = document.getElementById('preview-section');
+    if (section) ro.observe(section);
   }
 
   async function fetchServerPreview(opts) {
@@ -382,9 +418,17 @@
         body: JSON.stringify(payload),
         signal: previewAbort ? previewAbort.signal : undefined,
       });
-      if (!res.ok || reqId !== previewRequestId) return;
+      if (reqId !== previewRequestId) return;
+      if (!res.ok) {
+        var errBody = '';
+        try { errBody = await res.text(); } catch (_) {}
+        throw new Error(errBody || ('Server xatosi: ' + res.status));
+      }
       var buf = await res.arrayBuffer();
-      if (!buf || buf.byteLength < 100 || reqId !== previewRequestId) return;
+      if (!buf || buf.byteLength < 100) {
+        throw new Error('Serverdan bo\'sh PDF keldi');
+      }
+      if (reqId !== previewRequestId) return;
       var blob = new Blob([buf], { type: 'application/pdf' });
       applyPreviewPdfToIframe(blob, reqId);
     } catch (e) {
@@ -392,7 +436,8 @@
       if (reqId !== previewRequestId) return;
       try {
         if (global.DastyorAI && global.DastyorAI.showToast) {
-          global.DastyorAI.showToast('Preview yuklanmadi. Qayta urinib ko\'ring.', 'error');
+          var msg = (e && e.message) ? String(e.message) : String(e);
+          global.DastyorAI.showToast('Preview yuklanmadi: ' + msg.slice(0, 160), 'error');
         }
       } catch (_) {}
     } finally {
@@ -504,6 +549,7 @@
 
   document.addEventListener('DOMContentLoaded', function () {
     initPreviewZoom();
+    initPreviewResizeObserver();
     bindPreviewControls();
   });
 })(window);

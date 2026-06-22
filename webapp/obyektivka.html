@@ -168,8 +168,8 @@
     .preview-scroll::-webkit-scrollbar-thumb{background:rgba(15,23,42,.18);border-radius:3px}
     #obyPreviewPane{display:flex;align-items:flex-start;justify-content:center;width:100%;min-width:0;padding:4px 0}
     #obyPreviewScaleWrapper{position:relative;margin:0 auto;overflow:visible;will-change:width,height;transition:width 200ms cubic-bezier(0.4,0,0.2,1),height 200ms cubic-bezier(0.4,0,0.2,1)}
-    #oby-preview-pdf-host{display:block;background:#fff;box-shadow:0 14px 40px rgba(15,23,42,.28),0 2px 8px rgba(15,23,42,.12);border-radius:0;transform-origin:top left;position:relative;left:0;top:0;max-width:none;transition:transform 200ms cubic-bezier(0.4,0,0.2,1)}
-    #oby-preview-pdf-host .oby-preview-page{display:block;margin:0 auto 12px;background:#fff;box-shadow:0 1px 0 rgba(15,23,42,.06)}
+    #oby-preview-pdf-host{display:block;background:transparent;box-shadow:none;border-radius:0;position:relative;left:0;top:0;max-width:none;transform:none}
+    #oby-preview-pdf-host .oby-preview-page{display:block;margin:0 auto 12px;background:#fff;box-shadow:0 14px 40px rgba(15,23,42,.28),0 2px 8px rgba(15,23,42,.12);max-width:none;height:auto}
     #oby-preview-pdf-host .oby-preview-page:last-child{margin-bottom:0}
     #oby-preview-frame{display:none}
 
@@ -460,6 +460,7 @@
   </div>
 </div>
 
+<script src="vendor/pdf.min.js" defer></script>
 <script src="js/preview-zoom.js" defer></script>
 <script src="js/obyektivka-preview.js" defer></script>
 <script>

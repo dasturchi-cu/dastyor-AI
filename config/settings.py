@@ -82,7 +82,7 @@ class Settings:
     payment_card_owner: str = field(default_factory=lambda: _env("PAYMENT_CARD_OWNER", "DILNOZA MOMINOVA"))
     single_doc_price_uzs: int = field(default_factory=lambda: _env_int("SINGLE_DOC_PRICE_UZS", 7999))
     webapp_base: str = field(default_factory=resolve_webapp_base)
-    webapp_version: str = field(default_factory=lambda: _env("WEBAPP_VERSION", "20260622g"))
+    webapp_version: str = field(default_factory=lambda: _env("WEBAPP_VERSION", "20260622h"))
     site_base_url: str = field(default_factory=lambda: _env("SITE_BASE_URL").rstrip("/"))
     webhook_url: str = field(default_factory=lambda: _env("WEBHOOK_URL"))
     port: int = field(default_factory=lambda: _env_int("PORT", 8000))
@@ -111,6 +111,11 @@ class Settings:
     pending_payment_reminder_hours: int = field(
         default_factory=lambda: _env_int("PENDING_PAYMENT_REMINDER_HOURS", 12)
     )
+    admin_dashboard_refresh_sec: int = field(
+        default_factory=lambda: _env_int("ADMIN_DASHBOARD_REFRESH_SEC", 7)
+    )
+    online_user_minutes: int = field(default_factory=lambda: _env_int("ONLINE_USER_MINUTES", 5))
+    inactive_user_days: int = field(default_factory=lambda: _env_int("INACTIVE_USER_DAYS", 7))
 
 
 def _resolve_webhook_secret() -> str:

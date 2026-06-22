@@ -55,6 +55,13 @@ def _is_admin(user_id: int) -> bool:
     return user_id in settings.admin_user_ids
 
 
+def _stop_dashboard(message: Message) -> None:
+    if message.from_user:
+        from features.admin.dashboard import stop_dashboard
+
+        stop_dashboard(message.from_user.id)
+
+
 async def _update_payment_review_message(message: Message | None, text: str) -> None:
     if not message:
         return
@@ -110,20 +117,23 @@ async def admin_panel(message: Message, state: FSMContext) -> None:
         await message.answer("⛔ Faqat admin uchun.")
         return
     await state.clear()
-    pending = payments_repo.count_pending()
-    users = users_repo.count_users()
-    await message.answer(
-        f"🛠 <b>Admin panel</b>\n\n"
-        f"👥 Foydalanuvchilar: {users}\n"
-        f"💳 Kutilayotgan to'lovlar: {pending}",
-        reply_markup=admin_menu(),
+    from features.admin.dashboard import start_dashboard
+
+    await start_dashboard(
+        message.bot,
+        admin_id=message.from_user.id,
+        chat_id=message.chat.id,
     )
+    await message.answer("📋 Boshqaruv paneli:", reply_markup=admin_menu())
 
 
 @router.message(F.text == ADMIN_BTN_CLOSE)
 async def admin_close(message: Message, state: FSMContext) -> None:
     if not message.from_user or not _is_admin(message.from_user.id):
         return
+    from features.admin.dashboard import stop_dashboard
+
+    stop_dashboard(message.from_user.id)
     await state.clear()
     await message.answer("Admin panel yopildi.", reply_markup=user_menu())
 
