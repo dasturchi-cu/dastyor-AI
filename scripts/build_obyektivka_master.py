@@ -167,12 +167,14 @@ def main() -> None:
     parts["word/document.xml"] = xml.encode("utf-8")
     write_parts(OUT, parts)
 
+    from features.obyektivka.docx_annotations import strip_reference_annotations
     from features.obyektivka.docx_fonts import enforce_reference_fonts
     from features.obyektivka.docx_typography import apply_master_template_styles
     from lxml import etree
 
     parts = read_parts(OUT)
     root = etree.fromstring(parts["word/document.xml"])
+    strip_reference_annotations(root)
     apply_master_template_styles(root)
     enforce_reference_fonts(root)
     parts["word/document.xml"] = etree.tostring(

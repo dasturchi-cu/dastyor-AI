@@ -148,10 +148,12 @@ def apply_master_template_styles(root: etree._Element) -> None:
 
 
 def render_document_xml(xml_bytes: bytes, context: dict[str, str]) -> bytes:
+    from features.obyektivka.docx_annotations import strip_reference_annotations
     from features.obyektivka.docx_fonts import enforce_reference_fonts
 
     root = etree.fromstring(xml_bytes)
     apply_document_typography(root, context)
+    strip_reference_annotations(root)
     enforce_reference_fonts(root, context)
     return etree.tostring(root, xml_declaration=True, encoding="UTF-8", standalone=True)
 
