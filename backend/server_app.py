@@ -1,149 +1,59 @@
-"""
-Production ASGI app: Telegram webhook + static WebApp + REST API + optional Celery job routes.
-
-Root causes addressed:
-- api_webhook.py monolith (2k+ LOC) split into routers/services.
-- Duplicate /health and mixed concerns separated.
-- PaddleOCR logic unified with Celery worker (backend.services.paddle_ocr_runtime).
-"""
+"""Production ASGI app: Aiogram webhook + WebApp + REST API."""
 from __future__ import annotations
 
 import logging
-import os
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import PlainTextResponse
 from starlette.middleware.gzip import GZipMiddleware
 
-from backend.middleware.performance import PerformanceMiddleware
-from backend.middleware.maintenance import register_maintenance_middleware
-from backend.middleware.sentry_context import register_sentry_context_middleware
-from backend.middleware.request_id import register_request_id_middleware
-
-from backend.paths import webapp_dir, webapp_index_path
 from backend.exception_handlers import register_exception_handlers
+from backend.middleware.maintenance import register_maintenance_middleware
+from backend.middleware.performance import PerformanceMiddleware
+from backend.middleware.request_id import register_request_id_middleware
 from backend.middleware.webapp import register_webapp_middleware
-from backend.routers.documents_web import router as documents_router
-from backend.routers.public_web import router as public_router
 from backend.routers.site import router as site_router
 from backend.routers.tg_update import router as tg_update_router
+from config.settings import WEBAPP_DIR, settings
+from database.connection import init_db
+from features.ai.router import router as ai_router
+from features.cv.router import router as cv_router
+from features.obyektivka.router import router as oby_router
+from features.payment.router import router as payment_router
+from main import create_bot, create_dispatcher
 
+load_dotenv()
 logger = logging.getLogger(__name__)
-
-try:
-    load_dotenv()
-except Exception:
-    pass
-
-try:
-    from backend.sentry_init import init_sentry
-
-    init_sentry(service_name="backend")
-except Exception:
-    pass
 
 
 def create_webhook_app() -> FastAPI:
-    from main import setup_application
-
-    application = setup_application()
-    if application is None:
+    if not settings.bot_token:
         raise RuntimeError("BOT_TOKEN is missing — cannot start webhook application")
+
+    bot = create_bot()
+    dp = create_dispatcher()
 
     @asynccontextmanager
     async def lifespan(app: FastAPI):
-        app.state.ptb_application = application
-        await application.initialize()
-        await application.start()
-
-        try:
-            from bot.ui.bot_commands import sync_bot_commands
-
-            await sync_bot_commands(application.bot)
-        except Exception as e:
-            logger.warning("sync_bot_commands on startup: %s", e)
-
-        if os.getenv("ADMIN_DAILY_DIGEST_ON_START", "0").strip().lower() in ("1", "true", "yes"):
-            try:
-                from bot.services.bot_admin_stats import send_daily_admin_digest
-
-                admin_chat = int(
-                    (os.getenv("PREMIUM_ADMIN_GROUP_ID") or os.getenv("SUPPORT_GROUP_ID") or "0").strip()
-                )
-                if admin_chat:
-                    await send_daily_admin_digest(application.bot, admin_chat)
-            except Exception as e:
-                logger.warning("startup daily digest: %s", e)
-
-        webhook_url = os.getenv(
-            "WEBHOOK_URL",
-            "https://dastyor-ai-production.up.railway.app/webhook",
-        ).strip()
-        logger.info("Setting webhook to: %s", webhook_url)
-        await application.bot.set_webhook(url=webhook_url, drop_pending_updates=True)
-        logger.info("Webhook application started")
-
-        # Telegram chap yuqori "App" / menu — BotFatherda eski host (masalan onrender) qolgan bo'lsa,
-        # brauzerda Railway ochiladi, lekin bot ichida Not Found. Env bilan menyuni yangilaymiz.
-        if os.getenv("SYNC_TELEGRAM_MENU_WEBAPP", "1").strip().lower() not in ("0", "false", "no"):
-            try:
-                from telegram import MenuButtonWebApp, WebAppInfo
-
-                # Har doim jarayon muhitidan o'qimiz (web_constants import vaqti eski bo'lishi mumkin)
-                override = os.getenv("MENU_WEBAPP_URL", "").strip()
-                try:
-                    from config import resolve_webapp_base
-
-                    base = resolve_webapp_base()
-                except Exception:
-                    base = os.getenv("WEBAPP_BASE", "").strip().rstrip("/")
-                if override:
-                    menu_url = override
-                elif base:
-                    menu_url = f"{base}/index.html"
-                else:
-                    menu_url = ""
-
-                if menu_url.startswith("https://"):
-                    btn_text = (os.getenv("MENU_WEBAPP_TEXT", "Dastyor Ai") or "Dastyor Ai").strip()[:64]
-                    await application.bot.set_chat_menu_button(
-                        menu_button=MenuButtonWebApp(
-                            text=btn_text,
-                            web_app=WebAppInfo(url=menu_url),
-                        ),
-                    )
-                    logger.info("Telegram default menu WebApp URL set to: %s", menu_url)
-                    try:
-                        cur = await application.bot.get_chat_menu_button()
-                        wurl = getattr(
-                            getattr(cur, "web_app", None),
-                            "url",
-                            None,
-                        )
-                        logger.info("Telegram get_chat_menu_button confirms web_app.url=%s", wurl)
-                    except Exception as ver_e:
-                        logger.warning("get_chat_menu_button verify failed: %s", ver_e)
-                else:
-                    logger.warning(
-                        "Menu WebApp not synced: set WEBAPP_BASE=https://.../webapp (hozir env bo'sh). "
-                        "Railway Variables da WEBAPP_BASE borligini tekshiring."
-                    )
-            except Exception as e:
-                logger.warning("set_chat_menu_button skipped: %s", e)
-
+        init_db()
+        app.state.bot = bot
+        app.state.dp = dp
+        await bot.delete_webhook(drop_pending_updates=True)
+        if settings.webhook_url:
+            await bot.set_webhook(url=settings.webhook_url, drop_pending_updates=True)
+            logger.info("Webhook set: %s", settings.webhook_url)
         yield
-        await application.stop()
-        await application.shutdown()
+        await bot.session.close()
         logger.info("Webhook application stopped")
 
     app = FastAPI(
         lifespan=lifespan,
-        title="Dastyor AI — Webhook + Web API",
-        version="2.0",
+        title="Hujjatchi AI",
+        version="3.0",
     )
     app.add_middleware(
         CORSMiddleware,
@@ -152,42 +62,25 @@ def create_webhook_app() -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
-    # JSON/HTML responses: kamroq tarmoq va tezroq yuklash (WebApp API).
     app.add_middleware(GZipMiddleware, minimum_size=512)
-    # Correlation id for API debugging (first so all later middleware/handlers see it).
     register_request_id_middleware(app)
-    # So‘rov vaqti: X-Process-Time-ms + sekin yo‘llar uchun log.
     app.add_middleware(PerformanceMiddleware)
     register_webapp_middleware(app)
-    # Maintenance must be early: block web/api fast.
     register_maintenance_middleware(app)
-    # Sentry scope enrichment (user_id, endpoint, UA, query)
-    register_sentry_context_middleware(app)
     register_exception_handlers(app)
 
-    # Sentry verify endpoint (only when SENTRY_DSN is set)
-    @app.get("/sentry-debug", include_in_schema=False)
-    async def sentry_debug():
-        if not (os.getenv("SENTRY_DSN") or "").strip():
-            return PlainTextResponse("SENTRY_DSN is not set", status_code=404)
-        1 / 0  # noqa: B018 (intentional)
-
-    # Order: specific routes before static mount
     app.include_router(site_router)
-    app.include_router(public_router)
-    app.include_router(documents_router)
+    app.include_router(payment_router)
+    app.include_router(cv_router)
+    app.include_router(oby_router)
+    app.include_router(ai_router)
     app.include_router(tg_update_router)
 
-    _wd = webapp_dir()
-    _ix = webapp_index_path()
-    if not _ix.is_file():
-        logger.error(
-            "WebApp index missing at %s (cwd=%s). Set WORKDIR to project root in Docker.",
-            _ix,
-            __import__("os").getcwd(),
-        )
+    webapp_path = Path(WEBAPP_DIR)
+    if webapp_path.is_dir():
+        app.mount("/webapp", StaticFiles(directory=str(webapp_path), html=True), name="webapp")
+        logger.info("WebApp mounted at /webapp")
     else:
-        logger.info("WebApp static dir=%s index_ok=True", _wd)
+        logger.error("WebApp directory missing: %s", webapp_path)
 
-    app.mount("/webapp", StaticFiles(directory=str(_wd), html=True), name="webapp")
     return app

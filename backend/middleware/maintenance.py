@@ -29,9 +29,9 @@ def register_maintenance_middleware(app) -> None:
     @app.middleware("http")
     async def maintenance_gate(request: Request, call_next: Callable) -> Response:
         try:
-            from bot.services.settings_service import get_maintenance_mode
+            from database.repositories.settings import is_maintenance
 
-            if get_maintenance_mode() and not _is_exempt(request.url.path):
+            if is_maintenance() and not _is_exempt(request.url.path):
                 # Block both /api and /webapp (and other pages).
                 if request.url.path.lower().startswith("/api"):
                     return JSONResponse(

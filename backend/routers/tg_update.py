@@ -1,31 +1,29 @@
-"""Telegram Bot API webhook ingress."""
+"""Telegram webhook ingress — Aiogram 3."""
 from __future__ import annotations
 
 import logging
 
+from aiogram.types import Update
 from fastapi import APIRouter, Request, Response
-from telegram import Update
 
 logger = logging.getLogger(__name__)
-
 router = APIRouter(tags=["telegram-webhook"])
 
 
 @router.post("/webhook")
-async def webhook(request: Request):
+async def webhook(request: Request) -> Response:
     try:
-        logger.debug("Telegram webhook hit path=%s method=%s", request.url.path, request.method)
-        ptb = request.app.state.ptb_application
+        bot = request.app.state.bot
+        dp = request.app.state.dp
         data = await request.json()
-        update = Update.de_json(data, ptb.bot)
-        await ptb.process_update(update)
+        update = Update.model_validate(data, context={"bot": bot})
+        await dp.feed_update(bot, update)
         return Response(status_code=200)
     except Exception as e:
-        logger.error("Error processing update: %s", e, exc_info=True)
+        logger.error("Webhook error: %s", e, exc_info=True)
         return Response(status_code=500)
 
 
 @router.post("/")
-async def webhook_root(request: Request):
-    """Some providers POST updates to `/` when webhook URL has no path."""
+async def webhook_root(request: Request) -> Response:
     return await webhook(request)

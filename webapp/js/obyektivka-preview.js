@@ -185,6 +185,8 @@
     if (!payload) return;
 
     var base = getApiBase();
+    var skel = document.getElementById('previewSkeleton');
+    if (skel) skel.classList.remove('hidden');
     try {
       var res = await fetch(base + '/api/preview_obyektivka', {
         method: 'POST',
@@ -197,6 +199,8 @@
       applyPreviewHtmlToIframe(html, reqId);
     } catch (e) {
       if (e && e.name === 'AbortError') return;
+    } finally {
+      if (skel) skel.classList.add('hidden');
     }
   }
 

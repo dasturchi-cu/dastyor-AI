@@ -5,12 +5,18 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <!-- Bo‘sh = location.origin; Railway da alohida API domeni bo‘lsa to‘ldiring -->
   <meta name="dastyor-api-base" content="" />
+  <meta name="description" content="Professional CV yaratish — ovoz orqali avtomatik to'ldirish, PDF eksport." />
+  <meta name="theme-color" content="#2563eb" />
   <title>Real-time CV Builder | DASTYOR AI</title>
   
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Sora:wght@400;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="preload" href="theme.css" as="style" />
+  <link rel="stylesheet" href="theme.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&family=Sora:wght@600;700&display=swap" rel="stylesheet" />
   
-  <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  <script src="app.js"></script>
+  <script src="https://telegram.org/js/telegram-web-app.js" defer></script>
+  <script src="app.js" defer></script>
   <script defer src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
@@ -1024,6 +1030,36 @@
         syncPreviewAccentChrome();
     }
 
+    async function loadFromServer() {
+      const tid = telegramId || (function () {
+        try { return sessionStorage.getItem('tg_id') || ''; } catch (_) { return ''; }
+      })();
+      if (!tid) return;
+      try {
+        const base = getCvApiBase();
+        let token = '';
+        try { token = sessionStorage.getItem('tg_token') || ''; } catch (_) {}
+        const qs = new URLSearchParams({ telegram_id: String(tid) });
+        if (token) qs.set('token', token);
+        const r = await fetch(base + '/api/cv_saved_data?' + qs.toString(), { cache: 'no-store' });
+        if (!r.ok) return;
+        const j = await r.json();
+        const d = (j && j.data) || {};
+        if (!d || !Object.keys(d).length) return;
+        if (d.name && !document.getElementById('f_name').value) document.getElementById('f_name').value = d.name;
+        if ((d.spec || d.role) && !document.getElementById('f_role').value) document.getElementById('f_role').value = d.spec || d.role || '';
+        if (d.phone && (!document.getElementById('f_phone').value || document.getElementById('f_phone').value.trim() === '+998')) document.getElementById('f_phone').value = d.phone;
+        if (d.email && !document.getElementById('f_email').value) document.getElementById('f_email').value = d.email;
+        if ((d.loc || d.address) && !document.getElementById('f_loc').value) document.getElementById('f_loc').value = d.loc || d.address || '';
+        if (d.about && !document.getElementById('f_about').value) document.getElementById('f_about').value = d.about;
+        if (d.skills && (!skillsData || !skillsData.length)) {
+          skillsData = String(d.skills).split(/[,;\n]+/).map(s => s.trim()).filter(Boolean);
+          renderSkills();
+        }
+        triggerUpdate(false);
+      } catch (_) {}
+    }
+
     function clearAllData() {
         if(confirm(cvT('clear_data', "Ma'lumotlarni tozalash") + ' ' + cvT('cv_clear_confirm', 'Ishonchingiz komilmi?'))) { localStorage.removeItem('cvBuilderData'); location.reload(); }
     }
@@ -1330,6 +1366,8 @@
         token: sessionToken || undefined,
       });
       console.info('[CV] export_cv: bytes≈', JSON.stringify(req).length, 'tpl=', payload.template, 'has_img=', !!(payload.img && payload.img.length > 64));
+      const DA = window.DastyorAI || {};
+      if (DA.setProgressStep) DA.setProgressStep(4, 'PDF tayyorlanmoqda...');
       const res = await fetch(getCvApiBase() + '/api/export_cv', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -1350,11 +1388,15 @@
       }
       if (ct.includes('application/json')) {
         try {
-          return await res.json();
+          const out = await res.json();
+          if (DA.setProgressStep) DA.setProgressStep(5, 'Tayyor!');
+          return out;
         } catch (_) {
+          if (DA.setProgressStep) DA.setProgressStep(5, 'Tayyor!');
           return { ok: true };
         }
       }
+      if (DA.setProgressStep) DA.setProgressStep(5, 'Tayyor!');
       return { ok: true, status: 'download' };
     }
 
@@ -1501,9 +1543,9 @@
       }
       try {
         try {
-          if (window.DastyorAI && window.DastyorAI.showDocumentLoading) {
-            window.DastyorAI.showDocumentLoading('Yuborilmoqda...', '');
-          }
+          const DA = window.DastyorAI || {};
+          if (DA.showProgressFlow) DA.showProgressFlow('doc');
+          else if (DA.showDocumentLoading) DA.showDocumentLoading('Hujjat yaratilmoqda...', '');
         } catch (_) {}
 
         const data = await sendCvViaApi(fmt);
@@ -1767,6 +1809,7 @@
       } catch (_) {}
       setPreviewPlaceholder("⏳ Ko‘rinish yuklanmoqda…");
       loadFromLocalStorage();
+      loadFromServer();
       try { triggerUpdate(false); } catch (_) {}
       try {
         window.addEventListener('dastyor:profile-updated', () => syncCvQuotaUi());

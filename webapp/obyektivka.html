@@ -4,9 +4,13 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <meta name="dastyor-api-base" content="" />
+  <meta name="description" content="Obyektivka yaratish — ovoz orqali avtomatik to'ldirish, DOCX eksport." />
+  <meta name="theme-color" content="#1D6FE8" />
   <title>Obyektivka | DASTYOR AI</title>
-  <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  <script src="app.js"></script>
+  <link rel="preload" href="theme.css" as="style" />
+  <link rel="stylesheet" href="theme.css" />
+  <script src="https://telegram.org/js/telegram-web-app.js" defer></script>
+  <script src="app.js" defer></script>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
@@ -177,6 +181,23 @@
     .modal-foot{display:flex;justify-content:flex-end;gap:8px;margin-top:18px;padding-top:14px;border-top:1.5px solid var(--border)}
 
     .hidden{display:none!important}
+
+    /* VOICE-FIRST FLOW */
+    .voice-missing-banner{margin:12px 16px;padding:12px 14px;border-radius:12px;background:#fff7ed;border:1.5px solid #fdba74;color:#9a3412;font-size:12px;font-weight:600}
+    .voice-missing-banner b{display:block;font-size:13px;margin-bottom:6px}
+    .voice-missing-banner ul{margin:6px 0 0;padding-left:18px}
+    .voice-flow-bar{position:fixed;left:0;right:0;bottom:0;z-index:900;padding:12px 16px calc(12px + var(--safe-bottom));background:rgba(255,255,255,.97);border-top:1.5px solid var(--border);box-shadow:0 -8px 30px rgba(15,23,42,.12);display:flex;gap:8px;flex-wrap:wrap;align-items:center;justify-content:space-between}
+    .voice-flow-bar .btn{flex:1;min-width:130px}
+    .voice-first-mode{display:flex;flex-direction:column}
+    .voice-first-mode #preview-section{order:-2;margin-top:0}
+    .voice-first-mode #obyektivka-form{order:1}
+    .voice-first-mode .form-body .field.is-filled{opacity:.6}
+    .voice-first-mode .field.is-missing label{color:#c2410c}
+    .voice-first-mode .field.is-missing input,.voice-first-mode .field.is-missing textarea{border-color:#fb923c;box-shadow:0 0 0 3px rgba(251,146,60,.15)}
+    .voice-first-mode #btn_voice_fill,.voice-first-mode #btn_voice_live{display:none!important}
+    .voice-first-mode .step-bar{display:none}
+    body.voice-first-active .main{padding-bottom:calc(88px + var(--safe-bottom))}
+    .voice-first-mode .photo-frame.is-missing{outline:3px solid #fb923c;outline-offset:2px;border-radius:12px}
     body.modal-open{overflow:hidden}
   </style>
 </head>
@@ -201,6 +222,7 @@
 
 <main class="main">
   <div id="obyQuotaWarn" class="hidden card" style="margin:12px 16px;border-color:#fecaca;background:#fef2f2;color:#991b1b;font-weight:600;padding:12px 14px;text-align:center;" role="alert"></div>
+  <div id="voiceMissingBanner" class="voice-missing-banner hidden"></div>
   <div class="card" id="lang-card">
     <div class="card-hero">
       <div class="card-hero-title">Obyektivka yaratish</div>
@@ -376,8 +398,9 @@
         </div>
         <button type="button" id="obyTestDownloadBtn" class="btn btn-ghost btn-sm" style="margin-left:4px">Test yuklash</button>
       </div>
-      <div class="preview-note" style="margin-bottom:10px">«Test yuklash» — formadagi ma'lumotlaringiz PDF bo'lib tushadi. <strong>DEMO VERSIYA</strong> belgisi avtomatik qo'yiladi (shaxsiy ma'lumotlar qisman yashiriladi). To'lovdan keyin toza Word fayl chiqadi.</div>
+      <div class="preview-note" style="margin-bottom:10px">AI ovozdan to'ldirilgan ma'lumotlarni tekshiring. <strong>Tasdiqlash</strong> — Word (.docx) yaratiladi.</div>
       <div class="preview-port">
+        <div id="previewSkeleton" class="da-skeleton da-skeleton-preview hidden" aria-hidden="true"></div>
         <div class="preview-scroll">
           <div id="obyPreviewPane">
             <div id="obyPreviewScaleWrapper">
@@ -389,6 +412,11 @@
     </div>
   </div>
 </main>
+
+<div id="voiceFlowBar" class="voice-flow-bar hidden">
+  <button type="button" class="btn btn-outline" onclick="toggleVoiceFormEdit()">✏️ Tahrir</button>
+  <button type="button" class="btn btn-primary" onclick="confirmObyektivka()" id="btn_confirm_oby">✅ Tasdiqlash</button>
+</div>
 
 <!-- MODAL -->
 <div id="rel-modal" class="modal">
@@ -450,6 +478,15 @@ function resolveTelegramId(){
   return '';
 }
 telegramId = resolveTelegramId();
+(function initTheme(){
+  try{
+    var tg = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp : null;
+    if(tg && tg.ready) tg.ready();
+    if(tg && tg.expand) tg.expand();
+    var theme = (tg && tg.colorScheme) || 'light';
+    document.documentElement.setAttribute('data-theme', theme === 'dark' ? 'dark' : 'light');
+  }catch(_){}
+})();
 var API_URL;
 var _qApi=new URLSearchParams(window.location.search).get('api');
 if(_qApi){API_URL=String(_qApi).replace(/\/$/,'');}
@@ -827,11 +864,16 @@ async function uploadObyVoiceFile(file){
   _obyVoiceUploading = true;
   var voiceBtn = document.getElementById('btn_voice_fill');
   var oldText = voiceBtn ? voiceBtn.textContent : '';
+  var DA = window.DastyorAI || {};
   try{
     if(voiceBtn){
       voiceBtn.disabled = true;
-      voiceBtn.textContent = "⏳ Ovoz tahlil qilinmoqda...";
+      voiceBtn.textContent = "⏳ 1/5 Audio qabul qilindi...";
     }
+    if(DA.showProgressFlow) DA.showProgressFlow('voice');
+    else if(DA.setProgressStep) DA.setProgressStep(1);
+    else if(DA.showDocumentLoading) DA.showDocumentLoading('Audio qabul qilindi', '');
+
     var fd = new FormData();
     fd.append('audio', file, file.name || 'voice.webm');
     fd.append('telegram_id', String(telegramId));
@@ -846,17 +888,33 @@ async function uploadObyVoiceFile(file){
       var errTxt = await dastyorReadApiError(resp);
       throw new Error(errTxt || ('Server ' + resp.status));
     }
-    var js = await resp.json();
-    if(!js || !js.ok || !js.data){
+    var startJs = await resp.json();
+    var js = startJs;
+    if(startJs.job_id && DA.pollObyVoiceJob){
+      js = await DA.pollObyVoiceJob(startJs.job_id, telegramId, tok, function(step){
+        if(DA.setProgressStep) DA.setProgressStep(step);
+        if(voiceBtn) voiceBtn.textContent = '⏳ ' + step + '/5 ' + (DA.PROGRESS_STEPS ? DA.PROGRESS_STEPS[step-1] : '...');
+      });
+    }
+    if(!js || !js.data){
       throw new Error("Ma'lumot topilmadi");
     }
+    if(DA.setProgressStep) DA.setProgressStep(3, 'Formaga yozilmoqda...');
     applyServerObyData(js.data);
+    enterVoiceFirstMode(js.missing_fields || []);
     goToStep(1);
-    alert("✅ Ovozdan ma'lumot olindi va forma to'ldirildi.");
+    if(DA.setProgressStep) DA.setProgressStep(5, 'Tayyor!');
+    try{
+      var pct = js.fill_percent || 90;
+      if(window.Telegram&&window.Telegram.WebApp&&window.Telegram.WebApp.showPopup){
+        window.Telegram.WebApp.showPopup({title:'Tayyor',message:'✅ ~'+pct+'% to\'ldirildi. Preview ni tekshiring.',buttons:[{type:'ok'}]});
+      }
+    }catch(_){}
   }catch(e){
     alert("❌ Ovozli to'ldirishda xatolik: " + (e.message || e));
   }finally{
     _obyVoiceUploading = false;
+    if(DA.hideDocumentLoading) DA.hideDocumentLoading();
     if(voiceBtn){
       voiceBtn.disabled = false;
       voiceBtn.textContent = oldText || "🎤 Ovozdan to'ldirish";
@@ -972,10 +1030,10 @@ async function toggleObyLiveRecording(){
 }
 
 async function sendObyektivkaViaApi(fmt){
+  var DA = window.DastyorAI || {};
   try {
-    if (window.DastyorAI && window.DastyorAI.showDocumentLoading) {
-      window.DastyorAI.showDocumentLoading('Yuborilmoqda...', 'Bitta marta bosing');
-    }
+    if (DA.showProgressFlow) DA.showProgressFlow('doc');
+    else if (DA.showDocumentLoading) DA.showDocumentLoading('Hujjat yaratilmoqda...', 'Bitta marta bosing');
   var payload = buildObyPayload(fmt);
   var req = {
     telegram_id: telegramId ? parseInt(telegramId, 10) : null,
@@ -1015,6 +1073,7 @@ async function sendObyektivkaViaApi(fmt){
   };
   var tok = getDastyorSessionToken();
   if (tok) req.token = tok;
+  if (DA.setProgressStep) DA.setProgressStep(4, 'DOCX tayyorlanmoqda...');
   var res = await fetch(API_URL + '/api/export_obyektivka', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -1025,9 +1084,10 @@ async function sendObyektivkaViaApi(fmt){
     if (res.status === 402 || res.status === 429) errMsg = '⛔ ' + errMsg;
     throw new Error(errMsg);
   }
+  if (DA.setProgressStep) DA.setProgressStep(5, 'Tayyor!');
   } finally {
     try {
-      if (window.DastyorAI && window.DastyorAI.hideDocumentLoading) window.DastyorAI.hideDocumentLoading();
+      if (DA.hideDocumentLoading) DA.hideDocumentLoading();
     } catch (_) {}
   }
 }
@@ -1622,17 +1682,102 @@ function applyServerObyData(d){
   try{updatePreview();scaleLivePreview();}catch(e){}
 }
 
+var _voiceFirstMode=false;
+var _missingFields=[];
+
+function enterVoiceFirstMode(missing){
+  _voiceFirstMode=true;
+  _missingFields=missing||[];
+  document.body.classList.add('voice-first-active');
+  var card=document.getElementById('main-card');
+  if(card) card.classList.add('voice-first-mode');
+  var bar=document.getElementById('voiceFlowBar');
+  if(bar) bar.classList.remove('hidden');
+  highlightMissingFields(_missingFields);
+  showMissingBanner(_missingFields);
+  try{
+    var preview=document.getElementById('preview-section');
+    if(preview){ preview.style.display='block'; preview.scrollIntoView({behavior:'smooth',block:'start'}); }
+  }catch(_){}
+}
+
+function highlightMissingFields(missing){
+  var ids=(missing||[]).map(function(m){return typeof m==='string'?m:(m.id||'');});
+  document.querySelectorAll('.field').forEach(function(f){f.classList.remove('is-missing','is-filled');});
+  ['fullname','birthdate','birthplace','nation','party','edu','graduated','spec','degree','scititle','langs','awards','deputy'].forEach(function(id){
+    var el=document.getElementById(id);
+    if(!el) return;
+    var field=el.closest('.field');
+    if(!field) return;
+    if(ids.indexOf(id)>=0) field.classList.add('is-missing');
+    else if(el.value&&String(el.value).trim()&&el.value!=="yo'q") field.classList.add('is-filled');
+  });
+  var pf=document.querySelector('.photo-frame');
+  if(pf){
+    pf.classList.remove('is-missing','is-filled');
+    if(ids.indexOf('photo')>=0) pf.classList.add('is-missing');
+    else if(photoData) pf.classList.add('is-filled');
+  }
+  if(ids.indexOf('work_experience')>=0){
+    var wh=document.getElementById('work-container');
+    if(wh) wh.style.outline='2px dashed #fb923c';
+  }
+  if(ids.indexOf('relatives')>=0){
+    var rh=document.getElementById('relatives-list-ui');
+    if(rh&&!relatives.length) rh.style.outline='2px dashed #fb923c';
+  }
+}
+
+function showMissingBanner(missing){
+  var el=document.getElementById('voiceMissingBanner');
+  if(!el) return;
+  if(!missing||!missing.length){ el.classList.add('hidden'); return; }
+  var labels=missing.map(function(m){return typeof m==='string'?m:(m.label||m.id);});
+  el.innerHTML='<b>⚠️ Yetishmayotgan maydonlar ('+labels.length+')</b><ul><li>'+labels.slice(0,8).join('</li><li>')+'</li></ul>';
+  if(labels.length>8) el.innerHTML+='<div style="margin-top:4px">+'+(labels.length-8)+' ta boshqa</div>';
+  el.classList.remove('hidden');
+}
+
+function toggleVoiceFormEdit(){
+  var card=document.getElementById('main-card');
+  if(!card) return;
+  goToStep(1);
+  document.getElementById('page-1').classList.remove('hidden');
+  try{ document.getElementById('page-1').scrollIntoView({behavior:'smooth'}); }catch(_){}
+}
+
+async function confirmObyektivka(){
+  var critical=(_missingFields||[]).filter(function(m){
+    var id=typeof m==='string'?m:m.id;
+    return id==='fullname'||id==='birthdate'||id==='work_experience';
+  });
+  if(critical.length){
+    var ok=await obyConfirm('Muhim maydonlar yetishmayapti. Avval to\'ldirasizmi?');
+    if(!ok){
+      toggleVoiceFormEdit();
+      highlightMissingFields(_missingFields);
+      return;
+    }
+  }
+  await sendObyektivkaToBot('word');
+}
+
 function runAutoloadObyData(){
   var up=new URLSearchParams(window.location.search);
   if(up.get('autoload')!=='1'||!telegramId)return;
+  var voiceMode=up.get('voice')==='1';
   try{initApp('uz_l');}catch(e){}
-  var tries=0,maxTries=6,delayMs=450;
+  var tries=0,maxTries=8,delayMs=400;
   function attempt(){
     tries++;
     fetch(API_URL+'/api/get_oby_data?telegram_id='+encodeURIComponent(telegramId),{cache:'no-store'})
       .then(function(r){return r.json();})
       .then(function(js){
-        if(js&&js.ok&&js.data){applyServerObyData(js.data);return;}
+        if(js&&js.ok&&js.data){
+          applyServerObyData(js.data);
+          if(voiceMode) enterVoiceFirstMode(js.missing_fields||[]);
+          return;
+        }
         if(tries<maxTries)setTimeout(attempt,delayMs);
       })
       .catch(function(){

@@ -1,52 +1,10 @@
 services:
-  redis:
-    image: redis:7-alpine
-    command: ["redis-server", "--save", "", "--appendonly", "no"]
-    ports:
-      - "6379:6379"
-    restart: unless-stopped
-
   api:
     build: .
-    environment:
-      - ENV=prod
-      - PADDLEX_HOME=/app/.paddlex
-      # Required for webhook app: same token as the Telegram bot
-      - BOT_TOKEN=${BOT_TOKEN}
-      - WEBHOOK_URL=${WEBHOOK_URL:-http://api:8000/webhook}
-      - REDIS_URL=redis://redis:6379/0
-      - CELERY_BROKER_URL=redis://redis:6379/0
-      - CELERY_RESULT_BACKEND=redis://redis:6379/0
-      - MAX_UPLOAD_BYTES=15728640
-      - JOB_TTL_SECONDS=3600
-      - PADDLE_OCR_LANG=en
-      - PADDLE_OCR_MAX_SIDE=1800
-      - PADDLE_OCR_DET_LIMIT_SIDE_LEN=1800
     ports:
       - "8000:8000"
-    depends_on:
-      - redis
-    # Full stack (backend.app re-exports api_webhook app): WebApp, REST, webhook, Celery routes
-    command: ["uvicorn", "backend.app:app", "--host", "0.0.0.0", "--port", "8000"]
+    env_file:
+      - .env
+    volumes:
+      - ./data:/app/data
     restart: unless-stopped
-
-  worker:
-    build: .
-    environment:
-      - ENV=prod
-      - PADDLEX_HOME=/app/.paddlex
-      - REDIS_URL=redis://redis:6379/0
-      - CELERY_BROKER_URL=redis://redis:6379/0
-      - CELERY_RESULT_BACKEND=redis://redis:6379/0
-      - PADDLE_OCR_LANG=en
-      - PADDLE_OCR_MAX_SIDE=1800
-      - PADDLE_OCR_DET_LIMIT_SIDE_LEN=1800
-      - FLAGS_enable_pir_api=0
-      - FLAGS_use_new_executor=0
-      - FLAGS_enable_onednn=0
-      - FLAGS_use_mkldnn=0
-    depends_on:
-      - redis
-    command: ["celery", "-A", "backend.celery_app.celery_app", "worker", "--loglevel=INFO", "--concurrency=1"]
-    restart: unless-stopped
-

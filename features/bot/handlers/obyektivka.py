@@ -1,0 +1,175 @@
+"""Obyektivka — voice-first bot flow (instant ack, staged progress)."""
+from __future__ import annotations
+
+import asyncio
+import logging
+import os
+from pathlib import Path
+
+from aiogram import Bot, F, Router
+from aiogram.fsm.context import FSMContext
+from aiogram.types import FSInputFile, Message
+
+from config.settings import PROJECT_ROOT
+from database.repositories import ai_sessions as sessions_repo
+from features.ai.service import process_voice_for_obyektivka
+from features.bot.states import ObyektivkaStates
+from features.obyektivka import service as oby_service
+from shared.async_db import run as db_run
+from shared.keyboards import BTN_OBY, back_menu, open_oby_preview_inline
+from shared.progress import STEP_AI, STEP_AUDIO, STEP_EXTRACTED, STEP_READY, telegram_message
+from shared.telegram_progress import set_step
+from shared.voice import download_voice_message
+
+logger = logging.getLogger(__name__)
+router = Router()
+
+OBY_INSTRUCTION = (
+    "📌 <b>Obyektivka tayyorlash uchun quyidagi ma'lumotlarni bitta audio xabar "
+    "ko'rinishida yuboring:</b>\n\n"
+    "1. F.I.Sh.\n"
+    "2. Tug'ilgan sana\n"
+    "3. Tug'ilgan joy\n"
+    "4. Millati\n"
+    "5. Ma'lumoti\n"
+    "6. Tamomlagan OTM\n"
+    "7. Mutaxassisligi\n"
+    "8. Partiyaviyligi\n"
+    "9. Ilmiy darajasi\n"
+    "10. Ilmiy unvoni\n"
+    "11. Chet tillari\n"
+    "12. Davlat mukofotlari\n"
+    "13. Deputatligi\n"
+    "14. Mehnat faoliyati\n"
+    "15. Rasm\n"
+    "16. <b>Oila a'zolari:</b>\n"
+    "• ota • ona • aka • uka • opa • singil • turmush o'rtog'i\n\n"
+    "Har biri uchun:\n"
+    "• FISH\n"
+    "• Tug'ilgan yili\n"
+    "• Ish joyi\n"
+    "• Lavozimi\n"
+    "• Yashash manzili\n\n"
+    "🎙 <b>Endi ovozli xabar yuboring</b> — AI formani avtomatik to'ldiradi."
+)
+
+SAMPLE_AUDIO_PATHS = [
+    PROJECT_ROOT / "speech.mp3",
+    PROJECT_ROOT / "bot" / "handlers" / "speech.mp3",
+    PROJECT_ROOT / "namuna.mp3",
+]
+
+
+def _find_sample_audio() -> Path | None:
+    for p in SAMPLE_AUDIO_PATHS:
+        if p.is_file():
+            return p
+    return None
+
+
+@router.message(F.text == BTN_OBY)
+async def obyektivka_start(message: Message, state: FSMContext) -> None:
+    await state.set_state(ObyektivkaStates.waiting_voice)
+    await message.answer(OBY_INSTRUCTION, reply_markup=back_menu())
+
+    sample = _find_sample_audio()
+    if sample:
+        asyncio.create_task(_send_sample_audio(message, sample))
+
+    await message.answer(
+        "⏳ <b>Ovozli xabaringizni kutmoqdamiz...</b>\n"
+        "Bitta audio xabar yuboring (telegram voice yoki audio fayl).",
+        reply_markup=back_menu(),
+    )
+
+
+async def _send_sample_audio(message: Message, sample: Path) -> None:
+    try:
+        await message.answer_audio(
+            FSInputFile(sample),
+            caption="🎧 <b>Namuna audio</b> — shu tartibda o'qib yuboring.",
+        )
+    except Exception as e:
+        logger.warning("Sample audio send failed: %s", e)
+
+
+async def _process_voice_background(
+    message: Message,
+    bot: Bot,
+    state: FSMContext,
+    status_msg: Message,
+) -> None:
+    uid = message.from_user.id if message.from_user else 0
+    path = ""
+    try:
+        path = await download_voice_message(bot, message, prefix="oby_voice")
+        if not path:
+            await status_msg.edit_text("❌ Audio topilmadi. Qayta yuboring.")
+            return
+
+        await set_step(status_msg, STEP_AI)
+        transcript, data, missing = await process_voice_for_obyektivka(path)
+
+        await set_step(status_msg, STEP_EXTRACTED)
+        if not data or not data.get("fullname"):
+            await status_msg.edit_text(
+                "❌ Ma'lumotlarni ajratib bo'lmadi.\n"
+                "Iltimos, namunadagi tartibda to'liqroq o'qib yuboring."
+            )
+            return
+
+        await db_run(oby_service.save_pending, uid, data)
+        await db_run(
+            sessions_repo.create_session,
+            uid,
+            "oby_voice",
+            transcript,
+            data,
+        )
+        await state.clear()
+
+        filled = max(10, min(95, 100 - len(missing) * 8))
+        missing_text = ""
+        if missing:
+            labels = [m["label"] for m in missing[:6]]
+            extra = len(missing) - 6
+            missing_text = (
+                f"\n\n⚠️ <b>Yetishmayotgan ({len(missing)}):</b>\n"
+                + ", ".join(labels)
+                + (f" +{extra} ta" if extra > 0 else "")
+            )
+
+        fn = data.get("fullname") or ""
+        await status_msg.edit_text(
+            f"{telegram_message(STEP_READY)}\n\n"
+            f"<b>Obyektivka tayyorlandi!</b> (~{filled}% to'ldirildi)\n"
+            f"{('👤 ' + fn) if fn else ''}"
+            f"{missing_text}\n\n"
+            "👇 Preview ni ko'ring va <b>Tasdiqlash</b> tugmasini bosing.",
+            reply_markup=open_oby_preview_inline(uid, missing_count=len(missing)),
+        )
+    except Exception as e:
+        logger.exception("Obyektivka voice error: %s", e)
+        await status_msg.edit_text(f"❌ Xatolik: {str(e)[:200]}")
+    finally:
+        if path:
+            try:
+                os.remove(path)
+            except OSError:
+                pass
+
+
+@router.message(ObyektivkaStates.waiting_voice, F.voice | F.audio)
+async def obyektivka_voice(message: Message, bot: Bot, state: FSMContext) -> None:
+    status = await message.answer(telegram_message(STEP_AUDIO))
+    asyncio.create_task(_process_voice_background(message, bot, state, status))
+
+
+@router.message(ObyektivkaStates.waiting_voice)
+async def obyektivka_waiting_hint(message: Message) -> None:
+    await message.answer(
+        "🎙 Iltimos, <b>ovozli xabar</b> yuboring.\n"
+        "Matn emas — audio yozuv kerak.",
+        reply_markup=back_menu(),
+    )
+

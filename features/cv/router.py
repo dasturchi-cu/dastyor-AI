@@ -1,0 +1,86 @@
+"""CV API routes."""
+from __future__ import annotations
+
+import asyncio
+import io
+import logging
+
+from fastapi import APIRouter, HTTPException, Request
+from fastapi.responses import HTMLResponse, StreamingResponse
+
+from backend.schemas.webapp import CVRequest, ExportCVRequest
+from backend.services.cv_preview_cache import (
+    cache_key_for_cv_preview,
+    cv_preview_cache_get,
+    cv_preview_cache_set,
+)
+from core.security import rate_limit
+from features.cv import service as cv_service
+from features.cv.render import preview_html
+from shared import async_db
+from shared.auth import resolve_uid
+
+logger = logging.getLogger(__name__)
+router = APIRouter(tags=["cv"])
+
+
+def _uid_from_req(req) -> int:
+    uid = resolve_uid(
+        str(req.telegram_id) if getattr(req, "telegram_id", None) else None,
+        getattr(req, "token", None),
+    )
+    if not uid:
+        raise HTTPException(status_code=401, detail="Avtorizatsiya talab qilinadi.")
+    return uid
+
+
+@router.get("/api/cv_saved_data")
+async def api_cv_saved(
+    telegram_id: str | None = None,
+    token: str | None = None,
+) -> dict:
+    uid = resolve_uid(telegram_id, token)
+    if not uid:
+        raise HTTPException(status_code=401, detail="Foydalanuvchi aniqlanmadi")
+    from database.repositories import cv_data as cv_repo
+
+    data = await async_db.run(cv_repo.get, uid)
+    return {"ok": True, "data": data or {}}
+
+
+@router.post("/api/cv_preview_html")
+async def api_cv_preview(req: ExportCVRequest) -> HTMLResponse:
+    data = req.dict(exclude={"telegram_id", "token", "send_only", "format"})
+    cache_key = cache_key_for_cv_preview(data)
+    cached = cv_preview_cache_get(cache_key)
+    if cached is not None:
+        return HTMLResponse(content=cached, media_type="text/html; charset=utf-8")
+    html = await asyncio.to_thread(preview_html, data)
+    cv_preview_cache_set(cache_key, html)
+    return HTMLResponse(content=html, media_type="text/html; charset=utf-8")
+
+
+@router.post("/api/export_cv")
+async def api_export_cv(req: ExportCVRequest, request: Request) -> StreamingResponse:
+    await rate_limit(request)
+    uid = _uid_from_req(req)
+    payload = req.dict(exclude={"telegram_id", "token", "send_only", "format"})
+    try:
+        pdf_bytes, filename = await cv_service.export_pdf(uid, payload)
+    except PermissionError as e:
+        raise HTTPException(status_code=402, detail=str(e)) from e
+    except Exception as e:
+        logger.exception("export_cv")
+        raise HTTPException(status_code=500, detail=str(e)[:200]) from e
+
+    return StreamingResponse(
+        io.BytesIO(pdf_bytes),
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
+@router.post("/api/generate_cv")
+async def api_generate_cv(req: CVRequest, request: Request) -> StreamingResponse:
+    export_req = ExportCVRequest(**req.dict())
+    return await api_export_cv(export_req, request)

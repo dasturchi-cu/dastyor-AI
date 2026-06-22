@@ -50,6 +50,7 @@ Thumbs.db
 desktop.ini
 
 # --- Loyiha va loglar ---
+data/
 temp/
 *.log
 *.bak

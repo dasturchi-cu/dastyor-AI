@@ -808,6 +808,13 @@ const DastyorAI = (() => {
     /** To‘liq ekran: hujjat tayyorlash (CV, obyektivka, PDF, OCR, …) */
     let _docLoadingRef = 0;
     let _docLoadingEl = null;
+    const PROGRESS_STEPS = [
+        'Audio qabul qilindi',
+        'AI tahlil qilmoqda',
+        "Ma'lumotlar ajratildi",
+        'Hujjat yaratilmoqda',
+        'Tayyor',
+    ];
 
     function _injectDocumentLoadingStyles() {
         if (document.getElementById('da-doc-loading-styles')) return;
@@ -822,12 +829,97 @@ html.da-doc-loading-lock body{overflow:hidden!important;touch-action:none}
 @keyframes daDocLoadingSpin{to{transform:rotate(360deg)}}
 .da-doc-loading-title{font-size:15px;font-weight:700;color:#1558c0;text-align:center;max-width:92vw}
 .da-doc-loading-sub{font-size:13px;color:#64748b;max-width:280px;text-align:center;line-height:1.4}
+.da-progress-steps{display:flex;flex-direction:column;gap:8px;width:min(320px,92vw);margin-top:4px}
+.da-progress-step{display:flex;align-items:center;gap:10px;font-size:13px;font-weight:600;color:#94a3b8;transition:color .15s ease,opacity .15s ease}
+.da-progress-step .da-step-dot{width:22px;height:22px;border-radius:50%;border:2px solid #cbd5e1;display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0;background:#fff}
+.da-progress-step.is-active{color:#1558c0}
+.da-progress-step.is-active .da-step-dot{border-color:#2563eb;background:#eff6ff}
+.da-progress-step.is-done{color:#16a34a}
+.da-progress-step.is-done .da-step-dot{border-color:#16a34a;background:#f0fdf4;color:#16a34a}
 html[data-theme="dark"] #da-doc-loading-overlay{background:rgba(15,23,42,.94)}
 html[data-theme="dark"] .da-doc-loading-title{color:#93c5fd}
 html[data-theme="dark"] .da-doc-loading-sub{color:#94a3b8}
 html[data-theme="dark"] .da-doc-loading-ring{border-color:#334155;border-top-color:#60a5fa}
 `;
         document.head.appendChild(s);
+    }
+
+    function _ensureProgressStepsEl() {
+        if (!_docLoadingEl) return null;
+        let stepsEl = _docLoadingEl.querySelector('.da-progress-steps');
+        if (stepsEl) return stepsEl;
+        stepsEl = document.createElement('div');
+        stepsEl.className = 'da-progress-steps';
+        stepsEl.setAttribute('role', 'list');
+        PROGRESS_STEPS.forEach((label, i) => {
+            const row = document.createElement('div');
+            row.className = 'da-progress-step';
+            row.setAttribute('role', 'listitem');
+            row.dataset.step = String(i + 1);
+            row.innerHTML = '<span class="da-step-dot" aria-hidden="true">' + (i + 1) + '</span><span class="da-step-label"></span>';
+            row.querySelector('.da-step-label').textContent = label;
+            stepsEl.appendChild(row);
+        });
+        _docLoadingEl.appendChild(stepsEl);
+        return stepsEl;
+    }
+
+    function setProgressStep(step, sub) {
+        _injectDocumentLoadingStyles();
+        if (!_docLoadingEl) {
+            showDocumentLoading(PROGRESS_STEPS[Math.max(0, step - 1)] || 'Jarayon...', sub || '');
+        }
+        const n = Math.max(1, Math.min(PROGRESS_STEPS.length, Number(step) || 1));
+        const titleEl = _docLoadingEl && _docLoadingEl.querySelector('.da-doc-loading-title');
+        const subEl = _docLoadingEl && _docLoadingEl.querySelector('.da-doc-loading-sub');
+        if (titleEl) titleEl.textContent = PROGRESS_STEPS[n - 1] || 'Jarayon...';
+        if (subEl && sub !== undefined) subEl.textContent = sub || '';
+        const stepsEl = _ensureProgressStepsEl();
+        if (!stepsEl) return;
+        stepsEl.querySelectorAll('.da-progress-step').forEach((row) => {
+            const s = Number(row.dataset.step || 0);
+            row.classList.remove('is-active', 'is-done');
+            if (s < n) {
+                row.classList.add('is-done');
+                const dot = row.querySelector('.da-step-dot');
+                if (dot) dot.textContent = '✓';
+            } else if (s === n) {
+                row.classList.add('is-active');
+                const dot = row.querySelector('.da-step-dot');
+                if (dot) dot.textContent = String(s);
+            } else {
+                const dot = row.querySelector('.da-step-dot');
+                if (dot) dot.textContent = String(s);
+            }
+        });
+        try { if (tg?.HapticFeedback?.impactOccurred) tg.HapticFeedback.impactOccurred('light'); } catch (_) {}
+    }
+
+    function showProgressFlow(mode) {
+        const start = mode === 'doc' ? 4 : 1;
+        showDocumentLoading(PROGRESS_STEPS[start - 1], '');
+        setProgressStep(start);
+    }
+
+    async function pollObyVoiceJob(jobId, telegramId, token, onStep) {
+        const base = BASE;
+        const q = new URLSearchParams();
+        if (telegramId) q.set('telegram_id', String(telegramId));
+        if (token) q.set('token', token);
+        const url = base + '/api/oby_voice_job/' + encodeURIComponent(jobId) + '?' + q.toString();
+        for (let i = 0; i < 120; i++) {
+            await new Promise((r) => setTimeout(r, i === 0 ? 80 : 450));
+            const res = await fetch(url);
+            if (!res.ok) {
+                const err = await res.json().catch(() => ({}));
+                throw new Error(err.detail || ('Server ' + res.status));
+            }
+            const js = await res.json();
+            if (typeof onStep === 'function' && js.step) onStep(js.step);
+            if (js.status === 'done' && js.data) return js;
+            if (js.status === 'error') throw new Error(js.error || 'Xatolik');
+        }
+        throw new Error('Vaqt tugadi. Qayta urinib ko\'ring.');
     }
 
     function showDocumentLoading(title, sub) {
@@ -869,10 +961,11 @@ html[data-theme="dark"] .da-doc-loading-ring{border-color:#334155;border-top-col
     }
 
     async function generateDoc(endpoint, payload, filename) {
-        showDocumentLoading('Yuborilmoqda...', 'Bitta marta bosing');
+        showProgressFlow('doc');
         try {
             const tid = getTelegramId();
             const enriched = { ...payload, telegram_id: tid ? parseInt(tid, 10) : null, token: token || undefined };
+            setProgressStep(4, 'PDF/DOCX tayyorlanmoqda...');
             const resp = await fetch(BASE + endpoint, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -882,6 +975,7 @@ html[data-theme="dark"] .da-doc-loading-ring{border-color:#334155;border-top-col
                 const err = await resp.json().catch(() => ({}));
                 throw new Error(err.detail || `Server error (${resp.status})`);
             }
+            setProgressStep(5, 'Yuklab olinmoqda...');
             const blob = await resp.blob();
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
@@ -1144,6 +1238,10 @@ html[data-theme="dark"] .da-doc-loading-ring{border-color:#334155;border-top-col
         haptic,
         showDocumentLoading,
         hideDocumentLoading,
+        setProgressStep,
+        showProgressFlow,
+        pollObyVoiceJob,
+        PROGRESS_STEPS,
 
         fetchPaidDocStatus,
         processPaidDocStatus,

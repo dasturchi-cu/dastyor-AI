@@ -204,11 +204,12 @@ async def transcribe_audio(audio_file_path: str) -> str:
         return ""
     
     loop = asyncio.get_running_loop()
-    upload_path, temp_conv = (
-        (audio_file_path, False)
-        if STT_SKIP_AUDIO_NORMALIZE
-        else _normalize_audio_for_gemini(audio_file_path)
-    )
+    if STT_SKIP_AUDIO_NORMALIZE:
+        upload_path, temp_conv = audio_file_path, False
+    else:
+        upload_path, temp_conv = await loop.run_in_executor(
+            _ai_executor, _normalize_audio_for_gemini, audio_file_path
+        )
 
     def blocking_upload(path: str):
         import time

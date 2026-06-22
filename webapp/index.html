@@ -2,58 +2,84 @@
 <html lang="uz">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Dastyor AI: CV va Obyektivka yaratish xizmati.">
-  <title>Dastyor AI</title>
-  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="description" content="Hujjatchi AI — CV va Obyektivka yaratish. Ovoz orqali avtomatik to'ldirish.">
+  <meta name="theme-color" content="#1d6fe8">
+  <title>Hujjatchi AI</title>
+  <link rel="preload" href="theme.css" as="style">
+  <link rel="stylesheet" href="theme.css">
+  <script src="https://telegram.org/js/telegram-web-app.js" defer></script>
   <style>
-    :root{--bg:#f5f8ff;--card:#fff;--border:#dbe8ff;--text:#0f172a;--muted:#4b5d7a;--brand:#1d6fe8;--brand2:#1558bd}
-    *{box-sizing:border-box}
-    body{margin:0;background:linear-gradient(180deg,#f5f8ff 0%,#eef4ff 100%);color:var(--text);font-family:Arial,sans-serif}
-    main{max-width:560px;margin:0 auto;padding:28px 14px}
-    .card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:20px;box-shadow:0 8px 24px rgba(17,44,94,.08)}
-    .hero{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px}
-    .avatar{width:42px;height:42px;border-radius:999px;overflow:hidden;border:1px solid var(--border);background:#dbe8ff;display:flex;align-items:center;justify-content:center;font-weight:700;color:#335}
-    .avatar img{width:100%;height:100%;object-fit:cover;display:block}
-    h1{margin:0 0 8px;font-size:30px;line-height:1.15}
-    p{margin:0 0 16px;color:var(--muted);font-size:14px}
-    .btn{display:block;text-decoration:none;text-align:center;background:linear-gradient(180deg,var(--brand) 0%,var(--brand2) 100%);color:#fff;font-weight:700;border-radius:11px;padding:12px 14px;margin-top:10px}
-    .btn:hover{filter:brightness(1.03)}
+    .home-hero{padding:24px 18px 8px;text-align:center}
+    .home-hero h1{font-size:26px;margin:0 0 6px;letter-spacing:-.02em}
+    .home-hero p{margin:0;font-size:14px;color:var(--text-muted)}
+    .service-grid{display:grid;gap:12px;padding:16px}
+    .service-card{
+      display:flex;align-items:center;gap:14px;padding:16px 18px;
+      border-radius:16px;border:1px solid var(--border-color);
+      background:var(--card-color);text-decoration:none;color:inherit;
+      box-shadow:var(--da-shadow-sm);transition:transform .15s ease,box-shadow .15s ease;
+    }
+    .service-card:active{transform:scale(.98)}
+    .service-icon{font-size:28px;line-height:1}
+    .service-meta{flex:1;min-width:0}
+    .service-meta strong{display:block;font-size:16px;margin-bottom:2px}
+    .service-meta span{font-size:12px;color:var(--text-muted);font-weight:600}
+    .service-arrow{color:var(--da-primary);font-weight:800}
+    .home-badge{
+      display:inline-flex;align-items:center;gap:6px;padding:4px 10px;
+      border-radius:999px;font-size:11px;font-weight:700;
+      background:var(--da-blue-soft);color:var(--da-primary);margin-bottom:12px;
+    }
   </style>
 </head>
-<body>
-  <main>
-    <section class="card" aria-label="Asosiy xizmatlar">
-      <div class="hero">
-        <h1 id="welcomeTitle">Salom 👋</h1>
-        <div id="welcomeAvatar" class="avatar" aria-label="Profil rasmi">U</div>
-      </div>
-      <p>Kerakli xizmatni tanlang.</p>
-      <a class="btn" href="cv.html">CV yaratish</a>
-      <a class="btn" href="obyektivka.html">Obyektivka yaratish</a>
-    </section>
+<body class="da-mobile-shell">
+  <main class="app-container">
+    <div class="home-hero">
+      <div class="home-badge">🎙 AI Voice Fill</div>
+      <h1 id="welcomeTitle">Salom 👋</h1>
+      <p>Kerakli xizmatni tanlang — 1 bosish, maksimal natija.</p>
+    </div>
+    <div class="service-grid" role="navigation" aria-label="Xizmatlar">
+      <a class="service-card" href="cv.html" id="linkCv">
+        <span class="service-icon" aria-hidden="true">📄</span>
+        <div class="service-meta">
+          <strong>CV Resume</strong>
+          <span>PDF · Ovoz yoki forma</span>
+        </div>
+        <span class="service-arrow">→</span>
+      </a>
+      <a class="service-card" href="obyektivka.html?voice=1" id="linkOby">
+        <span class="service-icon" aria-hidden="true">✍️</span>
+        <div class="service-meta">
+          <strong>Obyektivka</strong>
+          <span>Word · Ovoz asosiy flow</span>
+        </div>
+        <span class="service-arrow">→</span>
+      </a>
+    </div>
   </main>
   <script>
     (function () {
-      const tg = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp : null;
-      const titleEl = document.getElementById("welcomeTitle");
-      const avatarEl = document.getElementById("welcomeAvatar");
-      const fallback = "Foydalanuvchi";
+      var tg = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp : null;
+      var titleEl = document.getElementById('welcomeTitle');
+      try { tg && tg.ready && tg.ready(); tg && tg.expand && tg.expand(); } catch (_) {}
 
-      try { tg && tg.ready && tg.ready(); } catch (_) {}
-      try { tg && tg.expand && tg.expand(); } catch (_) {}
+      var theme = (tg && tg.colorScheme) || 'light';
+      document.documentElement.setAttribute('data-theme', theme === 'dark' ? 'dark' : 'light');
 
-      const u = (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) ? tg.initDataUnsafe.user : null;
-      const name = (u && (u.first_name || u.username)) ? (u.first_name || u.username) : fallback;
+      var u = tg && tg.initDataUnsafe && tg.initDataUnsafe.user ? tg.initDataUnsafe.user : null;
+      var name = u && (u.first_name || u.username) ? (u.first_name || u.username) : 'Foydalanuvchi';
+      if (titleEl) titleEl.textContent = 'Salom, ' + name + ' 👋';
 
-      if (titleEl) titleEl.textContent = "Salom, " + name + " 👋";
-      if (!avatarEl) return;
-
-      const photo = u && u.photo_url ? String(u.photo_url).trim() : "";
-      if (photo) {
-        avatarEl.innerHTML = '<img src=\"' + photo + '\" alt=\"avatar\" referrerpolicy=\"no-referrer\">';
-      } else {
-        avatarEl.textContent = (name || "U").charAt(0).toUpperCase();
+      var tid = u && u.id ? String(u.id) : '';
+      if (tid) {
+        try { sessionStorage.setItem('tg_id', tid); } catch (_) {}
+        var q = '?telegram_id=' + encodeURIComponent(tid);
+        var cv = document.getElementById('linkCv');
+        var oby = document.getElementById('linkOby');
+        if (cv) cv.href = 'cv.html' + q;
+        if (oby) oby.href = 'obyektivka.html' + q + '&voice=1&autoload=1';
       }
     })();
   </script>
