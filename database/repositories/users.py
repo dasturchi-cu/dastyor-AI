@@ -26,19 +26,30 @@ def upsert_user(
 ) -> dict[str, Any]:
     tid = int(telegram_id)
     existed = get_by_telegram_id(tid) is not None
+    full_name = " ".join(filter(None, [first_name, last_name])).strip() or None
     with get_connection() as conn:
         conn.execute(
             """
-            INSERT INTO users (telegram_id, username, first_name, last_name, last_active_at)
-            VALUES (?, ?, ?, ?, datetime('now'))
+            INSERT INTO users (
+                telegram_id, username, first_name, last_name, full_name,
+                first_seen_at, last_seen_at, last_active_at
+            )
+            VALUES (?, ?, ?, ?, ?, datetime('now'), datetime('now'), datetime('now'))
             ON CONFLICT(telegram_id) DO UPDATE SET
                 username = COALESCE(excluded.username, users.username),
                 first_name = COALESCE(excluded.first_name, users.first_name),
                 last_name = COALESCE(excluded.last_name, users.last_name),
+                full_name = COALESCE(
+                    excluded.full_name,
+                    TRIM(COALESCE(excluded.first_name, users.first_name, '') || ' '
+                         || COALESCE(excluded.last_name, users.last_name, '')),
+                    users.full_name
+                ),
+                last_seen_at = datetime('now'),
                 last_active_at = datetime('now'),
                 updated_at = datetime('now')
             """,
-            (tid, username, first_name, last_name),
+            (tid, username, first_name, last_name, full_name),
         )
         row = conn.execute("SELECT * FROM users WHERE telegram_id = ?", (tid,)).fetchone()
     _invalidate(tid)

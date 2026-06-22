@@ -1,6 +1,6 @@
 /**
  * Obyektivka preview + demo PDF botga yuborish (@bot watermark).
- * Telegram WebView: canvas + CSS transform is unreliable — render to <img>.
+ * Telegram WebView: PDF.js worker often blocked — iframe blob URL is primary.
  */
 (function (global) {
   'use strict';
@@ -12,9 +12,12 @@
   var _previewImgOut = '';
   var _previewImgPromise = null;
   var _testDownloadBusy = false;
+  var _iframeBlobUrl = '';
   var zoomCtrl = null;
   var WRAP_TRANSITION = 'width 200ms cubic-bezier(0.4, 0, 0.2, 1), height 200ms cubic-bezier(0.4, 0, 0.2, 1)';
   var PAGE_GAP = 12;
+  var FETCH_TIMEOUT_MS = 120000;
+  var RENDER_TIMEOUT_MS = 45000;
 
   var PDF_JS_URLS = [
     'vendor/pdf.min.js',
@@ -27,12 +30,36 @@
     'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js',
   ];
 
+  function webappAssetUrl(rel) {
+    try {
+      return new URL(String(rel || ''), global.location.href).href;
+    } catch (_) {
+      return String(rel || '');
+    }
+  }
+
+  function isTelegramWebView() {
+    try {
+      return !!(global.Telegram && global.Telegram.WebApp && global.Telegram.WebApp.initData);
+    } catch (_) {
+      return false;
+    }
+  }
+
   function getApiBase() {
     try {
       if (global.DastyorAI && global.DastyorAI.BASE) return String(global.DastyorAI.BASE).replace(/\/$/, '');
     } catch (_) {}
+    try {
+      if (typeof global.getApiUrl === 'function') return String(global.getApiUrl()).replace(/\/$/, '');
+    } catch (_) {}
     var meta = document.querySelector('meta[name="dastyor-api-base"]');
     if (meta && meta.content) return String(meta.content).replace(/\/$/, '');
+    try {
+      if (/^https?:\/\//i.test(global.location.origin || '')) {
+        return String(global.location.origin).replace(/\/$/, '');
+      }
+    } catch (_) {}
     return '';
   }
 
@@ -136,26 +163,34 @@
   var _pageWidthPx = 794;
   var _pageHeightPx = 1123;
 
-  function configurePdfWorker(pdfjs) {
+  function configurePdfWorker(pdfjs, workerIndex) {
     if (!pdfjs || !pdfjs.GlobalWorkerOptions) return;
-    if (pdfjs.GlobalWorkerOptions.workerSrc) return;
-    pdfjs.GlobalWorkerOptions.workerSrc = PDF_WORKER_URLS[0];
+    var idx = workerIndex || 0;
+    pdfjs.GlobalWorkerOptions.workerSrc = webappAssetUrl(PDF_WORKER_URLS[idx] || PDF_WORKER_URLS[0]);
   }
 
   function loadScriptOnce(url) {
     return new Promise(function (resolve, reject) {
+      var abs = webappAssetUrl(url);
+      var existing = document.querySelector('script[data-oby-pdfjs="' + abs + '"]');
+      if (existing) {
+        existing.addEventListener('load', function () { resolve(); }, { once: true });
+        existing.addEventListener('error', function () { reject(new Error('Script yuklanmadi: ' + abs)); }, { once: true });
+        return;
+      }
       var s = document.createElement('script');
-      s.src = url;
+      s.src = abs;
       s.async = true;
+      s.setAttribute('data-oby-pdfjs', abs);
       s.onload = function () { resolve(); };
-      s.onerror = function () { reject(new Error('Script yuklanmadi: ' + url)); };
+      s.onerror = function () { reject(new Error('Script yuklanmadi: ' + abs)); };
       document.head.appendChild(s);
     });
   }
 
   function loadPdfJs() {
     if (global.pdfjsLib) {
-      configurePdfWorker(global.pdfjsLib);
+      configurePdfWorker(global.pdfjsLib, 0);
       return Promise.resolve(global.pdfjsLib);
     }
     if (_pdfJsPromise) return _pdfJsPromise;
@@ -166,7 +201,7 @@
         try {
           await loadScriptOnce(PDF_JS_URLS[i]);
           if (!global.pdfjsLib) throw new Error('pdfjsLib topilmadi');
-          global.pdfjsLib.GlobalWorkerOptions.workerSrc = PDF_WORKER_URLS[i] || PDF_WORKER_URLS[0];
+          configurePdfWorker(global.pdfjsLib, i);
           return global.pdfjsLib;
         } catch (err) {
           lastErr = err;
@@ -182,6 +217,105 @@
     return document.getElementById('oby-preview-pdf-host');
   }
 
+  function getPreviewIframe() {
+    return document.getElementById('oby-preview-frame');
+  }
+
+  function ensurePreviewVisible() {
+    try {
+      var main = document.getElementById('main-card');
+      if (main) main.classList.remove('hidden');
+      var lang = document.getElementById('lang-card');
+      if (lang) lang.classList.add('hidden');
+      var section = document.getElementById('preview-section');
+      if (section) section.style.display = 'block';
+    } catch (_) {}
+  }
+
+  function setPreviewLoading(on) {
+    var skel = document.getElementById('previewSkeleton');
+    if (!skel) return;
+    skel.classList.toggle('hidden', !on);
+    skel.setAttribute('aria-hidden', on ? 'false' : 'true');
+  }
+
+  function clearPreviewError() {
+    var el = document.getElementById('oby-preview-error');
+    if (el) {
+      el.classList.add('hidden');
+      el.textContent = '';
+    }
+  }
+
+  function showPreviewError(message, reqId) {
+    if (reqId != null && reqId !== previewRequestId) return;
+    ensurePreviewVisible();
+    clearPreviewError();
+    var host = getPreviewHost();
+    var iframe = getPreviewIframe();
+    if (host) {
+      host.innerHTML = '';
+      host.style.display = 'none';
+    }
+    if (iframe) {
+      iframe.hidden = true;
+      iframe.style.display = 'none';
+      iframe.removeAttribute('src');
+    }
+    var errEl = document.getElementById('oby-preview-error');
+    if (!errEl) {
+      errEl = document.createElement('div');
+      errEl.id = 'oby-preview-error';
+      errEl.className = 'oby-preview-error';
+      errEl.setAttribute('role', 'alert');
+      var port = document.querySelector('.preview-port');
+      if (port) port.insertBefore(errEl, port.firstChild);
+    }
+    errEl.classList.remove('hidden');
+    errEl.innerHTML =
+      '<div class="oby-preview-error-title">Preview yuklanmadi</div>' +
+      '<div class="oby-preview-error-msg">' + String(message || 'Noma\'lum xato').slice(0, 220) + '</div>' +
+      '<button type="button" class="btn btn-outline btn-sm oby-preview-retry">Qayta urinish</button>';
+    var retry = errEl.querySelector('.oby-preview-retry');
+    if (retry && !retry.dataset.bound) {
+      retry.dataset.bound = '1';
+      retry.addEventListener('click', function () {
+        clearPreviewError();
+        fetchServerPreview({ immediate: true });
+      });
+    }
+    showToast('Preview yuklanmadi: ' + String(message || '').slice(0, 120), 'error');
+  }
+
+  function revokeIframeBlob() {
+    if (_iframeBlobUrl) {
+      try { URL.revokeObjectURL(_iframeBlobUrl); } catch (_) {}
+      _iframeBlobUrl = '';
+    }
+  }
+
+  function withTimeout(promise, ms, label) {
+    return new Promise(function (resolve, reject) {
+      var done = false;
+      var timer = setTimeout(function () {
+        if (done) return;
+        done = true;
+        reject(new Error((label || 'Amal') + ' vaqti tugadi (' + Math.round(ms / 1000) + 's)'));
+      }, ms);
+      promise.then(function (v) {
+        if (done) return;
+        done = true;
+        clearTimeout(timer);
+        resolve(v);
+      }).catch(function (e) {
+        if (done) return;
+        done = true;
+        clearTimeout(timer);
+        reject(e);
+      });
+    });
+  }
+
   function schedulePreviewLayout(reqId) {
     function layoutOnce() {
       if (reqId != null && reqId !== previewRequestId) return;
@@ -193,8 +327,46 @@
     setTimeout(layoutOnce, 500);
   }
 
-  async function renderPreviewPdf(blob, reqId) {
+  function showPdfIframe(blob, reqId) {
+    if (reqId != null && reqId !== previewRequestId) return;
     var host = getPreviewHost();
+    var iframe = getPreviewIframe();
+    if (!iframe) throw new Error('Preview iframe topilmadi');
+
+    clearPreviewError();
+    if (host) {
+      host.innerHTML = '';
+      host.style.display = 'none';
+    }
+
+    revokeIframeBlob();
+    _iframeBlobUrl = URL.createObjectURL(blob);
+    iframe.hidden = false;
+    iframe.style.display = 'block';
+    iframe.style.width = '100%';
+    iframe.style.minHeight = 'min(68vh, 560px)';
+    iframe.style.height = 'min(68vh, 560px)';
+    iframe.style.border = '0';
+    iframe.style.background = '#fff';
+    iframe.setAttribute('src', _iframeBlobUrl);
+
+    return new Promise(function (resolve, reject) {
+      var settled = false;
+      function finish(ok) {
+        if (settled) return;
+        settled = true;
+        if (ok) resolve();
+        else reject(new Error('PDF iframe ochilmadi'));
+      }
+      iframe.onload = function () { finish(true); };
+      iframe.onerror = function () { finish(false); };
+      setTimeout(function () { finish(true); }, 2500);
+    });
+  }
+
+  async function renderPreviewPdfImages(blob, reqId) {
+    var host = getPreviewHost();
+    var iframe = getPreviewIframe();
     if (!host) return;
 
     var buf = await blob.arrayBuffer();
@@ -203,7 +375,7 @@
       throw new Error('Serverdan bo\'sh javob keldi');
     }
 
-    var header = String.fromCharCode.apply(null, new Uint8Array(buf.slice(0, 4)));
+    var header = String.fromCharCode(buf[0], buf[1], buf[2], buf[3]);
     if (header !== '%PDF') {
       throw new Error('Server PDF emas qaytardi');
     }
@@ -211,9 +383,22 @@
     var pdfjs = await loadPdfJs();
     if (reqId != null && reqId !== previewRequestId) return;
 
-    var pdf = await pdfjs.getDocument({ data: buf }).promise;
+    var pdf = await withTimeout(
+      pdfjs.getDocument({ data: buf, disableFontFace: true }).promise,
+      RENDER_TIMEOUT_MS,
+      'PDF render'
+    );
     if (reqId != null && reqId !== previewRequestId) return;
 
+    clearPreviewError();
+    if (iframe) {
+      iframe.hidden = true;
+      iframe.style.display = 'none';
+      iframe.removeAttribute('src');
+      revokeIframeBlob();
+    }
+
+    host.style.display = 'block';
     host.innerHTML = '';
     host.style.transform = 'none';
     host.style.width = 'auto';
@@ -269,15 +454,38 @@
     schedulePreviewLayout(reqId);
   }
 
-  function applyPreviewPdfToIframe(blob, reqId) {
-    renderPreviewPdf(blob, reqId).catch(function (err) {
-      if (reqId != null && reqId !== previewRequestId) return;
+  async function applyPreviewPdf(blob, reqId) {
+    ensurePreviewVisible();
+    var tgFirst = isTelegramWebView();
+    var errors = [];
+
+    if (tgFirst) {
       try {
-        if (global.DastyorAI && global.DastyorAI.showToast) {
-          global.DastyorAI.showToast('Preview yuklanmadi: ' + ((err && err.message) || err), 'error');
-        }
-      } catch (_) {}
-    });
+        await showPdfIframe(blob, reqId);
+        return;
+      } catch (err) {
+        errors.push(err);
+      }
+    }
+
+    try {
+      await renderPreviewPdfImages(blob, reqId);
+      return;
+    } catch (err) {
+      errors.push(err);
+    }
+
+    if (!tgFirst) {
+      try {
+        await showPdfIframe(blob, reqId);
+        return;
+      } catch (err) {
+        errors.push(err);
+      }
+    }
+
+    var msg = errors.map(function (e) { return (e && e.message) || String(e); }).join(' | ');
+    throw new Error(msg || 'Preview ochilmadi');
   }
 
   var A4_WIDTH_PX = 794;
@@ -406,42 +614,52 @@
     previewAbort = typeof AbortController !== 'undefined' ? new AbortController() : null;
     var reqId = ++previewRequestId;
     var payload = await preparePayload();
-    if (!payload) return;
+    if (!payload) {
+      showPreviewError('Forma ma\'lumotlari topilmadi. Tilni tanlang yoki maydonlarni to\'ldiring.', reqId);
+      return;
+    }
+
+    ensurePreviewVisible();
+    clearPreviewError();
+    setPreviewLoading(true);
 
     var base = getApiBase();
-    var skel = document.getElementById('previewSkeleton');
-    if (skel) skel.classList.remove('hidden');
+    if (!base) {
+      setPreviewLoading(false);
+      showPreviewError('API manzili aniqlanmadi.', reqId);
+      return;
+    }
+
     try {
-      var res = await fetch(base + '/api/preview_obyektivka', {
+      var fetchPromise = fetch(base + '/api/preview_obyektivka', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
         signal: previewAbort ? previewAbort.signal : undefined,
       });
+      var res = await withTimeout(fetchPromise, FETCH_TIMEOUT_MS, 'Server javobi');
+
       if (reqId !== previewRequestId) return;
       if (!res.ok) {
         var errBody = '';
         try { errBody = await res.text(); } catch (_) {}
         throw new Error(errBody || ('Server xatosi: ' + res.status));
       }
+
       var buf = await res.arrayBuffer();
       if (!buf || buf.byteLength < 100) {
         throw new Error('Serverdan bo\'sh PDF keldi');
       }
       if (reqId !== previewRequestId) return;
+
       var blob = new Blob([buf], { type: 'application/pdf' });
-      applyPreviewPdfToIframe(blob, reqId);
+      await withTimeout(applyPreviewPdf(blob, reqId), RENDER_TIMEOUT_MS + 5000, 'Preview ochish');
     } catch (e) {
       if (e && e.name === 'AbortError') return;
       if (reqId !== previewRequestId) return;
-      try {
-        if (global.DastyorAI && global.DastyorAI.showToast) {
-          var msg = (e && e.message) ? String(e.message) : String(e);
-          global.DastyorAI.showToast('Preview yuklanmadi: ' + msg.slice(0, 160), 'error');
-        }
-      } catch (_) {}
+      showPreviewError((e && e.message) ? e.message : String(e), reqId);
     } finally {
-      if (skel) skel.classList.add('hidden');
+      if (reqId === previewRequestId) setPreviewLoading(false);
     }
   }
 
@@ -584,6 +802,7 @@
   global.downloadTestObyektivka = downloadTestPdf;
 
   document.addEventListener('DOMContentLoaded', function () {
+    if (global.pdfjsLib) configurePdfWorker(global.pdfjsLib, 0);
     initPreviewZoom();
     initPreviewResizeObserver();
     bindPreviewControls();

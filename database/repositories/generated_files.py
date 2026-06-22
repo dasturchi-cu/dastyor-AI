@@ -1,4 +1,4 @@
-"""Generated files repository."""
+"""Generated files — cv_documents / obyektivka_documents + admin view."""
 from __future__ import annotations
 
 from typing import Any
@@ -13,6 +13,9 @@ def record_file(
     file_type: str,
     file_path: str,
     file_name: str | None = None,
+    *,
+    template_name: str | None = None,
+    pdf_preview_path: str | None = None,
 ) -> dict[str, Any] | None:
     user = users_repo.get_by_telegram_id(telegram_id)
     if not user:
@@ -21,16 +24,61 @@ def record_file(
     ft = file_type.lower()
     if ft not in ("cv", "obyektivka"):
         raise ValueError("file_type must be cv or obyektivka")
+
     with get_connection() as conn:
-        cur = conn.execute(
-            """
-            INSERT INTO generated_files (user_id, file_type, file_path, file_name)
-            VALUES (?, ?, ?, ?)
-            """,
-            (uid, ft, file_path, file_name),
-        )
-        fid = cur.lastrowid
-        row = conn.execute("SELECT * FROM generated_files WHERE id = ?", (fid,)).fetchone()
+        if ft == "cv":
+            cur = conn.execute(
+                """
+                INSERT INTO cv_documents (user_id, template_name, pdf_path)
+                VALUES (?, ?, ?)
+                """,
+                (uid, template_name or file_name, file_path),
+            )
+            fid = cur.lastrowid
+            conn.execute(
+                """
+                UPDATE users SET total_cv = total_cv + 1, updated_at = datetime('now')
+                WHERE id = ?
+                """,
+                (uid,),
+            )
+            conn.execute(
+                """
+                INSERT INTO documents (user_id, document_type, file_path, is_unlocked)
+                VALUES (?, 'cv', ?, 1)
+                """,
+                (uid, file_path),
+            )
+        else:
+            cur = conn.execute(
+                """
+                INSERT INTO obyektivka_documents (user_id, docx_path, pdf_preview_path)
+                VALUES (?, ?, ?)
+                """,
+                (uid, file_path, pdf_preview_path),
+            )
+            fid = cur.lastrowid
+            conn.execute(
+                """
+                UPDATE users SET total_obyektivka = total_obyektivka + 1,
+                    updated_at = datetime('now')
+                WHERE id = ?
+                """,
+                (uid,),
+            )
+            conn.execute(
+                """
+                INSERT INTO documents (user_id, document_type, file_path, is_unlocked)
+                VALUES (?, 'obyektivka', ?, 1)
+                """,
+                (uid, file_path),
+            )
+        row = conn.execute(
+            "SELECT * FROM generated_files WHERE id = ? AND file_type = ?",
+            (fid, ft),
+        ).fetchone()
+
+    users_repo.invalidate_cache(telegram_id)
     data = row_to_dict(row)
     if data:
         from shared.activity import log_cv, log_download, log_obyektivka

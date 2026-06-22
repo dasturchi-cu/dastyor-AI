@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from config.settings import settings
 from database.connection import get_connection, row_to_dict
 from database.repositories import users as users_repo
 from database.repositories import admin_data
@@ -19,15 +20,31 @@ def create_payment(
     user = users_repo.upsert_user(telegram_id)
     uid = int(user["id"])
     doc = (document_type or "").strip().lower()[:32] or None
+    amount = settings.single_doc_price_uzs
     with get_connection() as conn:
         cur = conn.execute(
             """
-            INSERT INTO payments (user_id, payer_name, card_number, receipt_path, document_type, status)
-            VALUES (?, ?, ?, ?, ?, 'PENDING')
+            INSERT INTO payments (
+                user_id, payer_name, card_number, receipt_path, screenshot_path,
+                document_type, amount, status
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, 'PENDING')
             """,
-            (uid, payer_name.strip()[:120], card_number.strip()[:32], receipt_path, doc),
+            (
+                uid,
+                payer_name.strip()[:120],
+                card_number.strip()[:32],
+                receipt_path,
+                receipt_path,
+                doc,
+                amount,
+            ),
         )
         pid = cur.lastrowid
+        conn.execute(
+            "UPDATE payments SET payment_number = ? WHERE id = ?",
+            (f"PAY-{int(pid):06d}", pid),
+        )
         row = conn.execute("SELECT * FROM payments WHERE id = ?", (pid,)).fetchone()
     payment = row_to_dict(row)
     if payment:
@@ -45,10 +62,11 @@ def update_receipt(payment_id: int, receipt_path: str) -> bool:
     with get_connection() as conn:
         cur = conn.execute(
             """
-            UPDATE payments SET receipt_path = ?, updated_at = datetime('now')
+            UPDATE payments
+            SET receipt_path = ?, screenshot_path = ?, updated_at = datetime('now')
             WHERE id = ?
             """,
-            (receipt_path, int(payment_id)),
+            (receipt_path, receipt_path, int(payment_id)),
         )
         return cur.rowcount > 0
 
@@ -93,7 +111,12 @@ def set_status(payment_id: int, status: str, admin_note: str | None = None) -> b
     return ok
 
 
-def approve_atomic(payment_id: int, admin_note: str | None = None) -> dict[str, Any] | None:
+def approve_atomic(
+    payment_id: int,
+    admin_note: str | None = None,
+    *,
+    approved_by: int | None = None,
+) -> dict[str, Any] | None:
     """
     Atomically: PENDING → APPROVED + grant 1 credit.
     Idempotent if already APPROVED (no extra credit).
@@ -121,17 +144,21 @@ def approve_atomic(payment_id: int, admin_note: str | None = None) -> dict[str, 
                 UPDATE payments
                 SET status = 'APPROVED',
                     admin_note = COALESCE(?, admin_note),
+                    approved_by = COALESCE(?, approved_by),
+                    approved_at = datetime('now'),
                     updated_at = datetime('now')
                 WHERE id = ? AND status = 'PENDING'
                 """,
-                (admin_note, pid),
+                (admin_note, approved_by, pid),
             )
             if cur.rowcount != 1:
                 return None
             conn.execute(
                 """
                 UPDATE users
-                SET credits = credits + 1, updated_at = datetime('now')
+                SET credits = credits + 1,
+                    total_purchases = total_purchases + 1,
+                    updated_at = datetime('now')
                 WHERE id = ?
                 """,
                 (int(row["user_id"]),),

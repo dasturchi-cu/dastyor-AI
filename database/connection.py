@@ -1,13 +1,19 @@
 """SQLite connection pool (per-thread) and initialization."""
 from __future__ import annotations
 
+import logging
+import shutil
 import sqlite3
 import threading
 from contextlib import contextmanager
 from pathlib import Path
 from typing import Any, Iterator
 
-from config.settings import PROJECT_ROOT, settings
+from config.settings import DATA_DIR, PROJECT_ROOT, settings
+from database.migrations import run_migrations
+from database.verify import check_db_integrity, verify_schema
+
+logger = logging.getLogger(__name__)
 
 _schema_lock = threading.Lock()
 _initialized = False
@@ -29,6 +35,26 @@ def _configure_connection(conn: sqlite3.Connection) -> None:
     conn.execute("PRAGMA mmap_size = 268435456")
 
 
+def _legacy_db_candidates() -> list[Path]:
+    return [
+        DATA_DIR / "hujjatchi.db",
+        PROJECT_ROOT / "data" / "hujjatchi.db",
+        PROJECT_ROOT / "database" / "hujjatchi.db",
+    ]
+
+
+def _import_legacy_database(target: Path) -> None:
+    """Copy old hujjatchi.db into database/app.db if new file does not exist."""
+    if target.is_file():
+        return
+    for legacy in _legacy_db_candidates():
+        if legacy.is_file() and legacy.resolve() != target.resolve():
+            target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(legacy, target)
+            logger.info("Imported legacy database %s -> %s", legacy, target)
+            return
+
+
 def _pooled_connection() -> sqlite3.Connection:
     conn = getattr(_local, "conn", None)
     if conn is None:
@@ -39,64 +65,13 @@ def _pooled_connection() -> sqlite3.Connection:
     return conn
 
 
-def _apply_migrations(conn: sqlite3.Connection) -> None:
-    """Idempotent schema updates for existing databases."""
-    conn.executescript(
-        """
-        CREATE INDEX IF NOT EXISTS idx_ai_sessions_user_type
-            ON ai_sessions(user_id, session_type, created_at DESC);
-        CREATE INDEX IF NOT EXISTS idx_users_telegram ON users(telegram_id);
-        CREATE INDEX IF NOT EXISTS idx_payments_user_status ON payments(user_id, status);
-        CREATE INDEX IF NOT EXISTS idx_payments_created ON payments(created_at DESC);
-        CREATE INDEX IF NOT EXISTS idx_generated_files_created ON generated_files(created_at DESC);
-        """
-    )
-    pay_cols = {row[1] for row in conn.execute("PRAGMA table_info(payments)").fetchall()}
-    if "document_type" not in pay_cols:
-        conn.execute("ALTER TABLE payments ADD COLUMN document_type TEXT")
-
-    user_cols = {row[1] for row in conn.execute("PRAGMA table_info(users)").fetchall()}
-    if "is_blocked" not in user_cols:
-        conn.execute("ALTER TABLE users ADD COLUMN is_blocked INTEGER NOT NULL DEFAULT 0")
-    if "last_active_at" not in user_cols:
-        conn.execute("ALTER TABLE users ADD COLUMN last_active_at TEXT")
-
-    if "pending_reminder_sent_at" not in pay_cols:
-        conn.execute("ALTER TABLE payments ADD COLUMN pending_reminder_sent_at TEXT")
-
-    conn.executescript(
-        """
-        CREATE TABLE IF NOT EXISTS error_logs (
-            id              INTEGER PRIMARY KEY AUTOINCREMENT,
-            category        TEXT NOT NULL,
-            message         TEXT NOT NULL,
-            details         TEXT,
-            created_at      TEXT NOT NULL DEFAULT (datetime('now'))
-        );
-        CREATE INDEX IF NOT EXISTS idx_error_logs_category
-            ON error_logs(category, created_at DESC);
-        CREATE TABLE IF NOT EXISTS activity_events (
-            id              INTEGER PRIMARY KEY AUTOINCREMENT,
-            event_type      TEXT NOT NULL,
-            user_id         INTEGER REFERENCES users(id) ON DELETE SET NULL,
-            actor_name      TEXT,
-            detail          TEXT,
-            created_at      TEXT NOT NULL DEFAULT (datetime('now'))
-        );
-        CREATE INDEX IF NOT EXISTS idx_activity_created
-            ON activity_events(created_at DESC);
-        CREATE INDEX IF NOT EXISTS idx_users_last_active ON users(last_active_at);
-        CREATE INDEX IF NOT EXISTS idx_generated_type_created
-            ON generated_files(file_type, created_at DESC);
-        """
-    )
-
-
 def init_db() -> None:
     global _initialized
     with _schema_lock:
         db_path = settings.db_path
         db_path.parent.mkdir(parents=True, exist_ok=True)
+        _import_legacy_database(db_path)
+
         if not _initialized:
             schema = _schema_path().read_text(encoding="utf-8")
             with sqlite3.connect(db_path) as conn:
@@ -104,10 +79,21 @@ def init_db() -> None:
                 conn.executescript(schema)
                 conn.commit()
             _initialized = True
+
         with sqlite3.connect(db_path) as conn:
             _configure_connection(conn)
-            _apply_migrations(conn)
+            run_migrations(conn)
             conn.commit()
+
+        ok, msg = check_db_integrity()
+        if not ok:
+            raise RuntimeError(f"SQLite integrity check failed: {msg}")
+
+        report = verify_schema()
+        if not report["ok"]:
+            logger.warning("Database schema verification issues: %s", report["errors"])
+        else:
+            logger.info("SQLite ready: %s (%d tables)", db_path, len(report["tables"]))
 
 
 @contextmanager

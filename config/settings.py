@@ -33,7 +33,11 @@ DATA_DIR = _resolve_data_dir()
 UPLOADS_DIR = DATA_DIR / "uploads"
 RECEIPTS_DIR = UPLOADS_DIR / "receipts"
 GENERATED_DIR = UPLOADS_DIR / "generated"
-DB_PATH = Path(_env("DB_PATH")) if _env("DB_PATH") else DATA_DIR / "hujjatchi.db"
+DB_PATH = (
+    Path(_env("DB_PATH"))
+    if _env("DB_PATH")
+    else PROJECT_ROOT / "database" / "app.db"
+)
 TEMPLATES_DIR = PROJECT_ROOT / "templates"
 WEBAPP_DIR = PROJECT_ROOT / "webapp"
 
