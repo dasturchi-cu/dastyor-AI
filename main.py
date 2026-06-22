@@ -11,7 +11,7 @@ from aiogram.enums import ParseMode
 from aiogram.fsm.storage.memory import MemoryStorage
 
 from config.settings import settings
-from database.connection import init_db
+from database.connection import initialize_database
 from features.admin import router as admin_router
 from features.admin import support as admin_support
 from features.bot.handlers import obyektivka as obyektivka_handlers
@@ -61,7 +61,7 @@ def _create_fsm_storage():
 
 
 async def run_polling() -> None:
-    init_db()
+    initialize_database()
     bot = create_bot()
     dp = create_dispatcher()
     from features.admin.jobs import start_admin_jobs, stop_admin_jobs

@@ -342,6 +342,7 @@ MIGRATIONS: list[tuple[int, str, MigrationFn]] = [
 
 
 def run_migrations(conn: sqlite3.Connection) -> None:
+    conn.row_factory = sqlite3.Row
     _ensure_schema_migrations(conn)
     applied = _applied_versions(conn)
     for version, name, fn in MIGRATIONS:

@@ -20,6 +20,8 @@ def _is_exempt(path: str) -> bool:
         return True
     if p in ("/health", "/api/health"):
         return True
+    if p.startswith("/admin/db-info"):
+        return True
     if p.startswith("/openapi") or p.startswith("/docs") or p.startswith("/redoc"):
         return True
     return False

@@ -96,6 +96,17 @@ def get_global_metrics() -> dict[str, Any]:
             WHERE file_type = 'obyektivka' AND date(created_at) = date('now')
             """,
         )
+        revenue_total = _scalar(
+            conn,
+            "SELECT COALESCE(SUM(amount), 0) FROM payments WHERE status = 'APPROVED'",
+        )
+        revenue_today = _scalar(
+            conn,
+            """
+            SELECT COALESCE(SUM(amount), 0) FROM payments
+            WHERE status = 'APPROVED' AND date(created_at) = date('now')
+            """,
+        )
 
         feed_rows = conn.execute(
             """
@@ -118,8 +129,8 @@ def get_global_metrics() -> dict[str, Any]:
             """
         ).fetchall()
 
-    revenue_total = approved * price
-    revenue_today = approved_today * price
+    revenue_total = revenue_total or (approved * price)
+    revenue_today = revenue_today or (approved_today * price)
     conversion = round((paid_users / users_count) * 100, 1) if users_count else 0.0
 
     data: dict[str, Any] = {
@@ -213,7 +224,10 @@ def search_users_enriched(query: str, limit: int = 10) -> list[dict[str, Any]]:
                     OR u.first_name LIKE ? COLLATE NOCASE
                     OR u.last_name LIKE ? COLLATE NOCASE
                     OR (u.first_name || ' ' || COALESCE(u.last_name, '')) LIKE ? COLLATE NOCASE
-                    OR u.payer_name LIKE ? COLLATE NOCASE
+                    OR EXISTS (
+                        SELECT 1 FROM payments p2
+                        WHERE p2.user_id = u.id AND p2.payer_name LIKE ? COLLATE NOCASE
+                    )
                     """
                 ),
                 (like, like, like, like, like, limit),
@@ -243,7 +257,8 @@ def list_payments_enriched(
     params.append(limit)
     sql = f"""
         SELECT p.id, p.user_id, p.payer_name, p.document_type, p.status,
-               p.created_at, p.receipt_path,
+               p.created_at, COALESCE(p.screenshot_path, p.receipt_path) AS receipt_path,
+               p.payment_number, p.amount,
                u.telegram_id, u.username, u.first_name, u.last_name
         FROM payments p
         JOIN users u ON u.id = p.user_id
@@ -257,7 +272,7 @@ def list_payments_enriched(
     result = []
     for r in rows:
         d = row_to_dict(r) or {}
-        d["amount_uzs"] = price
+        d["amount_uzs"] = int(d.get("amount") or price)
         result.append(d)
     return result
 

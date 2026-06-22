@@ -10,7 +10,7 @@ import uuid
 import re
 
 from fastapi import APIRouter, File, Form, HTTPException, Query, Request, UploadFile
-from fastapi.responses import JSONResponse, StreamingResponse
+from fastapi.responses import JSONResponse, Response, StreamingResponse
 
 from backend.schemas.webapp import ExportObyektivkaRequest, ObyektivkaRequest, PreviewObyektivkaRequest, TestObyektivkaPdfRequest
 from core.security import rate_limit
@@ -239,8 +239,6 @@ def _pdf_inline_response(pdf_bytes: bytes, *, filename: str = "obyektivka_previe
 
 async def _build_oby_preview_pdf(payload: dict) -> bytes:
     """DOCX template → PDF; HTML template → PDF fallback."""
-    import asyncio
-
     from backend.services.docx_to_pdf import docx_bytes_to_pdf
     from backend.services.render_service import generate_obyektivka_pdf
     from config.settings import settings

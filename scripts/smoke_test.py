@@ -161,6 +161,38 @@ def main() -> int:
 
     check("oby_export_docx", oby_export)
 
+    def oby_preview():
+        req = urllib.request.Request(
+            BASE + "/api/preview_obyektivka",
+            data=json.dumps(
+                {
+                    "fullname": "Smoke Test",
+                    "birthdate": "01.01.1990",
+                    "birthplace": "Toshkent",
+                    "nation": "ozbek",
+                    "education": "oliy",
+                    "graduated": "TDIU",
+                    "specialty": "IT",
+                    "party": "yoq",
+                    "degree": "yoq",
+                    "scientific_title": "yoq",
+                    "languages": "rus",
+                    "awards": "yoq",
+                    "deputy": "yoq",
+                    "work_experience": [{"year": "2012-2020", "position": "Dev"}],
+                    "relatives": [],
+                }
+            ).encode(),
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        with urllib.request.urlopen(req, timeout=120) as r:
+            data = r.read()
+            assert data[:4] == b"%PDF", data[:20]
+            assert len(data) > 1000, len(data)
+
+    check("oby_preview_pdf", oby_preview)
+
     async def ai_text():
         from features.ai.service import process_text_for_cv
 

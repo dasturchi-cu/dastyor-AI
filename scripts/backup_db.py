@@ -48,7 +48,7 @@ def main() -> int:
     backup_root = DATA_DIR / "backups" / stamp
     backup_root.mkdir(parents=True, exist_ok=True)
 
-    db_dest = backup_root / "hujjatchi.db"
+    db_dest = backup_root / "app.db"
     _backup_db(db_dest)
     print(f"DB backup: {db_dest}")
 

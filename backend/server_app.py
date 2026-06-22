@@ -17,10 +17,11 @@ from backend.middleware.maintenance import register_maintenance_middleware
 from backend.middleware.performance import PerformanceMiddleware
 from backend.middleware.request_id import register_request_id_middleware
 from backend.middleware.webapp import register_webapp_middleware
+from backend.routers.admin_debug import router as admin_debug_router
 from backend.routers.site import router as site_router
 from backend.routers.tg_update import router as tg_update_router
 from config.settings import WEBAPP_DIR, settings
-from database.connection import init_db
+from database.connection import initialize_database
 from features.ai.router import router as ai_router
 from features.cv.router import router as cv_router
 from features.webapp_compat.router import router as webapp_compat_router
@@ -52,7 +53,8 @@ def create_webhook_app() -> FastAPI:
 
     @asynccontextmanager
     async def lifespan(app: FastAPI):
-        init_db()
+        report = initialize_database()
+        logger.info("Database initialized: %s ok=%s", report.get("db_path"), report.get("ok"))
         app.state.bot = bot
         app.state.dp = dp
         skip_webhook = os.getenv("SKIP_WEBHOOK", "").strip().lower() in ("1", "true", "yes")
@@ -103,6 +105,7 @@ def create_webhook_app() -> FastAPI:
     register_exception_handlers(app)
 
     app.include_router(site_router)
+    app.include_router(admin_debug_router)
     app.include_router(payment_router)
     app.include_router(cv_router)
     app.include_router(oby_router)

@@ -9,6 +9,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import Message
 
 from config.settings import settings
+from database.repositories import support_messages as support_repo
 from database.repositories import users as users_repo
 from features.admin.keyboards import support_reply_kb
 from shared.keyboards import is_admin_menu_button, is_menu_button
@@ -66,7 +67,9 @@ async def relay_private_to_support(message: Message, state: FSMContext) -> None:
 
     header = _support_header(message)
     kb = support_reply_kb(message.from_user.id)
+    preview = (message.text or message.caption or "[media]").strip()[:500]
     try:
+        support_repo.create_message(message.from_user.id, preview)
         await message.bot.send_message(group_id, header, reply_markup=kb)
         if message.text:
             await message.bot.send_message(

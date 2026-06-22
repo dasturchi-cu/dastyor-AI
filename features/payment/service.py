@@ -55,8 +55,15 @@ def submit_payment(
     return payment
 
 
-def approve_payment(payment_id: int, admin_note: str | None = None) -> dict[str, Any] | None:
-    return payments_repo.approve_atomic(payment_id, admin_note)
+def approve_payment(
+    payment_id: int,
+    admin_note: str | None = None,
+    *,
+    approved_by: int | None = None,
+) -> dict[str, Any] | None:
+    return payments_repo.approve_atomic(
+        payment_id, admin_note, approved_by=approved_by
+    )
 
 
 def try_auto_approve(payment_id: int) -> dict[str, Any] | None:

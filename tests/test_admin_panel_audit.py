@@ -64,14 +64,12 @@ class TestAdminPanelAudit(unittest.TestCase):
             document_type="cv",
         )
         uid = int(users_repo.get_by_telegram_id(tid)["id"])
-        with get_connection() as conn:
-            conn.execute(
-                """
-                INSERT INTO generated_files (user_id, file_type, file_path, file_name)
-                VALUES (?, 'cv', '/tmp/audit_cv.pdf', 'audit_cv.pdf')
-                """,
-                (uid,),
-            )
+        files_repo.record_file(
+            tid,
+            "cv",
+            "/tmp/audit_cv.pdf",
+            "audit_cv.pdf",
+        )
         activity_repo.record("register", actor_name="Audit Test", telegram_id=tid)
         error_logs_repo.record("bot", "audit test error")
         admin_data.invalidate_metrics_cache()

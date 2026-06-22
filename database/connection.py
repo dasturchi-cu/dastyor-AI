@@ -65,25 +65,34 @@ def _pooled_connection() -> sqlite3.Connection:
     return conn
 
 
-def init_db() -> None:
+def initialize_database() -> dict[str, Any]:
+    """
+    Create database/app.db if missing, create tables, run migrations, verify.
+    Called automatically on bot / FastAPI startup.
+    """
     global _initialized
     with _schema_lock:
         db_path = settings.db_path
         db_path.parent.mkdir(parents=True, exist_ok=True)
+        had_db = db_path.is_file()
         _import_legacy_database(db_path)
+        imported_legacy = not had_db and db_path.is_file()
 
         if not _initialized:
-            schema = _schema_path().read_text(encoding="utf-8")
             with sqlite3.connect(db_path) as conn:
                 _configure_connection(conn)
-                conn.executescript(schema)
+                if not had_db and not imported_legacy:
+                    schema = _schema_path().read_text(encoding="utf-8")
+                    conn.executescript(schema)
+                    logger.info("Created new SQLite database: %s", db_path)
+                run_migrations(conn)
                 conn.commit()
             _initialized = True
-
-        with sqlite3.connect(db_path) as conn:
-            _configure_connection(conn)
-            run_migrations(conn)
-            conn.commit()
+        else:
+            with sqlite3.connect(db_path) as conn:
+                _configure_connection(conn)
+                run_migrations(conn)
+                conn.commit()
 
         ok, msg = check_db_integrity()
         if not ok:
@@ -93,7 +102,18 @@ def init_db() -> None:
         if not report["ok"]:
             logger.warning("Database schema verification issues: %s", report["errors"])
         else:
-            logger.info("SQLite ready: %s (%d tables)", db_path, len(report["tables"]))
+            logger.info(
+                "SQLite ready: %s (%d tables, integrity=%s)",
+                db_path,
+                len(report["tables"]),
+                msg,
+            )
+        return report
+
+
+def init_db() -> None:
+    """Backward-compatible alias for initialize_database()."""
+    initialize_database()
 
 
 @contextmanager
