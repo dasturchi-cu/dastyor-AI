@@ -79,16 +79,22 @@ async def admin_payments(message: Message) -> None:
         await message.answer("Kutilayotgan to'lovlar yo'q.")
         return
     for p in pending[:10]:
+        pid = int(p["id"])
         text = (
-            f"💳 <b>To'lov #{p['id']}</b>\n"
+            f"💳 <b>Yangi to'lov #{pid}</b>\n"
             f"👤 {p.get('payer_name')} (<code>{p.get('telegram_id')}</code>)\n"
             f"💳 Karta: <code>{p.get('card_number')}</code>\n"
             f"📅 {p.get('created_at')}"
         )
-        await message.answer(text, reply_markup=payment_review_kb(int(p["id"])))
         receipt = p.get("receipt_path")
         if receipt and Path(receipt).is_file():
-            await message.answer_photo(FSInputFile(receipt), caption=f"Chek #{p['id']}")
+            await message.answer_photo(
+                FSInputFile(receipt),
+                caption=text,
+                reply_markup=payment_review_kb(pid),
+            )
+        else:
+            await message.answer(text, reply_markup=payment_review_kb(pid))
 
 
 @router.message(F.text == ADMIN_BTN_FILES)
@@ -142,7 +148,8 @@ async def payment_callback(query: CallbackQuery) -> None:
             await query.bot.send_message(
                 tid,
                 f"✅ To'lovingiz tasdiqlandi!\n"
-                f"💳 Kredit: {credits} ta hujjat yaratish huquqi.",
+                f"💳 Kredit: <b>{credits}</b> ta\n"
+                f"ℹ️ 1 kredit = 1 hujjat (CV <b>yoki</b> Obyektivka).",
             )
         elif query.message:
             await query.message.reply("Tasdiqlash xatosi.")

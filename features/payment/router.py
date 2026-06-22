@@ -43,6 +43,7 @@ async def api_me(token: str | None = Query(None), telegram_id: str | None = Quer
         "credits": int(user.get("credits") or 0),
         "single_doc_price_uzs": settings.single_doc_price_uzs,
         "has_access": int(user.get("credits") or 0) > 0,
+        "credit_note": "1 kredit = 1 ta hujjat (CV yoki Obyektivka)",
     }
 
 
@@ -174,10 +175,17 @@ async def _notify_admin_payment(payment: dict, uid: int, kind: str, bot) -> None
                 f"Xizmat: <b>{kind}</b>\n"
                 f"Narx: <b>{settings.single_doc_price_uzs:,} so'm</b>"
             )
-        await bot.send_message(admin_chat, text, reply_markup=payment_review_kb(pid))
+        kb = payment_review_kb(pid)
         receipt_path = payment.get("receipt_path")
         if receipt_path and os.path.isfile(receipt_path):
-            await bot.send_photo(admin_chat, FSInputFile(receipt_path), caption=f"Chek #{pid}")
+            await bot.send_photo(
+                admin_chat,
+                FSInputFile(receipt_path),
+                caption=text,
+                reply_markup=kb,
+            )
+        else:
+            await bot.send_message(admin_chat, text, reply_markup=kb)
     except Exception as e:
         logger.warning("Admin notify failed: %s", e)
 

@@ -87,6 +87,10 @@
     input,select,textarea{width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:9px;background:var(--bg);color:var(--text);font-family:var(--font);font-size:14px;font-weight:500;-webkit-appearance:none;appearance:none;line-height:1.5;transition:border-color .15s,box-shadow .15s}
     input::placeholder,textarea::placeholder{color:#A8B8D0;font-weight:400}
     input:focus,select:focus,textarea:focus{outline:none;border-color:var(--blue);background:#fff;box-shadow:0 0 0 3px rgba(29,111,232,.11)}
+    input.field-valid,textarea.field-valid{border-color:#22c55e!important;background:#f0fdf4!important;box-shadow:0 0 0 3px rgba(34,197,94,.12)!important}
+    input.field-invalid,textarea.field-invalid{border-color:#ef4444!important;background:#fef2f2!important;box-shadow:0 0 0 3px rgba(239,68,68,.12)!important}
+    input.field-valid:focus,textarea.field-valid:focus{border-color:#22c55e!important;box-shadow:0 0 0 3px rgba(34,197,94,.18)!important}
+    input.field-invalid:focus,textarea.field-invalid:focus{border-color:#ef4444!important;box-shadow:0 0 0 3px rgba(239,68,68,.18)!important}
     textarea{resize:vertical;min-height:52px}
     .sel-wrap{position:relative}
     .sel-wrap::after{content:'';position:absolute;right:11px;top:50%;transform:translateY(-50%);border-left:5px solid transparent;border-right:5px solid transparent;border-top:6px solid var(--blue);pointer-events:none}
@@ -262,7 +266,7 @@
             <div class="grid-2">
               <div class="field">
                 <label id="lbl-birthdate">Tug'ilgan sanasi</label>
-                <input type="text" id="birthdate" placeholder="KK.OO.YYYY" maxlength="10" oninput="updatePreview()" onchange="saveToLocal()">
+                <input type="text" id="birthdate" placeholder="KK.OO.YYYY" maxlength="10" inputmode="numeric" autocomplete="bday" oninput="onBirthdateInput(this);updatePreview()" onchange="saveToLocal()" onblur="validateBirthdateField(this,true)">
               </div>
               <div class="field">
                 <label id="lbl-nation">Millati</label>
@@ -424,7 +428,7 @@
     <div class="modal-title" id="m_title">Qarindosh ma'lumotlari</div>
     <div class="field"><label id="m_lbl_type">Qarindoshligi</label><div class="sel-wrap"><select id="m-rel-type"><option>Otasi</option><option>Onasi</option><option>Akasi</option><option>Opasi</option><option>Singlisi</option><option>Ukasi</option><option>Turmush o'rtog'i</option><option>O'g'li</option><option>Qizi</option><option>Qaynotasi</option><option>Qaynonasi</option></select></div></div>
     <div class="field"><label id="m_lbl_name">F.I.SH</label><input type="text" id="m-rel-name" placeholder="Aliyev Ali Aliyevich"></div>
-    <div class="field"><label id="m_lbl_birth">Tug'ilgan yili va joyi</label><input type="text" id="m-rel-birth" placeholder="1980 yil, Toshkent shahri"></div>
+    <div class="field"><label id="m_lbl_birth">Tug'ilgan yili va joyi</label><input type="text" id="m-rel-birth" placeholder="1980 yil, Toshkent shahri" oninput="validateRelBirthField(this)" onblur="validateRelBirthField(this,true)"></div>
     <div class="field">
       <label id="m_lbl_job">Ish joyi va lavozimi</label>
       <div class="sel-wrap">
@@ -697,6 +701,7 @@ function initApp(lang){
   document.querySelectorAll('.work-desc').forEach(function(el){el.placeholder=lang==='uz_l'?"Ish joyi va lavozimi":"\u0418\u0448 \u0436\u043e\u0439\u0438 \u0432\u0430 \u043b\u0430\u0432\u043e\u0437\u0438\u043c\u0438";});
   setupEventListeners();
   loadFromLocal();
+  try{validateAllDateFields();}catch(e){}
   // Convert values AFTER localStorage restore so everything switches script
   try{convertExistingValues(prevLang,currentLang);}catch(e){}
   try{applyUiLang();}catch(e){}
@@ -766,26 +771,30 @@ async function reconcileObyPaidRequestStatus(){
       return;
     }
     if(s === 'approved' || s === 'delivered'){
-      try{ if(window.DastyorAI.refreshProfile) await window.DastyorAI.refreshProfile(); }catch(e){}
+      try{ if(window.DastyorAI.refreshProfile) await window.DastyorAI.refreshProfile(true); }catch(e){}
       var u = window.DastyorAI.getUser ? window.DastyorAI.getUser() : null;
       var paidOk = window.DastyorAI.hasSingleDocAccess
         ? window.DastyorAI.hasSingleDocAccess(u, 'obyektivka')
-        : !!(u && u.has_objective_access);
+        : !!(u && (u.has_objective_access || Number(u.credits || 0) > 0 || u.has_access));
       if(!paidOk){
         _obyApprovedRequestId = rid;
         try{ localStorage.setItem('oby_paid_request_id', String(rid)); }catch(e){}
         syncObyQuotaUi();
         return;
       }
-      _obyApprovedRequestId = rid;
-      try{ localStorage.setItem('oby_paid_request_id', String(rid)); }catch(e){}
+      _obyApprovedRequestId = 0;
+      try{ localStorage.removeItem('oby_paid_request_id'); }catch(e){}
+      setObyPayUiState('approved');
+      var panel=document.getElementById('obyPayPanel');
+      if(panel) panel.classList.add('hidden');
     }
     if(window.DastyorAI.processPaidDocStatus){
       await window.DastyorAI.processPaidDocStatus('obyektivka', rid, s, {
         silent: true,
-        onApproved: async function(id){
-          _obyApprovedRequestId = id;
-          try{ localStorage.setItem('oby_paid_request_id', String(id)); }catch(e){}
+        onApproved: async function(){
+          _obyApprovedRequestId = 0;
+          try{ localStorage.removeItem('oby_paid_request_id'); }catch(e){}
+          setObyPayUiState('approved');
           syncObyQuotaUi();
         },
         onCompleted: async function(){
@@ -807,23 +816,71 @@ var _obyLiveRecording = false;
 
 var _obyExportInFlight = false;
 
+function setObyPayUiState(phase) {
+  var sendBtn = document.getElementById('obyPaySendBtn');
+  var statusEl = document.getElementById('obyPayStatus');
+  if (phase === 'sending') {
+    if (sendBtn) { sendBtn.disabled = true; sendBtn.textContent = 'Yuborilmoqda...'; sendBtn.style.opacity = '0.7'; }
+    if (statusEl) { statusEl.textContent = '🔄 Yuborilmoqda...'; statusEl.style.color = '#334155'; }
+  } else if (phase === 'sent') {
+    if (sendBtn) { sendBtn.disabled = true; sendBtn.textContent = '✅ Yuborildi'; sendBtn.style.opacity = '1'; }
+    if (statusEl) { statusEl.textContent = '✅ Chek yuborildi. Admin tasdiqlashini kuting...'; statusEl.style.color = '#166534'; }
+  } else if (phase === 'waiting') {
+    if (sendBtn) { sendBtn.disabled = true; sendBtn.textContent = '⏳ Admin kutyapti'; sendBtn.style.opacity = '1'; }
+    if (statusEl) { statusEl.textContent = '⏳ Admin tasdiqlashini kuting...'; statusEl.style.color = '#166534'; }
+  } else if (phase === 'approved') {
+    if (sendBtn) { sendBtn.disabled = true; sendBtn.textContent = '✅ Tasdiqlandi'; sendBtn.style.opacity = '1'; }
+    if (statusEl) { statusEl.textContent = '✅ Tasdiqlandi — «Word botga yuborish».'; statusEl.style.color = '#166534'; statusEl.style.fontWeight = '800'; }
+  } else if (phase === 'rejected') {
+    if (sendBtn) { sendBtn.disabled = false; sendBtn.textContent = '📤 Yuborish'; sendBtn.style.opacity = '1'; }
+    if (statusEl) { statusEl.textContent = "❌ To'lov rad etildi. Qayta skrinshot yuboring."; statusEl.style.color = '#b91c1c'; }
+  } else if (phase === 'idle') {
+    if (sendBtn) { sendBtn.disabled = true; sendBtn.textContent = '📤 Yuborish'; sendBtn.style.opacity = '0.6'; }
+    if (statusEl) { statusEl.textContent = 'Skrenshot tanlang va yuboring.'; statusEl.style.color = '#334155'; }
+  }
+}
+
+function applyObyQuotaWarnStyle(mode) {
+  var warn = document.getElementById('obyQuotaWarn');
+  if (!warn) return;
+  if (mode === 'credit') {
+    warn.style.borderColor = '#bbf7d0';
+    warn.style.background = '#f0fdf4';
+    warn.style.color = '#166534';
+  } else if (mode === 'wait') {
+    warn.style.borderColor = '#fde68a';
+    warn.style.background = '#fffbeb';
+    warn.style.color = '#92400e';
+  } else if (mode === 'pay') {
+    warn.style.borderColor = '#fecaca';
+    warn.style.background = '#fef2f2';
+    warn.style.color = '#991b1b';
+  } else {
+    warn.style.borderColor = '#fecaca';
+    warn.style.background = '#fef2f2';
+    warn.style.color = '#991b1b';
+  }
+}
+
 function syncObyQuotaUi() {
-  var u = window.DastyorAI && window.DastyorAI.getUser ? window.DastyorAI.getUser() : null;
+  var DA = window.DastyorAI || {};
+  var u = DA.getUser ? DA.getUser() : null;
   var btn = document.getElementById('dlBtn');
   var payBtn = document.getElementById('payBtn');
   var warn = document.getElementById('obyQuotaWarn');
-  var blocked = window.DastyorAI && window.DastyorAI.isQuotaBlockedForCategory
-    ? window.DastyorAI.isQuotaBlockedForCategory(u, 'obyektivka')
-    : true;
-  var hasAccess = window.DastyorAI && window.DastyorAI.hasSingleDocAccess
-    ? window.DastyorAI.hasSingleDocAccess(u, 'obyektivka')
-    : !!(u && u.has_objective_access);
-  var pendingAdmin = !!(blocked && _obyApprovedRequestId && !hasAccess);
-  var rem = window.DastyorAI && window.DastyorAI.getCategoryQuotaRemaining
-    ? window.DastyorAI.getCategoryQuotaRemaining(u, 'obyektivka')
-    : null;
-  var exhausted = window.DastyorAI && window.DastyorAI.isSingleDocLimitExhausted
-    ? window.DastyorAI.isSingleDocLimitExhausted(u, 'obyektivka')
+
+  if (!DA.getCredits) {
+    if (warn) warn.classList.add('hidden');
+    return;
+  }
+
+  var credits = DA.getCredits(u);
+  var hasAccess = DA.hasSingleDocAccess ? DA.hasSingleDocAccess(u, 'obyektivka') : credits > 0;
+  var blocked = credits > 0 ? false : (DA.isQuotaBlockedForCategory ? DA.isQuotaBlockedForCategory(u, 'obyektivka') : true);
+  var pendingAdmin = !!(_obyApprovedRequestId && !hasAccess);
+  var rem = DA.getCategoryQuotaRemaining ? DA.getCategoryQuotaRemaining(u, 'obyektivka') : null;
+  var exhausted = DA.isSingleDocLimitExhausted
+    ? DA.isSingleDocLimitExhausted(u, 'obyektivka')
     : (rem !== null && rem <= 0 && !hasAccess);
 
   if (btn) btn.disabled = _obyExportInFlight || blocked || pendingAdmin;
@@ -833,19 +890,31 @@ function syncObyQuotaUi() {
   }
   if (warn) {
     if (exhausted && !pendingAdmin) {
+      applyObyQuotaWarnStyle('pay');
       warn.classList.remove('hidden');
-      warn.textContent = window.DastyorAI && window.DastyorAI.singleDocLimitMessage
-        ? window.DastyorAI.singleDocLimitMessage('obyektivka')
+      warn.textContent = DA.singleDocLimitMessage
+        ? DA.singleDocLimitMessage('obyektivka')
         : "❌ Limitiz tugagan. Yana 5 000 so'm to'lov qiling (Obyektivka).";
+    } else if (hasAccess && credits > 0) {
+      applyObyQuotaWarnStyle('credit');
+      warn.classList.remove('hidden');
+      warn.textContent = DA.universalCreditMessage
+        ? DA.universalCreditMessage(u, 'obyektivka')
+        : '💳 Kredit bor — Word yaratishingiz mumkin.';
+      setObyPayUiState('approved');
     } else if (hasAccess && !blocked) {
+      applyObyQuotaWarnStyle('credit');
       warn.classList.remove('hidden');
       warn.textContent = "✅ «Word botga yuborish» tugmasi.";
+      setObyPayUiState('approved');
     } else if (pendingAdmin) {
+      applyObyQuotaWarnStyle('wait');
       warn.classList.remove('hidden');
       warn.textContent = "⏳ Admin kutyapti.";
     } else if (blocked) {
+      applyObyQuotaWarnStyle('pay');
       warn.classList.remove('hidden');
-      warn.textContent = "💳 Avval to'lov (5 000 so'm).";
+      warn.textContent = "💳 Avval to'lov (5 000 so'm) — 1 to'lov = 1 kredit (CV yoki Obyektivka).";
     } else {
       warn.classList.add('hidden');
       warn.textContent = '';
@@ -1294,8 +1363,7 @@ async function payObySingle(fmt){
     if(sendBtn){
       sendBtn.onclick = async function(){
         if(!_obyPayState.screenshot) return;
-        if(sendBtn){ sendBtn.disabled = true; sendBtn.textContent = "Yuborilmoqda..."; sendBtn.style.opacity = '0.7'; }
-        if(statusEl){ statusEl.textContent = "🔄 Yuborilmoqda..."; statusEl.style.color = '#334155'; }
+        setObyPayUiState('sending');
         try{
           var shot = _obyPayState.screenshot;
           if(window.DastyorAI && window.DastyorAI.compressReceiptDataUrl){
@@ -1329,13 +1397,11 @@ async function payObySingle(fmt){
           if(sendBtn){ sendBtn.disabled = false; sendBtn.textContent = "📤 Yuborish"; sendBtn.style.opacity = '1'; }
           return;
         }
-        if(statusEl){ statusEl.textContent = "✅ Chek yuborildi. Admin tasdiqlashini kuting..."; statusEl.style.color = '#166534'; }
-        if(sendBtn){ sendBtn.disabled = true; sendBtn.textContent = "✅ Yuborildi"; }
+        setObyPayUiState('sent');
         try{ localStorage.setItem('oby_paid_request_id', String(_obyPayState.requestId)); }catch(e){}
         if(window.DastyorAI && window.DastyorAI.stopPaidDocWatcher) window.DastyorAI.stopPaidDocWatcher('obyektivka');
         var spin = setInterval(function(){
-          if(!statusEl) return;
-          statusEl.textContent = statusEl.textContent.indexOf("...")>-1 ? "⏳ Admin tekshirmoqda." : (statusEl.textContent.indexOf("..")>-1 ? "⏳ Admin tekshirmoqda..." : "⏳ Admin tekshirmoqda..");
+          setObyPayUiState('waiting');
         }, 450);
 
         if(window.DastyorAI && window.DastyorAI.startPaidDocWatcher){
@@ -1343,24 +1409,24 @@ async function payObySingle(fmt){
             kind: 'obyektivka',
             storageKey: 'oby_paid_request_id',
             getRequestId: function(){ return _obyPayState.requestId; },
-            onApproved: async function(id){
+            onApproved: async function(){
               clearInterval(spin);
-              _obyApprovedRequestId = id;
-              try{ localStorage.setItem('oby_paid_request_id', String(id)); }catch(e){}
-              if(statusEl) statusEl.textContent = "✅ Tasdiqlandi — «Word botga yuborish».";
+              _obyApprovedRequestId = 0;
+              try{ localStorage.removeItem('oby_paid_request_id'); }catch(e){}
+              try{ if(window.DastyorAI&&window.DastyorAI.refreshProfile) await window.DastyorAI.refreshProfile(true); }catch(e){}
+              setObyPayUiState('approved');
               syncObyQuotaUi();
             },
             onCompleted: async function(){
               clearInterval(spin);
               _obyApprovedRequestId = 0;
               try{ localStorage.removeItem('oby_paid_request_id'); }catch(e){}
-              if(statusEl) statusEl.textContent = "✅ Bu to'lov ishlatilgan. Yana Word uchun yangi to'lov qiling.";
+              setObyPayUiState('approved');
               syncObyQuotaUi();
             },
             onRejected: async function(){
               clearInterval(spin);
-              if(statusEl){ statusEl.textContent = "❌ To'lov rad etildi. Qayta skrinshot yuboring."; statusEl.style.color = '#b91c1c'; }
-              if(sendBtn){ sendBtn.disabled = false; sendBtn.textContent = "📤 Yuborish"; sendBtn.style.opacity = '1'; }
+              setObyPayUiState('rejected');
             }
           });
         }
@@ -1445,17 +1511,147 @@ function addWorkRow(savedFrom,savedTo,savedDesc){
   savedFrom=savedFrom||'';savedTo=savedTo||'';savedDesc=savedDesc||'';
   var div=document.createElement('div');div.className='work-row';
   var ph=currentLang==='uz_l'?"Ish joyi va lavozimi":"\u0418\u0448 \u0436\u043e\u0439\u0438 \u0432\u0430 \u043b\u0430\u0432\u043e\u0437\u0438\u043c\u0438";
-  div.innerHTML='<div class="work-dates"><input type="number" class="year-from" list="years-list" placeholder="Dan" value="'+savedFrom+'" oninput="saveToLocal();updatePreview()" style="min-width:56px"><span>&ndash;</span><input type="text" class="year-to" list="years-list-to" placeholder="Gacha" value="'+savedTo+'" oninput="saveToLocal();updatePreview()" style="min-width:55px"></div><textarea rows="2" placeholder="'+ph+'" class="work-desc" oninput="handleWX(this);saveToLocal();updatePreview()">'+savedDesc+'</textarea>';
+  div.innerHTML='<div class="work-dates"><input type="number" class="year-from" list="years-list" placeholder="Dan" value="'+savedFrom+'" oninput="saveToLocal();updatePreview();validateWorkYearField(this,false,false)" onblur="validateWorkYearField(this,false,true)" style="min-width:56px"><span>&ndash;</span><input type="text" class="year-to" list="years-list-to" placeholder="Gacha" value="'+savedTo+'" oninput="saveToLocal();updatePreview();validateWorkYearField(this,true,false)" onblur="validateWorkYearField(this,true,true)" style="min-width:55px"></div><textarea rows="2" placeholder="'+ph+'" class="work-desc" oninput="handleWX(this);saveToLocal();updatePreview()">'+savedDesc+'</textarea>';
   document.getElementById('work-container').appendChild(div);
+  bindWorkYearValidation(div);
 }
 
 function applyRegionAC(input){input.addEventListener('input',function(){var val=this.value;if(val.indexOf(',')<0&&val.length===3){var key=val.charAt(0).toUpperCase()+val.slice(1).toLowerCase();if(uzbRegions[key])this.value=uzbRegions[key]+', ';}});}
+
+var _DATE_YEAR_MIN = 1920;
+var _DATE_YEAR_MAX = new Date().getFullYear();
+
+function parseUzDate(str){
+  var m=String(str||'').trim().match(/^(\d{2})\.(\d{2})\.(\d{4})$/);
+  if(!m) return null;
+  var d=parseInt(m[1],10), mo=parseInt(m[2],10), y=parseInt(m[3],10);
+  if(y<_DATE_YEAR_MIN||y>_DATE_YEAR_MAX) return null;
+  if(mo<1||mo>12) return null;
+  var dim=new Date(y,mo,0).getDate();
+  if(d<1||d>dim) return null;
+  var dt=new Date(y,mo-1,d);
+  if(dt.getFullYear()!==y||dt.getMonth()!==mo-1||dt.getDate()!==d) return null;
+  return {d:d,mo:mo,y:y};
+}
+
+function isValidUzDate(str){ return !!parseUzDate(str); }
+
+function setFieldValidationState(el, state){
+  if(!el) return;
+  el.classList.remove('field-valid','field-invalid');
+  if(state==='valid') el.classList.add('field-valid');
+  else if(state==='invalid') el.classList.add('field-invalid');
+}
+
+function onBirthdateInput(el){
+  if(!el) return;
+  var val=el.value.replace(/\D/g,'');
+  if(val.length>8) val=val.slice(0,8);
+  if(val.length>=5) el.value=val.slice(0,2)+'.'+val.slice(2,4)+'.'+val.slice(4);
+  else if(val.length>=3) el.value=val.slice(0,2)+'.'+val.slice(2);
+  else el.value=val;
+  validateBirthdateField(el,false);
+}
+
+function validateBirthdateField(el, force){
+  if(!el) return false;
+  var val=String(el.value||'').trim();
+  if(!val){ setFieldValidationState(el,null); return false; }
+  if(val.length<10){
+    var partial=val.match(/^(\d{2})\.(\d{2})(?:\.(\d{0,4}))?$/);
+    if(partial){
+      var d=parseInt(partial[1],10), mo=parseInt(partial[2],10);
+      if(mo<1||mo>12||d<1||d>31){
+        setFieldValidationState(el,'invalid');
+        return false;
+      }
+      if(partial[3]&&partial[3].length===4){
+        var y=parseInt(partial[3],10);
+        if(y<_DATE_YEAR_MIN||y>_DATE_YEAR_MAX){
+          setFieldValidationState(el,'invalid');
+          return false;
+        }
+      }
+    }
+    if(force) setFieldValidationState(el,'invalid');
+    else setFieldValidationState(el,null);
+    return false;
+  }
+  var ok=isValidUzDate(val);
+  setFieldValidationState(el, ok?'valid':'invalid');
+  return ok;
+}
+
+function isValidWorkYear(val, allowPresent){
+  var s=String(val||'').trim().toLowerCase();
+  if(!s) return true;
+  if(allowPresent && /^(hozir|h\.v|h\.v\.|n\.v|н\.в|наст\.?вр?\.?)$/i.test(s)) return true;
+  var y=parseInt(s.replace(/[^\d]/g,''),10);
+  if(!y||y<_DATE_YEAR_MIN||y>_DATE_YEAR_MAX) return false;
+  return true;
+}
+
+function validateWorkYearField(el, allowPresent, force){
+  if(!el) return true;
+  var val=String(el.value||'').trim();
+  if(!val){ setFieldValidationState(el,null); return true; }
+  var ok=isValidWorkYear(val, allowPresent);
+  setFieldValidationState(el, ok?'valid':'invalid');
+  return ok;
+}
+
+function validateRelBirthField(el, force){
+  if(!el) return true;
+  var val=String(el.value||'').trim();
+  if(!val){ setFieldValidationState(el,null); return true; }
+  var ym=val.match(/\b(18|19|20)\d{2}\b/);
+  if(!ym){
+    if(force||val.length>=4) setFieldValidationState(el,'invalid');
+    else setFieldValidationState(el,null);
+    return false;
+  }
+  var y=parseInt(ym[0],10);
+  var ok=y>=_DATE_YEAR_MIN&&y<=_DATE_YEAR_MAX;
+  setFieldValidationState(el, ok?'valid':'invalid');
+  return ok;
+}
+
+function validateAllDateFields(){
+  validateBirthdateField(document.getElementById('birthdate'), true);
+  validateRelBirthField(document.getElementById('m-rel-birth'), true);
+  document.querySelectorAll('#work-container .year-from').forEach(function(el){
+    validateWorkYearField(el, false, true);
+  });
+  document.querySelectorAll('#work-container .year-to').forEach(function(el){
+    validateWorkYearField(el, true, true);
+  });
+}
+
+function bindWorkYearValidation(row){
+  if(!row) return;
+  var yf=row.querySelector('.year-from');
+  var yt=row.querySelector('.year-to');
+  if(yf && !yf.dataset.valBound){
+    yf.dataset.valBound='1';
+    yf.addEventListener('input', function(){ validateWorkYearField(yf, false, false); });
+    yf.addEventListener('blur', function(){ validateWorkYearField(yf, false, true); });
+  }
+  if(yt && !yt.dataset.valBound){
+    yt.dataset.valBound='1';
+    yt.addEventListener('input', function(){ validateWorkYearField(yt, true, false); });
+    yt.addEventListener('blur', function(){ validateWorkYearField(yt, true, true); });
+  }
+}
 
 function setupEventListeners(){
   if(setupEventListeners._bound)return;
   setupEventListeners._bound=true;
   var bd=document.getElementById('birthdate');
-  bd.addEventListener('input',function(){var val=this.value.replace(/\D/g,'');if(val.length>8)val=val.slice(0,8);if(val.length>=5)this.value=val.slice(0,2)+'.'+val.slice(2,4)+'.'+val.slice(4);else if(val.length>=3)this.value=val.slice(0,2)+'.'+val.slice(2);else this.value=val;updatePreview();});
+  if(bd && !bd.dataset.maskBound){
+    bd.dataset.maskBound='1';
+    bd.addEventListener('blur', function(){ validateBirthdateField(bd, true); });
+  }
+  document.querySelectorAll('#work-container .work-row').forEach(bindWorkYearValidation);
   applyRegionAC(document.getElementById('birthplace'));
   applyRegionAC(document.getElementById('m-rel-addr'));
   document.addEventListener('focusin',function(e){
@@ -1685,6 +1881,7 @@ function applyServerObyData(d){
   renderRelList();
   try{saveToLocal();}catch(e){}
   try{updatePreview();scaleLivePreview();}catch(e){}
+  try{validateAllDateFields();}catch(e){}
 }
 
 var _voiceFirstMode=false;
@@ -1715,7 +1912,13 @@ function highlightMissingFields(missing){
     var field=el.closest('.field');
     if(!field) return;
     if(ids.indexOf(id)>=0) field.classList.add('is-missing');
-    else if(el.value&&String(el.value).trim()&&el.value!=="yo'q") field.classList.add('is-filled');
+    else if(el.value&&String(el.value).trim()&&el.value!=="yo'q"){
+      if(id==='birthdate'){
+        if(isValidUzDate(el.value)) field.classList.add('is-filled');
+      }else{
+        field.classList.add('is-filled');
+      }
+    }
   });
   var pf=document.querySelector('.photo-frame');
   if(pf){
@@ -1826,8 +2029,11 @@ document.addEventListener('DOMContentLoaded',function(){
         window.DastyorAI.resumePaidDocWatcher({
           kind: 'obyektivka',
           storageKey: 'oby_paid_request_id',
-          onApproved: async function(id){
-            _obyApprovedRequestId = id;
+          onApproved: async function(){
+            _obyApprovedRequestId = 0;
+            try{ localStorage.removeItem('oby_paid_request_id'); }catch(e){}
+            try{ if(window.DastyorAI&&window.DastyorAI.refreshProfile) await window.DastyorAI.refreshProfile(true); }catch(e){}
+            setObyPayUiState('approved');
             syncObyQuotaUi();
           },
           onCompleted: async function(){
@@ -1841,7 +2047,10 @@ document.addEventListener('DOMContentLoaded',function(){
   })();
   try{
     window.addEventListener('dastyor:profile-updated', function(){ syncObyQuotaUi(); });
-    window.addEventListener('dastyor:payment-approved', function(){ syncObyQuotaUi(); });
+    window.addEventListener('dastyor:payment-approved', function(){
+      setObyPayUiState('approved');
+      syncObyQuotaUi();
+    });
   }catch(e){}
   try{
     var up=new URLSearchParams(window.location.search);

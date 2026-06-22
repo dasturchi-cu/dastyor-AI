@@ -1423,27 +1423,29 @@
         }
         if (s === 'approved' || s === 'delivered') {
           try {
-            if (window.DastyorAI.refreshProfile) await window.DastyorAI.refreshProfile();
+            if (window.DastyorAI.refreshProfile) await window.DastyorAI.refreshProfile(true);
           } catch (_) {}
           const u = window.DastyorAI.getUser ? window.DastyorAI.getUser() : null;
           const paidOk = window.DastyorAI.hasSingleDocAccess
             ? window.DastyorAI.hasSingleDocAccess(u, 'cv')
-            : !!(u && u.has_cv_access);
+            : !!(u && (u.has_cv_access || Number(u.credits || 0) > 0 || u.has_access));
           if (!paidOk) {
             _cvApprovedRequestId = rid;
             try { localStorage.setItem('cv_paid_request_id', String(rid)); } catch (_) {}
             syncCvQuotaUi();
             return;
           }
-          _cvApprovedRequestId = rid;
-          try { localStorage.setItem('cv_paid_request_id', String(rid)); } catch (_) {}
+          _cvApprovedRequestId = 0;
+          try { localStorage.removeItem('cv_paid_request_id'); } catch (_) {}
+          setCvPayUiState('approved');
         }
         if (window.DastyorAI.processPaidDocStatus) {
           await window.DastyorAI.processPaidDocStatus('cv', rid, s, {
             silent: true,
-            onApproved: async function (id) {
-              _cvApprovedRequestId = id;
-              try { localStorage.setItem('cv_paid_request_id', String(id)); } catch (_) {}
+            onApproved: async function () {
+              _cvApprovedRequestId = 0;
+              try { localStorage.removeItem('cv_paid_request_id'); } catch (_) {}
+              setCvPayUiState('approved');
               syncCvQuotaUi();
             },
             onCompleted: async function () {
@@ -1459,23 +1461,37 @@
 
     let _cvExportInFlight = false;
 
+    function applyCvQuotaWarnStyle(mode) {
+      const warn = document.getElementById('cvQuotaWarn');
+      if (!warn) return;
+      if (mode === 'credit') {
+        warn.className = 'mx-4 mb-3 rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-800 font-semibold px-4 py-3 text-center text-sm';
+      } else if (mode === 'wait') {
+        warn.className = 'mx-4 mb-3 rounded-xl border border-amber-200 bg-amber-50 text-amber-900 font-semibold px-4 py-3 text-center text-sm';
+      } else {
+        warn.className = 'mx-4 mb-3 rounded-xl border border-red-200 bg-red-50 text-red-800 font-semibold px-4 py-3 text-center text-sm';
+      }
+    }
+
     function syncCvQuotaUi() {
-      const u = window.DastyorAI && window.DastyorAI.getUser ? window.DastyorAI.getUser() : null;
+      const DA = window.DastyorAI || {};
+      const u = DA.getUser ? DA.getUser() : null;
       const btn = document.getElementById('cvSendBotBtn');
       const payBtn = document.getElementById('cvPayBtn');
       const warn = document.getElementById('cvQuotaWarn');
-      const blocked = window.DastyorAI && window.DastyorAI.isQuotaBlockedForCategory
-        ? window.DastyorAI.isQuotaBlockedForCategory(u, 'cv')
-        : true;
-      const hasAccess = window.DastyorAI && window.DastyorAI.hasSingleDocAccess
-        ? window.DastyorAI.hasSingleDocAccess(u, 'cv')
-        : !!(u && u.has_cv_access);
-      const pendingAdmin = !!(blocked && _cvApprovedRequestId && !hasAccess);
-      const rem = window.DastyorAI && window.DastyorAI.getCategoryQuotaRemaining
-        ? window.DastyorAI.getCategoryQuotaRemaining(u, 'cv')
-        : null;
-      const exhausted = window.DastyorAI && window.DastyorAI.isSingleDocLimitExhausted
-        ? window.DastyorAI.isSingleDocLimitExhausted(u, 'cv')
+
+      if (!DA.getCredits) {
+        if (warn) warn.classList.add('hidden');
+        return;
+      }
+
+      const credits = DA.getCredits(u);
+      const hasAccess = DA.hasSingleDocAccess ? DA.hasSingleDocAccess(u, 'cv') : credits > 0;
+      const blocked = credits > 0 ? false : (DA.isQuotaBlockedForCategory ? DA.isQuotaBlockedForCategory(u, 'cv') : true);
+      const pendingAdmin = !!(_cvApprovedRequestId && !hasAccess);
+      const rem = DA.getCategoryQuotaRemaining ? DA.getCategoryQuotaRemaining(u, 'cv') : null;
+      const exhausted = DA.isSingleDocLimitExhausted
+        ? DA.isSingleDocLimitExhausted(u, 'cv')
         : (rem !== null && rem <= 0 && !hasAccess);
 
       if (btn) {
@@ -1490,19 +1506,31 @@
       }
       if (warn) {
         if (exhausted && !pendingAdmin) {
+          applyCvQuotaWarnStyle('pay');
           warn.classList.remove('hidden');
-          warn.textContent = window.DastyorAI && window.DastyorAI.singleDocLimitMessage
-            ? window.DastyorAI.singleDocLimitMessage('cv')
+          warn.textContent = DA.singleDocLimitMessage
+            ? DA.singleDocLimitMessage('cv')
             : "❌ Limitiz tugagan. Yana 5 000 so'm to'lov qiling (CV).";
+        } else if (hasAccess && credits > 0) {
+          applyCvQuotaWarnStyle('credit');
+          warn.classList.remove('hidden');
+          warn.textContent = DA.universalCreditMessage
+            ? DA.universalCreditMessage(u, 'cv')
+            : '💳 Kredit bor — PDF yaratishingiz mumkin.';
+          setCvPayUiState('approved');
         } else if (hasAccess && !blocked) {
+          applyCvQuotaWarnStyle('credit');
           warn.classList.remove('hidden');
           warn.textContent = "✅ «PDF botga yuborish» tugmasi.";
+          setCvPayUiState('approved');
         } else if (pendingAdmin) {
+          applyCvQuotaWarnStyle('wait');
           warn.classList.remove('hidden');
           warn.textContent = "⏳ Admin kutyapti.";
         } else if (blocked) {
+          applyCvQuotaWarnStyle('pay');
           warn.classList.remove('hidden');
-          warn.textContent = "💳 Avval to'lov (5 000 so'm).";
+          warn.textContent = "💳 Avval to'lov (5 000 so'm) — 1 to'lov = 1 kredit (CV yoki Obyektivka).";
         } else {
           warn.classList.add('hidden');
           warn.textContent = '';
@@ -1607,6 +1635,48 @@
       return String(d);
     }
 
+    function setCvPayUiState(phase) {
+      const sendBtn = document.getElementById('cvPaySendBtn');
+      const status = document.getElementById('cvPayStatus');
+      if (phase === 'sending') {
+        if (sendBtn) { sendBtn.disabled = true; sendBtn.textContent = 'Yuborilmoqda...'; }
+        if (status) {
+          status.textContent = '🔄 Yuborilmoqda...';
+          status.classList.remove('text-red-700');
+          status.classList.add('text-slate-700');
+        }
+      } else if (phase === 'sent') {
+        if (sendBtn) { sendBtn.disabled = true; sendBtn.textContent = '✅ Yuborildi'; }
+        if (status) {
+          status.textContent = '✅ Chek yuborildi. Admin tasdiqlashini kuting...';
+          status.classList.remove('text-red-700');
+          status.classList.add('text-emerald-800', 'font-semibold');
+        }
+      } else if (phase === 'waiting') {
+        if (sendBtn) { sendBtn.disabled = true; sendBtn.textContent = '⏳ Admin kutyapti'; }
+        if (status) {
+          status.textContent = '⏳ Admin tasdiqlashini kuting...';
+          status.classList.add('text-emerald-800', 'font-semibold');
+        }
+      } else if (phase === 'approved') {
+        if (sendBtn) { sendBtn.disabled = true; sendBtn.textContent = '✅ Tasdiqlandi'; }
+        if (status) {
+          status.textContent = '✅ Tasdiqlandi — «PDF botga yuborish».';
+          status.classList.remove('text-red-700');
+          status.classList.add('text-emerald-800', 'font-semibold');
+        }
+      } else if (phase === 'rejected') {
+        if (sendBtn) { sendBtn.disabled = false; sendBtn.textContent = '📤 Yuborish'; }
+        if (status) {
+          status.textContent = "❌ To'lov rad etildi. Qayta skrinshot yuboring.";
+          status.classList.add('text-red-700', 'font-semibold');
+        }
+      } else if (phase === 'idle') {
+        if (sendBtn) { sendBtn.disabled = true; sendBtn.textContent = '📤 Yuborish'; }
+        if (status) status.textContent = 'Skrenshot tanlang va yuboring.';
+      }
+    }
+
     async function payCvSingle(fmt) {
       const tg = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp : null;
       if (!tg) { alert("Faqat Telegram WebApp ichida ishlaydi!"); return; }
@@ -1705,8 +1775,7 @@
         if (sendBtn) {
           sendBtn.onclick = async () => {
             if (!_cvPayState.screenshot) return;
-            if (status) status.textContent = "🔄 Yuborilmoqda...";
-            if (sendBtn) { sendBtn.disabled = true; sendBtn.textContent = "Yuborilmoqda..."; }
+            setCvPayUiState('sending');
             let shot = _cvPayState.screenshot;
             try {
               if (window.DastyorAI && window.DastyorAI.compressReceiptDataUrl) {
@@ -1732,42 +1801,33 @@
               if (sendBtn) { sendBtn.disabled = false; sendBtn.textContent = "📤 Yuborish"; }
               return;
             }
-            if (status) {
-              status.textContent = "✅ Chek yuborildi. Admin tasdiqlashini kuting...";
-              status.classList.remove("text-red-700");
-              status.classList.add("text-emerald-800", "font-semibold");
-            }
-            if (sendBtn) { sendBtn.disabled = true; sendBtn.textContent = "✅ Yuborildi"; }
+            setCvPayUiState('sent');
             const spin = setInterval(() => {
-              if (!status) return;
-              status.textContent = status.textContent.endsWith("...") ? "⏳ Admin tekshirmoqda." : (status.textContent.endsWith(".") ? "⏳ Admin tekshirmoqda.." : "⏳ Admin tekshirmoqda...");
+              setCvPayUiState('waiting');
             }, 450);
             if (window.DastyorAI && window.DastyorAI.startPaidDocWatcher) {
               window.DastyorAI.startPaidDocWatcher({
                 kind: 'cv',
                 storageKey: 'cv_paid_request_id',
                 getRequestId: function () { return _cvPayState.requestId; },
-                onApproved: async function (id) {
+                onApproved: async function () {
                   clearInterval(spin);
-                  _cvApprovedRequestId = id;
-                  try { localStorage.setItem('cv_paid_request_id', String(id)); } catch (_) {}
-                  if (status) status.textContent = "✅ Tasdiqlandi — «PDF botga yuborish».";
+                  _cvApprovedRequestId = 0;
+                  try { localStorage.removeItem('cv_paid_request_id'); } catch (_) {}
+                  try { if (window.DastyorAI && window.DastyorAI.refreshProfile) await window.DastyorAI.refreshProfile(true); } catch (_) {}
+                  setCvPayUiState('approved');
                   syncCvQuotaUi();
                 },
                 onCompleted: async function () {
                   clearInterval(spin);
                   _cvApprovedRequestId = 0;
                   try { localStorage.removeItem('cv_paid_request_id'); } catch (_) {}
-                  if (status) status.textContent = "✅ Bu to'lov ishlatilgan. Yana PDF uchun yangi to'lov qiling.";
+                  setCvPayUiState('approved');
                   syncCvQuotaUi();
                 },
                 onRejected: async function () {
                   clearInterval(spin);
-                  if (status) {
-                    status.textContent = "❌ To'lov rad etildi. Qayta skrinshot yuboring.";
-                    status.classList.add('text-red-700');
-                  }
-                  if (sendBtn) { sendBtn.disabled = false; sendBtn.textContent = "📤 Yuborish"; }
+                  setCvPayUiState('rejected');
                 },
               });
             }
@@ -1801,8 +1861,11 @@
           window.DastyorAI.resumePaidDocWatcher({
             kind: 'cv',
             storageKey: 'cv_paid_request_id',
-            onApproved: async function (id) {
-              _cvApprovedRequestId = id;
+            onApproved: async function () {
+              _cvApprovedRequestId = 0;
+              try { localStorage.removeItem('cv_paid_request_id'); } catch (_) {}
+              try { if (window.DastyorAI && window.DastyorAI.refreshProfile) await window.DastyorAI.refreshProfile(true); } catch (_) {}
+              setCvPayUiState('approved');
               syncCvQuotaUi();
             },
             onCompleted: async function () {
@@ -1819,7 +1882,10 @@
       try { triggerUpdate(false); } catch (_) {}
       try {
         window.addEventListener('dastyor:profile-updated', () => syncCvQuotaUi());
-        window.addEventListener('dastyor:payment-approved', () => syncCvQuotaUi());
+        window.addEventListener('dastyor:payment-approved', () => {
+          setCvPayUiState('approved');
+          syncCvQuotaUi();
+        });
       } catch (_) {}
     });
 

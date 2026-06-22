@@ -25,7 +25,7 @@ WELCOME = (
     "👋 <b>HUJJATCHI AI</b> ga xush kelibsiz!\n\n"
     "📄 <b>CV</b> — forma yoki ovoz → <b>PDF</b>\n"
     "✍️ <b>Obyektivka</b> — ovoz yuboring → AI to'ldiradi → <b>Word (.docx)</b>\n\n"
-    "💳 Har bir tasdiqlangan to'lov = <b>1 ta hujjat</b> yaratish huquqi.\n"
+    "💳 Har bir tasdiqlangan to'lov = <b>1 kredit</b> = <b>1 ta hujjat</b> (CV yoki Obyektivka).\n"
     "🎙 Ovoz yuboring — AI forma maydonlarini avtomatik to'ldiradi.\n\n"
     "👇 Xizmatni tanlang."
 )
@@ -88,7 +88,8 @@ async def show_credits(message: Message) -> None:
     status = users_repo.get_credits(uid)
     await message.answer(
         f"💳 <b>Kreditlar:</b> {status}\n"
-        f"💰 Narx: {settings.single_doc_price_uzs:,} so'm = 1 hujjat\n"
+        f"ℹ️ 1 kredit = 1 ta hujjat (<b>CV yoki Obyektivka</b>)\n"
+        f"💰 Narx: {settings.single_doc_price_uzs:,} so'm = 1 kredit\n"
         f"Karta: <code>{settings.payment_card_number}</code>\n"
         f"Egasi: {settings.payment_card_owner}\n\n"
         "To'lov chekini WebApp orqali yuboring.",

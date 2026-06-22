@@ -327,6 +327,9 @@ const DastyorAI = (() => {
             'limits_breakdown',
             'has_cv_access',
             'has_objective_access',
+            'credits',
+            'has_access',
+            'credit_note',
             // Referral marketing
             'referred_by',
             'referrals_count',
@@ -341,11 +344,48 @@ const DastyorAI = (() => {
         return o;
     }
 
+    function getCredits(u) {
+        const subject = u || user;
+        if (subject && (subject.credits !== undefined && subject.credits !== null)) {
+            return Math.max(0, Number(subject.credits || 0));
+        }
+        if (subject && subject.has_access === true) {
+            return Math.max(1, Number(subject.credits || 0));
+        }
+        try {
+            const raw = sessionStorage.getItem(SS_USER);
+            if (raw) {
+                const p = JSON.parse(raw);
+                return Math.max(0, Number(p.credits || 0));
+            }
+        } catch (_) {}
+        return 0;
+    }
+
+    function hasUniversalCredit(u) {
+        const subject = u || user;
+        if (getCredits(subject) > 0) return true;
+        return !!(subject && subject.has_access === true);
+    }
+
+    function universalCreditMessage(u, category) {
+        const n = getCredits(u || user);
+        if (n < 1) return '';
+        const cat = String(category || '').toLowerCase();
+        const doc =
+            cat === 'cv' ? 'PDF (CV)' : cat === 'obyektivka' ? 'Word (Obyektivka)' : 'hujjat';
+        if (n === 1) {
+            return `💳 Sizda 1 ta kredit bor — CV yoki Obyektivka uchun. Hozir ${doc} yaratishingiz mumkin.`;
+        }
+        return `💳 Sizda ${n} ta kredit bor — har biri CV yoki Obyektivka uchun (1 kredit = 1 hujjat).`;
+    }
+
     /**
      * Free tarif: CV/obyektivka faqat 5 000 so'm (admin tasdiq) yoki obuna.
      */
     function needsSingleDocPayment(u, category) {
-        if (!u || !category) return true;
+        if (!u || !category) return !hasUniversalCredit(u);
+        if (hasUniversalCredit(u)) return false;
         const cat = String(category).toLowerCase();
         if (cat !== 'cv' && cat !== 'obyektivka') return false;
         const plan = String(u.plan || u.user_plan || 'free').toLowerCase();
@@ -366,6 +406,7 @@ const DastyorAI = (() => {
      * /api/me limits_breakdown: bu kategoriya uchun limit tugagan yoki to'lov kerak.
      */
     function isQuotaBlockedForCategory(u, category) {
+        if (hasUniversalCredit(u)) return false;
         if (!u || !category) return true;
         if (needsSingleDocPayment(u, category)) return true;
         if (!Array.isArray(u.limits_breakdown)) return false;
@@ -393,6 +434,7 @@ const DastyorAI = (() => {
 
     /** has_cv_access / has_objective_access — admin tasdiqlagan 1 ta yuborish huquqi */
     function hasSingleDocAccess(u, category) {
+        if (hasUniversalCredit(u)) return true;
         if (!u || !category) return false;
         const cat = String(category).toLowerCase();
         if (cat === 'cv') return !!u.has_cv_access;
@@ -1155,7 +1197,7 @@ html[data-theme="dark"] .da-doc-loading-ring{border-color:#334155;border-top-col
         if (st === 'approved' || st === 'delivered') {
             if (callbacks.onApproved) await callbacks.onApproved(rid, st);
             try {
-                await refreshProfile();
+                await refreshProfile(true);
             } catch (_) {}
             try {
                 await releaseExportPending(cat);
@@ -1250,6 +1292,9 @@ html[data-theme="dark"] .da-doc-loading-ring{border-color:#334155;border-top-col
         initUI,
         renderTariffBanner,
         refreshProfile,
+        getCredits,
+        hasUniversalCredit,
+        universalCreditMessage,
         isQuotaBlockedForCategory,
         hasSingleDocAccess,
         isSingleDocLimitExhausted,
