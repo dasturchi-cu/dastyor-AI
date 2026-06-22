@@ -18,6 +18,7 @@ from database.repositories import obyektivka_data as oby_repo
 from features.ai.service import (
     get_missing_oby_fields,
     map_obyektivka_fields,
+    oby_fill_is_acceptable,
     process_voice_for_obyektivka,
 )
 from features.obyektivka import service as oby_service
@@ -49,7 +50,7 @@ async def _run_oby_text_job(job_id: str, uid: int, text: str) -> None:
     try:
         voice_jobs.set_step(job_id, 2)
         transcript, data, missing = await process_text_for_obyektivka(text)
-        if not data:
+        if not oby_fill_is_acceptable(data):
             voice_jobs.fail_job(job_id, "Ma'lumot ajratilmadi")
             return
         await async_db.run(oby_service.save_pending, uid, data)
@@ -77,7 +78,7 @@ async def _run_oby_voice_job(job_id: str, uid: int, raw: bytes, ext: str) -> Non
             fh.write(raw)
         voice_jobs.set_step(job_id, 2)
         transcript, data, missing = await process_voice_for_obyektivka(temp_path)
-        if not data:
+        if not oby_fill_is_acceptable(data):
             voice_jobs.fail_job(job_id, "Ma'lumot ajratilmadi")
             return
         await async_db.run(oby_service.save_pending, uid, data)
@@ -197,7 +198,7 @@ async def api_oby_voice_fill_sync(
 
     try:
         transcript, data, missing = await process_voice_for_obyektivka(temp_path)
-        if not data:
+        if not oby_fill_is_acceptable(data):
             raise HTTPException(status_code=422, detail="Ma'lumot ajratilmadi")
         await async_db.run(oby_service.save_pending, uid, data)
         return {

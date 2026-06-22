@@ -14,6 +14,7 @@ from features.ai.reliable import (
     normalize_cv_data,
     parse_json_object,
 )
+from features.ai.text_heuristics import merge_fact_dicts, parse_cv_facts, parse_obyektivka_facts
 from shared.ai_errors import AiQuotaError
 
 logger = logging.getLogger(__name__)
@@ -170,7 +171,8 @@ def get_missing_oby_fields(data: dict) -> list[dict]:
 
 
 async def extract_cv_data(text: str) -> dict:
-    """Extract CV fields from transcribed speech via Gemini."""
+    """Extract CV fields from transcribed speech via Gemini + local heuristics."""
+    heuristic = normalize_cv_data(parse_cv_facts(text))
     prompt = f"""
 Quyidagi matndan CV uchun faktlarni JSONga ajrat.
 Qoidalar:
@@ -200,18 +202,45 @@ JSON:
 """
     try:
         raw_text = await generate_text_with_fallback(prompt, timeout=35)
-        if not raw_text:
-            return {}
-        parsed = parse_json_object(raw_text)
-        if not isinstance(parsed, dict):
-            return {}
-        data = normalize_cv_data(parsed)
-        return data if cv_extract_has_content(data) else {}
+        ai_data: dict = {}
+        if raw_text:
+            parsed = parse_json_object(raw_text)
+            if isinstance(parsed, dict):
+                ai_data = normalize_cv_data(parsed)
+        merged = normalize_cv_data(merge_fact_dicts(ai_data, heuristic))
+        if cv_extract_has_content(merged):
+            return merged
+        return heuristic if cv_extract_has_content(heuristic) else {}
     except AiQuotaError:
         raise
     except Exception as e:
         logger.error("CV extraction error: %s", e)
-        return {}
+        return heuristic if cv_extract_has_content(heuristic) else {}
+
+
+def cv_fill_is_acceptable(data: dict | None, missing: list[str] | None = None) -> bool:
+    if not data:
+        return False
+    name = str(data.get("name") or "").strip()
+    if not name:
+        return False
+    extras = sum(
+        1
+        for key in ("phone", "email", "loc", "spec", "about")
+        if str(data.get(key) or "").strip()
+    )
+    has_lists = bool(data.get("works")) or bool(data.get("education_list"))
+    if extras + (1 if has_lists else 0) < 1:
+        return False
+    if missing is not None and len(missing) >= 6:
+        return False
+    return True
+
+
+def oby_fill_is_acceptable(data: dict | None) -> bool:
+    if not data:
+        return False
+    return bool(str(data.get("fullname") or "").strip())
 
 
 def get_missing_cv_fields(data: dict) -> list[str]:
@@ -244,6 +273,8 @@ async def process_text_for_cv(text: str) -> tuple[str, dict, list[str]]:
         return "", {}, ["Matn bo'sh"]
     data = normalize_cv_data(await extract_cv_data(transcript))
     missing = get_missing_cv_fields(data) if data else ["Ma'lumot ajratilmadi"]
+    if not cv_fill_is_acceptable(data, missing):
+        return transcript, {}, missing or ["Ma'lumot ajratilmadi"]
     return transcript, data, missing
 
 
@@ -251,9 +282,13 @@ async def process_text_for_obyektivka(text: str) -> tuple[str, dict, list[dict]]
     transcript = (text or "").strip()
     if not transcript:
         return "", {}, [{"id": "text", "label": "Matn bo'sh"}]
+    heuristic = parse_obyektivka_facts(transcript)
     raw = await extract_obyektivka_data(transcript)
-    data = map_obyektivka_fields(raw)
-    missing = get_missing_oby_fields(data) if data else [{"id": "all", "label": "Ma'lumot ajratilmadi"}]
+    merged_raw = merge_fact_dicts(raw, heuristic)
+    data = map_obyektivka_fields(merged_raw)
+    if not oby_fill_is_acceptable(data):
+        return transcript, {}, [{"id": "all", "label": "Ma'lumot ajratilmadi"}]
+    missing = get_missing_oby_fields(data)
     return transcript, data, missing
 
 

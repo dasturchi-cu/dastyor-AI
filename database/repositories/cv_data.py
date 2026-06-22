@@ -99,6 +99,15 @@ def _to_form(row: dict[str, Any]) -> dict[str, Any]:
             out["skills"] = ", ".join(parsed) if isinstance(parsed, list) else parsed
         except json.JSONDecodeError:
             out["skills"] = sk
+    edu = out.get("education")
+    if isinstance(edu, list):
+        out["education_list"] = edu
+    exp = out.get("experience")
+    if isinstance(exp, list):
+        out["works"] = exp
+    langs = out.get("languages")
+    if isinstance(langs, list):
+        out["languages_list"] = langs
     if "_extra" in out and isinstance(out["_extra"], dict):
         out.update(out.pop("_extra"))
     return out

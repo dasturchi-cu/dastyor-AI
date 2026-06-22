@@ -13,7 +13,7 @@ from aiogram.types import FSInputFile, Message
 
 from config.settings import PROJECT_ROOT
 from database.repositories import ai_sessions as sessions_repo
-from features.ai.service import process_text_for_obyektivka, process_voice_for_obyektivka
+from features.ai.service import process_text_for_obyektivka, process_voice_for_obyektivka, oby_fill_is_acceptable
 from features.bot.states import ObyektivkaStates
 from features.bot.handlers.start import WELCOME
 from features.obyektivka import service as oby_service
@@ -132,7 +132,7 @@ async def _process_voice_background(
         transcript, data, missing = await process_voice_for_obyektivka(path)
 
         await set_step(status_msg, STEP_EXTRACTED)
-        if not data or not data.get("fullname"):
+        if not oby_fill_is_acceptable(data):
             await status_msg.edit_text(
                 "❌ Ma'lumotlarni ajratib bo'lmadi.\n"
                 "Iltimos, namunadagi tartibda to'liqroq o'qib yuboring."
@@ -221,7 +221,7 @@ async def obyektivka_text(message: Message, bot: Bot, state: FSMContext) -> None
 async def _handle_oby_text_flow(text: str, status: Message, uid: int, state: FSMContext) -> None:
     try:
         transcript, data, missing = await process_text_for_obyektivka(text)
-        if not data or not data.get("fullname"):
+        if not oby_fill_is_acceptable(data):
             await status.edit_text(
                 "❌ Ma'lumotlarni ajratib bo'lmadi.\n"
                 "Namunadagi tartibda to'liqroq yozing."
@@ -233,7 +233,7 @@ async def _handle_oby_text_flow(text: str, status: Message, uid: int, state: FSM
         filled = max(10, min(95, 100 - len(missing) * 8))
         fn = data.get("fullname") or ""
         await status.edit_text(
-            f"{telegram_message(STEP_READY)}\n\n"
+            f"{telegram_message(STEP_READY, input_mode='text')}\n\n"
             f"<b>Obyektivka tayyorlandi!</b> (~{filled}% to'ldirildi)\n"
             f"{('👤 ' + fn) if fn else ''}\n\n"
             "👇 Preview ni ko'ring va tasdiqlang."

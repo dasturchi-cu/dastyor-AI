@@ -11,6 +11,9 @@
   var _previewImgOut = '';
   var _previewImgPromise = null;
   var _testDownloadBusy = false;
+  var zoomCtrl = null;
+  var ZOOM_TRANSITION = 'transform 200ms cubic-bezier(0.4, 0, 0.2, 1)';
+  var WRAP_TRANSITION = 'width 200ms cubic-bezier(0.4, 0, 0.2, 1), height 200ms cubic-bezier(0.4, 0, 0.2, 1)';
 
   function getApiBase() {
     try {
@@ -174,7 +177,11 @@
       : Math.max(0, pane.clientWidth - 8);
     if (!paneWidth) paneWidth = global.innerWidth - 48;
 
-    var scale = Math.min(paneWidth / docWidth, 1);
+    var fitScale = paneWidth / docWidth;
+    var baseScale = Math.min(fitScale, 1);
+    var userMul = zoomCtrl ? zoomCtrl.getMultiplier() : 1;
+    var scale = baseScale * userMul;
+    var animate = !zoomCtrl || !zoomCtrl.isDragging();
 
     var scaledW = Math.ceil(docWidth * scale);
     var scaledH = Math.ceil(docHeight * scale);
@@ -183,11 +190,27 @@
     wrap.style.height = scaledH + 'px';
     wrap.style.margin = '0 auto';
     wrap.style.transform = 'none';
+    wrap.style.transition = animate ? WRAP_TRANSITION : 'none';
 
     iframe.style.width = Math.ceil(docWidth) + 'px';
     iframe.style.height = Math.ceil(docHeight) + 'px';
     iframe.style.transform = 'scale(' + scale + ')';
     iframe.style.transformOrigin = 'top left';
+    iframe.style.transition = animate ? ZOOM_TRANSITION : 'none';
+  }
+
+  function initPreviewZoom() {
+    if (!global.DastyorPreviewZoom) return;
+    var mount = document.getElementById('obyPreviewZoom');
+    if (!mount) return;
+    zoomCtrl = global.DastyorPreviewZoom.create({
+      mount: mount,
+      previewEl: document.querySelector('.preview-scroll'),
+    });
+    if (!zoomCtrl) return;
+    zoomCtrl.onChange(function () {
+      try { applyPreviewScale(); } catch (_) {}
+    });
   }
 
   async function fetchServerPreview(opts) {
@@ -337,5 +360,8 @@
 
   global.downloadTestObyektivka = downloadTestPdf;
 
-  document.addEventListener('DOMContentLoaded', bindPreviewControls);
+  document.addEventListener('DOMContentLoaded', function () {
+    initPreviewZoom();
+    bindPreviewControls();
+  });
 })(window);

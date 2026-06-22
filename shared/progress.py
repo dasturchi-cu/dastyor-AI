@@ -9,6 +9,14 @@ STAGES: tuple[tuple[str, str], ...] = (
     ("ready", "Tayyor"),
 )
 
+STAGES_TEXT: tuple[tuple[str, str], ...] = (
+    ("text_received", "Matn qabul qilindi"),
+    ("ai_analyzing", "AI tahlil qilmoqda"),
+    ("data_extracted", "Ma'lumotlar ajratildi"),
+    ("doc_generating", "Hujjat yaratilmoqda"),
+    ("ready", "Tayyor"),
+)
+
 STEP_AUDIO = 1
 STEP_AI = 2
 STEP_EXTRACTED = 3
@@ -21,10 +29,16 @@ def stage_label(step: int) -> str:
     return STAGES[idx][1]
 
 
-def telegram_message(current_step: int, *, highlight: str | None = None) -> str:
+def telegram_message(
+    current_step: int,
+    *,
+    highlight: str | None = None,
+    input_mode: str = "audio",
+) -> str:
     """Multi-line progress for Telegram status edits."""
+    stages = STAGES_TEXT if input_mode == "text" else STAGES
     lines: list[str] = []
-    for i, (_, label) in enumerate(STAGES, start=1):
+    for i, (_, label) in enumerate(stages, start=1):
         if i < current_step:
             mark = "✅"
         elif i == current_step:

@@ -1081,6 +1081,14 @@ const DastyorAI = (() => {
         'Hujjat yaratilmoqda',
         'Tayyor',
     ];
+    const PROGRESS_STEPS_TEXT = [
+        'Matn qabul qilindi',
+        'AI tahlil qilmoqda',
+        "Ma'lumotlar ajratildi",
+        'Formaga yozilmoqda',
+        'Tayyor',
+    ];
+    let _progressMode = 'voice';
 
     function _injectDocumentLoadingStyles() {
         if (document.getElementById('da-doc-loading-styles')) return;
@@ -1110,14 +1118,20 @@ html[data-theme="dark"] .da-doc-loading-ring{border-color:#334155;border-top-col
         document.head.appendChild(s);
     }
 
+    function _activeProgressSteps() {
+        return _progressMode === 'text' ? PROGRESS_STEPS_TEXT : PROGRESS_STEPS;
+    }
+
     function _ensureProgressStepsEl() {
         if (!_docLoadingEl) return null;
         let stepsEl = _docLoadingEl.querySelector('.da-progress-steps');
-        if (stepsEl) return stepsEl;
+        const labels = _activeProgressSteps();
+        if (stepsEl && stepsEl.childElementCount === labels.length) return stepsEl;
+        if (stepsEl) stepsEl.remove();
         stepsEl = document.createElement('div');
         stepsEl.className = 'da-progress-steps';
         stepsEl.setAttribute('role', 'list');
-        PROGRESS_STEPS.forEach((label, i) => {
+        labels.forEach((label, i) => {
             const row = document.createElement('div');
             row.className = 'da-progress-step';
             row.setAttribute('role', 'listitem');
@@ -1132,13 +1146,14 @@ html[data-theme="dark"] .da-doc-loading-ring{border-color:#334155;border-top-col
 
     function setProgressStep(step, sub) {
         _injectDocumentLoadingStyles();
+        const steps = _activeProgressSteps();
         if (!_docLoadingEl) {
-            showDocumentLoading(PROGRESS_STEPS[Math.max(0, step - 1)] || 'Jarayon...', sub || '');
+            showDocumentLoading(steps[Math.max(0, step - 1)] || 'Jarayon...', sub || '');
         }
-        const n = Math.max(1, Math.min(PROGRESS_STEPS.length, Number(step) || 1));
+        const n = Math.max(1, Math.min(steps.length, Number(step) || 1));
         const titleEl = _docLoadingEl && _docLoadingEl.querySelector('.da-doc-loading-title');
         const subEl = _docLoadingEl && _docLoadingEl.querySelector('.da-doc-loading-sub');
-        if (titleEl) titleEl.textContent = PROGRESS_STEPS[n - 1] || 'Jarayon...';
+        if (titleEl) titleEl.textContent = steps[n - 1] || 'Jarayon...';
         if (subEl && sub !== undefined) subEl.textContent = sub || '';
         const stepsEl = _ensureProgressStepsEl();
         if (!stepsEl) return;

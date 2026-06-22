@@ -12,6 +12,7 @@ from pydantic import BaseModel
 from core.security import rate_limit
 from database.repositories import ai_sessions as sessions_repo
 from features.ai.service import (
+    cv_fill_is_acceptable,
     process_text_for_cv,
     process_voice_for_cv,
 )
@@ -40,7 +41,7 @@ async def _run_cv_text_job(job_id: str, uid: int, text: str) -> None:
     try:
         voice_jobs.set_step(job_id, 2)
         transcript, data, missing = await process_text_for_cv(text)
-        if not data or len(missing) > 6:
+        if not cv_fill_is_acceptable(data, missing):
             voice_jobs.fail_job(job_id, "CV uchun yetarli ma'lumot topilmadi")
             return
         await async_db.run(cv_service.save_user_data, uid, data)
@@ -65,7 +66,7 @@ async def _run_cv_voice_job(job_id: str, uid: int, temp_path: str) -> None:
     try:
         voice_jobs.set_step(job_id, 2)
         transcript, data, missing = await process_voice_for_cv(temp_path)
-        if not data:
+        if not cv_fill_is_acceptable(data, missing):
             voice_jobs.fail_job(job_id, "Ma'lumot ajratilmadi")
             return
         await async_db.run(cv_service.save_user_data, uid, data)

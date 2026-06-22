@@ -1,0 +1,120 @@
+/* Premium preview zoom slider — shared by CV & Obyektivka */
+.pz-zoom {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 2px 0 4px;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.pz-zoom-label {
+  flex-shrink: 0;
+  font-size: 10px;
+  font-weight: 800;
+  color: var(--muted, #64748b);
+  letter-spacing: 0.02em;
+  min-width: 32px;
+  line-height: 1;
+}
+
+.pz-zoom-label--end {
+  text-align: right;
+}
+
+.pz-zoom-track {
+  position: relative;
+  flex: 1;
+  height: 4px;
+  border-radius: 999px;
+  background: var(--border, #dde5f3);
+  cursor: pointer;
+  touch-action: none;
+  outline: none;
+}
+
+.pz-zoom-track:focus-visible {
+  box-shadow: 0 0 0 3px rgba(29, 111, 232, 0.22);
+}
+
+.pz-zoom-fill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--blue, #1d6fe8) 0%, var(--blue-dark, #1558c0) 100%);
+  pointer-events: none;
+  transition: width 200ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.pz-zoom-track.is-dragging .pz-zoom-fill {
+  transition: none;
+}
+
+.pz-zoom-thumb {
+  position: absolute;
+  top: 50%;
+  width: 18px;
+  height: 18px;
+  margin-top: -9px;
+  margin-left: -9px;
+  border-radius: 50%;
+  background: #fff;
+  border: 2px solid var(--blue, #1d6fe8);
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.14), 0 0 0 1px rgba(29, 111, 232, 0.08);
+  cursor: grab;
+  touch-action: none;
+  transition: left 200ms cubic-bezier(0.4, 0, 0.2, 1), transform 150ms ease, box-shadow 150ms ease;
+  z-index: 2;
+}
+
+.pz-zoom-track.is-dragging .pz-zoom-thumb {
+  transition: transform 150ms ease, box-shadow 150ms ease;
+  cursor: grabbing;
+  transform: scale(1.12);
+  box-shadow: 0 4px 14px rgba(29, 111, 232, 0.28), 0 0 0 4px rgba(29, 111, 232, 0.12);
+}
+
+@media (max-width: 480px) {
+  .pz-zoom-thumb {
+    width: 26px;
+    height: 26px;
+    margin-top: -13px;
+    margin-left: -13px;
+    border-width: 2.5px;
+  }
+
+  .pz-zoom-track {
+    height: 5px;
+  }
+}
+
+/* CV theme overrides */
+#cvLivePreviewCard .pz-zoom-label {
+  color: #64748b;
+}
+
+#cvLivePreviewCard .pz-zoom-track {
+  background: #e2e8f0;
+}
+
+#cvLivePreviewCard .pz-zoom-fill {
+  background: linear-gradient(90deg, #3b82f6 0%, #2563eb 100%);
+}
+
+#cvLivePreviewCard .pz-zoom-thumb {
+  border-color: #2563eb;
+}
+
+.preview-zoom-mount {
+  width: 100%;
+  padding: 0 2px 10px;
+}
+
+.oby-preview-zoom-row {
+  padding: 0 0 8px;
+  border-bottom: 1px solid var(--blue-light, #eff4ff);
+  margin-bottom: 2px;
+}

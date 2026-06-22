@@ -10,7 +10,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import Message
 
 from database.repositories import ai_sessions as sessions_repo
-from features.ai.service import process_text_for_cv, process_voice_for_cv
+from features.ai.service import process_text_for_cv, process_voice_for_cv, cv_fill_is_acceptable
 from features.bot.states import CvStates, ObyektivkaStates
 from features.cv import service as cv_service
 from shared.ai_errors import AI_QUOTA_USER_MSG, AiQuotaError
@@ -70,7 +70,7 @@ async def cv_text_fill(message: Message, state: FSMContext) -> None:
 async def _handle_cv_text_flow(text: str, status: Message, uid: int, state: FSMContext) -> None:
     try:
         transcript, cv_data, cv_missing = await process_text_for_cv(text)
-        if not cv_data or len(cv_missing) > 6:
+        if not cv_fill_is_acceptable(cv_data, cv_missing):
             await status.edit_text(
                 "ℹ️ CV uchun yetarli ma'lumot topilmadi.\n"
                 "Namunadagi kabi to'liqroq yozing."
@@ -83,7 +83,7 @@ async def _handle_cv_text_flow(text: str, status: Message, uid: int, state: FSMC
         if cv_missing:
             missing_text = "\n\n⚠️ Yetishmayotgan: " + ", ".join(cv_missing)
         await status.edit_text(
-            f"{telegram_message(STEP_READY)}\n\n"
+            f"{telegram_message(STEP_READY, input_mode='text')}\n\n"
             f"CV formasi to'ldirildi.{missing_text}"
             f"{cross_sell_oby_line()}",
             reply_markup=open_webapp_inline(uid, "cv"),
@@ -109,7 +109,7 @@ async def _handle_cv_voice_flow(
         transcript, cv_data, cv_missing = await process_voice_for_cv(path)
 
         await set_step(status, STEP_EXTRACTED)
-        if not cv_data or len(cv_missing) > 6:
+        if not cv_fill_is_acceptable(cv_data, cv_missing):
             await status.edit_text(
                 f"ℹ️ CV uchun yetarli ma'lumot topilmadi.\n\n"
                 f"Namunadagi tartibda qayta yuboring yoki <b>{BTN_OBY}</b> tanlang."

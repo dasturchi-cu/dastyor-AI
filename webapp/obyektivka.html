@@ -9,6 +9,7 @@
   <title>Obyektivka | DASTYOR AI</title>
   <link rel="preload" href="theme.css" as="style" />
   <link rel="stylesheet" href="theme.css" />
+  <link rel="stylesheet" href="css/preview-zoom.css" />
   <script src="https://telegram.org/js/telegram-web-app.js" defer></script>
   <script src="app.js" defer></script>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -166,8 +167,8 @@
     .preview-scroll::-webkit-scrollbar{width:5px;height:5px}
     .preview-scroll::-webkit-scrollbar-thumb{background:rgba(15,23,42,.18);border-radius:3px}
     #obyPreviewPane{display:flex;align-items:flex-start;justify-content:center;width:100%;min-width:0}
-    #obyPreviewScaleWrapper{position:relative;margin:0 auto;overflow:hidden;will-change:width,height}
-    #oby-preview-frame{display:block;border:0;background:#fff;box-shadow:0 14px 40px rgba(15,23,42,.28),0 2px 8px rgba(15,23,42,.12);border-radius:0;transform-origin:top left;position:absolute;left:0;top:0;width:794px;min-height:1123px;max-width:none}
+    #obyPreviewScaleWrapper{position:relative;margin:0 auto;overflow:hidden;will-change:width,height;transition:width 200ms cubic-bezier(0.4,0,0.2,1),height 200ms cubic-bezier(0.4,0,0.2,1)}
+    #oby-preview-frame{display:block;border:0;background:#fff;box-shadow:0 14px 40px rgba(15,23,42,.28),0 2px 8px rgba(15,23,42,.12);border-radius:0;transform-origin:top left;position:absolute;left:0;top:0;width:794px;min-height:1123px;max-width:none;transition:transform 200ms cubic-bezier(0.4,0,0.2,1)}
 
     @media(max-width:480px){
       .main{padding:14px 10px calc(56px + var(--safe-bottom))}
@@ -400,6 +401,9 @@
         </div>
         <button type="button" id="obyTestDownloadBtn" class="btn btn-ghost btn-sm">Test yuklash</button>
       </div>
+      <div class="oby-preview-zoom-row">
+        <div id="obyPreviewZoom" class="preview-zoom-mount"></div>
+      </div>
       <div class="preview-port">
         <div id="previewSkeleton" class="da-skeleton da-skeleton-preview hidden" aria-hidden="true"></div>
         <div class="preview-scroll">
@@ -452,6 +456,7 @@
   </div>
 </div>
 
+<script src="js/preview-zoom.js" defer></script>
 <script src="js/obyektivka-preview.js" defer></script>
 <script>
 function daToast(msg, type) {
