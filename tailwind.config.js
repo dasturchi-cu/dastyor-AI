@@ -1,0 +1,53 @@
+/** @type {import('tailwindcss').Config} */
+module.exports = {
+  content: ['./webapp/cv.html'],
+  safelist: [
+    'hidden',
+    'border-blue-500',
+    'bg-blue-100',
+    'text-red-700',
+    'text-slate-700',
+    'text-emerald-800',
+    'font-semibold',
+    'mx-4',
+    'mb-3',
+    'rounded-xl',
+    'border',
+    'border-emerald-200',
+    'bg-emerald-50',
+    'px-4',
+    'py-3',
+    'text-center',
+    'text-sm',
+    'border-amber-200',
+    'bg-amber-50',
+    'text-amber-900',
+    'border-red-200',
+    'bg-red-50',
+    'text-red-800',
+    'w-full',
+    'h-full',
+    'object-cover',
+  ],
+  theme: {
+    extend: {
+      fontFamily: {
+        sans: ['Plus Jakarta Sans', 'sans-serif'],
+        display: ['Sora', 'sans-serif'],
+      },
+      colors: {
+        brand: {
+          50: '#eff6ff',
+          100: '#dbeafe',
+          200: '#bfdbfe',
+          300: '#93c5fd',
+          400: '#60a5fa',
+          500: '#3b82f6',
+          600: '#2563eb',
+          700: '#1d4ed8',
+        },
+      },
+    },
+  },
+  plugins: [],
+};

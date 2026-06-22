@@ -1,0 +1,11 @@
+{
+  "name": "dastyor-ai-webapp",
+  "private": true,
+  "scripts": {
+    "build:css": "tailwindcss -i ./webapp/css/cv.input.css -o ./webapp/css/cv.css --minify",
+    "watch:css": "tailwindcss -i ./webapp/css/cv.input.css -o ./webapp/css/cv.css --watch"
+  },
+  "devDependencies": {
+    "tailwindcss": "^3.4.17"
+  }
+}

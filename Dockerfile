@@ -1,3 +1,12 @@
+FROM node:20-slim AS webapp-css
+
+WORKDIR /build
+COPY package.json ./
+COPY tailwind.config.js ./
+COPY webapp/css/cv.input.css ./webapp/css/
+COPY webapp/cv.html ./webapp/
+RUN npm install && npm run build:css
+
 FROM python:3.12-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
@@ -23,6 +32,7 @@ COPY requirements.txt /app/requirements.txt
 RUN pip install --no-cache-dir -r /app/requirements.txt
 
 COPY . /app
+COPY --from=webapp-css /build/webapp/css/cv.css /app/webapp/css/cv.css
 
 RUN mkdir -p /app/data/uploads/receipts /app/data/uploads/generated /app/temp
 
