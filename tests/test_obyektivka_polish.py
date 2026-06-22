@@ -6,7 +6,7 @@ import zipfile
 from pathlib import Path
 
 from features.obyektivka.docx_template import generate_obyektivka_docx
-from features.obyektivka.docx_typography import VAL, W, _is_bold_run, find_runs_containing
+from features.obyektivka.docx_typography import VAL, W, _is_bold_run, find_runs_containing, run_has_underline
 from lxml import etree
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -63,7 +63,7 @@ class TestObyektivkaPolish(unittest.TestCase):
         self.assertTrue(_is_bold_run(runs[0]))
         self.assertEqual(_run_color(runs[0]), "000000")
 
-    def test_value_not_bold_label_bold(self):
+    def test_value_underlined_label_bold(self):
         if not MASTER.is_file():
             self.skipTest("master missing")
         out = ROOT / "temp" / "test_polish_vals.docx"
@@ -85,6 +85,7 @@ class TestObyektivkaPolish(unittest.TestCase):
         self.assertTrue(millat)
         self.assertFalse(_is_bold_run(nation[0]))
         self.assertTrue(_is_bold_run(millat[0]))
+        self.assertTrue(run_has_underline(nation[0]))
 
 
 if __name__ == "__main__":

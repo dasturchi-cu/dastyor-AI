@@ -55,10 +55,10 @@ def _hint_textbox_xml(hint_text: str) -> str:
             <w:pPr>
               <w:ind w:left="-142" w:right="-119"/>
               <w:jc w:val="center"/>
-              <w:rPr><w:sz w:val="20"/><w:szCs w:val="21"/></w:rPr>
+              <w:rPr><w:sz w:val="22"/><w:szCs w:val="22"/></w:rPr>
             </w:pPr>
             <w:r>
-              <w:rPr><w:sz w:val="20"/><w:szCs w:val="21"/></w:rPr>
+              <w:rPr><w:sz w:val="22"/><w:szCs w:val="22"/></w:rPr>
               <w:t xml:space="preserve">{safe}</w:t>
             </w:r>
           </w:p>

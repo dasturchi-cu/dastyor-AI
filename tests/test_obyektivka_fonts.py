@@ -76,7 +76,7 @@ class TestObyektivkaFonts(unittest.TestCase):
 
         rel_runs = find_runs_containing(root, "қариндошлари ҳақида")
         self.assertTrue(rel_runs)
-        self.assertEqual(effective_sz_pt(rel_runs[0]), 12.0)
+        self.assertEqual(effective_sz_pt(rel_runs[0]), 11.0)
 
         allowed = set(ALLOWED_FONT_PTS)
         self.assertTrue(allowed.issuperset(sizes.keys()))

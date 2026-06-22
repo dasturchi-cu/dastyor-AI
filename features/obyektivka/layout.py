@@ -7,18 +7,18 @@ from docx.shared import Emu
 # Namuna DOCX section margins va sahifa (mm)
 PAGE_WIDTH_MM = 209.99
 PAGE_HEIGHT_MM = 296.99
-PAGE_MARGIN_TOP_MM = 15.01
-PAGE_MARGIN_RIGHT_MM = 10.0
-PAGE_MARGIN_BOTTOM_MM = 5.93
-PAGE_MARGIN_LEFT_MM = 26.9
+PAGE_MARGIN_TOP_MM = 20.0
+PAGE_MARGIN_RIGHT_MM = 18.0
+PAGE_MARGIN_BOTTOM_MM = 20.0
+PAGE_MARGIN_LEFT_MM = 18.0
 
-FONT_FAMILY = "Times Uzb Roman"
-# Reference DOCX audit (pt) — do not change without re-measuring namuna
+FONT_FAMILY = "Times New Roman"
+# PPT namuna (pt)
 FONT_TITLE_PT = 14  # MA'LUMOTNOMA, F.I.Sh, MEHNAT FAOLIYATI
-FONT_REL_SECTION_PT = 12  # «…qarindoshlari haqida», MA'LUMOT (p2)
-FONT_BODY_PT = 11  # body, work history, family table
-FONT_PHOTO_HINT_PT = 10  # photo caption block
-LINE_HEIGHT = 1.0
+FONT_REL_SECTION_PT = 12  # MA'LUMOT (qarindoshlar sarlavhasi)
+FONT_BODY_PT = 11  # body, work history, form values, photo note
+FONT_PHOTO_HINT_PT = 11  # photo caption block
+LINE_HEIGHT = 1.15
 
 PHOTO_WIDTH_MM = 30
 PHOTO_HEIGHT_MM = 40

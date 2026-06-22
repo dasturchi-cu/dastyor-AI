@@ -16,16 +16,20 @@ from features.obyektivka.docx_typography import (
     _set_color_black,
     _set_underline,
     apply_label_rpr,
+    apply_plain_value_rpr,
     apply_value_rpr,
 )
 
 FONT_TIMES = "Times New Roman"
 
-# PPT spec: 8 pt before = 160 twips; 4 pt = 80; line 1.15 = 276 (240 * 1.15)
+# PPT spec (mm → twips @ 1440/25.4); line 1.15 = 276
 SP_LINE_115 = 276
-SP_GRID_BEFORE = 160
-SP_MEHNAT_BEFORE = 80
+SP_GRID_BEFORE = 454  # 8 mm
+SP_MEHNAT_BEFORE = 227  # 4 mm
 SP_TITLE_AFTER = 120
+PAGE_MARGIN_TOP_BOTTOM_MM = 20
+PAGE_MARGIN_LEFT_RIGHT_MM = 18
+_MM_TWIPS = 1440 / 25.4
 
 _CURRENT_YEAR_RE = re.compile(
     r"(yildan|йилдан|октябрдан|oktabrdan|январдан|yanvardan)\s*:?\s*$",
@@ -33,6 +37,10 @@ _CURRENT_YEAR_RE = re.compile(
 )
 _GRID_LABEL_RE = re.compile(
     r"(Туғилган йили|Tug'ilgan yili|Туғилган жойи|Tug'ilgan joyi)",
+    re.IGNORECASE,
+)
+_WORK_LINE_RE = re.compile(
+    r"^\d{4}|\d{4}-\d{4}|йй\.|yy\.|й\.\s*-\s*ҳ\.в|h\.v",
     re.IGNORECASE,
 )
 
@@ -116,12 +124,36 @@ def _is_relatives_intro(text: str) -> bool:
     return "қариндошлари ҳақида" in text or "qarindoshlari haqida" in text.lower()
 
 
+def _is_malumot_line(text: str) -> bool:
+    return text.strip() in ("МАЪЛУМОТ", "MA'LUMOT")
+
+
+def _is_photo_hint(text: str) -> bool:
+    low = text.lower()
+    return any(
+        k in low
+        for k in ("3х4", "3x4", "фотосурат", "fotosurat", "расмий кийимда", "rasmiy kiyimda")
+    )
+
+
+def _is_work_line(text: str, *, in_mehnat: bool = False) -> bool:
+    t = text.strip()
+    if not t or _is_mehnat_header(t):
+        return False
+    if in_mehnat and t in ("yo'q", "йўқ"):
+        return True
+    return bool(_WORK_LINE_RE.search(t))
+
+
 def _is_label_paragraph(text: str) -> bool:
     t = text.strip()
     if not t:
         return False
-    if _is_malumotnoma(t) or _is_mehnat_header(t) or _is_relatives_intro(t):
+    if _is_malumotnoma(t) or _is_mehnat_header(t) or _is_relatives_intro(t) or _is_malumot_line(t):
         return False
+    parts = re.split(r"[\t]", t)
+    if any(part.strip().endswith(":") for part in parts):
+        return True
     if t.endswith(":") or ": " in t:
         return True
     return any(
@@ -144,12 +176,73 @@ def _is_label_paragraph(text: str) -> bool:
     )
 
 
+def _mm_twips(mm: float) -> str:
+    return str(int(round(mm * _MM_TWIPS)))
+
+
+def _enforce_page_margins(root: etree._Element) -> None:
+    top = _mm_twips(PAGE_MARGIN_TOP_BOTTOM_MM)
+    side = _mm_twips(PAGE_MARGIN_LEFT_RIGHT_MM)
+    for sect in root.findall(f".//{W}sectPr"):
+        pg = sect.find(f"{W}pgMar")
+        if pg is None:
+            pg = etree.SubElement(sect, f"{W}pgMar")
+        pg.set(f"{W}top", top)
+        pg.set(f"{W}bottom", top)
+        pg.set(f"{W}left", side)
+        pg.set(f"{W}right", side)
+
+
+def _enforce_table_borders(root: etree._Element) -> None:
+    for tbl in root.findall(f".//{W}tbl"):
+        blob = _paragraph_text(tbl).lower()
+        if "qarindosh" not in blob and "қариндош" not in blob:
+            continue
+        tbl_pr = tbl.find(f"{W}tblPr")
+        if tbl_pr is None:
+            tbl_pr = etree.Element(f"{W}tblPr")
+            tbl.insert(0, tbl_pr)
+        borders = tbl_pr.find(f"{W}tblBorders")
+        if borders is None:
+            borders = etree.SubElement(tbl_pr, f"{W}tblBorders")
+        for side in ("top", "left", "bottom", "right", "insideH", "insideV"):
+            el = borders.find(f"{W}{side}")
+            if el is None:
+                el = etree.SubElement(borders, f"{W}{side}")
+            el.set(VAL, "single")
+            el.set(f"{W}sz", "8")
+            el.set(f"{W}color", "000000")
+            el.set(f"{W}space", "0")
+
+
+def _enforce_table_cell_styles(root: etree._Element) -> None:
+    for tbl in root.findall(f".//{W}tbl"):
+        blob = _paragraph_text(tbl).lower()
+        if "qarindosh" not in blob and "қариндош" not in blob:
+            continue
+        rows = tbl.findall(f"{W}tr")
+        for ri, tr in enumerate(rows):
+            for ci, tc in enumerate(tr.findall(f"{W}tc")):
+                for p_el in tc.findall(f".//{W}p"):
+                    for r_el in p_el.findall(f".//{W}r"):
+                        if not _run_text(r_el).strip():
+                            continue
+                        if ri == 0 or ci == 0:
+                            apply_label_rpr(r_el)
+                        else:
+                            apply_plain_value_rpr(r_el)
+
+
 def enforce_reference_polish(root: etree._Element, context: dict[str, str] | None = None) -> None:
     """PPT namuna: qora harf, Times New Roman, sarlavha markazda, 1.15 interval."""
     ctx = context or {}
     fish = (ctx.get("fish") or "").strip()
     hozirgi_yil = (ctx.get("hozirgi_yil") or "").strip()
     hozirgi_ish = (ctx.get("hozirgi_ish") or "").strip()
+
+    _enforce_page_margins(root)
+    _enforce_table_borders(root)
+    _enforce_table_cell_styles(root)
 
     for r_el in root.findall(f".//{W}r"):
         if not _run_text(r_el).strip():
@@ -163,6 +256,7 @@ def enforce_reference_polish(root: etree._Element, context: dict[str, str] | Non
         return
 
     grid_marked = False
+    in_mehnat = False
     for p_el in body.findall(f"{W}p"):
         if _in_table(p_el):
             continue
@@ -200,7 +294,14 @@ def enforce_reference_polish(root: etree._Element, context: dict[str, str] | Non
                     _set_color_black(rpr)
             continue
 
+        if _is_photo_hint(text):
+            for r_el in p_el.findall(f".//{W}r"):
+                if _run_text(r_el).strip():
+                    apply_plain_value_rpr(r_el)
+            continue
+
         if _is_mehnat_header(text):
+            in_mehnat = True
             _set_jc(ppr, "center")
             _set_spacing(ppr, before=SP_MEHNAT_BEFORE, line=SP_LINE_115, line_rule="auto")
             for r_el in p_el.findall(f".//{W}r"):
@@ -208,7 +309,23 @@ def enforce_reference_polish(root: etree._Element, context: dict[str, str] | Non
                     apply_label_rpr(r_el)
             continue
 
+        if in_mehnat and _is_work_line(text, in_mehnat=True):
+            for r_el in p_el.findall(f".//{W}r"):
+                if _run_text(r_el).strip():
+                    apply_plain_value_rpr(r_el)
+            continue
+
+        if in_mehnat and not _is_work_line(text, in_mehnat=True):
+            in_mehnat = False
+
         if _is_relatives_intro(text):
+            _set_jc(ppr, "center")
+            for r_el in p_el.findall(f".//{W}r"):
+                if _run_text(r_el).strip():
+                    apply_plain_value_rpr(r_el)
+            continue
+
+        if _is_malumot_line(text):
             _set_jc(ppr, "center")
             for r_el in p_el.findall(f".//{W}r"):
                 if _run_text(r_el).strip():
