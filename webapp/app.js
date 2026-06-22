@@ -1173,14 +1173,15 @@ html[data-theme="dark"] .da-doc-loading-ring{border-color:#334155;border-top-col
     }
 
     function canExportWithCredit(u) {
-        return getCredits(u) > 0;
+        const subject = u || user;
+        if (!subject) return false;
+        return !!(subject.has_cv_access || subject.has_objective_access);
     }
 
-    /** CV/Obyektivka eksport: pul balansi, kategoriya huquqi yoki obuna limiti */
+    /** CV/Obyektivka eksport: hujjat kirish yoki obuna limiti */
     function canExportForCategory(u, category) {
         const subject = u || user;
         if (!subject) return false;
-        if (Number(subject.credits || 0) > 0) return true;
         if (hasSingleDocAccess(subject, category)) return true;
         const plan = String(subject.plan || subject.user_plan || 'free').toLowerCase();
         if (plan === 'standard' || plan === 'premium') {

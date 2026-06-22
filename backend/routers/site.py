@@ -8,6 +8,7 @@ from fastapi.responses import FileResponse, RedirectResponse, Response
 
 from backend.paths import webapp_index_path
 from core.redis_client import ping_async, redis_enabled
+from database.connection import check_db_integrity
 
 router = APIRouter(tags=["site"])
 
@@ -40,11 +41,13 @@ async def health():
     redis_status = "disabled"
     if redis_enabled():
         redis_status = "ok" if await ping_async() else "unavailable"
+    db_ok, db_msg = check_db_integrity()
     return {
-        "ok": True,
-        "status": "healthy",
+        "ok": db_ok,
+        "status": "healthy" if db_ok else "degraded",
         "webapp_mounted": True,
         "redis": redis_status,
+        "database": db_msg,
         "time": time.time(),
     }
 

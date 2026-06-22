@@ -448,11 +448,16 @@
         if (oby) oby.href = 'obyektivka.html' + q + '&voice=1&autoload=1';
       }
 
-      function showCredits(n) {
+      function showAccess(me) {
         if (!creditsEl) return;
         creditsEl.classList.remove('home-credits--loading');
         creditsEl.hidden = false;
-        creditsEl.textContent = '💳 ' + n + ' ta tayyor';
+        var parts = [];
+        if (me && me.has_cv_access) parts.push('CV');
+        if (me && me.has_objective_access) parts.push('Oby');
+        creditsEl.textContent = parts.length
+          ? '📄 Ochiq: ' + parts.join(', ')
+          : '📄 Hujjat: to\'lov kerak';
       }
 
       function showPrice(amount) {
@@ -473,8 +478,7 @@
         if (!DA || !DA.init) return;
         DA.init({ refreshProfile: true }).then(function (me) {
           if (!me) return;
-          var n = DA.getCredits ? DA.getCredits(me) : Number(me.credits || 0);
-          showCredits(n);
+          showAccess(me);
           if (DA.docPriceUzs) showPrice(DA.docPriceUzs(me));
         }).catch(function () {});
         if (DA.bindPrefetchOnHover) DA.bindPrefetchOnHover('.service-card');

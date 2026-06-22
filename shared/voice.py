@@ -9,6 +9,9 @@ from aiogram import Bot
 from aiogram.types import Message
 
 
+from config.paths import temp_dir
+
+
 async def download_voice_message(bot: Bot, message: Message, *, prefix: str = "voice") -> str | None:
     if message.voice:
         file = await bot.get_file(message.voice.file_id)
@@ -21,8 +24,8 @@ async def download_voice_message(bot: Bot, message: Message, *, prefix: str = "v
     else:
         return None
 
-    os.makedirs("temp", exist_ok=True)
-    fd, path = tempfile.mkstemp(suffix=ext, prefix=f"{prefix}_", dir="temp")
+    os.makedirs(str(temp_dir()), exist_ok=True)
+    fd, path = tempfile.mkstemp(suffix=ext, prefix=f"{prefix}_", dir=str(temp_dir()))
     os.close(fd)
     await bot.download_file(file.file_path, path)
     return path

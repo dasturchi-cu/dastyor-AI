@@ -78,10 +78,13 @@ def create_webhook_app() -> FastAPI:
     @asynccontextmanager
     async def lifespan(app: FastAPI):
         from config.paths import ensure_data_dirs
-        from config.validate import validate_settings
+        from config.validate import _is_production, validate_settings
 
-        for msg in validate_settings():
+        errors = validate_settings()
+        for msg in errors:
             logger.critical("CONFIG: %s", msg)
+        if errors and _is_production():
+            raise RuntimeError("Invalid production configuration: " + "; ".join(errors))
         ensure_data_dirs()
         init_db()
         app.state.bot = bot

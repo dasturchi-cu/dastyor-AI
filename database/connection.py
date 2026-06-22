@@ -98,6 +98,14 @@ def _apply_migrations(conn: sqlite3.Connection) -> None:
     )
 
 
+def check_db_integrity() -> tuple[bool, str]:
+    """Run SQLite PRAGMA integrity_check (ok, message)."""
+    with sqlite3.connect(settings.db_path) as conn:
+        row = conn.execute("PRAGMA integrity_check").fetchone()
+    msg = str(row[0]) if row else "unknown"
+    return msg == "ok", msg
+
+
 def init_db() -> None:
     global _initialized
     with _schema_lock:
@@ -114,6 +122,9 @@ def init_db() -> None:
             _configure_connection(conn)
             _apply_migrations(conn)
             conn.commit()
+        ok, msg = check_db_integrity()
+        if not ok:
+            raise RuntimeError(f"SQLite integrity check failed: {msg}")
 
 
 @contextmanager

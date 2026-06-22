@@ -2,11 +2,10 @@
 from __future__ import annotations
 
 import asyncio
-import io
 import logging
 
 from fastapi import APIRouter, HTTPException, Request
-from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
+from fastapi.responses import HTMLResponse, JSONResponse, Response
 
 from backend.schemas.webapp import CVRequest, ExportCVRequest
 from backend.services.cv_preview_cache import (
@@ -63,7 +62,7 @@ async def api_cv_preview(req: ExportCVRequest) -> HTMLResponse:
 
 
 @router.post("/api/export_cv")
-async def api_export_cv(req: ExportCVRequest, request: Request) -> StreamingResponse:
+async def api_export_cv(req: ExportCVRequest, request: Request) -> Response:
     await rate_limit(request)
     uid = _uid_from_req(req)
     payload = req.model_dump(exclude={"telegram_id", "token", "send_only", "format", "init_data"})
@@ -88,14 +87,14 @@ async def api_export_cv(req: ExportCVRequest, request: Request) -> StreamingResp
             raise HTTPException(status_code=500, detail="Telegramga yuborib bo'lmadi")
         return JSONResponse({"ok": True, "sent": True, "filename": filename})
 
-    return StreamingResponse(
-        io.BytesIO(pdf_bytes),
+    return Response(
+        content=pdf_bytes,
         media_type="application/pdf",
         headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )
 
 
 @router.post("/api/generate_cv")
-async def api_generate_cv(req: CVRequest, request: Request) -> StreamingResponse:
+async def api_generate_cv(req: CVRequest, request: Request) -> Response:
     export_req = ExportCVRequest(**req.model_dump())
     return await api_export_cv(export_req, request)

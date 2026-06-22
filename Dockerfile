@@ -10,7 +10,9 @@ RUN npm install && npm run build:css
 FROM python:3.12-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1
+    PYTHONUNBUFFERED=1 \
+    PORT=8000 \
+    DATA_DIR=/data
 
 WORKDIR /app
 
@@ -36,8 +38,12 @@ RUN pip install --no-cache-dir -r /app/requirements.txt
 COPY . /app
 COPY --from=webapp-css /build/webapp/css/cv.css /app/webapp/css/cv.css
 
-RUN mkdir -p /app/data/uploads/receipts /app/data/uploads/generated /app/temp
+RUN mkdir -p /data/uploads/receipts /data/uploads/generated /data/tmp \
+    && chmod +x /app/scripts/entrypoint.sh
 
 EXPOSE 8000
 
-CMD ["uvicorn", "api_webhook:app", "--host", "0.0.0.0", "--port", "8000"]
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+  CMD python -c "import os,urllib.request; urllib.request.urlopen('http://127.0.0.1:'+os.environ.get('PORT','8000')+'/health', timeout=5)"
+
+CMD ["/app/scripts/entrypoint.sh"]

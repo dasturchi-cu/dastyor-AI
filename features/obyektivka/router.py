@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import asyncio
-import io
 import logging
 import os
 import uuid
@@ -10,7 +9,7 @@ import uuid
 import re
 
 from fastapi import APIRouter, File, Form, HTTPException, Query, Request, UploadFile
-from fastapi.responses import JSONResponse, Response, StreamingResponse
+from fastapi.responses import JSONResponse, Response
 
 from backend.schemas.webapp import ExportObyektivkaRequest, ObyektivkaRequest, PreviewObyektivkaRequest, TestObyektivkaPdfRequest
 from core.security import rate_limit
@@ -310,15 +309,15 @@ async def api_test_obyektivka_pdf(req: TestObyektivkaPdfRequest, request: Reques
             raise HTTPException(status_code=500, detail="Telegramga yuborib bo'lmadi")
         return JSONResponse({"ok": True, "sent": True, "filename": filename})
 
-    return StreamingResponse(
-        io.BytesIO(pdf_bytes),
+    return Response(
+        content=pdf_bytes,
         media_type="application/pdf",
         headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )
 
 
 @router.post("/api/export_obyektivka")
-async def api_export_oby(req: ExportObyektivkaRequest, request: Request) -> StreamingResponse:
+async def api_export_oby(req: ExportObyektivkaRequest, request: Request) -> Response:
     await rate_limit(request)
     uid = _uid_from_req(req)
     payload = req.model_dump(exclude={"telegram_id", "token", "send_only", "format", "init_data"})
@@ -343,14 +342,14 @@ async def api_export_oby(req: ExportObyektivkaRequest, request: Request) -> Stre
             raise HTTPException(status_code=500, detail="Telegramga yuborib bo'lmadi")
         return JSONResponse({"ok": True, "sent": True, "filename": filename})
 
-    return StreamingResponse(
-        io.BytesIO(docx_bytes),
+    return Response(
+        content=docx_bytes,
         media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
         headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )
 
 
 @router.post("/api/generate_obyektivka")
-async def api_generate_oby(req: ObyektivkaRequest, request: Request) -> StreamingResponse:
+async def api_generate_oby(req: ObyektivkaRequest, request: Request) -> Response:
     export_req = ExportObyektivkaRequest(**req.model_dump())
     return await api_export_oby(export_req, request)
