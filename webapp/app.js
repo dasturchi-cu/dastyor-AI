@@ -943,14 +943,47 @@ html[data-theme="dark"] .da-doc-loading-ring{border-color:#334155;border-top-col
         setProgressStep(start);
     }
 
-    async function pollObyVoiceJob(jobId, telegramId, token, onStep) {
+    function canExportWithCredit(u) {
+        return getCredits(u) > 0;
+    }
+
+    async function ensureJpegDataUrl(dataUrl) {
+        if (!dataUrl) return dataUrl;
+        const s = String(dataUrl);
+        if (s.startsWith('data:image/jpeg') || s.startsWith('data:image/jpg')) {
+            return compressReceiptDataUrl(s);
+        }
+        return new Promise((resolve) => {
+            const img = new Image();
+            img.onload = () => {
+                try {
+                    const c = document.createElement('canvas');
+                    let w = img.width;
+                    let h = img.height;
+                    const scale = Math.min(1, 1280 / Math.max(w, h, 1));
+                    w = Math.max(1, Math.round(w * scale));
+                    h = Math.max(1, Math.round(h * scale));
+                    c.width = w;
+                    c.height = h;
+                    c.getContext('2d').drawImage(img, 0, 0, w, h);
+                    resolve(c.toDataURL('image/jpeg', 0.82));
+                } catch (_) {
+                    resolve(s);
+                }
+            };
+            img.onerror = () => resolve(s);
+            img.src = s;
+        }).then((out) => compressReceiptDataUrl(out));
+    }
+
+    async function pollVoiceJob(pathPrefix, jobId, telegramId, token, onStep) {
         const base = BASE;
         const q = new URLSearchParams();
         if (telegramId) q.set('telegram_id', String(telegramId));
         if (token) q.set('token', token);
-        const url = base + '/api/oby_voice_job/' + encodeURIComponent(jobId) + '?' + q.toString();
-        for (let i = 0; i < 120; i++) {
-            await new Promise((r) => setTimeout(r, i === 0 ? 80 : 450));
+        const url = base + '/api/' + pathPrefix + '/' + encodeURIComponent(jobId) + '?' + q.toString();
+        for (let i = 0; i < 150; i++) {
+            await new Promise((r) => setTimeout(r, i === 0 ? 60 : 180));
             const res = await fetch(url);
             if (!res.ok) {
                 const err = await res.json().catch(() => ({}));
@@ -962,6 +995,14 @@ html[data-theme="dark"] .da-doc-loading-ring{border-color:#334155;border-top-col
             if (js.status === 'error') throw new Error(js.error || 'Xatolik');
         }
         throw new Error('Vaqt tugadi. Qayta urinib ko\'ring.');
+    }
+
+    async function pollObyVoiceJob(jobId, telegramId, token, onStep) {
+        return pollVoiceJob('oby_voice_job', jobId, telegramId, token, onStep);
+    }
+
+    async function pollCvVoiceJob(jobId, telegramId, token, onStep) {
+        return pollVoiceJob('cv_voice_job', jobId, telegramId, token, onStep);
     }
 
     function showDocumentLoading(title, sub) {
@@ -1293,6 +1334,7 @@ html[data-theme="dark"] .da-doc-loading-ring{border-color:#334155;border-top-col
         renderTariffBanner,
         refreshProfile,
         getCredits,
+        canExportWithCredit,
         hasUniversalCredit,
         universalCreditMessage,
         isQuotaBlockedForCategory,
@@ -1319,6 +1361,8 @@ html[data-theme="dark"] .da-doc-loading-ring{border-color:#334155;border-top-col
         setProgressStep,
         showProgressFlow,
         pollObyVoiceJob,
+        pollCvVoiceJob,
+        ensureJpegDataUrl,
         PROGRESS_STEPS,
         compressReceiptDataUrl,
 

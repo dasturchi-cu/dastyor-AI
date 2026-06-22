@@ -234,8 +234,25 @@ async def process_voice_for_cv(audio_path: str) -> tuple[str, dict, list[str]]:
     transcript = (await transcribe_audio(audio_path) or "").strip()
     if not is_valid_transcription_text(transcript):
         return transcript, {}, ["Ovoz tushunilmadi"]
+    return await process_text_for_cv(transcript)
+
+
+async def process_text_for_cv(text: str) -> tuple[str, dict, list[str]]:
+    transcript = (text or "").strip()
+    if not transcript:
+        return "", {}, ["Matn bo'sh"]
     data = await extract_cv_data(transcript)
     missing = get_missing_cv_fields(data) if data else ["Ma'lumot ajratilmadi"]
+    return transcript, data, missing
+
+
+async def process_text_for_obyektivka(text: str) -> tuple[str, dict, list[dict]]:
+    transcript = (text or "").strip()
+    if not transcript:
+        return "", {}, [{"id": "text", "label": "Matn bo'sh"}]
+    raw = await extract_obyektivka_data(transcript)
+    data = map_obyektivka_fields(raw)
+    missing = get_missing_oby_fields(data) if data else [{"id": "all", "label": "Ma'lumot ajratilmadi"}]
     return transcript, data, missing
 
 
@@ -243,7 +260,4 @@ async def process_voice_for_obyektivka(audio_path: str) -> tuple[str, dict, list
     transcript = (await transcribe_audio(audio_path) or "").strip()
     if not is_valid_transcription_text(transcript):
         return transcript, {}, [{"id": "audio", "label": "Ovoz tushunilmadi"}]
-    raw = await extract_obyektivka_data(transcript)
-    data = map_obyektivka_fields(raw)
-    missing = get_missing_oby_fields(data) if data else [{"id": "all", "label": "Ma'lumot ajratilmadi"}]
-    return transcript, data, missing
+    return await process_text_for_obyektivka(transcript)

@@ -214,6 +214,22 @@
           </div>
         </div>
 
+        <!-- CV voice + text fill -->
+        <div class="bg-white/60 p-4 rounded-2xl mb-6 shadow-sm border border-blue-100">
+          <div class="text-xs font-extrabold text-slate-700 mb-2">🎤 Ovoz yoki matndan to'ldirish</div>
+          <div class="flex flex-wrap gap-2 mb-2">
+            <button type="button" class="px-4 py-2 bg-blue-50 border border-blue-200 text-blue-700 rounded-xl font-bold text-sm" onclick="startCvVoiceFill()" id="btn_cv_voice">🎤 Ovoz</button>
+            <button type="button" class="px-4 py-2 bg-blue-50 border border-blue-200 text-blue-700 rounded-xl font-bold text-sm" onclick="toggleCvTextFill()" id="btn_cv_text">📝 Matn</button>
+            <input type="file" id="cvVoiceInput" accept="audio/*" capture class="hidden" onchange="uploadCvVoiceFile(this.files&&this.files[0])" />
+          </div>
+          <div id="cvTextFillPanel" class="hidden">
+            <div class="text-[11px] text-slate-500 mb-2 leading-relaxed">Namuna: Men Ali Valiyevman, Toshkent. +998901234567, ali@gmail.com. Python dasturchi. 2020-2024 TDYU...</div>
+            <textarea id="cvTextFillInput" rows="4" class="input-premium w-full rounded-xl px-3 py-2 text-sm mb-2" placeholder="Ma'lumotlaringizni yozing..."></textarea>
+            <button type="button" id="cvTextFillBtn" class="btn-primary px-4 py-2 rounded-xl font-bold text-sm" onclick="submitCvTextFill()">⚡ To'ldirish</button>
+          </div>
+          <div id="cvVoiceStatus" class="text-xs text-slate-600 mt-1"></div>
+        </div>
+
         <!-- CV PARSER: upload an existing CV and autofill fields -->
         <div class="bg-white/60 p-4 rounded-2xl mb-6 shadow-sm border border-blue-100">
           <div class="text-xs font-extrabold text-slate-700 mb-2">📥 CV faylni tahlil qilish (Avto to‘ldirish)</div>
@@ -1479,6 +1495,7 @@
       const btn = document.getElementById('cvSendBotBtn');
       const payBtn = document.getElementById('cvPayBtn');
       const warn = document.getElementById('cvQuotaWarn');
+      const btnSpan = btn ? btn.querySelector('[data-i18n="download_pdf"]') : null;
 
       if (!DA.getCredits) {
         if (warn) warn.classList.add('hidden');
@@ -1486,51 +1503,35 @@
       }
 
       const credits = DA.getCredits(u);
-      const hasAccess = DA.hasSingleDocAccess ? DA.hasSingleDocAccess(u, 'cv') : credits > 0;
-      const blocked = credits > 0 ? false : (DA.isQuotaBlockedForCategory ? DA.isQuotaBlockedForCategory(u, 'cv') : true);
-      const pendingAdmin = !!(_cvApprovedRequestId && !hasAccess);
-      const rem = DA.getCategoryQuotaRemaining ? DA.getCategoryQuotaRemaining(u, 'cv') : null;
-      const exhausted = DA.isSingleDocLimitExhausted
-        ? DA.isSingleDocLimitExhausted(u, 'cv')
-        : (rem !== null && rem <= 0 && !hasAccess);
+      const canExport = DA.canExportWithCredit ? DA.canExportWithCredit(u) : credits > 0;
+      const pendingAdmin = !!(_cvApprovedRequestId && !canExport);
 
       if (btn) {
-        btn.disabled = _cvExportInFlight || blocked || pendingAdmin;
-        if (exhausted && !pendingAdmin) {
-          btn.title = "Limitiz tugagan";
+        btn.disabled = _cvExportInFlight || !canExport || pendingAdmin;
+        if (btnSpan) {
+          btnSpan.textContent = (!canExport && !pendingAdmin) ? '🔒 PDF botga yuborish' : (cvT('download_pdf', 'PDF botga yuborish'));
         }
       }
       if (payBtn) {
-        if ((blocked && !hasAccess) || exhausted) payBtn.classList.remove('hidden');
+        if (!canExport || pendingAdmin) payBtn.classList.remove('hidden');
         else payBtn.classList.add('hidden');
       }
       if (warn) {
-        if (exhausted && !pendingAdmin) {
+        if (!canExport && !pendingAdmin) {
           applyCvQuotaWarnStyle('pay');
           warn.classList.remove('hidden');
-          warn.textContent = DA.singleDocLimitMessage
-            ? DA.singleDocLimitMessage('cv')
-            : "❌ Limitiz tugagan. Yana 5 000 so'm to'lov qiling (CV).";
-        } else if (hasAccess && credits > 0) {
+          warn.textContent = "🔒 Kredit yo'q. Avval 5 000 so'm to'lov qiling (1 kredit = 1 hujjat).";
+        } else if (canExport) {
           applyCvQuotaWarnStyle('credit');
           warn.classList.remove('hidden');
           warn.textContent = DA.universalCreditMessage
             ? DA.universalCreditMessage(u, 'cv')
             : '💳 Kredit bor — PDF yaratishingiz mumkin.';
           setCvPayUiState('approved');
-        } else if (hasAccess && !blocked) {
-          applyCvQuotaWarnStyle('credit');
-          warn.classList.remove('hidden');
-          warn.textContent = "✅ «PDF botga yuborish» tugmasi.";
-          setCvPayUiState('approved');
         } else if (pendingAdmin) {
           applyCvQuotaWarnStyle('wait');
           warn.classList.remove('hidden');
-          warn.textContent = "⏳ Admin kutyapti.";
-        } else if (blocked) {
-          applyCvQuotaWarnStyle('pay');
-          warn.classList.remove('hidden');
-          warn.textContent = "💳 Avval to'lov (5 000 so'm) — 1 to'lov = 1 kredit (CV yoki Obyektivka).";
+          warn.textContent = "⏳ Admin tasdiqlashini kuting...";
         } else {
           warn.classList.add('hidden');
           warn.textContent = '';
@@ -1560,10 +1561,8 @@
       if (mainBtn) { mainBtn.disabled = true; }
       try { if (window.DastyorAI && window.DastyorAI.refreshProfile) await window.DastyorAI.refreshProfile(); } catch (_) {}
       const uNow = window.DastyorAI && window.DastyorAI.getUser ? window.DastyorAI.getUser() : null;
-      const blockedNow = window.DastyorAI && window.DastyorAI.isQuotaBlockedForCategory
-        ? window.DastyorAI.isQuotaBlockedForCategory(uNow, 'cv')
-        : true;
-      if (blockedNow) {
+      const creditsNow = window.DastyorAI && window.DastyorAI.getCredits ? window.DastyorAI.getCredits(uNow) : 0;
+      if (creditsNow < 1) {
         _cvExportInFlight = false;
         syncCvQuotaUi();
         try { await payCvSingle(fmt); } catch (_) {}
@@ -1580,7 +1579,7 @@
         _cvApprovedRequestId = 0;
         try { localStorage.removeItem('cv_paid_request_id'); } catch (_) {}
         if (window.DastyorAI && window.DastyorAI.stopPaidDocWatcher) window.DastyorAI.stopPaidDocWatcher('cv');
-        try { if (window.DastyorAI && window.DastyorAI.refreshProfile) await window.DastyorAI.refreshProfile(); } catch (_) {}
+        try { if (window.DastyorAI && window.DastyorAI.refreshProfile) await window.DastyorAI.refreshProfile(true); } catch (_) {}
         syncCvQuotaUi();
         tg.HapticFeedback && tg.HapticFeedback.notificationOccurred && tg.HapticFeedback.notificationOccurred('success');
         setTimeout(() => { try { tg.close(); } catch (_) {} }, 350);
@@ -1598,7 +1597,7 @@
             _cvApprovedRequestId = 0;
             try { localStorage.removeItem('cv_paid_request_id'); } catch (_) {}
             if (window.DastyorAI && window.DastyorAI.stopPaidDocWatcher) window.DastyorAI.stopPaidDocWatcher('cv');
-            try { if (window.DastyorAI && window.DastyorAI.refreshProfile) await window.DastyorAI.refreshProfile(); } catch (_) {}
+            try { if (window.DastyorAI && window.DastyorAI.refreshProfile) await window.DastyorAI.refreshProfile(true); } catch (_) {}
             syncCvQuotaUi();
             tg.HapticFeedback && tg.HapticFeedback.notificationOccurred && tg.HapticFeedback.notificationOccurred('success');
             setTimeout(() => { try { tg.close(); } catch (_) {} }, 350);
@@ -1621,6 +1620,111 @@
         try {
           if (window.DastyorAI && window.DastyorAI.hideDocumentLoading) window.DastyorAI.hideDocumentLoading();
         } catch (_) {}
+      }
+    }
+
+    let _cvVoiceUploading = false;
+
+    function toggleCvTextFill() {
+      const panel = document.getElementById('cvTextFillPanel');
+      if (panel) panel.classList.toggle('hidden');
+    }
+
+    function startCvVoiceFill() {
+      const input = document.getElementById('cvVoiceInput');
+      if (input) { input.value = ''; input.click(); }
+    }
+
+    function applyCvVoiceData(data) {
+      if (!data || typeof data !== 'object') return;
+      if (data.name) document.getElementById('f_name').value = data.name;
+      if (data.spec || data.role) document.getElementById('f_role').value = data.spec || data.role || '';
+      if (data.phone) document.getElementById('f_phone').value = data.phone;
+      if (data.email) document.getElementById('f_email').value = data.email;
+      if (data.loc) document.getElementById('f_loc').value = data.loc;
+      if (data.about) document.getElementById('f_about').value = data.about;
+      if (Array.isArray(data.education_list) && data.education_list.length) {
+        eduData = data.education_list.map((x) => ({ title: x.title || x.company || '', place: x.place || x.company || '', date: x.date || '' }));
+        renderList('eduList', eduData, 'edu');
+      }
+      if (Array.isArray(data.works) && data.works.length) {
+        expData = data.works.map((x) => ({ title: x.title || '', place: x.place || x.company || '', date: ((x.from || '') + (x.to ? '-' + x.to : '')).replace(/^-|-$/g, '') || x.date || '', desc: x.description || '' }));
+        renderList('expList', expData, 'exp');
+      }
+      if (data.skills) {
+        skillsData = String(data.skills).split(',').map((s) => s.trim()).filter(Boolean);
+        renderSkills();
+      }
+      triggerUpdate(true, { immediatePreview: true });
+    }
+
+    async function uploadCvVoiceFile(file) {
+      if (!file || _cvVoiceUploading) return;
+      _cvVoiceUploading = true;
+      const status = document.getElementById('cvVoiceStatus');
+      const DA = window.DastyorAI || {};
+      try {
+        if (status) status.textContent = '⏳ Ovoz qabul qilindi...';
+        if (DA.showProgressFlow) DA.showProgressFlow('voice');
+        const fd = new FormData();
+        fd.append('audio', file, file.name || 'voice.webm');
+        if (telegramId) fd.append('telegram_id', String(telegramId));
+        let tok = null;
+        try { if (DA.getToken) tok = DA.getToken(); } catch (_) {}
+        if (!tok) { try { tok = sessionStorage.getItem('tg_token'); } catch (_) {} }
+        if (tok) fd.append('token', tok);
+        const resp = await fetch(getCvApiBase() + '/api/cv_voice_fill', { method: 'POST', body: fd });
+        if (!resp.ok) throw new Error(await resp.text());
+        const startJs = await resp.json();
+        let js = startJs;
+        if (startJs.job_id && DA.pollCvVoiceJob) {
+          js = await DA.pollCvVoiceJob(startJs.job_id, telegramId, tok, (step) => {
+            if (DA.setProgressStep) DA.setProgressStep(step);
+            if (status) status.textContent = '⏳ ' + step + '/5 ...';
+          });
+        }
+        if (!js || !js.data) throw new Error("Ma'lumot topilmadi");
+        applyCvVoiceData(js.data);
+        if (status) status.textContent = '✅ Forma to\'ldirildi (~' + (js.fill_percent || 80) + '%)';
+        if (DA.setProgressStep) DA.setProgressStep(5, 'Tayyor!');
+      } catch (e) {
+        if (status) status.textContent = '';
+        alert("❌ Ovozli to'ldirishda xatolik: " + ((e && e.message) || e));
+      } finally {
+        _cvVoiceUploading = false;
+        if (DA.hideDocumentLoading) DA.hideDocumentLoading();
+      }
+    }
+
+    async function submitCvTextFill() {
+      const input = document.getElementById('cvTextFillInput');
+      const btn = document.getElementById('cvTextFillBtn');
+      const status = document.getElementById('cvVoiceStatus');
+      const text = input ? String(input.value || '').trim() : '';
+      if (!text) { alert('Matn kiriting.'); return; }
+      if (btn) { btn.disabled = true; btn.textContent = '⏳ Tahlil...'; }
+      const DA = window.DastyorAI || {};
+      try {
+        let tok = null;
+        try { if (DA.getToken) tok = DA.getToken(); } catch (_) {}
+        if (!tok) { try { tok = sessionStorage.getItem('tg_token'); } catch (_) {} }
+        const res = await fetch(getCvApiBase() + '/api/cv_text_fill', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ telegram_id: telegramId ? parseInt(telegramId, 10) : null, token: tok || undefined, text }),
+        });
+        if (!res.ok) {
+          let d = '';
+          try { const j = await res.json(); d = j.detail || ''; } catch (_) {}
+          throw new Error(d || ('Server ' + res.status));
+        }
+        const js = await res.json();
+        applyCvVoiceData(js.data);
+        if (status) status.textContent = '✅ Matndan to\'ldirildi';
+      } catch (e) {
+        alert("❌ Matndan to'ldirishda xatolik: " + ((e && e.message) || e));
+      } finally {
+        if (btn) { btn.disabled = false; btn.textContent = '⚡ To\'ldirish'; }
       }
     }
 
@@ -1680,6 +1784,9 @@
     async function payCvSingle(fmt) {
       const tg = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp : null;
       if (!tg) { alert("Faqat Telegram WebApp ichida ishlaydi!"); return; }
+      try {
+        if (window.DastyorAI && window.DastyorAI.init) await window.DastyorAI.init({ refreshProfile: true });
+      } catch (_) {}
       const base = getCvApiBase();
       const panel = document.getElementById('cvPayPanel');
       const cardInfo = document.getElementById('cvPayCardInfo');
@@ -1778,8 +1885,13 @@
             setCvPayUiState('sending');
             let shot = _cvPayState.screenshot;
             try {
-              if (window.DastyorAI && window.DastyorAI.compressReceiptDataUrl) {
+              if (window.DastyorAI && window.DastyorAI.ensureJpegDataUrl) {
+                shot = await window.DastyorAI.ensureJpegDataUrl(shot);
+              } else if (window.DastyorAI && window.DastyorAI.compressReceiptDataUrl) {
                 shot = await window.DastyorAI.compressReceiptDataUrl(shot);
+              }
+              if (!shot || !String(shot).startsWith('data:image')) {
+                throw new Error("Rasm formati noto'g'ri. JPG yoki PNG tanlang.");
               }
             } catch (_) {}
             const qs = new URLSearchParams({ request_id: String(_cvPayState.requestId), kind: 'cv' });

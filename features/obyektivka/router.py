@@ -8,7 +8,7 @@ import os
 import uuid
 
 from fastapi import APIRouter, File, Form, HTTPException, Query, Request, UploadFile
-from fastapi.responses import StreamingResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 
 from backend.schemas.webapp import ExportObyektivkaRequest, ObyektivkaRequest, PreviewObyektivkaRequest
 from core.security import rate_limit
@@ -22,6 +22,7 @@ from features.obyektivka import service as oby_service
 from shared import async_db
 from shared.auth import resolve_uid
 from shared import voice_jobs
+from shared.export_delivery import send_bytes_to_telegram
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["obyektivka"])
@@ -44,8 +45,7 @@ async def _run_oby_voice_job(job_id: str, uid: int, raw: bytes, ext: str) -> Non
         with open(temp_path, "wb") as fh:
             fh.write(raw)
         voice_jobs.set_step(job_id, 2)
-        transcript, raw_data, missing = await process_voice_for_obyektivka(temp_path)
-        data = map_obyektivka_fields(raw_data)
+        transcript, data, missing = await process_voice_for_obyektivka(temp_path)
         if not data:
             voice_jobs.fail_job(job_id, "Ma'lumot ajratilmadi")
             return
@@ -107,6 +107,32 @@ async def api_oby_voice_fill(
     return {"ok": True, "job_id": job_id, "step": 1, "status": "running"}
 
 
+@router.post("/api/oby_text_fill")
+async def api_oby_text_fill(body: dict, request: Request) -> dict:
+    from database.repositories import ai_sessions as sessions_repo
+    from features.ai.service import process_text_for_obyektivka
+
+    await rate_limit(request)
+    uid = resolve_uid(str(body.get("telegram_id") or ""), body.get("token"))
+    if not uid:
+        raise HTTPException(status_code=401, detail="Foydalanuvchi aniqlanmadi")
+    text = str(body.get("text") or "").strip()
+    if not text:
+        raise HTTPException(status_code=400, detail="Matn bo'sh")
+    transcript, data, missing = await process_text_for_obyektivka(text)
+    if not data:
+        raise HTTPException(status_code=422, detail="Ma'lumot ajratilmadi")
+    await async_db.run(oby_service.save_pending, uid, data)
+    await async_db.run(sessions_repo.create_session, uid, "oby_text", transcript, data)
+    return {
+        "ok": True,
+        "data": data,
+        "transcript": transcript[:1200],
+        "missing_fields": missing,
+        "fill_percent": max(10, 100 - len(missing) * 8),
+    }
+
+
 @router.get("/api/oby_voice_job/{job_id}")
 async def api_oby_voice_job(
     job_id: str,
@@ -147,8 +173,7 @@ async def api_oby_voice_fill_sync(
         fh.write(raw)
 
     try:
-        transcript, raw_data, missing = await process_voice_for_obyektivka(temp_path)
-        data = map_obyektivka_fields(raw_data)
+        transcript, data, missing = await process_voice_for_obyektivka(temp_path)
         if not data:
             raise HTTPException(status_code=422, detail="Ma'lumot ajratilmadi")
         await async_db.run(oby_service.save_pending, uid, data)
@@ -201,6 +226,19 @@ async def api_export_oby(req: ExportObyektivkaRequest, request: Request) -> Stre
     except Exception as e:
         logger.exception("export_obyektivka")
         raise HTTPException(status_code=500, detail=str(e)[:200]) from e
+
+    if req.send_only:
+        bot = getattr(request.app.state, "bot", None)
+        sent = await send_bytes_to_telegram(
+            bot,
+            uid,
+            docx_bytes,
+            filename,
+            caption="✅ Obyektivka Word tayyor! Keyingi hujjat uchun kredit kerak.",
+        )
+        if not sent:
+            raise HTTPException(status_code=500, detail="Telegramga yuborib bo'lmadi")
+        return JSONResponse({"ok": True, "sent": True, "filename": filename})
 
     return StreamingResponse(
         io.BytesIO(docx_bytes),

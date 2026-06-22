@@ -6,7 +6,7 @@ import io
 import logging
 
 from fastapi import APIRouter, HTTPException, Request
-from fastapi.responses import HTMLResponse, StreamingResponse
+from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
 
 from backend.schemas.webapp import CVRequest, ExportCVRequest
 from backend.services.cv_preview_cache import (
@@ -19,6 +19,7 @@ from features.cv import service as cv_service
 from features.cv.render import preview_html
 from shared import async_db
 from shared.auth import resolve_uid
+from shared.export_delivery import send_bytes_to_telegram
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["cv"])
@@ -72,6 +73,19 @@ async def api_export_cv(req: ExportCVRequest, request: Request) -> StreamingResp
     except Exception as e:
         logger.exception("export_cv")
         raise HTTPException(status_code=500, detail=str(e)[:200]) from e
+
+    if req.send_only:
+        bot = getattr(request.app.state, "bot", None)
+        sent = await send_bytes_to_telegram(
+            bot,
+            uid,
+            pdf_bytes,
+            filename,
+            caption="✅ CV PDF tayyor! Keyingi hujjat uchun kredit kerak.",
+        )
+        if not sent:
+            raise HTTPException(status_code=500, detail="Telegramga yuborib bo'lmadi")
+        return JSONResponse({"ok": True, "sent": True, "filename": filename})
 
     return StreamingResponse(
         io.BytesIO(pdf_bytes),

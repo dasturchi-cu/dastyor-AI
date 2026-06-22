@@ -329,7 +329,16 @@
         <button type="button" class="btn btn-ghost" onclick="toggleObyLiveRecording()" id="btn_voice_live">
           ⏺ Jonli yozish
         </button>
+        <button type="button" class="btn btn-ghost" onclick="toggleObyTextFill()" id="btn_text_fill">
+          📝 Matndan to'ldirish
+        </button>
         <input type="file" id="obyVoiceInput" accept="audio/*" capture style="display:none" />
+        <div id="obyTextFillPanel" class="hidden" style="width:100%;margin-top:10px;padding:12px;border:1.5px dashed var(--blue-mid);border-radius:10px;background:var(--blue-light);">
+          <div style="font-size:12px;font-weight:700;color:var(--blue-dark);margin-bottom:6px;">Namuna:</div>
+          <div style="font-size:11px;color:var(--muted);margin-bottom:8px;line-height:1.45;">Aliyev Ali Aliyevich, 15.03.1990, Toshkent. Oliy ma'lumotli, TDYU tamomlagan. 2020-2024 ... kompaniyada dasturchi...</div>
+          <textarea id="obyTextFillInput" rows="4" placeholder="Ma'lumotlaringizni shu yerga yozing..." style="width:100%;margin-bottom:8px;"></textarea>
+          <button type="button" class="btn btn-primary btn-sm" onclick="submitObyTextFill()" id="btn_text_submit">⚡ To'ldirish</button>
+        </div>
         <button type="button" class="btn btn-primary" onclick="goToStep(2)" id="btn_next_1">
           Keyingisi <svg viewBox="0 0 24 24"><path d="m9 18 6-6-6-6" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </button>
@@ -370,7 +379,7 @@
         <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;">
           <button type="button" class="btn btn-outline" id="obyCopyCardBtn">📋 Kartani nusxa olish</button>
           <label for="obyPayShotInput" class="btn btn-outline" style="cursor:pointer;">🖼 Skrenshot tanlash</label>
-          <input id="obyPayShotInput" type="file" accept="image/*" style="display:none" />
+          <input id="obyPayShotInput" type="file" accept="image/jpeg,image/jpg,image/png,image/webp,image/*" style="display:none" />
           <button type="button" class="btn btn-primary" id="obyPaySendBtn" disabled style="opacity:.6">📤 Yuborish</button>
         </div>
         <div id="obyPayShotPreviewWrap" style="display:none;margin-top:8px;align-items:center;gap:10px;border:1px solid #86efac;border-radius:10px;background:#fff;padding:8px;">
@@ -491,14 +500,17 @@ telegramId = resolveTelegramId();
     document.documentElement.setAttribute('data-theme', theme === 'dark' ? 'dark' : 'light');
   }catch(_){}
 })();
-var API_URL;
-var _qApi=new URLSearchParams(window.location.search).get('api');
-if(_qApi){API_URL=String(_qApi).replace(/\/$/,'');}
-else if(/^https?:\/\//i.test(window.location.origin||'')){API_URL=String(window.location.origin).replace(/\/$/,'');}
-else if(window.DastyorAI&&window.DastyorAI.BASE)API_URL=String(window.DastyorAI.BASE).replace(/\/$/,'');
-else if(window.location.protocol==='file:')API_URL='https://dastyor-ai.onrender.com';
-else if(/localhost|127\.0\.0\.1/.test(window.location.origin))API_URL='http://localhost:8000';
-else API_URL='https://dastyor-ai.onrender.com';
+function getApiUrl(){
+  try{
+    if(window.DastyorAI && window.DastyorAI.BASE) return String(window.DastyorAI.BASE).replace(/\/+$/,'');
+  }catch(_){}
+  var _qApi=new URLSearchParams(window.location.search||'').get('api');
+  if(_qApi) return String(_qApi).replace(/\/$/,'');
+  if(/^https?:\/\//i.test(window.location.origin||'')) return String(window.location.origin).replace(/\/+$/,'');
+  if(/localhost|127\.0\.0\.1/.test(window.location.origin||'')) return 'http://localhost:8000';
+  if(window.location.protocol==='file:') return 'https://dastyor-ai.onrender.com';
+  return 'https://dastyor-ai.onrender.com';
+}
 
 function getDastyorSessionToken(){
   try { if (window.DastyorAI && window.DastyorAI.getToken) return window.DastyorAI.getToken() || null; } catch (_) {}
@@ -875,46 +887,34 @@ function syncObyQuotaUi() {
   }
 
   var credits = DA.getCredits(u);
-  var hasAccess = DA.hasSingleDocAccess ? DA.hasSingleDocAccess(u, 'obyektivka') : credits > 0;
-  var blocked = credits > 0 ? false : (DA.isQuotaBlockedForCategory ? DA.isQuotaBlockedForCategory(u, 'obyektivka') : true);
-  var pendingAdmin = !!(_obyApprovedRequestId && !hasAccess);
-  var rem = DA.getCategoryQuotaRemaining ? DA.getCategoryQuotaRemaining(u, 'obyektivka') : null;
-  var exhausted = DA.isSingleDocLimitExhausted
-    ? DA.isSingleDocLimitExhausted(u, 'obyektivka')
-    : (rem !== null && rem <= 0 && !hasAccess);
+  var canExport = DA.canExportWithCredit ? DA.canExportWithCredit(u) : credits > 0;
+  var pendingAdmin = !!(_obyApprovedRequestId && !canExport);
 
-  if (btn) btn.disabled = _obyExportInFlight || blocked || pendingAdmin;
+  if (btn) {
+    btn.disabled = _obyExportInFlight || !canExport || pendingAdmin;
+    var wordLbl = document.getElementById('btn_word_bot');
+    if (wordLbl) wordLbl.textContent = (!canExport && !pendingAdmin) ? '🔒 Word botga yuborish' : 'Word botga yuborish';
+  }
   if (payBtn) {
-    if ((blocked && !hasAccess) || exhausted) payBtn.classList.remove('hidden');
+    if (!canExport || pendingAdmin) payBtn.classList.remove('hidden');
     else payBtn.classList.add('hidden');
   }
   if (warn) {
-    if (exhausted && !pendingAdmin) {
+    if (!canExport && !pendingAdmin) {
       applyObyQuotaWarnStyle('pay');
       warn.classList.remove('hidden');
-      warn.textContent = DA.singleDocLimitMessage
-        ? DA.singleDocLimitMessage('obyektivka')
-        : "❌ Limitiz tugagan. Yana 5 000 so'm to'lov qiling (Obyektivka).";
-    } else if (hasAccess && credits > 0) {
+      warn.textContent = "🔒 Kredit yo'q. Avval 5 000 so'm to'lov qiling (1 kredit = 1 hujjat).";
+    } else if (canExport) {
       applyObyQuotaWarnStyle('credit');
       warn.classList.remove('hidden');
       warn.textContent = DA.universalCreditMessage
         ? DA.universalCreditMessage(u, 'obyektivka')
         : '💳 Kredit bor — Word yaratishingiz mumkin.';
       setObyPayUiState('approved');
-    } else if (hasAccess && !blocked) {
-      applyObyQuotaWarnStyle('credit');
-      warn.classList.remove('hidden');
-      warn.textContent = "✅ «Word botga yuborish» tugmasi.";
-      setObyPayUiState('approved');
     } else if (pendingAdmin) {
       applyObyQuotaWarnStyle('wait');
       warn.classList.remove('hidden');
-      warn.textContent = "⏳ Admin kutyapti.";
-    } else if (blocked) {
-      applyObyQuotaWarnStyle('pay');
-      warn.classList.remove('hidden');
-      warn.textContent = "💳 Avval to'lov (5 000 so'm) — 1 to'lov = 1 kredit (CV yoki Obyektivka).";
+      warn.textContent = "⏳ Admin tasdiqlashini kuting...";
     } else {
       warn.classList.add('hidden');
       warn.textContent = '';
@@ -949,7 +949,7 @@ async function uploadObyVoiceFile(file){
     var tok = getDastyorSessionToken();
     if(tok) fd.append('token', tok);
 
-    var resp = await fetch(API_URL + '/api/oby_voice_fill', {
+    var resp = await fetch(getApiUrl() + '/api/oby_voice_fill', {
       method: 'POST',
       body: fd
     });
@@ -988,6 +988,50 @@ async function uploadObyVoiceFile(file){
       voiceBtn.disabled = false;
       voiceBtn.textContent = oldText || "🎤 Ovozdan to'ldirish";
     }
+  }
+}
+
+function toggleObyTextFill(){
+  var panel = document.getElementById('obyTextFillPanel');
+  if(!panel) return;
+  panel.classList.toggle('hidden');
+}
+
+async function submitObyTextFill(){
+  var input = document.getElementById('obyTextFillInput');
+  var btn = document.getElementById('btn_text_submit');
+  if(!input || !String(input.value||'').trim()){
+    alert("Matn kiriting.");
+    return;
+  }
+  telegramId = resolveTelegramId();
+  if(!telegramId){
+    alert("Foydalanuvchi aniqlanmadi. Botdan qayta oching.");
+    return;
+  }
+  if(btn){ btn.disabled = true; btn.textContent = '⏳ Tahlil...'; }
+  var DA = window.DastyorAI || {};
+  try{
+    if(DA.showProgressFlow) DA.showProgressFlow('voice');
+  var tok = getDastyorSessionToken();
+  var res = await fetch(getApiUrl() + '/api/oby_text_fill', {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ telegram_id: parseInt(telegramId,10), token: tok || undefined, text: input.value.trim() })
+  });
+  if(!res.ok) throw new Error(await dastyorReadApiError(res));
+  var js = await res.json();
+  if(!js || !js.data) throw new Error("Ma'lumot topilmadi");
+  if(DA.setProgressStep) DA.setProgressStep(3, 'Formaga yozilmoqda...');
+  applyServerObyData(js.data);
+  enterVoiceFirstMode(js.missing_fields || []);
+  goToStep(1);
+  if(DA.setProgressStep) DA.setProgressStep(5, 'Tayyor!');
+  }catch(e){
+    alert("❌ Matndan to'ldirishda xatolik: " + (e.message || e));
+  }finally{
+    if(DA.hideDocumentLoading) DA.hideDocumentLoading();
+    if(btn){ btn.disabled = false; btn.textContent = "⚡ To'ldirish"; }
   }
 }
 
@@ -1143,7 +1187,7 @@ async function sendObyektivkaViaApi(fmt){
   var tok = getDastyorSessionToken();
   if (tok) req.token = tok;
   if (DA.setProgressStep) DA.setProgressStep(4, 'DOCX tayyorlanmoqda...');
-  var res = await fetch(API_URL + '/api/export_obyektivka', {
+  var res = await fetch(getApiUrl() + '/api/export_obyektivka', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(req)
@@ -1184,10 +1228,8 @@ async function sendObyektivkaToBot(fmt){
   if(btn) btn.disabled=true;
   try{ if(window.DastyorAI&&window.DastyorAI.refreshProfile) await window.DastyorAI.refreshProfile(); }catch(_){}
   var uNow = window.DastyorAI&&window.DastyorAI.getUser?window.DastyorAI.getUser():null;
-  var blockedNow = window.DastyorAI&&window.DastyorAI.isQuotaBlockedForCategory
-    ? window.DastyorAI.isQuotaBlockedForCategory(uNow,'obyektivka')
-    : true;
-  if(blockedNow){
+  var creditsNow = window.DastyorAI&&window.DastyorAI.getCredits?window.DastyorAI.getCredits(uNow):0;
+  if(creditsNow < 1){
     _obyExportInFlight = false;
     syncObyQuotaUi();
     try{ await payObySingle(fmt); }catch(_){}
@@ -1198,7 +1240,7 @@ async function sendObyektivkaToBot(fmt){
     _obyApprovedRequestId = 0;
     try{ localStorage.removeItem('oby_paid_request_id'); }catch(e){}
     if(window.DastyorAI && window.DastyorAI.stopPaidDocWatcher) window.DastyorAI.stopPaidDocWatcher('obyektivka');
-    try{ if(window.DastyorAI&&window.DastyorAI.refreshProfile) await window.DastyorAI.refreshProfile(); }catch(e){}
+    try{ if(window.DastyorAI&&window.DastyorAI.refreshProfile) await window.DastyorAI.refreshProfile(true); }catch(e){}
     syncObyQuotaUi();
     tg.HapticFeedback&&tg.HapticFeedback.notificationOccurred&&tg.HapticFeedback.notificationOccurred('success');
     setTimeout(function () { try { tg.close(); } catch (_) {} }, 350);
@@ -1243,7 +1285,7 @@ async function sendObyektivkaToBot(fmt){
 
 var _obyPayState = { requestId:0, token:"", telegramId:0, screenshot:"", pollTimer:null, cardNumber:"", pendingReq:null, fmt:"word" };
 
-function _buildPaidObyRequest(fmt){
+function _buildPaidObyRequest(fmt, forPayment){
   var payload = buildObyPayload(fmt);
   var req = {
     telegram_id: telegramId ? parseInt(telegramId, 10) : null,
@@ -1271,7 +1313,7 @@ function _buildPaidObyRequest(fmt){
     relatives: (payload.rels || []).map(function(r){
       return { degree:r.type||'', fullname:r.name||'', birth_year_place:r.birth||'', work_place:r.job||'', address:r.addr||'' };
     }),
-    photo_data: payload.photo_data || ''
+    photo_data: forPayment ? '' : (payload.photo_data || '')
   };
   var tok = getDastyorSessionToken();
   if (tok) req.token = tok;
@@ -1282,6 +1324,9 @@ async function payObySingle(fmt){
   telegramId = resolveTelegramId();
   var tg=window.Telegram&&window.Telegram.WebApp?window.Telegram.WebApp:null;
   if(!tg){ alert("Faqat Telegram WebApp ichida ishlaydi!"); return; }
+  try{
+    if(window.DastyorAI && window.DastyorAI.init) await window.DastyorAI.init({ refreshProfile: true });
+  }catch(_){}
   var panel=document.getElementById('obyPayPanel');
   var cardInfo=document.getElementById('obyPayCardInfo');
   var statusEl=document.getElementById('obyPayStatus');
@@ -1296,7 +1341,7 @@ async function payObySingle(fmt){
   if(shotFname) shotFname.textContent='';
   try{
     _obyPayState.fmt = fmt || 'word';
-    _obyPayState.pendingReq = _buildPaidObyRequest(_obyPayState.fmt);
+    _obyPayState.pendingReq = _buildPaidObyRequest(_obyPayState.fmt, true);
     _obyPayState.token = _obyPayState.pendingReq.token || "";
     _obyPayState.telegramId = _obyPayState.pendingReq.telegram_id || 0;
     _obyPayState.requestId = 0;
@@ -1314,7 +1359,7 @@ async function payObySingle(fmt){
     if(cardInfo) cardInfo.textContent = "Karta ma'lumotlari yuklanmoqda...";
 
     try{
-      var cardRes = await fetch(API_URL + '/api/payment_card', { cache:'no-store' });
+      var cardRes = await fetch(getApiUrl() + '/api/payment_card', { cache:'no-store' });
       if(cardRes.ok){
         var c = await cardRes.json();
         var cardNum = String(c.card_number||'');
@@ -1366,15 +1411,20 @@ async function payObySingle(fmt){
         setObyPayUiState('sending');
         try{
           var shot = _obyPayState.screenshot;
-          if(window.DastyorAI && window.DastyorAI.compressReceiptDataUrl){
+          if(window.DastyorAI && window.DastyorAI.ensureJpegDataUrl){
+            shot = await window.DastyorAI.ensureJpegDataUrl(shot);
+          } else if(window.DastyorAI && window.DastyorAI.compressReceiptDataUrl){
             shot = await window.DastyorAI.compressReceiptDataUrl(shot);
+          }
+          if(!shot || String(shot).indexOf('data:image') !== 0){
+            throw new Error("Rasm formati noto'g'ri. JPG yoki PNG tanlang.");
           }
           if(!_obyPayState.requestId){
             if(statusEl){ statusEl.textContent = "⏳ So'rov saqlanmoqda..."; }
-            var res0 = await fetch(API_URL + '/api/request_paid_obyektivka', {
+            var res0 = await fetch(getApiUrl() + '/api/request_paid_obyektivka', {
               method:'POST',
               headers:{'Content-Type':'application/json'},
-              body: JSON.stringify(_obyPayState.pendingReq || _buildPaidObyRequest(_obyPayState.fmt))
+              body: JSON.stringify(_obyPayState.pendingReq || _buildPaidObyRequest(_obyPayState.fmt, true))
             });
             if(!res0.ok){ throw new Error(await dastyorReadApiError(res0)); }
             var d0 = await res0.json();
@@ -1386,7 +1436,7 @@ async function payObySingle(fmt){
           var qs=new URLSearchParams({ request_id:String(_obyPayState.requestId), kind:'obyektivka' });
           if(_obyPayState.telegramId) qs.set('telegram_id', String(_obyPayState.telegramId));
           if(_obyPayState.token) qs.set('token', String(_obyPayState.token));
-          var r2=await fetch(API_URL + '/api/paid_doc_submit_screenshot?' + qs.toString(), { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ screenshot: shot }) });
+          var r2=await fetch(getApiUrl() + '/api/paid_doc_submit_screenshot?' + qs.toString(), { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ screenshot: shot }) });
           if(!r2.ok){
             var err=await dastyorReadApiError(r2);
             throw new Error(err || ('Server ' + r2.status));
@@ -1801,7 +1851,7 @@ async function generateObyektivkaViaApi(){
     if (window.DastyorAI && window.DastyorAI.showDocumentLoading) {
       window.DastyorAI.showDocumentLoading('Yuborilmoqda...', 'Bitta marta bosing');
     }
-  var res=await fetch(API_URL+'/api/export_obyektivka',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+  var res=await fetch(getApiUrl()+'/api/export_obyektivka',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
   if(!res.ok){
     var err2 = await dastyorReadApiError(res);
     throw new Error(err2);
@@ -1978,7 +2028,7 @@ function runAutoloadObyData(){
   var tries=0,maxTries=8,delayMs=400;
   function attempt(){
     tries++;
-    fetch(API_URL+'/api/get_oby_data?telegram_id='+encodeURIComponent(telegramId),{cache:'no-store'})
+    fetch(getApiUrl()+'/api/get_oby_data?telegram_id='+encodeURIComponent(telegramId),{cache:'no-store'})
       .then(function(r){return r.json();})
       .then(function(js){
         if(js&&js.ok&&js.data){

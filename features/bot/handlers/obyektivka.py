@@ -13,7 +13,7 @@ from aiogram.types import FSInputFile, Message
 
 from config.settings import PROJECT_ROOT
 from database.repositories import ai_sessions as sessions_repo
-from features.ai.service import process_voice_for_obyektivka
+from features.ai.service import process_text_for_obyektivka, process_voice_for_obyektivka
 from features.bot.states import ObyektivkaStates
 from features.bot.handlers.start import WELCOME
 from features.obyektivka import service as oby_service
@@ -52,7 +52,7 @@ OBY_INSTRUCTION = (
     "• Ish joyi\n"
     "• Lavozimi\n"
     "• Yashash manzili\n\n"
-    "🎙 <b>Endi ovozli xabar yuboring</b> — AI formani avtomatik to'ldiradi."
+    "🎙 <b>Ovozli xabar yoki matn yuboring</b> — AI formani avtomatik to'ldiradi."
 )
 
 SAMPLE_AUDIO_PATHS = [
@@ -79,8 +79,8 @@ async def obyektivka_start(message: Message, state: FSMContext) -> None:
         asyncio.create_task(_send_sample_audio(message, sample))
 
     await message.answer(
-        "⏳ <b>Ovozli xabaringizni kutmoqdamiz...</b>\n"
-        "Bitta audio xabar yuboring (telegram voice yoki audio fayl).",
+        "⏳ <b>Ovozli xabar yoki matn kutmoqdamiz...</b>\n"
+        "Audio yozuv yoki matn ko'rinishida yuboring.",
         reply_markup=back_menu(),
     )
 
@@ -178,11 +178,44 @@ async def obyektivka_back(message: Message, state: FSMContext) -> None:
     await message.answer(text, reply_markup=user_menu())
 
 
+@router.message(ObyektivkaStates.waiting_voice, F.text)
+async def obyektivka_text(message: Message, bot: Bot, state: FSMContext) -> None:
+    if not message.text or message.text.startswith("/"):
+        return
+    if message.text == BTN_BACK or message.text.casefold() == "bekor":
+        return
+    status = await message.answer("⏳ Matn tahlil qilinmoqda...")
+    uid = message.from_user.id if message.from_user else 0
+    try:
+        transcript, data, missing = await process_text_for_obyektivka(message.text or "")
+        if not data or not data.get("fullname"):
+            await status.edit_text(
+                "❌ Ma'lumotlarni ajratib bo'lmadi.\n"
+                "Namunadagi tartibda to'liqroq yozing."
+            )
+            return
+        await db_run(oby_service.save_pending, uid, data)
+        await db_run(sessions_repo.create_session, uid, "oby_text", transcript, data)
+        await state.clear()
+        filled = max(10, min(95, 100 - len(missing) * 8))
+        fn = data.get("fullname") or ""
+        await status.edit_text(
+            f"{telegram_message(STEP_READY)}\n\n"
+            f"<b>Obyektivka tayyorlandi!</b> (~{filled}% to'ldirildi)\n"
+            f"{('👤 ' + fn) if fn else ''}\n\n"
+            "👇 Preview ni ko'ring va tasdiqlang.",
+            reply_markup=open_oby_preview_inline(uid, missing_count=len(missing)),
+        )
+    except Exception as e:
+        logger.exception("Obyektivka text error: %s", e)
+        await status.edit_text(f"❌ Xatolik: {str(e)[:200]}")
+
+
 @router.message(ObyektivkaStates.waiting_voice)
 async def obyektivka_waiting_hint(message: Message) -> None:
     await message.answer(
-        "🎙 Iltimos, <b>ovozli xabar</b> yuboring.\n"
-        "Matn emas — audio yozuv kerak.",
+        "🎙 <b>Ovozli xabar</b> yoki 📝 <b>matn</b> yuboring.\n"
+        "Namunadagi tartibda ma'lumotlaringizni yozing.",
         reply_markup=back_menu(),
     )
 

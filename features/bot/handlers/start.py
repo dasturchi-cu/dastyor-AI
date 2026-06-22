@@ -8,6 +8,7 @@ from aiogram.types import Message
 
 from config.settings import settings
 from database.repositories import users as users_repo
+from features.bot.states import CvStates
 from shared.keyboards import (
     BTN_BACK,
     BTN_CREDITS,
@@ -32,11 +33,11 @@ WELCOME = (
 
 CV_INTRO = (
     "📄 <b>CV Resume</b>\n\n"
-    "• Forma orqali to'ldiring yoki ovoz yuboring\n"
+    "• Forma orqali to'ldiring, ovoz yoki matn yuboring\n"
     "• AI ma'lumotlarni ajratadi va formani to'ldiradi\n"
     "• Shablon: Modern / Classic / Corporate\n"
     "• Natija: <b>PDF</b> (ATS-friendly)\n\n"
-    "Formani oching yoki ovozli xabar yuboring."
+    "🎙 Ovozli xabar yoki 📝 matn yuboring — namuna keyin keladi."
 )
 
 HELP_TEXT = (
@@ -71,9 +72,13 @@ async def cmd_help(message: Message) -> None:
 
 
 @router.message(F.text == BTN_CV)
-async def cv_intro(message: Message) -> None:
+async def cv_intro(message: Message, state: FSMContext) -> None:
+    from features.bot.handlers.voice import CV_INSTRUCTION
+
     uid = message.from_user.id if message.from_user else 0
+    await state.set_state(CvStates.waiting_input)
     await message.answer(CV_INTRO, reply_markup=open_webapp_inline(uid, "cv"))
+    await message.answer(CV_INSTRUCTION, reply_markup=open_webapp_inline(uid, "cv"))
 
 
 @router.message(F.text == BTN_BACK)
