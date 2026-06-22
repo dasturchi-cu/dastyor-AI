@@ -1,13 +1,13 @@
 """
 Official Obyektivka (Ma'lumotnoma) DOCX generator.
-Reference layout: user's sample document style.
+Layout mirrors «Намуна Объективка (18).doc» (tab-based fields, exact margins).
 """
 
+import base64
 import json
 import logging
 import os
 import re
-import base64
 from typing import Any
 
 from docx import Document
@@ -16,6 +16,8 @@ from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
 from docx.shared import Cm, Pt
+
+from backend.services.document_render.photo import process_passport_photo
 from features.obyektivka.layout import (
     FONT_BODY_PT,
     FONT_REL_TITLE_PT,
@@ -27,9 +29,10 @@ from features.obyektivka.layout import (
     PAGE_MARGIN_TOP_MM,
     PHOTO_HEIGHT_MM,
     PHOTO_WIDTH_MM,
-    REL_COL_PCT,
+    REL_COL_DXA,
+    TAB_COL_POS,
+    labels_for,
 )
-from backend.services.document_render.photo import process_passport_photo
 
 logger = logging.getLogger(__name__)
 
@@ -54,19 +57,11 @@ def _parse_list(value: Any) -> list[dict[str, Any]]:
     return []
 
 
-def _add_label_value(paragraph, label: str, value: str, *, value_on_new_line: bool = False) -> None:
-    """Official sample layout: label bold 11pt, value underlined 11pt, 8pt space before."""
-    paragraph.paragraph_format.space_before = Pt(8)
-    paragraph.paragraph_format.space_after = Pt(0)
-    paragraph.paragraph_format.line_spacing = 1.15
-    label_run = paragraph.add_run(f"{label}: ")
-    label_run.bold = True
-    label_run.font.size = Pt(11)
-    if value_on_new_line:
-        paragraph.add_run().add_break()
-    val_run = paragraph.add_run(value or "yo'q")
-    val_run.font.size = Pt(11)
-    val_run.underline = True
+def _set_run_font(run, *, size: int = FONT_BODY_PT, bold: bool | None = None) -> None:
+    if bold is not None:
+        run.bold = bold
+    run.font.size = Pt(size)
+    run.font.name = "Times New Roman"
 
 
 def _set_cell_no_borders(cell) -> None:
@@ -85,10 +80,9 @@ def _set_cell_no_borders(cell) -> None:
         border.set(qn("w:space"), "0")
 
 
-def _set_table_no_borders(table) -> None:
+def _set_table_no_borders_strict(table) -> None:
     tbl = table._tbl
     tbl_pr = tbl.tblPr
-    # Remove style influence so table is layout-only.
     tbl_style = tbl_pr.find(qn("w:tblStyle"))
     if tbl_style is not None:
         tbl_pr.remove(tbl_style)
@@ -106,7 +100,6 @@ def _set_table_no_borders(table) -> None:
         border.set(qn("w:sz"), "0")
         border.set(qn("w:space"), "0")
 
-    # Disable table look flags that may introduce visible styling.
     tbl_look = tbl_pr.find(qn("w:tblLook"))
     if tbl_look is None:
         tbl_look = OxmlElement("w:tblLook")
@@ -121,45 +114,6 @@ def _set_table_no_borders(table) -> None:
     for row in table.rows:
         for cell in row.cells:
             _set_cell_no_borders(cell)
-
-
-def _set_table_no_borders_strict(table) -> None:
-    _set_table_no_borders(table)
-    for row in table.rows:
-        for cell in row.cells:
-            tc_pr = cell._tc.get_or_add_tcPr()
-            tc_borders = tc_pr.find(qn("w:tcBorders"))
-            if tc_borders is None:
-                tc_borders = OxmlElement("w:tcBorders")
-                tc_pr.append(tc_borders)
-            for side in ("top", "left", "bottom", "right"):
-                border = tc_borders.find(qn(f"w:{side}"))
-                if border is None:
-                    border = OxmlElement(f"w:{side}")
-                    tc_borders.append(border)
-                border.set(qn("w:val"), "none")
-                border.set(qn("w:sz"), "0")
-                border.set(qn("w:space"), "0")
-
-
-def _set_cell_margins(cell, *, top_twips: int = 0, right_twips: int = 36, bottom_twips: int = 0, left_twips: int = 36) -> None:
-    tc_pr = cell._tc.get_or_add_tcPr()
-    tc_mar = tc_pr.find(qn("w:tcMar"))
-    if tc_mar is None:
-        tc_mar = OxmlElement("w:tcMar")
-        tc_pr.append(tc_mar)
-    for side, value in (
-        ("top", top_twips),
-        ("right", right_twips),
-        ("bottom", bottom_twips),
-        ("left", left_twips),
-    ):
-        node = tc_mar.find(qn(f"w:{side}"))
-        if node is None:
-            node = OxmlElement(f"w:{side}")
-            tc_mar.append(node)
-        node.set(qn("w:w"), str(value))
-        node.set(qn("w:type"), "dxa")
 
 
 def _set_table_borders(table, size_pt: float = 1.0) -> None:
@@ -181,29 +135,96 @@ def _set_table_borders(table, size_pt: float = 1.0) -> None:
         border.set(qn("w:color"), "000000")
 
 
-def _add_two_col_text_line(
+def _set_col_widths_dxa(table, widths: tuple[int, ...]) -> None:
+    tbl = table._tbl
+    grid = tbl.find(qn("w:tblGrid"))
+    if grid is None:
+        grid = OxmlElement("w:tblGrid")
+        tbl.insert(0, grid)
+    for old in list(grid.findall(qn("w:gridCol"))):
+        grid.remove(old)
+    for w in widths:
+        gc = OxmlElement("w:gridCol")
+        gc.set(qn("w:w"), str(w))
+        grid.append(gc)
+    for row in table.rows:
+        for i, cell in enumerate(row.cells):
+            if i < len(widths):
+                cell.width = widths[i]
+
+
+def _para_tab(p, before: float = 0, after: float = 0) -> None:
+    p.paragraph_format.space_before = Pt(before)
+    p.paragraph_format.space_after = Pt(after)
+    p.paragraph_format.line_spacing = LINE_HEIGHT
+    p.paragraph_format.tab_stops.add_tab_stop(TAB_COL_POS)
+
+
+def _add_two_col_pair(
     doc: Document,
     left_label: str,
     left_value: str,
-    right_label: str | None = None,
-    right_value: str | None = None,
-    tab_pos: int | None = None,
+    right_label: str,
+    right_value: str,
+    *,
+    none: str,
 ) -> None:
     p = doc.add_paragraph()
-    if tab_pos is not None:
-        p.paragraph_format.tab_stops.add_tab_stop(tab_pos)
-    p.paragraph_format.line_spacing = 1.3
-    p.paragraph_format.space_after = Pt(6)
+    _para_tab(p, before=8)
+    lr = p.add_run(f"{left_label}:")
+    _set_run_font(lr, bold=True)
+    p.add_run("\t")
+    rr = p.add_run(f"{right_label}:")
+    _set_run_font(rr, bold=True)
 
-    left_run = p.add_run(f"{left_label}: ")
-    left_run.bold = True
-    p.add_run(left_value or "yo'q")
+    p2 = doc.add_paragraph()
+    _para_tab(p2)
+    v1 = p2.add_run(left_value or none)
+    _set_run_font(v1)
+    p2.add_run("\t")
+    v2 = p2.add_run(right_value or none)
+    _set_run_font(v2)
 
-    if right_label:
-        p.add_run("\t")
-        right_run = p.add_run(f"{right_label}: ")
-        right_run.bold = True
-        p.add_run(right_value or "yo'q")
+
+def _add_inline_field(doc: Document, label: str, value: str, *, none: str) -> None:
+    p = doc.add_paragraph()
+    _para_tab(p, before=8)
+    lr = p.add_run(f"{label}:")
+    _set_run_font(lr, bold=True)
+    p.add_run("\t")
+    vr = p.add_run(value or none)
+    _set_run_font(vr)
+
+
+def _add_stacked_field(doc: Document, label: str, value: str) -> None:
+    p = doc.add_paragraph()
+    _para_tab(p, before=8)
+    lr = p.add_run(f"{label}:")
+    _set_run_font(lr, bold=True)
+
+    if value:
+        p2 = doc.add_paragraph()
+        _para_tab(p2)
+        vr = p2.add_run(value)
+        _set_run_font(vr)
+
+
+def _add_split_label_field(doc: Document, line1: str, line2: str, value: str) -> None:
+    p1 = doc.add_paragraph()
+    _para_tab(p1, before=8)
+    r1 = p1.add_run(line1)
+    _set_run_font(r1, bold=True)
+
+    p2 = doc.add_paragraph()
+    _para_tab(p2)
+    r2 = p2.add_run(f"{line2}:")
+    _set_run_font(r2, bold=True)
+
+    if value:
+        p3 = doc.add_paragraph()
+        _para_tab(p3)
+        vr = p3.add_run(value)
+        _set_run_font(vr)
 
 
 def generate_obyektivka_docx(
@@ -214,7 +235,7 @@ def generate_obyektivka_docx(
 ) -> str:
     data = user_data or kwargs.get("data") or {}
     temp_photo_from_data = None
-    if (not photo_path or not os.path.exists(photo_path)):
+    if not photo_path or not os.path.exists(photo_path):
         photo_data = _to_text(data.get("photo_data"))
         try:
             if photo_data.startswith("data:image/") and "," in photo_data:
@@ -246,6 +267,10 @@ def generate_obyektivka_docx(
     else:
         os.makedirs(os.path.dirname(output_filepath) or ".", exist_ok=True)
 
+    lang = _to_text(data.get("lang")) or "uz_lat"
+    L = labels_for(lang)
+    none = L["none"]
+
     doc = Document()
     style = doc.styles["Normal"]
     style.font.name = "Times New Roman"
@@ -264,8 +289,6 @@ def generate_obyektivka_docx(
     current_job = _to_text(data.get("current_job"))
     current_job_year = _to_text(data.get("current_job_year"))
     if not current_job:
-        # Fallback: if frontend confirm was skipped, infer current job
-        # from work rows that end with h.v./hozirgacha variants.
         for idx, item in enumerate(work_items):
             year_raw = _to_text(item.get("year") or item.get("from"))
             year_norm = re.sub(r"[\s.\-_/]", "", year_raw.lower())
@@ -289,10 +312,9 @@ def generate_obyektivka_docx(
 
     section = doc.sections[0]
     total_width = section.page_width - section.left_margin - section.right_margin
-    photo_col_width = Cm(3.2)
+    photo_col_width = Cm(PHOTO_WIDTH_MM / 10 + 0.2)
     text_col_width = int(total_width - photo_col_width)
 
-    # Sarlavha + F.I.Sh + foto (namuna hujjat maketi).
     hdr_tbl = doc.add_table(rows=1, cols=2)
     hdr_tbl.autofit = False
     hdr_tbl.columns[0].width = text_col_width
@@ -302,164 +324,148 @@ def generate_obyektivka_docx(
     right_hdr = hdr_tbl.cell(0, 1)
     left_hdr.vertical_alignment = WD_ALIGN_VERTICAL.TOP
     right_hdr.vertical_alignment = WD_ALIGN_VERTICAL.TOP
-    _set_cell_margins(left_hdr)
-    _set_cell_margins(right_hdr, right_twips=0)
 
     t_p = left_hdr.paragraphs[0]
     t_p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    tr = t_p.add_run("MA'LUMOTNOMA")
-    tr.bold = True
-    tr.font.size = Pt(FONT_TITLE_PT)
+    tr = t_p.add_run(L["title"])
+    _set_run_font(tr, size=FONT_TITLE_PT, bold=True)
     t_p.paragraph_format.space_after = Pt(4)
 
     n_p = left_hdr.add_paragraph()
     n_p.alignment = WD_ALIGN_PARAGRAPH.CENTER
     nr = n_p.add_run(full_name)
-    nr.bold = True
-    nr.font.size = Pt(FONT_TITLE_PT)
+    _set_run_font(nr, size=FONT_TITLE_PT, bold=True)
     n_p.paragraph_format.space_after = Pt(4)
 
     photo_p = right_hdr.paragraphs[0]
     photo_p.alignment = WD_ALIGN_PARAGRAPH.RIGHT
-    photo_hint = (
-        "Oq fondagi 3x4 sm, oxirgi 3 oy davomida olingan rangli fotosurat, "
-        "elektron ko'rinishda (rasmiy kiyimda)."
-    )
     if photo_path and os.path.exists(photo_path):
         try:
             run = photo_p.add_run()
             run.add_picture(photo_path, width=Cm(PHOTO_WIDTH_MM / 10), height=Cm(PHOTO_HEIGHT_MM / 10))
         except Exception as exc:
             logger.warning("Failed to insert photo: %s", exc)
-            ph = photo_p.add_run(photo_hint)
-            ph.font.size = Pt(7)
+            ph = photo_p.add_run(L["photo_hint"])
+            _set_run_font(ph, size=7)
     else:
-        ph = photo_p.add_run(photo_hint)
-        ph.font.size = Pt(7)
+        ph = photo_p.add_run(L["photo_hint"])
+        _set_run_font(ph, size=7)
 
     if current_job:
-        current_line = doc.add_paragraph()
-        current_line.alignment = WD_ALIGN_PARAGRAPH.LEFT
-        current_line.paragraph_format.line_spacing = 1.15
-        current_line.paragraph_format.space_before = Pt(0)
-        current_line.paragraph_format.space_after = Pt(4)
         if current_job_year:
-            yr_run = current_line.add_run(f"{current_job_year.rstrip('.')}:")
-            yr_run.font.size = Pt(11)
-            yr_run.underline = True
-            current_line.add_run().add_break()
-        pos_run = current_line.add_run(current_job)
-        pos_run.font.size = Pt(11)
-        pos_run.underline = True
+            yr_p = doc.add_paragraph()
+            _para_tab(yr_p)
+            yr_run = yr_p.add_run(f"{current_job_year.rstrip('.')}:")
+            _set_run_font(yr_run)
+        job_p = doc.add_paragraph()
+        _para_tab(job_p, after=4)
+        pos_run = job_p.add_run(current_job)
+        _set_run_font(pos_run)
 
-    info_col_width = int(total_width / 2)
-    info_tbl = doc.add_table(rows=9, cols=2)
-    info_tbl.autofit = False
-    info_tbl.columns[0].width = info_col_width
-    info_tbl.columns[1].width = info_col_width
-    _set_table_no_borders_strict(info_tbl)
-    info_rows = [
-        (("Tug'ilgan yili", _to_text(data.get("birthdate"))), ("Tug'ilgan joyi", _to_text(data.get("birthplace"))), False),
-        (("Millati", _to_text(data.get("nation"))), ("Partiyaviyligi", _to_text(data.get("party"))), False),
-        (("Ma'lumoti", _to_text(data.get("education"))), ("Tamomlagan", _to_text(data.get("graduated"))), False),
-        (("Ma'lumoti bo'yicha mutaxassisligi", _to_text(data.get("specialty"))), None, False),
-        (("Ilmiy darajasi", _to_text(data.get("degree"))), ("Ilmiy unvoni", _to_text(data.get("scientific_title"))), False),
-        (("Qaysi chet tillarini biladi", _to_text(data.get("languages"))), ("Harbiy (maxsus) unvoni", _to_text(data.get("military_rank"))), False),
-        (("Davlat mukofotlari va premiyalari bilan taqdirlanganmi (qanaqa)", _to_text(data.get("awards"))), None, True),
-        (("Ma'naviy mukofotlar bilan taqdirlanganmi (qanaqa)", _to_text(data.get("departmental_awards"))), None, True),
-        (("Xalq deputatlari respublika, viloyat, shahar va tuman Kengashi deputatimi yoki boshqa saylanadigan organlarning a'zosimi (to'liq ko'rsatib o'tish)", _to_text(data.get("deputy"))), None, True),
-    ]
-
-    for row_idx, (left_data, right_data, merge_row) in enumerate(info_rows):
-        left_cell = info_tbl.cell(row_idx, 0)
-        right_cell = info_tbl.cell(row_idx, 1)
-        left_cell.vertical_alignment = WD_ALIGN_VERTICAL.TOP
-        right_cell.vertical_alignment = WD_ALIGN_VERTICAL.TOP
-        _set_cell_margins(left_cell)
-        _set_cell_margins(right_cell)
-
-        _add_label_value(left_cell.paragraphs[0], left_data[0], left_data[1], value_on_new_line=False)
-
-        if right_data is not None:
-            _add_label_value(right_cell.paragraphs[0], right_data[0], right_data[1], value_on_new_line=False)
-        elif merge_row:
-            merged = left_cell.merge(right_cell)
-            merged.vertical_alignment = WD_ALIGN_VERTICAL.TOP
-            _set_cell_margins(merged)
-            _set_cell_no_borders(merged)
-        else:
-            right_cell.paragraphs[0].paragraph_format.space_after = Pt(6)
-            right_cell.paragraphs[0].paragraph_format.line_spacing = 1.3
+    _add_two_col_pair(
+        doc,
+        L["r1l"],
+        _to_text(data.get("birthdate")),
+        L["r1r"],
+        _to_text(data.get("birthplace")),
+        none=none,
+    )
+    _add_two_col_pair(
+        doc,
+        L["r2l"],
+        _to_text(data.get("nation")),
+        L["r2r"],
+        _to_text(data.get("party")),
+        none=none,
+    )
+    _add_two_col_pair(
+        doc,
+        L["r3l"],
+        _to_text(data.get("education")),
+        L["r3r"],
+        _to_text(data.get("graduated")),
+        none=none,
+    )
+    _add_inline_field(doc, L["rSpec"], _to_text(data.get("specialty")), none=none)
+    _add_two_col_pair(
+        doc,
+        L["r4l"],
+        _to_text(data.get("degree")),
+        L["r4r"],
+        _to_text(data.get("scientific_title")),
+        none=none,
+    )
+    _add_two_col_pair(
+        doc,
+        L["r5l"],
+        _to_text(data.get("languages")),
+        L["r5r"],
+        _to_text(data.get("military_rank")),
+        none=none,
+    )
+    _add_stacked_field(doc, L["rAw"], _to_text(data.get("awards")))
+    _add_stacked_field(doc, L["rIdo"], _to_text(data.get("departmental_awards")))
+    _add_split_label_field(doc, L["rDep1"], L["rDep2"], _to_text(data.get("deputy")))
 
     work_title = doc.add_paragraph()
     work_title.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    wr = work_title.add_run("MEHNAT FAOLIYATI")
-    wr.bold = True
-    wr.font.size = Pt(FONT_TITLE_PT)
-    work_title.paragraph_format.space_before = Pt(12)
+    wr = work_title.add_run(L["work"])
+    _set_run_font(wr, size=FONT_TITLE_PT, bold=True)
+    work_title.paragraph_format.space_before = Pt(0)
     work_title.paragraph_format.space_after = Pt(4)
-    work_title.paragraph_format.line_spacing = 1.3
 
+    yy_suffix = "йй." if lang == "uz_cyr" else "yy."
     if work_items:
         for item in work_items:
             year = _to_text(item.get("year")) or _to_text(item.get("from"))
             end = _to_text(item.get("to"))
-            if year and end and "yy" not in year.lower():
-                year = f"{year}-{end} yy."
-            year = year.rstrip(".") if year else year  # 2009. -> 2009, keyin : va pastga matn
+            if year and end and yy_suffix.rstrip(".") not in year.lower():
+                year = f"{year}-{end} {yy_suffix}"
+            year = year.rstrip(".") if year else year
             position = _to_text(item.get("position") or item.get("description") or item.get("job"))
             if not (year or position):
                 continue
             p = doc.add_paragraph()
-            p.paragraph_format.space_before = Pt(4)
-            p.paragraph_format.space_after = Pt(0)
-            p.paragraph_format.line_spacing = 1.15
+            _para_tab(p, before=4)
             if year and position:
-                yshow = year if ("yy" in year.lower() or "йй" in year.lower()) else f"{year} yy."
-                yr_run = p.add_run(f"{yshow} - ")
-                yr_run.font.size = Pt(11)
-                pos_run = p.add_run(position)
-                pos_run.font.size = Pt(11)
-                pos_run.underline = True
+                yshow = year if (yy_suffix.rstrip(".") in year.lower()) else f"{year} {yy_suffix}"
+                line = f"{yshow} - {position}"
             else:
-                only = p.add_run(year or position)
-                only.font.size = Pt(11)
-                only.underline = True
+                line = year or position
+            wrun = p.add_run(line)
+            _set_run_font(wrun)
     else:
-        doc.add_paragraph("-")
+        p = doc.add_paragraph("-")
+        _set_run_font(p.runs[0] if p.runs else p.add_run("-"))
 
-    # Page 2 relatives (table visible as in sample).
     relatives = _parse_list(data.get("relatives"))
     doc.add_page_break()
+
     t1 = doc.add_paragraph()
     t1.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    r1 = t1.add_run(f"{full_name}ning yaqin qarindoshlari haqida MA'LUMOT")
-    r1.bold = True
-    r1.font.size = Pt(FONT_REL_TITLE_PT)
-    t1.paragraph_format.space_after = Pt(6)
+    r1 = t1.add_run(f"{full_name}{L['rel_line1_suffix']}")
+    _set_run_font(r1, size=FONT_REL_TITLE_PT, bold=True)
+    t1.paragraph_format.space_after = Pt(0)
+
+    t2 = doc.add_paragraph()
+    t2.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    r2 = t2.add_run(L["rel_line2"])
+    _set_run_font(r2, size=FONT_REL_TITLE_PT, bold=True)
+    t2.paragraph_format.space_after = Pt(6)
 
     rel_tbl = doc.add_table(rows=1, cols=5)
     rel_tbl.autofit = False
-    rel_tbl.columns[0].width = int(total_width * REL_COL_PCT[0] / 100)
-    rel_tbl.columns[1].width = int(total_width * REL_COL_PCT[1] / 100)
-    rel_tbl.columns[2].width = int(total_width * REL_COL_PCT[2] / 100)
-    rel_tbl.columns[3].width = int(total_width * REL_COL_PCT[3] / 100)
-    rel_tbl.columns[4].width = int(total_width * REL_COL_PCT[4] / 100)
+    _set_col_widths_dxa(rel_tbl, REL_COL_DXA)
     _set_table_borders(rel_tbl, size_pt=1.0)
 
-    headers = [
-        "Qarindoshligi",
-        "Familiyasi, ismi va\notasining ismi",
-        "Tug'ilgan yili\nva joyi",
-        "Ish joyi va\nlavozimi",
-        "Turar joyi",
-    ]
+    headers = [L["qar"], L["fish"], L["tug"], L["ish"], L["tur"]]
     for i, h in enumerate(headers):
-        p = rel_tbl.rows[0].cells[i].paragraphs[0]
+        cell = rel_tbl.rows[0].cells[i]
+        cell.vertical_alignment = WD_ALIGN_VERTICAL.CENTER
+        p = cell.paragraphs[0]
         p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        run = p.add_run(h)
-        run.bold = True
-        run.font.size = Pt(11)
+        run = p.add_run(h.replace(" ", "\n", 1) if i in (1, 2, 3) and "\n" not in h else h)
+        _set_run_font(run, bold=True)
         run.underline = True
 
     if relatives:
@@ -473,18 +479,19 @@ def generate_obyektivka_docx(
                 _to_text(rel.get("address") or rel.get("addr")),
             ]
             for i, val in enumerate(vals):
-                p = row[i].paragraphs[0]
+                cell = row[i]
+                cell.vertical_alignment = WD_ALIGN_VERTICAL.CENTER
+                p = cell.paragraphs[0]
                 p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-                rr = p.add_run(val or "yo'q")
-                rr.font.size = Pt(11)
-                if i == 0:
-                    rr.bold = True
+                rr = p.add_run(val or none)
+                _set_run_font(rr, bold=(i == 0))
     else:
         row = rel_tbl.add_row().cells
         merged = row[0].merge(row[4])
         p = merged.paragraphs[0]
         p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        p.add_run("Yaqin qarindoshlar haqida ma'lumot kiritilmagan.")
+        run = p.add_run(L["no_rel"])
+        _set_run_font(run)
 
     doc.save(output_filepath)
     if temp_photo_from_data and os.path.exists(temp_photo_from_data):
