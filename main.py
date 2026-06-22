@@ -64,10 +64,15 @@ async def run_polling() -> None:
     init_db()
     bot = create_bot()
     dp = create_dispatcher()
-    # Webhook active bo'lsa polling ishlamaydi — avval o'chiramiz
+    from features.admin.jobs import start_admin_jobs, stop_admin_jobs
+
+    start_admin_jobs(bot)
     await bot.delete_webhook(drop_pending_updates=True)
     logger.info("Webhook deleted — starting Aiogram 3 polling...")
-    await dp.start_polling(bot, drop_pending_updates=True)
+    try:
+        await dp.start_polling(bot, drop_pending_updates=True)
+    finally:
+        await stop_admin_jobs()
 
 
 def main() -> None:

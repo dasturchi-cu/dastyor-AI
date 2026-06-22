@@ -123,6 +123,10 @@
   var previewBlobUrl = '';
   var _pdfJsPromise = null;
 
+  var _fitPageScale = 1;
+  var _pageWidthPx = 794;
+  var _pageHeightPx = 1123;
+
   function loadPdfJs() {
     if (global.pdfjsLib) {
       if (!global.pdfjsLib.GlobalWorkerOptions.workerSrc) {
@@ -175,10 +179,12 @@
     if (reqId != null && reqId !== previewRequestId) return;
 
     host.innerHTML = '';
-    var renderScale = 1.35;
+    var renderScale = 2;
     var maxW = 0;
     var totalH = 0;
-    var gap = 8;
+    var gap = 12;
+    var firstPageH = 0;
+    var firstPageW = 0;
 
     for (var pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
       var page = await pdf.getPage(pageNum);
@@ -190,6 +196,12 @@
       canvas.height = Math.floor(viewport.height);
       canvas.style.width = Math.floor(viewport.width) + 'px';
       canvas.style.height = Math.floor(viewport.height) + 'px';
+      canvas.dataset.pageWidth = String(Math.floor(viewport.width));
+      canvas.dataset.pageHeight = String(Math.floor(viewport.height));
+      if (pageNum === 1) {
+        firstPageW = Math.floor(viewport.width);
+        firstPageH = Math.floor(viewport.height);
+      }
       host.appendChild(canvas);
       await page.render({
         canvasContext: canvas.getContext('2d'),
@@ -203,6 +215,12 @@
     host.style.height = Math.ceil(totalH) + 'px';
     host.dataset.docWidth = String(Math.ceil(maxW));
     host.dataset.docHeight = String(Math.ceil(totalH));
+    host.dataset.pageWidth = String(firstPageW || Math.ceil(maxW));
+    host.dataset.pageHeight = String(firstPageH || Math.ceil(totalH / Math.max(1, pdf.numPages)));
+    _pageWidthPx = Number(host.dataset.pageWidth) || 794;
+    _pageHeightPx = Number(host.dataset.pageHeight) || 1123;
+
+    if (zoomCtrl && zoomCtrl.reset) zoomCtrl.reset();
 
     function layoutOnce() {
       if (reqId != null && reqId !== previewRequestId) return;
@@ -225,9 +243,26 @@
   }
 
   var A4_WIDTH_PX = 794;
-  var A4_HEIGHT_PX = 2246;
+  var A4_HEIGHT_PX = 1123;
 
-  function readIframeDocSize(iframe) {
+  function readPageSize() {
+    var host = getPreviewHost();
+    if (host) {
+      var pw = Number(host.dataset.pageWidth || 0);
+      var ph = Number(host.dataset.pageHeight || 0);
+      if (pw > 0 && ph > 0) return { width: pw, height: ph };
+      var first = host.querySelector('.oby-preview-page');
+      if (first) {
+        return {
+          width: Number(first.dataset.pageWidth || first.offsetWidth || A4_WIDTH_PX),
+          height: Number(first.dataset.pageHeight || first.offsetHeight || A4_HEIGHT_PX),
+        };
+      }
+    }
+    return { width: _pageWidthPx || A4_WIDTH_PX, height: _pageHeightPx || A4_HEIGHT_PX };
+  }
+
+  function readIframeDocSize() {
     var host = getPreviewHost();
     if (host) {
       var w = Number(host.dataset.docWidth || 0);
@@ -238,6 +273,21 @@
       }
     }
     return { width: A4_WIDTH_PX, height: A4_HEIGHT_PX };
+  }
+
+  function computeFitPageScale(scroll, pageSize, docSize) {
+    var padX = 32;
+    var padY = 36;
+    var paneWidth = scroll
+      ? Math.max(120, scroll.clientWidth - padX)
+      : Math.max(120, (global.innerWidth || 360) - 48);
+    var paneHeight = scroll
+      ? Math.max(120, scroll.clientHeight - padY)
+      : Math.max(200, Math.min(640, (global.innerHeight || 600) * 0.55));
+    if (!paneWidth || !paneHeight) return 1;
+    var scaleW = paneWidth / Math.max(1, pageSize.width);
+    var scaleH = paneHeight / Math.max(1, pageSize.height);
+    return Math.min(scaleW, scaleH);
   }
 
   function resizePreviewIframe() {
@@ -261,19 +311,14 @@
     if (!pane || !wrap || !target) return;
 
     resizePreviewIframe();
-    var size = readIframeDocSize(target);
-    var docWidth = size.width;
-    var docHeight = size.height;
+    var docSize = readIframeDocSize();
+    var pageSize = readPageSize();
+    var docWidth = docSize.width;
+    var docHeight = docSize.height;
 
-    var paneWidth = scroll
-      ? Math.max(0, scroll.clientWidth - 28)
-      : Math.max(0, pane.clientWidth - 8);
-    if (!paneWidth) paneWidth = global.innerWidth - 48;
-
-    var fitScale = paneWidth / docWidth;
-    var baseScale = Math.min(fitScale, 1);
+    _fitPageScale = computeFitPageScale(scroll, pageSize, docSize);
     var userMul = zoomCtrl ? zoomCtrl.getMultiplier() : 1;
-    var scale = baseScale * userMul;
+    var scale = _fitPageScale * userMul;
     var animate = !zoomCtrl || !zoomCtrl.isDragging();
 
     var scaledW = Math.ceil(docWidth * scale);
@@ -281,9 +326,12 @@
 
     wrap.style.width = scaledW + 'px';
     wrap.style.height = scaledH + 'px';
+    wrap.style.minWidth = scaledW + 'px';
+    wrap.style.minHeight = scaledH + 'px';
     wrap.style.margin = '0 auto';
     wrap.style.transform = 'none';
     wrap.style.transition = animate ? WRAP_TRANSITION : 'none';
+    wrap.style.overflow = 'visible';
 
     target.style.width = Math.ceil(docWidth) + 'px';
     target.style.height = Math.ceil(docHeight) + 'px';

@@ -250,6 +250,15 @@ async def _notify_admin_payment(
                 )
             else:
                 await bot.send_message(chat_id, text, reply_markup=reply_markup)
+
+        from features.admin import alerts as admin_alerts
+
+        await admin_alerts.notify_returning_customer(
+            bot,
+            payment,
+            kind=kind,
+            purchase_number=purchase_number,
+        )
     except Exception as e:
         logger.warning("Admin notify failed: %s", e)
 

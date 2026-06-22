@@ -8,7 +8,7 @@ from copy import deepcopy
 from docx.image.image import Image
 from docx.oxml import OxmlElement, parse_xml
 from docx.oxml.ns import qn
-from docx.shared import Emu, Length
+from docx.shared import Emu, Length, Pt
 from docx.text.paragraph import Paragraph
 
 from features.obyektivka.layout import (
@@ -101,8 +101,9 @@ def add_floating_picture(
     height: Length,
     pos_x: Length | None = None,
     pos_y: Length | None = None,
+    relative_from_page: bool = False,
 ) -> None:
-    """Yuklangan rasm — o'ng yuqori (preview bilan bir xil, Wordda barqaror)."""
+    """Floating image — namuna VML koordinatalari (page-relative) bilan."""
     run = paragraph.add_run()
     run.add_picture(image_path, width=width, height=height)
     inlines = run._r.xpath(".//wp:inline")
@@ -115,7 +116,7 @@ def add_floating_picture(
     anchor.set(qn("wp:distL"), "0")
     anchor.set(qn("wp:distR"), "0")
     anchor.set(qn("wp:simplePos"), "0")
-    anchor.set(qn("wp:relativeHeight"), "251658240")
+    anchor.set(qn("wp:relativeHeight"), str(PHOTO_VML_Z_INDEX))
     anchor.set(qn("wp:behindDoc"), "0")
     anchor.set(qn("wp:locked"), "0")
     anchor.set(qn("wp:layoutInCell"), "1")
@@ -127,7 +128,7 @@ def add_floating_picture(
     anchor.append(simple_pos)
 
     pos_h = OxmlElement("wp:positionH")
-    pos_h.set(qn("wp:relativeFrom"), "column")
+    pos_h.set(qn("wp:relativeFrom"), "page" if relative_from_page else "column")
     if pos_x is not None:
         off = OxmlElement("wp:posOffset")
         off.text = str(_emu(pos_x))
@@ -139,7 +140,7 @@ def add_floating_picture(
     anchor.append(pos_h)
 
     pos_v = OxmlElement("wp:positionV")
-    pos_v.set(qn("wp:relativeFrom"), "paragraph")
+    pos_v.set(qn("wp:relativeFrom"), "page" if relative_from_page else "paragraph")
     off_v = OxmlElement("wp:posOffset")
     off_v.text = str(_emu(pos_y or Emu(0)))
     pos_v.append(off_v)
@@ -165,3 +166,29 @@ def add_floating_picture(
         anchor.append(deepcopy(graphic))
 
     inline.getparent().replace(inline, anchor)
+
+
+def add_reference_photo(paragraph: Paragraph, image_path: str) -> None:
+    """Namuna VML o'lcham va koordinatalarida rasm (405pt, 1.9pt, 85.05×113.4pt)."""
+    add_floating_picture(
+        paragraph,
+        image_path,
+        width=Pt(PHOTO_VML_WIDTH_PT),
+        height=Pt(PHOTO_VML_HEIGHT_PT),
+        pos_x=Pt(PHOTO_VML_MARGIN_LEFT_PT),
+        pos_y=Pt(PHOTO_VML_MARGIN_TOP_PT),
+        relative_from_page=True,
+    )
+
+
+def find_photo_paragraph(doc) -> Paragraph | None:
+    """VML placeholder yoki MA'LUMOTNOMA bandidagi paragraf."""
+    for p in doc.paragraphs[:8]:
+        xml = p._p.xml
+        if "v:rect" in xml or "w:pict" in xml or "{{photo}}" in (p.text or ""):
+            return p
+    for p in doc.paragraphs[:6]:
+        t = (p.text or "").upper()
+        if "MA" in t and "LUMOT" in t:
+            return p
+    return doc.paragraphs[0] if doc.paragraphs else None

@@ -47,27 +47,20 @@ def _decode_photo_data(data: dict[str, Any]) -> str | None:
 
 
 def _inject_photo_zip(output_path: str, photo_path: str) -> None:
-    """Inject photo via python-docx only when needed; verify page breaks survive."""
+    """Inject photo at reference VML coordinates (page-relative)."""
     if not photo_path or not os.path.isfile(photo_path):
         return
     before = count_page_breaks(Path(output_path))
     try:
         from docx import Document
-        from docx.shared import Cm
 
-        from features.obyektivka.docx_picture import add_floating_picture
+        from features.obyektivka.docx_picture import add_reference_photo, find_photo_paragraph
 
         doc = Document(output_path)
-        target = None
-        for p in doc.paragraphs[:6]:
-            if "MA" in (p.text or "").upper() and "LUMOT" in (p.text or "").upper():
-                target = p
-                break
-        if target is None and doc.paragraphs:
-            target = doc.paragraphs[0]
+        target = find_photo_paragraph(doc)
         if target is None:
             return
-        add_floating_picture(target, photo_path, width=Cm(3), height=Cm(4))
+        add_reference_photo(target, photo_path)
         for p in doc.paragraphs:
             for run in p.runs:
                 if "{{photo}}" in run.text:

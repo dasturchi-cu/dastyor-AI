@@ -61,6 +61,9 @@ def _apply_migrations(conn: sqlite3.Connection) -> None:
     if "last_active_at" not in user_cols:
         conn.execute("ALTER TABLE users ADD COLUMN last_active_at TEXT")
 
+    if "pending_reminder_sent_at" not in pay_cols:
+        conn.execute("ALTER TABLE payments ADD COLUMN pending_reminder_sent_at TEXT")
+
     conn.executescript(
         """
         CREATE TABLE IF NOT EXISTS error_logs (

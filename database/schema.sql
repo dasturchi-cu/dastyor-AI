@@ -25,6 +25,7 @@ CREATE TABLE IF NOT EXISTS payments (
     document_type   TEXT,
     status          TEXT NOT NULL DEFAULT 'PENDING' CHECK (status IN ('PENDING', 'APPROVED', 'REJECTED')),
     admin_note      TEXT,
+    pending_reminder_sent_at TEXT,
     created_at      TEXT NOT NULL DEFAULT (datetime('now')),
     updated_at      TEXT NOT NULL DEFAULT (datetime('now'))
 );

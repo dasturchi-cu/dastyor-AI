@@ -51,8 +51,10 @@ def build_today_stats_text() -> str:
     return (
         f"<b>📊 Bugungi statistika</b>\n\n"
         f"Yangi userlar: <b>{s['new_users']}</b>\n"
+        f"Faol userlar: <b>{s.get('active_users', 0)}</b>\n"
         f"To'lovlar: <b>{s['payments']}</b>\n"
         f"Tasdiqlangan: <b>{s['approved_payments']}</b>\n"
+        f"Kutilmoqda: <b>{s.get('pending_payments', 0)}</b>\n"
         f"CV: <b>{s['cv']}</b>\n"
         f"Obyektivka: <b>{s['obyektivka']}</b>\n"
         f"Tushum: <b>{s['revenue_uzs']:,} UZS</b>"

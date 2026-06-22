@@ -129,3 +129,65 @@ def build_pending_payments_list(payments: list[dict[str, Any]]) -> str:
     lines = ["<b>Pending payments</b>", ""]
     lines.extend(payment_list_line(p) for p in payments)
     return "\n".join(lines)
+
+
+def build_daily_admin_report(stats: dict[str, Any], *, report_date: str) -> str:
+    revenue = int(stats.get("revenue_uzs") or 0)
+    return (
+        f"<b>📊 Daily Report — {html.escape(report_date)}</b>\n\n"
+        f"New Users: <b>{stats.get('new_users', 0)}</b>\n"
+        f"Active Users: <b>{stats.get('active_users', 0)}</b>\n"
+        f"CV Generated: <b>{stats.get('cv', 0)}</b>\n"
+        f"Obyektivka Generated: <b>{stats.get('obyektivka', 0)}</b>\n"
+        f"Approved Payments: <b>{stats.get('approved_payments', 0)}</b>\n"
+        f"Pending Payments: <b>{stats.get('pending_payments', 0)}</b>\n"
+        f"Revenue: <b>{revenue:,} UZS</b>"
+    )
+
+
+def build_pending_payment_reminder(payment: dict[str, Any], *, hours_pending: int) -> str:
+    pid = int(payment["id"])
+    telegram_id = int(payment.get("telegram_id") or 0)
+    full_name = html.escape(full_name_from_payment(payment))
+    username = html.escape(format_username(payment.get("username")))
+    document = html.escape(format_document_type(None, payment))
+    date_s, time_s = split_datetime(payment.get("created_at"))
+    user_line = full_name
+    if telegram_id:
+        user_line = f'<a href="tg://user?id={telegram_id}">{full_name}</a>'
+    return (
+        f"<b>⏰ PENDING PAYMENT REMINDER</b>\n\n"
+        f"Payment ID: #{pid}\n"
+        f"Pending: <b>{hours_pending}+ hours</b>\n\n"
+        f"User: {user_line}\n"
+        f"Username: {username}\n"
+        f"User ID: <code>{telegram_id}</code>\n"
+        f"Document: {document}\n"
+        f"Submitted: {date_s} {time_s}"
+    )
+
+
+def build_returning_customer_alert(
+    payment: dict[str, Any],
+    *,
+    kind: str,
+    purchase_number: int,
+    previous_approved: int,
+) -> str:
+    telegram_id = int(payment.get("telegram_id") or 0)
+    full_name = html.escape(full_name_from_payment(payment))
+    username = html.escape(format_username(payment.get("username")))
+    document = html.escape(format_document_type(kind, payment))
+    user_line = full_name
+    if telegram_id:
+        user_line = f'<a href="tg://user?id={telegram_id}">{full_name}</a>'
+    return (
+        f"<b>🔄 RETURNING CUSTOMER</b>\n\n"
+        f"Purchase: {html.escape(purchase_ordinal(purchase_number))}\n"
+        f"Previous approved: <b>{previous_approved}</b>\n\n"
+        f"User: {user_line}\n"
+        f"Username: {username}\n"
+        f"User ID: <code>{telegram_id}</code>\n"
+        f"Document: {document}\n"
+        f"Payment ID: #{int(payment['id'])}"
+    )

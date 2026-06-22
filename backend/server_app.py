@@ -68,7 +68,13 @@ def create_webhook_app() -> FastAPI:
             logger.info("Webhook set: %s (secret=%s)", settings.webhook_url, bool(webhook_secret))
         elif skip_webhook:
             logger.info("SKIP_WEBHOOK=1 — polling mode (webhook o'rnatilmadi)")
+        from features.admin.jobs import start_admin_jobs
+
+        start_admin_jobs(bot)
         yield
+        from features.admin.jobs import stop_admin_jobs
+
+        await stop_admin_jobs()
         from core.redis_client import close_async, close_sync
 
         await close_async()

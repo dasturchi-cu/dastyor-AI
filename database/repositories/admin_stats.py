@@ -36,11 +36,28 @@ def _period_stats(conn, user_cond: str, pay_cond: str) -> dict[str, Any]:
 
 def today_stats() -> dict[str, Any]:
     with get_connection() as conn:
-        return _period_stats(
+        stats = _period_stats(
             conn,
             "date(created_at) = date('now')",
             "date(created_at) = date('now')",
         )
+        active = conn.execute(
+            """
+            SELECT COUNT(*) AS c FROM users
+            WHERE date(COALESCE(last_active_at, updated_at)) = date('now')
+            """
+        ).fetchone()
+        pending = conn.execute(
+            "SELECT COUNT(*) AS c FROM payments WHERE status = 'PENDING'"
+        ).fetchone()
+        stats["active_users"] = int(active["c"]) if active else 0
+        stats["pending_payments"] = int(pending["c"]) if pending else 0
+        return stats
+
+
+def daily_report_stats() -> dict[str, Any]:
+    """Stats for the daily 21:00 admin report (today + current pending queue)."""
+    return today_stats()
 
 
 def top_payers(limit: int = 10) -> list[dict[str, Any]]:

@@ -82,7 +82,7 @@ class Settings:
     payment_card_owner: str = field(default_factory=lambda: _env("PAYMENT_CARD_OWNER", "DILNOZA MOMINOVA"))
     single_doc_price_uzs: int = field(default_factory=lambda: _env_int("SINGLE_DOC_PRICE_UZS", 7999))
     webapp_base: str = field(default_factory=resolve_webapp_base)
-    webapp_version: str = field(default_factory=lambda: _env("WEBAPP_VERSION", "20260622f"))
+    webapp_version: str = field(default_factory=lambda: _env("WEBAPP_VERSION", "20260622g"))
     site_base_url: str = field(default_factory=lambda: _env("SITE_BASE_URL").rstrip("/"))
     webhook_url: str = field(default_factory=lambda: _env("WEBHOOK_URL"))
     port: int = field(default_factory=lambda: _env_int("PORT", 8000))
@@ -103,6 +103,13 @@ class Settings:
     gemini_timeout: int = field(default_factory=lambda: _env_int("GEMINI_TIMEOUT", 90))
     auto_approve_payments: bool = field(
         default_factory=lambda: _env("AUTO_APPROVE_PAYMENTS", "1").lower() in ("1", "true", "yes", "on")
+    )
+    admin_report_hour: int = field(default_factory=lambda: _env_int("ADMIN_REPORT_HOUR", 21))
+    admin_report_timezone: str = field(
+        default_factory=lambda: _env("ADMIN_REPORT_TIMEZONE", "Asia/Tashkent")
+    )
+    pending_payment_reminder_hours: int = field(
+        default_factory=lambda: _env_int("PENDING_PAYMENT_REMINDER_HOURS", 12)
     )
 
 

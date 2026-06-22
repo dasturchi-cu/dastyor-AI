@@ -185,6 +185,60 @@ def count_user_payments(user_id: int) -> int:
     return int(row["c"]) if row else 0
 
 
+def count_user_approved_payments(user_id: int, *, exclude_payment_id: int | None = None) -> int:
+    with get_connection() as conn:
+        if exclude_payment_id:
+            row = conn.execute(
+                """
+                SELECT COUNT(*) AS c FROM payments
+                WHERE user_id = ? AND status = 'APPROVED' AND id != ?
+                """,
+                (int(user_id), int(exclude_payment_id)),
+            ).fetchone()
+        else:
+            row = conn.execute(
+                """
+                SELECT COUNT(*) AS c FROM payments
+                WHERE user_id = ? AND status = 'APPROVED'
+                """,
+                (int(user_id),),
+            ).fetchone()
+    return int(row["c"]) if row else 0
+
+
+def list_stale_pending(hours: int = 12, limit: int = 20) -> list[dict[str, Any]]:
+    hours = max(1, int(hours))
+    with get_connection() as conn:
+        rows = conn.execute(
+            """
+            SELECT p.*, u.telegram_id, u.first_name, u.last_name, u.username
+            FROM payments p
+            JOIN users u ON u.id = p.user_id
+            WHERE p.status = 'PENDING'
+              AND p.pending_reminder_sent_at IS NULL
+              AND p.created_at <= datetime('now', ?)
+            ORDER BY p.created_at ASC
+            LIMIT ?
+            """,
+            (f"-{hours} hours", limit),
+        ).fetchall()
+    return [row_to_dict(r) for r in rows if r]
+
+
+def mark_pending_reminder_sent(payment_id: int) -> bool:
+    with get_connection() as conn:
+        cur = conn.execute(
+            """
+            UPDATE payments
+            SET pending_reminder_sent_at = datetime('now'),
+                updated_at = datetime('now')
+            WHERE id = ? AND status = 'PENDING'
+            """,
+            (int(payment_id),),
+        )
+        return cur.rowcount > 0
+
+
 def set_document_type(payment_id: int, document_type: str) -> bool:
     doc = (document_type or "").strip().lower()[:32]
     if not doc:
