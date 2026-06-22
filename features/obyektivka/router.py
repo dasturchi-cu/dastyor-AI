@@ -213,12 +213,12 @@ async def api_preview_oby(req: PreviewObyektivkaRequest) -> HTMLResponse:
     from backend.services.render_service import render_obyektivka_html
 
     payload = req.model_dump(exclude={"watermark", "mask_pii"})
-    cache_key = cache_key_for_oby_preview({**payload, "watermark": True, "mask_pii": True})
+    cache_key = cache_key_for_oby_preview({**payload, "watermark": True, "mask_pii": False})
     cached = oby_preview_cache_get(cache_key)
     if cached is not None:
         return HTMLResponse(content=cached, media_type="text/html; charset=utf-8")
     html = await asyncio.to_thread(
-        render_obyektivka_html, payload, watermark=True, mask_pii=True
+        render_obyektivka_html, payload, watermark=True, mask_pii=False
     )
     oby_preview_cache_set(cache_key, html)
     return HTMLResponse(content=html, media_type="text/html; charset=utf-8")
@@ -240,7 +240,7 @@ async def api_test_obyektivka_pdf(req: PreviewObyektivkaRequest, request: Reques
         payload,
         base_url=base_url or None,
         watermark=True,
-        mask_pii=True,
+        mask_pii=False,
     )
     if not pdf_bytes:
         raise HTTPException(status_code=500, detail="PDF yaratib bo'lmadi")

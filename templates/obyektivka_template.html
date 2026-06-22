@@ -161,8 +161,8 @@
       word-wrap: break-word;
     }
     .rel th { font-weight: bold; font-size: 11pt; text-decoration: underline; }
+    .rel td { text-align: center; }
     .rel td.rel-type { font-weight: bold; font-size: 11pt; }
-    .rel td.data-left { text-align: left; }
     .empty { font-style: italic; color: #666; text-align: center; padding: 3mm; font-size: 11pt; }
 
     @media print {
@@ -338,11 +338,11 @@
     <table class="rel">
       <thead>
         <tr>
-          <th style="width:14%">{{ L.qar }}</th>
-          <th style="width:24%">{{ L.fish }}</th>
-          <th style="width:18%">{{ L.tug }}</th>
-          <th style="width:24%">{{ L.ish }}</th>
-          <th style="width:20%">{{ L.tur }}</th>
+          <th style="width:18%">{{ L.qar }}</th>
+          <th style="width:26%">{{ L.fish }}</th>
+          <th style="width:19%">{{ L.tug }}</th>
+          <th style="width:19%">{{ L.ish }}</th>
+          <th style="width:18%">{{ L.tur }}</th>
         </tr>
       </thead>
       <tbody>
@@ -350,10 +350,10 @@
           {%- for r in d.relatives -%}
           <tr>
             <td class="rel-type">{{ r.degree or r.type or L.none }}</td>
-            <td class="data-left">{{ (r.fullname or r.name or L.none) | safe }}</td>
+            <td>{{ (r.fullname or r.name or L.none) | safe }}</td>
             <td>{{ (r.birth_year_place or r.birth or L.none) | safe }}</td>
-            <td class="data-left">{{ (r.work_place or r.job or L.none) | safe }}</td>
-            <td class="data-left">{{ (r.address or r.addr or L.none) | safe }}</td>
+            <td>{{ (r.work_place or r.job or L.none) | safe }}</td>
+            <td>{{ (r.address or r.addr or L.none) | safe }}</td>
           </tr>
           {%- endfor -%}
         {%- else -%}

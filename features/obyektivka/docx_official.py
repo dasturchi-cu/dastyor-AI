@@ -16,6 +16,19 @@ from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
 from docx.shared import Cm, Pt
+from features.obyektivka.layout import (
+    FONT_BODY_PT,
+    FONT_REL_TITLE_PT,
+    FONT_TITLE_PT,
+    LINE_HEIGHT,
+    PAGE_MARGIN_BOTTOM_MM,
+    PAGE_MARGIN_LEFT_MM,
+    PAGE_MARGIN_RIGHT_MM,
+    PAGE_MARGIN_TOP_MM,
+    PHOTO_HEIGHT_MM,
+    PHOTO_WIDTH_MM,
+    REL_COL_PCT,
+)
 from backend.services.document_render.photo import process_passport_photo
 
 logger = logging.getLogger(__name__)
@@ -236,14 +249,14 @@ def generate_obyektivka_docx(
     doc = Document()
     style = doc.styles["Normal"]
     style.font.name = "Times New Roman"
-    style.font.size = Pt(11)
-    style.paragraph_format.line_spacing = 1.15
+    style.font.size = Pt(FONT_BODY_PT)
+    style.paragraph_format.line_spacing = LINE_HEIGHT
     style.paragraph_format.space_after = Pt(0)
     for section in doc.sections:
-        section.top_margin = Cm(2)
-        section.bottom_margin = Cm(2)
-        section.left_margin = Cm(3)
-        section.right_margin = Cm(1.5)
+        section.top_margin = Cm(PAGE_MARGIN_TOP_MM / 10)
+        section.bottom_margin = Cm(PAGE_MARGIN_BOTTOM_MM / 10)
+        section.left_margin = Cm(PAGE_MARGIN_LEFT_MM / 10)
+        section.right_margin = Cm(PAGE_MARGIN_RIGHT_MM / 10)
 
     full_name = _to_text(data.get("fullname")) or "FAMILIYA ISM SHARIF"
     work_items = _parse_list(data.get("work_experience"))
@@ -296,14 +309,14 @@ def generate_obyektivka_docx(
     t_p.alignment = WD_ALIGN_PARAGRAPH.CENTER
     tr = t_p.add_run("MA'LUMOTNOMA")
     tr.bold = True
-    tr.font.size = Pt(14)
+    tr.font.size = Pt(FONT_TITLE_PT)
     t_p.paragraph_format.space_after = Pt(4)
 
     n_p = left_hdr.add_paragraph()
     n_p.alignment = WD_ALIGN_PARAGRAPH.CENTER
     nr = n_p.add_run(full_name)
     nr.bold = True
-    nr.font.size = Pt(14)
+    nr.font.size = Pt(FONT_TITLE_PT)
     n_p.paragraph_format.space_after = Pt(4)
 
     photo_p = right_hdr.paragraphs[0]
@@ -315,7 +328,7 @@ def generate_obyektivka_docx(
     if photo_path and os.path.exists(photo_path):
         try:
             run = photo_p.add_run()
-            run.add_picture(photo_path, width=Cm(3), height=Cm(4))
+            run.add_picture(photo_path, width=Cm(PHOTO_WIDTH_MM / 10), height=Cm(PHOTO_HEIGHT_MM / 10))
         except Exception as exc:
             logger.warning("Failed to insert photo: %s", exc)
             ph = photo_p.add_run(photo_hint)
@@ -382,7 +395,7 @@ def generate_obyektivka_docx(
     work_title.alignment = WD_ALIGN_PARAGRAPH.CENTER
     wr = work_title.add_run("MEHNAT FAOLIYATI")
     wr.bold = True
-    wr.font.size = Pt(14)
+    wr.font.size = Pt(FONT_TITLE_PT)
     work_title.paragraph_format.space_before = Pt(12)
     work_title.paragraph_format.space_after = Pt(4)
     work_title.paragraph_format.line_spacing = 1.3
@@ -422,16 +435,16 @@ def generate_obyektivka_docx(
     t1.alignment = WD_ALIGN_PARAGRAPH.CENTER
     r1 = t1.add_run(f"{full_name}ning yaqin qarindoshlari haqida MA'LUMOT")
     r1.bold = True
-    r1.font.size = Pt(12)
+    r1.font.size = Pt(FONT_REL_TITLE_PT)
     t1.paragraph_format.space_after = Pt(6)
 
     rel_tbl = doc.add_table(rows=1, cols=5)
     rel_tbl.autofit = False
-    rel_tbl.columns[0].width = int(total_width * 0.18)
-    rel_tbl.columns[1].width = int(total_width * 0.26)
-    rel_tbl.columns[2].width = int(total_width * 0.19)
-    rel_tbl.columns[3].width = int(total_width * 0.19)
-    rel_tbl.columns[4].width = int(total_width * 0.18)
+    rel_tbl.columns[0].width = int(total_width * REL_COL_PCT[0] / 100)
+    rel_tbl.columns[1].width = int(total_width * REL_COL_PCT[1] / 100)
+    rel_tbl.columns[2].width = int(total_width * REL_COL_PCT[2] / 100)
+    rel_tbl.columns[3].width = int(total_width * REL_COL_PCT[3] / 100)
+    rel_tbl.columns[4].width = int(total_width * REL_COL_PCT[4] / 100)
     _set_table_borders(rel_tbl, size_pt=1.0)
 
     headers = [
