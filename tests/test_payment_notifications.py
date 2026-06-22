@@ -4,7 +4,9 @@ from __future__ import annotations
 import unittest
 
 from shared.payment_notifications import (
+    build_daily_admin_report,
     build_payment_notification_text,
+    build_returning_customer_alert,
     format_username,
     payment_list_line,
     purchase_ordinal,
@@ -67,6 +69,7 @@ class TestPaymentNotifications(unittest.TestCase):
         self.assertIn("tg://user?id=123456789", text)
         self.assertIn("5th purchase", text)
         self.assertIn("Obyektivka", text)
+
     def test_build_notification_no_username(self):
         text = build_payment_notification_text(
             {
@@ -79,6 +82,42 @@ class TestPaymentNotifications(unittest.TestCase):
             purchase_number=1,
         )
         self.assertIn("No Username", text)
+
+    def test_build_daily_report(self):
+        text = build_daily_admin_report(
+            {
+                "new_users": 12,
+                "active_users": 45,
+                "cv": 8,
+                "obyektivka": 5,
+                "approved_payments": 7,
+                "pending_payments": 3,
+                "revenue_uzs": 55993,
+            },
+            report_date="2026-06-22",
+        )
+        self.assertIn("New Users", text)
+        self.assertIn("Active Users", text)
+        self.assertIn("Pending Payments", text)
+        self.assertIn("55,993 UZS", text)
+
+    def test_returning_customer_alert(self):
+        text = build_returning_customer_alert(
+            {
+                "id": 99,
+                "telegram_id": 123,
+                "username": "john",
+                "first_name": "John",
+                "payer_name": "John",
+                "document_type": "cv",
+            },
+            kind="cv",
+            purchase_number=3,
+            previous_approved=2,
+        )
+        self.assertIn("RETURNING CUSTOMER", text)
+        self.assertIn("3rd purchase", text)
+        self.assertIn("Previous approved", text)
 
 
 if __name__ == "__main__":
