@@ -15,7 +15,7 @@ class AuthRequest(BaseModel):
 
 class TranslitRequest(BaseModel):
     text: str
-    direction: str
+    direction: str = "auto"
     telegram_id: Optional[int] = None
     token: Optional[str] = None
 

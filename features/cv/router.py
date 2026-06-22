@@ -51,7 +51,7 @@ async def api_cv_saved(
 
 @router.post("/api/cv_preview_html")
 async def api_cv_preview(req: ExportCVRequest) -> HTMLResponse:
-    data = req.dict(exclude={"telegram_id", "token", "send_only", "format"})
+    data = req.model_dump(exclude={"telegram_id", "token", "send_only", "format"})
     cache_key = cache_key_for_cv_preview(data)
     cached = cv_preview_cache_get(cache_key)
     if cached is not None:
@@ -65,7 +65,7 @@ async def api_cv_preview(req: ExportCVRequest) -> HTMLResponse:
 async def api_export_cv(req: ExportCVRequest, request: Request) -> StreamingResponse:
     await rate_limit(request)
     uid = _uid_from_req(req)
-    payload = req.dict(exclude={"telegram_id", "token", "send_only", "format"})
+    payload = req.model_dump(exclude={"telegram_id", "token", "send_only", "format"})
     try:
         pdf_bytes, filename = await cv_service.export_pdf(uid, payload)
     except PermissionError as e:
@@ -96,5 +96,5 @@ async def api_export_cv(req: ExportCVRequest, request: Request) -> StreamingResp
 
 @router.post("/api/generate_cv")
 async def api_generate_cv(req: CVRequest, request: Request) -> StreamingResponse:
-    export_req = ExportCVRequest(**req.dict())
+    export_req = ExportCVRequest(**req.model_dump())
     return await api_export_cv(export_req, request)

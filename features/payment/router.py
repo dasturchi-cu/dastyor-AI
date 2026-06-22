@@ -30,7 +30,7 @@ async def api_me(token: str | None = Query(None), telegram_id: str | None = Quer
     uid = resolve_uid(telegram_id, token)
     if not uid:
         raise HTTPException(status_code=401, detail="Foydalanuvchi aniqlanmadi")
-    from bot.services.session_service import get_session_by_telegram_id
+    from shared.session_service import get_session_by_telegram_id
     from database.repositories import users as users_repo
 
     user = users_repo.get_by_telegram_id(uid) or users_repo.upsert_user(uid)
@@ -49,7 +49,7 @@ async def api_me(token: str | None = Query(None), telegram_id: str | None = Quer
 
 @router.post("/api/auth")
 async def api_auth(req: AuthRequest) -> dict:
-    from bot.services.session_service import create_session
+    from shared.session_service import create_session
     from database.repositories import users as users_repo
 
     body = req

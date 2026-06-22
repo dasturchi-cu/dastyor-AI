@@ -27,7 +27,7 @@ class PerformanceMiddleware(BaseHTTPMiddleware):
             ok = False
             # Fire-and-forget system log for unhandled API errors
             try:
-                from bot.utils.system_tracker import track_event_fire_and_forget
+                from backend.observability.system_tracker import track_event_fire_and_forget
 
                 track_event_fire_and_forget(
                     telegram_id=None,
@@ -55,7 +55,7 @@ class PerformanceMiddleware(BaseHTTPMiddleware):
         # Optional: real-time HTTP end events (only for /api)
         try:
             if path.startswith("/api"):
-                from bot.utils.system_tracker import track_event_fire_and_forget
+                from backend.observability.system_tracker import track_event_fire_and_forget
 
                 track_event_fire_and_forget(
                     telegram_id=None,

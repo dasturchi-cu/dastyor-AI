@@ -57,9 +57,8 @@ OBY_INSTRUCTION = (
 )
 
 SAMPLE_AUDIO_PATHS = [
+    PROJECT_ROOT / "assets" / "samples" / "speech.mp3",
     PROJECT_ROOT / "speech.mp3",
-    PROJECT_ROOT / "bot" / "handlers" / "speech.mp3",
-    PROJECT_ROOT / "namuna.mp3",
 ]
 
 

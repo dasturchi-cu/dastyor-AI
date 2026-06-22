@@ -4,8 +4,8 @@ from __future__ import annotations
 import asyncio
 import logging
 
-from bot.services.render_service import generate_cv_pdf as _generate_cv_pdf
-from bot.services.render_service import render_cv_html
+from backend.services.render_service import generate_cv_pdf as _generate_cv_pdf
+from backend.services.render_service import render_cv_html
 
 logger = logging.getLogger(__name__)
 

@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import logging
+import os
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -22,6 +23,7 @@ from config.settings import WEBAPP_DIR, settings
 from database.connection import init_db
 from features.ai.router import router as ai_router
 from features.cv.router import router as cv_router
+from features.legacy.router import router as legacy_router
 from features.obyektivka.router import router as oby_router
 from features.payment.router import router as payment_router
 from main import create_bot, create_dispatcher
@@ -42,10 +44,13 @@ def create_webhook_app() -> FastAPI:
         init_db()
         app.state.bot = bot
         app.state.dp = dp
+        skip_webhook = os.getenv("SKIP_WEBHOOK", "").strip().lower() in ("1", "true", "yes")
         await bot.delete_webhook(drop_pending_updates=True)
-        if settings.webhook_url:
+        if settings.webhook_url and not skip_webhook:
             await bot.set_webhook(url=settings.webhook_url, drop_pending_updates=True)
             logger.info("Webhook set: %s", settings.webhook_url)
+        elif skip_webhook:
+            logger.info("SKIP_WEBHOOK=1 — polling mode (webhook o'rnatilmadi)")
         yield
         await bot.session.close()
         logger.info("Webhook application stopped")
@@ -74,6 +79,7 @@ def create_webhook_app() -> FastAPI:
     app.include_router(cv_router)
     app.include_router(oby_router)
     app.include_router(ai_router)
+    app.include_router(legacy_router)
     app.include_router(tg_update_router)
 
     webapp_path = Path(WEBAPP_DIR)

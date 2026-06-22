@@ -16,7 +16,6 @@ from features.ai.service import (
     process_voice_for_cv,
 )
 from features.cv import service as cv_service
-from features.obyektivka import service as oby_service
 from shared import async_db
 from shared.ai_errors import AI_QUOTA_USER_MSG, AiQuotaError
 from shared.auth import resolve_uid

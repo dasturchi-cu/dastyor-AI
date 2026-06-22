@@ -1,0 +1,1 @@
+"""Legacy WebApp compatibility routes."""

@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from typing import Optional
 
-from bot.services.session_service import resolve_telegram_id
+from shared.session_service import resolve_telegram_id
 
 
 def resolve_uid(telegram_id: Optional[str] = None, token: Optional[str] = None) -> Optional[int]:

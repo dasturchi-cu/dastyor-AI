@@ -5,8 +5,8 @@ import time
 from pathlib import Path
 from typing import Any
 
-from bot.services.document_render.photo import compress_payload_photo
-from bot.services.obyektivka_docx_official import generate_obyektivka_docx
+from backend.services.document_render.photo import compress_payload_photo
+from features.obyektivka.docx_official import generate_obyektivka_docx
 from config.settings import GENERATED_DIR
 from database.repositories import generated_files as files_repo
 from database.repositories import obyektivka_data as oby_repo

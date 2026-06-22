@@ -4,7 +4,7 @@ from __future__ import annotations
 import json
 import logging
 
-from bot.services.ai_service import (
+from features.ai.gemini_client import (
     extract_obyektivka_data,
     generate_text_with_fallback,
     get_model,

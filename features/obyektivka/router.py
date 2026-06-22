@@ -207,7 +207,7 @@ async def api_preview_oby(req: PreviewObyektivkaRequest) -> dict:
         oby_preview_cache_get,
         oby_preview_cache_set,
     )
-    from bot.services.render_service import render_obyektivka_html
+    from backend.services.render_service import render_obyektivka_html
 
     payload = req.model_dump(exclude={"telegram_id", "token"})
     cache_key = cache_key_for_oby_preview(payload)
