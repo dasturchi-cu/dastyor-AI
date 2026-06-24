@@ -131,6 +131,10 @@
     .work-dash{color:var(--muted);font-weight:800;font-size:18px;padding-bottom:11px;line-height:1;user-select:none}
     .work-dates select{width:100%;padding:11px 10px;font-size:14px;font-weight:700;border-radius:9px;border:1.5px solid var(--border);background:#fff;color:var(--text);font-family:var(--font);cursor:pointer;min-width:0}
     .work-dates select:focus{border-color:var(--blue);outline:none}
+    .work-since-wrap{margin-top:2px}
+    .work-since-wrap.hidden{display:none}
+    .work-since-field input{width:100%;padding:11px 10px;font-size:14px;font-weight:600;border-radius:9px;border:1.5px solid var(--border);background:#fff;color:var(--text);font-family:var(--font)}
+    .work-since-field input:focus{border-color:var(--blue);outline:none;box-shadow:0 0 0 3px rgba(29,111,232,.11)}
     .lang-quick{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}
     .lang-chip{padding:5px 10px;font-size:11px;font-weight:700;border-radius:7px;border:1.5px solid var(--blue-mid);background:var(--blue-light);color:var(--blue);cursor:pointer;font-family:var(--font);-webkit-tap-highlight-color:transparent}
     .lang-chip:active{background:var(--blue-mid)}
@@ -1128,8 +1132,54 @@ function normalizeWorkYearVal(v, isTo){
 }
 
 function workDateLabels(){
-  if(currentLang==='uz_k') return {from:'Дан',to:'Гача',year:'Йил',present:'Ҳозиргача (ҳ.в)'};
-  return {from:'Dan',to:'Gacha',year:'Yil',present:'Hozirgacha (h.v)'};
+  if(currentLang==='uz_k') return {from:'Дан',to:'Гача',year:'Йил',present:'Ҳозиргача (ҳ.в)',since:'Қайси кундан?'};
+  return {from:'Dan',to:'Gacha',year:'Yil',present:'Hozirgacha (h.v)',since:'Qaysi kundan?'};
+}
+
+var _WORK_MONTH_LAT=['yanvar','fevral','mart','aprel','may','iyun','iyul','avgust','sentyabr','oktabr','noyabr','dekabr'];
+var _WORK_MONTH_CYR=['январ','феврал','март','апрел','май','июн','июл','август','сентябр','октябр','ноябр','декабр'];
+
+function workMonthKeyFromText(text){
+  var low=String(text||'').toLowerCase();
+  for(var i=0;i<_WORK_MONTH_LAT.length;i++){
+    if(low.indexOf(_WORK_MONTH_LAT[i])>=0) return _WORK_MONTH_LAT[i];
+    if(low.indexOf(_WORK_MONTH_CYR[i])>=0) return _WORK_MONTH_LAT[i];
+  }
+  return '';
+}
+
+function parseWorkSinceDetail(text, year){
+  var raw=String(text||'').trim();
+  if(!raw) return {day:'',month:''};
+  if(year) raw=raw.replace(new RegExp(year,'g'),'').replace(/^[\s\-–—.,:]+|[\s\-–—.,:]+$/g,'');
+  var dm=raw.match(/\b(\d{1,2})\b/);
+  return {day:dm?dm[1]:'',month:workMonthKeyFromText(raw)};
+}
+
+function monthNameForLang(monthKey, cyr){
+  var idx=_WORK_MONTH_LAT.indexOf(monthKey);
+  if(idx<0) return monthKey;
+  return cyr?_WORK_MONTH_CYR[idx]:_WORK_MONTH_LAT[idx];
+}
+
+function escWorkAttr(s){
+  return String(s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');
+}
+
+function buildWorkDatesHtml(savedFrom, savedTo, savedSince){
+  var lbl=workDateLabels();
+  var showSince=isPresentToken(savedTo);
+  var sincePh=currentLang==='uz_k'?'5 октябр':'5 oktabr';
+  return '<div class="work-dates">'
+    +'<div class="work-date-field"><span class="work-date-lbl">'+lbl.from+'</span>'+buildYearSelectHtml('year-from',false,savedFrom)+'</div>'
+    +'<span class="work-dash" aria-hidden="true">&ndash;</span>'
+    +'<div class="work-date-field"><span class="work-date-lbl">'+lbl.to+'</span>'+buildYearSelectHtml('year-to',true,savedTo)+'</div>'
+    +'</div>'
+    +'<div class="work-since-wrap'+(showSince?'':' hidden')+'">'
+    +'<div class="work-date-field work-since-field">'
+    +'<span class="work-date-lbl">'+lbl.since+'</span>'
+    +'<input type="text" class="year-from-since" placeholder="'+sincePh+'" value="'+escWorkAttr(savedSince||'')+'" oninput="onWorkSinceInput(this)">'
+    +'</div></div>';
 }
 
 function buildYearSelectHtml(cls, isTo, selected){
@@ -1147,21 +1197,18 @@ function buildYearSelectHtml(cls, isTo, selected){
   return h+'</select>';
 }
 
-function buildWorkDatesHtml(savedFrom, savedTo){
-  var lbl=workDateLabels();
-  return '<div class="work-dates">'
-    +'<div class="work-date-field"><span class="work-date-lbl">'+lbl.from+'</span>'+buildYearSelectHtml('year-from',false,savedFrom)+'</div>'
-    +'<span class="work-dash" aria-hidden="true">&ndash;</span>'
-    +'<div class="work-date-field"><span class="work-date-lbl">'+lbl.to+'</span>'+buildYearSelectHtml('year-to',true,savedTo)+'</div>'
-    +'</div>';
-}
-
 function refreshWorkDateUi(){
   var lbl=workDateLabels();
   document.querySelectorAll('#work-container .work-row').forEach(function(row){
-    var fields=row.querySelectorAll('.work-date-field');
+    var fields=row.querySelectorAll('.work-dates .work-date-field');
     if(fields[0]){ var a=fields[0].querySelector('.work-date-lbl'); if(a) a.textContent=lbl.from; }
     if(fields[1]){ var b=fields[1].querySelector('.work-date-lbl'); if(b) b.textContent=lbl.to; }
+    var sinceLbl=row.querySelector('.work-since-field .work-date-lbl');
+    if(sinceLbl) sinceLbl.textContent=lbl.since;
+    var sinceInp=row.querySelector('.year-from-since');
+    if(sinceInp){
+      sinceInp.placeholder=currentLang==='uz_k'?'5 октябр':'5 oktabr';
+    }
     var yf=row.querySelector('.year-from');
     var yt=row.querySelector('.year-to');
     if(yf && yf.options[0]) yf.options[0].textContent=lbl.year;
@@ -1169,12 +1216,27 @@ function refreshWorkDateUi(){
       if(yt.options[0]) yt.options[0].textContent=lbl.year;
       if(yt.options[1]) yt.options[1].textContent=lbl.present;
     }
+    toggleWorkSinceField(row);
   });
+}
+
+function toggleWorkSinceField(row){
+  if(!row) return;
+  var yt=row.querySelector('.year-to');
+  var wrap=row.querySelector('.work-since-wrap');
+  if(!wrap) return;
+  wrap.classList.toggle('hidden', !(yt && isPresentToken(yt.value)));
+}
+
+function onWorkSinceInput(el){
+  try{saveToLocal();updatePreview();}catch(e){}
 }
 
 function onWorkYearSelectChange(el, isTo){
   if(!el) return;
   validateWorkYearField(el, isTo, true);
+  var row=el.closest('.work-row');
+  if(row) toggleWorkSinceField(row);
   try{saveToLocal();updatePreview();}catch(e){}
 }
 
@@ -1591,6 +1653,12 @@ function parseWorkYearString(yr){
   if(sy) return {from:sy[0], to:''};
   return {from:yr,to:''};
 }
+function parseSinceFromJobYear(cy){
+  var s=String(cy||'').trim().replace(/:+$/,'');
+  var m=s.match(/(?:yil|йил)\s+(\d{1,2})\s+(\S+)/i);
+  if(!m) return '';
+  return m[1]+' '+String(m[2]).replace(/(dan|дан)$/i,'').trim();
+}
 function workItemsToRows(items, currentJob, currentYear){
   var rows=[];
   var cj=String(currentJob||'').trim();
@@ -1598,14 +1666,16 @@ function workItemsToRows(items, currentJob, currentYear){
   (items||[]).forEach(function(w){
     var yr=String(w.year||w.period||'').trim();
     var pos=String(w.position||w.desc||w.description||'').trim();
+    var fs=String(w.fs||w.from_since||w.since||'').trim();
     if(!cj && pos && (isPresentToken(yr) || /yildan|йилдан|h\.?\s*v|ҳ\.?\s*в/i.test(yr))){
       cj=pos;
       var cp=parseWorkYearString(yr);
       cy=cp.from||yr;
+      if(!fs) fs=parseSinceFromJobYear(yr);
       return;
     }
     var p=parseWorkYearString(yr);
-    rows.push({f:p.from,t:p.to,d:pos});
+    rows.push({f:p.from,t:p.to,d:pos,fs:fs});
   });
   if(cj){
     var start=parseWorkYearString(cy);
@@ -1614,16 +1684,29 @@ function workItemsToRows(items, currentJob, currentYear){
       var ym=String(cy||'').match(/(19|20)\d{2}/);
       fromY=ym?ym[0]:'';
     }
-    rows.unshift({f:fromY,t:'h.v',d:cj});
+    var fs=parseSinceFromJobYear(cy);
+    rows.unshift({f:fromY,t:'h.v',d:cj,fs:fs});
   }
   return rows;
 }
 
-function formatCurrentJobYear(fromYear){
+function formatCurrentJobYear(fromYear, sinceDetail){
   var y=String(fromYear||'').trim();
+  var s=String(sinceDetail||'').trim();
+  var combined=(y+' '+s).trim();
+  if(/yildan|йилдан|oktabr|октябр|yanvar|январ/i.test(combined)){
+    var raw=combined.replace(/:+$/,'').trim();
+    return raw.indexOf(':')>=0 ? raw : (raw+':');
+  }
   var m=y.match(/(19|20)\d{2}/);
-  var yr=m?m[0]:y;
+  var yr=m?m[0]:'';
   if(!yr) return '';
+  var parsed=parseWorkSinceDetail(s||y, yr);
+  if(parsed.day && parsed.month){
+    var mn=monthNameForLang(parsed.month, currentLang==='uz_k');
+    if(currentLang==='uz_k') return yr+' йил '+parsed.day+' '+mn+'дан:';
+    return yr+' yil '+parsed.day+' '+mn+'dan:';
+  }
   return currentLang==='uz_k' ? (yr+' йилдан:') : (yr+'-yildan:');
 }
 
@@ -1633,9 +1716,10 @@ function splitCurrentJobFromWorks(works){
     var f=String(w.f||'').trim();
     var t=String(w.t||'').trim();
     var d=String(w.d||'').trim();
+    var fs=String(w.fs||'').trim();
     if(!cj && d && isPresentToken(t)){
       cj=toCurrentScript(d);
-      cy=toCurrentScript(formatCurrentJobYear(f));
+      cy=toCurrentScript(formatCurrentJobYear(f, fs));
     }
   });
   return {current_job:cj, current_job_year:cy, works:works||[]};
@@ -1684,7 +1768,8 @@ function buildObyPayload(fmt){
     works.push({
       f: (row.querySelector('.year-from')?row.querySelector('.year-from').value:'')||'',
       t: (row.querySelector('.year-to')?row.querySelector('.year-to').value:'')||'',
-      d: (row.querySelector('.work-desc')?row.querySelector('.work-desc').value:'')||''
+      d: (row.querySelector('.work-desc')?row.querySelector('.work-desc').value:'')||'',
+      fs: (row.querySelector('.year-from-since')?row.querySelector('.year-from-since').value:'')||''
     });
   });
   var jobSplit = splitCurrentJobFromWorks(works);
@@ -2548,6 +2633,9 @@ function convertExistingValues(fromLang,toLang){
   document.querySelectorAll('#work-container .work-row .work-desc').forEach(function(el){
     if(el&&el.value)el.value=conv(el.value);
   });
+  document.querySelectorAll('#work-container .work-row .year-from-since').forEach(function(el){
+    if(el&&el.value)el.value=conv(el.value);
+  });
 
   // Relatives array (stored data + list rendering)
   if(Array.isArray(relatives)&&relatives.length){
@@ -2585,7 +2673,7 @@ function updateDatalist(id,options){var dl=document.getElementById(id);dl.innerH
 
 function saveToLocal(){
   var d={fullname:v('fullname'),birthdate:v('birthdate'),birthplace:v('birthplace'),nation:v('nation'),edu:v('edu'),spec:v('spec'),degree:v('degree'),langs:v('langs'),awards:v('awards'),'idor-awards':v('idor-awards'),deputy:v('deputy'),party:v('party'),graduated:v('graduated'),scititle:v('scititle'),military:v('military'),works:[],relatives:relatives};
-  document.querySelectorAll('#work-container .work-row').forEach(function(row){d.works.push({f:row.querySelector('.year-from')?row.querySelector('.year-from').value:'',t:row.querySelector('.year-to')?row.querySelector('.year-to').value:'',d:row.querySelector('.work-desc')?row.querySelector('.work-desc').value:''});});
+  document.querySelectorAll('#work-container .work-row').forEach(function(row){d.works.push({f:row.querySelector('.year-from')?row.querySelector('.year-from').value:'',t:row.querySelector('.year-to')?row.querySelector('.year-to').value:'',d:row.querySelector('.work-desc')?row.querySelector('.work-desc').value:'',fs:row.querySelector('.year-from-since')?row.querySelector('.year-from-since').value:''});});
   try{
     localStorage.setItem(obyDraftStorageKey(), JSON.stringify(d));
     var tid = resolveTelegramId();
@@ -2598,7 +2686,7 @@ function loadFromLocal(){
     if(!str) return;
     var d=JSON.parse(str);
   ['fullname','birthdate','birthplace','nation','edu','spec','degree','langs','awards','idor-awards','deputy','party','graduated','scititle','military'].forEach(function(id){if(d[id]){var el=document.getElementById(id);if(el)el.value=d[id];}});
-  if(d.works&&d.works.length){document.getElementById('work-container').innerHTML='';d.works.forEach(function(w){addWorkRow(w.f,w.t,w.d);});}
+  if(d.works&&d.works.length){document.getElementById('work-container').innerHTML='';d.works.forEach(function(w){addWorkRow(w.f,w.t,w.d,w.fs);});}
   if(d.relatives&&d.relatives.length){relatives=d.relatives;renderRelList();}}catch(e){console.warn(e);}
 }
 function clearForm(){var msg=currentLang==='uz_l'?"Barcha ma'lumotlar o'chiriladi. Davom etasizmi?":"\u0411\u0430\u0440\u0447\u0430 \u043c\u0430\u044a\u043b\u0443\u043c\u043e\u0442\u043b\u0430\u0440 \u045e\u0447\u0438\u0440\u0438\u043b\u0430\u0434\u0438. \u0414\u0430\u0432\u043e\u043c \u044d\u0442\u0430\u0441\u0438\u0437\u043c\u0438?";if(confirm(msg)){try{localStorage.removeItem(obyDraftStorageKey());localStorage.removeItem(OBY_LEGACY_STORAGE_KEY);}catch(e){}relatives=[];photoData='';location.reload();}}
@@ -2807,20 +2895,21 @@ function handleWX(input){
 function flushObyDraftSave(){
   try{
     var d={fullname:v('fullname'),birthdate:v('birthdate'),birthplace:v('birthplace'),nation:v('nation'),edu:v('edu'),spec:v('spec'),degree:v('degree'),langs:v('langs'),awards:v('awards'),'idor-awards':v('idor-awards'),deputy:v('deputy'),party:v('party'),graduated:v('graduated'),scititle:v('scititle'),military:v('military'),works:[],relatives:relatives};
-    document.querySelectorAll('#work-container .work-row').forEach(function(row){d.works.push({f:row.querySelector('.year-from')?row.querySelector('.year-from').value:'',t:row.querySelector('.year-to')?row.querySelector('.year-to').value:'',d:row.querySelector('.work-desc')?row.querySelector('.work-desc').value:''});});
+    document.querySelectorAll('#work-container .work-row').forEach(function(row){d.works.push({f:row.querySelector('.year-from')?row.querySelector('.year-from').value:'',t:row.querySelector('.year-to')?row.querySelector('.year-to').value:'',d:row.querySelector('.work-desc')?row.querySelector('.work-desc').value:'',fs:row.querySelector('.year-from-since')?row.querySelector('.year-from-since').value:''});});
     localStorage.setItem(obyDraftStorageKey(), JSON.stringify(d));
     var tid = resolveTelegramId();
     if(tid) localStorage.setItem(OBY_OWNER_STORAGE_KEY, String(tid));
   }catch(e){}
 }
 
-function addWorkRow(savedFrom,savedTo,savedDesc){
-  savedFrom=savedFrom||'';savedTo=savedTo||'';savedDesc=savedDesc||'';
+function addWorkRow(savedFrom,savedTo,savedDesc,savedSince){
+  savedFrom=savedFrom||'';savedTo=savedTo||'';savedDesc=savedDesc||'';savedSince=savedSince||'';
   var div=document.createElement('div');div.className='work-row';
   var ph=currentLang==='uz_l'?"Ish joyi va lavozimi":"\u0418\u0448 \u0436\u043e\u0439\u0438 \u0432\u0430 \u043b\u0430\u0432\u043e\u0437\u0438\u043c\u0438";
-  div.innerHTML=buildWorkDatesHtml(savedFrom,savedTo)+'<div class="ac-wrap work-desc-wrap"><textarea rows="3" placeholder="'+ph+'" class="work-desc" autocomplete="off" spellcheck="false" oninput="onWorkDescInput(this);handleWX(this);saveToLocal();updatePreview()">'+savedDesc.replace(/</g,'&lt;').replace(/>/g,'&gt;')+'</textarea><div class="ac-suggest work-suggest hidden"></div></div>';
+  div.innerHTML=buildWorkDatesHtml(savedFrom,savedTo,savedSince)+'<div class="ac-wrap work-desc-wrap"><textarea rows="3" placeholder="'+ph+'" class="work-desc" autocomplete="off" spellcheck="false" oninput="onWorkDescInput(this);handleWX(this);saveToLocal();updatePreview()">'+savedDesc.replace(/</g,'&lt;').replace(/>/g,'&gt;')+'</textarea><div class="ac-suggest work-suggest hidden"></div></div>';
   document.getElementById('work-container').appendChild(div);
   bindWorkYearValidation(div);
+  toggleWorkSinceField(div);
 }
 
 var _DATE_YEAR_MIN = 1920;
@@ -3190,7 +3279,7 @@ function applyServerObyData(d){
   if(wc){
     wc.innerHTML='';
     workItemsToRows(d.work_experience||d.works||[], d.current_job, d.current_job_year).forEach(function(r){
-      addWorkRow(r.f,r.t,r.d);
+      addWorkRow(r.f,r.t,r.d,r.fs);
     });
   }
   relatives=[];

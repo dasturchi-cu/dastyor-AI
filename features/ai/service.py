@@ -67,11 +67,14 @@ def _normalize_oby_work_year(year: str) -> str:
 def _split_current_job_from_works(
     works: list[dict],
 ) -> tuple[str, str, list[dict]]:
+    from features.obyektivka.malumotnoma_data import format_current_job_year, is_present_year_token
+
     items = [dict(w) for w in works if isinstance(w, dict)]
     for idx, item in enumerate(items):
         year_raw = str(item.get("year") or item.get("period") or "").strip()
+        to_raw = str(item.get("to") or item.get("t") or "").strip()
         year_norm = re.sub(r"[\s.\-_/]", "", year_raw.lower())
-        is_current = any(
+        is_current = is_present_year_token(to_raw) or any(
             tok in year_norm
             for tok in ("hv", "hvgacha", "hozirgacha", "ҳв", "ҳвгача", "ҳозиргача", "present", "current")
         ) or bool(_HV_YEAR_RE.search(year_raw))
@@ -83,10 +86,13 @@ def _split_current_job_from_works(
             or ""
         ).strip()
         if is_current and pos:
-            m = re.search(r"(19|20)\d{2}", year_raw)
-            yr = m.group(0) if m else year_raw
-            if yr and not yr.endswith(":"):
-                yr = f"{yr}-yildan:" if "yildan" not in year_raw.lower() and "йилдан" not in year_raw else year_raw
+            since = str(
+                item.get("from_since") or item.get("fs") or item.get("since") or ""
+            ).strip()
+            from_y = str(item.get("from") or item.get("f") or "").strip()
+            m = re.search(r"(19|20)\d{2}", from_y or year_raw)
+            yr_num = m.group(0) if m else (from_y or year_raw)
+            yr = format_current_job_year(yr_num, "uz_lat", since=since or year_raw)
             items.pop(idx)
             return pos, yr.rstrip(":"), items
     return "", "", items
@@ -168,7 +174,13 @@ def map_obyektivka_fields(raw: dict) -> dict:
                 or ""
             ).strip()
             if year or pos:
-                normalized.append({"year": _normalize_oby_work_year(year), "position": pos})
+                entry = {"year": _normalize_oby_work_year(year), "position": pos}
+                fs = str(
+                    w.get("from_since") or w.get("fs") or w.get("since") or ""
+                ).strip()
+                if fs:
+                    entry["from_since"] = fs
+                normalized.append(entry)
         out["work_experience"] = normalized
 
     # Hozirgi ish (h.v.) — ajratib olish

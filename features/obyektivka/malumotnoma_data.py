@@ -29,16 +29,115 @@ def is_present_year_token(value: str) -> bool:
     return any(tok in norm for tok in _PRESENT_TOKENS)
 
 
-def format_current_job_year(year_raw: str, lang: str = "uz_lat") -> str:
-    """Masalan: 2014 → '2014-yildan:' yoki '2014 йилдан:'."""
-    raw = (year_raw or "").strip().rstrip(":")
+_MONTH_KEYS = (
+    "yanvar",
+    "fevral",
+    "mart",
+    "aprel",
+    "may",
+    "iyun",
+    "iyul",
+    "avgust",
+    "sentyabr",
+    "oktyabr",
+    "oktabr",
+    "noyabr",
+    "dekabr",
+)
+
+_MONTH_LAT = {
+    "yanvar": "yanvar",
+    "fevral": "fevral",
+    "mart": "mart",
+    "aprel": "aprel",
+    "may": "may",
+    "iyun": "iyun",
+    "iyul": "iyul",
+    "avgust": "avgust",
+    "sentyabr": "sentyabr",
+    "oktyabr": "oktabr",
+    "oktabr": "oktabr",
+    "noyabr": "noyabr",
+    "dekabr": "dekabr",
+}
+
+_MONTH_CYR = {
+    "yanvar": "январ",
+    "fevral": "феврал",
+    "mart": "март",
+    "aprel": "апрел",
+    "may": "май",
+    "iyun": "июн",
+    "iyul": "июл",
+    "avgust": "август",
+    "sentyabr": "сентябр",
+    "oktyabr": "октябр",
+    "oktabr": "октябр",
+    "noyabr": "ноябр",
+    "dekabr": "декабр",
+}
+
+
+def _month_key_from_text(text: str) -> str:
+    low = (text or "").lower()
+    for key in _MONTH_KEYS:
+        if key in low:
+            return key
+        cyr = _MONTH_CYR.get(key, "")
+        if cyr and cyr in low:
+            return key
+    return ""
+
+
+def _parse_since_detail(text: str, year: str = "") -> tuple[str, str]:
+    raw = (text or "").strip()
     if not raw:
+        return "", ""
+    if year:
+        raw = re.sub(re.escape(year), "", raw).strip(" -–—.,:")
+    day_m = re.search(r"\b(\d{1,2})\b", raw)
+    day = day_m.group(1) if day_m else ""
+    month = _month_key_from_text(raw)
+    return day, month
+
+
+def _already_formatted_job_year(text: str) -> bool:
+    raw = (text or "").strip().rstrip(":")
+    if not raw:
+        return False
+    if re.search(r"(yildan|йилдан)", raw, re.IGNORECASE):
+        return True
+    return bool(re.search(r"\d{1,2}\s+\S+\s*(dan|дан)\s*:?$", raw, re.IGNORECASE))
+
+
+def format_current_job_year(
+    year_raw: str,
+    lang: str = "uz_lat",
+    *,
+    since: str = "",
+) -> str:
+    """Masalan: 2014 → '2014-yildan:'; 2007 + 5 oktabr → '2007 yil 5 oktabrdan:'."""
+    raw = (year_raw or "").strip().rstrip(":")
+    since = (since or "").strip()
+    combined = f"{raw} {since}".strip()
+    if _already_formatted_job_year(raw) or _already_formatted_job_year(combined):
+        result = raw if _already_formatted_job_year(raw) else combined
+        return result if result.endswith(":") else f"{result.rstrip(':')}:"
+
+    year_m = re.search(r"(19|20)\d{2}", raw or since)
+    year = year_m.group(0) if year_m else raw.rstrip(".")
+    if not year:
         return ""
-    if re.search(r"(yildan|йилдан|oktabr|октябр|yanvar|январ)", raw, re.IGNORECASE):
-        return raw if raw.endswith(":") else f"{raw}:"
-    match = re.search(r"(19|20)\d{2}", raw)
-    year = match.group(0) if match else raw.rstrip(".")
-    if (lang or "uz_lat") == "uz_cyr":
+
+    day, month_key = _parse_since_detail(since or raw, year)
+    cyr = (lang or "uz_lat") == "uz_cyr"
+    if day and month_key:
+        month_disp = _MONTH_CYR[month_key] if cyr else _MONTH_LAT[month_key]
+        if cyr:
+            return f"{year} йил {day} {month_disp}дан:"
+        return f"{year} yil {day} {month_disp}dan:"
+
+    if cyr:
         return f"{year} йилдан:"
     return f"{year}-yildan:"
 
@@ -140,8 +239,13 @@ def normalize_obyektivka_raw(raw: dict[str, Any]) -> dict[str, Any]:
             f = _to_text(item.get("from") or item.get("f"))
             t = _to_text(item.get("to") or item.get("t"))
             year = _to_text(item.get("year") or item.get("years") or item.get("period"))
+            from_since = _to_text(
+                item.get("from_since") or item.get("fs") or item.get("since") or ""
+            )
             if f or t:
-                norm_items.append({"from": f, "to": t, "position": pos})
+                norm_items.append(
+                    {"from": f, "to": t, "position": pos, "from_since": from_since}
+                )
             elif year or pos:
                 norm_items.append({"year": year, "position": pos})
         out["work_experience"] = norm_items
@@ -189,9 +293,14 @@ def _canonical_work_item(item: dict[str, Any]) -> dict[str, Any]:
     if is_current:
         to_y = "h.v"
 
+    from_since = _to_text(
+        item.get("from_since") or item.get("fs") or item.get("since") or ""
+    )
+
     return {
         "from_year": from_y,
         "to_year": to_y,
+        "from_since": from_since,
         "position": pos,
         "is_current": is_current,
     }
@@ -215,6 +324,7 @@ def _resolve_current_display(
 ) -> tuple[str, str]:
     job = (current_job or "").strip()
     year = (current_job_year or "").strip()
+    since = ""
     if is_none_token(job):
         job = ""
         year = ""
@@ -227,10 +337,21 @@ def _resolve_current_display(
             if item.get("is_current") or is_present_year_token(item.get("to_year") or ""):
                 job = pos
                 year = item.get("from_year") or year
+                since = item.get("from_since") or ""
                 break
 
     if job:
-        year = format_current_job_year(year, lang)
+        if not since:
+            for item in items:
+                if _to_text(item.get("position")) == job and (
+                    item.get("is_current")
+                    or is_present_year_token(item.get("to_year") or "")
+                ):
+                    since = item.get("from_since") or ""
+                    if not year:
+                        year = item.get("from_year") or ""
+                    break
+        year = format_current_job_year(year, lang, since=since)
     else:
         year = ""
     return job, year
@@ -288,9 +409,15 @@ def _ensure_current_in_list(
             return items
     m = re.search(r"(19|20)\d{2}", year or "")
     from_y = m.group(0) if m else ""
+    from_since = ""
+    if year and not re.fullmatch(r"\d{4}", (year or "").strip().rstrip(":")):
+        _, month_key = _parse_since_detail(year, from_y)
+        if month_key:
+            from_since = year
     return items + [
         {
             "from_year": from_y,
+            "from_since": from_since,
             "to_year": "h.v",
             "position": job,
             "is_current": True,

@@ -18,6 +18,18 @@ class TestCurrentJob(unittest.TestCase):
     def test_format_year_cyr(self):
         self.assertEqual(format_current_job_year("2014", "uz_cyr"), "2014 йилдан:")
 
+    def test_format_year_with_day_lat(self):
+        self.assertEqual(
+            format_current_job_year("2007", "uz_lat", since="5 oktabr"),
+            "2007 yil 5 oktabrdan:",
+        )
+
+    def test_format_year_with_day_cyr(self):
+        self.assertEqual(
+            format_current_job_year("2007", "uz_cyr", since="5 октябр"),
+            "2007 йил 5 октябрдан:",
+        )
+
     def test_extract_from_work_row(self):
         job, year, rest = extract_current_job(
             [{"f": "2014", "t": "h.v", "d": "MCHJ rahbari"}],
@@ -27,6 +39,15 @@ class TestCurrentJob(unittest.TestCase):
         self.assertEqual(year, "2014-yildan:")
         self.assertEqual(len(rest), 1)
         self.assertIn("MCHJ rahbari", rest[0].get("position", ""))
+
+    def test_extract_from_work_row_with_since(self):
+        job, year, rest = extract_current_job(
+            [{"f": "2007", "t": "h.v", "d": "MCHJ rahbari", "fs": "5 oktabr"}],
+            lang="uz_lat",
+        )
+        self.assertEqual(job, "MCHJ rahbari")
+        self.assertEqual(year, "2007 yil 5 oktabrdan:")
+        self.assertEqual(len(rest), 1)
 
     def test_explicit_current_stays_in_works(self):
         job, year, rest = extract_current_job(

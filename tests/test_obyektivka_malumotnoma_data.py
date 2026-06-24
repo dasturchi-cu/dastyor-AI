@@ -31,6 +31,17 @@ class TestMalumotnomaEmployment(unittest.TestCase):
         self.assertIn("h.v", data["work_lines"][-1])
         self.assertIn("MCHJ rahbari", data["work_lines"][-1])
 
+    def test_current_job_with_since_detail(self):
+        raw = _sample_payload()
+        raw["work_experience"][-1] = {
+            "f": "2007",
+            "t": "h.v",
+            "d": "MCHJ rahbari",
+            "fs": "5 oktabr",
+        }
+        data = build_malumotnoma_data(raw)
+        self.assertEqual(data["current_job_year"], "2007 yil 5 oktabrdan:")
+
     def test_preview_matches_docx_work_lines(self):
         raw = _sample_payload()
         preview = build_obyektivka_render_context(raw)
