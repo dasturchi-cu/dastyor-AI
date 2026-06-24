@@ -21,7 +21,7 @@ from backend.routers.admin_debug import router as admin_debug_router
 from backend.routers.site import router as site_router
 from backend.routers.tg_update import router as tg_update_router
 from config.settings import WEBAPP_DIR, settings
-from config.validate import is_production, validate_settings
+from config.validate import is_production
 from database.connection import initialize_database
 from features.ai.router import router as ai_router
 from features.cv.router import router as cv_router
@@ -46,12 +46,7 @@ def _cors_origins() -> list[str]:
 
 
 def create_webhook_app() -> FastAPI:
-    cfg_errors = validate_settings()
-    if cfg_errors:
-        for msg in cfg_errors:
-            logger.critical("CONFIG: %s", msg)
-        raise RuntimeError("Invalid production configuration: " + "; ".join(cfg_errors))
-
+    # Production config: scripts/entrypoint.sh → validate_or_exit() (AUTO_APPROVE_PAYMENTS=1 ruxsat).
     if not settings.bot_token:
         raise RuntimeError("BOT_TOKEN is missing — cannot start webhook application")
 
