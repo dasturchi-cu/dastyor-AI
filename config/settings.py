@@ -8,7 +8,8 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
-load_dotenv(override=True)
+# Pytest/conftest sets _HUJJATCHI_TEST=1 before imports — do not let .env override test flags.
+load_dotenv(override=os.getenv("_HUJJATCHI_TEST", "").strip() != "1")
 
 logger = logging.getLogger(__name__)
 
@@ -94,8 +95,8 @@ class Settings:
     premium_admin_group_id: int = field(
         default_factory=lambda: _env_int("PREMIUM_ADMIN_GROUP_ID", _env_int("SUPPORT_GROUP_ID", -1003457224552))
     )
-    payment_card_number: str = field(default_factory=lambda: _env("PAYMENT_CARD_NUMBER", "9860 1201 7225 8424"))
-    payment_card_owner: str = field(default_factory=lambda: _env("PAYMENT_CARD_OWNER", "DILNOZA MOMINOVA"))
+    payment_card_number: str = field(default_factory=lambda: _env("PAYMENT_CARD_NUMBER"))
+    payment_card_owner: str = field(default_factory=lambda: _env("PAYMENT_CARD_OWNER"))
     single_doc_price_uzs: int = field(default_factory=lambda: _env_int("SINGLE_DOC_PRICE_UZS", 7999))
     webapp_base: str = field(default_factory=resolve_webapp_base)
     webapp_version: str = field(default_factory=lambda: _env("WEBAPP_VERSION", "20260622i"))
@@ -118,7 +119,10 @@ class Settings:
     ai_max_retries: int = field(default_factory=lambda: _env_int("AI_MAX_RETRIES", 3))
     gemini_timeout: int = field(default_factory=lambda: _env_int("GEMINI_TIMEOUT", 90))
     auto_approve_payments: bool = field(
-        default_factory=lambda: _env("AUTO_APPROVE_PAYMENTS", "1").lower() in ("1", "true", "yes", "on")
+        default_factory=lambda: _env("AUTO_APPROVE_PAYMENTS", "0").lower() in ("1", "true", "yes", "on")
+    )
+    enable_demo_pdf_api: bool = field(
+        default_factory=lambda: _env("ENABLE_DEMO_PDF_API", "0").lower() in ("1", "true", "yes", "on")
     )
     admin_report_hour: int = field(default_factory=lambda: _env_int("ADMIN_REPORT_HOUR", 21))
     admin_report_timezone: str = field(

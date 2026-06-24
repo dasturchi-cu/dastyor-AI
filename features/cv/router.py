@@ -50,7 +50,8 @@ async def api_cv_saved(
 
 
 @router.post("/api/cv_preview_html")
-async def api_cv_preview(req: ExportCVRequest) -> HTMLResponse:
+async def api_cv_preview(req: ExportCVRequest, request: Request) -> HTMLResponse:
+    await rate_limit(request)
     data = req.model_dump(exclude={"telegram_id", "token", "send_only", "format"})
     cache_key = cache_key_for_cv_preview(data)
     cached = cv_preview_cache_get(cache_key)

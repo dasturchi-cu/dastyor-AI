@@ -19,13 +19,21 @@ def resolve_uid(telegram_id: Optional[str] = None, token: Optional[str] = None) 
     Production: session token only (issued after initData-validated /api/auth).
     Dev: optional telegram_id when ALLOW_INSECURE_AUTH=1.
     """
+    uid: int | None = None
     if token:
-        uid = resolve_telegram_id(token)
-        if uid and str(uid).isdigit():
-            return int(uid)
-    if _INSECURE and telegram_id and str(telegram_id).strip().isdigit():
-        return int(telegram_id)
-    return None
+        resolved = resolve_telegram_id(token)
+        if resolved and str(resolved).isdigit():
+            uid = int(resolved)
+    if uid is None and _INSECURE and telegram_id and str(telegram_id).strip().isdigit():
+        uid = int(telegram_id)
+    if uid is None:
+        return None
+    if not is_admin(uid):
+        from database.repositories import users as users_repo
+
+        if users_repo.is_blocked(uid):
+            return None
+    return uid
 
 
 def resolve_uid_from_webapp(
@@ -69,7 +77,13 @@ def resolve_uid_from_webapp(
         if int(telegram_id) != int(verified_id):
             return None
 
-    return int(verified_id)
+    uid = int(verified_id)
+    if not is_admin(uid):
+        from database.repositories import users as users_repo
+
+        if users_repo.is_blocked(uid):
+            return None
+    return uid
 
 
 def is_admin(telegram_id: int | None) -> bool:

@@ -81,6 +81,9 @@ async def run_polling() -> None:
 
 
 def main() -> None:
+    from config.validate import validate_or_exit
+
+    validate_or_exit()
     if not settings.bot_token:
         logger.critical("BOT_TOKEN missing — set in .env")
         sys.exit(1)

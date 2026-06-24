@@ -276,8 +276,9 @@ async def _build_oby_preview_pdf(payload: dict) -> bytes:
 
 
 @router.post("/api/preview_obyektivka")
-async def api_preview_oby(req: PreviewObyektivkaRequest) -> Response:
+async def api_preview_oby(req: PreviewObyektivkaRequest, request: Request) -> Response:
     """Preview = DOCX → PDF (reference template); HTML → PDF fallback."""
+    await rate_limit(request)
     from backend.services.oby_preview_cache import (
         cache_key_for_oby_preview,
         oby_preview_cache_get,
@@ -308,8 +309,9 @@ async def api_preview_oby(req: PreviewObyektivkaRequest) -> Response:
 
 
 @router.post("/api/preview_obyektivka_html")
-async def api_preview_obyektivka_html(req: PreviewObyektivkaRequest) -> HTMLResponse:
+async def api_preview_obyektivka_html(req: PreviewObyektivkaRequest, request: Request) -> HTMLResponse:
     """Live preview — fast HTML (all devices; avoids slow DOCX→PDF on Railway)."""
+    await rate_limit(request)
     from backend.services.oby_preview_cache import (
         cache_key_for_oby_preview,
         oby_html_preview_cache_get,
@@ -335,7 +337,11 @@ async def api_preview_obyektivka_html(req: PreviewObyektivkaRequest) -> HTMLResp
 
 @router.post("/api/test_obyektivka_pdf")
 async def api_test_obyektivka_pdf(req: TestObyektivkaPdfRequest, request: Request):
-    """Demo PDF — DOCX template → PDF (same as live preview)."""
+    """Demo PDF — DOCX template → PDF (disabled in production unless ENABLE_DEMO_PDF_API=1)."""
+    from config.settings import settings
+
+    if not settings.enable_demo_pdf_api:
+        raise HTTPException(status_code=404, detail="Not found")
     import asyncio
 
     from backend.services.docx_to_pdf import docx_bytes_to_pdf

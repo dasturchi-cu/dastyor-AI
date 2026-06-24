@@ -11,14 +11,18 @@ logger = logging.getLogger(__name__)
 
 
 def _is_production() -> bool:
-    if settings.allow_insecure_auth:
+    if os.getenv("ALLOW_INSECURE_AUTH", "").strip().lower() in ("1", "true", "yes", "on"):
         return False
-    if os.getenv("RAILWAY_ENVIRONMENT") or os.getenv("RENDER") or os.getenv("PRODUCTION"):
-        return True
     skip = os.getenv("SKIP_WEBHOOK", "").strip().lower()
     if skip in ("1", "true", "yes", "on"):
         return False
+    if os.getenv("RAILWAY_ENVIRONMENT") or os.getenv("RENDER") or os.getenv("PRODUCTION"):
+        return True
     return bool(settings.webhook_url)
+
+
+def is_production() -> bool:
+    return _is_production()
 
 
 def validate_settings(*, strict: bool | None = None) -> list[str]:
@@ -34,8 +38,12 @@ def validate_settings(*, strict: bool | None = None) -> list[str]:
             errors.append("WEBHOOK_URL is required in production webhook mode")
         if not settings.admin_user_ids:
             errors.append("ADMIN_USER_ID is required in production")
-        if settings.allow_insecure_auth:
+        if os.getenv("ALLOW_INSECURE_AUTH", "").strip().lower() in ("1", "true", "yes", "on"):
             errors.append("ALLOW_INSECURE_AUTH must be 0 in production")
+        if os.getenv("AUTO_APPROVE_PAYMENTS", "0").strip().lower() in ("1", "true", "yes", "on"):
+            errors.append("AUTO_APPROVE_PAYMENTS must be 0 in production")
+        if not settings.payment_card_number:
+            errors.append("PAYMENT_CARD_NUMBER is required in production")
 
     if not settings.google_api_key:
         logger.warning("GOOGLE_API_KEY missing — AI voice/text features disabled")

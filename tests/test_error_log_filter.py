@@ -27,10 +27,12 @@ class TestErrorLogFilter(unittest.TestCase):
         self.assertFalse(is_noise_error("pdf", "LibreOffice conversion failed"))
 
     def test_record_skips_noise(self):
-        before = len(error_logs_repo.list_recent(50))
+        import uuid
+
+        marker = f"unique_real_failure_{uuid.uuid4().hex}"
         record_error("payment", "Admin callback #1: chat not found")
-        record_error("pdf", "unique real failure xyz123")
-        rows = [r for r in error_logs_repo.list_recent(50) if "xyz123" in str(r.get("message"))]
+        record_error("pdf", marker)
+        rows = [r for r in error_logs_repo.list_recent(50) if marker in str(r.get("message"))]
         self.assertEqual(len(rows), 1)
 
     def test_purge_removes_noise(self):

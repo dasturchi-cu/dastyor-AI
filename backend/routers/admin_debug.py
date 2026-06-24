@@ -6,6 +6,7 @@ import os
 from fastapi import APIRouter, Header, HTTPException, Query, Request
 
 from config.settings import settings
+from config.validate import is_production
 from database.inspect import get_database_info
 from shared.auth import is_admin, resolve_uid
 
@@ -29,7 +30,12 @@ def _admin_authorized(
     if not secret:
         return False
 
-    allowed = {s for s in (settings.webhook_secret, os.getenv("ADMIN_DEBUG_SECRET", "")) if s}
+    allowed: set[str] = set()
+    debug_secret = os.getenv("ADMIN_DEBUG_SECRET", "").strip()
+    if debug_secret:
+        allowed.add(debug_secret)
+    if not is_production() and settings.webhook_secret:
+        allowed.add(settings.webhook_secret)
     return secret in allowed
 
 
