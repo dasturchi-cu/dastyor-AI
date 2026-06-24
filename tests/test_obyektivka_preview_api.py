@@ -61,6 +61,34 @@ class TestObyektivkaPreviewApi(unittest.TestCase):
         self.assertIn("Test User", res.text)
         self.assertIn("MEHNAT FAOLIYATI", res.text)
 
+    def test_demo_pdf_uses_html_renderer_not_docx(self):
+        from unittest.mock import AsyncMock, patch
+
+        fake_pdf = b"%PDF-1.4 demo"
+        with patch(
+            "features.obyektivka.router._build_oby_html_preview_pdf",
+            new_callable=AsyncMock,
+            return_value=fake_pdf,
+        ) as html_pdf:
+            with patch("features.obyektivka.docx_template.generate_obyektivka_docx_bytes") as docx_gen:
+                res = self.client.post(
+                    "/api/test_obyektivka_pdf",
+                    json={
+                        "telegram_id": 88001122,
+                        "lang": "uz_lat",
+                        "fullname": "Test User",
+                        "birthdate": "01.01.1990",
+                        "nation": "O'zbek",
+                        "work_experience": [],
+                        "relatives": [],
+                        "send_to_bot": False,
+                    },
+                )
+        self.assertEqual(res.status_code, 200, res.text[:300])
+        self.assertEqual(res.content, fake_pdf)
+        html_pdf.assert_awaited_once()
+        docx_gen.assert_not_called()
+
 
 if __name__ == "__main__":
     unittest.main()

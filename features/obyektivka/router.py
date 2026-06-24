@@ -244,46 +244,59 @@ def _pdf_inline_response(pdf_bytes: bytes, *, filename: str = "obyektivka_previe
     )
 
 
-async def _build_oby_preview_pdf(payload: dict) -> bytes:
-    """DOCX template → PDF; HTML template → PDF fallback."""
-    from backend.services.docx_to_pdf import docx_bytes_to_pdf
+async def _build_oby_html_preview_pdf(
+    payload: dict,
+    *,
+    watermark: bool = True,
+    mask_pii: bool = False,
+) -> bytes:
+    """Jonli web preview bilan bir xil: HTML shablon → PDF."""
     from backend.services.render_service import generate_obyektivka_pdf
     from config.settings import settings
+
+    html_payload = dict(payload)
+    html_payload["watermark"] = watermark
+    html_payload["mask_pii"] = mask_pii
+    pdf_bytes = await generate_obyektivka_pdf(
+        html_payload,
+        base_url=settings.webapp_base or settings.site_base_url,
+        watermark=watermark,
+        mask_pii=mask_pii,
+    )
+    if not _valid_pdf(pdf_bytes):
+        raise RuntimeError("HTML PDF yaratib bo'lmadi")
+    return pdf_bytes
+
+
+async def _build_oby_preview_pdf(payload: dict) -> bytes:
+    """HTML template → PDF (jonli ko'rinish); DOCX → PDF faqat zaxira."""
+    try:
+        pdf_bytes = await _build_oby_html_preview_pdf(payload, watermark=True, mask_pii=False)
+        logger.info("preview_obyektivka: served via HTML PDF")
+        return pdf_bytes
+    except Exception as exc:
+        logger.exception("preview_obyektivka HTML pdf failed, trying DOCX fallback")
+        from shared.error_log import record_error
+
+        record_error("pdf", f"Obyektivka preview HTML: {exc}")
+
+    from backend.services.docx_to_pdf import docx_bytes_to_pdf
     from features.obyektivka.docx_template import generate_obyektivka_docx_bytes
 
     def _docx_pdf() -> bytes:
         docx_bytes = generate_obyektivka_docx_bytes(payload)
         return docx_bytes_to_pdf(docx_bytes)
 
-    try:
-        pdf_bytes = await asyncio.to_thread(_docx_pdf)
-        if _valid_pdf(pdf_bytes):
-            return pdf_bytes
-        logger.warning("preview_obyektivka: DOCX→PDF returned invalid bytes (%s)", len(pdf_bytes or b""))
-    except Exception as exc:
-        logger.exception("preview_obyektivka docx pdf failed, trying HTML fallback")
-        from shared.error_log import record_error
-
-        record_error("docx", f"Obyektivka preview DOCX: {exc}")
-
-    html_payload = dict(payload)
-    html_payload.setdefault("watermark", True)
-    html_payload.setdefault("mask_pii", False)
-    pdf_bytes = await generate_obyektivka_pdf(
-        html_payload,
-        base_url=settings.webapp_base or settings.site_base_url,
-        watermark=bool(html_payload.get("watermark")),
-        mask_pii=bool(html_payload.get("mask_pii")),
-    )
+    pdf_bytes = await asyncio.to_thread(_docx_pdf)
     if not _valid_pdf(pdf_bytes):
-        raise RuntimeError("PDF yaratib bo'lmadi (DOCX va HTML fallback muvaffaqiyatsiz)")
-    logger.info("preview_obyektivka: served via HTML fallback PDF")
+        raise RuntimeError("PDF yaratib bo'lmadi (HTML va DOCX muvaffaqiyatsiz)")
+    logger.warning("preview_obyektivka: served via DOCX fallback PDF")
     return pdf_bytes
 
 
 @router.post("/api/preview_obyektivka")
 async def api_preview_oby(req: PreviewObyektivkaRequest, request: Request) -> Response:
-    """Preview = DOCX → PDF (reference template); HTML → PDF fallback."""
+    """Preview PDF = HTML shablon (jonli ko'rinish bilan bir xil); DOCX zaxira."""
     uid = resolve_uid_from_webapp(req.telegram_id, req.token, req.init_data)
     if not uid:
         raise HTTPException(status_code=401, detail="Avtorizatsiya talab qilinadi.")
@@ -349,29 +362,26 @@ async def api_preview_obyektivka_html(req: PreviewObyektivkaRequest, request: Re
 
 @router.post("/api/test_obyektivka_pdf")
 async def api_test_obyektivka_pdf(req: TestObyektivkaPdfRequest, request: Request):
-    """Demo PDF — DOCX template → PDF (disabled in production unless ENABLE_DEMO_PDF_API=1)."""
+    """Demo PDF — HTML shablon → PDF (jonli preview bilan bir xil, watermark)."""
     from config.settings import settings
 
     if not settings.enable_demo_pdf_api:
         logger.warning("test_obyektivka_pdf: disabled (ENABLE_DEMO_PDF_API=0)")
         raise HTTPException(status_code=404, detail="Not found")
-    import asyncio
-
-    from backend.services.docx_to_pdf import docx_bytes_to_pdf
-    from config.settings import settings
-    from features.obyektivka.docx_template import generate_obyektivka_docx_bytes
 
     await rate_limit(request)
     payload = req.model_dump(
         exclude={"watermark", "mask_pii", "telegram_id", "token", "init_data", "send_to_bot"}
     )
 
-    def _build_pdf() -> bytes:
-        return docx_bytes_to_pdf(generate_obyektivka_docx_bytes(payload))
+    try:
+        pdf_bytes = await _build_oby_html_preview_pdf(payload, watermark=True, mask_pii=False)
+    except Exception as exc:
+        logger.exception("test_obyektivka_pdf")
+        from shared.error_log import record_error
 
-    pdf_bytes = await asyncio.to_thread(_build_pdf)
-    if not pdf_bytes:
-        raise HTTPException(status_code=500, detail="PDF yaratib bo'lmadi")
+        record_error("pdf", f"Obyektivka demo PDF: {exc}")
+        raise HTTPException(status_code=500, detail="PDF yaratib bo'lmadi") from exc
 
     safe_name = re.sub(r"[^\w\u0400-\u04FF]+", "_", (payload.get("fullname") or "Obyektivka"))[:40]
     filename = f"DEMO_Malumotnoma_{safe_name or 'Obyektivka'}.pdf"
