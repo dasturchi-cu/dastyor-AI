@@ -53,15 +53,28 @@ async def api_me(token: str | None = Query(None), telegram_id: str | None = Quer
 
 
 @router.post("/api/auth")
-async def api_auth(req: AuthRequest) -> dict:
+async def api_auth(req: AuthRequest, request: Request) -> dict:
+    from core.security import client_ip, rate_limit
+    from core.turnstile import verify_turnstile
+    from shared.security_audit import EVENT_AUTH_FAILED, EVENT_AUTH_SUCCESS, log_security_event
     from shared.session_service import create_session
     from database.repositories import users as users_repo
+
+    await rate_limit(request)
+    ip = client_ip(request)
+
+    if settings.turnstile_secret_key:
+        ok = await verify_turnstile(req.turnstile_token, remote_ip=ip)
+        if not ok:
+            log_security_event(EVENT_AUTH_FAILED, severity="warn", ip=ip, details="turnstile")
+            raise HTTPException(status_code=403, detail="Bot tekshiruvi muvaffaqiyatsiz")
 
     body = req
     init_data = (body.init_data or "").strip()
 
     if not settings.allow_insecure_auth:
         if not init_data:
+            log_security_event(EVENT_AUTH_FAILED, ip=ip, user_id=body.telegram_id, details="no_init_data")
             raise HTTPException(status_code=401, detail="init_data talab qilinadi")
         validated = validate_init_data(
             init_data,
@@ -69,9 +82,11 @@ async def api_auth(req: AuthRequest) -> dict:
             max_age_seconds=settings.init_data_max_age_seconds,
         )
         if not validated:
+            log_security_event(EVENT_AUTH_FAILED, ip=ip, user_id=body.telegram_id, details="bad_init_data")
             raise HTTPException(status_code=401, detail="init_data noto'g'ri yoki muddati o'tgan")
         verified_id = extract_telegram_user_id(validated)
         if not verified_id or int(verified_id) != int(body.telegram_id):
+            log_security_event(EVENT_AUTH_FAILED, ip=ip, user_id=body.telegram_id, details="id_mismatch")
             raise HTTPException(status_code=401, detail="Foydalanuvchi tasdiqlanmadi")
 
     await async_db.run(
@@ -87,6 +102,7 @@ async def api_auth(req: AuthRequest) -> dict:
         username=body.username,
         photo_url=body.photo_url,
     )
+    log_security_event(EVENT_AUTH_SUCCESS, ip=ip, user_id=body.telegram_id)
     return {"ok": True, "token": token, "telegram_id": body.telegram_id}
 
 
@@ -99,10 +115,10 @@ async def api_submit_payment(
     telegram_id: str | None = Form(None),
     token: str | None = Form(None),
 ) -> dict:
-    await rate_limit(request)
     uid = resolve_uid(telegram_id, token)
     if not uid:
         raise HTTPException(status_code=401, detail="Foydalanuvchi aniqlanmadi")
+    await rate_limit(request, user_id=uid)
 
     if not payer_name.strip():
         raise HTTPException(status_code=400, detail="Ism kiritilmagan")
@@ -110,10 +126,21 @@ async def api_submit_payment(
         raise HTTPException(status_code=400, detail="Karta raqami noto'g'ri")
 
     raw = await receipt.read()
-    if not raw:
-        raise HTTPException(status_code=400, detail="Chek rasmi bo'sh")
     if not allowed_image(receipt.filename or "", receipt.content_type):
         raise HTTPException(status_code=400, detail="Faqat rasm (JPG/PNG) qabul qilinadi")
+    from core.file_validation import validate_image_bytes
+    from shared.security_audit import EVENT_FILE_REJECTED, log_security_event
+
+    try:
+        validate_image_bytes(raw)
+    except HTTPException as exc:
+        log_security_event(
+            EVENT_FILE_REJECTED,
+            severity="warn",
+            user_id=uid,
+            details=str(exc.detail),
+        )
+        raise
 
     payment = payment_service.submit_payment(
         uid,

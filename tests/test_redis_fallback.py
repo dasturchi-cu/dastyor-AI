@@ -68,6 +68,8 @@ def test_rate_limit_memory_fallback():
     async def _run():
         with patch("core.security.settings") as mock_settings:
             mock_settings.rate_limit_per_minute = 100
+            mock_settings.global_rate_limit_per_minute = 0
+            mock_settings.rate_limit_per_user_minute = 0
             for _ in range(5):
                 await rate_limit(req, key="test-client-fallback")
 

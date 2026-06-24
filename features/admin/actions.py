@@ -15,6 +15,7 @@ from database.repositories import generated_files as files_repo
 from database.repositories import payments as payments_repo
 from features.admin import service as admin_service
 from features.admin.dashboard import build_dashboard_text, start_dashboard
+from features.admin.security_dashboard import build_security_dashboard_text
 from features.admin.formatters import (
     build_payments_list_text,
     build_statistics_text,
@@ -167,6 +168,15 @@ async def handle_dashboard_refresh(message: Message, state: FSMContext) -> None:
         chat_id=message.chat.id,
     )
     await message.answer("🔄 Dashboard yangilandi.", reply_markup=admin_menu())
+
+
+async def handle_security_dashboard(message: Message, state: FSMContext) -> None:
+    await state.clear()
+    from database.repositories import security_dashboard as sec_dash_repo
+
+    snapshot = await _run_sync(sec_dash_repo.security_snapshot)
+    text = build_security_dashboard_text(snapshot)
+    await message.answer(text, reply_markup=admin_menu())
 
 
 async def handle_close(message: Message, state: FSMContext) -> None:

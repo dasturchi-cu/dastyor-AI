@@ -14,6 +14,7 @@ from shared.keyboards import (
     ADMIN_BTN_BROADCAST,
     ADMIN_BTN_CLOSE,
     ADMIN_BTN_DASHBOARD,
+    ADMIN_BTN_SECURITY,
     ADMIN_BTN_ERRORS,
     ADMIN_BTN_EXPORT,
     ADMIN_BTN_FILES,
@@ -45,6 +46,7 @@ MENU_DISPATCH: dict[str, MenuHandler] = {
     ADMIN_BTN_FILES: admin_actions.handle_files,
     ADMIN_BTN_SETTINGS: admin_actions.handle_settings,
     ADMIN_BTN_DASHBOARD: admin_actions.handle_dashboard_refresh,
+    ADMIN_BTN_SECURITY: admin_actions.handle_security_dashboard,
     ADMIN_BTN_CLOSE: admin_actions.handle_close,
 }
 

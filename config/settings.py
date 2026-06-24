@@ -139,6 +139,26 @@ class Settings:
     port: int = field(default_factory=lambda: _env_int("PORT", 8000))
     db_path: Path = field(default_factory=lambda: DB_PATH)
     rate_limit_per_minute: int = field(default_factory=lambda: _env_int("RATE_LIMIT_PER_MINUTE", 60))
+    rate_limit_per_user_minute: int = field(
+        default_factory=lambda: _env_int("RATE_LIMIT_PER_USER_MINUTE", 30)
+    )
+    global_rate_limit_per_minute: int = field(
+        default_factory=lambda: _env_int("GLOBAL_RATE_LIMIT_PER_MINUTE", 500)
+    )
+    ai_requests_per_user_day: int = field(
+        default_factory=lambda: _env_int("AI_REQUESTS_PER_USER_DAY", 50)
+    )
+    max_upload_image_bytes: int = field(
+        default_factory=lambda: _env_int("MAX_UPLOAD_IMAGE_BYTES", 6 * 1024 * 1024)
+    )
+    max_upload_audio_bytes: int = field(
+        default_factory=lambda: _env_int("MAX_UPLOAD_AUDIO_BYTES", 10 * 1024 * 1024)
+    )
+    turnstile_site_key: str = field(default_factory=lambda: _env("TURNSTILE_SITE_KEY"))
+    turnstile_secret_key: str = field(default_factory=lambda: _env("TURNSTILE_SECRET_KEY"))
+    enforce_origin_check: bool = field(
+        default_factory=lambda: _env("ENFORCE_ORIGIN_CHECK", "1").lower() in ("1", "true", "yes", "on")
+    )
     webhook_secret: str = field(default_factory=lambda: _resolve_webhook_secret())
     allow_insecure_auth: bool = field(
         default_factory=lambda: _env("ALLOW_INSECURE_AUTH", "").lower() in ("1", "true", "yes", "on")
@@ -150,8 +170,17 @@ class Settings:
     use_redis: bool = field(
         default_factory=lambda: _env("USE_REDIS", "0").lower() in ("1", "true", "yes", "on")
     )
-    ai_max_retries: int = field(default_factory=lambda: _env_int("AI_MAX_RETRIES", 3))
+    ai_max_retries: int = field(default_factory=lambda: _env_int("AI_MAX_RETRIES", 2))
     gemini_timeout: int = field(default_factory=lambda: _env_int("GEMINI_TIMEOUT", 90))
+    ai_provider: str = field(default_factory=lambda: _env("AI_PROVIDER", "gemini"))
+    ai_fallback_order: str = field(
+        default_factory=lambda: _env("AI_FALLBACK_ORDER", "openai,openrouter,groq,cloudflare")
+    )
+    ai_request_timeout_ms: int = field(default_factory=lambda: _env_int("AI_REQUEST_TIMEOUT_MS", 90_000))
+    ai_retry_delay_ms: int = field(default_factory=lambda: _env_int("AI_RETRY_DELAY_MS", 1500))
+    ai_provider_cooldown_ms: int = field(
+        default_factory=lambda: _env_int("AI_PROVIDER_COOLDOWN_MS", 900_000)
+    )
     auto_approve_payments: bool = field(
         default_factory=lambda: _env("AUTO_APPROVE_PAYMENTS", "1").lower() in ("1", "true", "yes", "on")
     )

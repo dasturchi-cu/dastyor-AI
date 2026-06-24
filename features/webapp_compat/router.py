@@ -7,7 +7,8 @@ from fastapi import APIRouter, HTTPException, Request
 
 from backend.schemas.webapp import NotifyRequest, TranslateRequest, TranslitRequest
 from backend.services.auto_script import auto_cyrillic_latin
-from core.security import rate_limit
+from core.security import rate_limit, sanitize_text
+from shared.security_audit import EVENT_NOTIFY_ABUSE, log_security_event
 from database.repositories import users as users_repo
 from features.ai.gemini_client import translate_text
 from shared.auth import resolve_uid
@@ -54,14 +55,18 @@ async def api_notify(body: NotifyRequest, request: Request) -> dict:
     uid = resolve_uid(str(body.telegram_id), body.token)
     if not uid or int(uid) != int(body.telegram_id):
         raise HTTPException(status_code=401, detail="Foydalanuvchi aniqlanmadi")
+    await rate_limit(request, user_id=uid)
+    msg = sanitize_text(str(body.message)[:500], max_len=500)
+    if len(msg) < 3:
+        raise HTTPException(status_code=400, detail="Xabar juda qisqa")
     bot = getattr(request.app.state, "bot", None)
     if not bot:
         raise HTTPException(status_code=503, detail="Bot mavjud emas")
     try:
-        await bot.send_message(int(uid), str(body.message)[:4000])
+        await bot.send_message(int(uid), msg)
         return {"ok": True}
     except Exception as e:
-        logger.warning("notify failed: %s", e)
+        log_security_event(EVENT_NOTIFY_ABUSE, user_id=uid, details=str(e)[:200])
         raise HTTPException(status_code=500, detail="Xabar yuborib bo'lmadi") from e
 
 

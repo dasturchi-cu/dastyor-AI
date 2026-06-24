@@ -354,6 +354,26 @@ def migration_009_ai_routing_logs(conn: sqlite3.Connection) -> None:
     )
 
 
+def migration_010_security_events(conn: sqlite3.Connection) -> None:
+    conn.executescript(
+        """
+        CREATE TABLE IF NOT EXISTS security_events (
+            id              INTEGER PRIMARY KEY AUTOINCREMENT,
+            event_type      TEXT NOT NULL,
+            severity        TEXT NOT NULL DEFAULT 'info',
+            ip              TEXT,
+            user_id         INTEGER,
+            details         TEXT,
+            created_at      TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+        CREATE INDEX IF NOT EXISTS idx_security_events_type ON security_events(event_type);
+        CREATE INDEX IF NOT EXISTS idx_security_events_created ON security_events(created_at DESC);
+        CREATE INDEX IF NOT EXISTS idx_security_events_ip ON security_events(ip);
+        CREATE INDEX IF NOT EXISTS idx_security_events_severity ON security_events(severity);
+        """
+    )
+
+
 MIGRATIONS: list[tuple[int, str, MigrationFn]] = [
     (1, "legacy_columns", migration_001_legacy_columns),
     (2, "new_tables", migration_002_new_tables),
@@ -364,6 +384,7 @@ MIGRATIONS: list[tuple[int, str, MigrationFn]] = [
     (7, "settings_id_column", migration_007_settings_id_column),
     (8, "extra_indexes", migration_008_extra_indexes),
     (9, "ai_routing_logs", migration_009_ai_routing_logs),
+    (10, "security_events", migration_010_security_events),
 ]
 
 

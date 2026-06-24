@@ -12,6 +12,7 @@ class AuthRequest(BaseModel):
     username: str = ""
     photo_url: str = ""
     init_data: str = ""
+    turnstile_token: str = ""
 
 
 class TranslitRequest(BaseModel):
@@ -175,6 +176,9 @@ class ExportObyektivkaRequest(BaseModel):
 
 
 class PreviewObyektivkaRequest(BaseModel):
+    telegram_id: Optional[int] = None
+    token: Optional[str] = None
+    init_data: Optional[str] = None
     lang: str = "uz_lat"
     fullname: str = ""
     birthdate: str = ""

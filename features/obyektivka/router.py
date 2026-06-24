@@ -13,7 +13,7 @@ from fastapi import APIRouter, File, Form, HTTPException, Query, Request, Upload
 from fastapi.responses import HTMLResponse, JSONResponse, Response, StreamingResponse
 
 from backend.schemas.webapp import ExportObyektivkaRequest, ObyektivkaRequest, PreviewObyektivkaRequest, TestObyektivkaPdfRequest
-from core.security import rate_limit
+from core.security import check_ai_user_quota, rate_limit
 from database.repositories import obyektivka_data as oby_repo
 from features.ai.service import (
     count_oby_populated_fields,
@@ -132,14 +132,19 @@ async def api_oby_voice_fill(
     telegram_id: str | None = Form(None),
     token: str | None = Form(None),
 ) -> dict:
-    await rate_limit(request)
     uid = resolve_uid(telegram_id, token)
     if not uid:
         raise HTTPException(status_code=401, detail="Foydalanuvchi aniqlanmadi")
+    await rate_limit(request, user_id=uid)
+    await check_ai_user_quota(uid)
 
     raw = await audio.read()
     if not raw:
         raise HTTPException(status_code=400, detail="Audio bo'sh")
+
+    from core.file_validation import validate_audio_bytes
+
+    validate_audio_bytes(raw)
 
     ext = os.path.splitext(audio.filename or "")[1] or ".ogg"
     job_id = voice_jobs.create_job(uid, "oby")
@@ -149,10 +154,11 @@ async def api_oby_voice_fill(
 
 @router.post("/api/oby_text_fill")
 async def api_oby_text_fill(body: dict, request: Request) -> dict:
-    await rate_limit(request)
     uid = resolve_uid(str(body.get("telegram_id") or ""), body.get("token"))
     if not uid:
         raise HTTPException(status_code=401, detail="Foydalanuvchi aniqlanmadi")
+    await rate_limit(request, user_id=uid)
+    await check_ai_user_quota(uid)
     text = str(body.get("text") or "").strip()
     if not text:
         raise HTTPException(status_code=400, detail="Matn bo'sh")
@@ -278,7 +284,10 @@ async def _build_oby_preview_pdf(payload: dict) -> bytes:
 @router.post("/api/preview_obyektivka")
 async def api_preview_oby(req: PreviewObyektivkaRequest, request: Request) -> Response:
     """Preview = DOCX → PDF (reference template); HTML → PDF fallback."""
-    await rate_limit(request)
+    uid = resolve_uid_from_webapp(req.telegram_id, req.token, req.init_data)
+    if not uid:
+        raise HTTPException(status_code=401, detail="Avtorizatsiya talab qilinadi.")
+    await rate_limit(request, user_id=uid)
     from backend.services.oby_preview_cache import (
         cache_key_for_oby_preview,
         oby_preview_cache_get,
@@ -311,7 +320,10 @@ async def api_preview_oby(req: PreviewObyektivkaRequest, request: Request) -> Re
 @router.post("/api/preview_obyektivka_html")
 async def api_preview_obyektivka_html(req: PreviewObyektivkaRequest, request: Request) -> HTMLResponse:
     """Live preview — fast HTML (all devices; avoids slow DOCX→PDF on Railway)."""
-    await rate_limit(request)
+    uid = resolve_uid_from_webapp(req.telegram_id, req.token, req.init_data)
+    if not uid:
+        raise HTTPException(status_code=401, detail="Avtorizatsiya talab qilinadi.")
+    await rate_limit(request, user_id=uid)
     from backend.services.oby_preview_cache import (
         cache_key_for_oby_preview,
         oby_html_preview_cache_get,

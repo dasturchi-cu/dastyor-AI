@@ -60,6 +60,7 @@ ADMIN_BTN_ERRORS = "⚠️ Xatolar"
 ADMIN_BTN_FILES = "📁 Fayllar"
 ADMIN_BTN_SETTINGS = "⚙️ Sozlamalar"
 ADMIN_BTN_DASHBOARD = "🔄 Dashboard"
+ADMIN_BTN_SECURITY = "🔒 Xavfsizlik"
 ADMIN_BTN_CLOSE = "🚪 Yopish"
 
 ADMIN_MENU_TEXTS = frozenset(
@@ -77,6 +78,7 @@ ADMIN_MENU_TEXTS = frozenset(
         ADMIN_BTN_FILES,
         ADMIN_BTN_SETTINGS,
         ADMIN_BTN_DASHBOARD,
+        ADMIN_BTN_SECURITY,
         ADMIN_BTN_CLOSE,
     }
 )
@@ -181,7 +183,8 @@ def admin_menu() -> ReplyKeyboardMarkup:
             [KeyboardButton(text=ADMIN_BTN_BROADCAST), KeyboardButton(text=ADMIN_BTN_EXPORT)],
             [KeyboardButton(text=ADMIN_BTN_TOP), KeyboardButton(text=ADMIN_BTN_SETTINGS)],
             [KeyboardButton(text=ADMIN_BTN_FILES), KeyboardButton(text=ADMIN_BTN_DASHBOARD)],
-            [KeyboardButton(text=ADMIN_BTN_ERRORS), KeyboardButton(text=ADMIN_BTN_CLOSE)],
+            [KeyboardButton(text=ADMIN_BTN_ERRORS), KeyboardButton(text=ADMIN_BTN_SECURITY)],
+            [KeyboardButton(text=ADMIN_BTN_CLOSE)],
         ],
         resize_keyboard=True,
     )

@@ -11,6 +11,9 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from backend.middleware.gzip_safe import SelectiveGZipMiddleware
+from backend.middleware.global_rate_limit import register_global_rate_limit_middleware
+from backend.middleware.origin_guard import register_origin_guard_middleware
+from backend.middleware.security_headers import register_security_headers_middleware
 
 from backend.exception_handlers import register_exception_handlers
 from backend.middleware.maintenance import register_maintenance_middleware
@@ -19,6 +22,7 @@ from backend.middleware.request_id import register_request_id_middleware
 from backend.middleware.webapp import register_webapp_middleware
 from backend.routers.admin_debug import router as admin_debug_router
 from backend.routers.ai_monitoring import router as ai_monitoring_router
+from backend.routers.security_dashboard import router as security_dashboard_router
 from backend.routers.site import router as site_router
 from backend.routers.tg_update import router as tg_update_router
 from config.settings import WEBAPP_DIR, settings
@@ -118,6 +122,9 @@ def create_webhook_app() -> FastAPI:
         allow_methods=["GET", "POST", "OPTIONS"],
         allow_headers=["*"],
     )
+    register_security_headers_middleware(app)
+    register_origin_guard_middleware(app)
+    register_global_rate_limit_middleware(app)
     app.add_middleware(SelectiveGZipMiddleware, minimum_size=512)
     register_request_id_middleware(app)
     app.add_middleware(PerformanceMiddleware)
@@ -128,6 +135,7 @@ def create_webhook_app() -> FastAPI:
     app.include_router(site_router)
     app.include_router(admin_debug_router)
     app.include_router(ai_monitoring_router)
+    app.include_router(security_dashboard_router)
     app.include_router(payment_router)
     app.include_router(cv_router)
     app.include_router(oby_router)

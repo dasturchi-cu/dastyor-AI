@@ -20,6 +20,7 @@ REQUIRED_TABLES = (
     "ai_sessions",
     "activity_events",
     "error_logs",
+    "ai_request_logs",
 )
 
 REQUIRED_INDEXES = (

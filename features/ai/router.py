@@ -9,7 +9,7 @@ import uuid
 from fastapi import APIRouter, File, Form, HTTPException, Query, Request, UploadFile
 from pydantic import BaseModel
 
-from core.security import rate_limit
+from core.security import check_ai_user_quota, rate_limit
 from database.repositories import ai_sessions as sessions_repo
 from features.ai.service import (
     count_cv_populated_fields,
@@ -102,14 +102,19 @@ async def api_cv_voice_fill(
     telegram_id: str | None = Form(None),
     token: str | None = Form(None),
 ) -> dict:
-    await rate_limit(request)
     uid = resolve_uid(telegram_id, token)
     if not uid:
         raise HTTPException(status_code=401, detail="Foydalanuvchi aniqlanmadi")
+    await rate_limit(request, user_id=uid)
+    await check_ai_user_quota(uid)
 
     raw = await audio.read()
     if not raw:
         raise HTTPException(status_code=400, detail="Audio bo'sh")
+
+    from core.file_validation import validate_audio_bytes
+
+    validate_audio_bytes(raw)
 
     from config.paths import temp_dir
 
@@ -142,13 +147,14 @@ async def api_cv_voice_job(
 
 @router.post("/api/cv_text_fill")
 async def api_cv_text_fill(body: TextFillRequest, request: Request) -> dict:
-    await rate_limit(request)
     uid = resolve_uid(
         str(body.telegram_id) if body.telegram_id else None,
         body.token,
     )
     if not uid:
         raise HTTPException(status_code=401, detail="Foydalanuvchi aniqlanmadi")
+    await rate_limit(request, user_id=uid)
+    await check_ai_user_quota(uid)
     text = (body.text or "").strip()
     if not text:
         raise HTTPException(status_code=400, detail="Matn bo'sh")

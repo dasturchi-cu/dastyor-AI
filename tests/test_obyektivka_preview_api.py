@@ -24,6 +24,7 @@ class TestObyektivkaPreviewApi(unittest.TestCase):
         res = self.client.post(
             "/api/preview_obyektivka",
             json={
+                "telegram_id": 88001122,
                 "lang": "uz_lat",
                 "fullname": "Test User",
                 "birthdate": "01.01.1990",
@@ -44,6 +45,7 @@ class TestObyektivkaPreviewApi(unittest.TestCase):
         res = self.client.post(
             "/api/preview_obyektivka_html",
             json={
+                "telegram_id": 88001122,
                 "lang": "uz_lat",
                 "fullname": "Test User",
                 "birthdate": "01.01.1990",

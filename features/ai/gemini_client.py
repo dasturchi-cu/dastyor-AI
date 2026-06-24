@@ -44,7 +44,7 @@ def _first_gemini_api_key() -> str:
     from features.ai.routing.types import ProviderName
 
     cfg = load_routing_config()
-    keys = cfg["providers"][ProviderName.GEMINI].api_keys
+    keys = cfg.providers[ProviderName.GEMINI].api_keys
     if keys:
         return keys[0]
     return GOOGLE_API_KEY or ""

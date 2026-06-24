@@ -24,6 +24,10 @@ def _verify_webhook_secret(request: Request) -> bool:
 @router.post("/webhook")
 async def webhook(request: Request) -> Response:
     if not _verify_webhook_secret(request):
+        from core.security import client_ip
+        from shared.security_audit import EVENT_WEBHOOK_REJECTED, log_security_event
+
+        log_security_event(EVENT_WEBHOOK_REJECTED, severity="critical", ip=client_ip(request))
         logger.warning("Webhook rejected: invalid secret token")
         return Response(status_code=403)
 
