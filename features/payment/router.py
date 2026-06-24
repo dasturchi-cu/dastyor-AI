@@ -218,9 +218,13 @@ async def _notify_admin_payment(
 
         from shared.keyboards import payment_review_kb
         from shared.payment_notifications import build_payment_notification_text
+        from shared.payment_test_filter import is_test_payment
 
         pid = int(payment["id"])
         payment = payments_repo.get_payment(pid) or payment
+        if is_test_payment(payment):
+            logger.info("Skip admin notify for test payment #%s", pid)
+            return
         purchase_number = payments_repo.count_user_payments(int(payment.get("user_id") or 0))
         text = build_payment_notification_text(
             payment,

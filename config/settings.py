@@ -127,6 +127,17 @@ class Settings:
     pending_payment_reminder_hours: int = field(
         default_factory=lambda: _env_int("PENDING_PAYMENT_REMINDER_HOURS", 12)
     )
+    enable_pending_payment_reminders: bool = field(
+        default_factory=lambda: _env("ENABLE_PENDING_PAYMENT_REMINDERS", "1").lower()
+        in ("1", "true", "yes", "on")
+    )
+    payment_test_telegram_ids: frozenset[int] = field(
+        default_factory=lambda: frozenset(
+            int(v.strip())
+            for v in _env("PAYMENT_TEST_TELEGRAM_IDS", "").split(",")
+            if v.strip().isdigit()
+        )
+    )
     admin_dashboard_refresh_sec: int = field(
         default_factory=lambda: _env_int("ADMIN_DASHBOARD_REFRESH_SEC", 7)
     )

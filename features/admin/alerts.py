@@ -19,6 +19,7 @@ from shared.payment_notifications import (
     build_pending_payment_reminder,
     build_returning_customer_alert,
 )
+from shared.payment_test_filter import is_test_payment
 
 logger = logging.getLogger(__name__)
 
@@ -62,11 +63,22 @@ async def send_daily_report(bot: Bot) -> bool:
 
 async def check_pending_payment_reminders(bot: Bot) -> int:
     """Notify admin about stale pending payments. Returns count sent."""
+    if not settings.enable_pending_payment_reminders:
+        return 0
     hours = settings.pending_payment_reminder_hours
     stale = payments_repo.list_stale_pending(hours=hours, limit=20)
     sent = 0
     for payment in stale:
         pid = int(payment["id"])
+        if is_test_payment(payment):
+            payments_repo.mark_pending_reminder_sent(pid)
+            try:
+                from features.payment import service as payment_service
+
+                payment_service.reject_payment(pid, admin_note="test-audit-auto-reject")
+            except Exception as exc:
+                logger.debug("Auto-reject test payment #%s: %s", pid, exc)
+            continue
         text = build_pending_payment_reminder(payment, hours_pending=hours)
         kb = payment_review_kb(pid)
         receipt = payment.get("receipt_path")
@@ -96,6 +108,8 @@ async def notify_returning_customer(
     kind: str,
     purchase_number: int,
 ) -> None:
+    if is_test_payment(payment):
+        return
     user_id = int(payment.get("user_id") or 0)
     pid = int(payment.get("id") or 0)
     if not user_id:
