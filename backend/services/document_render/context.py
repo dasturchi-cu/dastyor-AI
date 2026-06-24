@@ -8,6 +8,7 @@ from typing import Any
 
 from backend.services.document_render.pii_mask import mask_relatives_for_preview, mask_text_for_preview
 from backend.services.document_render.photo import process_passport_photo
+from features.obyektivka.current_job import extract_current_job
 from backend.services.document_render.watermark import (
     preview_banner_text,
     watermark_opacity,
@@ -116,12 +117,15 @@ def build_obyektivka_render_context(
     work_items = [_normalize_work_item(w) for w in works_raw]
     work_items = [w for w in work_items if w.get("year") or w.get("position")]
 
+    lang_key = str(raw.get("lang") or "uz_lat")
     current_job = _to_text(raw.get("current_job"))
     current_job_year = _to_text(raw.get("current_job_year"))
-    if not current_job:
-        inferred_job, inferred_year, work_items = _infer_current_job(work_items)
-        current_job = inferred_job
-        current_job_year = inferred_year or current_job_year
+    current_job, current_job_year, work_items = extract_current_job(
+        work_items,
+        current_job=current_job,
+        current_job_year=current_job_year,
+        lang=lang_key,
+    )
 
     img = _to_text(raw.get("img") or raw.get("photo_data"))
     if process_photo and img:

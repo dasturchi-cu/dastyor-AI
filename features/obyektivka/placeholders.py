@@ -6,6 +6,7 @@ import json
 import re
 from typing import Any
 
+from features.obyektivka.current_job import extract_current_job, format_current_job_year, is_present_year_token
 from features.obyektivka.layout import labels_for
 
 NONE_UZ = "yo'q"
@@ -141,22 +142,19 @@ def build_placeholder_context(raw: dict[str, Any]) -> dict[str, str]:
     L = labels_for(lang)
 
     works_raw = _parse_list(raw.get("work_experience") or raw.get("works"))
-    work_lines = [_format_work_line(w) for w in works_raw]
-    work_lines = [w for w in work_lines if w]
+    lang_key = _to_text(raw.get("lang")) or "uz_lat"
 
     current_job = _to_text(raw.get("current_job"))
     current_job_year = _to_text(raw.get("current_job_year"))
-    if not current_job:
-        current_job, current_job_year, work_lines_items = _infer_current_job(works_raw)
-        if work_lines_items:
-            work_lines = [_format_work_line(w) for w in work_lines_items]
-            work_lines = [w for w in work_lines if w]
+    current_job, current_job_year, works_raw = extract_current_job(
+        works_raw,
+        current_job=current_job,
+        current_job_year=current_job_year,
+        lang=lang_key,
+    )
 
-    if current_job_year and not current_job_year.endswith(":"):
-        if lang == "uz_cyr":
-            current_job_year = f"{current_job_year.rstrip('.')} йилдан:"
-        else:
-            current_job_year = f"{current_job_year.rstrip('.')}-yildan:"
+    work_lines = [_format_work_line(w) for w in works_raw]
+    work_lines = [w for w in work_lines if w]
 
     ctx: dict[str, str] = {
         "fish": _val(_to_text(raw.get("fullname")), none=""),

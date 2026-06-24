@@ -233,8 +233,21 @@ def _enforce_table_cell_styles(root: etree._Element) -> None:
                             apply_plain_value_rpr(r_el)
 
 
+def _strip_highlights(root: etree._Element) -> None:
+    """Shablondagi sariq highlight — oddiy oq fon."""
+    for parent in root.findall(f".//{W}rPr") + root.findall(f".//{W}pPr"):
+        for hl in parent.findall(f"{W}highlight"):
+            parent.remove(hl)
+        shd = parent.find(f"{W}shd")
+        if shd is not None:
+            fill = (shd.get(f"{W}fill") or "").upper()
+            if fill in ("FFFF00", "YELLOW", "FFF000", "FFC000"):
+                parent.remove(shd)
+
+
 def enforce_reference_polish(root: etree._Element, context: dict[str, str] | None = None) -> None:
     """PPT namuna: qora harf, Times New Roman, sarlavha markazda, 1.15 interval."""
+    _strip_highlights(root)
     ctx = context or {}
     fish = (ctx.get("fish") or "").strip()
     hozirgi_yil = (ctx.get("hozirgi_yil") or "").strip()

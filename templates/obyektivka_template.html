@@ -131,17 +131,31 @@
       text-align: center;
       line-height: 1;
     }
-    .hdr-gap { height: 2mm; }
+    .hdr-gap { height: 4mm; }
     .hdr-name {
       font-size: 14pt;
       font-weight: bold;
       text-align: center;
       line-height: 1;
+      margin-bottom: 1mm;
     }
 
-    .current-job { margin: 0 0 2mm; font-size: 11pt; line-height: 1; }
+    .current-job {
+      margin: 0 0 5mm 0;
+      font-size: 11pt;
+      line-height: 1.15;
+    }
     .current-job .line { display: block; }
-    .current-job .job-line { font-weight: bold; margin-right: 44.93mm; }
+    .current-job .year-line {
+      font-weight: normal;
+      text-decoration: none;
+    }
+    .current-job .job-line {
+      font-weight: bold;
+      text-decoration: underline;
+      margin-top: 1mm;
+      margin-right: 44.93mm;
+    }
 
     .fields { width: 100%; border-collapse: collapse; table-layout: fixed; }
     .fields td { border: none; vertical-align: top; padding: 0; font-size: 11pt; line-height: 1; }
@@ -295,7 +309,7 @@
     {%- if d.current_job -%}
     <div class="current-job">
       {%- if d.current_job_year -%}
-      <span class="line">{{ d.current_job_year | safe }}:</span>
+      <span class="line year-line">{{ d.current_job_year | safe }}</span>
       {%- endif -%}
       <span class="line job-line">{{ d.current_job | safe }}</span>
     </div>
