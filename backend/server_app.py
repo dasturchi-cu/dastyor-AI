@@ -33,6 +33,8 @@ from main import create_bot, create_dispatcher
 load_dotenv()
 logger = logging.getLogger(__name__)
 
+_webhook_app: FastAPI | None = None
+
 
 def _cors_origins() -> list[str]:
     origins: list[str] = []
@@ -46,6 +48,10 @@ def _cors_origins() -> list[str]:
 
 
 def create_webhook_app() -> FastAPI:
+    global _webhook_app
+    if _webhook_app is not None:
+        return _webhook_app
+
     # Production config: scripts/entrypoint.sh → validate_or_exit() (AUTO_APPROVE_PAYMENTS=1 ruxsat).
     if not settings.bot_token:
         raise RuntimeError("BOT_TOKEN is missing — cannot start webhook application")
@@ -128,4 +134,5 @@ def create_webhook_app() -> FastAPI:
     else:
         logger.error("WebApp directory missing: %s", webapp_path)
 
+    _webhook_app = app
     return app

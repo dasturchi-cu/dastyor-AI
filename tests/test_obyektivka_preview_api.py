@@ -9,17 +9,19 @@ MASTER = ROOT / "templates" / "obyektivka_master.docx"
 
 
 class TestObyektivkaPreviewApi(unittest.TestCase):
-    def test_preview_returns_pdf_not_gzip(self):
-        if not MASTER.is_file():
-            self.skipTest("master docx missing")
-
+    @classmethod
+    def setUpClass(cls) -> None:
         from fastapi.testclient import TestClient
 
         from backend.server_app import create_webhook_app
 
-        app = create_webhook_app()
-        client = TestClient(app)
-        res = client.post(
+        cls.client = TestClient(create_webhook_app())
+
+    def test_preview_returns_pdf_not_gzip(self):
+        if not MASTER.is_file():
+            self.skipTest("master docx missing")
+
+        res = self.client.post(
             "/api/preview_obyektivka",
             json={
                 "lang": "uz_lat",
@@ -39,13 +41,7 @@ class TestObyektivkaPreviewApi(unittest.TestCase):
         self.assertNotEqual(enc, "gzip")
 
     def test_preview_html_returns_document(self):
-        from fastapi.testclient import TestClient
-
-        from backend.server_app import create_webhook_app
-
-        app = create_webhook_app()
-        client = TestClient(app)
-        res = client.post(
+        res = self.client.post(
             "/api/preview_obyektivka_html",
             json={
                 "lang": "uz_lat",
