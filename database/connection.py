@@ -124,20 +124,20 @@ def initialize_database() -> dict[str, Any]:
                 canonical,
             )
 
-        try:
-            from database.repositories.users import purge_test_users
+    try:
+        from database.repositories.users import purge_test_users
 
-            removed = purge_test_users()
-            if removed:
-                logger.info(
-                    "Removed %s test/audit user(s) from database: %s",
-                    len(removed),
-                    ", ".join(str(t) for t in removed[:12]),
-                )
-        except Exception as exc:
-            logger.warning("Test user purge skipped: %s", exc)
+        removed = purge_test_users()
+        if removed:
+            logger.info(
+                "Removed %s test/audit user(s) from database: %s",
+                len(removed),
+                ", ".join(str(t) for t in removed[:12]),
+            )
+    except Exception as exc:
+        logger.warning("Test user purge skipped: %s", exc)
 
-        return report
+    return report
 
 
 def init_db() -> None:

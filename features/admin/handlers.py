@@ -5,7 +5,7 @@ import asyncio
 import logging
 
 from aiogram import F, Router
-from aiogram.exceptions import TelegramBadRequest
+from aiogram.exceptions import TelegramAPIError, TelegramBadRequest, TelegramForbiddenError
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, FSInputFile, Message
@@ -19,7 +19,7 @@ from database.repositories import users as users_repo
 from features.admin import actions as admin_actions
 from features.admin import service as admin_service
 from features.admin.dispatch import dispatch_admin_menu, is_admin
-from shared.payment_test_filter import filter_real_users
+from shared.payment_test_filter import filter_real_users, is_test_payment, is_test_user
 from features.admin.keyboards import (
     broadcast_confirm_kb,
     error_filter_kb,
@@ -38,6 +38,20 @@ router = Router()
 _NOT_MENU = ~F.text.func(is_admin_menu_button)
 
 
+def _is_undeliverable_telegram_error(exc: BaseException) -> bool:
+    msg = str(exc).lower()
+    return any(
+        part in msg
+        for part in (
+            "chat not found",
+            "bot was blocked",
+            "user is deactivated",
+            "peer_id_invalid",
+            "have no rights to send",
+        )
+    )
+
+
 async def _update_payment_review_message(message: Message | None, text: str) -> None:
     if not message:
         return
@@ -54,13 +68,28 @@ async def _update_payment_review_message(message: Message | None, text: str) -> 
         logger.warning("Payment review message update failed: %s", exc)
 
 
-async def _notify_payment_user(bot, telegram_id: int, text: str) -> bool:
+async def _notify_payment_user(
+    bot,
+    telegram_id: int,
+    text: str,
+    *,
+    reply_markup=None,
+) -> bool:
+    tid = int(telegram_id)
+    if is_test_user({"telegram_id": tid}):
+        logger.info("Payment notify skipped for test telegram_id=%s", tid)
+        return False
     try:
-        await bot.send_message(telegram_id, text)
+        await bot.send_message(tid, text, reply_markup=reply_markup)
         return True
-    except TelegramBadRequest as exc:
-        if "chat not found" in str(exc).lower():
-            logger.warning("Payment notify skipped — chat not found (telegram_id=%s)", telegram_id)
+    except (TelegramBadRequest, TelegramForbiddenError, TelegramAPIError) as exc:
+        if _is_undeliverable_telegram_error(exc):
+            logger.warning("Payment notify skipped (%s): telegram_id=%s", exc, tid)
+            return False
+        raise
+    except Exception as exc:
+        if _is_undeliverable_telegram_error(exc):
+            logger.warning("Payment notify skipped (%s): telegram_id=%s", exc, tid)
             return False
         raise
 
@@ -467,6 +496,33 @@ async def payment_callback(query: CallbackQuery) -> None:
         return
 
     try:
+        payment_before = await db_run(payments_repo.get_payment, pid)
+        if payment_before and is_test_payment(payment_before):
+            if action == "approve":
+                result = await db_run(
+                    payment_service.approve_payment,
+                    pid,
+                    None,
+                    approved_by=query.from_user.id,
+                )
+                if result and query.message:
+                    await _update_payment_review_message(
+                        query.message,
+                        f"✅ To'lov #{pid} tasdiqlandi (test akkaunt — foydalanuvchiga xabar yuborilmaydi).",
+                    )
+                elif query.message:
+                    await query.message.reply("Tasdiqlash xatosi — to'lov allaqachon ko'rib chiqilgan.")
+            else:
+                ok = await db_run(payment_service.reject_payment, pid)
+                if ok and query.message:
+                    await _update_payment_review_message(
+                        query.message,
+                        f"❌ To'lov #{pid} rad etildi (test akkaunt).",
+                    )
+                elif query.message:
+                    await query.message.reply("Rad etish xatosi.")
+            return
+
         if action == "approve":
             result = await db_run(
                 payment_service.approve_payment,
@@ -482,23 +538,26 @@ async def payment_callback(query: CallbackQuery) -> None:
                 )
                 tid = int(result["telegram_id"])
                 credits = await db_run(users_repo.get_credits, tid)
-                await _update_payment_review_message(
-                    query.message,
-                    f"✅ To'lov #{pid} tasdiqlandi.\n"
-                    f"Foydalanuvchi pul balansi: {credits} ta hujjat",
-                )
+                from shared.keyboards import open_services_inline
+                from shared.marketing import payment_approved_message
+
                 notified = await _notify_payment_user(
                     query.bot,
                     tid,
-                    f"✅ To'lovingiz tasdiqlandi!\n"
-                    f"💳 Pul balansi: <b>{credits}</b> ta hujjat\n"
-                    f"ℹ️ Har biri CV <b>yoki</b> Obyektivka uchun.",
+                    payment_approved_message(credits),
+                    reply_markup=open_services_inline(tid),
                 )
-                if not notified and query.message:
-                    await query.message.reply(
-                        f"ℹ️ To'lov tasdiqlandi, lekin foydalanuvchiga xabar yuborilmadi "
-                        f"(chat topilmadi: {tid})."
-                    )
+                delivery_note = (
+                    "\n📨 Foydalanuvchiga xabar yuborildi."
+                    if notified
+                    else "\nℹ️ Foydalanuvchiga xabar yetkazilmadi (chat topilmadi)."
+                )
+                await _update_payment_review_message(
+                    query.message,
+                    f"✅ To'lov #{pid} tasdiqlandi.\n"
+                    f"Foydalanuvchi pul balansi: {credits} ta hujjat"
+                    f"{delivery_note}",
+                )
             elif query.message:
                 await query.message.reply("Tasdiqlash xatosi — to'lov allaqachon ko'rib chiqilgan.")
         else:
@@ -510,25 +569,32 @@ async def payment_callback(query: CallbackQuery) -> None:
                     f"payment_id={pid}",
                 )
                 payment = await db_run(payments_repo.get_payment, pid)
-                await _update_payment_review_message(
-                    query.message,
-                    f"❌ To'lov #{pid} rad etildi.",
-                )
+                notified = False
                 if payment:
                     notified = await _notify_payment_user(
                         query.bot,
                         int(payment["telegram_id"]),
                         "❌ To'lovingiz rad etildi. Qayta urinib ko'ring.",
                     )
-                    if not notified and query.message:
-                        await query.message.reply(
-                            f"ℹ️ To'lov rad etildi, lekin foydalanuvchiga xabar yuborilmadi "
-                            f"(chat topilmadi: {payment['telegram_id']})."
-                        )
+                delivery_note = (
+                    "\n📨 Foydalanuvchiga xabar yuborildi."
+                    if notified
+                    else "\nℹ️ Foydalanuvchiga xabar yetkazilmadi (chat topilmadi)."
+                )
+                await _update_payment_review_message(
+                    query.message,
+                    f"❌ To'lov #{pid} rad etildi.{delivery_note}",
+                )
             elif query.message:
                 await query.message.reply("Rad etish xatosi.")
     except Exception as exc:
         logger.exception("Payment callback failed: %s", exc)
+        if _is_undeliverable_telegram_error(exc):
+            if query.message:
+                await query.message.reply(
+                    "ℹ️ To'lov holati yangilandi, lekin foydalanuvchiga xabar yetkazilmadi."
+                )
+            return
         from shared.error_log import record_error
 
         record_error("payment", f"Admin callback #{pid}: {exc}")
