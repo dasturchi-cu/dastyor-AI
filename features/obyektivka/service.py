@@ -6,7 +6,6 @@ from pathlib import Path
 from typing import Any
 
 from backend.services.document_render.photo import compress_payload_photo
-from backend.services.document_render.context import build_obyektivka_render_context
 from features.obyektivka.docx_template import generate_obyektivka_docx
 from config.settings import GENERATED_DIR
 from database.repositories import generated_files as files_repo
@@ -37,19 +36,7 @@ def save_pending(telegram_id: int, payload: dict[str, Any]) -> None:
 
 def _export_docx_sync(telegram_id: int, payload: dict[str, Any]) -> tuple[bytes, str]:
     clean = _prepare_payload(payload)
-    ctx = build_obyektivka_render_context(
-        clean,
-        watermark=False,
-        mask_pii=False,
-        process_photo=True,
-    )
-    docx_input = {
-        k: v for k, v in ctx.items() if k != "render"
-    }
-    if ctx.get("img"):
-        docx_input["photo_data"] = ctx["img"]
-
-    path = generate_obyektivka_docx(docx_input)
+    path = generate_obyektivka_docx(clean)
     if not path or not Path(path).is_file():
         raise RuntimeError("DOCX yaratib bo'lmadi")
 

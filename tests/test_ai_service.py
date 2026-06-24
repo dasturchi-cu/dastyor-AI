@@ -68,7 +68,7 @@ class TestCvExtraction(unittest.TestCase):
     @patch("features.ai.service.generate_text_with_fallback", new_callable=AsyncMock)
     def test_process_text_for_cv_pipeline(self, mock_gen):
         mock_gen.return_value = (
-            '{"name": "Ali Valiyev", "phone": "+998901234567", '
+            '{"name": "Ali Valiyev", "phone": "+998901234567", "spec": "Dasturchi", '
             '"works": [{"title": "Dev", "company": "ACME"}]}'
         )
         transcript, data, missing = asyncio.run(
@@ -76,7 +76,7 @@ class TestCvExtraction(unittest.TestCase):
         )
         self.assertIn("Ali", transcript)
         self.assertEqual(data["name"], "Ali Valiyev")
-        self.assertTrue(len(missing) < 4)
+        self.assertFalse(any("Ism topilmadi" in m for m in missing))
 
 
 class TestObyektivkaExtraction(unittest.TestCase):

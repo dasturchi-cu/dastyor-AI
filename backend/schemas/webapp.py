@@ -1,9 +1,9 @@
 """Pydantic models for WebApp / public API (formerly inline in api_webhook)."""
 from __future__ import annotations
 
-from typing import Optional
+from typing import Any, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 
 class AuthRequest(BaseModel):
@@ -26,6 +26,27 @@ class NotifyRequest(BaseModel):
     telegram_id: int
     message: str
     token: Optional[str] = None
+
+
+def _coerce_oby_work_aliases(data: Any) -> Any:
+    if not isinstance(data, dict):
+        return data
+    out = dict(data)
+    if not out.get("work_experience"):
+        for key in ("works", "employment_history", "employmentHistory", "work_history", "workHistory"):
+            items = out.get(key)
+            if items:
+                out["work_experience"] = items
+                break
+    if not out.get("current_job"):
+        for key in ("currentJob", "current_position", "current_employment", "currentEmployment"):
+            val = out.get(key)
+            if val:
+                out["current_job"] = val
+                break
+    if not out.get("current_job_year") and out.get("currentJobYear"):
+        out["current_job_year"] = out["currentJobYear"]
+    return out
 
 
 class SupportRequest(BaseModel):
@@ -115,6 +136,11 @@ class ObyektivkaRequest(BaseModel):
     current_job_year: Optional[str] = None
     send_only: Optional[bool] = False
 
+    @model_validator(mode="before")
+    @classmethod
+    def _coerce_aliases(cls, data: Any) -> Any:
+        return _coerce_oby_work_aliases(data)
+
 
 class ExportCVRequest(BaseModel):
     telegram_id: Optional[int] = None
@@ -174,6 +200,11 @@ class ExportObyektivkaRequest(BaseModel):
     current_job_year: Optional[str] = None
     send_only: Optional[bool] = False
 
+    @model_validator(mode="before")
+    @classmethod
+    def _coerce_aliases(cls, data: Any) -> Any:
+        return _coerce_oby_work_aliases(data)
+
 
 class PreviewObyektivkaRequest(BaseModel):
     telegram_id: Optional[int] = None
@@ -204,6 +235,11 @@ class PreviewObyektivkaRequest(BaseModel):
     current_job_year: Optional[str] = None
     watermark: bool = True
     mask_pii: bool = True
+
+    @model_validator(mode="before")
+    @classmethod
+    def _coerce_aliases(cls, data: Any) -> Any:
+        return _coerce_oby_work_aliases(data)
 
 
 class TestObyektivkaPdfRequest(PreviewObyektivkaRequest):

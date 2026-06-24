@@ -9,6 +9,7 @@ from features.ai.service import (
     count_cv_populated_fields,
     count_oby_populated_fields,
     cv_fill_is_acceptable,
+    cv_fill_rejection_reason,
     oby_fill_is_acceptable,
     process_text_for_cv,
     process_text_for_obyektivka,
@@ -20,6 +21,18 @@ SAMPLE = (
     "email ali@gmail.com. Python dasturchiman. 2020-2024 TDYU da kompyuter fanlari "
     "bo'yicha o'qidim. 2024-yildan beri IT kompaniyada ishlayman."
 )
+
+STRUCTURED_CV = """\
+Full name: Karimov Jasur Vali o'g'li
+Birth date: 15.03.1995
+Birth place: Toshkent shahri
+Education: TDYU, 2013-2017, Kompyuter fanlari
+Specialty: Dasturiy ta'minot muhandisi
+Work experience: 2017-2024 — IT kompaniya, Backend dasturchi
+Skills: Python, FastAPI, PostgreSQL, Docker
+Languages: O'zbek (ona tili), Rus (erkin), Ingliz (o'rta)
+Achievements: Respublika olimpiadasi g'olibi
+"""
 
 
 class TestTextHeuristics(unittest.TestCase):
@@ -37,15 +50,41 @@ class TestTextHeuristics(unittest.TestCase):
         self.assertEqual(data["fullname"], "Ali Valiyev")
         self.assertTrue(data.get("work_experience"))
 
-    def test_cv_fill_acceptable_requires_name_and_more(self):
-        self.assertFalse(cv_fill_is_acceptable({"about": "Men Ali"}, ["F.I.SH"]))
+    def test_cv_fill_acceptable_requires_name_and_two_bonus_fields(self):
+        self.assertFalse(cv_fill_is_acceptable({"about": "Men Ali"}, []))
         self.assertFalse(cv_fill_is_acceptable({}, []))
+        self.assertFalse(
+            cv_fill_is_acceptable({"name": "Ali Valiyev", "phone": "+998901234567"}, [])
+        )
         self.assertTrue(
             cv_fill_is_acceptable(
-                {"name": "Ali Valiyev", "phone": "+998901234567"},
-                ["Email"],
+                {
+                    "name": "Ali Valiyev",
+                    "skills": "Python, FastAPI",
+                    "spec": "Dasturchi",
+                },
+                [],
             )
         )
+        self.assertEqual(cv_fill_rejection_reason({"phone": "+998"}), "Ism topilmadi.")
+
+    def test_parse_structured_cv_sample(self):
+        data = parse_cv_facts(STRUCTURED_CV)
+        self.assertIn("Karimov", data["name"])
+        self.assertTrue(data.get("education_list"))
+        self.assertTrue(data.get("works"))
+        self.assertTrue(data.get("skills"))
+        self.assertTrue(data.get("languages_list"))
+        self.assertTrue(data.get("spec"))
+        self.assertTrue(cv_fill_is_acceptable(data, []))
+
+    @patch("features.ai.service.generate_text_with_fallback", new_callable=AsyncMock)
+    def test_process_structured_cv_without_ai(self, mock_gen):
+        mock_gen.return_value = '{"name": "", "phone": ""}'
+        transcript, data, missing = asyncio.run(process_text_for_cv(STRUCTURED_CV))
+        self.assertIn("Karimov", data.get("name", ""))
+        self.assertTrue(cv_fill_is_acceptable(data, missing))
+        self.assertFalse(any("Ism topilmadi" in m for m in missing))
 
     def test_populated_field_counts(self):
         data = parse_cv_facts(SAMPLE)

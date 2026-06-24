@@ -261,7 +261,7 @@ def _apply_structured_labels(t: str, out: dict[str, Any]) -> None:
             if email_m and not out.get("email"):
                 out["email"] = email_m.group(0)
         elif not out.get(key):
-            out[key] = val.title() if key == "name" else val
+            out[key] = val if key == "name" else val
 
 
 def _apply_sections(t: str, out: dict[str, Any]) -> None:

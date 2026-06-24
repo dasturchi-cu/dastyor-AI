@@ -16,6 +16,12 @@ class TestConfigParsing(unittest.TestCase):
     def setUp(self):
         load_routing_config.cache_clear()
         self._env = os.environ.copy()
+        # .env dagi qo'shimcha kalitlar testni buzmasin
+        for k in list(os.environ):
+            if k.startswith(("GEMINI_API_KEY_", "OPENAI_API_KEY_", "GROQ_API_KEY")):
+                del os.environ[k]
+            if k in ("GEMINI_API_KEYS", "OPENAI_API_KEYS", "GROQ_API_KEYS", "OPENROUTER_API_KEYS"):
+                del os.environ[k]
 
     def tearDown(self):
         os.environ.clear()

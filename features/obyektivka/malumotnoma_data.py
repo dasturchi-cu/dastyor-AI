@@ -43,14 +43,28 @@ def format_current_job_year(year_raw: str, lang: str = "uz_lat") -> str:
     return f"{year}-yildan:"
 
 
-_WORK_LIST_KEYS = (
-    "work_experience",
-    "works",
-    "employment_history",
-    "employmentHistory",
-    "work_history",
-    "workHistory",
+_POSITION_KEYS = (
+    "position",
+    "desc",
+    "description",
+    "job",
+    "d",
+    "work_place",
+    "place",
+    "company",
+    "organization",
+    "lavozim",
 )
+
+_CURRENT_JOB_KEYS = (
+    "current_job",
+    "currentJob",
+    "current_position",
+    "current_employment",
+    "currentEmployment",
+)
+
+_CURRENT_YEAR_KEYS = ("current_job_year", "currentJobYear")
 
 
 def _to_text(value: Any) -> str:
@@ -73,12 +87,65 @@ def _parse_list(value: Any) -> list[dict[str, Any]]:
     return []
 
 
+_WORK_LIST_KEYS = (
+    "work_experience",
+    "works",
+    "employment_history",
+    "employmentHistory",
+    "work_history",
+    "workHistory",
+)
+
+
+def _work_position_raw(item: dict[str, Any]) -> str:
+    for key in _POSITION_KEYS:
+        val = _to_text(item.get(key))
+        if val:
+            return val
+    return ""
+
+
 def _parse_work_list(raw: dict[str, Any]) -> list[dict[str, Any]]:
     for key in _WORK_LIST_KEYS:
         items = _parse_list(raw.get(key))
         if items:
             return items
     return []
+
+
+def normalize_obyektivka_raw(raw: dict[str, Any]) -> dict[str, Any]:
+    """Form / DB / API aliaslari → bitta canonical payload (preview, DOCX, PDF)."""
+    if not isinstance(raw, dict):
+        return {}
+    out = dict(raw)
+
+    if not _to_text(out.get("current_job")):
+        for key in _CURRENT_JOB_KEYS[1:]:
+            val = _to_text(out.get(key))
+            if val:
+                out["current_job"] = val
+                break
+    if not _to_text(out.get("current_job_year")):
+        for key in _CURRENT_YEAR_KEYS[1:]:
+            val = _to_text(out.get(key))
+            if val:
+                out["current_job_year"] = val
+                break
+
+    items = _parse_work_list(out)
+    if items:
+        norm_items: list[dict[str, Any]] = []
+        for item in items:
+            pos = _work_position_raw(item)
+            f = _to_text(item.get("from") or item.get("f"))
+            t = _to_text(item.get("to") or item.get("t"))
+            year = _to_text(item.get("year") or item.get("years") or item.get("period"))
+            if f or t:
+                norm_items.append({"from": f, "to": t, "position": pos})
+            elif year or pos:
+                norm_items.append({"year": year, "position": pos})
+        out["work_experience"] = norm_items
+    return out
 
 
 def _parse_year_range(year: str) -> tuple[str, str]:
@@ -104,13 +171,7 @@ def _parse_year_range(year: str) -> tuple[str, str]:
 def _canonical_work_item(item: dict[str, Any]) -> dict[str, Any]:
     f = _to_text(item.get("from") or item.get("f"))
     t = _to_text(item.get("to") or item.get("t"))
-    pos = _to_text(
-        item.get("position")
-        or item.get("desc")
-        or item.get("description")
-        or item.get("job")
-        or item.get("d")
-    )
+    pos = _work_position_raw(item)
     year = _to_text(item.get("year") or item.get("years") or item.get("period"))
 
     if f or t:
@@ -137,13 +198,11 @@ def _canonical_work_item(item: dict[str, Any]) -> dict[str, Any]:
 
 
 def _work_position(item: dict[str, Any]) -> str:
-    if "position" in item:
-        return _to_text(item.get("position"))
-    return _to_text(item.get("desc") or item.get("description") or item.get("job") or item.get("d"))
+    return _work_position_raw(item)
 
 
 def _meaningful_position(item: dict[str, Any]) -> bool:
-    pos = _to_text(item.get("position"))
+    pos = _work_position(item)
     return bool(pos) and not is_none_token(pos)
 
 
@@ -241,14 +300,13 @@ def _ensure_current_in_list(
 
 def build_malumotnoma_data(raw: dict[str, Any]) -> dict[str, Any]:
     """
-  Form / DB / API → bitta normalizatsiya.
-  H.v. ish tepada ham, MEHNAT FAOLIYATI da ham qoladi.
-  """
+    Form / DB / API → bitta normalizatsiya.
+    H.v. ish tepada ham, MEHNAT FAOLIYATI da ham qoladi.
+    """
+    raw = normalize_obyektivka_raw(raw or {})
     lang = _to_text(raw.get("lang")) or "uz_lat"
-    explicit_job = _to_text(
-        raw.get("current_job") or raw.get("currentJob") or raw.get("current_position") or raw.get("current_employment")
-    )
-    explicit_year = _to_text(raw.get("current_job_year") or raw.get("currentJobYear"))
+    explicit_job = _to_text(raw.get("current_job"))
+    explicit_year = _to_text(raw.get("current_job_year"))
     if is_none_token(explicit_job):
         explicit_job = ""
         explicit_year = ""
@@ -274,3 +332,7 @@ def build_malumotnoma_data(raw: dict[str, Any]) -> dict[str, Any]:
         "work_experience": work_experience,
         "work_lines": work_lines,
     }
+
+
+# JS naming parity (webapp/docs)
+buildMalumotnomaData = build_malumotnoma_data
