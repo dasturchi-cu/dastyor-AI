@@ -220,6 +220,20 @@ def get_dashboard_snapshot() -> DashboardSnapshot:
 
 def snapshot_to_dict() -> dict[str, Any]:
     snap = get_dashboard_snapshot()
+    quota_rows: list[dict[str, Any]] = []
+    quota_events: list[dict[str, Any]] = []
+    try:
+        from features.ai.routing.quota import get_quota_monitor
+        from database.repositories.ai_quota import list_history
+
+        quota_rows = get_quota_monitor().list_all()
+        quota_events = list_history(limit=30)
+        quota_events = [
+            h for h in quota_events if h.get("event_type") in ("quota_reset", "quota_exhausted")
+        ]
+    except Exception:
+        pass
+
     return {
         "active": {
             "provider": snap.active.provider.value,
@@ -229,6 +243,8 @@ def snapshot_to_dict() -> dict[str, Any]:
             "health_pct": round(snap.active.health_pct, 1),
             "updated_at": snap.active.updated_at,
         },
+        "quota": quota_rows,
+        "quota_events": quota_events,
         "providers": [
             {
                 "provider": p.provider,
@@ -252,4 +268,5 @@ def snapshot_to_dict() -> dict[str, Any]:
             "total_tokens_today": snap.total_tokens_today,
         },
         "cooldowns": snap.cooldowns,
+        "refresh_sec": 60,
     }

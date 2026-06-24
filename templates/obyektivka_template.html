@@ -192,6 +192,12 @@
       padding-left: 28.61mm;
       text-indent: -28.61mm;
     }
+    .work-item.work-none {
+      text-decoration: underline;
+      font-weight: bold;
+      font-style: normal;
+      color: inherit;
+    }
 
     .rel-page-title {
       text-align: center;
@@ -355,7 +361,7 @@
       </div>
       {%- endfor -%}
     {%- else -%}
-    <div class="empty">—</div>
+    <div class="work-item work-none">{{ L.none }}</div>
     {%- endif -%}
   </div>
 </div>

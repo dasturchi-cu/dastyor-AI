@@ -76,6 +76,14 @@ async def generate_text_with_failover(
 
             pool.record_success(endpoint, response_time_ms=elapsed)
             cooldown.clear(endpoint.provider, endpoint.key_index)
+            try:
+                from features.ai.routing.quota import get_quota_monitor
+
+                get_quota_monitor().record_success(
+                    endpoint.provider.value, endpoint.key_index, endpoint.model
+                )
+            except Exception:
+                pass
             _log_request(
                 endpoint,
                 request_time=request_time,
@@ -158,6 +166,18 @@ async def _handle_failure(
         duration_ms=cfg_cooldown_ms,
         reason="rate_limit" if rate_limited else "error",
     )
+    try:
+        from features.ai.routing.quota import get_quota_monitor
+
+        qm = get_quota_monitor()
+        if rate_limited:
+            qm.record_quota_exhausted(endpoint.provider.value, endpoint.key_index, endpoint.model)
+        else:
+            qm.record_failure(
+                endpoint.provider.value, endpoint.key_index, endpoint.model, rate_limited=False
+            )
+    except Exception:
+        pass
     _log_request(
         endpoint,
         request_time=request_time,

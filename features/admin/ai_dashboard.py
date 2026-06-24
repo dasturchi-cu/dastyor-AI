@@ -43,6 +43,14 @@ def build_ai_status_text(snapshot: dict, *, compact: bool = False) -> str:
         reqs = int(analytics.get("total_requests_today") or 0)
         fail = float(analytics.get("failure_rate_pct") or 0)
         lines.append(f"Bugun: <b>{reqs}</b> so'rov | xato <b>{fail}%</b>")
+        quota = snapshot.get("quota") or []
+        if quota:
+            top = quota[0]
+            qp = float(top.get("quota_percent") or 100)
+            lines.append(
+                f"Quota: <b>{qp:.0f}%</b> qoldi · "
+                f"{top.get('provider', '').upper()} #{top.get('key_index')}"
+            )
         return "\n".join(lines)
 
     lines.extend(
@@ -79,6 +87,35 @@ def build_ai_status_text(snapshot: dict, *, compact: bool = False) -> str:
             reqs = int(p.get("requests_today") or 0)
             cd = " 🟡" if p.get("in_cooldown") else ""
             lines.append(f"• {name}{cd} — {reqs} so'rov, {hp:.0f}%")
+
+    quota = snapshot.get("quota") or []
+    if quota:
+        lines.extend(["", "<b>📊 Quota (har kalit)</b>"])
+        for q in quota[:12]:
+            prov = html.escape(str(q.get("provider") or "").upper())
+            ki = int(q.get("key_index") or 0)
+            qp = float(q.get("quota_percent") or 0)
+            used = int(q.get("requests_used") or 0)
+            rem = int(q.get("requests_remaining") or 0)
+            st = html.escape(str(q.get("status") or ""))
+            model = html.escape(str(q.get("model") or "—"))
+            hs = html.escape(str(q.get("health_status") or ""))
+            lines.append(
+                f"• <b>{prov} #{ki}</b> — {st}\n"
+                f"  Model: <code>{model}</code>\n"
+                f"  Quota: <b>{qp:.0f}%</b> · ishlatilgan: {used} · qoldi: {rem}\n"
+                f"  Health: {hs}"
+            )
+
+    events = snapshot.get("quota_events") or []
+    resets = [e for e in events if e.get("event_type") == "quota_reset"]
+    if resets:
+        lines.extend(["", "<b>🔄 So'nggi quota reset</b>"])
+        for ev in resets[:5]:
+            prov = html.escape(str(ev.get("provider") or ""))
+            ki = int(ev.get("key_index") or 0)
+            ts = html.escape(str(ev.get("updated_at") or "")[:16])
+            lines.append(f"• [{ts}] {prov} Key #{ki} quota refreshed")
 
     cooldowns = snapshot.get("cooldowns") or []
     if cooldowns:

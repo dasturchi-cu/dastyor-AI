@@ -33,6 +33,8 @@ __all__ = [
     "count_cv_populated_fields",
     "count_oby_populated_fields",
     "cv_fill_is_acceptable",
+    "cv_fill_rejection_reason",
+    "log_cv_parser_debug",
     "oby_fill_is_acceptable",
 ]
 
@@ -324,23 +326,78 @@ def count_oby_populated_fields(data: dict | None) -> int:
     return count
 
 
-def cv_fill_is_acceptable(data: dict | None, missing: list[str] | None = None) -> bool:
-    if count_cv_populated_fields(data) < 1:
-        return False
-    name = str(data.get("name") or "").strip()
-    if not name:
-        return False
-    extras = sum(
-        1
-        for key in ("phone", "email", "loc", "spec", "about")
-        if str(data.get(key) or "").strip()
+def _cv_has_education(data: dict) -> bool:
+    return bool(data.get("education_list"))
+
+
+def _cv_has_experience(data: dict) -> bool:
+    return bool(data.get("works"))
+
+
+def _cv_has_skills(data: dict) -> bool:
+    return _present(data.get("skills"))
+
+
+def _cv_has_languages(data: dict) -> bool:
+    langs = data.get("languages_list")
+    return isinstance(langs, list) and len(langs) > 0
+
+
+def _cv_has_profession(data: dict) -> bool:
+    return _present(data.get("spec"))
+
+
+def count_cv_bonus_fields(data: dict | None) -> int:
+    """Count education, experience, skills, languages, profession (need >= 2)."""
+    if not data:
+        return 0
+    return sum(
+        (
+            _cv_has_education(data),
+            _cv_has_experience(data),
+            _cv_has_skills(data),
+            _cv_has_languages(data),
+            _cv_has_profession(data),
+        )
     )
-    has_lists = bool(data.get("works")) or bool(data.get("education_list"))
-    if extras + (1 if has_lists else 0) < 1:
-        return False
-    if missing is not None and len(missing) >= 6:
-        return False
-    return True
+
+
+def log_cv_parser_debug(data: dict | None, *, source: str = "") -> None:
+    """Log detected CV fields before validation."""
+    d = data or {}
+    detected = {
+        "name": _present(d.get("name")),
+        "phone": _present(d.get("phone")),
+        "email": _present(d.get("email")),
+        "education": _cv_has_education(d),
+        "experience": _cv_has_experience(d),
+        "skills": _cv_has_skills(d),
+        "languages": _cv_has_languages(d),
+    }
+    logger.info(
+        "CV parser detected%s: %s",
+        f" ({source})" if source else "",
+        detected,
+    )
+
+
+def cv_fill_rejection_reason(data: dict | None) -> str:
+    if not data:
+        return "Ma'lumot ajratilmadi."
+    if not str(data.get("name") or "").strip():
+        return "Ism topilmadi."
+    bonus = count_cv_bonus_fields(data)
+    if bonus < 2:
+        return (
+            "Kamida 2 ta maydon kerak: ta'lim, ish tajribasi, "
+            "ko'nikmalar, tillar yoki kasb."
+        )
+    return ""
+
+
+def cv_fill_is_acceptable(data: dict | None, missing: list[str] | None = None) -> bool:
+    del missing  # kept for call-site compatibility
+    return not cv_fill_rejection_reason(data)
 
 
 def oby_fill_is_acceptable(data: dict | None) -> bool:
@@ -376,9 +433,12 @@ async def process_text_for_cv(text: str) -> tuple[str, dict, list[str]]:
     if not transcript:
         return "", {}, ["Matn bo'sh"]
     data = normalize_cv_data(await extract_cv_data(transcript))
-    missing = get_missing_cv_fields(data) if data else ["Ma'lumot ajratilmadi"]
-    if not cv_fill_is_acceptable(data, missing):
-        return transcript, {}, missing or ["Ma'lumot ajratilmadi"]
+    log_cv_parser_debug(data, source="extract_cv_data")
+    missing = get_missing_cv_fields(data) if data else []
+    reason = cv_fill_rejection_reason(data)
+    if reason:
+        logger.warning("CV fill rejected: %s | extracted_keys=%s", reason, list(data.keys()))
+        return transcript, data, missing + [reason]
     return transcript, data, missing
 
 

@@ -14,6 +14,7 @@ from database.repositories import ai_sessions as sessions_repo
 from features.ai.service import (
     count_cv_populated_fields,
     cv_fill_is_acceptable,
+    cv_fill_rejection_reason,
     process_text_for_cv,
     process_voice_for_cv,
 )
@@ -43,7 +44,8 @@ async def _run_cv_text_job(job_id: str, uid: int, text: str) -> None:
         voice_jobs.set_step(job_id, 2)
         transcript, data, missing = await process_text_for_cv(text)
         if not cv_fill_is_acceptable(data, missing):
-            voice_jobs.fail_job(job_id, "CV uchun yetarli ma'lumot topilmadi")
+            reason = cv_fill_rejection_reason(data)
+            voice_jobs.fail_job(job_id, f"CV rad etildi. Sabab: {reason}")
             return
         await async_db.run(cv_service.save_user_data, uid, data)
         await async_db.run(sessions_repo.create_session, uid, "cv_voice", transcript, data)
@@ -70,7 +72,8 @@ async def _run_cv_voice_job(job_id: str, uid: int, temp_path: str) -> None:
         voice_jobs.set_step(job_id, 2)
         transcript, data, missing = await process_voice_for_cv(temp_path)
         if not cv_fill_is_acceptable(data, missing):
-            voice_jobs.fail_job(job_id, "Ma'lumot ajratilmadi")
+            reason = cv_fill_rejection_reason(data)
+            voice_jobs.fail_job(job_id, f"CV rad etildi. Sabab: {reason}")
             return
         await async_db.run(cv_service.save_user_data, uid, data)
         populated = count_cv_populated_fields(data)

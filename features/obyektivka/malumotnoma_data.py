@@ -5,6 +5,8 @@ import json
 import re
 from typing import Any
 
+from features.obyektivka.none_values import is_none_token
+
 _PRESENT_TOKENS = (
     "hv",
     "hvgacha",
@@ -140,6 +142,11 @@ def _work_position(item: dict[str, Any]) -> str:
     return _to_text(item.get("desc") or item.get("description") or item.get("job") or item.get("d"))
 
 
+def _meaningful_position(item: dict[str, Any]) -> bool:
+    pos = _to_text(item.get("position"))
+    return bool(pos) and not is_none_token(pos)
+
+
 def _resolve_current_display(
     items: list[dict[str, Any]],
     *,
@@ -149,11 +156,14 @@ def _resolve_current_display(
 ) -> tuple[str, str]:
     job = (current_job or "").strip()
     year = (current_job_year or "").strip()
+    if is_none_token(job):
+        job = ""
+        year = ""
 
     if not job:
         for item in items:
             pos = item.get("position") or ""
-            if not pos:
+            if not _meaningful_position(item):
                 continue
             if item.get("is_current") or is_present_year_token(item.get("to_year") or ""):
                 job = pos
@@ -162,6 +172,8 @@ def _resolve_current_display(
 
     if job:
         year = format_current_job_year(year, lang)
+    else:
+        year = ""
     return job, year
 
 
@@ -237,9 +249,12 @@ def build_malumotnoma_data(raw: dict[str, Any]) -> dict[str, Any]:
         raw.get("current_job") or raw.get("currentJob") or raw.get("current_position") or raw.get("current_employment")
     )
     explicit_year = _to_text(raw.get("current_job_year") or raw.get("currentJobYear"))
+    if is_none_token(explicit_job):
+        explicit_job = ""
+        explicit_year = ""
 
     items = [_canonical_work_item(w) for w in _parse_work_list(raw)]
-    items = [x for x in items if x.get("position") or x.get("from_year")]
+    items = [x for x in items if _meaningful_position(x)]
 
     current_job, current_job_year = _resolve_current_display(
         items,

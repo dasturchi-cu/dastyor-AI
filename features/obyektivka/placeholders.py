@@ -167,8 +167,8 @@ def build_placeholder_context(raw: dict[str, Any]) -> dict[str, str]:
             none=none,
         ),
         "deputatligi": _val(_to_text(raw.get("deputy") or raw.get("dep")), none=none),
-        "hozirgi_yil": _val(current_job_year, none=""),
-        "hozirgi_ish": _val(current_job, none=""),
+        "hozirgi_yil": current_job_year if current_job else "",
+        "hozirgi_ish": current_job or "",
         "mehnat_faoliyati": work_lines[0] if len(work_lines) > 0 else none,
         "photo": L["photo_hint"],
     }

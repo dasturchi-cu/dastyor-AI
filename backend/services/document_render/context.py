@@ -13,7 +13,7 @@ from backend.services.document_render.watermark import (
     watermark_text,
 )
 from features.obyektivka.malumotnoma_data import build_malumotnoma_data
-from features.obyektivka.none_values import field_or_none
+from features.obyektivka.none_values import field_or_none, is_none_token
 
 
 def _to_text(value: Any) -> str:
@@ -74,6 +74,9 @@ def build_obyektivka_render_context(
     mdata = build_malumotnoma_data(raw)
     current_job = mdata["current_job"]
     current_job_year = mdata["current_job_year"]
+    if is_none_token(current_job):
+        current_job = ""
+        current_job_year = ""
     work_items = mdata["work_experience"]
 
     img = _to_text(raw.get("img") or raw.get("photo_data"))

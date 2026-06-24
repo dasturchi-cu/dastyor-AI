@@ -27,6 +27,24 @@ async def ai_monitor_status(
     return snapshot_to_dict()
 
 
+@router.get("/admin/ai-monitor/quota-history")
+async def ai_monitor_quota_history(
+    request: Request,
+    telegram_id: str | None = Query(None),
+    token: str | None = Query(None),
+    provider: str | None = Query(None),
+    key_index: int | None = Query(None),
+    limit: int = Query(50, ge=1, le=200),
+    x_admin_secret: str | None = Header(None, alias="X-Admin-Secret"),
+    authorization: str | None = Header(None),
+):
+    if not _admin_authorized(request, telegram_id, token, x_admin_secret, authorization):
+        raise HTTPException(status_code=403, detail="Admin access required")
+    from database.repositories.ai_quota import list_history
+
+    return {"history": list_history(provider=provider, key_index=key_index, limit=limit)}
+
+
 @router.get("/admin/ai-monitor/config")
 async def ai_monitor_config(
     request: Request,

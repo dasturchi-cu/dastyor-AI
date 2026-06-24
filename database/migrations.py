@@ -374,6 +374,44 @@ def migration_010_security_events(conn: sqlite3.Connection) -> None:
     )
 
 
+def migration_011_ai_quota_monitoring(conn: sqlite3.Connection) -> None:
+    conn.executescript(
+        """
+        CREATE TABLE IF NOT EXISTS ai_quota_state (
+            provider            TEXT NOT NULL,
+            key_index           INTEGER NOT NULL,
+            model               TEXT,
+            quota_percent       REAL NOT NULL DEFAULT 100,
+            requests_used       INTEGER NOT NULL DEFAULT 0,
+            requests_remaining  INTEGER NOT NULL DEFAULT 0,
+            status              TEXT NOT NULL DEFAULT 'ACTIVE',
+            last_success        TEXT,
+            last_failure        TEXT,
+            reset_time          TEXT,
+            health_status       TEXT NOT NULL DEFAULT 'HEALTHY',
+            daily_limit         INTEGER NOT NULL DEFAULT 1500,
+            updated_at          TEXT NOT NULL DEFAULT (datetime('now')),
+            PRIMARY KEY (provider, key_index)
+        );
+
+        CREATE TABLE IF NOT EXISTS ai_quota_history (
+            id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+            provider            TEXT NOT NULL,
+            key_index           INTEGER NOT NULL,
+            quota_percent       REAL NOT NULL DEFAULT 100,
+            requests_used       INTEGER NOT NULL DEFAULT 0,
+            requests_remaining  INTEGER NOT NULL DEFAULT 0,
+            status              TEXT NOT NULL,
+            event_type          TEXT NOT NULL DEFAULT 'snapshot',
+            updated_at          TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+        CREATE INDEX IF NOT EXISTS idx_ai_quota_hist_provider ON ai_quota_history(provider, key_index);
+        CREATE INDEX IF NOT EXISTS idx_ai_quota_hist_updated ON ai_quota_history(updated_at DESC);
+        CREATE INDEX IF NOT EXISTS idx_ai_quota_hist_event ON ai_quota_history(event_type);
+        """
+    )
+
+
 MIGRATIONS: list[tuple[int, str, MigrationFn]] = [
     (1, "legacy_columns", migration_001_legacy_columns),
     (2, "new_tables", migration_002_new_tables),
@@ -385,6 +423,7 @@ MIGRATIONS: list[tuple[int, str, MigrationFn]] = [
     (8, "extra_indexes", migration_008_extra_indexes),
     (9, "ai_routing_logs", migration_009_ai_routing_logs),
     (10, "security_events", migration_010_security_events),
+    (11, "ai_quota_monitoring", migration_011_ai_quota_monitoring),
 ]
 
 

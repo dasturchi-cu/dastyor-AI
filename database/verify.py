@@ -21,6 +21,8 @@ REQUIRED_TABLES = (
     "activity_events",
     "error_logs",
     "ai_request_logs",
+    "ai_quota_state",
+    "ai_quota_history",
 )
 
 REQUIRED_INDEXES = (

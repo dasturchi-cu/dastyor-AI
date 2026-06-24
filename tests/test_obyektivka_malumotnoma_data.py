@@ -83,6 +83,38 @@ class TestMalumotnomaEmployment(unittest.TestCase):
         self.assertEqual(len(data["work_lines"]), 1)
         self.assertIn("Eski", data["work_lines"][0])
 
+    def test_no_current_job_top_empty_mehnat_yoq(self):
+        raw = {
+            "lang": "uz_lat",
+            "current_job": "yo'q",
+            "work_experience": [{"year": "1988-1991", "position": "Aspirant"}],
+        }
+        data = build_malumotnoma_data(raw)
+        self.assertEqual(data["current_job"], "")
+        self.assertEqual(data["current_job_year"], "")
+        self.assertEqual(len(data["work_lines"]), 1)
+        preview = build_obyektivka_render_context(raw)
+        self.assertEqual(preview["current_job"], "")
+        self.assertEqual(len(preview["work_experience"]), 1)
+
+    def test_empty_work_shows_yoq_in_docx_not_top(self):
+        raw = {"lang": "uz_lat", "work_experience": [{"position": "yo'q"}]}
+        data = build_malumotnoma_data(raw)
+        self.assertEqual(data["current_job"], "")
+        self.assertEqual(data["work_lines"], [])
+        docx = build_placeholder_context(raw)
+        self.assertEqual(docx["hozirgi_ish"], "")
+        self.assertEqual(docx["mehnat_faoliyati"], "yo'q")
+
+    def test_past_jobs_only_no_top_current(self):
+        raw = {
+            "lang": "uz_lat",
+            "work_experience": [{"year": "2001-2005", "position": "Birinchi ish"}],
+        }
+        data = build_malumotnoma_data(raw)
+        self.assertEqual(data["current_job"], "")
+        self.assertEqual(len(data["work_lines"]), 1)
+
 
 class TestCurrentJobCompat(unittest.TestCase):
     def test_present_token(self):

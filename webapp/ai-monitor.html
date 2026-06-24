@@ -6,118 +6,94 @@
   <title>AI Monitoring — Dastyor AI</title>
   <style>
     :root {
-      --bg: #0b0f14;
-      --card: #121820;
-      --border: #1e2a38;
-      --text: #e8eef5;
-      --muted: #8b9cb3;
-      --accent: #3b82f6;
-      --ok: #22c55e;
-      --warn: #f59e0b;
-      --err: #ef4444;
+      --bg: #0b0f14; --card: #121820; --border: #1e2a38;
+      --text: #e8eef5; --muted: #8b9cb3; --accent: #3b82f6;
+      --ok: #22c55e; --warn: #f59e0b; --err: #ef4444;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      font-family: "Segoe UI", system-ui, sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      min-height: 100vh;
-      padding: 1.25rem;
-    }
+    body { font-family: "Segoe UI", system-ui, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; padding: 1.25rem; }
     h1 { font-size: 1.35rem; font-weight: 600; margin-bottom: 0.25rem; }
     .sub { color: var(--muted); font-size: 0.85rem; margin-bottom: 1.25rem; }
     .grid { display: grid; gap: 1rem; }
-    @media (min-width: 900px) {
-      .grid-hero { grid-template-columns: 1.2fr 1fr; }
-      .grid-stats { grid-template-columns: repeat(4, 1fr); }
-      .grid-providers { grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); }
-    }
-    .card {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 1rem 1.1rem;
-    }
+    @media (min-width: 900px) { .grid-hero { grid-template-columns: 1.2fr 1fr; } }
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 1rem 1.1rem; margin-bottom: 1rem; }
     .label { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
     .value { font-size: 1.5rem; font-weight: 700; margin-top: 0.2rem; }
     .hero-provider { font-size: 1.8rem; font-weight: 700; color: var(--accent); }
-    .badge {
-      display: inline-block;
-      padding: 0.2rem 0.55rem;
-      border-radius: 999px;
-      font-size: 0.72rem;
-      font-weight: 600;
-      margin-top: 0.5rem;
-    }
+    .badge { display: inline-block; padding: 0.2rem 0.55rem; border-radius: 999px; font-size: 0.72rem; font-weight: 600; margin-top: 0.5rem; }
     .badge-active { background: rgba(34,197,94,0.15); color: var(--ok); }
-    .badge-cooldown { background: rgba(245,158,11,0.15); color: var(--warn); }
+    .badge-cooldown, .badge-degraded { background: rgba(245,158,11,0.15); color: var(--warn); }
+    .badge-exhausted { background: rgba(239,68,68,0.15); color: var(--err); }
     .badge-idle { background: rgba(139,156,179,0.15); color: var(--muted); }
-    table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
-    th, td { text-align: left; padding: 0.5rem 0.35rem; border-bottom: 1px solid var(--border); }
-    th { color: var(--muted); font-weight: 500; }
-    .health-bar {
-      height: 6px;
-      background: var(--border);
-      border-radius: 3px;
-      overflow: hidden;
-      margin-top: 0.35rem;
-    }
+    table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+    th, td { text-align: left; padding: 0.45rem 0.35rem; border-bottom: 1px solid var(--border); vertical-align: top; }
+    th { color: var(--muted); font-weight: 500; white-space: nowrap; }
+    .health-bar { height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; margin-top: 0.35rem; }
     .health-fill { height: 100%; background: var(--ok); transition: width 0.4s; }
     .health-fill.warn { background: var(--warn); }
     .health-fill.bad { background: var(--err); }
-    .pulse { animation: pulse 2s infinite; }
-    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
+    .mono { font-family: ui-monospace, monospace; font-size: 0.75rem; }
     .footer { margin-top: 1rem; color: var(--muted); font-size: 0.75rem; }
     .err-banner { background: rgba(239,68,68,0.12); color: var(--err); padding: 0.6rem; border-radius: 8px; margin-bottom: 1rem; display: none; }
+    .scroll-x { overflow-x: auto; }
   </style>
 </head>
 <body>
-  <h1>AI Monitoring Dashboard</h1>
-  <p class="sub">Live provider routing · failover · health</p>
+  <h1>AI Quota Monitoring</h1>
+  <p class="sub">Provider · key · model · quota · auto-refresh 60s</p>
   <div id="err" class="err-banner"></div>
 
-  <div class="grid grid-hero" style="margin-bottom:1rem;">
-    <div class="card">
+  <div class="grid grid-hero">
+    <div class="card" style="margin-bottom:0">
       <div class="label">Current Route</div>
       <div class="hero-provider" id="provider">—</div>
-      <div style="margin-top:0.5rem;font-size:0.95rem;">
-        Key <strong id="keyIndex">#—</strong> · Model <strong id="model">—</strong>
-      </div>
+      <div style="margin-top:0.5rem;font-size:0.95rem;">Key <strong id="keyIndex">#—</strong> · <span class="mono" id="model">—</span></div>
       <span class="badge badge-idle" id="statusBadge">LOADING</span>
       <div class="label" style="margin-top:0.75rem;">Health</div>
       <div class="value" id="healthPct">—%</div>
       <div class="health-bar"><div class="health-fill" id="healthBar" style="width:0%"></div></div>
     </div>
-    <div class="card">
+    <div class="card" style="margin-bottom:0">
       <div class="label">Analytics (today)</div>
       <table style="margin-top:0.5rem;">
-        <tr><th>Top provider</th><td id="topProvider">—</td></tr>
-        <tr><th>Top model</th><td id="topModel">—</td></tr>
+        <tr><th>Requests</th><td id="totalReqs">—</td></tr>
         <tr><th>Failure rate</th><td id="failRate">—</td></tr>
         <tr><th>Est. cost</th><td id="estCost">—</td></tr>
-        <tr><th>Requests</th><td id="totalReqs">—</td></tr>
-        <tr><th>Tokens</th><td id="totalTokens">—</td></tr>
       </table>
     </div>
   </div>
 
-  <div class="grid grid-stats" style="margin-bottom:1rem;" id="providerCards"></div>
+  <div class="card">
+    <div class="label">Quota by API Key</div>
+    <div class="scroll-x" style="margin-top:0.5rem;">
+      <table id="quotaTable">
+        <thead>
+          <tr>
+            <th>Provider</th><th>Key</th><th>Model</th><th>Quota %</th>
+            <th>Used</th><th>Remaining</th><th>Status</th><th>Health</th>
+            <th>Last OK</th><th>Last Fail</th><th>Reset</th>
+          </tr>
+        </thead>
+        <tbody id="quotaBody"><tr><td colspan="11" style="color:var(--muted)">Loading…</td></tr></tbody>
+      </table>
+    </div>
+  </div>
 
   <div class="card">
-    <div class="label">Cooldowns</div>
-    <table style="margin-top:0.5rem;" id="cooldownTable">
-      <thead><tr><th>Provider</th><th>Key</th><th>Until</th><th>Remaining</th><th>Reason</th></tr></thead>
-      <tbody id="cooldownBody"><tr><td colspan="5" style="color:var(--muted)">None</td></tr></tbody>
+    <div class="label">Quota Reset Events</div>
+    <table style="margin-top:0.5rem;">
+      <thead><tr><th>Time</th><th>Provider</th><th>Key</th><th>Event</th><th>Quota</th><th>Status</th></tr></thead>
+      <tbody id="eventsBody"><tr><td colspan="6" style="color:var(--muted)">None</td></tr></tbody>
     </table>
   </div>
 
-  <p class="footer pulse" id="lastUpdate">Connecting…</p>
+  <p class="footer" id="lastUpdate">Connecting…</p>
 
   <script>
     const params = new URLSearchParams(location.search);
     const qs = params.toString();
     const apiBase = location.origin;
-    const refreshSec = 5;
+    let refreshSec = 60;
 
     function authHeaders() {
       const h = {};
@@ -129,17 +105,24 @@
     function statusClass(s) {
       s = (s || "").toUpperCase();
       if (s === "ACTIVE") return "badge-active";
-      if (s === "COOLDOWN") return "badge-cooldown";
+      if (s === "EXHAUSTED") return "badge-exhausted";
+      if (s === "COOLDOWN" || s === "DEGRADED") return "badge-cooldown";
       return "badge-idle";
     }
 
     function healthClass(pct) {
       if (pct >= 85) return "";
-      if (pct >= 60) return "warn";
+      if (pct >= 40) return "warn";
       return "bad";
     }
 
+    function fmtTs(v) {
+      if (!v) return "—";
+      return String(v).replace("T", " ").slice(0, 16);
+    }
+
     function render(data) {
+      if (data.refresh_sec) refreshSec = data.refresh_sec;
       const a = data.active || {};
       document.getElementById("provider").textContent = (a.provider || "—").toUpperCase();
       document.getElementById("keyIndex").textContent = "#" + (a.key_index || "—");
@@ -154,52 +137,51 @@
       bar.className = "health-fill " + healthClass(hp);
 
       const an = data.analytics || {};
-      document.getElementById("topProvider").textContent = an.top_provider || "—";
-      document.getElementById("topModel").textContent = an.top_model || "—";
-      document.getElementById("failRate").textContent = (an.failure_rate_pct != null ? an.failure_rate_pct : 0) + "%";
-      document.getElementById("estCost").textContent = "$" + (an.estimated_cost_usd != null ? an.estimated_cost_usd : 0);
       document.getElementById("totalReqs").textContent = an.total_requests_today ?? 0;
-      document.getElementById("totalTokens").textContent = (an.total_tokens_today ?? 0).toLocaleString();
+      document.getElementById("failRate").textContent = (an.failure_rate_pct ?? 0) + "%";
+      document.getElementById("estCost").textContent = "$" + (an.estimated_cost_usd ?? 0);
 
-      const cards = document.getElementById("providerCards");
-      cards.innerHTML = "";
-      (data.providers || []).forEach(p => {
-        const el = document.createElement("div");
-        el.className = "card";
-        const h = p.health_pct != null ? p.health_pct : 100;
-        el.innerHTML = `
-          <div class="label">${(p.provider || "").toUpperCase()}</div>
-          <div class="value">${p.requests_today ?? 0}</div>
-          <div style="font-size:0.8rem;color:var(--muted);margin-top:0.25rem;">
-            ${p.requests_hour ?? 0}/hr · ${(p.tokens_used ?? 0).toLocaleString()} tok
-          </div>
-          <div style="font-size:0.8rem;margin-top:0.35rem;">
-            Fail: ${p.failures ?? 0} · RL: ${p.rate_limits ?? 0}
-          </div>
-          <div class="health-bar"><div class="health-fill ${healthClass(h)}" style="width:${h}%"></div></div>
-          ${p.in_cooldown ? '<span class="badge badge-cooldown">COOLDOWN</span>' : '<span class="badge badge-active">OK</span>'}
-        `;
-        cards.appendChild(el);
-      });
-
-      const tbody = document.getElementById("cooldownBody");
-      const cds = data.cooldowns || [];
-      if (!cds.length) {
-        tbody.innerHTML = '<tr><td colspan="5" style="color:var(--muted)">None</td></tr>';
+      const tbody = document.getElementById("quotaBody");
+      const quota = data.quota || [];
+      if (!quota.length) {
+        tbody.innerHTML = '<tr><td colspan="11" style="color:var(--muted)">No keys configured</td></tr>';
       } else {
-        tbody.innerHTML = cds.map(c => `
+        tbody.innerHTML = quota.map(q => `
           <tr>
-            <td>${c.provider}</td>
-            <td>#${c.key_index}</td>
-            <td>${c.until || "—"}</td>
-            <td>${c.remaining_sec != null ? c.remaining_sec + "s" : "—"}</td>
-            <td>${c.reason || "—"}</td>
+            <td><strong>${(q.provider || "").toUpperCase()}</strong></td>
+            <td>#${q.key_index}</td>
+            <td class="mono">${q.model || "—"}</td>
+            <td><strong>${(q.quota_percent ?? 0).toFixed(1)}%</strong></td>
+            <td>${q.requests_used ?? 0}</td>
+            <td>${q.requests_remaining ?? 0}</td>
+            <td><span class="badge ${statusClass(q.status)}">${q.status || "—"}</span></td>
+            <td>${q.health_status || "—"}</td>
+            <td class="mono">${fmtTs(q.last_success)}</td>
+            <td class="mono">${fmtTs(q.last_failure)}</td>
+            <td class="mono">${fmtTs(q.reset_time)}</td>
+          </tr>
+        `).join("");
+      }
+
+      const evBody = document.getElementById("eventsBody");
+      const events = data.quota_events || [];
+      if (!events.length) {
+        evBody.innerHTML = '<tr><td colspan="6" style="color:var(--muted)">No reset events yet</td></tr>';
+      } else {
+        evBody.innerHTML = events.slice(0, 15).map(e => `
+          <tr>
+            <td class="mono">${fmtTs(e.updated_at)}</td>
+            <td>${(e.provider || "").toUpperCase()}</td>
+            <td>#${e.key_index}</td>
+            <td>${e.event_type || "snapshot"}</td>
+            <td>${(e.quota_percent ?? 0).toFixed(0)}%</td>
+            <td>${e.status || "—"}</td>
           </tr>
         `).join("");
       }
 
       document.getElementById("lastUpdate").textContent =
-        "Updated " + new Date().toLocaleTimeString() + " · refresh " + refreshSec + "s";
+        "Updated " + new Date().toLocaleTimeString() + " · auto-refresh " + refreshSec + "s";
       document.getElementById("err").style.display = "none";
     }
 

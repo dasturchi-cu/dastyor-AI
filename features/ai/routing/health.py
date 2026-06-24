@@ -49,6 +49,14 @@ async def _health_loop() -> None:
                     if ok:
                         cooldown.clear(provider, key_index)
                         pool.record_success(ep)
+                        try:
+                            from features.ai.routing.quota import get_quota_monitor
+
+                            get_quota_monitor().record_success(
+                                provider.value, key_index, model
+                            )
+                        except Exception:
+                            pass
                         logger.info(
                             "Health recovery: %s key#%s back in pool",
                             provider.value,
@@ -56,6 +64,13 @@ async def _health_loop() -> None:
                         )
         except Exception as e:
             logger.warning("Health checker iteration error: %s", e)
+
+        try:
+            from features.ai.routing.quota import get_quota_monitor
+
+            get_quota_monitor().snapshot_all()
+        except Exception as e:
+            logger.debug("Quota snapshot skipped: %s", e)
 
         try:
             await asyncio.wait_for(_stop_event.wait(), timeout=_CHECK_INTERVAL_SEC)

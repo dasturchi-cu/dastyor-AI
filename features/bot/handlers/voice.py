@@ -10,7 +10,13 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import Message
 
 from database.repositories import ai_sessions as sessions_repo
-from features.ai.service import process_text_for_cv, process_voice_for_cv, cv_fill_is_acceptable
+from features.ai.service import (
+    count_cv_populated_fields,
+    cv_fill_is_acceptable,
+    cv_fill_rejection_reason,
+    process_text_for_cv,
+    process_voice_for_cv,
+)
 from features.bot.states import CvStates, ObyektivkaStates
 from features.cv import service as cv_service
 from shared.ai_errors import AI_QUOTA_USER_MSG, AiQuotaError
@@ -71,9 +77,9 @@ async def _handle_cv_text_flow(text: str, status: Message, uid: int, state: FSMC
     try:
         transcript, cv_data, cv_missing = await process_text_for_cv(text)
         if not cv_fill_is_acceptable(cv_data, cv_missing):
+            reason = cv_fill_rejection_reason(cv_data)
             await status.edit_text(
-                "ℹ️ CV uchun yetarli ma'lumot topilmadi.\n"
-                "Namunadagi kabi to'liqroq yozing."
+                f"ℹ️ CV rad etildi.\n\nSabab: {reason}"
             )
             return
         await db_run(cv_service.save_user_data, uid, cv_data)
@@ -109,9 +115,10 @@ async def _handle_cv_voice_flow(
         transcript, cv_data, cv_missing = await process_voice_for_cv(path)
 
         if not cv_fill_is_acceptable(cv_data, cv_missing):
+            reason = cv_fill_rejection_reason(cv_data)
             await status.edit_text(
-                f"ℹ️ CV uchun yetarli ma'lumot topilmadi.\n\n"
-                f"Namunadagi tartibda qayta yuboring yoki <b>{BTN_OBY}</b> tanlang."
+                f"ℹ️ CV rad etildi.\n\nSabab: {reason}\n\n"
+                f"Qayta yuboring yoki <b>{BTN_OBY}</b> tanlang."
             )
             return
 

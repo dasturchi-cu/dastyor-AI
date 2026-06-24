@@ -44,7 +44,8 @@
     .main{max-width:680px;margin:0 auto;padding:16px 12px calc(60px + var(--safe-bottom))}
 
     /* CARD */
-    .card{background:var(--card);border-radius:18px;border:1.5px solid var(--border);box-shadow:0 4px 24px rgba(29,111,232,.10),0 1px 4px rgba(0,0,0,.05);overflow:hidden;animation:fadeUp .3s ease both}
+    .card{background:var(--card);border-radius:18px;border:1.5px solid var(--border);box-shadow:0 4px 24px rgba(29,111,232,.10),0 1px 4px rgba(0,0,0,.05);animation:fadeUp .3s ease both}
+    #main-card{overflow:visible}
     @keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
 
     /* HERO */
@@ -99,9 +100,9 @@
 
     /* AUTOCOMPLETE */
     .ac-wrap{position:relative}
-    .ac-suggest{position:absolute;left:0;right:0;top:calc(100% + 4px);z-index:200;background:#fff;border:1.5px solid var(--border);border-radius:10px;box-shadow:0 8px 24px rgba(29,111,232,.14);max-height:180px;overflow-y:auto;-webkit-overflow-scrolling:touch}
+    .ac-suggest{position:absolute;left:0;right:0;top:calc(100% + 4px);z-index:500;background:#fff;border:1.5px solid var(--border);border-radius:10px;box-shadow:0 8px 24px rgba(29,111,232,.14);max-height:180px;overflow-y:auto;-webkit-overflow-scrolling:touch;touch-action:manipulation}
     .ac-suggest.hidden{display:none}
-    .ac-item{padding:10px 12px;font-size:13.5px;font-weight:600;color:var(--text);cursor:pointer;border-bottom:1px solid var(--blue-light);transition:background .12s}
+    .ac-item{padding:10px 12px;font-size:13.5px;font-weight:600;color:var(--text);cursor:pointer;border-bottom:1px solid var(--blue-light);transition:background .12s;-webkit-tap-highlight-color:transparent;touch-action:manipulation;user-select:none}
     .ac-item:last-child{border-bottom:0}
     .ac-item:active,.ac-item:hover{background:var(--blue-light)}
     .ac-item mark{background:rgba(29,111,232,.14);color:var(--blue);font-weight:800;border-radius:3px;padding:0 2px}
@@ -274,6 +275,7 @@
     .voice-work-filled{outline:2px solid #22c55e;border-radius:10px;padding:4px}
     .voice-rel-missing{outline:2px dashed #fb923c;border-radius:10px;padding:4px}
     .voice-rel-filled{outline:2px solid #22c55e;border-radius:10px;padding:4px}
+    .voice-flow-bar .btn.da-export-locked{filter:grayscale(0.35)}
     body.modal-open{overflow:hidden}
   </style>
 </head>
@@ -501,7 +503,8 @@
 
 <div id="voiceFlowBar" class="voice-flow-bar hidden">
   <button type="button" class="btn btn-outline" onclick="toggleVoiceFormEdit()">✏️ Tahrir</button>
-  <button type="button" class="btn btn-primary" onclick="confirmObyektivka()" id="btn_confirm_oby">✅ Tasdiqlash</button>
+  <button type="button" class="btn btn-outline hidden" onclick="payObySingle('word')" id="btn_voice_pay">💳 To'lov (7 999)</button>
+  <button type="button" class="btn btn-primary da-export-btn da-export-locked" onclick="confirmObyektivka()" id="btn_confirm_oby" disabled aria-disabled="true">🔒 Tasdiqlash</button>
 </div>
 
 <!-- MODAL -->
@@ -567,7 +570,7 @@ if (window.pdfjsLib && window.pdfjsLib.GlobalWorkerOptions) {
 }
 </script>
 <script src="js/preview-zoom.js" defer></script>
-<script src="js/obyektivka-preview.js?v=20260625b" defer></script>
+<script src="js/obyektivka-preview.js?v=20260625c" defer></script>
 <script>
 function daToast(msg, type) {
   if (window.DastyorAI && DastyorAI.showToast) DastyorAI.showToast(msg, type || 'info');
@@ -797,10 +800,16 @@ function acUsesComma(type){
   return type==='birthplace' || type==='langs';
 }
 
+var acSuggestPicking=false;
+var acValNoTypes=['party','degree','scititle','military','awards','idor_awards','deputy','langs'];
+
+function beginACPick(){ acSuggestPicking=true; }
+
 function normalizeAC(s){
   return String(s||'').toLowerCase()
     .replace(/[‘’ʻ`´]/g,"'")
     .replace(/['\u02bc\u2019]/g,'')
+    .replace(/["«»]/g,'')
     .replace(/\s+/g,'')
     .trim();
 }
@@ -927,6 +936,33 @@ function buildACValue(prefix, segment, selected, autoComma){
   return val;
 }
 
+function renderACSuggestList(suggest, input, type, matches, segForHl){
+  var autoComma=acUsesComma(type) && !acSingleValueType(type);
+  suggest.dataset.acInputId=input.id;
+  suggest.dataset.acType=type;
+  suggest.dataset.acAutoComma=autoComma?'1':'0';
+  suggest._acPickList=matches.slice();
+  suggest.innerHTML=matches.map(function(item, idx){
+    return '<div class="ac-item" data-ac-pick="'+idx+'">'+highlightACMatch(item, segForHl)+'</div>';
+  }).join('');
+  suggest.classList.remove('hidden');
+}
+
+function handleACSuggestPick(e){
+  var item=e.target.closest('.ac-suggest .ac-item[data-ac-pick]');
+  if(!item) return false;
+  var suggest=item.closest('.ac-suggest');
+  if(!suggest || suggest.classList.contains('hidden')) return false;
+  beginACPick();
+  if(e.cancelable) e.preventDefault();
+  var idx=parseInt(item.getAttribute('data-ac-pick'),10);
+  var list=suggest._acPickList;
+  if(!list || isNaN(idx) || idx<0 || idx>=list.length) return true;
+  var input=document.getElementById(suggest.dataset.acInputId||'');
+  if(input) applyACSelection(input, suggest.dataset.acType||'', list[idx], suggest.dataset.acAutoComma==='1');
+  return true;
+}
+
 function applyACSelection(input, type, selected, autoComma){
   if(acSingleValueType(type)){
     input.value=selected;
@@ -948,7 +984,7 @@ function onSmartACKeydown(input, e){
   }
 }
 
-function onSmartACInput(input, type){
+function onSmartACInput(input, type, forceShow){
   if(!input) return;
   var prevLen=parseInt(input.dataset.acPrevLen||String((input.value||'').length),10);
   var curLen=(input.value||'').length;
@@ -962,7 +998,7 @@ function onSmartACInput(input, type){
   if(!suggest) return;
   var matches;
   if(!segment){
-    if((type==='langs' || acSingleValueType(type)) && document.activeElement===input){
+    if((type==='langs' || acSingleValueType(type)) && (forceShow || document.activeElement===input)){
       matches=getACOptions(type).slice(0,14);
     } else {
       suggest.classList.add('hidden');
@@ -984,26 +1020,32 @@ function onSmartACInput(input, type){
   }
   if(matches.length===0){ suggest.classList.add('hidden'); return; }
   var segForHl=info.segment||segment||'';
-  suggest.innerHTML=matches.map(function(item){
-    var autoComma=acUsesComma(type);
-    if(acSingleValueType(type)) autoComma=false;
-    return '<div class="ac-item" onmousedown="event.preventDefault();applyACSelection(document.getElementById(\''+input.id+'\'),\''+type+'\',\''+String(item).replace(/\\/g,'\\\\').replace(/'/g,"\\'")+'\','+(autoComma?'true':'false')+')">'+highlightACMatch(item, segForHl)+'</div>';
-  }).join('');
-  suggest.classList.remove('hidden');
+  renderACSuggestList(suggest, input, type, matches, segForHl);
 }
 
 function onSmartACFocus(input, type){
-  if(input) input.dataset.acPrevLen=String((input.value||'').length);
-  onSmartACInput(input, type);
+  if(!input) return;
+  input.dataset.acPrevLen=String((input.value||'').length);
+  onSmartACInput(input, type, true);
+  setTimeout(function(){ if(document.activeElement===input) onSmartACInput(input, type, true); }, 60);
 }
 
 function onSmartACBlur(input, type){
   setTimeout(function(){
+    if(acSuggestPicking){
+      acSuggestPicking=false;
+      return;
+    }
     var suggestId=input&&input.dataset.acSuggest?input.dataset.acSuggest:('suggest-'+type);
     var el=document.getElementById(suggestId);
     if(el) el.classList.add('hidden');
     closeACSuggest(type);
     if(!input) return;
+    if(acValNoTypes.indexOf(type)>=0 && !String(input.value||'').trim()){
+      input.value=(dict[currentLang]||{}).val_no||"yo'q";
+      try{saveToLocal();updatePreview();}catch(e){}
+      return;
+    }
     var info=getACSegmentInfo(input, type, input.value);
     if(!info.segment) return;
     var alias=resolveACAliasExact(type, info.segment);
@@ -1012,7 +1054,7 @@ function onSmartACBlur(input, type){
       else input.value=alias;
       try{saveToLocal();updatePreview();}catch(e){}
     }
-  }, 160);
+  }, 200);
 }
 
 function onValNoFieldFocus(input, type){
@@ -1190,15 +1232,14 @@ function onWorkDescInput(el){
     if(last.length>=2) matches=acWorkPhrases.filter(function(p){ return normalizeAC(p).indexOf(normalizeAC(last))>=0; }).slice(0,8);
   }
   if(!matches.length){ box.classList.add('hidden'); return; }
-  box.innerHTML=matches.map(function(item){
-    var safe=String(item).replace(/\\/g,'\\\\').replace(/'/g,"\\'");
-    return '<div class="ac-item" onmousedown="event.preventDefault();pickWorkDesc(this,\''+safe+'\')">'+escapeACHtml(item)+'</div>';
+  box._acPickList=matches.slice();
+  box.innerHTML=matches.map(function(item, idx){
+    return '<div class="ac-item" data-ac-work-pick="'+idx+'">'+escapeACHtml(item)+'</div>';
   }).join('');
   box.classList.remove('hidden');
 }
 
-function pickWorkDesc(item, value){
-  var wrap=item.closest('.work-desc-wrap');
+function pickWorkDescValue(wrap, value){
   if(!wrap) return;
   var ta=wrap.querySelector('.work-desc');
   if(!ta) return;
@@ -1206,6 +1247,10 @@ function pickWorkDesc(item, value){
   var box=wrap.querySelector('.work-suggest');
   if(box) box.classList.add('hidden');
   try{saveToLocal();updatePreview();}catch(e){}
+}
+
+function pickWorkDesc(item, value){
+  pickWorkDescValue(item?item.closest('.work-desc-wrap'):null, value);
 }
 
 function appendLangChip(lang){
@@ -1276,9 +1321,9 @@ function onWorkYearInput(el, isTo){
     var opts=getWorkYearOptions(isTo, raw);
     if(!opts.length) box.classList.add('hidden');
     else {
-      box.innerHTML=opts.map(function(opt){
-        var safe=String(opt.v).replace(/\\/g,'\\\\').replace(/'/g,"\\'");
-        return '<div class="ac-item" onmousedown="event.preventDefault();pickWorkYear(this,\''+safe+'\')">'+escapeACHtml(opt.l)+'</div>';
+      box._acPickList=opts.map(function(opt){ return opt.v; });
+      box.innerHTML=opts.map(function(opt, idx){
+        return '<div class="ac-item" data-ac-year-pick="'+idx+'">'+escapeACHtml(opt.l)+'</div>';
       }).join('');
       box.classList.remove('hidden');
     }
@@ -1287,8 +1332,7 @@ function onWorkYearInput(el, isTo){
   try{saveToLocal();updatePreview();}catch(e){}
 }
 
-function pickWorkYear(item, value){
-  var wrap=item.closest('.ac-wrap');
+function pickWorkYearValue(wrap, value){
   if(!wrap) return;
   var inp=wrap.querySelector('input');
   if(!inp) return;
@@ -1297,6 +1341,36 @@ function pickWorkYear(item, value){
   closeWorkYearSuggest(inp);
   validateWorkYearField(inp, inp.classList.contains('year-to'), true);
   try{saveToLocal();updatePreview();}catch(e){}
+}
+
+function onACPickPointer(e){
+  if(e.type==='touchstart' && e.target.closest('.ac-suggest .ac-item[data-ac-pick], .work-suggest .ac-item[data-ac-work-pick], .year-suggest .ac-item[data-ac-year-pick]')){
+    beginACPick();
+  }
+  if(handleACSuggestPick(e)) return;
+  var witem=e.target.closest('.work-suggest .ac-item[data-ac-work-pick]');
+  if(witem){
+    beginACPick();
+    if(e.cancelable) e.preventDefault();
+    var box=witem.closest('.work-suggest');
+    var idx=parseInt(witem.getAttribute('data-ac-work-pick'),10);
+    var list=box&&box._acPickList;
+    if(list && !isNaN(idx) && idx>=0 && idx<list.length){
+      pickWorkDescValue(witem.closest('.work-desc-wrap'), list[idx]);
+    }
+    return;
+  }
+  var yitem=e.target.closest('.year-suggest .ac-item[data-ac-year-pick]');
+  if(yitem){
+    beginACPick();
+    if(e.cancelable) e.preventDefault();
+    var ybox=yitem.closest('.year-suggest');
+    var yidx=parseInt(yitem.getAttribute('data-ac-year-pick'),10);
+    var ylist=ybox&&ybox._acPickList;
+    if(ylist && !isNaN(yidx) && yidx>=0 && yidx<ylist.length){
+      pickWorkYearValue(yitem.closest('.ac-wrap'), ylist[yidx]);
+    }
+  }
 }
 
 function onWorkYearFocus(el, isTo){
@@ -1732,7 +1806,13 @@ function setObyPayUiState(phase) {
     if (statusEl) { statusEl.textContent = '⏳ Admin to\'lovingizni tekshirmoqda...'; statusEl.style.color = '#166534'; }
   } else if (phase === 'approved') {
     if (sendBtn) { sendBtn.disabled = true; sendBtn.textContent = '✅ Tasdiqlandi'; sendBtn.style.opacity = '1'; }
-    if (statusEl) { statusEl.textContent = '✅ Tasdiqlandi — «Word botga yuborish».'; statusEl.style.color = '#166534'; statusEl.style.fontWeight = '800'; }
+    if (statusEl) {
+      statusEl.textContent = _voiceFirstMode
+        ? "✅ To'lov tasdiqlandi — endi pastdagi «Tasdiqlash» tugmasini bosing."
+        : "✅ Tasdiqlandi — «Word botga yuborish».";
+      statusEl.style.color = '#166534';
+      statusEl.style.fontWeight = '800';
+    }
   } else if (phase === 'rejected') {
     if (sendBtn) { sendBtn.disabled = false; sendBtn.textContent = '📤 Yuborish'; sendBtn.style.opacity = '1'; }
     if (statusEl) { statusEl.textContent = "❌ To'lov rad etildi. Qayta skrinshot yuboring."; statusEl.style.color = '#b91c1c'; }
@@ -1818,6 +1898,24 @@ function syncObyQuotaUi() {
       warn.classList.add('hidden');
       warn.textContent = '';
     }
+  }
+
+  var confirmBtn = document.getElementById('btn_confirm_oby');
+  var voicePayBtn = document.getElementById('btn_voice_pay');
+  if (confirmBtn) {
+    confirmBtn.disabled = _obyExportInFlight || !canExport || pendingAdmin;
+    var confirmState = 'ready';
+    if (!canExport && !pendingAdmin) confirmState = 'locked';
+    else if (pendingAdmin || _obyExportInFlight) confirmState = 'waiting';
+    if (DA.applyExportButtonState) DA.applyExportButtonState(confirmBtn, confirmState, 'obyektivka');
+    if (!canExport && !pendingAdmin) confirmBtn.textContent = '🔒 Tasdiqlash';
+    else if (_obyExportInFlight) confirmBtn.textContent = '⏳ Yuborilmoqda...';
+    else if (pendingAdmin) confirmBtn.textContent = '⏳ Tasdiqlash';
+    else confirmBtn.textContent = '✅ Tasdiqlash';
+  }
+  if (voicePayBtn) {
+    if (_voiceFirstMode && !canExport && !pendingAdmin) voicePayBtn.classList.remove('hidden');
+    else voicePayBtn.classList.add('hidden');
   }
 }
 
@@ -2272,7 +2370,12 @@ async function payObySingle(fmt){
     if(_obyPayState.pollTimer){ clearInterval(_obyPayState.pollTimer); _obyPayState.pollTimer=null; }
 
     if(panel) panel.classList.remove('hidden');
-    if(panel && panel.scrollIntoView) panel.scrollIntoView({ behavior:'smooth', block:'nearest' });
+    if(_voiceFirstMode){
+      try{
+        var payAnchor=document.getElementById('obyPayPanel');
+        if(payAnchor && payAnchor.scrollIntoView) payAnchor.scrollIntoView({behavior:'smooth',block:'start'});
+      }catch(_){}
+    }else if(panel && panel.scrollIntoView) panel.scrollIntoView({ behavior:'smooth', block:'nearest' });
     if(sendBtn){ sendBtn.disabled = true; sendBtn.textContent = "📤 Yuborish"; sendBtn.style.opacity = '0.6'; }
     if(statusEl){
       statusEl.textContent = "💳 Quyidagi kartaga to'lov o'tkazing, keyin skrinshot yuboring.";
@@ -2851,6 +2954,8 @@ function setupEventListeners(){
   }
   document.querySelectorAll('#work-container .work-row').forEach(bindWorkYearValidation);
   applyRegionAC(document.getElementById('m-rel-addr'));
+  document.addEventListener('mousedown', onACPickPointer);
+  document.addEventListener('touchstart', onACPickPointer, {passive:false, capture:true});
   document.addEventListener('click',function(e){
     if(!e.target.closest('.ac-wrap')) ['nation','birthplace','edu','langs','party','university','spec','degree','scititle','military','awards','idor_awards','deputy'].forEach(closeACSuggest);
     if(!e.target.closest('.work-desc-wrap')) document.querySelectorAll('.work-suggest').forEach(function(el){el.classList.add('hidden');});
@@ -3141,6 +3246,7 @@ function enterVoiceFirstMode(missing){
       }
     }
   }catch(_){}
+  syncObyQuotaUi();
 }
 
 function isValNoToken(v){
@@ -3163,8 +3269,9 @@ function voiceFieldState(id, el){
     if(!val||val.length<3) return 'missing';
     return 'valid';
   }
-  if(isValNoToken(val)) return 'missing';
-  return val ? 'valid' : 'missing';
+  if(!val) return 'missing';
+  if(isValNoToken(val)) return 'valid';
+  return 'valid';
 }
 
 function hasValidWorkExperience(){
@@ -3253,6 +3360,7 @@ function toggleVoiceFormEdit(){
 }
 
 async function confirmObyektivka(){
+  if(_obyExportInFlight) return;
   var critical=(_missingFields||[]).filter(function(m){
     var id=typeof m==='string'?m:m.id;
     return id==='fullname'||id==='birthdate'||id==='work_experience';
@@ -3264,6 +3372,20 @@ async function confirmObyektivka(){
       refreshVoiceFieldHighlights();
       return;
     }
+  }
+  var DA = window.DastyorAI || {};
+  try{ if(DA.refreshProfile) await DA.refreshProfile(true); }catch(_){}
+  var u = DA.getUser ? DA.getUser() : null;
+  var canExport = DA.canExportForCategory
+    ? DA.canExportForCategory(u, 'obyektivka')
+    : ((DA.getCredits ? DA.getCredits(u) : 0) > 0 || (DA.hasSingleDocAccess && DA.hasSingleDocAccess(u, 'obyektivka')));
+  var pendingAdmin = !!(_obyApprovedRequestId && !canExport);
+  if(!canExport || pendingAdmin){
+    syncObyQuotaUi();
+    if(!canExport && !pendingAdmin){
+      try{ await payObySingle('word'); }catch(_){}
+    }
+    return;
   }
   await sendObyektivkaToBot('word');
 }
