@@ -3,17 +3,16 @@
 from __future__ import annotations
 
 import json
-import re
 from typing import Any
 
 from backend.services.document_render.pii_mask import mask_relatives_for_preview, mask_text_for_preview
 from backend.services.document_render.photo import process_passport_photo
-from features.obyektivka.current_job import extract_current_job
 from backend.services.document_render.watermark import (
     preview_banner_text,
     watermark_opacity,
     watermark_text,
 )
+from features.obyektivka.malumotnoma_data import build_malumotnoma_data
 
 
 def _to_text(value: Any) -> str:
@@ -34,49 +33,6 @@ def _parse_list(value: Any) -> list[dict[str, Any]]:
         except Exception:
             return []
     return []
-
-
-def _normalize_work_item(item: dict[str, Any]) -> dict[str, str]:
-    year = _to_text(item.get("year") or item.get("years") or item.get("from"))
-    end = _to_text(item.get("to"))
-    if not year and (item.get("f") or item.get("t")):
-        f = _to_text(item.get("f"))
-        t = _to_text(item.get("t"))
-        year = f"{f}-{t}".strip("-") if f or t else ""
-    position = _to_text(
-        item.get("position") or item.get("desc") or item.get("job") or item.get("d") or item.get("description")
-    )
-    if year and end and "yy" not in year.lower():
-        year = f"{year}-{end} yy."
-    year = year.rstrip(".") if year else year
-    return {"year": year, "position": position}
-
-
-def _infer_current_job(work_items: list[dict[str, Any]]) -> tuple[str, str, list[dict[str, Any]]]:
-    current_job = ""
-    current_job_year = ""
-    items = [dict(x) for x in work_items]
-
-    for idx, item in enumerate(items):
-        year_raw = _to_text(item.get("year") or item.get("from"))
-        year_norm = re.sub(r"[\s.\-_/]", "", year_raw.lower())
-        is_current = any(
-            key in year_norm
-            for key in ("hv", "hvgacha", "hozirgacha", "ҳв", "ҳвгача", "ҳозиргача", "present", "current")
-        )
-        position_raw = _to_text(item.get("position") or item.get("description") or item.get("job") or item.get("d"))
-        if is_current and position_raw:
-            current_job = position_raw
-            from_raw = _to_text(item.get("from") or item.get("f"))
-            if from_raw:
-                current_job_year = from_raw
-            else:
-                match = re.search(r"(19|20)\d{2}", year_raw)
-                if match:
-                    current_job_year = match.group(0)
-            items.pop(idx)
-            break
-    return current_job, current_job_year, items
 
 
 def _normalize_relatives(raw: list) -> list[dict[str, str]]:
@@ -113,19 +69,10 @@ def build_obyektivka_render_context(
     Single source of truth for preview + PDF export.
     `watermark` / `mask_pii` are enabled for unpaid live preview.
     """
-    works_raw = _parse_list(raw.get("work_experience") or raw.get("works"))
-    work_items = [_normalize_work_item(w) for w in works_raw]
-    work_items = [w for w in work_items if w.get("year") or w.get("position")]
-
-    lang_key = str(raw.get("lang") or "uz_lat")
-    current_job = _to_text(raw.get("current_job"))
-    current_job_year = _to_text(raw.get("current_job_year"))
-    current_job, current_job_year, work_items = extract_current_job(
-        work_items,
-        current_job=current_job,
-        current_job_year=current_job_year,
-        lang=lang_key,
-    )
+    mdata = build_malumotnoma_data(raw)
+    current_job = mdata["current_job"]
+    current_job_year = mdata["current_job_year"]
+    work_items = mdata["work_experience"]
 
     img = _to_text(raw.get("img") or raw.get("photo_data"))
     if process_photo and img:

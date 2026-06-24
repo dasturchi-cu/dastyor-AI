@@ -1526,7 +1526,7 @@ function formatCurrentJobYear(fromYear){
 }
 
 function splitCurrentJobFromWorks(works){
-  var out=[], cj='', cy='';
+  var cj='', cy='';
   (works||[]).forEach(function(w){
     var f=String(w.f||'').trim();
     var t=String(w.t||'').trim();
@@ -1534,11 +1534,9 @@ function splitCurrentJobFromWorks(works){
     if(!cj && d && isPresentToken(t)){
       cj=toCurrentScript(d);
       cy=toCurrentScript(formatCurrentJobYear(f));
-      return;
     }
-    out.push(w);
   });
-  return {current_job:cj, current_job_year:cy, works:out};
+  return {current_job:cj, current_job_year:cy, works:works||[]};
 }
 
 function initApp(lang){

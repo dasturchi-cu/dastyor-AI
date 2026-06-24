@@ -6,8 +6,8 @@ import json
 import re
 from typing import Any
 
-from features.obyektivka.current_job import extract_current_job, format_current_job_year, is_present_year_token
 from features.obyektivka.layout import labels_for
+from features.obyektivka.malumotnoma_data import build_malumotnoma_data
 
 NONE_UZ = "yo'q"
 NONE_CYR = "йўқ"
@@ -141,20 +141,10 @@ def build_placeholder_context(raw: dict[str, Any]) -> dict[str, str]:
     none = _none(lang)
     L = labels_for(lang)
 
-    works_raw = _parse_list(raw.get("work_experience") or raw.get("works"))
-    lang_key = _to_text(raw.get("lang")) or "uz_lat"
-
-    current_job = _to_text(raw.get("current_job"))
-    current_job_year = _to_text(raw.get("current_job_year"))
-    current_job, current_job_year, works_raw = extract_current_job(
-        works_raw,
-        current_job=current_job,
-        current_job_year=current_job_year,
-        lang=lang_key,
-    )
-
-    work_lines = [_format_work_line(w) for w in works_raw]
-    work_lines = [w for w in work_lines if w]
+    mdata = build_malumotnoma_data(raw)
+    current_job = mdata["current_job"]
+    current_job_year = mdata["current_job_year"]
+    work_lines = mdata["work_lines"]
 
     ctx: dict[str, str] = {
         "fish": _val(_to_text(raw.get("fullname")), none=""),

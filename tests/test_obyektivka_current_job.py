@@ -25,9 +25,10 @@ class TestCurrentJob(unittest.TestCase):
         )
         self.assertEqual(job, "MCHJ rahbari")
         self.assertEqual(year, "2014-yildan:")
-        self.assertEqual(rest, [])
+        self.assertEqual(len(rest), 1)
+        self.assertIn("MCHJ rahbari", rest[0].get("position", ""))
 
-    def test_explicit_current_not_duplicated_in_works(self):
+    def test_explicit_current_stays_in_works(self):
         job, year, rest = extract_current_job(
             [
                 {"year": "2010-2013", "position": "Eski ish"},
@@ -39,8 +40,7 @@ class TestCurrentJob(unittest.TestCase):
         )
         self.assertEqual(job, "Hozirgi ish")
         self.assertEqual(year, "2014-yildan:")
-        self.assertEqual(len(rest), 1)
-        self.assertIn("Eski ish", rest[0].get("position", ""))
+        self.assertEqual(len(rest), 2)
 
 
 if __name__ == "__main__":

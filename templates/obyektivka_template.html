@@ -335,7 +335,7 @@
       {%- set yr = w.year or w.years or '' -%}
       {%- set pos = w.position or w.desc or w.job or '' -%}
       {%- set yshow = yr -%}
-      {%- if yr and L.yy.rstrip('.') not in yr|lower -%}
+      {%- if yr and L.yy.rstrip('.') not in yr|lower and 'h.v' not in yr|lower and 'ҳ.в' not in yr and 'hozir' not in yr|lower and 'ҳозир' not in yr -%}
         {%- set yshow = yr ~ ' ' ~ L.yy -%}
       {%- endif -%}
       <div class="work-item">
