@@ -25,11 +25,17 @@ from features.obyektivka.docx_typography import (
 def _paragraph_text(p_el: etree._Element) -> str:
     return "".join(t.text or "" for t in p_el.findall(f".//{W}t")).strip()
 
-# Twentieths of a point (Word spacing units): 4 pt = 80
-SP_AFTER_FISH = 480  # ~24 pt — ism va hozirgi ish orasidagi ochiq joy (namuna)
+# Twentieths of a point (Word spacing units) — .env: OBY_DOCX_*_TWIPS
+from features.obyektivka.spacing_config import (
+    DOCX_AFTER_FISH_TWIPS,
+    DOCX_GRID_BEFORE_TWIPS,
+    DOCX_MEHNAT_BEFORE_TWIPS,
+)
+
+SP_AFTER_FISH = DOCX_AFTER_FISH_TWIPS
 SP_AFTER_CURRENT_YEAR = 40  # 2 pt — sana va lavozim orasi
 SP_BEFORE_CURRENT_JOB = 0
-SP_WORK_LINE_BEFORE = 227  # 4 mm — MEHNAT ro'yxati oldidan (PPT)
+SP_WORK_LINE_BEFORE = DOCX_MEHNAT_BEFORE_TWIPS
 SP_WORK_LINE_AFTER = 0
 SP_WORK_LINE_HEIGHT = 276  # 1.15 interval
 SP_TABLE_LINE = 276

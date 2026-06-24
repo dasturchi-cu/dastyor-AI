@@ -20,12 +20,14 @@ from features.obyektivka.docx_typography import (
     apply_value_rpr,
 )
 
+from features.obyektivka.spacing_config import DOCX_GRID_BEFORE_TWIPS, DOCX_MEHNAT_BEFORE_TWIPS
+
 FONT_TIMES = "Times New Roman"
 
 # PPT spec (mm → twips @ 1440/25.4); line 1.15 = 276
 SP_LINE_115 = 276
-SP_GRID_BEFORE = 454  # 8 mm
-SP_MEHNAT_BEFORE = 227  # 4 mm
+SP_GRID_BEFORE = DOCX_GRID_BEFORE_TWIPS
+SP_MEHNAT_BEFORE = DOCX_MEHNAT_BEFORE_TWIPS
 SP_TITLE_AFTER = 120
 PAGE_MARGIN_TOP_BOTTOM_MM = 20
 PAGE_MARGIN_LEFT_RIGHT_MM = 18

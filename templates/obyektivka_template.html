@@ -1,8 +1,9 @@
 {%- set d = data -%}
 {%- set R = d.render if d.render is defined else {} -%}
+{%- set LAY = d.layout if d.layout is defined else {} -%}
 {%- set wm_opacity = R.watermark_opacity | default(0.10) -%}
 <!DOCTYPE html>
-<html lang="uz" style="--wm-opacity: {{ wm_opacity }};">
+<html lang="uz" style="--wm-opacity: {{ wm_opacity }}; --hdr-title-name-gap: {{ LAY.hdr_title_name_gap_mm | default('1.5') }}mm; --hdr-block-min-h: {{ LAY.hdr_block_min_height_mm | default('28') }}mm; --hdr-name-bottom: {{ LAY.hdr_name_bottom_mm | default('0.5') }}mm; --field-row-gap: {{ LAY.field_row_gap_mm | default('1.8') }}mm; --current-job-bottom: {{ LAY.current_job_bottom_mm | default('2') }}mm; --sect-work-mt: {{ LAY.section_work_margin_top_mm | default('1.2') }}mm; --sect-work-mb: {{ LAY.section_work_margin_bottom_mm | default('1') }}mm; --work-item-gap: {{ LAY.work_item_gap_mm | default('0.8') }}mm; --rel-title-gap: {{ LAY.rel_title_gap_mm | default('3') }}mm;">
 <head>
   <meta charset="UTF-8">
   <title>Ma'lumotnoma — {{ data.fullname }}</title>
@@ -102,7 +103,7 @@
     .pii-blur { filter: blur(4px); -webkit-filter: blur(4px); user-select: none; }
     .pii-partial { user-select: none; letter-spacing: 0.02em; }
 
-    .hdr-block { position: relative; min-height: 42mm; margin-bottom: 1mm; padding-right: 21.24mm; }
+    .hdr-block { position: relative; min-height: var(--hdr-block-min-h, 28mm); margin-bottom: 0.5mm; padding-right: 21.24mm; }
     .photo-float {
       position: absolute;
       top: 0;
@@ -136,17 +137,17 @@
       text-align: center;
       line-height: 1;
     }
-    .hdr-gap { height: 4mm; }
+    .hdr-gap { height: var(--hdr-title-name-gap, 1.5mm); }
     .hdr-name {
       font-size: 14pt;
       font-weight: bold;
       text-align: center;
       line-height: 1;
-      margin-bottom: 1mm;
+      margin-bottom: var(--hdr-name-bottom, 0.5mm);
     }
 
     .current-job {
-      margin: 0 0 5mm 0;
+      margin: 0 0 var(--current-job-bottom, 2mm) 0;
       font-size: 11pt;
       line-height: 1.15;
       text-align: center;
@@ -167,7 +168,7 @@
     .fields td { border: none; vertical-align: top; padding: 0; font-size: 11pt; line-height: 1; }
     .fields .left { width: 43%; padding-right: 2mm; }
     .fields .right { width: 57%; }
-    .fields tr.gap td { padding-top: 2.8mm; }
+    .fields tr.gap td { padding-top: var(--field-row-gap, 1.8mm); }
     .fields .lbl { font-weight: bold; }
     .fields .val-row td {
       padding-left: 76.2mm;
@@ -176,10 +177,21 @@
       font-weight: normal;
     }
     .fields .val-row.first td { padding-right: 35.56mm; }
-    .fields .inline-row td { padding-left: 28.61mm; text-indent: -28.61mm; }
+    .fields .inline-row td { padding-left: 28.61mm; text-indent: -28.61mm; font-weight: normal; }
+    .fields .inline-row .lbl { font-weight: bold; }
     .fields .inline-row .field-val {
       text-decoration: underline;
-      font-weight: normal;
+      font-weight: normal !important;
+      color: #000;
+      background: #fff;
+    }
+    .fields tr.spec-row td { padding-left: 28.61mm; text-indent: -28.61mm; font-weight: normal; }
+    .fields tr.spec-row .lbl { font-weight: bold; }
+    .fields tr.spec-row .field-val {
+      text-decoration: underline;
+      font-weight: normal !important;
+      color: #000;
+      background: #fff;
     }
     .fields .stack-val td { padding-left: 28.61mm; text-indent: -28.61mm; }
     .fields .dep-val td { padding-left: 26.67mm; text-indent: -26.67mm; }
@@ -188,11 +200,11 @@
       text-align: center;
       font-weight: bold;
       font-size: 14pt;
-      margin: 2mm 0 1.5mm;
+      margin: var(--sect-work-mt, 1.2mm) 0 var(--sect-work-mb, 1mm);
       line-height: 1;
     }
     .work-item {
-      margin: 1.4mm 0 0;
+      margin: var(--work-item-gap, 0.8mm) 0 0;
       font-size: 11pt;
       line-height: 1;
       padding-left: 28.61mm;
@@ -211,7 +223,7 @@
       font-weight: bold;
       line-height: 1.15;
     }
-    .rel-page-title + .rel-page-title { margin-bottom: 4mm; }
+    .rel-page-title + .rel-page-title { margin-bottom: var(--rel-title-gap, 3mm); }
 
     .rel-table-wrap {
       width: 100%;
@@ -360,7 +372,7 @@
       {{ two_col(L.r1l, d.birthdate, L.r1r, d.birthplace, true, true) }}
       {{ two_col(L.r2l, d.nation, L.r2r, d.party) }}
       {{ two_col(L.r3l, d.education, L.r3r, d.graduated) }}
-      <tr class="gap"><td colspan="2" class="lbl inline-row"><span class="lbl">{{ L.rSpec }}:</span><span class="field-val" style="padding-left:28.61mm;text-indent:0;display:inline-block">{{ val(d.specialty) }}</span></td></tr>
+      <tr class="gap spec-row"><td colspan="2"><span class="lbl">{{ L.rSpec }}:</span> <span class="field-val">{{ val(d.specialty) }}</span></td></tr>
       {{ two_col(L.r4l, d.degree, L.r4r, d.scientific_title) }}
       {{ two_col(L.r5l, d.languages, L.r5r, d.military_rank) }}
       {{ stacked(L.rAw, d.awards) }}

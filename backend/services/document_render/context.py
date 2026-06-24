@@ -14,6 +14,7 @@ from backend.services.document_render.watermark import (
 )
 from features.obyektivka.malumotnoma_data import build_malumotnoma_data
 from features.obyektivka.none_values import field_or_none, is_none_token
+from features.obyektivka.spacing_config import html_layout_css_vars
 
 
 def _to_text(value: Any) -> str:
@@ -114,6 +115,7 @@ def build_obyektivka_render_context(
         "phone": _maybe_mask(_to_text(raw.get("phone")), enabled=mask_pii),
         "work_experience": work_items,
         "relatives": relatives,
+        "layout": html_layout_css_vars(),
         "render": {
             "watermark": bool(watermark),
             "mask_pii": bool(mask_pii),
