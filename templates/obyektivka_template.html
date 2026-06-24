@@ -166,9 +166,15 @@
     .fields .val-row td {
       padding-left: 76.2mm;
       text-indent: -76.2mm;
+      text-decoration: underline;
+      font-weight: normal;
     }
     .fields .val-row.first td { padding-right: 35.56mm; }
     .fields .inline-row td { padding-left: 28.61mm; text-indent: -28.61mm; }
+    .fields .inline-row .field-val {
+      text-decoration: underline;
+      font-weight: normal;
+    }
     .fields .stack-val td { padding-left: 28.61mm; text-indent: -28.61mm; }
     .fields .dep-val td { padding-left: 26.67mm; text-indent: -26.67mm; }
 
@@ -319,7 +325,7 @@
       {{ two_col(L.r1l, d.birthdate, L.r1r, d.birthplace, true, true) }}
       {{ two_col(L.r2l, d.nation, L.r2r, d.party) }}
       {{ two_col(L.r3l, d.education, L.r3r, d.graduated) }}
-      <tr class="gap"><td colspan="2" class="lbl inline-row"><span class="lbl">{{ L.rSpec }}:</span><span style="padding-left:28.61mm;text-indent:0;display:inline-block">{{ val(d.specialty) }}</span></td></tr>
+      <tr class="gap"><td colspan="2" class="lbl inline-row"><span class="lbl">{{ L.rSpec }}:</span><span class="field-val" style="padding-left:28.61mm;text-indent:0;display:inline-block">{{ val(d.specialty) }}</span></td></tr>
       {{ two_col(L.r4l, d.degree, L.r4r, d.scientific_title) }}
       {{ two_col(L.r5l, d.languages, L.r5r, d.military_rank) }}
       {{ stacked(L.rAw, d.awards) }}

@@ -13,6 +13,7 @@ from backend.services.document_render.watermark import (
     watermark_text,
 )
 from features.obyektivka.malumotnoma_data import build_malumotnoma_data
+from features.obyektivka.none_values import field_or_none
 
 
 def _to_text(value: Any) -> str:
@@ -69,6 +70,7 @@ def build_obyektivka_render_context(
     Single source of truth for preview + PDF export.
     `watermark` / `mask_pii` are enabled for unpaid live preview.
     """
+    lang = str(raw.get("lang") or "uz_lat")
     mdata = build_malumotnoma_data(raw)
     current_job = mdata["current_job"]
     current_job_year = mdata["current_job_year"]
@@ -83,25 +85,28 @@ def build_obyektivka_render_context(
         relatives = mask_relatives_for_preview(relatives)
 
     ctx: dict[str, Any] = {
-        "lang": raw.get("lang", "uz_lat"),
+        "lang": lang,
         "current_job": _maybe_mask(current_job, enabled=mask_pii),
         "current_job_year": _maybe_mask(current_job_year, enabled=mask_pii),
         "img": img,
         "fullname": _to_text(raw.get("fullname")),
         "birthdate": _maybe_mask(_to_text(raw.get("birthdate") or raw.get("birth")), enabled=mask_pii),
         "birthplace": _maybe_mask(_to_text(raw.get("birthplace") or raw.get("place")), enabled=mask_pii),
-        "nation": _to_text(raw.get("nation")),
-        "party": _to_text(raw.get("party")),
-        "education": _to_text(raw.get("education") or raw.get("edu")),
-        "graduated": _to_text(raw.get("graduated") or raw.get("grad")),
-        "specialty": _to_text(raw.get("specialty") or raw.get("spec")),
-        "degree": _to_text(raw.get("degree") or raw.get("deg")),
-        "scientific_title": _to_text(raw.get("scientific_title") or raw.get("ttl")),
-        "languages": _to_text(raw.get("languages") or raw.get("langs")),
-        "military_rank": _to_text(raw.get("military_rank") or raw.get("mil")),
-        "awards": _to_text(raw.get("awards") or raw.get("award")),
-        "departmental_awards": _to_text(raw.get("departmental_awards") or raw.get("idor_awards") or raw.get("idor")),
-        "deputy": _to_text(raw.get("deputy") or raw.get("dep")),
+        "nation": field_or_none(_to_text(raw.get("nation")), lang),
+        "party": field_or_none(_to_text(raw.get("party")), lang),
+        "education": field_or_none(_to_text(raw.get("education") or raw.get("edu")), lang),
+        "graduated": field_or_none(_to_text(raw.get("graduated") or raw.get("grad")), lang),
+        "specialty": field_or_none(_to_text(raw.get("specialty") or raw.get("spec")), lang),
+        "degree": field_or_none(_to_text(raw.get("degree") or raw.get("deg")), lang),
+        "scientific_title": field_or_none(_to_text(raw.get("scientific_title") or raw.get("ttl")), lang),
+        "languages": field_or_none(_to_text(raw.get("languages") or raw.get("langs")), lang),
+        "military_rank": field_or_none(_to_text(raw.get("military_rank") or raw.get("mil")), lang),
+        "awards": field_or_none(_to_text(raw.get("awards") or raw.get("award")), lang),
+        "departmental_awards": field_or_none(
+            _to_text(raw.get("departmental_awards") or raw.get("idor_awards") or raw.get("idor")),
+            lang,
+        ),
+        "deputy": field_or_none(_to_text(raw.get("deputy") or raw.get("dep")), lang),
         "address": _maybe_mask(_to_text(raw.get("address")), enabled=mask_pii),
         "phone": _maybe_mask(_to_text(raw.get("phone")), enabled=mask_pii),
         "work_experience": work_items,

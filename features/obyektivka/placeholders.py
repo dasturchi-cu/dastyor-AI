@@ -8,6 +8,7 @@ from typing import Any
 
 from features.obyektivka.layout import labels_for
 from features.obyektivka.malumotnoma_data import build_malumotnoma_data
+from features.obyektivka.none_values import field_or_none
 
 NONE_UZ = "yo'q"
 NONE_CYR = "йўқ"
@@ -38,7 +39,8 @@ def _parse_list(value: Any) -> list[dict[str, Any]]:
 
 
 def _val(value: str, *, none: str) -> str:
-    return value if value else none
+    lang = "uz_cyr" if none == NONE_CYR else "uz_lat"
+    return field_or_none(value, lang)
 
 
 def _format_work_line(item: dict[str, Any]) -> str:

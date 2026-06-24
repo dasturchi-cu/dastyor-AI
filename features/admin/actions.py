@@ -179,6 +179,15 @@ async def handle_security_dashboard(message: Message, state: FSMContext) -> None
     await message.answer(text, reply_markup=admin_menu())
 
 
+async def handle_ai_status(message: Message, state: FSMContext) -> None:
+    await state.clear()
+    from features.admin.ai_dashboard import build_ai_status_text, fetch_ai_snapshot
+
+    snapshot = await _run_sync(fetch_ai_snapshot)
+    text = build_ai_status_text(snapshot, compact=False)
+    await message.answer(text, reply_markup=admin_menu())
+
+
 async def handle_close(message: Message, state: FSMContext) -> None:
     from features.admin.dashboard import stop_dashboard
 

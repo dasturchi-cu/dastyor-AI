@@ -53,7 +53,16 @@ def _feed_line(event: dict[str, Any]) -> str:
 
 def build_dashboard_text(snapshot: dict[str, Any], *, updated_at: str | None = None) -> str:
     ts = updated_at or _tz_now().strftime("%H:%M:%S")
-    return _build_dashboard_text(snapshot, updated_at=ts)
+    text = _build_dashboard_text(snapshot, updated_at=ts)
+    try:
+        from features.admin.ai_dashboard import build_ai_status_text, fetch_ai_snapshot
+
+        ai = fetch_ai_snapshot()
+        ai_block = build_ai_status_text(ai, compact=True)
+        return f"{ai_block}\n\n{text}"
+    except Exception as exc:
+        logger.debug("AI status block skipped: %s", exc)
+        return text
 
 
 async def _refresh_loop(bot: Bot, session: DashboardSession) -> None:
