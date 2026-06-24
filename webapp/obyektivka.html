@@ -574,7 +574,7 @@ if (window.pdfjsLib && window.pdfjsLib.GlobalWorkerOptions) {
 }
 </script>
 <script src="js/preview-zoom.js" defer></script>
-<script src="js/obyektivka-preview.js?v=20260625c" defer></script>
+<script src="js/obyektivka-preview.js?v=20260625d" defer></script>
 <script>
 function daToast(msg, type) {
   if (window.DastyorAI && DastyorAI.showToast) DastyorAI.showToast(msg, type || 'info');
@@ -1624,7 +1624,36 @@ function toCurrentScript(text){
 }
 function isPresentToken(vl){
   var t=String(vl||'').toLowerCase().replace(/[\s.\-_\/]/g,'');
-  return ['hv','hvgacha','hozirgacha','ҳв','ҳвгача','present','current'].indexOf(t)>-1;
+  return ['hv','hvgacha','hozirgacha','ҳв','ҳвгача','ҳозиргача','present','current'].indexOf(t)>-1;
+}
+function formatWorkYearApi(f,t){
+  f=String(f||'').trim();
+  t=String(t||'').trim();
+  if(!f&&!t) return '';
+  if(f&&isPresentToken(t)) return f+'-h.v';
+  if(f&&t) return f+'-'+t;
+  if(isPresentToken(t)) return 'h.v';
+  return f||t;
+}
+function mapWorksForApi(works){
+  return (works||[]).map(function(w){
+    var f=String(w.f||'').trim();
+    var t=String(w.t||'').trim();
+    var fs=String(w.fs||'').trim();
+    var pos=String(w.d||'').trim();
+    return {
+      from:f,
+      to:t,
+      f:f,
+      t:t,
+      from_since:fs,
+      fs:fs,
+      year:formatWorkYearApi(f,t),
+      position:pos,
+      d:pos,
+      desc:pos
+    };
+  });
 }
 function formatWorkPeriod(from,to){
   from=String(from||'').trim();to=String(to||'').trim();
@@ -1758,7 +1787,8 @@ function initApp(lang){
   // Convert values AFTER localStorage restore so everything switches script
   try{convertExistingValues(prevLang,currentLang);}catch(e){}
   try{applyUiLang();}catch(e){}
-  updatePreview();scaleLivePreview();
+  try{updatePreview();}catch(e){}
+  try{scaleLivePreview();}catch(e){}
   try{if(window.Telegram&&window.Telegram.WebApp){window.Telegram.WebApp.ready&&window.Telegram.WebApp.ready();window.Telegram.WebApp.expand&&window.Telegram.WebApp.expand();window.Telegram.WebApp.setHeaderColor&&window.Telegram.WebApp.setHeaderColor('#F2F6FF');window.Telegram.WebApp.setBackgroundColor&&window.Telegram.WebApp.setBackgroundColor('#F2F6FF');}}catch(e){}
 }
 
@@ -2267,9 +2297,7 @@ async function sendObyektivkaViaApi(fmt){
     deputy: payload.dep || '',
     current_job: payload.current_job || '',
     current_job_year: payload.current_job_year || '',
-    work_experience: (payload.works || []).map(function(w){
-      return { year: ((w.f || '') + ((w.f || w.t) ? '-' : '') + (w.t || '')).replace(/^-|-$/g,''), position: w.d || '' };
-    }),
+    work_experience: mapWorksForApi(payload.works || []),
     relatives: (payload.rels || []).map(function(r){
       return {
         degree: r.type || '',
@@ -2415,9 +2443,7 @@ function _buildPaidObyRequest(fmt, forPayment){
     deputy: payload.dep || '',
     current_job: payload.current_job || '',
     current_job_year: payload.current_job_year || '',
-    work_experience: (payload.works || []).map(function(w){
-      return { year: ((w.f || '') + ((w.f || w.t) ? '-' : '') + (w.t || '')).replace(/^-|-$/g,''), position: w.d || '' };
-    }),
+    work_experience: mapWorksForApi(payload.works || []),
     relatives: (payload.rels || []).map(function(r){
       return { degree:r.type||'', fullname:r.name||'', birth_year_place:r.birth||'', work_place:r.job||'', address:r.addr||'' };
     }),

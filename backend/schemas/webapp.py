@@ -38,6 +38,42 @@ def _coerce_oby_work_aliases(data: Any) -> Any:
             if items:
                 out["work_experience"] = items
                 break
+    works = out.get("work_experience")
+    if isinstance(works, list):
+        norm: list[dict[str, Any]] = []
+        for item in works:
+            if not isinstance(item, dict):
+                continue
+            f = str(item.get("from") or item.get("f") or "").strip()
+            t = str(item.get("to") or item.get("t") or "").strip()
+            fs = str(
+                item.get("from_since") or item.get("fs") or item.get("since") or ""
+            ).strip()
+            pos = str(
+                item.get("position")
+                or item.get("d")
+                or item.get("desc")
+                or item.get("description")
+                or ""
+            ).strip()
+            year = str(item.get("year") or item.get("period") or "").strip()
+            if not year and (f or t):
+                if f and t:
+                    year = f"{f}-{t}"
+                else:
+                    year = f or t
+            row: dict[str, Any] = {"year": year, "position": pos}
+            if f:
+                row["from"] = f
+                row["f"] = f
+            if t:
+                row["to"] = t
+                row["t"] = t
+            if fs:
+                row["from_since"] = fs
+                row["fs"] = fs
+            norm.append(row)
+        out["work_experience"] = norm
     if not out.get("current_job"):
         for key in ("currentJob", "current_position", "current_employment", "currentEmployment"):
             val = out.get(key)
@@ -234,7 +270,7 @@ class PreviewObyektivkaRequest(BaseModel):
     current_job: Optional[str] = None
     current_job_year: Optional[str] = None
     watermark: bool = True
-    mask_pii: bool = True
+    mask_pii: bool = False
 
     @model_validator(mode="before")
     @classmethod

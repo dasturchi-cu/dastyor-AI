@@ -104,12 +104,28 @@
       deputy: p.dep || '',
       current_job: p.current_job || '',
       current_job_year: p.current_job_year || '',
-      work_experience: (p.works || []).map(function (w) {
-        return {
-          year: ((w.f || '') + ((w.f || w.t) ? '-' : '') + (w.t || '')).replace(/^-|-$/g, ''),
-          position: w.d || '',
-        };
-      }),
+      work_experience: (typeof global.mapWorksForApi === 'function')
+        ? global.mapWorksForApi(p.works || [])
+        : (p.works || []).map(function (w) {
+          var f = String(w.f || '').trim();
+          var t = String(w.t || '').trim();
+          var fs = String(w.fs || '').trim();
+          var pos = String(w.d || '').trim();
+          var yr = f && global.isPresentToken && global.isPresentToken(t)
+            ? (f + '-h.v')
+            : ((f || '') + ((f || t) ? '-' : '') + (t || '')).replace(/^-|-$/g, '');
+          return {
+            from: f,
+            to: t,
+            f: f,
+            t: t,
+            from_since: fs,
+            fs: fs,
+            year: yr,
+            position: pos,
+            d: pos,
+          };
+        }),
       relatives: (p.rels || []).map(function (r) {
         return {
           degree: r.type || '',
