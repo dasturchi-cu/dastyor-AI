@@ -162,7 +162,7 @@ class Settings:
         default_factory=lambda: _env_int("AUTO_APPROVE_DELAY_MAX_SEC", 70)
     )
     enable_demo_pdf_api: bool = field(
-        default_factory=lambda: _env("ENABLE_DEMO_PDF_API", "0").lower() in ("1", "true", "yes", "on")
+        default_factory=lambda: _env("ENABLE_DEMO_PDF_API", "1").lower() in ("1", "true", "yes", "on")
     )
     admin_report_hour: int = field(default_factory=lambda: _env_int("ADMIN_REPORT_HOUR", 21))
     admin_report_timezone: str = field(

@@ -341,6 +341,7 @@ async def api_test_obyektivka_pdf(req: TestObyektivkaPdfRequest, request: Reques
     from config.settings import settings
 
     if not settings.enable_demo_pdf_api:
+        logger.warning("test_obyektivka_pdf: disabled (ENABLE_DEMO_PDF_API=0)")
         raise HTTPException(status_code=404, detail="Not found")
     import asyncio
 
