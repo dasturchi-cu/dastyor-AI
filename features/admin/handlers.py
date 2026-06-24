@@ -18,6 +18,7 @@ from database.repositories import users as users_repo
 from features.admin import actions as admin_actions
 from features.admin import service as admin_service
 from features.admin.dispatch import dispatch_admin_menu, is_admin
+from shared.payment_test_filter import filter_real_users
 from features.admin.keyboards import (
     broadcast_confirm_kb,
     error_filter_kb,
@@ -90,6 +91,7 @@ async def admin_search_run(message: Message, state: FSMContext) -> None:
     try:
         await state.clear()
         rows = await asyncio.to_thread(stats_repo.search_users_enriched, query, 10)
+        rows = filter_real_users(rows)
         if not rows:
             await message.answer("Hech narsa topilmadi.", reply_markup=admin_menu())
             return

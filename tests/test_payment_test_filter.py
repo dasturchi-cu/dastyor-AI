@@ -50,7 +50,32 @@ class TestPaymentTestFilter(unittest.TestCase):
             )
         )
 
+    def test_audit_user_is_test(self):
+        from shared.payment_test_filter import is_test_user
+
+        self.assertTrue(
+            is_test_user(
+                {
+                    "telegram_id": 990001234,
+                    "first_name": "Audit",
+                    "last_name": "Test",
+                    "username": "audit_user",
+                }
+            )
+        )
+
     def test_real_user_not_test(self):
+        from shared.payment_test_filter import is_test_user
+
+        self.assertFalse(
+            is_test_user(
+                {
+                    "telegram_id": 7458702074,
+                    "first_name": "Botir",
+                    "username": "real_user",
+                }
+            )
+        )
         self.assertFalse(
             is_test_payment(
                 {

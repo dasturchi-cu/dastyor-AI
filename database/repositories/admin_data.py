@@ -321,6 +321,16 @@ def count_users() -> int:
         return _scalar(conn, "SELECT COUNT(*) FROM users")
 
 
+def count_real_users() -> int:
+    from shared.payment_test_filter import is_test_user
+
+    with get_connection() as conn:
+        rows = conn.execute(
+            "SELECT telegram_id, username, first_name, last_name FROM users"
+        ).fetchall()
+    return sum(1 for r in rows if r and not is_test_user(row_to_dict(r)))
+
+
 def export_statistics_rows() -> list[dict[str, Any]]:
     price = settings.single_doc_price_uzs
     periods = [

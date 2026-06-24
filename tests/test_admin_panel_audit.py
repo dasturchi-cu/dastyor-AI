@@ -90,8 +90,8 @@ class TestAdminPanelAudit(unittest.TestCase):
         self.assertIn("obyektivka_total", snap)
         self.assertIn("revenue_uzs", snap)
 
+        db_users = stats_repo.count_real_users()
         with get_connection() as conn:
-            db_users = conn.execute("SELECT COUNT(*) FROM users").fetchone()[0]
             db_approved = conn.execute(
                 "SELECT COUNT(*) FROM payments WHERE status='APPROVED'"
             ).fetchone()[0]

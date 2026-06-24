@@ -33,15 +33,16 @@ from shared.payment_notifications import (
     build_payment_notification_text,
     build_pending_payments_list,
 )
-from shared.payment_test_filter import is_test_payment
+from shared.payment_test_filter import filter_real_users, is_test_payment
 
 logger = logging.getLogger(__name__)
 
 
 async def handle_users(message: Message, state: FSMContext) -> None:
     await state.clear()
-    rows = await _run_sync(stats_repo.list_users_enriched, 20)
-    total = await _run_sync(stats_repo.count_users)
+    rows = await _run_sync(stats_repo.list_users_enriched, 200)
+    rows = filter_real_users(rows)[:20]
+    total = await _run_sync(stats_repo.count_real_users)
     text = build_users_list_text(rows, total=total)
     await message.answer(text, reply_markup=admin_menu())
 
@@ -64,6 +65,9 @@ async def handle_stats(message: Message, state: FSMContext) -> None:
 async def handle_top(message: Message, state: FSMContext) -> None:
     await state.clear()
     report = await _run_sync(stats_repo.top_users_report, 10)
+    for key in ("by_purchases", "by_documents", "by_activity"):
+        if key in report:
+            report[key] = filter_real_users(report[key])
     text = build_top_users_report(report)
     await message.answer(text, reply_markup=admin_menu())
 

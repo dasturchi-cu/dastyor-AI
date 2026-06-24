@@ -11,7 +11,12 @@ invalidate_metrics_cache = admin_data.invalidate_metrics_cache
 
 
 def dashboard_snapshot() -> dict[str, Any]:
-    return admin_data.get_global_metrics()
+    from shared.payment_test_filter import filter_real_users
+
+    data = admin_data.get_global_metrics()
+    data["users_count"] = admin_data.count_real_users()
+    data["top_users"] = filter_real_users(data.get("top_users") or [])
+    return data
 
 
 def today_stats() -> dict[str, Any]:
@@ -85,3 +90,4 @@ search_users_enriched = admin_data.search_users_enriched
 list_payments_enriched = admin_data.list_payments_enriched
 top_users_report = admin_data.top_users_report
 count_users = admin_data.count_users
+count_real_users = admin_data.count_real_users
