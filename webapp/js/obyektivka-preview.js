@@ -168,8 +168,19 @@
   }
 
   async function preparePayload() {
+    try {
+      if (global.DastyorAI && global.DastyorAI.ensureAuth) {
+        await global.DastyorAI.ensureAuth();
+      }
+    } catch (_) {}
+
     var payload = buildPreviewRequest();
     if (!payload) return null;
+
+    attachWebappAuth(payload);
+    var tid = resolveTgId();
+    if (tid) payload.telegram_id = parseInt(tid, 10);
+
     try {
       if (payload.photo_data) {
         payload.photo_data = await compressPreviewPhoto(payload.photo_data);
@@ -958,6 +969,11 @@
         var tg = global.Telegram && global.Telegram.WebApp;
         if (tg && tg.initData) payload.init_data = tg.initData;
       } catch (_) {}
+    }
+
+    var tid = resolveTgId();
+    if (tid && !payload.telegram_id) {
+      payload.telegram_id = parseInt(tid, 10);
     }
     return payload;
   }

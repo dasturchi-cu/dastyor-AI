@@ -58,6 +58,7 @@ class TestCooldown(unittest.TestCase):
 class TestEndpointPool(unittest.TestCase):
     def setUp(self):
         load_routing_config.cache_clear()
+        self._saved = os.environ.copy()
         os.environ["GEMINI_API_KEY"] = "gk1"
         os.environ["GEMINI_API_KEY_2"] = "gk2"
         os.environ["GEMINI_MODEL"] = "gemini-2.5-flash"
@@ -66,7 +67,10 @@ class TestEndpointPool(unittest.TestCase):
         reset_endpoint_pool()
 
     def tearDown(self):
+        os.environ.clear()
+        os.environ.update(self._saved)
         load_routing_config.cache_clear()
+        reset_endpoint_pool()
 
     def test_round_robin_key_rotation(self):
         pool = reset_endpoint_pool()
@@ -89,18 +93,33 @@ class TestEndpointPool(unittest.TestCase):
 
 
 class TestFailoverEngine(unittest.IsolatedAsyncioTestCase):
-    async def asyncSetUp(self):
+    def _prepare_env(self):
         load_routing_config.cache_clear()
         os.environ["GEMINI_API_KEY"] = "gk1"
         os.environ["OPENAI_API_KEY"] = "ok1"
         os.environ["AI_RETRY_DELAY_MS"] = "1"
+        os.environ["AI_FALLBACK_ORDER"] = "openai"
+        for k in list(os.environ):
+            if k.startswith("GEMINI_API_KEY_") and k != "GEMINI_API_KEY":
+                del os.environ[k]
         reload_routing_config()
         reset_endpoint_pool()
+        from features.ai.routing.cooldown import reset_cooldown_registry
 
-    async def asyncTearDown(self):
+        reset_cooldown_registry(1000)
+
+    def setUp(self):
+        self._saved = os.environ.copy()
+        self._prepare_env()
+
+    def tearDown(self):
+        os.environ.clear()
+        os.environ.update(self._saved)
         load_routing_config.cache_clear()
+        reset_endpoint_pool()
 
     async def test_failover_on_gemini_error(self):
+        self._prepare_env()
         from features.ai.routing.engine import generate_text_with_failover
 
         calls: list[Endpoint] = []
@@ -120,6 +139,7 @@ class TestFailoverEngine(unittest.IsolatedAsyncioTestCase):
         self.assertIn(ProviderName.OPENAI, providers_tried)
 
     async def test_all_exhausted_raises(self):
+        self._prepare_env()
         from features.ai.routing.engine import generate_text_with_failover
 
         async def always_fail(endpoint: Endpoint, prompt: str, *, timeout_sec: float):

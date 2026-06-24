@@ -100,3 +100,10 @@ def get_cooldown_registry(default_ms: int = 900_000) -> CooldownRegistry:
         if _registry is None:
             _registry = CooldownRegistry(default_cooldown_ms=default_ms)
         return _registry
+
+
+def reset_cooldown_registry(default_ms: int = 900_000) -> CooldownRegistry:
+    global _registry
+    with _registry_lock:
+        _registry = CooldownRegistry(default_cooldown_ms=default_ms)
+        return _registry

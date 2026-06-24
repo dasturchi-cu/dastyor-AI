@@ -470,11 +470,16 @@ async def translate_text(text: str, direction: str = "uz_en") -> str:
         f"{text}"
     )
     try:
-        if model:
-            resp = await _gcall(model.generate_content_async(prompt))
-            out = resp.text.strip() if resp and resp.text else ""
-        else:
-            out = ""
+        out = ""
+        try:
+            out = await generate_text_with_fallback(prompt, timeout=GEMINI_TIMEOUT)
+        except AiQuotaError:
+            raise
+        except Exception as e:
+            logger.warning("Failover translate failed, trying direct Gemini: %s", e)
+            if model:
+                resp = await _gcall(model.generate_content_async(prompt))
+                out = resp.text.strip() if resp and resp.text else ""
         if not out:
             out = await _google_fallback_translate(text, sl, tl)
         if not is_meaningfully_changed(text, out):
@@ -988,10 +993,12 @@ async def generate_objective(role: str, experience: str = "junior", extra: str =
         )
 
     try:
-        resp = await _gcall(model.generate_content_async(prompt))
-        if resp is None:
-            return "AI javobi kechikdi. Iltimos, qayta urinib ko'ring."
-        return resp.text.strip() if resp.text else "Natija bo'sh."
+        out = await generate_text_with_fallback(prompt, timeout=GEMINI_TIMEOUT)
+        if not out:
+            return "Natija bo'sh."
+        return out.strip()
+    except AiQuotaError:
+        raise
     except Exception as e:
         logger.error(f"generate_objective error: {e}", exc_info=True)
         return f"Xatolik: {str(e)[:200]}"
