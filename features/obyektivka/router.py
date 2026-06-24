@@ -10,7 +10,7 @@ import uuid
 import re
 
 from fastapi import APIRouter, File, Form, HTTPException, Query, Request, UploadFile
-from fastapi.responses import HTMLResponse, JSONResponse, Response, StreamingResponse
+from fastapi.responses import JSONResponse, Response, StreamingResponse
 
 from backend.schemas.webapp import ExportObyektivkaRequest, ObyektivkaRequest, PreviewObyektivkaRequest, TestObyektivkaPdfRequest
 from core.security import check_ai_user_quota, rate_limit
@@ -244,59 +244,31 @@ def _pdf_inline_response(pdf_bytes: bytes, *, filename: str = "obyektivka_previe
     )
 
 
-async def _build_oby_html_preview_pdf(
-    payload: dict,
-    *,
-    watermark: bool = True,
-    mask_pii: bool = False,
-) -> bytes:
-    """Jonli web preview bilan bir xil: HTML shablon → PDF."""
-    from backend.services.render_service import generate_obyektivka_pdf
-    from config.settings import settings
+async def _build_oby_docx_pdf(payload: dict, *, watermark: bool = False) -> bytes:
+    """Master DOCX → PDF (preview, demo, paid — bitta manba)."""
+    from backend.services.docx_to_pdf import docx_bytes_to_pdf
+    from features.obyektivka.docx_template import generate_obyektivka_docx_bytes
 
-    html_payload = dict(payload)
-    html_payload["watermark"] = watermark
-    html_payload["mask_pii"] = mask_pii
-    pdf_bytes = await generate_obyektivka_pdf(
-        html_payload,
-        base_url=settings.webapp_base or settings.site_base_url,
-        watermark=watermark,
-        mask_pii=mask_pii,
-    )
+    def _render() -> bytes:
+        docx_bytes = generate_obyektivka_docx_bytes(payload, watermark=watermark)
+        return docx_bytes_to_pdf(docx_bytes)
+
+    pdf_bytes = await asyncio.to_thread(_render)
     if not _valid_pdf(pdf_bytes):
-        raise RuntimeError("HTML PDF yaratib bo'lmadi")
+        raise RuntimeError("DOCX→PDF yaratib bo'lmadi")
     return pdf_bytes
 
 
 async def _build_oby_preview_pdf(payload: dict) -> bytes:
-    """HTML template → PDF (jonli ko'rinish); DOCX → PDF faqat zaxira."""
-    try:
-        pdf_bytes = await _build_oby_html_preview_pdf(payload, watermark=True, mask_pii=False)
-        logger.info("preview_obyektivka: served via HTML PDF")
-        return pdf_bytes
-    except Exception as exc:
-        logger.exception("preview_obyektivka HTML pdf failed, trying DOCX fallback")
-        from shared.error_log import record_error
-
-        record_error("pdf", f"Obyektivka preview HTML: {exc}")
-
-    from backend.services.docx_to_pdf import docx_bytes_to_pdf
-    from features.obyektivka.docx_template import generate_obyektivka_docx_bytes
-
-    def _docx_pdf() -> bytes:
-        docx_bytes = generate_obyektivka_docx_bytes(payload)
-        return docx_bytes_to_pdf(docx_bytes)
-
-    pdf_bytes = await asyncio.to_thread(_docx_pdf)
-    if not _valid_pdf(pdf_bytes):
-        raise RuntimeError("PDF yaratib bo'lmadi (HTML va DOCX muvaffaqiyatsiz)")
-    logger.warning("preview_obyektivka: served via DOCX fallback PDF")
+    """Preview PDF = paid DOCX (watermarksiz) → PDF."""
+    pdf_bytes = await _build_oby_docx_pdf(payload, watermark=False)
+    logger.info("preview_obyektivka: served via master DOCX→PDF")
     return pdf_bytes
 
 
 @router.post("/api/preview_obyektivka")
 async def api_preview_oby(req: PreviewObyektivkaRequest, request: Request) -> Response:
-    """Preview PDF = HTML shablon (jonli ko'rinish bilan bir xil); DOCX zaxira."""
+    """Preview PDF = master DOCX (watermarksiz) → PDF — paid export bilan bir xil."""
     uid = resolve_uid_from_webapp(req.telegram_id, req.token, req.init_data)
     if not uid:
         raise HTTPException(status_code=401, detail="Avtorizatsiya talab qilinadi.")
@@ -331,38 +303,24 @@ async def api_preview_oby(req: PreviewObyektivkaRequest, request: Request) -> Re
 
 
 @router.post("/api/preview_obyektivka_html")
-async def api_preview_obyektivka_html(req: PreviewObyektivkaRequest, request: Request) -> HTMLResponse:
-    """Live preview — fast HTML (all devices; avoids slow DOCX→PDF on Railway)."""
+async def api_preview_obyektivka_html(req: PreviewObyektivkaRequest, request: Request) -> Response:
+    """Deprecated — HTML preview olib tashlandi; master DOCX→PDF qaytariladi."""
     uid = resolve_uid_from_webapp(req.telegram_id, req.token, req.init_data)
     if not uid:
         raise HTTPException(status_code=401, detail="Avtorizatsiya talab qilinadi.")
     await rate_limit(request, user_id=uid)
-    from backend.services.oby_preview_cache import (
-        cache_key_for_oby_preview,
-        oby_html_preview_cache_get,
-        oby_html_preview_cache_set,
-    )
-    from backend.services.render_service import render_obyektivka_html
-
-    payload = req.model_dump()
-    cache_key = cache_key_for_oby_preview(payload)
-    cached = oby_html_preview_cache_get(cache_key)
-    if cached is not None:
-        return HTMLResponse(content=cached, media_type="text/html; charset=utf-8")
-
-    html = await asyncio.to_thread(
-        render_obyektivka_html,
-        payload,
-        watermark=bool(req.watermark),
-        mask_pii=bool(req.mask_pii),
-    )
-    oby_html_preview_cache_set(cache_key, html)
-    return HTMLResponse(content=html, media_type="text/html; charset=utf-8")
+    payload = req.model_dump(exclude={"watermark", "mask_pii"})
+    try:
+        pdf_bytes = await _build_oby_preview_pdf(payload)
+    except Exception as exc:
+        logger.exception("preview_obyektivka_html (docx pdf)")
+        raise HTTPException(status_code=500, detail=str(exc)[:200]) from exc
+    return _pdf_inline_response(pdf_bytes)
 
 
 @router.post("/api/test_obyektivka_pdf")
 async def api_test_obyektivka_pdf(req: TestObyektivkaPdfRequest, request: Request):
-    """Demo PDF — HTML shablon → PDF (jonli preview bilan bir xil, watermark)."""
+    """Demo PDF — master DOCX + watermark → PDF."""
     from config.settings import settings
 
     if not settings.enable_demo_pdf_api:
@@ -375,7 +333,7 @@ async def api_test_obyektivka_pdf(req: TestObyektivkaPdfRequest, request: Reques
     )
 
     try:
-        pdf_bytes = await _build_oby_html_preview_pdf(payload, watermark=True, mask_pii=False)
+        pdf_bytes = await _build_oby_docx_pdf(payload, watermark=True)
     except Exception as exc:
         logger.exception("test_obyektivka_pdf")
         from shared.error_log import record_error

@@ -95,7 +95,7 @@ def _parse_since_detail(text: str, year: str = "") -> tuple[str, str]:
         return "", ""
     if year:
         raw = re.sub(re.escape(year), "", raw).strip(" -–—.,:")
-    day_m = re.search(r"\b(\d{1,2})\b", raw)
+    day_m = re.search(r"(\d{1,2})(?=\D|$)", raw) or re.search(r"^(\d{1,2})", raw)
     day = day_m.group(1) if day_m else ""
     month = _month_key_from_text(raw)
     return day, month
@@ -315,6 +315,14 @@ def _meaningful_position(item: dict[str, Any]) -> bool:
     return bool(pos) and not is_none_token(pos)
 
 
+def _meaningful_work_row(item: dict[str, Any]) -> bool:
+    if _meaningful_position(item):
+        return True
+    f = _to_text(item.get("from_year"))
+    t = _to_text(item.get("to_year"))
+    return bool(f or t)
+
+
 def _resolve_current_display(
     items: list[dict[str, Any]],
     *,
@@ -325,20 +333,20 @@ def _resolve_current_display(
     job = (current_job or "").strip()
     year = (current_job_year or "").strip()
     since = ""
-    if is_none_token(job):
+    if job and is_none_token(job):
         job = ""
         year = ""
 
     if not job:
         for item in items:
-            pos = item.get("position") or ""
-            if not _meaningful_position(item):
+            if not (item.get("is_current") or is_present_year_token(item.get("to_year") or "")):
                 continue
-            if item.get("is_current") or is_present_year_token(item.get("to_year") or ""):
+            pos = item.get("position") or ""
+            if _meaningful_position(item):
                 job = pos
-                year = item.get("from_year") or year
-                since = item.get("from_since") or ""
-                break
+            year = item.get("from_year") or year
+            since = item.get("from_since") or ""
+            break
 
     if job:
         if not since:
@@ -351,6 +359,8 @@ def _resolve_current_display(
                     if not year:
                         year = item.get("from_year") or ""
                     break
+        year = format_current_job_year(year, lang, since=since)
+    elif year or since:
         year = format_current_job_year(year, lang, since=since)
     else:
         year = ""
@@ -434,12 +444,12 @@ def build_malumotnoma_data(raw: dict[str, Any]) -> dict[str, Any]:
     lang = _to_text(raw.get("lang")) or "uz_lat"
     explicit_job = _to_text(raw.get("current_job"))
     explicit_year = _to_text(raw.get("current_job_year"))
-    if is_none_token(explicit_job):
+    if explicit_job and is_none_token(explicit_job):
         explicit_job = ""
         explicit_year = ""
 
     items = [_canonical_work_item(w) for w in _parse_work_list(raw)]
-    items = [x for x in items if _meaningful_position(x)]
+    items = [x for x in items if _meaningful_work_row(x)]
 
     current_job, current_job_year = _resolve_current_display(
         items,

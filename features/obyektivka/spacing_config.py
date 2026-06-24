@@ -38,8 +38,16 @@ REL_TITLE_GAP_MM = _float_env("OBY_REL_TITLE_GAP_MM", 3.0)
 
 # Master DOCX zaxira (twips, 1/20 pt)
 DOCX_AFTER_FISH_TWIPS = _int_env("OBY_DOCX_AFTER_FISH_TWIPS", 200)
-DOCX_GRID_BEFORE_TWIPS = _int_env("OBY_DOCX_GRID_BEFORE_TWIPS", 280)
-DOCX_MEHNAT_BEFORE_TWIPS = _int_env("OBY_DOCX_MEHNAT_BEFORE_TWIPS", 180)
+DOCX_GRID_BEFORE_TWIPS = _int_env("OBY_DOCX_GRID_BEFORE_TWIPS", 160)
+DOCX_CURRENT_JOB_BEFORE_TWIPS = _int_env("OBY_DOCX_CURRENT_JOB_BEFORE_TWIPS", 160)
+DOCX_CURRENT_JOB_AFTER_TWIPS = _int_env("OBY_DOCX_CURRENT_JOB_AFTER_TWIPS", 0)
+DOCX_MEHNAT_BEFORE_TWIPS = _int_env("OBY_DOCX_MEHNAT_BEFORE_TWIPS", 80)
+DOCX_TITLE_AFTER_TWIPS = _int_env("OBY_DOCX_TITLE_AFTER_TWIPS", 120)
+
+# Shriftlar (pt) — namuna PPT
+FONT_TITLE_PT = _float_env("OBY_FONT_TITLE_PT", 14.0)
+FONT_BODY_PT = _float_env("OBY_FONT_BODY_PT", 11.0)
+FONT_REL_TITLE_PT = _float_env("OBY_FONT_REL_TITLE_PT", 12.0)
 
 
 def html_layout_css_vars() -> dict[str, str]:
@@ -54,4 +62,7 @@ def html_layout_css_vars() -> dict[str, str]:
         "section_work_margin_bottom_mm": f"{SECTION_WORK_MARGIN_BOTTOM_MM:g}",
         "work_item_gap_mm": f"{WORK_ITEM_GAP_MM:g}",
         "rel_title_gap_mm": f"{REL_TITLE_GAP_MM:g}",
+        "font_title_pt": f"{FONT_TITLE_PT:g}",
+        "font_body_pt": f"{FONT_BODY_PT:g}",
+        "font_rel_title_pt": f"{FONT_REL_TITLE_PT:g}",
     }

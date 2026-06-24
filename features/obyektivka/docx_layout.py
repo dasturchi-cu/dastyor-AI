@@ -314,29 +314,10 @@ def _apply_rel_table_column_widths(tbl: etree._Element, cols: tuple[int, ...], t
 
 
 def _fix_relatives_table(root: etree._Element) -> None:
-    from features.obyektivka.layout import REL_TABLE_WIDTH_DXA, scaled_rel_col_dxa
-
-    cols = scaled_rel_col_dxa()
-    rel_total = str(REL_TABLE_WIDTH_DXA)
+    """Cell typography only — master template tblGrid/tblW o'zgartirilmaydi."""
     for tbl in root.findall(f".//{W}tbl"):
         if not _is_relatives_table(tbl):
             continue
-        tbl_pr = tbl.find(f"{W}tblPr")
-        if tbl_pr is None:
-            tbl_pr = etree.Element(f"{W}tblPr")
-            tbl.insert(0, tbl_pr)
-        jc = tbl_pr.find(f"{W}jc")
-        if jc is None:
-            jc = etree.SubElement(tbl_pr, f"{W}jc")
-        jc.set(VAL, "center")
-        for ind in list(tbl_pr.findall(f"{W}tblInd")):
-            tbl_pr.remove(ind)
-        tw = tbl_pr.find(f"{W}tblW")
-        if tw is None:
-            tw = etree.SubElement(tbl_pr, f"{W}tblW")
-        tw.set(VAL, "dxa")
-        tw.set(f"{W}w", rel_total)
-        _apply_rel_table_column_widths(tbl, cols, REL_TABLE_WIDTH_DXA)
         rows = tbl.findall(f"{W}tr")
         for ri, tr in enumerate(rows):
             tr_pr = tr.find(f"{W}trPr")

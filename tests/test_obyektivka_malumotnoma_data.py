@@ -4,9 +4,8 @@ from __future__ import annotations
 import re
 import unittest
 
-from backend.services.document_render.context import build_obyektivka_render_context
 from features.obyektivka.malumotnoma_data import build_malumotnoma_data
-from features.obyektivka.placeholders import build_placeholder_context
+from features.obyektivka.objective_data import buildObjectiveData, build_placeholder_context
 
 
 def _sample_payload() -> dict:
@@ -44,14 +43,11 @@ class TestMalumotnomaEmployment(unittest.TestCase):
 
     def test_preview_matches_docx_work_lines(self):
         raw = _sample_payload()
-        preview = build_obyektivka_render_context(raw)
+        objective = buildObjectiveData(raw)
         docx = build_placeholder_context(raw)
-        self.assertEqual(preview["current_job"], docx["hozirgi_ish"])
-        self.assertEqual(preview["current_job_year"], docx["hozirgi_yil"])
-        preview_lines = [
-            f"{w['year']} - {w['position']}" if w.get("year") and w.get("position") else w.get("year") or w.get("position")
-            for w in preview["work_experience"]
-        ]
+        self.assertEqual(objective["current_position"], docx["hozirgi_ish"])
+        self.assertEqual(objective["current_position_year"], docx["hozirgi_yil"])
+        preview_lines = objective.get("work_history") or []
         docx_lines = [docx["mehnat_faoliyati"]] + [
             docx.get(f"mehnat_faoliyati_{i}", "") for i in range(2, 9)
         ]
@@ -104,9 +100,9 @@ class TestMalumotnomaEmployment(unittest.TestCase):
         self.assertEqual(data["current_job"], "")
         self.assertEqual(data["current_job_year"], "")
         self.assertEqual(len(data["work_lines"]), 1)
-        preview = build_obyektivka_render_context(raw)
-        self.assertEqual(preview["current_job"], "")
-        self.assertEqual(len(preview["work_experience"]), 1)
+        preview = buildObjectiveData(raw)
+        self.assertEqual(preview["current_position"], "")
+        self.assertEqual(len(preview.get("work_history") or []), 1)
 
     def test_empty_work_shows_yoq_in_docx_not_top(self):
         raw = {"lang": "uz_lat", "work_experience": [{"position": "yo'q"}]}

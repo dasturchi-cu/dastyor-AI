@@ -1,6 +1,5 @@
 /**
- * Obyektivka preview + demo PDF botga yuborish (@bot watermark).
- * Jonli ko'rinish: server HTML iframe (CV kabi, tez). PDF faqat demo yuklash uchun.
+ * Obyektivka preview + demo PDF — master DOCX → PDF (preview = paid, demo = watermark).
  */
 (function (global) {
   'use strict';
@@ -136,7 +135,7 @@
         };
       }),
       photo_data: p.photo_data || '',
-      watermark: true,
+      watermark: false,
       mask_pii: false,
     };
   }
@@ -570,26 +569,30 @@
     setTimeout(layoutOnce, 600);
   }
 
-  async function fetchHtmlPreview(payload, signal) {
+  async function fetchPdfPreview(payload, signal) {
     var base = getApiBase();
     var res = await withTimeout(
-      fetch(base + '/api/preview_obyektivka_html', {
+      fetch(base + '/api/preview_obyektivka', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Accept: 'text/html' },
+        headers: { 'Content-Type': 'application/json', Accept: 'application/pdf' },
         body: JSON.stringify(payload),
         signal: signal,
       }),
       FETCH_TIMEOUT_MS,
-      'HTML preview'
+      'PDF preview'
     );
     if (!res.ok) {
       var errBody = '';
       try { errBody = await res.text(); } catch (_) {}
       throw new Error(errBody || ('Server xatosi: ' + res.status));
     }
-    var html = await res.text();
-    if (!html || html.length < 80) throw new Error('Serverdan bo\'sh HTML keldi');
-    return html;
+    var blob = await res.blob();
+    if (!blob || blob.size < 100) throw new Error('Serverdan bo\'sh PDF keldi');
+    return blob;
+  }
+
+  async function fetchHtmlPreview(payload, signal) {
+    return fetchPdfPreview(payload, signal);
   }
 
   function showPdfEmbed(blob, reqId) {
@@ -938,9 +941,9 @@
     }
 
     try {
-      var html = await fetchHtmlPreview(payload, previewAbort ? previewAbort.signal : undefined);
+      var blob = await fetchPdfPreview(payload, previewAbort ? previewAbort.signal : undefined);
       if (reqId !== previewRequestId) return;
-      showHtmlPreview(html, reqId);
+      await applyPreviewPdf(blob, reqId);
     } catch (e) {
       if (e && e.name === 'AbortError') return;
       if (reqId !== previewRequestId) return;

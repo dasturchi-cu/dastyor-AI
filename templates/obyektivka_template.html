@@ -206,9 +206,13 @@
     .work-item {
       margin: var(--work-item-gap, 0.8mm) 0 0;
       font-size: 11pt;
-      line-height: 1;
+      line-height: 1.15;
       padding-left: 28.61mm;
       text-indent: -28.61mm;
+    }
+    .work-item .work-pos {
+      text-decoration: underline;
+      font-weight: normal;
     }
     .work-item.work-none {
       text-decoration: underline;
@@ -219,7 +223,7 @@
 
     .rel-page-title {
       text-align: center;
-      font-size: 12pt;
+      font-size: var(--font-rel-title, 12pt);
       font-weight: bold;
       line-height: 1.15;
     }
@@ -318,8 +322,8 @@
 } -%}
 {%- set L = ll.get(d.lang or 'uz_lat', ll['uz_lat']) -%}
 {%- set fn = d.fullname or '' -%}
-{%- macro val(x) -%}{{ x if x else L.none }}{%- endmacro -%}
-{%- macro safe_html(x) -%}{% if x %}{{ x | safe }}{% else %}{{ L.none }}{% endif %}{%- endmacro -%}
+{%- macro val(x) -%}{{ x if x else ('' if R.blank_none else L.none) }}{%- endmacro -%}
+{%- macro safe_html(x) -%}{% if x %}{{ x | safe }}{% elif not R.blank_none %}{{ L.none }}{% endif %}{%- endmacro -%}
 {%- macro two_col(left_l, left_v, right_l, right_v, masked=false, first=false) -%}
 <tr class="gap"><td class="left lbl">{{ left_l }}:</td><td class="right lbl">{{ right_l }}:</td></tr>
 <tr class="val-row{% if first %} first{% endif %}"><td class="left">{% if masked %}{{ safe_html(val(left_v)) }}{% else %}{{ val(left_v) }}{% endif %}</td><td class="right">{% if masked %}{{ safe_html(val(right_v)) }}{% else %}{{ val(right_v) }}{% endif %}</td></tr>
@@ -359,12 +363,14 @@
       <div class="hdr-name">{{ fn }}</div>
     </div>
 
-    {%- if d.current_job -%}
+    {%- if d.current_job or d.current_job_year -%}
     <div class="current-job">
       {%- if d.current_job_year -%}
       <span class="line year-line">{{ d.current_job_year | safe }}</span>
       {%- endif -%}
+      {%- if d.current_job -%}
       <span class="line job-line">{{ d.current_job | safe }}</span>
+      {%- endif -%}
     </div>
     {%- endif -%}
 
@@ -393,16 +399,18 @@
       {%- endif -%}
       <div class="work-item">
         {%- if yr and pos -%}
-        {{ yshow }} - {{ pos }}
+        {{ yshow }} - <span class="work-pos">{{ pos }}</span>
         {%- elif yr -%}
         {{ yshow }}
         {%- else -%}
-        {{ pos }}
+        <span class="work-pos">{{ pos }}</span>
         {%- endif -%}
       </div>
       {%- endfor -%}
     {%- else -%}
+    {%- if not R.blank_none -%}
     <div class="work-item work-none">{{ L.none }}</div>
+    {%- endif -%}
     {%- endif -%}
   </div>
 </div>

@@ -1,4 +1,4 @@
-"""Preview, Demo PDF, Paid DOCX — mehnat faoliyati bir xil chiqishi kerak."""
+"""Preview, demo, paid DOCX — mehnat faoliyati bir xil chiqishi kerak."""
 from __future__ import annotations
 
 import io
@@ -6,11 +6,9 @@ import re
 import unittest
 import zipfile
 
-from backend.services.document_render.context import build_obyektivka_render_context
-from backend.services.render_service import render_obyektivka_html
 from features.obyektivka.docx_template import generate_obyektivka_docx_bytes
 from features.obyektivka.malumotnoma_data import build_malumotnoma_data
-from features.obyektivka.placeholders import build_placeholder_context
+from features.obyektivka.objective_data import buildObjectiveData, build_placeholder_context
 from features.obyektivka.service import _export_docx_sync
 from tests.test_obyektivka_malumotnoma_data import _sample_payload
 
@@ -46,14 +44,14 @@ class TestObyektivkaEmploymentParity(unittest.TestCase):
         markers = _employment_markers(raw)
         self.assertGreaterEqual(len(markers), 3)
 
-        html = render_obyektivka_html(raw, watermark=False, mask_pii=False)
-        self._assert_markers_in(html, markers, label="preview_html")
+        objective = buildObjectiveData(raw)
+        self.assertEqual(len(objective.get("work_history") or []), 3)
+        self.assertEqual(objective.get("current_position"), "MCHJ rahbari")
 
-        preview_ctx = build_obyektivka_render_context(raw, watermark=False, mask_pii=False)
-        self.assertEqual(len(preview_ctx.get("work_experience") or []), 3)
-        self.assertEqual(preview_ctx.get("current_job"), "MCHJ rahbari")
+        preview_docx = _docx_plaintext(generate_obyektivka_docx_bytes(raw, watermark=False))
+        self._assert_markers_in(preview_docx, markers, label="preview_docx")
 
-        demo_docx = _docx_plaintext(generate_obyektivka_docx_bytes(raw))
+        demo_docx = _docx_plaintext(generate_obyektivka_docx_bytes(raw, watermark=True))
         self._assert_markers_in(demo_docx, markers, label="demo_docx")
 
         paid_docx, _ = _export_docx_sync(999001, raw)
@@ -76,10 +74,10 @@ class TestObyektivkaEmploymentParity(unittest.TestCase):
         self.assertIn("Hozirgi ish", markers)
         self.assertIn("Eski ish joyi", markers)
 
-        html = render_obyektivka_html(raw, watermark=False, mask_pii=False)
-        self._assert_markers_in(html, markers, label="preview_html")
+        preview_docx = _docx_plaintext(generate_obyektivka_docx_bytes(raw, watermark=False))
+        self._assert_markers_in(preview_docx, markers, label="preview_docx")
 
-        docx = _docx_plaintext(generate_obyektivka_docx_bytes(raw))
+        docx = _docx_plaintext(generate_obyektivka_docx_bytes(raw, watermark=True))
         self._assert_markers_in(docx, markers, label="demo_docx")
 
     def test_employment_history_alias(self):
@@ -89,8 +87,8 @@ class TestObyektivkaEmploymentParity(unittest.TestCase):
                 {"from": "2008", "to": "2012", "position": "Mutaxassis"},
             ],
         }
-        html = render_obyektivka_html(raw, watermark=False, mask_pii=False)
-        self.assertIn("Mutaxassis", html)
+        objective = buildObjectiveData(raw)
+        self.assertTrue(any("Mutaxassis" in line for line in objective.get("work_history") or []))
         docx = _docx_plaintext(generate_obyektivka_docx_bytes(raw))
         self.assertIn("Mutaxassis", docx)
 

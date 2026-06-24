@@ -41,3 +41,10 @@ def field_or_none(value: str, lang: str = "uz_lat") -> str:
     if is_none_token(value):
         return none_for_lang(lang)
     return (value or "").strip()
+
+
+def field_for_display(value: str, lang: str = "uz_lat", *, preview: bool = False) -> str:
+    """Preview/demo: bo'sh yoki yo'q → ''; pullik hujjat: yo'q/йўқ."""
+    if is_none_token(value):
+        return "" if preview else none_for_lang(lang)
+    return (value or "").strip()

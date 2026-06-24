@@ -13,7 +13,8 @@ from backend.services.document_render.watermark import (
     watermark_text,
 )
 from features.obyektivka.malumotnoma_data import build_malumotnoma_data
-from features.obyektivka.none_values import field_or_none, is_none_token
+from features.obyektivka.objective_data import build_objective_data
+from features.obyektivka.none_values import field_for_display, field_or_none, is_none_token
 from features.obyektivka.spacing_config import html_layout_css_vars
 
 
@@ -72,13 +73,17 @@ def build_obyektivka_render_context(
     `watermark` / `mask_pii` are enabled for unpaid live preview.
     """
     lang = str(raw.get("lang") or "uz_lat")
+    preview_blank = bool(watermark)
+    fd = lambda v: field_for_display(v, lang, preview=preview_blank)
     mdata = build_malumotnoma_data(raw)
+    objective = build_objective_data(raw)
     current_job = mdata["current_job"]
     current_job_year = mdata["current_job_year"]
-    if is_none_token(current_job):
+    if current_job and is_none_token(current_job):
         current_job = ""
         current_job_year = ""
-    work_items = mdata["work_experience"]
+    elif is_none_token(current_job):
+        current_job = ""
 
     img = _to_text(raw.get("img") or raw.get("photo_data"))
     if process_photo and img:
@@ -96,24 +101,23 @@ def build_obyektivka_render_context(
         "fullname": _to_text(raw.get("fullname")),
         "birthdate": _maybe_mask(_to_text(raw.get("birthdate") or raw.get("birth")), enabled=mask_pii),
         "birthplace": _maybe_mask(_to_text(raw.get("birthplace") or raw.get("place")), enabled=mask_pii),
-        "nation": field_or_none(_to_text(raw.get("nation")), lang),
-        "party": field_or_none(_to_text(raw.get("party")), lang),
-        "education": field_or_none(_to_text(raw.get("education") or raw.get("edu")), lang),
-        "graduated": field_or_none(_to_text(raw.get("graduated") or raw.get("grad")), lang),
-        "specialty": field_or_none(_to_text(raw.get("specialty") or raw.get("spec")), lang),
-        "degree": field_or_none(_to_text(raw.get("degree") or raw.get("deg")), lang),
-        "scientific_title": field_or_none(_to_text(raw.get("scientific_title") or raw.get("ttl")), lang),
-        "languages": field_or_none(_to_text(raw.get("languages") or raw.get("langs")), lang),
-        "military_rank": field_or_none(_to_text(raw.get("military_rank") or raw.get("mil")), lang),
-        "awards": field_or_none(_to_text(raw.get("awards") or raw.get("award")), lang),
-        "departmental_awards": field_or_none(
+        "nation": fd(_to_text(raw.get("nation"))),
+        "party": fd(_to_text(raw.get("party"))),
+        "education": fd(_to_text(raw.get("education") or raw.get("edu"))),
+        "graduated": fd(_to_text(raw.get("graduated") or raw.get("grad"))),
+        "specialty": fd(_to_text(raw.get("specialty") or raw.get("spec"))),
+        "degree": fd(_to_text(raw.get("degree") or raw.get("deg"))),
+        "scientific_title": fd(_to_text(raw.get("scientific_title") or raw.get("ttl"))),
+        "languages": fd(_to_text(raw.get("languages") or raw.get("langs"))),
+        "military_rank": fd(_to_text(raw.get("military_rank") or raw.get("mil"))),
+        "awards": fd(_to_text(raw.get("awards") or raw.get("award"))),
+        "departmental_awards": fd(
             _to_text(raw.get("departmental_awards") or raw.get("idor_awards") or raw.get("idor")),
-            lang,
         ),
-        "deputy": field_or_none(_to_text(raw.get("deputy") or raw.get("dep")), lang),
+        "deputy": fd(_to_text(raw.get("deputy") or raw.get("dep"))),
         "address": _maybe_mask(_to_text(raw.get("address")), enabled=mask_pii),
         "phone": _maybe_mask(_to_text(raw.get("phone")), enabled=mask_pii),
-        "work_experience": work_items,
+        "work_experience": objective.get("work_history") or mdata["work_experience"],
         "relatives": relatives,
         "layout": html_layout_css_vars(),
         "render": {
@@ -122,6 +126,7 @@ def build_obyektivka_render_context(
             "watermark_text": watermark_text(),
             "watermark_opacity": watermark_opacity(),
             "preview_banner": preview_banner_text() if watermark else "",
+            "blank_none": preview_blank,
         },
     }
     return ctx
