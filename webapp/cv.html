@@ -414,6 +414,7 @@
             <button type="button" id="cvTextFillBtn" class="btn-primary px-4 py-2 rounded-xl font-bold text-sm" onclick="submitCvTextFill()">⚡ To'ldirish</button>
           </div>
           <div id="cvVoiceStatus" class="text-xs text-slate-600 mt-1"></div>
+          <button type="button" id="cvFillOpenBtn" class="hidden mt-2 w-full px-4 py-2.5 bg-green-600 text-white rounded-xl font-bold text-sm shadow-sm" onclick="openCvFormAfterFill()">📋 CV formasini ochish</button>
         </div>
 
         <!-- CV PARSER: upload an existing CV and autofill fields -->
@@ -2087,6 +2088,85 @@
       if (panel) panel.classList.toggle('hidden');
     }
 
+    function logCvFillStep(step, detail) {
+      const DA = window.DastyorAI || {};
+      if (DA.logProgressStepComplete) {
+        DA.logProgressStepComplete(step, detail || '');
+      } else {
+        try { console.log('[CV fill] Step ' + step + ' complete' + (detail ? ': ' + detail : '')); } catch (_) {}
+      }
+    }
+
+    function hideCvFillLoading() {
+      const DA = window.DastyorAI || {};
+      if (DA.forceHideDocumentLoading) DA.forceHideDocumentLoading();
+      else if (DA.hideDocumentLoading) DA.hideDocumentLoading();
+    }
+
+    function showCvFillOpenButton(show) {
+      const btn = document.getElementById('cvFillOpenBtn');
+      if (!btn) return;
+      if (show) btn.classList.remove('hidden');
+      else btn.classList.add('hidden');
+    }
+
+    function openCvFormAfterFill() {
+      try {
+        const panel = document.getElementById('cvTextFillPanel');
+        if (panel) panel.classList.add('hidden');
+        setStep(1);
+        const nameField = document.getElementById('f_name');
+        if (nameField) {
+          try { nameField.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (_) {}
+          try { nameField.focus({ preventScroll: true }); } catch (_) {}
+        }
+        showCvFillOpenButton(false);
+        hideCvFillLoading();
+      } catch (e) {
+        daToast('❌ CV formasini ochib bo\'lmadi: ' + ((e && e.message) || e), 'error');
+      }
+    }
+
+    async function finishCvFillAndOpenForm(js, statusEl) {
+      const DA = window.DastyorAI || {};
+      if (!js || !js.data) throw new Error("Ma'lumot topilmadi");
+      if (DA.voiceFillHasContent && !DA.voiceFillHasContent(js, 'cv')) {
+        throw new Error("Ma'lumot ajratilmadi — formaga yozilmadi");
+      }
+
+      logCvFillStep(3, "Ma'lumotlar ajratildi");
+      if (DA.setProgressStep) DA.setProgressStep(4, 'Formaga yozilmoqda...');
+      logCvFillStep(4, 'Formaga yozilmoqda');
+
+      const domCount = assertCvFormPopulated(js.data);
+      logCvFillStep(4, 'Formaga yozildi (' + domCount + ' maydon)');
+
+      if (DA.setProgressStep) DA.setProgressStep(5, 'Tayyor!');
+      logCvFillStep(5, 'Tayyor');
+
+      try { console.log('[CV fill] Opening CV form...'); } catch (_) {}
+      if (DA.setProgressStep) DA.setProgressStep(5, 'CV formasi ochilmoqda...');
+
+      const panel = document.getElementById('cvTextFillPanel');
+      if (panel) panel.classList.add('hidden');
+      const input = document.getElementById('cvTextFillInput');
+      if (input) input.value = '';
+      setStep(1);
+      const nameField = document.getElementById('f_name');
+      if (nameField) {
+        try { nameField.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (_) {}
+        try { nameField.focus({ preventScroll: true }); } catch (_) {}
+      }
+      if (statusEl) {
+        statusEl.textContent = '✅ Forma to\'ldirildi (~' + (js.fill_percent || 80) + '%). Quyida tekshiring.';
+      }
+      showCvFillOpenButton(false);
+      logCvFillStep(5, 'CV form opened');
+      hideCvFillLoading();
+      daToast('✅ CV formasi to\'ldirildi', 'success');
+      return domCount;
+    }
+
     function startCvVoiceFill() {
       const input = document.getElementById('cvVoiceInput');
       if (input) { input.value = ''; input.click(); }
@@ -2119,9 +2199,11 @@
       _cvVoiceUploading = true;
       const status = document.getElementById('cvVoiceStatus');
       const DA = window.DastyorAI || {};
+      showCvFillOpenButton(false);
       try {
         if (status) status.textContent = '⏳ Ovoz qabul qilindi...';
         if (DA.showProgressFlow) DA.showProgressFlow('voice');
+        logCvFillStep(1, 'Audio qabul qilindi');
         const fd = new FormData();
         fd.append('audio', file, file.name || 'voice.webm');
         if (telegramId) fd.append('telegram_id', String(telegramId));
@@ -2137,22 +2219,18 @@
           js = await DA.pollCvVoiceJob(startJs.job_id, telegramId, tok, (step) => {
             if (DA.setProgressStep) DA.setProgressStep(step);
             if (status) status.textContent = '⏳ ' + step + '/5 ...';
+            if (step <= 2) logCvFillStep(step);
           });
         }
-        if (!js || !js.data) throw new Error("Ma'lumot topilmadi");
-        if (DA.voiceFillHasContent && !DA.voiceFillHasContent(js, 'cv')) {
-          throw new Error("Ma'lumot ajratilmadi — formaga yozilmadi");
-        }
-        assertCvFormPopulated(js.data);
-        if (status) status.textContent = '✅ Forma to\'ldirildi (~' + (js.fill_percent || 80) + '%)';
-        if (DA.setProgressStep) DA.setProgressStep(5, 'Tayyor!');
-        daToast('✅ CV formasi to\'ldirildi', 'success');
+        await finishCvFillAndOpenForm(js, status);
       } catch (e) {
         if (status) status.textContent = '';
+        hideCvFillLoading();
+        showCvFillOpenButton(true);
         daToast("❌ Ovozli to'ldirishda xatolik: " + ((e && e.message) || e), 'error');
       } finally {
         _cvVoiceUploading = false;
-        if (DA.hideDocumentLoading) DA.hideDocumentLoading();
+        hideCvFillLoading();
       }
     }
 
@@ -2164,8 +2242,10 @@
       if (!text) { alert('Matn kiriting.'); return; }
       if (btn) { btn.disabled = true; btn.textContent = '⏳ Tahlil...'; }
       const DA = window.DastyorAI || {};
+      showCvFillOpenButton(false);
       try {
         if (DA.showProgressFlow) DA.showProgressFlow('text');
+        logCvFillStep(1, 'Matn qabul qilindi');
         let tok = null;
         try { if (DA.getToken) tok = DA.getToken(); } catch (_) {}
         if (!tok) { try { tok = sessionStorage.getItem('tg_token'); } catch (_) {} }
@@ -2182,24 +2262,19 @@
         const startJs = await res.json();
         let js = startJs;
         if (startJs.job_id && DA.pollCvVoiceJob) {
-          if (DA.showProgressFlow) DA.showProgressFlow('text');
           js = await DA.pollCvVoiceJob(startJs.job_id, telegramId, tok, (step) => {
             if (DA.setProgressStep) DA.setProgressStep(step);
             if (status) status.textContent = '⏳ ' + step + '/5 ...';
+            if (step <= 2) logCvFillStep(step);
           });
         }
-        if (!js || !js.data) throw new Error("Ma'lumot topilmadi");
-        if (DA.voiceFillHasContent && !DA.voiceFillHasContent(js, 'cv')) {
-          throw new Error("Ma'lumot ajratilmadi — formaga yozilmadi");
-        }
-        assertCvFormPopulated(js.data);
-        if (status) status.textContent = '✅ Matndan to\'ldirildi (~' + (js.fill_percent || 80) + '%)';
-        if (DA.setProgressStep) DA.setProgressStep(5, 'Tayyor!');
-        daToast('✅ CV formasi to\'ldirildi', 'success');
+        await finishCvFillAndOpenForm(js, status);
       } catch (e) {
+        hideCvFillLoading();
+        showCvFillOpenButton(true);
         daToast("❌ Matndan to'ldirishda xatolik: " + ((e && e.message) || e), 'error');
       } finally {
-        if (DA.hideDocumentLoading) DA.hideDocumentLoading();
+        hideCvFillLoading();
         if (btn) { btn.disabled = false; btn.textContent = '⚡ To\'ldirish'; }
       }
     }

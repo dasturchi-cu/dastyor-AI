@@ -1352,12 +1352,16 @@ html[data-theme="dark"] .da-doc-loading-ring{border-color:#334155;border-top-col
             if (js.status === 'running' && typeof onStep === 'function' && js.step) {
                 const step = Math.min(2, Number(js.step) || 1);
                 onStep(step);
+                logProgressStepComplete(step);
             }
             if (js.status === 'done') {
                 if (!voiceFillHasContent(js, kind)) {
                     throw new Error("Ma'lumot ajratilmadi — formaga yozilmadi");
                 }
-                if (typeof onStep === 'function') onStep(3);
+                if (typeof onStep === 'function') {
+                    onStep(3);
+                    logProgressStepComplete(3, "Ma'lumotlar ajratildi");
+                }
                 return js;
             }
             if (js.status === 'error') throw new Error(js.error || 'Xatolik');
@@ -1409,6 +1413,17 @@ html[data-theme="dark"] .da-doc-loading-ring{border-color:#334155;border-top-col
         try {
             if (_docLoadingEl) _docLoadingEl.setAttribute('aria-busy', 'false');
         } catch (_) {}
+    }
+
+    function forceHideDocumentLoading() {
+        _docLoadingRef = 0;
+        hideDocumentLoading();
+    }
+
+    function logProgressStepComplete(step, label) {
+        const n = Number(step) || 0;
+        const msg = label ? 'Step ' + n + ' complete: ' + label : 'Step ' + n + ' complete';
+        try { console.log('[CV fill]', msg); } catch (_) {}
     }
 
     /** Chek skrinshoti — yuborishdan oldin siqish (tezroq upload) */
@@ -1775,6 +1790,8 @@ html[data-theme="dark"] .da-doc-loading-ring{border-color:#334155;border-top-col
         initNetworkBanner,
         showDocumentLoading,
         hideDocumentLoading,
+        forceHideDocumentLoading,
+        logProgressStepComplete,
         setProgressStep,
         showProgressFlow,
         pollObyVoiceJob,
