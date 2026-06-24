@@ -48,23 +48,63 @@ def _legacy_db_candidates() -> list[Path]:
     ]
 
 
+def _db_user_count(path: Path) -> int:
+    """Return user row count, or -1 if file missing/unreadable."""
+    if not path.is_file() or path.stat().st_size == 0:
+        return -1
+    try:
+        with sqlite3.connect(path) as conn:
+            row = conn.execute(
+                "SELECT 1 FROM sqlite_master WHERE type='table' AND name='users'"
+            ).fetchone()
+            if not row:
+                return 0
+            return int(conn.execute("SELECT COUNT(*) FROM users").fetchone()[0] or 0)
+    except sqlite3.Error:
+        return -1
+
+
 def _import_legacy_database(target: Path) -> None:
-    """Copy old hujjatchi.db into database/app.db if new file does not exist."""
+    """Copy the richest legacy DB into target when target file does not exist."""
     if target.is_file():
         return
+
+    best_legacy: Path | None = None
+    best_count = 0
     for legacy in _legacy_db_candidates():
-        if legacy.is_file() and legacy.resolve() != target.resolve():
-            target.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copy2(legacy, target)
-            logger.info("Imported legacy database %s -> %s", legacy, target)
-            return
+        if not legacy.is_file():
+            continue
+        try:
+            if legacy.resolve() == target.resolve():
+                continue
+        except OSError:
+            if legacy == target:
+                continue
+        count = _db_user_count(legacy)
+        if count > best_count:
+            best_count = count
+            best_legacy = legacy
+
+    if best_legacy is None or best_count <= 0:
+        return
+
+    target.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(best_legacy, target)
+    logger.info(
+        "Imported legacy database %s -> %s (%d users)",
+        best_legacy.resolve(),
+        target.resolve(),
+        best_count,
+    )
 
 
 def _pooled_connection() -> sqlite3.Connection:
     conn = getattr(_local, "conn", None)
     if conn is None:
         init_db()
-        conn = sqlite3.connect(settings.db_path, check_same_thread=False)
+        db_path = settings.db_path.resolve()
+        logger.info("SQLite connect: %s", db_path)
+        conn = sqlite3.connect(db_path, check_same_thread=False)
         _configure_connection(conn)
         _local.conn = conn
     return conn
@@ -77,7 +117,8 @@ def initialize_database() -> dict[str, Any]:
     """
     global _initialized, _cleaning_test_data
     with _schema_lock:
-        db_path = settings.db_path
+        db_path = settings.db_path.resolve()
+        logger.info("SQLite initialize: %s", db_path)
         db_path.parent.mkdir(parents=True, exist_ok=True)
         had_db = db_path.is_file()
         _import_legacy_database(db_path)
@@ -109,36 +150,39 @@ def initialize_database() -> dict[str, Any]:
         else:
             logger.info(
                 "SQLite ready: %s (%d tables, integrity=%s)",
-                db_path.resolve(),
+                db_path,
                 len(report["tables"]),
                 msg,
             )
 
-        canonical = (DATA_DIR / "app.db").resolve()
-        resolved = db_path.resolve()
-        if resolved != canonical:
-            logger.warning(
-                "DB_PATH (%s) is outside DATA_DIR (%s). "
-                "Mount a volume at DATA_DIR and use DB_PATH=%s for deploy persistence.",
-                resolved,
-                DATA_DIR.resolve(),
-                canonical,
-            )
+    if _should_purge_test_data_on_startup():
+        if _cleaning_test_data:
+            return report
 
-    if _cleaning_test_data:
-        return report
+        _cleaning_test_data = True
+        try:
+            from shared.test_data_cleanup import purge_all_test_data
 
-    _cleaning_test_data = True
-    try:
-        from shared.test_data_cleanup import purge_all_test_data
-
-        purge_all_test_data()
-    except Exception as exc:
-        logger.warning("Test data purge skipped: %s", exc)
-    finally:
-        _cleaning_test_data = False
+            purge_all_test_data()
+        except Exception as exc:
+            logger.warning("Test data purge skipped: %s", exc)
+        finally:
+            _cleaning_test_data = False
 
     return report
+
+
+def _should_purge_test_data_on_startup() -> bool:
+    import os
+
+    if os.getenv("_HUJJATCHI_TEST", "").strip() == "1":
+        return True
+    return os.getenv("PURGE_TEST_DATA_ON_STARTUP", "").strip().lower() in (
+        "1",
+        "true",
+        "yes",
+        "on",
+    )
 
 
 def init_db() -> None:

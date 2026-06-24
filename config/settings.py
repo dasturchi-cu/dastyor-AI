@@ -36,15 +36,49 @@ RECEIPTS_DIR = UPLOADS_DIR / "receipts"
 GENERATED_DIR = UPLOADS_DIR / "generated"
 
 
+def _data_dir_explicitly_configured() -> bool:
+    return bool(_env("DATA_DIR") or _env("RAILWAY_VOLUME_MOUNT_PATH"))
+
+
 def _resolve_db_path() -> Path:
     """
     SQLite must live on the same persistent volume as uploads/sessions.
     Default: DATA_DIR/app.db (Railway volume, docker-compose /data, local data/).
+
+    DB_PATH=/data/app.db is valid in Docker/Railway (DATA_DIR=/data) but on
+  Windows/macOS resolves outside the project (e.g. C:\\data\\app.db) and
+    splits persistence from uploads — ignored unless DATA_DIR is also set.
     """
+    canonical = DATA_DIR / "app.db"
     explicit = _env("DB_PATH")
-    if explicit:
-        return Path(explicit)
-    return DATA_DIR / "app.db"
+    if not explicit:
+        return canonical
+
+    candidate = Path(explicit)
+    try:
+        resolved = candidate.resolve()
+    except OSError:
+        resolved = candidate
+
+    canonical_resolved = canonical.resolve()
+    if resolved == canonical_resolved:
+        return candidate
+
+    try:
+        under_data = resolved.is_relative_to(DATA_DIR.resolve())
+    except (ValueError, OSError):
+        under_data = False
+
+    if under_data or _data_dir_explicitly_configured():
+        return candidate
+
+    logger.warning(
+        "DB_PATH=%s is outside DATA_DIR=%s — using %s so DB and uploads share one folder",
+        resolved,
+        DATA_DIR.resolve(),
+        canonical_resolved,
+    )
+    return canonical
 
 
 DB_PATH = _resolve_db_path()
