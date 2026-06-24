@@ -144,6 +144,7 @@
       margin: 0 0 5mm 0;
       font-size: 11pt;
       line-height: 1.15;
+      text-align: center;
     }
     .current-job .line { display: block; }
     .current-job .year-line {
@@ -154,7 +155,7 @@
       font-weight: bold;
       text-decoration: underline;
       margin-top: 1mm;
-      margin-right: 44.93mm;
+      margin-right: 0;
     }
 
     .fields { width: 100%; border-collapse: collapse; table-layout: fixed; }
@@ -207,7 +208,19 @@
     }
     .rel-page-title + .rel-page-title { margin-bottom: 4mm; }
 
-    .rel { width: 100%; border-collapse: collapse; font-size: 11pt; table-layout: fixed; }
+    .rel-table-wrap {
+      width: 100%;
+      display: flex;
+      justify-content: center;
+    }
+    .rel {
+      width: 100%;
+      max-width: 182.4mm;
+      border-collapse: collapse;
+      font-size: 11pt;
+      table-layout: fixed;
+      margin: 0 auto;
+    }
     .rel th, .rel td {
       border: 1px solid #000;
       padding: 1.5mm 1.5mm;
@@ -373,6 +386,7 @@
     <div class="rel-page-title">{{ fn }}{{ L.rel_line1_suffix }}</div>
     <div class="rel-page-title">{{ L.rel_line2 }}</div>
     {%- endif -%}
+    <div class="rel-table-wrap">
     <table class="rel">
       <thead>
         <tr>
@@ -399,6 +413,7 @@
         {%- endif -%}
       </tbody>
     </table>
+    </div>
   </div>
 </div>
 </body>

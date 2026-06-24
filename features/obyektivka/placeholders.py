@@ -149,7 +149,7 @@ def build_placeholder_context(raw: dict[str, Any]) -> dict[str, str]:
     work_lines = mdata["work_lines"]
 
     ctx: dict[str, str] = {
-        "fish": _val(_to_text(raw.get("fullname")), none=""),
+        "fish": _to_text(raw.get("fullname")),
         "tugilgan_sana": _val(_to_text(raw.get("birthdate") or raw.get("birth")), none=none),
         "tugilgan_joy": _val(_to_text(raw.get("birthplace") or raw.get("place")), none=none),
         "millati": _val(_to_text(raw.get("nation")), none=none),

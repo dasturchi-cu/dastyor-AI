@@ -4,13 +4,18 @@ from __future__ import annotations
 
 from docx.shared import Emu
 
-# Namuna DOCX section margins va sahifa (mm)
+# Namuna ref_converted.docx — sectPr pgMar (twips), asimetrik
+PAGE_MARGIN_TOP_TWIPS = 851
+PAGE_MARGIN_RIGHT_TWIPS = 567
+PAGE_MARGIN_BOTTOM_TWIPS = 336
+PAGE_MARGIN_LEFT_TWIPS = 1525
+
 PAGE_WIDTH_MM = 209.99
 PAGE_HEIGHT_MM = 296.99
-PAGE_MARGIN_TOP_MM = 20.0
-PAGE_MARGIN_RIGHT_MM = 18.0
-PAGE_MARGIN_BOTTOM_MM = 20.0
-PAGE_MARGIN_LEFT_MM = 18.0
+PAGE_MARGIN_TOP_MM = round(PAGE_MARGIN_TOP_TWIPS / 56.7, 2)
+PAGE_MARGIN_RIGHT_MM = round(PAGE_MARGIN_RIGHT_TWIPS / 56.7, 2)
+PAGE_MARGIN_BOTTOM_MM = round(PAGE_MARGIN_BOTTOM_TWIPS / 56.7, 2)
+PAGE_MARGIN_LEFT_MM = round(PAGE_MARGIN_LEFT_TWIPS / 56.7, 2)
 
 FONT_FAMILY = "Times New Roman"
 # PPT namuna (pt)

@@ -35,6 +35,8 @@ __all__ = [
     "cv_fill_is_acceptable",
     "cv_fill_rejection_reason",
     "log_cv_parser_debug",
+    "get_cv_validation_report",
+    "format_cv_validation_message",
     "oby_fill_is_acceptable",
 ]
 
@@ -403,21 +405,77 @@ def oby_fill_is_acceptable(data: dict | None) -> bool:
     return count_oby_populated_fields(data) >= 1 and bool(str(data.get("fullname") or "").strip())
 
 
-def get_missing_cv_fields(data: dict) -> list[str]:
-    missing = []
-    labels = {
-        "name": "F.I.SH",
+def get_cv_validation_report(data: dict | None) -> dict:
+    """CV field report: errors block generation; warnings are optional gaps."""
+    data = data or {}
+    errors: list[dict[str, str]] = []
+    warnings: list[dict[str, str]] = []
+
+    if not str(data.get("name") or "").strip():
+        errors.append({"field": "name", "label": "F.I.SH", "message": "Ism topilmadi."})
+
+    optional_labels = {
         "phone": "Telefon",
         "email": "Email",
         "loc": "Manzil",
         "birthdate": "Tug'ilgan sana",
     }
-    for key, label in labels.items():
+    for key, label in optional_labels.items():
         if not str(data.get(key) or "").strip():
-            missing.append(label)
+            warnings.append(
+                {
+                    "field": key,
+                    "label": label,
+                    "message": f"{label} kiritilmagan (ixtiyoriy).",
+                }
+            )
+
     if not data.get("works") and not data.get("education_list"):
-        missing.append("Tajriba yoki Ta'lim")
-    return missing
+        warnings.append(
+            {
+                "field": "experience",
+                "label": "Tajriba yoki Ta'lim",
+                "message": "Ish tajribasi yoki ta'lim kiritilmagan (ixtiyoriy).",
+            }
+        )
+
+    bonus = count_cv_bonus_fields(data)
+    if not errors and bonus < 2:
+        warnings.append(
+            {
+                "field": "bonus",
+                "label": "Qo'shimcha maydonlar",
+                "message": (
+                    "Tavsiya: ta'lim, ish tajribasi, ko'nikmalar, tillar yoki kasbdan "
+                    "kamida 2 tasini kiriting."
+                ),
+            }
+        )
+
+    return {
+        "errors": errors,
+        "warnings": warnings,
+        "can_generate": not errors,
+        "can_preview": not errors,
+    }
+
+
+def format_cv_validation_message(report: dict | None) -> str:
+    rep = report or {}
+    parts: list[str] = []
+    for err in rep.get("errors") or []:
+        if isinstance(err, dict) and err.get("message"):
+            parts.append(str(err["message"]))
+    for warn in rep.get("warnings") or []:
+        if isinstance(warn, dict) and warn.get("message"):
+            parts.append(str(warn["message"]))
+    return " ".join(parts).strip()
+
+
+def get_missing_cv_fields(data: dict) -> list[str]:
+    """Optional field labels only (warnings, never block preview/export)."""
+    report = get_cv_validation_report(data)
+    return [str(w["label"]) for w in report.get("warnings") or [] if w.get("label")]
 
 
 async def process_voice_for_cv(audio_path: str) -> tuple[str, dict, list[str]]:

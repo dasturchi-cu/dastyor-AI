@@ -1083,6 +1083,27 @@
       requestAnimationFrame(function () { requestAnimationFrame(layoutOnce); });
     }
 
+    async function getCvSessionAuth() {
+      const DA = window.DastyorAI || {};
+      if (DA.ensureAuth) {
+        try { await DA.ensureAuth(); } catch (_) {}
+      }
+      const authExtras = DA.getAuthExtras ? DA.getAuthExtras() : {};
+      let sessionToken = authExtras.token || null;
+      if (!sessionToken) {
+        try { if (DA.getToken) sessionToken = DA.getToken(); } catch (_) {}
+      }
+      if (!sessionToken) {
+        try { sessionToken = sessionStorage.getItem('tg_token'); } catch (_) {}
+      }
+      resolveCvTelegramId();
+      return {
+        telegram_id: telegramId ? parseInt(telegramId, 10) : null,
+        token: sessionToken || undefined,
+        init_data: authExtras.init_data || undefined,
+      };
+    }
+
     async function fetchPreviewHtmlForTemplate(tpl, signal) {
       const base = getCvApiBase();
       const payload = Object.assign({}, buildCvPayload('pdf'));
@@ -1090,13 +1111,22 @@
       payload.template = tpl;
       payload.accent_color = cvColor;
       try { payload.img = await getPreviewImageFast(payload.img); } catch (_) {}
+      const auth = await getCvSessionAuth();
+      Object.assign(payload, auth);
       const res = await fetch(base + '/api/cv_preview_html', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
         signal: signal,
       });
-      if (!res.ok) throw new Error(String(res.status));
+      if (!res.ok) {
+        let detail = '';
+        try {
+          const err = await res.json();
+          detail = err.detail || err.message || '';
+        } catch (_) {}
+        throw new Error(detail || ('Preview ' + res.status));
+      }
       return await res.text();
     }
 
@@ -1389,13 +1419,10 @@
       if (!tid) return false;
       try {
         const base = getCvApiBase();
-        let token = '';
-        try { token = sessionStorage.getItem('tg_token') || ''; } catch (_) {}
-        if (!token && window.DastyorAI && window.DastyorAI.getToken) {
-          try { token = window.DastyorAI.getToken() || ''; } catch (_) {}
-        }
+        const auth = await getCvSessionAuth();
         const qs = new URLSearchParams({ telegram_id: String(tid) });
-        if (token) qs.set('token', token);
+        if (auth.token) qs.set('token', auth.token);
+        if (auth.init_data) qs.set('init_data', auth.init_data);
         const r = await fetch(base + '/api/cv_saved_data?' + qs.toString(), { cache: 'no-store' });
         if (!r.ok) return false;
         const j = await r.json();
@@ -1801,28 +1828,9 @@
       if (payload.img && String(payload.img).startsWith('data:image')) {
         payload.img = await maybeCompressDataUrl(payload.img);
       }
+      const auth = await getCvSessionAuth();
+      const req = Object.assign({}, payload, auth, { send_only: true });
       const DA = window.DastyorAI || {};
-      if (DA.ensureAuth) {
-        try { await DA.ensureAuth(); } catch (_) {}
-      }
-      const authExtras = DA.getAuthExtras ? DA.getAuthExtras() : {};
-      let sessionToken = authExtras.token || null;
-      if (!sessionToken) {
-        try {
-          if (DA.getToken) sessionToken = DA.getToken();
-        } catch (_) {}
-      }
-      if (!sessionToken) {
-        try {
-          sessionToken = sessionStorage.getItem('tg_token');
-        } catch (_) {}
-      }
-      const req = Object.assign({}, payload, {
-        telegram_id: telegramId ? parseInt(telegramId, 10) : null,
-        send_only: true,
-        token: sessionToken || undefined,
-        init_data: authExtras.init_data || undefined,
-      });
       console.info('[CV] export_cv: bytes≈', JSON.stringify(req).length, 'tpl=', payload.template, 'has_img=', !!(payload.img && payload.img.length > 64));
       if (DA.setProgressStep) DA.setProgressStep(4, 'PDF tayyorlanmoqda...');
       const res = await fetch(getCvApiBase() + '/api/export_cv', {
@@ -2176,6 +2184,11 @@
       }
       collapseCvFillToolbar();
       logCvFillStep(5, 'CV form opened');
+      triggerUpdate(true, { immediatePreview: true });
+      const warnings = Array.isArray(js.missing_fields) ? js.missing_fields.filter(Boolean) : [];
+      if (warnings.length) {
+        daToast('⚠️ Tavsiya: ' + warnings.slice(0, 3).join(', '), 'info');
+      }
       hideCvFillLoading();
       daToast('✅ CV formasi to\'ldirildi', 'success');
       return domCount;

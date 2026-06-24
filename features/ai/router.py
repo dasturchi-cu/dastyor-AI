@@ -15,6 +15,8 @@ from features.ai.service import (
     count_cv_populated_fields,
     cv_fill_is_acceptable,
     cv_fill_rejection_reason,
+    format_cv_validation_message,
+    get_cv_validation_report,
     process_text_for_cv,
     process_voice_for_cv,
 )
@@ -45,7 +47,8 @@ async def _run_cv_text_job(job_id: str, uid: int, text: str) -> None:
         transcript, data, missing = await process_text_for_cv(text)
         if not cv_fill_is_acceptable(data, missing):
             reason = cv_fill_rejection_reason(data)
-            voice_jobs.fail_job(job_id, f"CV rad etildi. Sabab: {reason}")
+            detail = reason or format_cv_validation_message(get_cv_validation_report(data))
+            voice_jobs.fail_job(job_id, f"CV rad etildi. Sabab: {detail}")
             return
         await async_db.run(cv_service.save_user_data, uid, data)
         await async_db.run(sessions_repo.create_session, uid, "cv_voice", transcript, data)
@@ -73,7 +76,8 @@ async def _run_cv_voice_job(job_id: str, uid: int, temp_path: str) -> None:
         transcript, data, missing = await process_voice_for_cv(temp_path)
         if not cv_fill_is_acceptable(data, missing):
             reason = cv_fill_rejection_reason(data)
-            voice_jobs.fail_job(job_id, f"CV rad etildi. Sabab: {reason}")
+            detail = reason or format_cv_validation_message(get_cv_validation_report(data))
+            voice_jobs.fail_job(job_id, f"CV rad etildi. Sabab: {detail}")
             return
         await async_db.run(cv_service.save_user_data, uid, data)
         populated = count_cv_populated_fields(data)

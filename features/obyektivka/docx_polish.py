@@ -181,22 +181,41 @@ def _mm_twips(mm: float) -> str:
 
 
 def _enforce_page_margins(root: etree._Element) -> None:
-    top = _mm_twips(PAGE_MARGIN_TOP_BOTTOM_MM)
-    side = _mm_twips(PAGE_MARGIN_LEFT_RIGHT_MM)
+    """Namuna DOCX asimetrik marginlar (master shablon bilan bir xil)."""
+    from features.obyektivka.layout import (
+        PAGE_MARGIN_BOTTOM_TWIPS,
+        PAGE_MARGIN_LEFT_TWIPS,
+        PAGE_MARGIN_RIGHT_TWIPS,
+        PAGE_MARGIN_TOP_TWIPS,
+    )
+
     for sect in root.findall(f".//{W}sectPr"):
         pg = sect.find(f"{W}pgMar")
         if pg is None:
             pg = etree.SubElement(sect, f"{W}pgMar")
-        pg.set(f"{W}top", top)
-        pg.set(f"{W}bottom", top)
-        pg.set(f"{W}left", side)
-        pg.set(f"{W}right", side)
+        pg.set(f"{W}top", str(PAGE_MARGIN_TOP_TWIPS))
+        pg.set(f"{W}bottom", str(PAGE_MARGIN_BOTTOM_TWIPS))
+        pg.set(f"{W}left", str(PAGE_MARGIN_LEFT_TWIPS))
+        pg.set(f"{W}right", str(PAGE_MARGIN_RIGHT_TWIPS))
+
+
+def _relatives_table_blob(tbl: etree._Element) -> str:
+    return _paragraph_text(tbl).casefold().replace("-", "").replace("\u2011", "")
+
+
+def _is_relatives_table(tbl: etree._Element) -> bool:
+    norm = _relatives_table_blob(tbl)
+    return (
+        "qarindosh" in norm
+        or "қариндош" in norm
+        or "турар жойи" in norm
+        or "turar joyi" in norm
+    )
 
 
 def _enforce_table_borders(root: etree._Element) -> None:
     for tbl in root.findall(f".//{W}tbl"):
-        blob = _paragraph_text(tbl).lower()
-        if "qarindosh" not in blob and "қариндош" not in blob:
+        if not _is_relatives_table(tbl):
             continue
         tbl_pr = tbl.find(f"{W}tblPr")
         if tbl_pr is None:
@@ -217,8 +236,7 @@ def _enforce_table_borders(root: etree._Element) -> None:
 
 def _enforce_table_cell_styles(root: etree._Element) -> None:
     for tbl in root.findall(f".//{W}tbl"):
-        blob = _paragraph_text(tbl).lower()
-        if "qarindosh" not in blob and "қариндош" not in blob:
+        if not _is_relatives_table(tbl):
             continue
         rows = tbl.findall(f"{W}tr")
         for ri, tr in enumerate(rows):

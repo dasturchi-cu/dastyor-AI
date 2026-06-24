@@ -17,7 +17,7 @@ from core.security import rate_limit
 from features.cv import service as cv_service
 from features.cv.render import preview_html
 from shared import async_db
-from shared.auth import resolve_uid, resolve_uid_from_webapp
+from shared.auth import resolve_uid_from_webapp
 from shared.export_delivery import send_bytes_to_telegram
 
 logger = logging.getLogger(__name__)
@@ -39,8 +39,9 @@ def _uid_from_req(req) -> int:
 async def api_cv_saved(
     telegram_id: str | None = None,
     token: str | None = None,
+    init_data: str | None = None,
 ) -> dict:
-    uid = resolve_uid(telegram_id, token)
+    uid = resolve_uid_from_webapp(telegram_id, token, init_data)
     if not uid:
         raise HTTPException(status_code=401, detail="Foydalanuvchi aniqlanmadi")
     from database.repositories import cv_data as cv_repo

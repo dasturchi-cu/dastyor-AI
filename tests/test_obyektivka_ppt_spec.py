@@ -40,10 +40,27 @@ class TestObyektivkaPptSpec(unittest.TestCase):
             output_filepath=str(out),
         )
         m = _margins_mm(_load_root(Path(path)))
-        self.assertAlmostEqual(m["top"], 20.0, delta=0.5)
-        self.assertAlmostEqual(m["bottom"], 20.0, delta=0.5)
-        self.assertAlmostEqual(m["left"], 18.0, delta=0.5)
-        self.assertAlmostEqual(m["right"], 18.0, delta=0.5)
+        self.assertAlmostEqual(m["top"], 15.0, delta=0.5)
+        self.assertAlmostEqual(m["bottom"], 5.9, delta=0.8)
+        self.assertAlmostEqual(m["left"], 26.9, delta=0.5)
+        self.assertAlmostEqual(m["right"], 10.0, delta=0.5)
+
+    def test_relatives_table_centered(self):
+        if not MASTER.is_file():
+            self.skipTest("master missing")
+        out = ROOT / "temp" / "test_ppt_center.docx"
+        path = generate_obyektivka_docx(
+            {"fullname": "Test", "lang": "uz_cyr", "work_experience": [], "relatives": []},
+            output_filepath=str(out),
+        )
+        root = _load_root(Path(path))
+        tbl = root.find(f".//{W}tbl")
+        self.assertIsNotNone(tbl)
+        tbl_pr = tbl.find(f"{W}tblPr")
+        jc = tbl_pr.find(f"{W}jc") if tbl_pr is not None else None
+        self.assertIsNotNone(jc)
+        self.assertEqual(jc.get(VAL), "center")
+        self.assertIsNone(tbl_pr.find(f"{W}tblInd"))
 
     def test_relatives_table_borders_1pt(self):
         if not MASTER.is_file():

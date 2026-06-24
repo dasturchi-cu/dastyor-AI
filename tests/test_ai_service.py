@@ -8,6 +8,7 @@ from unittest.mock import AsyncMock, patch
 from features.ai.gemini_client import is_valid_transcription_text
 from features.ai.service import (
     extract_cv_data,
+    get_cv_validation_report,
     get_missing_cv_fields,
     get_missing_oby_fields,
     map_obyektivka_fields,
@@ -101,10 +102,17 @@ class TestObyektivkaExtraction(unittest.TestCase):
 
 
 class TestMissingCvFields(unittest.TestCase):
+    def test_optional_warnings_only(self):
+        report = get_cv_validation_report({"name": "Ali Valiyev", "works": [{"title": "Dev"}]})
+        self.assertTrue(report["can_generate"])
+        labels = {w["label"] for w in report["warnings"]}
+        self.assertIn("Tug'ilgan sana", labels)
+        self.assertNotIn("F.I.SH", labels)
+
     def test_core_labels(self):
-        missing = get_missing_cv_fields({"name": "Ali"})
-        self.assertIn("Telefon", missing)
-        self.assertIn("Email", missing)
+        missing = get_missing_cv_fields({"name": "Ali", "works": [{"title": "Dev"}]})
+        self.assertIn("Tug'ilgan sana", missing)
+        self.assertNotIn("F.I.SH", missing)
 
 
 if __name__ == "__main__":

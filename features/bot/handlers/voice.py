@@ -14,6 +14,7 @@ from features.ai.service import (
     count_cv_populated_fields,
     cv_fill_is_acceptable,
     cv_fill_rejection_reason,
+    get_cv_validation_report,
     process_text_for_cv,
     process_voice_for_cv,
 )
@@ -81,12 +82,16 @@ async def _handle_cv_text_flow(text: str, status: Message, uid: int, state: FSMC
         await db_run(cv_service.save_user_data, uid, cv_data)
         await db_run(sessions_repo.create_session, uid, "cv_voice", transcript, cv_data)
         await state.clear()
-        missing_text = ""
-        if cv_missing:
-            missing_text = "\n\n⚠️ Yetishmayotgan: " + ", ".join(cv_missing)
+        report = get_cv_validation_report(cv_data)
+        warn_text = ""
+        warnings = report.get("warnings") or []
+        if warnings:
+            warn_text = "\n\n⚠️ Tavsiya:\n" + "\n".join(
+                f"• {w.get('message', w.get('label', ''))}" for w in warnings[:6]
+            )
         await status.edit_text(
             f"{telegram_message(STEP_READY, input_mode='text')}\n\n"
-            f"CV formasi to'ldirildi.{missing_text}"
+            f"CV formasi to'ldirildi.{warn_text}"
             f"{cross_sell_oby_line()}",
             reply_markup=open_webapp_inline(uid, "cv"),
         )
@@ -124,12 +129,16 @@ async def _handle_cv_voice_flow(
         await db_run(sessions_repo.create_session, uid, "cv_voice", transcript, cv_data)
         await state.clear()
 
-        missing_text = ""
-        if cv_missing:
-            missing_text = "\n\n⚠️ Yetishmayotgan: " + ", ".join(cv_missing)
+        report = get_cv_validation_report(cv_data)
+        warn_text = ""
+        warnings = report.get("warnings") or []
+        if warnings:
+            warn_text = "\n\n⚠️ Tavsiya:\n" + "\n".join(
+                f"• {w.get('message', w.get('label', ''))}" for w in warnings[:6]
+            )
         await status.edit_text(
             f"{telegram_message(STEP_READY)}\n\n"
-            f"Formani tekshiring.{missing_text}"
+            f"Formani tekshiring.{warn_text}"
             f"{cross_sell_oby_line()}",
             reply_markup=open_webapp_inline(uid, "cv"),
         )

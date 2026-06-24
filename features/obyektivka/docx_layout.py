@@ -269,14 +269,37 @@ def _fix_work_history_spacing(body: etree._Element) -> None:
 
 def _is_relatives_table(tbl: etree._Element) -> bool:
     text_blob = _paragraph_text(tbl)
-    low = text_blob.lower()
-    return "qarindosh" in low or "қариндош" in text_blob
+    norm = text_blob.casefold().replace("-", "").replace("\u2011", "")
+    return (
+        "qarindosh" in norm
+        or "қариндош" in norm
+        or "турар жойи" in norm
+        or "turar joyi" in norm
+    )
 
 
 def _fix_relatives_table(root: etree._Element) -> None:
+    from features.obyektivka.layout import REL_COL_DXA
+
+    rel_total = str(sum(REL_COL_DXA))
     for tbl in root.findall(f".//{W}tbl"):
         if not _is_relatives_table(tbl):
             continue
+        tbl_pr = tbl.find(f"{W}tblPr")
+        if tbl_pr is None:
+            tbl_pr = etree.Element(f"{W}tblPr")
+            tbl.insert(0, tbl_pr)
+        jc = tbl_pr.find(f"{W}jc")
+        if jc is None:
+            jc = etree.SubElement(tbl_pr, f"{W}jc")
+        jc.set(VAL, "center")
+        for ind in list(tbl_pr.findall(f"{W}tblInd")):
+            tbl_pr.remove(ind)
+        tw = tbl_pr.find(f"{W}tblW")
+        if tw is None:
+            tw = etree.SubElement(tbl_pr, f"{W}tblW")
+        tw.set(VAL, "dxa")
+        tw.set(f"{W}w", rel_total)
         rows = tbl.findall(f"{W}tr")
         for ri, tr in enumerate(rows):
             tr_pr = tr.find(f"{W}trPr")
