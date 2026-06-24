@@ -423,7 +423,7 @@ async def _pdf_bytes_xhtml2pdf(html_str: str) -> bytes | None:
         return None
 
 
-async def _html_pdf_playwright(html_str: str, *, cv_pdf: bool = False) -> bytes | None:
+async def _html_pdf_playwright(html_str: str, *, cv_pdf: bool = False, print_media: bool = False) -> bytes | None:
     """Chromium print — veb-preview (iframe) bilan bir xil dvigatel; shriftlar va CSS yaqinroq."""
     if _playwright_disabled(cv_pdf=cv_pdf):
         return None
@@ -432,6 +432,7 @@ async def _html_pdf_playwright(html_str: str, *, cv_pdf: bool = False) -> bytes 
     # Tarmoq shriftlari (Google Fonts) + katta HTML: domcontentloaded yetarli emas
     font_wait_ms = 450 if cv_pdf else 200
     content_timeout_ms = 90_000 if cv_pdf else 60_000
+    media = "print" if print_media else "screen"
 
     async def _once():
         browser = await _get_shared_browser()
@@ -440,7 +441,7 @@ async def _html_pdf_playwright(html_str: str, *, cv_pdf: bool = False) -> bytes 
         page = await browser.new_page()
         try:
             try:
-                await page.emulate_media(media="screen")
+                await page.emulate_media(media=media)
             except Exception:
                 pass
             await page.set_content(
@@ -568,9 +569,9 @@ async def generate_obyektivka_pdf(
     )
 
     if pw_first:
-        pdf_pw = await _html_pdf_playwright(html_str, cv_pdf=True)
+        pdf_pw = await _html_pdf_playwright(html_str, cv_pdf=True, print_media=True)
         if pdf_pw:
-            logger.info("Obyektivka PDF generated via Playwright (preview bilan moslashtirilgan)")
+            logger.info("Obyektivka PDF generated via Playwright (print layout, 2 sahifa)")
             return pdf_pw
         pdf_fast = await _pdf_bytes_weasy(html_str, bu or None)
         if pdf_fast:
@@ -584,7 +585,7 @@ async def generate_obyektivka_pdf(
         if pdf_fast:
             logger.info("Obyektivka PDF generated via WeasyPrint (fast path)")
             return pdf_fast
-        pdf_pw = await _html_pdf_playwright(html_str, cv_pdf=True)
+        pdf_pw = await _html_pdf_playwright(html_str, cv_pdf=True, print_media=True)
         if pdf_pw:
             logger.info("Obyektivka PDF generated via Playwright")
             return pdf_pw

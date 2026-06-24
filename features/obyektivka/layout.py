@@ -64,6 +64,26 @@ REL_COL_DXA = (1260, 2160, 1830, 3027, 2057)
 _REL_TOTAL = sum(REL_COL_DXA)
 REL_COL_PCT = tuple(round(w * 100 / _REL_TOTAL, 2) for w in REL_COL_DXA)
 
+# A4 sahifa kengligi (twips) — jadval matn maydoniga sigishi kerak
+PAGE_WIDTH_TWIPS = 11906
+REL_TABLE_WIDTH_DXA = PAGE_WIDTH_TWIPS - PAGE_MARGIN_LEFT_TWIPS - PAGE_MARGIN_RIGHT_TWIPS
+
+
+def scaled_rel_col_dxa(target: int | None = None) -> tuple[int, ...]:
+    """Ustunlarni berilgan jadval kengligiga proporsional qisqartirish."""
+    width = target or REL_TABLE_WIDTH_DXA
+    total = sum(REL_COL_DXA)
+    scaled: list[int] = []
+    used = 0
+    for i, w in enumerate(REL_COL_DXA):
+        if i == len(REL_COL_DXA) - 1:
+            scaled.append(max(1, width - used))
+        else:
+            col = max(1, round(w * width / total))
+            scaled.append(col)
+            used += col
+    return tuple(scaled)
+
 OB_LABELS: dict[str, dict[str, str]] = {
     "uz_lat": {
         "title": "MA'LUMOTNOMA",

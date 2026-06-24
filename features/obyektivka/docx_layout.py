@@ -278,10 +278,40 @@ def _is_relatives_table(tbl: etree._Element) -> bool:
     )
 
 
-def _fix_relatives_table(root: etree._Element) -> None:
-    from features.obyektivka.layout import REL_COL_DXA
+def _apply_rel_table_column_widths(tbl: etree._Element, cols: tuple[int, ...], total: int) -> None:
+    tbl_grid = tbl.find(f"{W}tblGrid")
+    if tbl_grid is not None:
+        grid_cols = tbl_grid.findall(f"{W}gridCol")
+        for gc, w in zip(grid_cols, cols):
+            gc.set(f"{W}w", str(w))
+    for tr in tbl.findall(f"{W}tr"):
+        col_idx = 0
+        for tc in tr.findall(f"{W}tc"):
+            tc_pr = tc.find(f"{W}tcPr")
+            if tc_pr is None:
+                tc_pr = etree.Element(f"{W}tcPr")
+                tc.insert(0, tc_pr)
+            span_el = tc_pr.find(f"{W}gridSpan")
+            span = 1
+            if span_el is not None:
+                try:
+                    span = max(1, int(span_el.get(VAL) or 1))
+                except (TypeError, ValueError):
+                    span = 1
+            tc_w = tc_pr.find(f"{W}tcW")
+            if tc_w is None:
+                tc_w = etree.SubElement(tc_pr, f"{W}tcW")
+            tc_w.set(VAL, "dxa")
+            width = sum(cols[col_idx : col_idx + span]) if col_idx < len(cols) else total
+            tc_w.set(f"{W}w", str(width))
+            col_idx += span
 
-    rel_total = str(sum(REL_COL_DXA))
+
+def _fix_relatives_table(root: etree._Element) -> None:
+    from features.obyektivka.layout import REL_TABLE_WIDTH_DXA, scaled_rel_col_dxa
+
+    cols = scaled_rel_col_dxa()
+    rel_total = str(REL_TABLE_WIDTH_DXA)
     for tbl in root.findall(f".//{W}tbl"):
         if not _is_relatives_table(tbl):
             continue
@@ -300,6 +330,7 @@ def _fix_relatives_table(root: etree._Element) -> None:
             tw = etree.SubElement(tbl_pr, f"{W}tblW")
         tw.set(VAL, "dxa")
         tw.set(f"{W}w", rel_total)
+        _apply_rel_table_column_widths(tbl, cols, REL_TABLE_WIDTH_DXA)
         rows = tbl.findall(f"{W}tr")
         for ri, tr in enumerate(rows):
             tr_pr = tr.find(f"{W}trPr")

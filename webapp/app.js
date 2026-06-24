@@ -1088,6 +1088,13 @@ const DastyorAI = (() => {
         'Formaga yozilmoqda',
         'Tayyor',
     ];
+    const PROGRESS_STEPS_DOC = [
+        "So'rov qabul qilindi",
+        "Ma'lumotlar tekshirilmoqda",
+        'Hujjat tayyorlanmoqda',
+        'Fayl yuborilmoqda',
+        'Tayyor',
+    ];
     let _progressMode = 'voice';
 
     function _injectDocumentLoadingStyles() {
@@ -1119,7 +1126,9 @@ html[data-theme="dark"] .da-doc-loading-ring{border-color:#334155;border-top-col
     }
 
     function _activeProgressSteps() {
-        return _progressMode === 'text' ? PROGRESS_STEPS_TEXT : PROGRESS_STEPS;
+        if (_progressMode === 'text') return PROGRESS_STEPS_TEXT;
+        if (_progressMode === 'doc') return PROGRESS_STEPS_DOC;
+        return PROGRESS_STEPS;
     }
 
     function _ensureProgressStepsEl() {
@@ -1177,11 +1186,12 @@ html[data-theme="dark"] .da-doc-loading-ring{border-color:#334155;border-top-col
     }
 
     function showProgressFlow(mode) {
-        _progressMode = mode === 'text' ? 'text' : 'voice';
+        if (mode === 'text') _progressMode = 'text';
+        else if (mode === 'doc') _progressMode = 'doc';
+        else _progressMode = 'voice';
         const steps = _activeProgressSteps();
-        const start = mode === 'doc' ? 4 : 1;
-        showDocumentLoading(steps[start - 1], '');
-        setProgressStep(start);
+        showDocumentLoading(steps[0], '');
+        setProgressStep(1);
     }
 
     function canExportWithCredit(u) {
@@ -1468,7 +1478,8 @@ html[data-theme="dark"] .da-doc-loading-ring{border-color:#334155;border-top-col
                 telegram_id: tid ? parseInt(tid, 10) : null,
                 ...getAuthExtras(),
             };
-            setProgressStep(4, 'PDF/DOCX tayyorlanmoqda...');
+            setProgressStep(2, "Ma'lumotlar tekshirilmoqda...");
+            setProgressStep(3, 'Hujjat tayyorlanmoqda...');
             const resp = await fetch(BASE + endpoint, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -1478,7 +1489,7 @@ html[data-theme="dark"] .da-doc-loading-ring{border-color:#334155;border-top-col
                 const err = await resp.json().catch(() => ({}));
                 throw new Error(err.detail || `Server error (${resp.status})`);
             }
-            setProgressStep(5, 'Yuklab olinmoqda...');
+            setProgressStep(4, 'Fayl yuklanmoqda...');
             const blob = await resp.blob();
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
@@ -1486,6 +1497,7 @@ html[data-theme="dark"] .da-doc-loading-ring{border-color:#334155;border-top-col
             a.download = filename || 'document.docx';
             document.body.appendChild(a);
             a.click();
+            setProgressStep(5, 'Tayyor!');
             setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 2000);
             return blob;
         } finally {
@@ -1803,6 +1815,7 @@ html[data-theme="dark"] .da-doc-loading-ring{border-color:#334155;border-top-col
         voiceFillHasContent,
         ensureJpegDataUrl,
         PROGRESS_STEPS,
+        PROGRESS_STEPS_DOC,
         compressReceiptDataUrl,
 
         fetchPaidDocStatus,

@@ -2158,7 +2158,7 @@ async function sendObyektivkaViaApi(fmt){
     try { await DA.ensureAuth(); } catch (_) {}
   }
   if (DA.showProgressFlow) DA.showProgressFlow('doc');
-    else if (DA.showDocumentLoading) DA.showDocumentLoading('Hujjat yaratilmoqda...', 'Bitta marta bosing');
+    else if (DA.showDocumentLoading) DA.showDocumentLoading('Fayl yuborilmoqda...', '');
   var payload = buildObyPayload(fmt);
   var req = {
     telegram_id: telegramId ? parseInt(telegramId, 10) : null,
@@ -2200,12 +2200,14 @@ async function sendObyektivkaViaApi(fmt){
   var tok = getDastyorSessionToken() || authExtras.token || null;
   if (tok) req.token = tok;
   if (authExtras.init_data) req.init_data = authExtras.init_data;
-  if (DA.setProgressStep) DA.setProgressStep(4, 'DOCX tayyorlanmoqda...');
+  if (DA.setProgressStep) DA.setProgressStep(2, "Ma'lumotlar tekshirilmoqda...");
+  if (DA.setProgressStep) DA.setProgressStep(3, (fmt === 'pdf') ? 'PDF tayyorlanmoqda...' : 'DOCX tayyorlanmoqda...');
   var res = await fetch(getApiUrl() + '/api/export_obyektivka', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(req)
   });
+  if (DA.setProgressStep) DA.setProgressStep(4, 'Fayl yuborilmoqda...');
   if (!res.ok) {
     var errMsg = await dastyorReadApiError(res);
     if (res.status === 402 || res.status === 429) errMsg = '⛔ ' + errMsg;

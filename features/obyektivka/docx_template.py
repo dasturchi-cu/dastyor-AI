@@ -124,6 +124,21 @@ def generate_obyektivka_docx(
 
 
 def generate_obyektivka_docx_bytes(data: dict[str, Any], *, photo_path: str | None = None) -> bytes:
+    """Preview/demo bilan bir xil HTML → DOCX; master shablon zaxira."""
+    use_html = os.getenv("OBY_DOCX_HTML_FIRST", "1").strip().lower() in ("1", "true", "yes", "on")
+    if use_html:
+        try:
+            from backend.services.html_to_docx import html_to_docx_bytes
+            from backend.services.render_service import render_obyektivka_html
+
+            html = render_obyektivka_html(data, watermark=False, mask_pii=False)
+            docx = html_to_docx_bytes(html)
+            if docx:
+                logger.info("Obyektivka DOCX: HTML shablon (preview bilan bir xil)")
+                return docx
+        except Exception as exc:
+            logger.warning("Obyektivka HTML→DOCX skipped: %s", exc)
+
     path = generate_obyektivka_docx(data, photo_path=photo_path)
     try:
         return Path(path).read_bytes()

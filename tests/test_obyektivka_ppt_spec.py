@@ -61,6 +61,11 @@ class TestObyektivkaPptSpec(unittest.TestCase):
         self.assertIsNotNone(jc)
         self.assertEqual(jc.get(VAL), "center")
         self.assertIsNone(tbl_pr.find(f"{W}tblInd"))
+        tw = tbl_pr.find(f"{W}tblW")
+        self.assertIsNotNone(tw)
+        from features.obyektivka.layout import REL_TABLE_WIDTH_DXA
+
+        self.assertEqual(int(tw.get(f"{W}w")), REL_TABLE_WIDTH_DXA)
 
     def test_relatives_table_borders_1pt(self):
         if not MASTER.is_file():

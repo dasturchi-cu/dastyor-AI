@@ -17,6 +17,14 @@ STAGES_TEXT: tuple[tuple[str, str], ...] = (
     ("ready", "Tayyor"),
 )
 
+STAGES_DOC: tuple[tuple[str, str], ...] = (
+    ("request_received", "So'rov qabul qilindi"),
+    ("data_checking", "Ma'lumotlar tekshirilmoqda"),
+    ("doc_generating", "Hujjat tayyorlanmoqda"),
+    ("file_sending", "Fayl yuborilmoqda"),
+    ("ready", "Tayyor"),
+)
+
 STEP_AUDIO = 1
 STEP_AI = 2
 STEP_EXTRACTED = 3
@@ -24,9 +32,15 @@ STEP_DOC = 4
 STEP_READY = 5
 
 
-def stage_label(step: int) -> str:
-    idx = max(0, min(len(STAGES) - 1, step - 1))
-    return STAGES[idx][1]
+def stage_label(step: int, *, input_mode: str = "audio") -> str:
+    if input_mode == "doc":
+        stages = STAGES_DOC
+    elif input_mode == "text":
+        stages = STAGES_TEXT
+    else:
+        stages = STAGES
+    idx = max(0, min(len(stages) - 1, step - 1))
+    return stages[idx][1]
 
 
 def telegram_message(
@@ -36,7 +50,12 @@ def telegram_message(
     input_mode: str = "audio",
 ) -> str:
     """Multi-line progress for Telegram status edits."""
-    stages = STAGES_TEXT if input_mode == "text" else STAGES
+    if input_mode == "doc":
+        stages = STAGES_DOC
+    elif input_mode == "text":
+        stages = STAGES_TEXT
+    else:
+        stages = STAGES
     lines: list[str] = []
     for i, (_, label) in enumerate(stages, start=1):
         if i < current_step:
@@ -52,9 +71,15 @@ def telegram_message(
     return body
 
 
-def web_steps_payload(current_step: int) -> dict:
+def web_steps_payload(current_step: int, *, input_mode: str = "audio") -> dict:
+    if input_mode == "doc":
+        stages = STAGES_DOC
+    elif input_mode == "text":
+        stages = STAGES_TEXT
+    else:
+        stages = STAGES
     return {
         "step": current_step,
-        "label": stage_label(current_step),
-        "steps": [label for _, label in STAGES],
+        "label": stage_label(current_step, input_mode=input_mode),
+        "steps": [label for _, label in stages],
     }

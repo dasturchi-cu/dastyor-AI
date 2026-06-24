@@ -26,10 +26,15 @@
       min-height: 296.99mm;
       padding: 15.01mm 10mm 5.93mm 26.9mm;
       page-break-after: always;
-      overflow: hidden;
+      break-after: page;
+      overflow: visible;
       background: #fff;
     }
-    .page:last-child { page-break-after: auto; }
+    .page:last-child { page-break-after: auto; break-after: auto; }
+    .page + .page {
+      page-break-before: always;
+      break-before: page;
+    }
     .page-content { position: relative; z-index: 2; }
 
     .wm-layer {
@@ -210,12 +215,12 @@
 
     .rel-table-wrap {
       width: 100%;
-      display: flex;
-      justify-content: center;
+      margin: 0 auto;
+      text-align: center;
     }
     .rel {
       width: 100%;
-      max-width: 182.4mm;
+      max-width: 100%;
       border-collapse: collapse;
       font-size: 11pt;
       table-layout: fixed;
@@ -235,7 +240,18 @@
 
     @media print {
       body { width: auto; }
-      .page { padding: 0; min-height: auto; }
+      .page {
+        padding: 0;
+        min-height: auto;
+        width: auto;
+        overflow: visible;
+        page-break-after: always;
+        break-after: page;
+      }
+      .page:last-child { page-break-after: auto; break-after: auto; }
+      .page + .page { page-break-before: always; break-before: page; }
+      .rel-table-wrap { width: 100%; text-align: center; }
+      .rel { width: 100%; max-width: 100%; margin-left: auto; margin-right: auto; }
       .wm-layer, .wm-grid, .pii-blur {
         -webkit-print-color-adjust: exact;
         print-color-adjust: exact;

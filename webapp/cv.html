@@ -1832,7 +1832,8 @@
       const req = Object.assign({}, payload, auth, { send_only: true });
       const DA = window.DastyorAI || {};
       console.info('[CV] export_cv: bytes≈', JSON.stringify(req).length, 'tpl=', payload.template, 'has_img=', !!(payload.img && payload.img.length > 64));
-      if (DA.setProgressStep) DA.setProgressStep(4, 'PDF tayyorlanmoqda...');
+      if (DA.setProgressStep) DA.setProgressStep(2, "Ma'lumotlar tekshirilmoqda...");
+      if (DA.setProgressStep) DA.setProgressStep(3, (fmt === 'pdf') ? 'PDF tayyorlanmoqda...' : 'DOCX tayyorlanmoqda...');
       const res = await fetch(getCvApiBase() + '/api/export_cv', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -1851,6 +1852,7 @@
         const head = res.status === 429 ? '⛔ Limit tugadi: ' : (res.status === 402 ? '⛔ ' : '');
         throw new Error(head + (detail || 'Server ' + res.status));
       }
+      if (DA.setProgressStep) DA.setProgressStep(4, 'Fayl yuborilmoqda...');
       if (ct.includes('application/json')) {
         try {
           const out = await res.json();
@@ -2037,7 +2039,7 @@
         try {
           const DA = window.DastyorAI || {};
           if (DA.showProgressFlow) DA.showProgressFlow('doc');
-          else if (DA.showDocumentLoading) DA.showDocumentLoading('Hujjat yaratilmoqda...', '');
+          else if (DA.showDocumentLoading) DA.showDocumentLoading('Fayl yuborilmoqda...', '');
         } catch (_) {}
 
         const data = await sendCvViaApi(fmt);
