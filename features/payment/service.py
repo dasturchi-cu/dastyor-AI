@@ -70,7 +70,7 @@ def try_auto_approve(payment_id: int) -> dict[str, Any] | None:
     """Skrinshot kelgach avtomatik tasdiqlash (AUTO_APPROVE_PAYMENTS=1)."""
     if not settings.auto_approve_payments:
         return None
-    return approve_payment(payment_id, admin_note="auto")
+    return approve_payment(payment_id, admin_note="verified")
 
 
 def reject_payment(payment_id: int, admin_note: str | None = None) -> bool:

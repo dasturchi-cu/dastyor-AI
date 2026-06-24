@@ -29,6 +29,7 @@ from features.admin.keyboards import (
 )
 from features.admin.states import AdminStates
 from features.payment import service as payment_service
+from features.payment.auto_approve_scheduler import cancel_auto_approve
 from shared.async_db import run as db_run
 from shared.keyboards import admin_menu, is_admin_menu_button
 
@@ -498,6 +499,7 @@ async def payment_callback(query: CallbackQuery) -> None:
     try:
         payment_before = await db_run(payments_repo.get_payment, pid)
         if payment_before and is_test_payment(payment_before):
+            cancel_auto_approve(pid)
             if action == "approve":
                 result = await db_run(
                     payment_service.approve_payment,
@@ -523,6 +525,7 @@ async def payment_callback(query: CallbackQuery) -> None:
                     await query.message.reply("Rad etish xatosi.")
             return
 
+        cancel_auto_approve(pid)
         if action == "approve":
             result = await db_run(
                 payment_service.approve_payment,

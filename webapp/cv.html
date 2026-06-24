@@ -1983,7 +1983,7 @@
         } else if (pendingAdmin) {
           applyCvQuotaWarnStyle('wait');
           warn.classList.remove('hidden');
-          warn.textContent = "⏳ Admin tasdiqlashini kuting...";
+          warn.textContent = "⏳ Admin to'lovingizni tekshirmoqda...";
         } else {
           warn.classList.add('hidden');
           warn.textContent = '';
@@ -2228,14 +2228,14 @@
       } else if (phase === 'sent') {
         if (sendBtn) { sendBtn.disabled = true; sendBtn.textContent = '✅ Yuborildi'; }
         if (status) {
-          status.textContent = '✅ Chek yuborildi. Admin tasdiqlashini kuting...';
+          status.textContent = '✅ Chek yuborildi. Admin tekshiruvidan o\'tkazilmoqda...';
           status.classList.remove('text-red-700');
           status.classList.add('text-emerald-800', 'font-semibold');
         }
       } else if (phase === 'waiting') {
         if (sendBtn) { sendBtn.disabled = true; sendBtn.textContent = '⏳ Admin kutyapti'; }
         if (status) {
-          status.textContent = '⏳ Admin tasdiqlashini kuting...';
+          status.textContent = '⏳ Admin to\'lovingizni tekshirmoqda...';
           status.classList.add('text-emerald-800', 'font-semibold');
         }
       } else if (phase === 'approved') {

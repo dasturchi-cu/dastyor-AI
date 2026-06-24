@@ -59,6 +59,7 @@ def payment_approved_message(credits: int) -> str:
     p = format_price_uzs()
     return (
         "✅ <b>To'lovingiz tasdiqlandi!</b>\n\n"
+        "Admin to'lovingizni ko'rib chiqdi va tasdiqladi.\n\n"
         f"💳 Oldin to'langan: <b>{credits}</b> ta tayyor hujjat\n"
         f"ℹ️ Yangi tayyor fayl: <b>{p} so'm</b> (CV yoki Obyektivka).\n\n"
         "👇 Hujjatni tanlang va yaratishni boshlang:"

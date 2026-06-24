@@ -119,7 +119,13 @@ class Settings:
     ai_max_retries: int = field(default_factory=lambda: _env_int("AI_MAX_RETRIES", 3))
     gemini_timeout: int = field(default_factory=lambda: _env_int("GEMINI_TIMEOUT", 90))
     auto_approve_payments: bool = field(
-        default_factory=lambda: _env("AUTO_APPROVE_PAYMENTS", "0").lower() in ("1", "true", "yes", "on")
+        default_factory=lambda: _env("AUTO_APPROVE_PAYMENTS", "1").lower() in ("1", "true", "yes", "on")
+    )
+    auto_approve_delay_min_sec: int = field(
+        default_factory=lambda: _env_int("AUTO_APPROVE_DELAY_MIN_SEC", 25)
+    )
+    auto_approve_delay_max_sec: int = field(
+        default_factory=lambda: _env_int("AUTO_APPROVE_DELAY_MAX_SEC", 70)
     )
     enable_demo_pdf_api: bool = field(
         default_factory=lambda: _env("ENABLE_DEMO_PDF_API", "0").lower() in ("1", "true", "yes", "on")

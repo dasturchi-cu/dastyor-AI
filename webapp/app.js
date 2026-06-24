@@ -74,7 +74,7 @@ const DastyorAI = (() => {
         error_generic: "Xatolik yuz berdi. Qayta urinib ko'ring.",
         error_network: "Internet aloqasi yo'q. Keyinroq urinib ko'ring.",
         error_auth: 'Avtorizatsiya talab qilinadi. Telegram orqali qayta oching.',
-        payment_pending: "To'lov tekshirilmoqda...",
+        payment_pending: "Admin to'lovingizni tekshirmoqda...",
         payment_approved: "To'lov tasdiqlandi! Hujjatni yuklab olishingiz mumkin.",
         payment_rejected: "To'lov rad etildi. Qayta urinib ko'ring.",
         demo_watermark_note: "Demo versiya — «DEMO VERSIYA» belgisi bilan. To'lovdan keyin toza fayl.",

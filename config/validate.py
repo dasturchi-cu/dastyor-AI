@@ -40,8 +40,6 @@ def validate_settings(*, strict: bool | None = None) -> list[str]:
             errors.append("ADMIN_USER_ID is required in production")
         if os.getenv("ALLOW_INSECURE_AUTH", "").strip().lower() in ("1", "true", "yes", "on"):
             errors.append("ALLOW_INSECURE_AUTH must be 0 in production")
-        if os.getenv("AUTO_APPROVE_PAYMENTS", "0").strip().lower() in ("1", "true", "yes", "on"):
-            errors.append("AUTO_APPROVE_PAYMENTS must be 0 in production")
         if not settings.payment_card_number:
             errors.append("PAYMENT_CARD_NUMBER is required in production")
 

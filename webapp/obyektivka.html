@@ -127,13 +127,17 @@
     .work-dates{display:flex;align-items:center;gap:4px;flex-wrap:wrap}
     .work-dates input{padding:8px 6px;text-align:center;font-size:13px;min-width:56px;flex:1}
     .work-dates span{color:var(--muted);font-weight:700;font-size:13px;flex-shrink:0}
-    .year-present-btn{padding:7px 9px;font-size:11px;font-weight:800;border-radius:8px;border:1.5px solid #86efac;background:#ecfdf5;color:#166534;cursor:pointer;font-family:var(--font);white-space:nowrap;flex-shrink:0;-webkit-tap-highlight-color:transparent}
+    .year-present-btn{padding:7px 8px;font-size:10px;font-weight:800;border-radius:8px;border:1.5px solid #86efac;background:#ecfdf5;color:#166534;cursor:pointer;font-family:var(--font);white-space:nowrap;flex-shrink:0;-webkit-tap-highlight-color:transparent;max-width:72px;line-height:1.2}
     .year-present-btn:active{background:#bbf7d0}
     .work-dates .ac-wrap{flex:1;min-width:56px}
     .work-dates .ac-suggest{max-height:140px}
+    .work-dates select{padding:8px 4px;font-size:12px;font-weight:700;text-align:center;min-width:0;flex:1;cursor:pointer}
     .lang-quick{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}
     .lang-chip{padding:5px 10px;font-size:11px;font-weight:700;border-radius:7px;border:1.5px solid var(--blue-mid);background:var(--blue-light);color:var(--blue);cursor:pointer;font-family:var(--font);-webkit-tap-highlight-color:transparent}
     .lang-chip:active{background:var(--blue-mid)}
+    .lang-chip-none{background:#f8fafc;border-color:var(--border);color:var(--muted)}
+    .lang-chip-active{background:var(--blue);border-color:var(--blue);color:#fff}
+    .field-hint{font-size:11px;color:var(--muted);margin-top:4px;line-height:1.45}
     @media(max-width:420px){.work-row{grid-template-columns:1fr}}
 
     /* RELATIVES */
@@ -336,7 +340,7 @@
           <div class="field"><label id="lbl-degree">Ilmiy darajasi</label><input type="text" id="degree" value="yo'q" oninput="saveToLocal();updatePreview()"></div>
           <div class="field"><label id="lbl-scititle">Ilmiy unvoni</label><input type="text" id="scititle" value="yo'q" oninput="saveToLocal();updatePreview()"></div>
           <div class="field"><label id="lbl-military">Harbiy (maxsus) unvoni</label><input type="text" id="military" value="yo'q" oninput="saveToLocal();updatePreview()"></div>
-          <div class="field"><label id="lbl-langs">Xorijiy tillar</label><div class="ac-wrap"><input type="text" id="langs" value="yo'q" autocomplete="off" spellcheck="false" onkeydown="onSmartACKeydown(this,event)" oninput="onSmartACInput(this,'langs');saveToLocal();updatePreview()" onfocus="onLangsFocus(this)" onblur="onSmartACBlur(this,'langs')"><div id="suggest-langs" class="ac-suggest hidden"></div></div><div class="lang-quick" id="lang-quick-chips"></div><datalist id="lang-list"></datalist></div>
+          <div class="field"><label id="lbl-langs">Xorijiy tillar</label><div class="ac-wrap"><input type="text" id="langs" value="yo'q" placeholder="Masalan: Ingliz tili, Rus tili" autocomplete="off" spellcheck="false" onkeydown="onSmartACKeydown(this,event)" oninput="onSmartACInput(this,'langs');saveToLocal();updatePreview()" onfocus="onLangsFocus(this)" onblur="onSmartACBlur(this,'langs')"><div id="suggest-langs" class="ac-suggest hidden"></div></div><div class="field-hint" id="langs-hint">Til nomini yozing yoki pastdan tanlang</div><div class="lang-quick" id="lang-quick-chips"></div><datalist id="lang-list"></datalist></div>
           <div class="field" style="grid-column:1/-1"><label id="lbl-awards">Davlat mukofotlari va premiyalari bilan taqdirlanganmi</label><input type="text" id="awards" value="yo'q" oninput="saveToLocal();updatePreview()"></div>
           <div class="field" style="grid-column:1/-1"><label id="lbl-idor-awards">Ma'naviy mukofotlar bilan taqdirlanganmi</label><input type="text" id="idor-awards" value="yo'q" oninput="saveToLocal();updatePreview()"></div>
           <div class="field" style="grid-column:1/-1"><label id="lbl-deputy">Xalq deputatlari Kengashi deputatimi yoki boshqa saylanadigan organlar a'zosimi</label><input type="text" id="deputy" value="yo'q" oninput="saveToLocal();updatePreview()"></div>
@@ -1000,7 +1004,8 @@ function applyRegionAC(input){input.addEventListener('input',function(){var val=
 var dict={
 uz_l:{
   lbl_fullname:"Familiya, Ism, Sharif",lbl_birthdate:"Tug'ilgan sanasi",lbl_birthplace:"Tug'ilgan joyi",lbl_nation:"Millati",lbl_party:"Partiyaviyligi",lbl_edu:"Ma'lumoti",lbl_graduated:"Tamomlagan",lbl_spec:"Mutaxassisligi",lbl_degree:"Ilmiy darajasi",lbl_scititle:"Ilmiy unvoni",lbl_langs:"Xorijiy tillar",lbl_military:"Harbiy unvoni",lbl_awards:"Davlat mukofotlari bilan taqdirlanganmi",lbl_deputy:"Xalq deputatlari Kengashi deputatimi yoki boshqa saylanadigan organlarning a'zosimi",lbl_work:"MEHNAT FAOLIYATI",lbl_rel_title:"YAQIN QARINDOSHLAR",
-  ph_fullname:"Aliyev Ali Aliyevich",ph_birthdate:"KK.OO.YYYY",ph_birthplace:"Toshkent shahri",ph_edu:"Oliy",ph_spec:"Umumiy amaliyot shifokori",ph_graduated:"Tamomlagan OTM nomi",val_no:"yo'q",
+  ph_fullname:"Aliyev Ali Aliyevich",ph_birthdate:"KK.OO.YYYY",ph_birthplace:"Toshkent shahri",ph_edu:"Oliy",ph_spec:"Umumiy amaliyot shifokori",ph_graduated:"Tamomlagan OTM nomi",ph_langs:"Masalan: Ingliz tili, Rus tili",val_no:"yo'q",
+  txt_langs_hint:"Til nomini yozing yoki pastdan tanlang",
   opts_nation:["O'zbek","Rus","Tojik","Qozoq","Turk","Tatar","Qoraqalpoq","Koreys","Nemis","Uyg'ur","Qirg'iz","Ukrain","Hind","Xitoy","Eron","Afg'on"],opts_edu:["Oliy","O'rta maxsus","O'rta","Tugallanmagan oliy"],opts_langs:["Rus tili","Ingliz tili","Nemis tili","Fransuz tili","Koreys tili","Turk tili","Arab tili","Xitoy tili","O'zbek tili","Hind tili","Ispan tili","Italyan tili","Yapon tili","Portugal tili"],
   txt_work_hint:"Eng oxirida hozirgi ishlayotgan yoki o'qiyotgan joyingizni kiriting",
   d_title:"MA'LUMOTNOMA",d_work:"MEHNAT FAOLIYATI",d_rel_title:"MA'LUMOTNOMA",
@@ -1360,10 +1365,10 @@ function setObyPayUiState(phase) {
     if (statusEl) { statusEl.textContent = '🔄 Yuborilmoqda...'; statusEl.style.color = '#334155'; }
   } else if (phase === 'sent') {
     if (sendBtn) { sendBtn.disabled = true; sendBtn.textContent = '✅ Yuborildi'; sendBtn.style.opacity = '1'; }
-    if (statusEl) { statusEl.textContent = '✅ Chek yuborildi. Admin tasdiqlashini kuting...'; statusEl.style.color = '#166534'; }
+    if (statusEl) { statusEl.textContent = '✅ Chek yuborildi. Admin tekshiruvidan o\'tkazilmoqda...'; statusEl.style.color = '#166534'; }
   } else if (phase === 'waiting') {
     if (sendBtn) { sendBtn.disabled = true; sendBtn.textContent = '⏳ Admin kutyapti'; sendBtn.style.opacity = '1'; }
-    if (statusEl) { statusEl.textContent = '⏳ Admin tasdiqlashini kuting...'; statusEl.style.color = '#166534'; }
+    if (statusEl) { statusEl.textContent = '⏳ Admin to\'lovingizni tekshirmoqda...'; statusEl.style.color = '#166534'; }
   } else if (phase === 'approved') {
     if (sendBtn) { sendBtn.disabled = true; sendBtn.textContent = '✅ Tasdiqlandi'; sendBtn.style.opacity = '1'; }
     if (statusEl) { statusEl.textContent = '✅ Tasdiqlandi — «Word botga yuborish».'; statusEl.style.color = '#166534'; statusEl.style.fontWeight = '800'; }
@@ -1447,7 +1452,7 @@ function syncObyQuotaUi() {
     } else if (pendingAdmin) {
       applyObyQuotaWarnStyle('wait');
       warn.classList.remove('hidden');
-      warn.textContent = "⏳ Admin tasdiqlashini kuting...";
+      warn.textContent = "⏳ Admin to'lovingizni tekshirmoqda...";
     } else {
       warn.classList.add('hidden');
       warn.textContent = '';

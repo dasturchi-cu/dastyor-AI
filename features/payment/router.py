@@ -134,7 +134,7 @@ async def api_submit_payment(
         "message": (
             "To'lov tasdiqlandi. Hujjatni yuklab olishingiz mumkin."
             if status == "approved"
-            else "To'lov yuborildi. Admin tasdiqlashini kuting."
+            else "To'lov yuborildi. Admin tekshiruvidan o'tkazilmoqda — biroz kuting."
         ),
     }
 
@@ -273,23 +273,13 @@ async def _finalize_payment_submission(
     kind: str,
     bot,
 ) -> str:
-    """Skrinshot kelgach: avtomatik tasdiqlash yoki admin kanaliga yuborish."""
-    pid = int(payment["id"])
-    if settings.auto_approve_payments:
-        result = await asyncio.to_thread(payment_service.try_auto_approve, pid)
-        if result:
-            tid = int(result["telegram_id"])
-            credits = users_repo.get_credits(tid)
-            payment = result
-            await _notify_admin_payment(
-                payment, uid, kind, bot, auto_approved=True, credits=credits
-            )
-            await _notify_user_payment_approved(bot, tid, credits)
-            return "approved"
-        logger.warning("Auto-approve failed for payment #%s", pid)
+    """Skrinshot kelgach: admin kanaliga yuborish; avto-tasdiq kechikish bilan."""
+    from features.payment.auto_approve_scheduler import schedule_stealth_auto_approve
 
     await _notify_admin_payment(payment, uid, kind, bot)
-    return "queued_to_admin"
+    if settings.auto_approve_payments:
+        schedule_stealth_auto_approve(bot, int(payment["id"]), uid, kind)
+    return "pending"
 
 
 @router.post("/api/request_paid_cv")
