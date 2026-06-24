@@ -38,13 +38,31 @@ _ai_executor = ThreadPoolExecutor(
     thread_name_prefix="ai",
 )
 
-# Initialize Gemini
-if GOOGLE_API_KEY:
-    try:
-        genai.configure(api_key=GOOGLE_API_KEY)
-        logger.info("Google Gemini initialized successfully")
-    except Exception as e:
-        logger.error(f"Failed to init Gemini: {e}")
+# Initialize Gemini (first available key from routing config)
+def _first_gemini_api_key() -> str:
+    from features.ai.routing.config import load_routing_config
+    from features.ai.routing.types import ProviderName
+
+    cfg = load_routing_config()
+    keys = cfg["providers"][ProviderName.GEMINI].api_keys
+    if keys:
+        return keys[0]
+    return GOOGLE_API_KEY or ""
+
+
+def _configure_gemini(api_key: str | None = None) -> str:
+    key = (api_key or _first_gemini_api_key()).strip()
+    if key:
+        try:
+            genai.configure(api_key=key)
+        except Exception as e:
+            logger.error("Failed to configure Gemini: %s", e)
+    return key
+
+
+_GEMINI_KEY = _configure_gemini()
+if _GEMINI_KEY:
+    logger.info("Google Gemini initialized successfully")
 
 # Models to try in order (newest first — keeps working as Gemini releases progress)
 GEMINI_MODELS = [
@@ -63,7 +81,8 @@ _LANGTOOL_RU_LOCK = asyncio.Lock()
 
 async def get_model(preferred_models: list[str] | None = None):
     """Get Gemini model instance (cached) — tries models in order."""
-    if not GOOGLE_API_KEY:
+    api_key = _configure_gemini()
+    if not api_key:
         return None
 
     global _MODEL_CACHE, _MODEL_CACHE_NAME
@@ -115,50 +134,23 @@ async def generate_text_with_fallback(
     preferred_models: list[str] | None = None,
     timeout: int = 35,
 ) -> str:
-    """Try Gemini models in order; on quota errors fall through to the next model."""
-    global _MODEL_CACHE, _MODEL_CACHE_NAME
-    if not GOOGLE_API_KEY:
-        return ""
+    """Multi-provider failover text generation (Gemini → OpenAI → OpenRouter → Groq → Cloudflare)."""
+    from features.ai.routing import generate_text_with_failover
 
-    order = preferred_models or GEMINI_MODELS
-    last_quota: Exception | None = None
+    try:
+        return await generate_text_with_failover(
+            prompt,
+            preferred_models=preferred_models,
+            timeout=timeout,
+        )
+    except AiQuotaError:
+        raise
+    except Exception as e:
+        logger.error("AI failover generate error: %s", e)
+        from shared.error_log import record_error
 
-    for model_name in order:
-        try:
-            model = genai.GenerativeModel(model_name)
-
-            async def _generate(m=model):
-                return await _gcall(m.generate_content_async(prompt), timeout=timeout)
-
-            response = await retry_ai(
-                _generate,
-                attempts=settings.ai_max_retries,
-                label=f"gemini:{model_name}",
-            )
-            text = response_text_or_empty(response)
-            if text:
-                _MODEL_CACHE = model
-                _MODEL_CACHE_NAME = model_name
-                logger.info("Gemini response via model: %s", model_name)
-                return text
-        except AiQuotaError as e:
-            last_quota = e
-            logger.warning("Gemini quota on %s — trying next model", model_name)
-            continue
-        except Exception as e:
-            if is_quota_error(e):
-                last_quota = e
-                logger.warning("Gemini quota on %s — trying next model", model_name)
-                continue
-            logger.error("Gemini generate error (%s): %s", model_name, e)
-            from shared.error_log import record_error
-
-            record_error("gemini", f"{model_name}: {e}")
-            raise
-
-    if last_quota:
-        raise AiQuotaError(str(last_quota))
-    return ""
+        record_error("ai_failover", str(e))
+        raise
 
 
 def _set_para_text(para, text: str):

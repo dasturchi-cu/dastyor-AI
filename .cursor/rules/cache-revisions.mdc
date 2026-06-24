@@ -1,0 +1,50 @@
+---
+description: Preview/WebApp cache revisionlarni avtomatik yangilash (WEBAPP_VERSION, OBY/CV_PREVIEW_TEMPLATE_REVISION)
+globs: webapp/**/*,templates/**/*,features/obyektivka/**/*,backend/services/document_render/**/*,backend/services/*_preview_cache.py,.env.example
+alwaysApply: false
+---
+
+# Cache revision — avtomatik yangilash
+
+Tegishli fayllarni o'zgartirganda **revisionlarni o'zing yangila**. Foydalanuvchidan so'rama.
+
+## WEBAPP_VERSION
+
+**Trigger:** `webapp/**` (html, js, css) o'zgarsa.
+
+**Yangila:**
+- `.env` → `WEBAPP_VERSION`
+- `.env.example` → `WEBAPP_VERSION`
+- `webapp/obyektivka.html` ichidagi `obyektivka-preview.js?v=...` (agar script o'zgarsa)
+
+**Format:** `YYYYMMDD` + harf (`20260625a` → keyingisi `20260625b`).
+
+**Kerak emas:** faqat backend/Python o'zgarsa (webapp tegilmagan).
+
+## OBY_PREVIEW_TEMPLATE_REVISION
+
+**Trigger:** Obyektivka preview/DOCX chiqishi o'zgarsa:
+- `templates/obyektivka_template.html`
+- `features/obyektivka/malumotnoma_data.py`, `placeholders.py`, `current_job.py`, `docx_*.py`
+- `backend/services/document_render/context.py`
+- `backend/services/oby_preview_cache.py`
+
+**Yangila:**
+- `.env` → `OBY_PREVIEW_TEMPLATE_REVISION`
+- `.env.example` → xuddi shu
+- `backend/services/oby_preview_cache.py` → default (13-qator `_TEMPLATE_REV`)
+
+**Format:** `YYYYMMDD-qisqa-tavsif` (masalan `20260625-mehnat-fix`).
+
+## CV_PREVIEW_TEMPLATE_REVISION
+
+**Trigger:** `templates/cv_template.html` yoki CV render mapper o'zgarsa.
+
+**Yangila:** `.env`, `.env.example`, `backend/services/cv_preview_cache.py` default.
+
+## Qoidalar
+
+1. Har ikkala tur o'zgarsa — ikkala revisionni ham yangila.
+2. Oddiy bugfix (to'lov, admin, DB) — revision tegma.
+3. O'zgarishlarni commit qilishdan oldin revision yangilanganini tekshir.
+4. Qo'llanma: `docs/CACHE_REVISIONS.md`

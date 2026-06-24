@@ -329,6 +329,31 @@ def migration_008_extra_indexes(conn: sqlite3.Connection) -> None:
     )
 
 
+def migration_009_ai_routing_logs(conn: sqlite3.Connection) -> None:
+    conn.executescript(
+        """
+        CREATE TABLE IF NOT EXISTS ai_request_logs (
+            id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+            provider            TEXT NOT NULL,
+            key_index           INTEGER NOT NULL DEFAULT 0,
+            model               TEXT NOT NULL,
+            request_time        TEXT NOT NULL,
+            response_time_ms    INTEGER,
+            status              TEXT NOT NULL,
+            error               TEXT,
+            prompt_tokens       INTEGER NOT NULL DEFAULT 0,
+            completion_tokens   INTEGER NOT NULL DEFAULT 0,
+            total_tokens        INTEGER NOT NULL DEFAULT 0,
+            created_at          TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+        CREATE INDEX IF NOT EXISTS idx_ai_logs_request_time ON ai_request_logs(request_time DESC);
+        CREATE INDEX IF NOT EXISTS idx_ai_logs_provider ON ai_request_logs(provider);
+        CREATE INDEX IF NOT EXISTS idx_ai_logs_status ON ai_request_logs(status);
+        CREATE INDEX IF NOT EXISTS idx_ai_logs_model ON ai_request_logs(model);
+        """
+    )
+
+
 MIGRATIONS: list[tuple[int, str, MigrationFn]] = [
     (1, "legacy_columns", migration_001_legacy_columns),
     (2, "new_tables", migration_002_new_tables),
@@ -338,6 +363,7 @@ MIGRATIONS: list[tuple[int, str, MigrationFn]] = [
     (6, "payment_numbers", migration_006_payment_numbers),
     (7, "settings_id_column", migration_007_settings_id_column),
     (8, "extra_indexes", migration_008_extra_indexes),
+    (9, "ai_routing_logs", migration_009_ai_routing_logs),
 ]
 
 

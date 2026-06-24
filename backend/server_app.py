@@ -18,6 +18,7 @@ from backend.middleware.performance import PerformanceMiddleware
 from backend.middleware.request_id import register_request_id_middleware
 from backend.middleware.webapp import register_webapp_middleware
 from backend.routers.admin_debug import router as admin_debug_router
+from backend.routers.ai_monitoring import router as ai_monitoring_router
 from backend.routers.site import router as site_router
 from backend.routers.tg_update import router as tg_update_router
 from config.settings import WEBAPP_DIR, settings
@@ -83,8 +84,14 @@ def create_webhook_app() -> FastAPI:
 
         await register_bot_commands(bot)
         start_admin_jobs(bot)
+        from features.ai.routing.health import start_health_checker
+
+        start_health_checker()
         yield
         from features.admin.jobs import stop_admin_jobs
+        from features.ai.routing.health import stop_health_checker
+
+        await stop_health_checker()
 
         await stop_admin_jobs()
         from core.redis_client import close_async, close_sync
@@ -120,6 +127,7 @@ def create_webhook_app() -> FastAPI:
 
     app.include_router(site_router)
     app.include_router(admin_debug_router)
+    app.include_router(ai_monitoring_router)
     app.include_router(payment_router)
     app.include_router(cv_router)
     app.include_router(oby_router)

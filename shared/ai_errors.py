@@ -49,3 +49,34 @@ def is_transient_ai_error(exc: BaseException) -> bool:
             "server error",
         )
     )
+
+
+def is_network_error(exc: BaseException) -> bool:
+    msg = str(exc).lower()
+    return any(
+        token in msg
+        for token in (
+            "connection refused",
+            "connection reset",
+            "connection error",
+            "network",
+            "name or service not known",
+            "nodename nor servname",
+            "getaddrinfo",
+            "ssl",
+            "eof occurred",
+            "broken pipe",
+            "httpx",
+            "connect timeout",
+        )
+    )
+
+
+def is_failover_error(exc: BaseException) -> bool:
+    """Errors that should trigger automatic provider/model/key failover."""
+    if isinstance(exc, (TimeoutError, asyncio.TimeoutError, AiQuotaError)):
+        return True
+    if is_quota_error(exc) or is_transient_ai_error(exc) or is_network_error(exc):
+        return True
+    msg = str(exc).lower()
+    return any(token in msg for token in ("401", "403", "invalid api key", "authentication"))
