@@ -10,7 +10,7 @@ import uuid
 import re
 
 from fastapi import APIRouter, File, Form, HTTPException, Query, Request, UploadFile
-from fastapi.responses import JSONResponse, Response, StreamingResponse
+from fastapi.responses import HTMLResponse, JSONResponse, Response, StreamingResponse
 
 from backend.schemas.webapp import ExportObyektivkaRequest, ObyektivkaRequest, PreviewObyektivkaRequest, TestObyektivkaPdfRequest
 from core.security import rate_limit
@@ -305,6 +305,32 @@ async def api_preview_oby(req: PreviewObyektivkaRequest) -> Response:
 
     oby_preview_cache_set(cache_key, pdf_bytes)
     return _pdf_inline_response(pdf_bytes)
+
+
+@router.post("/api/preview_obyektivka_html")
+async def api_preview_obyektivka_html(req: PreviewObyektivkaRequest) -> HTMLResponse:
+    """Live preview — fast HTML (all devices; avoids slow DOCX→PDF on Railway)."""
+    from backend.services.oby_preview_cache import (
+        cache_key_for_oby_preview,
+        oby_html_preview_cache_get,
+        oby_html_preview_cache_set,
+    )
+    from backend.services.render_service import render_obyektivka_html
+
+    payload = req.model_dump()
+    cache_key = cache_key_for_oby_preview(payload)
+    cached = oby_html_preview_cache_get(cache_key)
+    if cached is not None:
+        return HTMLResponse(content=cached, media_type="text/html; charset=utf-8")
+
+    html = await asyncio.to_thread(
+        render_obyektivka_html,
+        payload,
+        watermark=bool(req.watermark),
+        mask_pii=bool(req.mask_pii),
+    )
+    oby_html_preview_cache_set(cache_key, html)
+    return HTMLResponse(content=html, media_type="text/html; charset=utf-8")
 
 
 @router.post("/api/test_obyektivka_pdf")

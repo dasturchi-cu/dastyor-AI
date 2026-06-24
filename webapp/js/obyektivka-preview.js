@@ -1,6 +1,6 @@
 /**
  * Obyektivka preview + demo PDF botga yuborish (@bot watermark).
- * Telegram WebView: iframe PDF ko'rsatmaydi — canvas (PDF.js) asosiy yo'l.
+ * Jonli ko'rinish: server HTML iframe (CV kabi, tez). PDF faqat demo yuklash uchun.
  */
 (function (global) {
   'use strict';
@@ -8,6 +8,7 @@
   var previewDebounceTimer = null;
   var previewAbort = null;
   var previewRequestId = 0;
+  var _previewMode = 'pdf';
   var _previewImgSrc = '';
   var _previewImgOut = '';
   var _previewImgPromise = null;
@@ -318,8 +319,25 @@
     }
   }
 
+  function formatPreviewError(message) {
+    var raw = String(message || 'Noma\'lum xato').trim();
+    if (raw.charAt(0) === '{') {
+      try {
+        var js = JSON.parse(raw);
+        var code = js.code || js.status;
+        if (code === 502 || code === '502') {
+          return 'Server javob bermadi (502). Bir oz kutib qayta urinib ko\'ring.';
+        }
+        if (js.message) return String(js.message).slice(0, 220);
+        if (js.detail) return String(js.detail).slice(0, 220);
+      } catch (_) {}
+    }
+    return raw.slice(0, 220);
+  }
+
   function showPreviewError(message, reqId) {
     if (reqId != null && reqId !== previewRequestId) return;
+    var friendly = formatPreviewError(message);
     ensurePreviewVisible();
     clearPreviewError();
     var host = getPreviewHost();
@@ -345,7 +363,7 @@
     errEl.classList.remove('hidden');
     errEl.innerHTML =
       '<div class="oby-preview-error-title">Preview yuklanmadi</div>' +
-      '<div class="oby-preview-error-msg">' + String(message || 'Noma\'lum xato').slice(0, 220) + '</div>' +
+      '<div class="oby-preview-error-msg">' + friendly.replace(/</g, '&lt;') + '</div>' +
       '<button type="button" class="btn btn-outline btn-sm oby-preview-retry">Qayta urinish</button>';
     var retry = errEl.querySelector('.oby-preview-retry');
     if (retry && !retry.dataset.bound) {
@@ -355,7 +373,7 @@
         fetchServerPreview({ immediate: true });
       });
     }
-    showToast('Preview yuklanmadi: ' + String(message || '').slice(0, 120), 'error');
+    showToast('Preview yuklanmadi: ' + friendly.slice(0, 120), 'error');
   }
 
   function revokeIframeBlob() {
@@ -406,7 +424,7 @@
       img.dataset.pageHeight = String(ph);
       img.alt = 'Obyektivka preview';
       img.decoding = 'async';
-      img.loading = 'lazy';
+      img.loading = 'eager';
       try {
         img.src = canvas.toDataURL('image/jpeg', 0.9);
         host.appendChild(img);
@@ -419,8 +437,137 @@
     host.appendChild(canvas);
   }
 
+  function getHtmlDocSize(iframe) {
+    var a4w = Math.round(210 * (96 / 25.4));
+    var a4h = Math.round(297 * (96 / 25.4));
+    var w = a4w;
+    var h = a4h;
+    try {
+      var doc = iframe.contentDocument || (iframe.contentWindow && iframe.contentWindow.document);
+      if (!doc) return { w: w, h: h };
+      var root = doc.querySelector('.page') || doc.body;
+      var html = doc.documentElement;
+      w = Math.max(a4w, root.scrollWidth || 0, root.offsetWidth || 0, html.scrollWidth || 0);
+      h = Math.max(a4h, root.scrollHeight || 0, root.offsetHeight || 0, html.scrollHeight || 0);
+    } catch (_) {}
+    return { w: w, h: h };
+  }
+
+  function resizeHtmlPreviewIframe() {
+    var iframe = getPreviewIframe();
+    if (!iframe || !iframe.contentDocument || !iframe.contentDocument.body) return;
+    var size = getHtmlDocSize(iframe);
+    iframe.style.width = size.w + 'px';
+    iframe.style.height = Math.ceil(size.h) + 'px';
+    iframe.style.minHeight = Math.ceil(size.h) + 'px';
+  }
+
+  function scaleHtmlPreview() {
+    var pane = document.getElementById('obyPreviewPane');
+    var iframe = getPreviewIframe();
+    var wrap = document.getElementById('obyPreviewScaleWrapper');
+    var scroll = document.querySelector('.preview-scroll');
+    if (!pane || !iframe || !wrap) return;
+
+    try { resizeHtmlPreviewIframe(); } catch (_) {}
+
+    var paneStyle = pane ? getComputedStyle(pane) : null;
+    var paneWidth = pane
+      ? Math.max(0, pane.clientWidth - parseFloat((paneStyle && paneStyle.paddingLeft) || '0') - parseFloat((paneStyle && paneStyle.paddingRight) || '0'))
+      : Math.max(120, (global.innerWidth || 360) - 48);
+    if (scroll && scroll.clientWidth) {
+      paneWidth = Math.max(120, scroll.clientWidth - 32);
+    }
+
+    var size = getHtmlDocSize(iframe);
+    var actualWidth = Math.max(size.w, 320);
+    var rawH = Math.max(size.h, 400);
+    var fitScale = paneWidth / actualWidth;
+    var baseScale = Math.max(0.22, Math.min(fitScale, 1));
+    var userMul = zoomCtrl ? zoomCtrl.getMultiplier() : 1;
+    var scale = baseScale * userMul;
+    var animate = !zoomCtrl || !zoomCtrl.isDragging();
+    var scaledW = Math.max(1, Math.ceil(actualWidth * scale));
+    var scaledH = Math.max(1, Math.ceil(rawH * scale));
+
+    iframe.style.position = 'absolute';
+    iframe.style.left = '50%';
+    iframe.style.top = '0';
+    iframe.style.width = actualWidth + 'px';
+    iframe.style.height = rawH + 'px';
+    iframe.style.minHeight = rawH + 'px';
+    iframe.style.transform = 'translateX(-50%) scale(' + scale + ')';
+    iframe.style.transformOrigin = 'top center';
+    iframe.style.transition = animate ? WRAP_TRANSITION : 'none';
+    iframe.style.border = '0';
+    iframe.style.background = '#fff';
+
+    wrap.style.width = scaledW + 'px';
+    wrap.style.maxWidth = '100%';
+    wrap.style.height = scaledH + 'px';
+    wrap.style.minHeight = scaledH + 'px';
+    wrap.style.margin = '0 auto';
+    wrap.style.transform = 'none';
+    wrap.style.transition = animate ? WRAP_TRANSITION : 'none';
+    wrap.style.overflow = 'visible';
+    wrap.style.position = 'relative';
+  }
+
+  function showHtmlPreview(html, reqId) {
+    if (reqId != null && reqId !== previewRequestId) return;
+    var host = getPreviewHost();
+    var iframe = getPreviewIframe();
+    if (!iframe) throw new Error('Preview iframe topilmadi');
+
+    _previewMode = 'html';
+    clearPreviewError();
+    revokeIframeBlob();
+    if (host) {
+      host.innerHTML = '';
+      host.style.display = 'none';
+    }
+
+    iframe.hidden = false;
+    iframe.style.display = 'block';
+    iframe.removeAttribute('src');
+    iframe.srcdoc = html;
+
+    function layoutOnce() {
+      if (reqId != null && reqId !== previewRequestId) return;
+      try { scaleHtmlPreview(); } catch (_) {}
+    }
+    iframe.onload = layoutOnce;
+    requestAnimationFrame(function () { requestAnimationFrame(layoutOnce); });
+    setTimeout(layoutOnce, 80);
+    setTimeout(layoutOnce, 280);
+    setTimeout(layoutOnce, 600);
+  }
+
+  async function fetchHtmlPreview(payload, signal) {
+    var base = getApiBase();
+    var res = await withTimeout(
+      fetch(base + '/api/preview_obyektivka_html', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'text/html' },
+        body: JSON.stringify(payload),
+        signal: signal,
+      }),
+      FETCH_TIMEOUT_MS,
+      'HTML preview'
+    );
+    if (!res.ok) {
+      var errBody = '';
+      try { errBody = await res.text(); } catch (_) {}
+      throw new Error(errBody || ('Server xatosi: ' + res.status));
+    }
+    var html = await res.text();
+    if (!html || html.length < 80) throw new Error('Serverdan bo\'sh HTML keldi');
+    return html;
+  }
+
   function showPdfEmbed(blob, reqId) {
     if (reqId != null && reqId !== previewRequestId) return;
+    _previewMode = 'pdf';
     var host = getPreviewHost();
     var iframe = getPreviewIframe();
     if (!host) throw new Error('Preview host topilmadi');
@@ -445,6 +592,7 @@
 
   function showPdfIframe(blob, reqId) {
     if (reqId != null && reqId !== previewRequestId) return;
+    _previewMode = 'pdf';
     var host = getPreviewHost();
     var iframe = getPreviewIframe();
     if (!iframe) throw new Error('Preview iframe topilmadi');
@@ -492,6 +640,8 @@
     var host = getPreviewHost();
     var iframe = getPreviewIframe();
     if (!host) return;
+
+    _previewMode = 'pdf';
 
     var buf = await blob.arrayBuffer();
     if (reqId != null && reqId !== previewRequestId) return;
@@ -646,6 +796,11 @@
   }
 
   function applyPreviewScale() {
+    if (_previewMode === 'html') {
+      scaleHtmlPreview();
+      return;
+    }
+
     var wrap = document.getElementById('obyPreviewScaleWrapper');
     var host = getPreviewHost();
     var scroll = document.querySelector('.preview-scroll');
@@ -756,34 +911,9 @@
     }
 
     try {
-      var fetchPromise = fetch(base + '/api/preview_obyektivka', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/pdf',
-          'Accept-Encoding': 'identity',
-        },
-        body: JSON.stringify(payload),
-        signal: previewAbort ? previewAbort.signal : undefined,
-      });
-      var res = await withTimeout(fetchPromise, FETCH_TIMEOUT_MS, 'Server javobi');
-
+      var html = await fetchHtmlPreview(payload, previewAbort ? previewAbort.signal : undefined);
       if (reqId !== previewRequestId) return;
-      if (!res.ok) {
-        var errBody = '';
-        try { errBody = await res.text(); } catch (_) {}
-        throw new Error(errBody || ('Server xatosi: ' + res.status));
-      }
-
-      var buf = await res.arrayBuffer();
-      if (!buf || buf.byteLength < 100) {
-        throw new Error('Serverdan bo\'sh PDF keldi');
-      }
-      buf = await normalizePdfBuffer(buf);
-      if (reqId !== previewRequestId) return;
-
-      var blob = new Blob([buf], { type: 'application/pdf' });
-      await withTimeout(applyPreviewPdf(blob, reqId), RENDER_TIMEOUT_MS + 5000, 'Preview ochish');
+      showHtmlPreview(html, reqId);
     } catch (e) {
       if (e && e.name === 'AbortError') return;
       if (reqId !== previewRequestId) return;

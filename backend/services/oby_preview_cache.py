@@ -1,4 +1,4 @@
-"""In-memory TTL cache for Obyektivka PDF preview."""
+"""In-memory TTL cache for Obyektivka preview (HTML live view + PDF export)."""
 from __future__ import annotations
 
 import hashlib
@@ -14,6 +14,7 @@ _TEMPLATE_REV = (os.getenv("OBY_PREVIEW_TEMPLATE_REVISION", "20260622-template-v
 
 _lock = threading.Lock()
 _store: OrderedDict[str, tuple[float, bytes]] = OrderedDict()
+_html_store: OrderedDict[str, tuple[float, str]] = OrderedDict()
 
 
 def cache_key_for_oby_preview(data: dict) -> str:
@@ -43,3 +44,26 @@ def oby_preview_cache_set(key: str, pdf: bytes) -> None:
             _store.popitem(last=False)
         _store[key] = (now, pdf)
         _store.move_to_end(key)
+
+
+def oby_html_preview_cache_get(key: str) -> str | None:
+    now = time.monotonic()
+    with _lock:
+        hit = _html_store.get(key)
+        if not hit:
+            return None
+        ts, html = hit
+        if now - ts > _TTL:
+            del _html_store[key]
+            return None
+        _html_store.move_to_end(key)
+        return html
+
+
+def oby_html_preview_cache_set(key: str, html: str) -> None:
+    now = time.monotonic()
+    with _lock:
+        while len(_html_store) >= _MAX:
+            _html_store.popitem(last=False)
+        _html_store[key] = (now, html)
+        _html_store.move_to_end(key)

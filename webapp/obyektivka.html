@@ -419,7 +419,7 @@
           <div id="obyPreviewPane">
             <div id="obyPreviewScaleWrapper">
               <div id="oby-preview-pdf-host" aria-label="Obyektivka preview"></div>
-              <iframe id="oby-preview-frame" title="Obyektivka preview" hidden></iframe>
+              <iframe id="oby-preview-frame" title="Obyektivka preview" sandbox="allow-scripts allow-same-origin" hidden></iframe>
             </div>
           </div>
         </div>
@@ -477,7 +477,7 @@ if (window.pdfjsLib && window.pdfjsLib.GlobalWorkerOptions) {
 }
 </script>
 <script src="js/preview-zoom.js" defer></script>
-<script src="js/obyektivka-preview.js?v=20260623b" defer></script>
+<script src="js/obyektivka-preview.js?v=20260623d" defer></script>
 <script>
 function daToast(msg, type) {
   if (window.DastyorAI && DastyorAI.showToast) DastyorAI.showToast(msg, type || 'info');
