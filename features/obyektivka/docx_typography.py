@@ -8,6 +8,8 @@ from typing import Any
 
 from lxml import etree
 
+from features.obyektivka.none_values import is_none_token
+
 W_NS = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
 W = f"{{{W_NS}}}"
 VAL = f"{{{W_NS}}}val"
@@ -70,6 +72,14 @@ def _set_color_black(rpr: etree._Element) -> None:
     c.set(VAL, "000000")
 
 
+def value_should_underline(text: str) -> bool:
+    """Faqat haqiqiy javob tagi chiziqli; yo'q/bo'sh — chiziqsiz."""
+    t = (text or "").strip()
+    if not t:
+        return False
+    return not is_none_token(t)
+
+
 def apply_value_rpr(r_el: etree._Element, *, underline: bool = True) -> None:
     """Form value: 11 pt, regular, underlined (PPT namuna)."""
     rpr = _r_pr(r_el)
@@ -77,6 +87,11 @@ def apply_value_rpr(r_el: etree._Element, *, underline: bool = True) -> None:
     _set_bool(rpr, "bCs", False)
     _set_underline(rpr, underline)
     _set_color_black(rpr)
+
+
+def apply_form_value_rpr(r_el: etree._Element, text: str = "") -> None:
+    """Ma'lumotnoma maydoni — namuna kabi chiziqsiz (faqat matn)."""
+    apply_value_rpr(r_el, underline=False)
 
 
 def apply_plain_value_rpr(r_el: etree._Element) -> None:
@@ -163,7 +178,7 @@ def apply_document_typography(root: etree._Element, context: dict[str, str]) -> 
             apply_current_job_rpr(r_el)
         elif touches_value:
             value_run_ids.add(id(r_el))
-            apply_value_rpr(r_el)
+            apply_form_value_rpr(r_el, new_text)
 
     for r_el in root.findall(f".//{W}r"):
         if id(r_el) in value_run_ids or id(r_el) in fish_run_ids or id(r_el) in current_job_run_ids:

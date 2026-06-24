@@ -85,7 +85,7 @@ class TestObyektivkaPolish(unittest.TestCase):
         self.assertTrue(millat)
         self.assertFalse(_is_bold_run(nation[0]))
         self.assertTrue(_is_bold_run(millat[0]))
-        self.assertTrue(run_has_underline(nation[0]))
+        self.assertFalse(run_has_underline(nation[0]), "namuna: qiymatlar chiziqsiz")
 
 
 if __name__ == "__main__":

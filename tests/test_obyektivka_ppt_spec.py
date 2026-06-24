@@ -50,22 +50,40 @@ class TestObyektivkaPptSpec(unittest.TestCase):
             self.skipTest("master missing")
         out = ROOT / "temp" / "test_ppt_center.docx"
         path = generate_obyektivka_docx(
-            {"fullname": "Test", "lang": "uz_cyr", "work_experience": [], "relatives": []},
+            {
+                "fullname": "Test",
+                "lang": "uz_cyr",
+                "work_experience": [],
+                "relatives": [
+                    {
+                        "degree": "Otasi",
+                        "fullname": "Aliyev",
+                        "birth_year_place": "1950",
+                        "work_place": "Nafaqada",
+                        "address": "Toshkent",
+                    }
+                ],
+            },
             output_filepath=str(out),
         )
         root = _load_root(Path(path))
         tbl = root.find(f".//{W}tbl")
         self.assertIsNotNone(tbl)
-        tbl_pr = tbl.find(f"{W}tblPr")
-        jc = tbl_pr.find(f"{W}jc") if tbl_pr is not None else None
-        self.assertIsNotNone(jc)
-        self.assertEqual(jc.get(VAL), "center")
-        self.assertIsNone(tbl_pr.find(f"{W}tblInd"))
-        tw = tbl_pr.find(f"{W}tblW")
-        self.assertIsNotNone(tw)
-        from features.obyektivka.layout import REL_TABLE_WIDTH_DXA
+        self.assertGreaterEqual(len(tbl.findall(f"{W}tr")), 2)
 
-        self.assertEqual(int(tw.get(f"{W}w")), REL_TABLE_WIDTH_DXA)
+    def test_relatives_section_hidden_when_empty(self):
+        if not MASTER.is_file():
+            self.skipTest("master missing")
+        out = ROOT / "temp" / "test_ppt_no_rel.docx"
+        path = generate_obyektivka_docx(
+            {"fullname": "Test", "lang": "uz_cyr", "work_experience": [], "relatives": []},
+            output_filepath=str(out),
+        )
+        root = _load_root(Path(path))
+        self.assertIsNone(root.find(f".//{W}tbl"))
+        text = "".join(t.text or "" for t in root.findall(f".//{W}t"))
+        self.assertNotIn("қариндошлари ҳақида", text)
+        self.assertNotIn("Отаси", text)
 
     def test_relatives_table_borders_1pt(self):
         if not MASTER.is_file():

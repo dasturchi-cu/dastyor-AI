@@ -56,11 +56,11 @@ class TestObyektivkaTypography(unittest.TestCase):
 
         date_runs = find_runs_containing(root, "25.10.1960")
         self.assertTrue(date_runs, "birthdate value missing")
-        self.assertTrue(run_has_underline(date_runs[0]))
+        self.assertFalse(run_has_underline(date_runs[0]), "namuna: qiymatlar chiziqsiz")
 
         nation_runs = find_runs_containing(root, "O'zbek")
         self.assertTrue(nation_runs)
-        self.assertTrue(run_has_underline(nation_runs[0]))
+        self.assertFalse(run_has_underline(nation_runs[0]), "namuna: qiymatlar chiziqsiz")
 
         rel_runs = find_runs_containing(root, "Aliyev Vali")
         self.assertTrue(rel_runs)
@@ -80,7 +80,31 @@ class TestObyektivkaTypography(unittest.TestCase):
 
         summary = typography_summary(root)
         self.assertGreater(summary["label_runs"], 10)
-        self.assertGreater(summary["underlined_runs"], 5)
+
+    def test_yoq_values_not_underlined(self):
+        if not MASTER.is_file():
+            self.skipTest("master docx missing")
+        out = ROOT / "temp" / "test_yoq_no_ul.docx"
+        path = generate_obyektivka_docx(
+            {
+                "fullname": "Test User",
+                "lang": "uz_lat",
+                "party": "yo'q",
+                "deputy": "yo'q",
+                "work_experience": [],
+                "relatives": [],
+            },
+            output_filepath=str(out),
+        )
+        root = _load_doc_xml(Path(path))
+        for word in ("yo'q",):
+            runs = find_runs_containing(root, word)
+            self.assertTrue(runs, f"missing {word!r}")
+            for r in runs:
+                self.assertFalse(
+                    run_has_underline(r),
+                    f"{word!r} must not be underlined (malumot grid)",
+                )
 
     def test_current_job_block_separate_lines(self):
         if not MASTER.is_file():
@@ -107,7 +131,7 @@ class TestObyektivkaTypography(unittest.TestCase):
         self.assertTrue(year_runs)
         self.assertTrue(job_runs)
         self.assertFalse(_is_bold_run(year_runs[0]))
-        self.assertTrue(run_has_underline(job_runs[0]))
+        self.assertFalse(run_has_underline(job_runs[0]), "namuna: hozirgi ish chiziqsiz")
 
 
 if __name__ == "__main__":

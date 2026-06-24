@@ -173,22 +173,32 @@
     .fields .val-row td {
       padding-left: 76.2mm;
       text-indent: -76.2mm;
-      text-decoration: underline;
       font-weight: normal;
     }
+    .fields .val-row td.has-val { text-decoration: underline; }
     .fields .val-row.first td { padding-right: 35.56mm; }
     .fields .inline-row td { padding-left: 28.61mm; text-indent: -28.61mm; font-weight: normal; }
     .fields .inline-row .lbl { font-weight: bold; }
-    .fields .inline-row .field-val {
+    .fields .inline-row .field-val.has-val {
       text-decoration: underline;
+      font-weight: normal !important;
+      color: #000;
+      background: #fff;
+    }
+    .fields .inline-row .field-val {
       font-weight: normal !important;
       color: #000;
       background: #fff;
     }
     .fields tr.spec-row td { padding-left: 28.61mm; text-indent: -28.61mm; font-weight: normal; }
     .fields tr.spec-row .lbl { font-weight: bold; }
-    .fields tr.spec-row .field-val {
+    .fields tr.spec-row .field-val.has-val {
       text-decoration: underline;
+      font-weight: normal !important;
+      color: #000;
+      background: #fff;
+    }
+    .fields tr.spec-row .field-val {
       font-weight: normal !important;
       color: #000;
       background: #fff;
@@ -215,7 +225,7 @@
       font-weight: normal;
     }
     .work-item.work-none {
-      text-decoration: underline;
+      text-decoration: none;
       font-weight: bold;
       font-style: normal;
       color: inherit;
@@ -323,10 +333,13 @@
 {%- set L = ll.get(d.lang or 'uz_lat', ll['uz_lat']) -%}
 {%- set fn = d.fullname or '' -%}
 {%- macro val(x) -%}{{ x if x else ('' if R.blank_none else L.none) }}{%- endmacro -%}
+{%- macro val_ul_class(v) -%}{% if v and v != L.none %} has-val{% endif %}{%- endmacro -%}
 {%- macro safe_html(x) -%}{% if x %}{{ x | safe }}{% elif not R.blank_none %}{{ L.none }}{% endif %}{%- endmacro -%}
 {%- macro two_col(left_l, left_v, right_l, right_v, masked=false, first=false) -%}
+{%- set lv = val(left_v) -%}
+{%- set rv = val(right_v) -%}
 <tr class="gap"><td class="left lbl">{{ left_l }}:</td><td class="right lbl">{{ right_l }}:</td></tr>
-<tr class="val-row{% if first %} first{% endif %}"><td class="left">{% if masked %}{{ safe_html(val(left_v)) }}{% else %}{{ val(left_v) }}{% endif %}</td><td class="right">{% if masked %}{{ safe_html(val(right_v)) }}{% else %}{{ val(right_v) }}{% endif %}</td></tr>
+<tr class="val-row{% if first %} first{% endif %}"><td class="left{{ val_ul_class(lv) }}">{% if masked %}{{ safe_html(lv) }}{% else %}{{ lv }}{% endif %}</td><td class="right{{ val_ul_class(rv) }}">{% if masked %}{{ safe_html(rv) }}{% else %}{{ rv }}{% endif %}</td></tr>
 {%- endmacro -%}
 {%- macro stacked(label, value) -%}
 <tr class="gap"><td colspan="2" class="lbl">{{ label }}:</td></tr>
@@ -378,7 +391,7 @@
       {{ two_col(L.r1l, d.birthdate, L.r1r, d.birthplace, true, true) }}
       {{ two_col(L.r2l, d.nation, L.r2r, d.party) }}
       {{ two_col(L.r3l, d.education, L.r3r, d.graduated) }}
-      <tr class="gap spec-row"><td colspan="2"><span class="lbl">{{ L.rSpec }}:</span> <span class="field-val">{{ val(d.specialty) }}</span></td></tr>
+      <tr class="gap spec-row"><td colspan="2"><span class="lbl">{{ L.rSpec }}:</span> {%- set sv = val(d.specialty) -%}<span class="field-val{{ val_ul_class(sv) }}">{{ sv }}</span></td></tr>
       {{ two_col(L.r4l, d.degree, L.r4r, d.scientific_title) }}
       {{ two_col(L.r5l, d.languages, L.r5r, d.military_rank) }}
       {{ stacked(L.rAw, d.awards) }}
@@ -415,6 +428,7 @@
   </div>
 </div>
 
+{%- if d.relatives and d.relatives | length > 0 -%}
 <div class="page">
   {{ wm_layer() }}
   <div class="page-content">
@@ -434,23 +448,20 @@
         </tr>
       </thead>
       <tbody>
-        {%- if d.relatives and d.relatives | length > 0 -%}
-          {%- for r in d.relatives -%}
-          <tr>
-            <td class="rel-type">{{ r.degree or r.type or L.none }}</td>
-            <td>{{ (r.fullname or r.name or L.none) | safe }}</td>
-            <td>{{ (r.birth_year_place or r.birth or L.none) | safe }}</td>
-            <td>{{ (r.work_place or r.job or L.none) | safe }}</td>
-            <td>{{ (r.address or r.addr or L.none) | safe }}</td>
-          </tr>
-          {%- endfor -%}
-        {%- else -%}
-          <tr><td colspan="5" class="empty">{{ L.no_rel }}</td></tr>
-        {%- endif -%}
+        {%- for r in d.relatives -%}
+        <tr>
+          <td class="rel-type">{{ r.degree or r.type or '' }}</td>
+          <td>{{ (r.fullname or r.name or '') | safe }}</td>
+          <td>{{ (r.birth_year_place or r.birth or '') | safe }}</td>
+          <td>{{ (r.work_place or r.job or '') | safe }}</td>
+          <td>{{ (r.address or r.addr or '') | safe }}</td>
+        </tr>
+        {%- endfor -%}
       </tbody>
     </table>
     </div>
   </div>
 </div>
+{%- endif -%}
 </body>
 </html>

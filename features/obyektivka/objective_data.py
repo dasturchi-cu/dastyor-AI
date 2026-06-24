@@ -111,7 +111,7 @@ def _rel_bucket(degree: str) -> str | None:
 
 def _rel_cells(rel: dict[str, Any] | None, *, none: str) -> dict[str, str]:
     if not rel:
-        return {"": none, "_yil": none, "_ish": none, "_tur": none}
+        return {"": "", "_yil": "", "_ish": "", "_tur": ""}
     return {
         "": _val(_to_text(rel.get("fullname") or rel.get("name")), none=none),
         "_yil": _val(_to_text(rel.get("birth_year_place") or rel.get("birth")), none=none),
@@ -293,7 +293,7 @@ def objective_to_template_context(objective: dict[str, Any]) -> dict[str, str]:
         "qaynona", "qaynona_yil", "qaynona_ish", "qaynona_tur",
     ]
     for k in template_keys:
-        ctx.setdefault(k, none if k.endswith(("_yil", "_ish", "_tur")) or k in child_slots else "")
+        ctx.setdefault(k, "")
 
     return ctx
 
@@ -306,5 +306,9 @@ def buildObjectiveData(raw: dict[str, Any]) -> dict[str, Any]:
 def build_placeholder_context(raw: dict[str, Any]) -> dict[str, str]:
     """Master template render context — always via build_objective_data."""
     objective = build_objective_data(raw)
-    objective["relatives_raw"] = _parse_list(raw.get("relatives") or raw.get("rels"))
-    return objective_to_template_context(objective)
+    relatives_raw = _parse_list(raw.get("relatives") or raw.get("rels"))
+    objective["relatives_raw"] = relatives_raw
+    ctx = objective_to_template_context(objective)
+    if relatives_raw:
+        ctx["_has_relatives"] = "1"
+    return ctx

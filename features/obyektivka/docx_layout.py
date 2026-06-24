@@ -15,30 +15,19 @@ from features.obyektivka.docx_typography import (
     _r_pr,
     _set_bool,
     _set_underline,
-    apply_current_job_rpr,
+    apply_form_value_rpr,
     apply_label_rpr,
     apply_plain_value_rpr,
-    apply_value_rpr,
 )
+from features.obyektivka.none_values import is_none_token
 
 
 def _paragraph_text(p_el: etree._Element) -> str:
     return "".join(t.text or "" for t in p_el.findall(f".//{W}t")).strip()
 
-# Twentieths of a point (Word spacing units) — .env: OBY_DOCX_*_TWIPS
 from features.obyektivka.spacing_config import (
-    DOCX_AFTER_FISH_TWIPS,
     DOCX_GRID_BEFORE_TWIPS,
-    DOCX_MEHNAT_BEFORE_TWIPS,
 )
-
-SP_AFTER_FISH = DOCX_AFTER_FISH_TWIPS
-SP_AFTER_CURRENT_YEAR = 40  # 2 pt — sana va lavozim orasi
-SP_BEFORE_CURRENT_JOB = 0
-SP_WORK_LINE_BEFORE = DOCX_MEHNAT_BEFORE_TWIPS
-SP_WORK_LINE_AFTER = 0
-SP_WORK_LINE_HEIGHT = 276  # 1.15 interval
-SP_TABLE_LINE = 276
 
 _CURRENT_YEAR_RE = re.compile(
     r"(yildan|йилдан|октябрдан|oktabrdan|январдан|yanvardan)\s*:?\s*$",
@@ -120,7 +109,6 @@ def _style_fish_paragraph(p_el: etree._Element) -> None:
     if jc is None:
         jc = etree.SubElement(ppr, f"{W}jc")
     jc.set(VAL, "center")
-    _set_spacing(ppr, after=SP_AFTER_FISH)
     for r_el in p_el.findall(f".//{W}r"):
         if not _run_text(r_el).strip():
             continue
@@ -188,30 +176,16 @@ def _style_current_job_block(body: etree._Element, ctx: dict[str, str]) -> int:
 
     if year_idx is not None:
         p_year = paragraphs[year_idx]
-        ppr = _p_pr(p_year)
-        _set_spacing(
-            ppr,
-            before=SP_BEFORE_CURRENT_JOB,
-            after=SP_AFTER_CURRENT_YEAR,
-            line=SP_WORK_LINE_HEIGHT,
-        )
         for r_el in p_year.findall(f".//{W}r"):
             if _run_text(r_el).strip():
-                apply_value_rpr(r_el)
+                apply_form_value_rpr(r_el)
         styled += 1
 
     if job_idx is not None:
         p_job = paragraphs[job_idx]
-        ppr = _p_pr(p_job)
-        _set_spacing(
-            ppr,
-            before=0 if year_idx is not None else SP_BEFORE_CURRENT_JOB,
-            after=SP_AFTER_FISH // 3,
-            line=SP_WORK_LINE_HEIGHT,
-        )
         for r_el in p_job.findall(f".//{W}r"):
             if _run_text(r_el).strip():
-                apply_current_job_rpr(r_el)
+                apply_form_value_rpr(r_el)
         styled += 1
 
     return styled
@@ -241,7 +215,6 @@ def _remove_empty_current_job_paragraphs(body: etree._Element, fish: str = "") -
 
 def _fix_work_history_spacing(body: etree._Element) -> None:
     in_mehnat = False
-    first_work = True
     for p_el in body.findall(f"{W}p"):
         if _in_table(p_el):
             continue
@@ -250,23 +223,12 @@ def _fix_work_history_spacing(body: etree._Element) -> None:
             continue
         if _is_mehnat_header(text):
             in_mehnat = True
-            first_work = True
             continue
         if not in_mehnat:
             continue
         if not _is_work_line(text):
             in_mehnat = False
             continue
-        ppr = _p_pr(p_el)
-        before = SP_WORK_LINE_BEFORE if first_work else 0
-        _set_spacing(
-            ppr,
-            before=before,
-            after=SP_WORK_LINE_AFTER,
-            line=SP_WORK_LINE_HEIGHT,
-            line_rule="auto",
-        )
-        first_work = False
         for r_el in p_el.findall(f".//{W}r"):
             if not _run_text(r_el).strip():
                 continue
@@ -282,6 +244,117 @@ def _is_relatives_table(tbl: etree._Element) -> bool:
         or "турар жойи" in norm
         or "turar joyi" in norm
     )
+
+
+def _is_relatives_intro(text: str) -> bool:
+    return "қариндошлари ҳақида" in text or "qarindoshlari haqida" in text.lower()
+
+
+def _is_malumot_line(text: str) -> bool:
+    return text.strip() in ("МАЪЛУМОТ", "MA'LUMOT")
+
+
+def _paragraph_has_page_break(p_el: etree._Element) -> bool:
+    for br in p_el.findall(f".//{W}br"):
+        if br.get(f"{W}type") == "page":
+            return True
+    return False
+
+
+_REL_SLOT_PREFIXES = (
+    "ota",
+    "ona",
+    "opa",
+    "singil",
+    "uka",
+    "aka",
+    "turmush_ortogi",
+    "farzandlar",
+    "farzandlar_2",
+    "farzandlar_3",
+    "farzandlar_4",
+    "farzandlar_5",
+    "farzandlar_6",
+    "qaynota",
+    "qaynona",
+)
+
+
+def _context_has_relatives(ctx: dict[str, str]) -> bool:
+    if (ctx.get("_has_relatives") or "").strip() == "1":
+        return True
+    for prefix in _REL_SLOT_PREFIXES:
+        for suffix in ("", "_yil", "_ish", "_tur"):
+            val = (ctx.get(f"{prefix}{suffix}") or "").strip()
+            if val and not is_none_token(val):
+                return True
+    return False
+
+
+def _cell_text(tc: etree._Element) -> str:
+    return "".join(t.text or "" for t in tc.findall(f".//{W}t")).strip()
+
+
+def _relative_row_has_data(tr: etree._Element) -> bool:
+    cells = tr.findall(f"{W}tc")
+    for tc in cells[1:]:
+        text = _cell_text(tc)
+        if text and not is_none_token(text):
+            return True
+    return False
+
+
+def _find_relatives_table(body: etree._Element) -> etree._Element | None:
+    for tbl in body.findall(f"{W}tbl"):
+        if _is_relatives_table(tbl):
+            return tbl
+    return None
+
+
+def _remove_relatives_section(root: etree._Element) -> None:
+    """Qarindoshlar kiritilmagan — ikkinchi sahifa (sarlavha + jadval) chiqmasin."""
+    body = root.find(f"{W}body")
+    if body is None:
+        return
+    rel_tbl = _find_relatives_table(body)
+    if rel_tbl is None:
+        return
+
+    children = list(body)
+    try:
+        tbl_idx = children.index(rel_tbl)
+    except ValueError:
+        return
+
+    to_remove: list[etree._Element] = [rel_tbl]
+    for i in range(tbl_idx - 1, -1, -1):
+        el = children[i]
+        if el.tag != f"{W}p":
+            break
+        text = _paragraph_text(el)
+        if _is_malumot_line(text) or _is_relatives_intro(text):
+            to_remove.append(el)
+            continue
+        if _paragraph_has_page_break(el):
+            to_remove.append(el)
+            continue
+        break
+
+    for el in to_remove:
+        body.remove(el)
+
+
+def _prune_empty_relative_rows(root: etree._Element) -> None:
+    """Jadvalda faqat to'ldirilgan qarindosh qatorlari qolsin — bo'sh qatorlar «yo'q»siz olib tashlanadi."""
+    body = root.find(f"{W}body")
+    if body is None:
+        return
+    rel_tbl = _find_relatives_table(body)
+    if rel_tbl is None:
+        return
+    for tr in list(rel_tbl.findall(f"{W}tr"))[1:]:
+        if not _relative_row_has_data(tr):
+            rel_tbl.remove(tr)
 
 
 def _apply_rel_table_column_widths(tbl: etree._Element, cols: tuple[int, ...], total: int) -> None:
@@ -342,7 +415,6 @@ def _fix_relatives_table(root: etree._Element) -> None:
                         el.set(f"{W}type", "dxa")
                 for p_el in tc.findall(f".//{W}p"):
                     ppr = _p_pr(p_el)
-                    _set_spacing(ppr, before=0, after=0, line=SP_TABLE_LINE, line_rule="auto")
                     for r_el in p_el.findall(f".//{W}r"):
                         if not _run_text(r_el).strip():
                             continue
@@ -353,9 +425,22 @@ def _fix_relatives_table(root: etree._Element) -> None:
 
 
 def _dedupe_cell_none_values(root: etree._Element) -> None:
-    """One «yo'q» per empty cell — avoid yo'qyo'q from stacked placeholders."""
+    """Qarindoshlar jadvalidagi bo'sh / «yo'q» kataklarni tozalash."""
+    body = root.find(f"{W}body")
+    rel_tbl = _find_relatives_table(body) if body is not None else None
+    if rel_tbl is not None:
+        for tr in rel_tbl.findall(f"{W}tr")[1:]:
+            for tc in tr.findall(f"{W}tc")[1:]:
+                for p_el in tc.findall(f".//{W}p"):
+                    text = _paragraph_text(p_el)
+                    if not text or is_none_token(text):
+                        for r_el in list(p_el.findall(f"{W}r")):
+                            p_el.remove(r_el)
+
     none_pat = re.compile(r"^(yo'q|йўқ)+$", re.IGNORECASE)
     for p_el in root.findall(f".//{W}p"):
+        if rel_tbl is not None and any(anc is rel_tbl for anc in p_el.iterancestors()):
+            continue
         text = _paragraph_text(p_el).replace(" ", "")
         if len(text) <= 4 or not none_pat.match(text):
             continue
@@ -383,6 +468,10 @@ def enforce_reference_layout(root: etree._Element, context: dict[str, str] | Non
         stats["styled_current_job"] = _style_current_job_block(body, ctx)
         _fix_work_history_spacing(body)
 
-    _fix_relatives_table(root)
+    if _context_has_relatives(ctx):
+        _prune_empty_relative_rows(root)
+        _fix_relatives_table(root)
+    else:
+        _remove_relatives_section(root)
     _dedupe_cell_none_values(root)
     return stats

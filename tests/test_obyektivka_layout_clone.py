@@ -19,7 +19,29 @@ class TestObyektivkaLayoutClone(unittest.TestCase):
         self.assertEqual(count_page_breaks(REF), 1)
         self.assertEqual(count_page_breaks(MASTER), count_page_breaks(REF))
 
-    def test_generated_preserves_page_break(self):
+    def test_generated_preserves_page_break_with_relatives(self):
+        if not MASTER.is_file():
+            self.skipTest("master docx missing")
+        path = generate_obyektivka_docx(
+            {
+                "fullname": "Test User",
+                "lang": "uz_cyr",
+                "work_experience": [],
+                "relatives": [
+                    {
+                        "degree": "Otasi",
+                        "fullname": "Aliyev",
+                        "birth_year_place": "1950",
+                        "work_place": "Nafaqada",
+                        "address": "Toshkent",
+                    }
+                ],
+            },
+            output_filepath=str(ROOT / "temp" / "test_layout_clone.docx"),
+        )
+        self.assertEqual(count_page_breaks(Path(path)), count_page_breaks(MASTER))
+
+    def test_generated_omits_page_break_without_relatives(self):
         if not MASTER.is_file():
             self.skipTest("master docx missing")
         path = generate_obyektivka_docx(
@@ -29,9 +51,9 @@ class TestObyektivkaLayoutClone(unittest.TestCase):
                 "work_experience": [],
                 "relatives": [],
             },
-            output_filepath=str(ROOT / "temp" / "test_layout_clone.docx"),
+            output_filepath=str(ROOT / "temp" / "test_layout_clone_empty.docx"),
         )
-        self.assertEqual(count_page_breaks(Path(path)), count_page_breaks(MASTER))
+        self.assertEqual(count_page_breaks(Path(path)), 0)
 
 
 if __name__ == "__main__":

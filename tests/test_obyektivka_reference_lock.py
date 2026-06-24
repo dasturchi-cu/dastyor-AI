@@ -124,7 +124,20 @@ class TestObyektivkaReferenceLock(unittest.TestCase):
             self.skipTest("master missing")
         out = ROOT / "temp" / "test_reference_lock_layout.docx"
         path = generate_obyektivka_docx(
-            {"fullname": "Test", "lang": "uz_cyr", "work_experience": [], "relatives": []},
+            {
+                "fullname": "Test",
+                "lang": "uz_cyr",
+                "work_experience": [],
+                "relatives": [
+                    {
+                        "degree": "Otasi",
+                        "fullname": "Aliyev",
+                        "birth_year_place": "1950",
+                        "work_place": "Nafaqada",
+                        "address": "Toshkent",
+                    }
+                ],
+            },
             output_filepath=str(out),
         )
         master_root = _load_root(MASTER)

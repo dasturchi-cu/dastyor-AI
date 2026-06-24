@@ -15,28 +15,23 @@ from features.obyektivka.docx_typography import (
     _set_bool,
     _set_color_black,
     _set_underline,
+    apply_form_value_rpr,
     apply_label_rpr,
     apply_plain_value_rpr,
     apply_value_rpr,
 )
 
 from features.obyektivka.spacing_config import (
-    DOCX_CURRENT_JOB_AFTER_TWIPS,
-    DOCX_CURRENT_JOB_BEFORE_TWIPS,
     DOCX_GRID_BEFORE_TWIPS,
     DOCX_MEHNAT_BEFORE_TWIPS,
-    DOCX_TITLE_AFTER_TWIPS,
 )
 
 FONT_TIMES = "Times New Roman"
 
-# PPT spec (mm → twips @ 1440/25.4); line 1.15 = 276
-SP_LINE_115 = 276
+# Namuna DOCX: ko'p joylarda line=240 (single); shablon klonida allaqachon bor.
+SP_LINE_REF = 240
 SP_GRID_BEFORE = DOCX_GRID_BEFORE_TWIPS
-SP_CURRENT_JOB_BEFORE = DOCX_CURRENT_JOB_BEFORE_TWIPS
-SP_CURRENT_JOB_AFTER = DOCX_CURRENT_JOB_AFTER_TWIPS
 SP_MEHNAT_BEFORE = DOCX_MEHNAT_BEFORE_TWIPS
-SP_TITLE_AFTER = DOCX_TITLE_AFTER_TWIPS
 PAGE_MARGIN_TOP_BOTTOM_MM = 20
 PAGE_MARGIN_LEFT_RIGHT_MM = 18
 _MM_TWIPS = 1440 / 25.4
@@ -84,7 +79,7 @@ def _p_pr(p_el: etree._Element) -> etree._Element:
     return ppr
 
 
-def _set_spacing(
+def _set_spacing_if_missing(
     ppr: etree._Element,
     *,
     before: int | None = None,
@@ -92,16 +87,19 @@ def _set_spacing(
     line: int | None = None,
     line_rule: str | None = None,
 ) -> None:
+    """Shablon (namuna klon) spacingini buzmaslik — faqat yo'q bo'lsa qo'shish."""
     sp = ppr.find(f"{W}spacing")
     if sp is None:
+        if before is None and after is None and line is None:
+            return
         sp = etree.SubElement(ppr, f"{W}spacing")
-    if before is not None:
+    if before is not None and not sp.get(f"{W}before"):
         sp.set(f"{W}before", str(before))
-    if after is not None:
+    if after is not None and not sp.get(f"{W}after"):
         sp.set(f"{W}after", str(after))
-    if line is not None:
+    if line is not None and not sp.get(f"{W}line"):
         sp.set(f"{W}line", str(line))
-    if line_rule is not None:
+    if line_rule is not None and not sp.get(f"{W}lineRule"):
         sp.set(f"{W}lineRule", line_rule)
 
 
@@ -274,7 +272,7 @@ def _strip_highlights(root: etree._Element) -> None:
 
 
 def enforce_reference_polish(root: etree._Element, context: dict[str, str] | None = None) -> None:
-    """PPT namuna: qora harf, Times New Roman, sarlavha markazda, 1.15 interval."""
+    """Namuna klon: Times New Roman, qora matn, label/qalinlik — spacing shablondan."""
     _strip_highlights(root)
     ctx = context or {}
     fish = (ctx.get("fish") or "").strip()
@@ -306,35 +304,21 @@ def enforce_reference_polish(root: etree._Element, context: dict[str, str] | Non
             continue
 
         if hozirgi_yil and _is_current_job_year(text, hozirgi_yil):
-            ppr = _p_pr(p_el)
-            _set_spacing(
-                ppr,
-                before=SP_CURRENT_JOB_BEFORE,
-                after=SP_CURRENT_JOB_AFTER,
-                line=SP_LINE_115,
-                line_rule="auto",
-            )
             for r_el in p_el.findall(f".//{W}r"):
                 if _run_text(r_el).strip():
-                    apply_value_rpr(r_el)
+                    apply_form_value_rpr(r_el)
             continue
 
         if hozirgi_ish and _is_current_job_title(text, hozirgi_ish):
             for r_el in p_el.findall(f".//{W}r"):
                 if _run_text(r_el).strip():
-                    rpr = _r_pr(r_el)
-                    _set_bool(rpr, "b", True)
-                    _set_bool(rpr, "bCs", True)
-                    _set_underline(rpr, True)
-                    _set_color_black(rpr)
+                    apply_form_value_rpr(r_el)
             continue
 
         ppr = _p_pr(p_el)
-        _set_spacing(ppr, line=SP_LINE_115, line_rule="auto")
 
         if _is_malumotnoma(text):
             _set_jc(ppr, "center")
-            _set_spacing(ppr, line=SP_LINE_115, line_rule="auto", after=SP_TITLE_AFTER)
             for r_el in p_el.findall(f".//{W}r"):
                 if _run_text(r_el).strip():
                     apply_label_rpr(r_el)
@@ -360,7 +344,6 @@ def enforce_reference_polish(root: etree._Element, context: dict[str, str] | Non
         if _is_mehnat_header(text):
             in_mehnat = True
             _set_jc(ppr, "center")
-            _set_spacing(ppr, before=SP_MEHNAT_BEFORE, line=SP_LINE_115, line_rule="auto")
             for r_el in p_el.findall(f".//{W}r"):
                 if _run_text(r_el).strip():
                     apply_label_rpr(r_el)
@@ -390,7 +373,7 @@ def enforce_reference_polish(root: etree._Element, context: dict[str, str] | Non
             continue
 
         if not grid_marked and _GRID_LABEL_RE.search(text):
-            _set_spacing(ppr, before=SP_GRID_BEFORE, line=SP_LINE_115, line_rule="auto")
+            _set_spacing_if_missing(ppr, before=SP_GRID_BEFORE)
             grid_marked = True
 
         if _is_label_paragraph(text):
@@ -399,8 +382,9 @@ def enforce_reference_polish(root: etree._Element, context: dict[str, str] | Non
                     apply_label_rpr(r_el)
         else:
             for r_el in p_el.findall(f".//{W}r"):
-                if _run_text(r_el).strip():
-                    apply_value_rpr(r_el)
+                rt = _run_text(r_el).strip()
+                if rt:
+                    apply_form_value_rpr(r_el, rt)
 
 
 def _is_fish_paragraph(text: str, fish: str) -> bool:
