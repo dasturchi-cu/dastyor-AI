@@ -75,6 +75,14 @@ def filter_real_users(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return [row for row in rows if not is_test_user(row)]
 
 
+def test_telegram_id_list() -> list[int]:
+    return sorted(_test_telegram_ids())
+
+
+def filter_real_payments(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    return [row for row in rows if not is_test_payment(row)]
+
+
 def is_test_payment(payment: dict[str, Any] | None) -> bool:
     if not payment:
         return False

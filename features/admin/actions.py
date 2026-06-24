@@ -33,7 +33,7 @@ from shared.payment_notifications import (
     build_payment_notification_text,
     build_pending_payments_list,
 )
-from shared.payment_test_filter import filter_real_users, is_test_payment
+from shared.payment_test_filter import filter_real_payments, filter_real_users, is_test_payment
 
 logger = logging.getLogger(__name__)
 
@@ -96,6 +96,7 @@ async def handle_errors(message: Message, state: FSMContext) -> None:
 async def handle_payments_menu(message: Message, state: FSMContext) -> None:
     await state.clear()
     rows = await _run_sync(stats_repo.list_payments_enriched, limit=15)
+    rows = filter_real_payments(rows)
     text = build_payments_list_text(rows, title="Oxirgi to'lovlar")
     await message.answer(text, reply_markup=payment_filter_kb())
 

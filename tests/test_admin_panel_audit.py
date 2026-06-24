@@ -71,7 +71,7 @@ class TestAdminPanelAudit(unittest.TestCase):
             "audit_cv.pdf",
         )
         activity_repo.record("register", actor_name="Audit Test", telegram_id=tid)
-        error_logs_repo.record("bot", "audit test error")
+        error_logs_repo.record("bot", "panel audit seed marker")
         admin_data.invalidate_metrics_cache()
 
     def test_all_menu_buttons_have_handlers(self) -> None:
@@ -92,11 +92,22 @@ class TestAdminPanelAudit(unittest.TestCase):
 
         db_users = stats_repo.count_real_users()
         with get_connection() as conn:
+            user_clause, user_params = admin_data._real_user_sql("u")
             db_approved = conn.execute(
-                "SELECT COUNT(*) FROM payments WHERE status='APPROVED'"
+                f"""
+                SELECT COUNT(*) FROM payments p
+                WHERE p.status='APPROVED'
+                  AND p.user_id IN (SELECT id FROM users u WHERE {user_clause})
+                """,
+                user_params,
             ).fetchone()[0]
             db_cv = conn.execute(
-                "SELECT COUNT(*) FROM generated_files WHERE file_type='cv'"
+                f"""
+                SELECT COUNT(*) FROM generated_files
+                WHERE file_type='cv'
+                  AND user_id IN (SELECT id FROM users u WHERE {user_clause})
+                """,
+                user_params,
             ).fetchone()[0]
 
         self.assertEqual(snap["users_count"], db_users)

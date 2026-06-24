@@ -20,84 +20,151 @@ def _scalar(conn, sql: str, params: tuple = ()) -> int:
     return int(row[0]) if row else 0
 
 
+def _real_user_sql(alias: str = "u") -> tuple[str, tuple]:
+    from shared.payment_test_filter import test_telegram_id_list
+
+    ids = test_telegram_id_list()
+    if not ids:
+        return "1=1", ()
+    placeholders = ",".join("?" * len(ids))
+    return f"{alias}.telegram_id NOT IN ({placeholders})", tuple(ids)
+
+
 def get_global_metrics() -> dict[str, Any]:
-    """Barcha asosiy hisob-kitoblar — faqat SQLite."""
+    """Barcha asosiy hisob-kitoblar — faqat real foydalanuvchilar."""
     online_m = max(1, settings.online_user_minutes)
     inactive_d = max(1, settings.inactive_user_days)
     price = settings.single_doc_price_uzs
+    user_clause, user_params = _real_user_sql("u")
+    pay_clause = f"p.user_id IN (SELECT id FROM users u WHERE {user_clause})"
+    doc_clause = f"user_id IN (SELECT id FROM users u WHERE {user_clause})"
 
     with get_connection() as conn:
-        users_count = _scalar(conn, "SELECT COUNT(*) FROM users")
-        pending = _scalar(conn, "SELECT COUNT(*) FROM payments WHERE status = 'PENDING'")
-        approved = _scalar(conn, "SELECT COUNT(*) FROM payments WHERE status = 'APPROVED'")
-        rejected = _scalar(conn, "SELECT COUNT(*) FROM payments WHERE status = 'REJECTED'")
-        payments_total = _scalar(conn, "SELECT COUNT(*) FROM payments")
-        cv_total = _scalar(conn, "SELECT COUNT(*) FROM generated_files WHERE file_type = 'cv'")
+        users_count = _scalar(
+            conn,
+            f"SELECT COUNT(*) FROM users u WHERE {user_clause}",
+            user_params,
+        )
+        pending = _scalar(
+            conn,
+            f"SELECT COUNT(*) FROM payments p WHERE {pay_clause} AND p.status = 'PENDING'",
+            user_params,
+        )
+        approved = _scalar(
+            conn,
+            f"SELECT COUNT(*) FROM payments p WHERE {pay_clause} AND p.status = 'APPROVED'",
+            user_params,
+        )
+        rejected = _scalar(
+            conn,
+            f"SELECT COUNT(*) FROM payments p WHERE {pay_clause} AND p.status = 'REJECTED'",
+            user_params,
+        )
+        payments_total = _scalar(
+            conn,
+            f"SELECT COUNT(*) FROM payments p WHERE {pay_clause}",
+            user_params,
+        )
+        cv_total = _scalar(
+            conn,
+            f"SELECT COUNT(*) FROM generated_files WHERE file_type = 'cv' AND {doc_clause}",
+            user_params,
+        )
         oby_total = _scalar(
-            conn, "SELECT COUNT(*) FROM generated_files WHERE file_type = 'obyektivka'"
+            conn,
+            f"SELECT COUNT(*) FROM generated_files WHERE file_type = 'obyektivka' AND {doc_clause}",
+            user_params,
         )
         docs_total = cv_total + oby_total
         paid_users = _scalar(
             conn,
-            "SELECT COUNT(DISTINCT user_id) FROM payments WHERE status = 'APPROVED'",
+            f"""
+            SELECT COUNT(DISTINCT p.user_id) FROM payments p
+            JOIN users u ON u.id = p.user_id
+            WHERE p.status = 'APPROVED' AND {user_clause}
+            """,
+            user_params,
         )
         active_today = _scalar(
             conn,
-            """
-            SELECT COUNT(*) FROM users
-            WHERE date(COALESCE(last_active_at, updated_at)) = date('now')
+            f"""
+            SELECT COUNT(*) FROM users u
+            WHERE {user_clause}
+              AND date(COALESCE(u.last_active_at, u.updated_at)) = date('now')
             """,
+            user_params,
         )
         online_now = _scalar(
             conn,
             f"""
-            SELECT COUNT(*) FROM users
-            WHERE datetime(COALESCE(last_active_at, updated_at))
+            SELECT COUNT(*) FROM users u
+            WHERE {user_clause}
+              AND datetime(COALESCE(u.last_active_at, u.updated_at))
                   >= datetime('now', '-{online_m} minutes')
             """,
+            user_params,
         )
         inactive = _scalar(
             conn,
             f"""
-            SELECT COUNT(*) FROM users
-            WHERE datetime(COALESCE(last_active_at, updated_at))
+            SELECT COUNT(*) FROM users u
+            WHERE {user_clause}
+              AND datetime(COALESCE(u.last_active_at, u.updated_at))
                   < datetime('now', '-{inactive_d} days')
             """,
+            user_params,
         )
         new_users_today = _scalar(
-            conn, "SELECT COUNT(*) FROM users WHERE date(created_at) = date('now')"
+            conn,
+            f"""
+            SELECT COUNT(*) FROM users u
+            WHERE {user_clause} AND date(u.created_at) = date('now')
+            """,
+            user_params,
         )
         approved_today = _scalar(
             conn,
-            """
-            SELECT COUNT(*) FROM payments
-            WHERE status = 'APPROVED' AND date(created_at) = date('now')
+            f"""
+            SELECT COUNT(*) FROM payments p
+            WHERE {pay_clause} AND p.status = 'APPROVED'
+              AND date(p.created_at) = date('now')
             """,
+            user_params,
         )
         cv_today = _scalar(
             conn,
-            """
+            f"""
             SELECT COUNT(*) FROM generated_files
-            WHERE file_type = 'cv' AND date(created_at) = date('now')
+            WHERE file_type = 'cv' AND {doc_clause}
+              AND date(created_at) = date('now')
             """,
+            user_params,
         )
         oby_today = _scalar(
             conn,
-            """
+            f"""
             SELECT COUNT(*) FROM generated_files
-            WHERE file_type = 'obyektivka' AND date(created_at) = date('now')
+            WHERE file_type = 'obyektivka' AND {doc_clause}
+              AND date(created_at) = date('now')
             """,
+            user_params,
         )
         revenue_total = _scalar(
             conn,
-            "SELECT COALESCE(SUM(amount), 0) FROM payments WHERE status = 'APPROVED'",
+            f"""
+            SELECT COALESCE(SUM(p.amount), 0) FROM payments p
+            WHERE {pay_clause} AND p.status = 'APPROVED'
+            """,
+            user_params,
         )
         revenue_today = _scalar(
             conn,
-            """
-            SELECT COALESCE(SUM(amount), 0) FROM payments
-            WHERE status = 'APPROVED' AND date(created_at) = date('now')
+            f"""
+            SELECT COALESCE(SUM(p.amount), 0) FROM payments p
+            WHERE {pay_clause} AND p.status = 'APPROVED'
+              AND date(p.created_at) = date('now')
             """,
+            user_params,
         )
 
         feed_rows = conn.execute(
@@ -109,16 +176,18 @@ def get_global_metrics() -> dict[str, Any]:
         ).fetchall()
 
         top_purchase = conn.execute(
-            """
+            f"""
             SELECT u.telegram_id, u.username, u.first_name, u.last_name,
                    SUM(CASE WHEN p.status = 'APPROVED' THEN 1 ELSE 0 END) AS approved_count
             FROM users u
             JOIN payments p ON p.user_id = u.id
+            WHERE {user_clause}
             GROUP BY u.id
             HAVING approved_count > 0
             ORDER BY approved_count DESC
             LIMIT 3
-            """
+            """,
+            user_params,
         ).fetchall()
 
     revenue_total = revenue_total or (approved * price)
@@ -251,7 +320,7 @@ def list_payments_enriched(
         clauses.append("p.status = ?")
         params.append(status.upper())
     where = f"WHERE {' AND '.join(clauses)}" if clauses else ""
-    params.append(limit)
+    params.append(max(limit * 5, 40))
     sql = f"""
         SELECT p.id, p.user_id, p.payer_name, p.document_type, p.status,
                p.created_at, COALESCE(p.screenshot_path, p.receipt_path) AS receipt_path,
@@ -266,12 +335,14 @@ def list_payments_enriched(
     with get_connection() as conn:
         rows = conn.execute(sql, params).fetchall()
     price = settings.single_doc_price_uzs
+    from shared.payment_test_filter import filter_real_payments
+
     result = []
     for r in rows:
         d = row_to_dict(r) or {}
         d["amount_uzs"] = int(d.get("amount") or price)
         result.append(d)
-    return result
+    return filter_real_payments(result)[:limit]
 
 
 def top_users_report(limit: int = 5) -> dict[str, list[dict[str, Any]]]:

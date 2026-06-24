@@ -18,6 +18,9 @@ def record(category: str, message: str, details: str | None = None) -> None:
 
 
 def list_recent(limit: int = 20, category: str | None = None) -> list[dict[str, Any]]:
+    from shared.error_log import is_noise_error
+
+    fetch = max(limit * 5, 40)
     with get_connection() as conn:
         if category:
             rows = conn.execute(
@@ -26,14 +29,28 @@ def list_recent(limit: int = 20, category: str | None = None) -> list[dict[str, 
                 WHERE category = ?
                 ORDER BY created_at DESC LIMIT ?
                 """,
-                (category.lower(), limit),
+                (category.lower(), fetch),
             ).fetchall()
         else:
             rows = conn.execute(
                 "SELECT * FROM error_logs ORDER BY created_at DESC LIMIT ?",
-                (limit,),
+                (fetch,),
             ).fetchall()
-    return [row_to_dict(r) for r in rows if r]
+    out: list[dict[str, Any]] = []
+    for row in rows:
+        item = row_to_dict(row)
+        if not item:
+            continue
+        if is_noise_error(
+            str(item.get("category") or ""),
+            str(item.get("message") or ""),
+            str(item.get("details") or "") or None,
+        ):
+            continue
+        out.append(item)
+        if len(out) >= limit:
+            break
+    return out
 
 
 def count_by_category(category: str) -> int:

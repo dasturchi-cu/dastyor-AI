@@ -83,7 +83,9 @@ def export_payments_rows() -> list[dict[str, Any]]:
         d = row_to_dict(r) or {}
         d["amount_uzs"] = price
         result.append(d)
-    return result
+    from shared.payment_test_filter import filter_real_payments
+
+    return filter_real_payments(result)
 
 
 export_statistics_rows = admin_data.export_statistics_rows

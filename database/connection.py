@@ -17,6 +17,7 @@ logger = logging.getLogger(__name__)
 
 _schema_lock = threading.Lock()
 _initialized = False
+_cleaning_test_data = False
 _local = threading.local()
 
 
@@ -74,7 +75,7 @@ def initialize_database() -> dict[str, Any]:
     Create database/app.db if missing, create tables, run migrations, verify.
     Called automatically on bot / FastAPI startup.
     """
-    global _initialized
+    global _initialized, _cleaning_test_data
     with _schema_lock:
         db_path = settings.db_path
         db_path.parent.mkdir(parents=True, exist_ok=True)
@@ -124,18 +125,18 @@ def initialize_database() -> dict[str, Any]:
                 canonical,
             )
 
-    try:
-        from database.repositories.users import purge_test_users
+    if _cleaning_test_data:
+        return report
 
-        removed = purge_test_users()
-        if removed:
-            logger.info(
-                "Removed %s test/audit user(s) from database: %s",
-                len(removed),
-                ", ".join(str(t) for t in removed[:12]),
-            )
+    _cleaning_test_data = True
+    try:
+        from shared.test_data_cleanup import purge_all_test_data
+
+        purge_all_test_data()
     except Exception as exc:
-        logger.warning("Test user purge skipped: %s", exc)
+        logger.warning("Test data purge skipped: %s", exc)
+    finally:
+        _cleaning_test_data = False
 
     return report
 
