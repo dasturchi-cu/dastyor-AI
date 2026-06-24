@@ -409,7 +409,6 @@
             <input type="file" id="cvVoiceInput" accept="audio/*" capture class="hidden" onchange="uploadCvVoiceFile(this.files&&this.files[0])" />
           </div>
           <div id="cvTextFillPanel" class="hidden">
-            <div class="text-[11px] text-slate-500 mb-2 leading-relaxed">Namuna: Men Ali Valiyevman, Toshkent. +998901234567, ali@gmail.com. Python dasturchi. 2020-2024 TDYU...</div>
             <textarea id="cvTextFillInput" rows="4" class="input-premium w-full rounded-xl px-3 py-2 text-sm mb-2" placeholder="Ma'lumotlaringizni yozing..."></textarea>
             <button type="button" id="cvTextFillBtn" class="btn-primary px-4 py-2 rounded-xl font-bold text-sm" onclick="submitCvTextFill()">⚡ To'ldirish</button>
           </div>
@@ -1358,7 +1357,7 @@
         const birthEl = document.getElementById('f_birth');
         if (birthEl) birthEl.value = d.birthdate;
       }
-      if (d.about) document.getElementById('f_about').value = d.about;
+      if (d.about && !isCvAboutGarbage(d.about)) document.getElementById('f_about').value = d.about;
       const eduItems = d.education_list || d.education;
       if (Array.isArray(eduItems) && eduItems.length) {
         eduData = eduItems.map((x) => ({ title: x.title || x.degree || '', place: x.place || x.company || '', date: x.date || x.years || '' }));
@@ -2088,6 +2087,26 @@
       if (panel) panel.classList.toggle('hidden');
     }
 
+    function isCvAboutGarbage(val) {
+      const s = String(val || '').trim().toLowerCase();
+      if (!s) return true;
+      if (/namuna|ovozli xabar|namunadagi|sample text|namuna matn|namuna audio/i.test(s)) return true;
+      if (/men ali valiyevman.*toshkent.*\+998901234567/i.test(s)) return true;
+      return false;
+    }
+
+    function collapseCvFillToolbar() {
+      const block = document.querySelector('.cv-voice-block');
+      if (block) block.classList.add('hidden');
+      const panel = document.getElementById('cvTextFillPanel');
+      if (panel) panel.classList.add('hidden');
+      const input = document.getElementById('cvTextFillInput');
+      if (input) input.value = '';
+      const status = document.getElementById('cvVoiceStatus');
+      if (status) status.textContent = '';
+      showCvFillOpenButton(false);
+    }
+
     function logCvFillStep(step, detail) {
       const DA = window.DastyorAI || {};
       if (DA.logProgressStepComplete) {
@@ -2112,15 +2131,13 @@
 
     function openCvFormAfterFill() {
       try {
-        const panel = document.getElementById('cvTextFillPanel');
-        if (panel) panel.classList.add('hidden');
         setStep(1);
         const nameField = document.getElementById('f_name');
         if (nameField) {
           try { nameField.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (_) {}
           try { nameField.focus({ preventScroll: true }); } catch (_) {}
         }
-        showCvFillOpenButton(false);
+        collapseCvFillToolbar();
         hideCvFillLoading();
       } catch (e) {
         daToast('❌ CV formasini ochib bo\'lmadi: ' + ((e && e.message) || e), 'error');
@@ -2157,10 +2174,7 @@
         try { nameField.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (_) {}
         try { nameField.focus({ preventScroll: true }); } catch (_) {}
       }
-      if (statusEl) {
-        statusEl.textContent = '✅ Forma to\'ldirildi (~' + (js.fill_percent || 80) + '%). Quyida tekshiring.';
-      }
-      showCvFillOpenButton(false);
+      collapseCvFillToolbar();
       logCvFillStep(5, 'CV form opened');
       hideCvFillLoading();
       daToast('✅ CV formasi to\'ldirildi', 'success');

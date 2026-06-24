@@ -379,9 +379,6 @@ def parse_cv_facts(text: str) -> dict[str, Any]:
                 }
             ]
 
-    if not out.get("about") and len(t) > 20:
-        out["about"] = t[:500]
-
     return out
 
 

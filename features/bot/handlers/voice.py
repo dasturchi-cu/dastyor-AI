@@ -38,11 +38,7 @@ CV_INSTRUCTION = (
     "• Ta'lim (OTM, yillar)\n"
     "• Ish tajribasi\n"
     "• Ko'nikmalar va tillar\n\n"
-    "📝 <b>Namuna matn:</b>\n"
-    "<i>Men Ali Valiyevman, Toshkent shahriman. Telefon +998901234567, "
-    "email ali@gmail.com. Python dasturchiman. 2020-2024 TDYU da kompyuter fanlari "
-    "bo'yicha o'qidim. 2024-yildan beri IT kompaniyada ishlayman.</i>\n\n"
-    "🎙 Ovozli xabar yoki 📝 matn yuboring."
+    "🎙 Ovoz yoki 📝 matn yuboring."
 )
 
 
