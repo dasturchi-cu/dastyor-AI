@@ -97,6 +97,15 @@
     .sel-wrap::after{content:'';position:absolute;right:11px;top:50%;transform:translateY(-50%);border-left:5px solid transparent;border-right:5px solid transparent;border-top:6px solid var(--blue);pointer-events:none}
     select{padding-right:32px;cursor:pointer}
 
+    /* AUTOCOMPLETE */
+    .ac-wrap{position:relative}
+    .ac-suggest{position:absolute;left:0;right:0;top:calc(100% + 4px);z-index:200;background:#fff;border:1.5px solid var(--border);border-radius:10px;box-shadow:0 8px 24px rgba(29,111,232,.14);max-height:180px;overflow-y:auto;-webkit-overflow-scrolling:touch}
+    .ac-suggest.hidden{display:none}
+    .ac-item{padding:10px 12px;font-size:13.5px;font-weight:600;color:var(--text);cursor:pointer;border-bottom:1px solid var(--blue-light);transition:background .12s}
+    .ac-item:last-child{border-bottom:0}
+    .ac-item:active,.ac-item:hover{background:var(--blue-light)}
+    .ac-item mark{background:rgba(29,111,232,.14);color:var(--blue);font-weight:800;border-radius:3px;padding:0 2px}
+
     /* GRIDS */
     .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
     .grid-photo{display:grid;grid-template-columns:1fr 96px;gap:14px;align-items:start}
@@ -282,13 +291,19 @@
               </div>
               <div class="field">
                 <label id="lbl-nation">Millati</label>
-                <input type="text" id="nation" placeholder="O'zbek" list="nation-list" oninput="saveToLocal();updatePreview()">
+                <div class="ac-wrap">
+                  <input type="text" id="nation" placeholder="O'zbek" autocomplete="off" oninput="onSmartACInput(this,'nation');saveToLocal();updatePreview()" onfocus="onSmartACInput(this,'nation')" onblur="onSmartACBlur(this,'nation')">
+                  <div id="suggest-nation" class="ac-suggest hidden"></div>
+                </div>
                 <datalist id="nation-list"></datalist>
               </div>
             </div>
             <div class="field">
               <label id="lbl-birthplace">Tug'ilgan joyi</label>
-              <input type="text" id="birthplace" placeholder="Toshkent shahri" oninput="saveToLocal();updatePreview()">
+              <div class="ac-wrap">
+                <input type="text" id="birthplace" placeholder="Toshkent shahri" autocomplete="off" oninput="onSmartACInput(this,'birthplace');saveToLocal();updatePreview()" onfocus="onSmartACInput(this,'birthplace')" onblur="onSmartACBlur(this,'birthplace')">
+                <div id="suggest-birthplace" class="ac-suggest hidden"></div>
+              </div>
             </div>
           </div>
           <div>
@@ -308,7 +323,7 @@
         </div>
         <div class="grid-2">
           <div class="field"><label id="lbl-party">Partiyaviyligi</label><input type="text" id="party" value="yo'q" oninput="saveToLocal();updatePreview()"></div>
-          <div class="field"><label id="lbl-edu">Ma'lumoti</label><input type="text" id="edu" placeholder="Oliy" list="edu-list" oninput="saveToLocal();updatePreview()"><datalist id="edu-list"></datalist></div>
+          <div class="field"><label id="lbl-edu">Ma'lumoti</label><div class="ac-wrap"><input type="text" id="edu" placeholder="Oliy" autocomplete="off" oninput="onSmartACInput(this,'edu');saveToLocal();updatePreview()" onfocus="onSmartACInput(this,'edu')" onblur="onSmartACBlur(this,'edu')"><div id="suggest-edu" class="ac-suggest hidden"></div></div><datalist id="edu-list"></datalist></div>
           <div class="field"><label id="lbl-graduated">Tamomlagan</label><textarea id="graduated" rows="2" placeholder="OTM nomi" oninput="handleWX(this);saveToLocal();updatePreview()"></textarea></div>
           <div class="field"><label id="lbl-spec">Mutaxassisligi</label><input type="text" id="spec" placeholder="Mutaxassislik" oninput="saveToLocal();updatePreview()"></div>
           <div class="field"><label id="lbl-degree">Ilmiy darajasi</label><input type="text" id="degree" value="yo'q" oninput="saveToLocal();updatePreview()"></div>
@@ -594,11 +609,211 @@ async function dastyorReadApiError(res){
 
 var uzbRegions={"And":"Andijon viloyati","Bux":"Buxoro viloyati","Far":"Farg'ona viloyati","Jiz":"Jizzax viloyati","Xor":"Xorazm viloyati","Nam":"Namangan viloyati","Nav":"Navoiy viloyati","Qas":"Qashqadaryo viloyati","Sam":"Samarqand viloyati","Sir":"Sirdaryo viloyati","Sur":"Surxondaryo viloyati","Tos":"Toshkent shahri","Qor":"Qoraqalpog'iston Respublikasi"};
 
+var acBirthplaces=[
+  "Toshkent shahri","Toshkent viloyati","Andijon viloyati","Buxoro viloyati","Farg'ona viloyati",
+  "Jizzax viloyati","Xorazm viloyati","Namangan viloyati","Navoiy viloyati","Qashqadaryo viloyati",
+  "Qoraqalpog'iston Respublikasi","Samarqand viloyati","Sirdaryo viloyati","Surxondaryo viloyati"
+];
+
+var acNationAliasIdx={
+  uz:0,oz:0,uzb:0,ozb:0,ozbek:0,ozeb:0,o'z:0,o'zb:0,
+  rus:1,ru:1,russ:1,
+  toj:2,tojik:2,tj:2,
+  qoz:3,koz:3,qozoq:3,kozoq:3,kaz:3,
+  tur:4,turk:4,tr:4,
+  tat:5,tatar:5,
+  qoraqalpoq:6,qor:6,qora:6,
+  koreys:7,kor:7,
+  nemis:8,nem:8,deu:8,
+  uygur:9,uyg:9,
+  qirgiz:10,qir:10,kg:10,
+  ukrain:11,ukr:11,uk:11,
+  hind:12,ind:12,
+  xitoy:13,xit:13,chn:13,
+  eron:14,ir:14,iran:14,
+  afgon:15,afg:15,af:15
+};
+
+var acBirthplaceAliasIdx={
+  tosh:0,toshkent:0,tash:0,tashkent:0,
+  toshvil:1,"toshkent vil":1,
+  and:2,andijon:2,
+  bux:3,buxoro:3,bukh:3,
+  far:4,fargona:4,farghona:4,farg:4,
+  jiz:5,jizzax:5,jizax:5,
+  xor:6,xorazm:6,xiva:6,
+  nam:7,namangan:7,
+  nav:8,navoiy:8,navoi:8,
+  qas:9,qashqadaryo:9,qash:9,
+  qorresp:10,"qoraqalpogiston":10,"qoraqalpoq resp":10,
+  sam:11,samarqand:11,samarkand:11,
+  sir:12,sirdaryo:12,
+  sur:13,surxondaryo:13,surxon:13
+};
+
+var acEduAliasIdx={
+  oli:0,oliy:0,oliq:0,
+  ortamax:1,"orta maxsus":1,maxsus:1,
+  orta:2,
+  tug:3,tugallanmagan:3,"tugallanmagan oliy":3
+};
+
+function normalizeAC(s){
+  return String(s||'').toLowerCase()
+    .replace(/[‘’ʻ`´]/g,"'")
+    .replace(/['\u02bc\u2019]/g,'')
+    .replace(/\s+/g,'')
+    .trim();
+}
+
+function getACOptions(type){
+  var d=dict[currentLang]||{};
+  if(type==='nation') return d.opts_nation||[];
+  if(type==='edu') return d.opts_edu||[];
+  if(type==='birthplace') return acBirthplaces.slice();
+  return [];
+}
+
+function getACAliasIdx(type){
+  if(type==='nation') return acNationAliasIdx;
+  if(type==='edu') return acEduAliasIdx;
+  if(type==='birthplace') return acBirthplaceAliasIdx;
+  return {};
+}
+
+function getACSegment(val){
+  var parts=String(val||'').split(',');
+  return {prefix:parts.slice(0,-1).join(','),segment:(parts[parts.length-1]||'').replace(/^\s+/,''),hasComma:parts.length>1};
+}
+
+function resolveACAlias(type, segment){
+  var opts=getACOptions(type);
+  var aliases=getACAliasIdx(type);
+  var key=normalizeAC(segment);
+  if(!key) return null;
+  if(aliases[key]!=null && opts[aliases[key]]) return opts[aliases[key]];
+  for(var k in aliases){
+    if(!Object.prototype.hasOwnProperty.call(aliases,k)) continue;
+    if(key.indexOf(k)===0 || k.indexOf(key)===0){
+      var idx=aliases[k];
+      if(opts[idx]) return opts[idx];
+    }
+  }
+  return null;
+}
+
+function filterACOptions(type, segment){
+  var opts=getACOptions(type);
+  var key=normalizeAC(segment);
+  if(!key) return opts.slice(0,12);
+  var alias=resolveACAlias(type, segment);
+  if(alias) return [alias];
+  return opts.filter(function(opt){
+    return normalizeAC(opt).indexOf(key)>=0;
+  }).slice(0,12);
+}
+
+function escapeACHtml(s){
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function highlightACMatch(text, segment){
+  var normText=normalizeAC(text);
+  var normSeg=normalizeAC(segment);
+  if(!normSeg) return escapeACHtml(text);
+  var idx=normText.indexOf(normSeg);
+  if(idx<0) return escapeACHtml(text);
+  var map=[];
+  var pos=0;
+  for(var i=0;i<text.length;i++){
+    var chNorm=normalizeAC(text.charAt(i));
+    if(chNorm) map.push(i);
+    pos+=chNorm?chNorm.length:0;
+  }
+  var start=0,end=text.length;
+  for(var j=0;j<map.length;j++){
+    if(j===idx){ start=map[j]; break; }
+  }
+  for(var k=idx;k<idx+normSeg.length && k<map.length;k++){
+    end=map[k]+1;
+  }
+  return escapeACHtml(text.slice(0,start))+'<mark>'+escapeACHtml(text.slice(start,end))+'</mark>'+escapeACHtml(text.slice(end));
+}
+
+function buildACValue(prefix, segment, selected, autoComma){
+  var before=prefix?prefix+', ':'';
+  var val=before+selected;
+  if(autoComma && val.slice(-1)!==',') val+=', ';
+  return val;
+}
+
+function applyACSelection(input, type, selected, autoComma){
+  var info=getACSegment(input.value);
+  input.value=buildACValue(info.prefix, info.segment, selected, autoComma);
+  closeACSuggest(type);
+  try{saveToLocal();updatePreview();}catch(e){}
+}
+
+function onSmartACInput(input, type){
+  if(!input) return;
+  var info=getACSegment(input.value);
+  var segment=info.segment;
+  var suggest=document.getElementById('suggest-'+type);
+  if(!suggest) return;
+  if(!segment){ suggest.classList.add('hidden'); return; }
+  var matches=filterACOptions(type, segment);
+  if(matches.length===1){
+    var aliasHit=resolveACAlias(type, segment);
+    var minLen=aliasHit?2:3;
+    if(normalizeAC(segment).length>=minLen){
+      var exact=matches[0];
+      if(aliasHit || normalizeAC(exact).indexOf(normalizeAC(segment))===0){
+        var autoComma=(type==='birthplace');
+        input.value=buildACValue(info.prefix, segment, exact, autoComma);
+        segment=exact;
+        matches=filterACOptions(type, segment);
+      }
+    }
+  }
+  if(matches.length===0){ suggest.classList.add('hidden'); return; }
+  suggest.innerHTML=matches.map(function(item){
+    return '<div class="ac-item" onmousedown="event.preventDefault();applyACSelection(document.getElementById(\''+input.id+'\'),\''+type+'\',\''+String(item).replace(/\\/g,'\\\\').replace(/'/g,"\\'")+'\','+(type==='birthplace'?'true':'false')+')">'+highlightACMatch(item, info.segment)+'</div>';
+  }).join('');
+  suggest.classList.remove('hidden');
+}
+
+function onSmartACBlur(input, type){
+  setTimeout(function(){
+    closeACSuggest(type);
+    if(!input) return;
+    var info=getACSegment(input.value);
+    if(!info.segment) return;
+    var alias=resolveACAlias(type, info.segment);
+    if(alias){
+      input.value=buildACValue(info.prefix, info.segment, alias, type==='birthplace');
+      try{saveToLocal();updatePreview();}catch(e){}
+      return;
+    }
+    var matches=filterACOptions(type, info.segment);
+    if(matches.length===1){
+      input.value=buildACValue(info.prefix, info.segment, matches[0], type==='birthplace');
+      try{saveToLocal();updatePreview();}catch(e){}
+    }
+  }, 160);
+}
+
+function closeACSuggest(type){
+  var el=document.getElementById('suggest-'+type);
+  if(el) el.classList.add('hidden');
+}
+
+function applyRegionAC(input){input.addEventListener('input',function(){var val=this.value;if(val.indexOf(',')<0&&val.length===3){var key=val.charAt(0).toUpperCase()+val.slice(1).toLowerCase();if(uzbRegions[key])this.value=uzbRegions[key]+', ';}});}
+
 var dict={
 uz_l:{
   lbl_fullname:"Familiya, Ism, Sharif",lbl_birthdate:"Tug'ilgan sanasi",lbl_birthplace:"Tug'ilgan joyi",lbl_nation:"Millati",lbl_party:"Partiyaviyligi",lbl_edu:"Ma'lumoti",lbl_graduated:"Tamomlagan",lbl_spec:"Mutaxassisligi",lbl_degree:"Ilmiy darajasi",lbl_scititle:"Ilmiy unvoni",lbl_langs:"Xorijiy tillar",lbl_military:"Harbiy unvoni",lbl_awards:"Davlat mukofotlari bilan taqdirlanganmi",lbl_deputy:"Xalq deputatlari Kengashi deputatimi yoki boshqa saylanadigan organlarning a'zosimi",lbl_work:"MEHNAT FAOLIYATI",lbl_rel_title:"YAQIN QARINDOSHLAR",
   ph_fullname:"Aliyev Ali Aliyevich",ph_birthdate:"KK.OO.YYYY",ph_birthplace:"Toshkent shahri",ph_edu:"Oliy",ph_spec:"Umumiy amaliyot shifokori",ph_graduated:"Tamomlagan OTM nomi",val_no:"yo'q",
-  opts_nation:["O'zbek","Rus","Tojik","Qozoq","Turk","Tatar"],opts_edu:["Oliy","O'rta maxsus","O'rta","Tugallanmagan oliy"],opts_langs:["Rus tili","Ingliz tili","Nemis tili","Fransuz tili","Koreys tili","Turk tili","Arab tili"],
+  opts_nation:["O'zbek","Rus","Tojik","Qozoq","Turk","Tatar","Qoraqalpoq","Koreys","Nemis","Uyg'ur","Qirg'iz","Ukrain","Hind","Xitoy","Eron","Afg'on"],opts_edu:["Oliy","O'rta maxsus","O'rta","Tugallanmagan oliy"],opts_langs:["Rus tili","Ingliz tili","Nemis tili","Fransuz tili","Koreys tili","Turk tili","Arab tili"],
   txt_work_hint:"Eng oxirida hozirgi ishlayotgan yoki o'qiyotgan joyingizni kiriting",
   d_title:"MA'LUMOTNOMA",d_work:"MEHNAT FAOLIYATI",d_rel_title:"MA'LUMOTNOMA",
   d_rel_intro:" ning yaqin qarindoshlari haqida",d_no_rel:"Yaqin qarindoshlar haqida ma'lumot kiritilmagan.",
@@ -621,7 +836,7 @@ uz_l:{
 uz_k:{
   lbl_fullname:"\u0424\u0430\u043c\u0438\u043b\u0438\u044f, \u0438\u0441\u043c, \u0448\u0430\u0440\u0438\u0444\u0438",lbl_birthdate:"\u0422\u0443\u0493\u0438\u043b\u0433\u0430\u043d \u0441\u0430\u043d\u0430\u0441\u0438",lbl_birthplace:"\u0422\u0443\u0493\u0438\u043b\u0433\u0430\u043d \u0436\u043e\u0439\u0438",lbl_nation:"\u041c\u0438\u043b\u043b\u0430\u0442\u0438",lbl_party:"\u041f\u0430\u0440\u0442\u0438\u044f\u0432\u0438\u0439\u043b\u0438\u0433\u0438",lbl_edu:"\u041c\u0430\u044a\u043b\u0443\u043c\u043e\u0442\u0438",lbl_graduated:"\u0422\u0430\u043c\u043e\u043c\u043b\u0430\u0433\u0430\u043d",lbl_spec:"\u041c\u0443\u0442\u0430\u0445\u0430\u0441\u0441\u0438\u0441\u043b\u0438\u0433\u0438",lbl_degree:"\u0418\u043b\u043c\u0438\u0439 \u0434\u0430\u0440\u0430\u0436\u0430\u0441\u0438",lbl_scititle:"\u0418\u043b\u043c\u0438\u0439 \u0443\u043d\u0432\u043e\u043d\u0438",lbl_langs:"\u0425\u043e\u0440\u0438\u0436\u0438\u0439 \u0442\u0438\u043b\u043b\u0430\u0440",lbl_military:"\u04b2\u0430\u0440\u0431\u0438\u0439 \u0443\u043d\u0432\u043e\u043d\u0438",lbl_awards:"\u0414\u0430\u0432\u043b\u0430\u0442 \u043c\u0443\u043a\u043e\u0444\u043e\u0442\u043b\u0430\u0440\u0438 \u0431\u0438\u043b\u0430\u043d \u0442\u0430\u049b\u0434\u0438\u0440\u043b\u0430\u043d\u0433\u0430\u043d\u043c\u0438",lbl_deputy:"\u0425\u0430\u043b\u049b \u0434\u0435\u043f\u0443\u0442\u0430\u0442\u043b\u0430\u0440\u0438 \u041a\u0435\u043d\u0433\u0430\u0448\u0438 \u0434\u0435\u043f\u0443\u0442\u0430\u0442\u0438\u043c\u0438",lbl_work:"\u041c\u0415\u04b2\u041d\u0410\u0422 \u0424\u0410\u041e\u041b\u0418\u042f\u0422\u0418",lbl_rel_title:"\u042f\u049a\u0418\u041d \u049a\u0410\u0420\u0418\u041d\u0414\u041e\u0428\u041b\u0410\u0420",
   ph_fullname:"\u0410\u043b\u0438\u0435\u0432 \u0410\u043b\u0438 \u0410\u043b\u0438\u0435\u0432\u0438\u0447",ph_birthdate:"\u041a\u041a.\u041e\u041e.\u0419\u0419\u0419\u0419",ph_birthplace:"\u0422\u043e\u0448\u043a\u0435\u043d\u0442 \u0448\u0430\u04b3\u0440\u0438",ph_edu:"\u041e\u043b\u0438\u0439",ph_spec:"\u0423\u043c\u0443\u043c\u0438\u0439 \u0430\u043c\u0430\u043b\u0438\u0451\u0442 \u0448\u0438\u0444\u043e\u043a\u043e\u0440\u0438",ph_graduated:"\u0422\u0430\u043c\u043e\u043c\u043b\u0430\u0433\u0430\u043d \u041e\u0422\u041c \u043d\u043e\u043c\u0438",val_no:"\u0439\u045e\u049b",
-  opts_nation:["\u040e\u0437\u0431\u0435\u043a","\u0420\u0443\u0441","\u0422\u043e\u0436\u0438\u043a","\u049a\u043e\u0437\u043e\u049b","\u0422\u0443\u0440\u043a","\u0422\u0430\u0442\u0430\u0440"],opts_edu:["\u041e\u043b\u0438\u0439","\u040e\u0440\u0442\u0430 \u043c\u0430\u0445\u0441\u0443\u0441","\u040e\u0440\u0442\u0430","\u0422\u0443\u0433\u0430\u043b\u043b\u0430\u043d\u043c\u0430\u0433\u0430\u043d \u043e\u043b\u0438\u0439"],opts_langs:["\u0420\u0443\u0441 \u0442\u0438\u043b\u0438","\u0418\u043d\u0433\u043b\u0438\u0437 \u0442\u0438\u043b\u0438","\u041d\u0435\u043c\u0438\u0441 \u0442\u0438\u043b\u0438","\u0424\u0440\u0430\u043d\u0446\u0443\u0437 \u0442\u0438\u043b\u0438","\u041a\u043e\u0440\u0435\u0439\u0441 \u0442\u0438\u043b\u0438","\u0422\u0443\u0440\u043a \u0442\u0438\u043b\u0438","\u0410\u0440\u0430\u0431 \u0442\u0438\u043b\u0438"],
+  opts_nation:["\u040e\u0437\u0431\u0435\u043a","\u0420\u0443\u0441","\u0422\u043e\u0436\u0438\u043a","\u049a\u043e\u0437\u043e\u049b","\u0422\u0443\u0440\u043a","\u0422\u0430\u0442\u0430\u0440","\u049a\u043e\u0440\u0430\u049b\u0430\u043b\u043f\u043e\u049b","\u041a\u043e\u0440\u0435\u0439\u0441","\u041d\u0435\u043c\u0438\u0441","\u0423\u0439\u0493\u0443\u0440","\u049a\u0438\u0440\u0433\u0438\u0437","\u0423\u043a\u0440\u0430\u0438\u043d","\u0418\u043d\u0434","\u0425\u0438\u0442\u043e\u0439","\u0418\u0440\u043e\u043d","\u0410\u0444\u0433\u043e\u043d"],opts_edu:["\u041e\u043b\u0438\u0439","\u040e\u0440\u0442\u0430 \u043c\u0430\u0445\u0441\u0443\u0441","\u040e\u0440\u0442\u0430","\u0422\u0443\u0433\u0430\u043b\u043b\u0430\u043d\u043c\u0430\u0433\u0430\u043d \u043e\u043b\u0438\u0439"],opts_langs:["\u0420\u0443\u0441 \u0442\u0438\u043b\u0438","\u0418\u043d\u0433\u043b\u0438\u0437 \u0442\u0438\u043b\u0438","\u041d\u0435\u043c\u0438\u0441 \u0442\u0438\u043b\u0438","\u0424\u0440\u0430\u043d\u0446\u0443\u0437 \u0442\u0438\u043b\u0438","\u041a\u043e\u0440\u0435\u0439\u0441 \u0442\u0438\u043b\u0438","\u0422\u0443\u0440\u043a \u0442\u0438\u043b\u0438","\u0410\u0440\u0430\u0431 \u0442\u0438\u043b\u0438"],
   txt_work_hint:"\u042d\u043d\u0433 \u043e\u0445\u0438\u0440\u0438\u0434\u0430 \u04b3\u043e\u0437\u0438\u0440\u0433\u0438 \u0438\u0448\u043b\u0430\u0451\u0442\u0433\u0430\u043d \u0451\u043a\u0438 \u045e\u049b\u0438\u0451\u0442\u0433\u0430\u043d \u0436\u043e\u0439\u0438\u043d\u0433\u0438\u0437\u043d\u0438 \u043a\u0438\u0440\u0438\u0442\u0438\u043d\u0433",
   d_title:"\u041c\u0410\u042a\u041b\u0423\u041c\u041e\u0422\u041d\u041e\u041c\u0410",d_work:"\u041c\u0415\u04b2\u041d\u0410\u0422 \u0424\u0410\u041e\u041b\u0418\u042f\u0422\u0418",d_rel_title:"\u041c\u0410\u042a\u041b\u0423\u041c\u041e\u0422\u041d\u041e\u041c\u0410",
   d_rel_intro:" \u043d\u0438\u043d\u0433 \u044f\u049b\u0438\u043d \u049b\u0430\u0440\u0438\u043d\u0434\u043e\u0448\u043b\u0430\u0440\u0438 \u04b3\u0430\u049b\u0438\u0434\u0430",d_no_rel:"\u042f\u049b\u0438\u043d \u049b\u0430\u0440\u0438\u043d\u0434\u043e\u0448\u043b\u0430\u0440 \u04b3\u0430\u049b\u0438\u0434\u0430 \u043c\u0430\u044a\u043b\u0443\u043c\u043e\u0442 \u043a\u0438\u0440\u0438\u0442\u0438\u043b\u043c\u0430\u0433\u0430\u043d.",
@@ -1731,6 +1946,16 @@ function previewImg(input){
 
 function handleWX(input){var words=input.value.split(' ');var last=words[words.length-1].toLowerCase();var map={inst:'instituti',mak:'maktabi',uni:'universiteti',tum:'tumani',vil:'Viloyati,'};if(map[last]){words[words.length-1]=map[last];input.value=words.join(' ');}}
 
+function flushObyDraftSave(){
+  try{
+    var d={fullname:v('fullname'),birthdate:v('birthdate'),birthplace:v('birthplace'),nation:v('nation'),edu:v('edu'),spec:v('spec'),degree:v('degree'),langs:v('langs'),awards:v('awards'),'idor-awards':v('idor-awards'),deputy:v('deputy'),party:v('party'),graduated:v('graduated'),scititle:v('scititle'),military:v('military'),works:[],relatives:relatives};
+    document.querySelectorAll('#work-container .work-row').forEach(function(row){d.works.push({f:row.querySelector('.year-from')?row.querySelector('.year-from').value:'',t:row.querySelector('.year-to')?row.querySelector('.year-to').value:'',d:row.querySelector('.work-desc')?row.querySelector('.work-desc').value:''});});
+    localStorage.setItem(obyDraftStorageKey(), JSON.stringify(d));
+    var tid = resolveTelegramId();
+    if(tid) localStorage.setItem(OBY_OWNER_STORAGE_KEY, String(tid));
+  }catch(e){}
+}
+
 function addWorkRow(savedFrom,savedTo,savedDesc){
   savedFrom=savedFrom||'';savedTo=savedTo||'';savedDesc=savedDesc||'';
   var div=document.createElement('div');div.className='work-row';
@@ -1739,8 +1964,6 @@ function addWorkRow(savedFrom,savedTo,savedDesc){
   document.getElementById('work-container').appendChild(div);
   bindWorkYearValidation(div);
 }
-
-function applyRegionAC(input){input.addEventListener('input',function(){var val=this.value;if(val.indexOf(',')<0&&val.length===3){var key=val.charAt(0).toUpperCase()+val.slice(1).toLowerCase();if(uzbRegions[key])this.value=uzbRegions[key]+', ';}});}
 
 var _DATE_YEAR_MIN = 1920;
 var _DATE_YEAR_MAX = new Date().getFullYear();
@@ -1876,8 +2099,13 @@ function setupEventListeners(){
     bd.addEventListener('blur', function(){ validateBirthdateField(bd, true); });
   }
   document.querySelectorAll('#work-container .work-row').forEach(bindWorkYearValidation);
-  applyRegionAC(document.getElementById('birthplace'));
   applyRegionAC(document.getElementById('m-rel-addr'));
+  applyRegionAC(document.getElementById('m-rel-birth'));
+  document.addEventListener('click',function(e){
+    if(!e.target.closest('.ac-wrap')) ['nation','birthplace','edu'].forEach(closeACSuggest);
+  });
+  window.addEventListener('pagehide',flushObyDraftSave);
+  document.addEventListener('visibilitychange',function(){if(document.visibilityState==='hidden')flushObyDraftSave();});
   document.addEventListener('focusin',function(e){
     var t=e.target;
     if(!t||!t.matches||!t.matches('input,textarea,select'))return;

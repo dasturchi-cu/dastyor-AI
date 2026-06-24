@@ -29,6 +29,27 @@ class TestPaymentTestFilter(unittest.TestCase):
             )
         )
 
+    def test_auto_user_is_test(self):
+        self.assertTrue(
+            is_test_payment(
+                {
+                    "telegram_id": 88003344,
+                    "payer_name": "Auto User",
+                    "username": "",
+                }
+            )
+        )
+
+    def test_atomic_test_id_is_test(self):
+        self.assertTrue(
+            is_test_payment(
+                {
+                    "telegram_id": 88001122,
+                    "payer_name": "Test User",
+                }
+            )
+        )
+
     def test_real_user_not_test(self):
         self.assertFalse(
             is_test_payment(

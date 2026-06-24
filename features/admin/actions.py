@@ -33,6 +33,7 @@ from shared.payment_notifications import (
     build_payment_notification_text,
     build_pending_payments_list,
 )
+from shared.payment_test_filter import is_test_payment
 
 logger = logging.getLogger(__name__)
 
@@ -99,6 +100,7 @@ async def handle_payments_menu(message: Message, state: FSMContext) -> None:
 async def handle_pending_payments(message: Message, state: FSMContext) -> None:
     await state.clear()
     rows = await _run_sync(stats_repo.list_payments_enriched, status="PENDING", limit=15)
+    rows = [r for r in rows if not is_test_payment(r)]
     if not rows:
         await message.answer("📥 Kutilayotgan to'lovlar yo'q.", reply_markup=admin_menu())
         return
@@ -173,6 +175,7 @@ async def handle_close(message: Message, state: FSMContext) -> None:
 
 
 async def _send_payment_rows(message: Message, rows: list[dict]) -> None:
+    rows = [p for p in rows if not is_test_payment(p)]
     summary = build_pending_payments_list(rows[:10])
     if summary:
         await message.answer(summary)

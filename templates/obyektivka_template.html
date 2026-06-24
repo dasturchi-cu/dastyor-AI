@@ -156,7 +156,6 @@
     .fields .val-row.first td { padding-right: 35.56mm; }
     .fields .inline-row td { padding-left: 28.61mm; text-indent: -28.61mm; }
     .fields .stack-val td { padding-left: 28.61mm; text-indent: -28.61mm; }
-    .fields .stack-val.hl td { background: #ffff00; }
     .fields .dep-val td { padding-left: 26.67mm; text-indent: -26.67mm; }
 
     .sect-work {
@@ -258,9 +257,9 @@
 <tr class="gap"><td class="left lbl">{{ left_l }}:</td><td class="right lbl">{{ right_l }}:</td></tr>
 <tr class="val-row{% if first %} first{% endif %}"><td class="left">{% if masked %}{{ safe_html(val(left_v)) }}{% else %}{{ val(left_v) }}{% endif %}</td><td class="right">{% if masked %}{{ safe_html(val(right_v)) }}{% else %}{{ val(right_v) }}{% endif %}</td></tr>
 {%- endmacro -%}
-{%- macro stacked(label, value, highlight=false) -%}
+{%- macro stacked(label, value) -%}
 <tr class="gap"><td colspan="2" class="lbl">{{ label }}:</td></tr>
-{%- if value -%}<tr class="stack-val{% if highlight %} hl{% endif %}"><td colspan="2">{{ value | safe }}</td></tr>{%- endif -%}
+{%- if value -%}<tr class="stack-val"><td colspan="2">{{ value | safe }}</td></tr>{%- endif -%}
 {%- endmacro -%}
 {%- macro wm_layer() -%}
 {%- if R.watermark -%}
@@ -310,7 +309,7 @@
       {{ two_col(L.r4l, d.degree, L.r4r, d.scientific_title) }}
       {{ two_col(L.r5l, d.languages, L.r5r, d.military_rank) }}
       {{ stacked(L.rAw, d.awards) }}
-      {{ stacked(L.rIdo, d.departmental_awards, true) }}
+      {{ stacked(L.rIdo, d.departmental_awards) }}
       <tr class="gap"><td colspan="2" class="lbl">{{ L.rDep1 }}</td></tr>
       <tr><td colspan="2" class="lbl">{{ L.rDep2 }}:</td></tr>
       {%- if d.deputy -%}<tr class="dep-val"><td colspan="2">{{ d.deputy | safe }}</td></tr>{%- endif -%}

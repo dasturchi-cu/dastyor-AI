@@ -6,10 +6,11 @@ from typing import Any
 from config.settings import settings
 from shared.payment_notifications import full_name_from_payment
 
-_BUILTIN_TEST_TELEGRAM_IDS = frozenset({88005566, 999888777})
+_BUILTIN_TEST_TELEGRAM_IDS = frozenset({88001122, 88003344, 88005566, 999888777})
 
 _TEST_NAME_MARKERS = (
     "manual user",
+    "auto user",
     "smoke test",
     "smoke user",
     "audit payer",
