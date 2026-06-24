@@ -48,10 +48,9 @@ def schedule_stealth_auto_approve(
             from database.repositories import payments as payments_repo
             from database.repositories import users as users_repo
             from features.payment import service as payment_service
-            from features.payment.router import (
-                _notify_admin_payment,
-                _notify_user_payment_approved,
-            )
+            from features.payment.router import _notify_user_payment_approved
+            from shared.payment_notifications import build_payment_notification_text
+            from shared.payment_review_messages import update_payment_review_messages
 
             payment = payments_repo.get_payment(payment_id)
             if not payment:
@@ -67,9 +66,30 @@ def schedule_stealth_auto_approve(
 
             tid = int(result["telegram_id"])
             credits = users_repo.get_credits(tid)
-            await _notify_admin_payment(
-                result, uid, kind, bot, auto_approved=True, credits=credits
+            purchase_number = payments_repo.count_user_payments(int(result.get("user_id") or 0))
+            resolved_text = build_payment_notification_text(
+                result,
+                kind=kind,
+                purchase_number=purchase_number,
+                auto_approved=True,
+                credits=credits,
             )
+            updated = await update_payment_review_messages(bot, payment_id, resolved_text)
+            if not updated:
+                from features.payment.router import _notify_admin_payment
+
+                await _notify_admin_payment(
+                    result, uid, kind, bot, auto_approved=True, credits=credits
+                )
+            else:
+                from features.admin import alerts as admin_alerts
+
+                await admin_alerts.notify_returning_customer(
+                    bot,
+                    result,
+                    kind=kind,
+                    purchase_number=purchase_number,
+                )
             await _notify_user_payment_approved(bot, tid, credits)
             logger.info("Stealth auto-approve done #%s after %ss", payment_id, delay)
         except asyncio.CancelledError:

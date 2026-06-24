@@ -236,24 +236,37 @@ async def _notify_admin_payment(
         kb = None if auto_approved else payment_review_kb(pid)
         receipt_path = payment.get("receipt_path")
 
-        admin_chat = settings.premium_admin_group_id
-        support_chat = settings.support_group_id
-        targets: list[tuple[int, object | None]] = []
-        if admin_chat:
-            targets.append((admin_chat, kb))
-        if support_chat and support_chat != admin_chat:
-            targets.append((support_chat, None))
+        if auto_approved:
+            from shared.payment_review_messages import update_payment_review_messages
 
-        for chat_id, reply_markup in targets:
-            if receipt_path and os.path.isfile(receipt_path):
-                await bot.send_photo(
-                    chat_id,
-                    FSInputFile(receipt_path),
-                    caption=text,
-                    reply_markup=reply_markup,
-                )
-            else:
-                await bot.send_message(chat_id, text, reply_markup=reply_markup)
+            updated = await update_payment_review_messages(bot, pid, text)
+            if not updated and settings.premium_admin_group_id:
+                await bot.send_message(settings.premium_admin_group_id, text)
+        else:
+            admin_chat = settings.premium_admin_group_id
+            support_chat = settings.support_group_id
+            targets: list[tuple[int, object | None]] = []
+            if admin_chat:
+                targets.append((admin_chat, kb))
+            if support_chat and support_chat != admin_chat:
+                targets.append((support_chat, None))
+
+            for chat_id, reply_markup in targets:
+                sent = None
+                if receipt_path and os.path.isfile(receipt_path):
+                    sent = await bot.send_photo(
+                        chat_id,
+                        FSInputFile(receipt_path),
+                        caption=text,
+                        reply_markup=reply_markup,
+                    )
+                else:
+                    sent = await bot.send_message(chat_id, text, reply_markup=reply_markup)
+
+                if sent and reply_markup is not None:
+                    from shared.payment_review_messages import register_payment_review_message
+
+                    register_payment_review_message(pid, chat_id, sent.message_id)
 
         from features.admin import alerts as admin_alerts
 

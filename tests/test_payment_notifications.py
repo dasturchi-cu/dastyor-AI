@@ -7,6 +7,7 @@ from shared.payment_notifications import (
     build_daily_admin_report,
     build_payment_notification_text,
     build_returning_customer_alert,
+    format_datetime_uz,
     format_username,
     payment_list_line,
     purchase_ordinal,
@@ -26,7 +27,9 @@ class TestPaymentNotifications(unittest.TestCase):
         self.assertEqual(format_username(""), "Username yo'q")
 
     def test_split_datetime(self):
-        self.assertEqual(split_datetime("2026-06-22 21:35:10"), ("2026-06-22", "21:35"))
+        # SQLite UTC → Toshkent (UTC+5)
+        self.assertEqual(split_datetime("2026-06-22 21:35:10"), ("23.06.2026", "02:35"))
+        self.assertEqual(format_datetime_uz("2026-06-24 07:06:00"), "24.06.2026, 12:06")
 
     def test_payment_list_line(self):
         line = payment_list_line(
@@ -54,9 +57,10 @@ class TestPaymentNotifications(unittest.TestCase):
             kind="obyektivka",
             purchase_number=5,
         )
-        self.assertIn("YANGI TO'LOV", text)
+        self.assertIn("YANGI TO'LOV #154", text)
         self.assertIn("5-chi xarid", text)
         self.assertIn("Obyektivka", text)
+        self.assertIn("23.06.2026, 02:35", text)
 
     def test_build_daily_report_uz(self):
         text = build_daily_admin_report(

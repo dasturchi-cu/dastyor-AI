@@ -30,6 +30,8 @@ from features.admin.keyboards import (
 from features.admin.states import AdminStates
 from features.payment import service as payment_service
 from features.payment.auto_approve_scheduler import cancel_auto_approve
+from shared.payment_notifications import build_payment_notification_text
+from shared.payment_review_messages import clear_payment_review_messages
 from shared.async_db import run as db_run
 from shared.keyboards import admin_menu, is_admin_menu_button
 
@@ -534,6 +536,7 @@ async def payment_callback(query: CallbackQuery) -> None:
                 approved_by=query.from_user.id,
             )
             if result:
+                clear_payment_review_messages(pid)
                 admin_logs_repo.record(
                     query.from_user.id,
                     "payment_approve",
@@ -550,6 +553,17 @@ async def payment_callback(query: CallbackQuery) -> None:
                     payment_approved_message(credits),
                     reply_markup=open_services_inline(tid),
                 )
+                purchase_number = await db_run(
+                    payments_repo.count_user_payments, int(result.get("user_id") or 0)
+                )
+                kind = str(result.get("document_type") or "manual")
+                resolved = build_payment_notification_text(
+                    result,
+                    kind=kind,
+                    purchase_number=int(purchase_number or 1),
+                    auto_approved=True,
+                    credits=credits,
+                )
                 delivery_note = (
                     "\n📨 Foydalanuvchiga xabar yuborildi."
                     if notified
@@ -557,15 +571,14 @@ async def payment_callback(query: CallbackQuery) -> None:
                 )
                 await _update_payment_review_message(
                     query.message,
-                    f"✅ To'lov #{pid} tasdiqlandi.\n"
-                    f"Foydalanuvchi pul balansi: {credits} ta hujjat"
-                    f"{delivery_note}",
+                    f"{resolved}{delivery_note}",
                 )
             elif query.message:
                 await query.message.reply("Tasdiqlash xatosi — to'lov allaqachon ko'rib chiqilgan.")
         else:
             ok = await db_run(payment_service.reject_payment, pid)
             if ok:
+                clear_payment_review_messages(pid)
                 admin_logs_repo.record(
                     query.from_user.id,
                     "payment_reject",
@@ -584,9 +597,21 @@ async def payment_callback(query: CallbackQuery) -> None:
                     if notified
                     else "\nℹ️ Foydalanuvchiga xabar yetkazilmadi (chat topilmadi)."
                 )
+                resolved = ""
+                if payment:
+                    purchase_number = await db_run(
+                        payments_repo.count_user_payments, int(payment.get("user_id") or 0)
+                    )
+                    kind = str(payment.get("document_type") or "manual")
+                    resolved = build_payment_notification_text(
+                        payment,
+                        kind=kind,
+                        purchase_number=int(purchase_number or 1),
+                        rejected=True,
+                    )
                 await _update_payment_review_message(
                     query.message,
-                    f"❌ To'lov #{pid} rad etildi.{delivery_note}",
+                    f"{resolved or f'❌ To\'lov #{pid} rad etildi.'}{delivery_note}",
                 )
             elif query.message:
                 await query.message.reply("Rad etish xatosi.")

@@ -3,7 +3,9 @@ from __future__ import annotations
 
 import html
 import re
+from datetime import datetime
 from typing import Any
+from zoneinfo import ZoneInfo
 
 from config.settings import settings
 
@@ -46,18 +48,60 @@ def full_name_from_payment(payment: dict[str, Any]) -> str:
     return str(payment.get("payer_name") or "—").strip()
 
 
+def _report_tz() -> ZoneInfo:
+    try:
+        return ZoneInfo(settings.admin_report_timezone or "Asia/Tashkent")
+    except Exception:
+        return ZoneInfo("Asia/Tashkent")
+
+
+def _parse_utc_datetime(text: str) -> datetime | None:
+    raw = text.strip()
+    if not raw:
+        return None
+    if raw.endswith("Z"):
+        raw = raw[:-1] + "+00:00"
+    if "T" in raw:
+        try:
+            dt = datetime.fromisoformat(raw[:26])
+            if dt.tzinfo is None:
+                return dt.replace(tzinfo=ZoneInfo("UTC"))
+            return dt.astimezone(ZoneInfo("UTC"))
+        except ValueError:
+            pass
+    for fmt in ("%Y-%m-%d %H:%M:%S", "%Y-%m-%d %H:%M"):
+        try:
+            dt = datetime.strptime(raw[:19], fmt)
+            return dt.replace(tzinfo=ZoneInfo("UTC"))
+        except ValueError:
+            continue
+    match = re.match(r"(\d{4}-\d{2}-\d{2})\s+(\d{2}:\d{2})", raw)
+    if match:
+        try:
+            dt = datetime.strptime(f"{match.group(1)} {match.group(2)}", "%Y-%m-%d %H:%M")
+            return dt.replace(tzinfo=ZoneInfo("UTC"))
+        except ValueError:
+            return None
+    return None
+
+
 def split_datetime(created_at: str | None) -> tuple[str, str]:
+    """SQLite UTC vaqtini O'zbekiston (Toshkent) vaqtiga o'giradi."""
     if not created_at:
         return "—", "—"
-    text = str(created_at).strip()
-    if "T" in text:
-        date_part, time_part = text.split("T", 1)
-        time_part = time_part[:8]
-        return date_part[:10], time_part[:5]
-    match = re.match(r"(\d{4}-\d{2}-\d{2})\s+(\d{2}:\d{2})", text)
-    if match:
-        return match.group(1), match.group(2)
-    return text[:10], "—"
+    dt = _parse_utc_datetime(str(created_at))
+    if dt is None:
+        text = str(created_at).strip()
+        return text[:10], "—"
+    local = dt.astimezone(_report_tz())
+    return local.strftime("%d.%m.%Y"), local.strftime("%H:%M")
+
+
+def format_datetime_uz(created_at: str | None) -> str:
+    date_s, time_s = split_datetime(created_at)
+    if date_s == "—":
+        return "—"
+    return f"{date_s}, {time_s}"
 
 
 def payment_list_line(payment: dict[str, Any]) -> str:
@@ -73,6 +117,7 @@ def build_payment_notification_text(
     kind: str,
     purchase_number: int,
     auto_approved: bool = False,
+    rejected: bool = False,
     credits: int = 0,
 ) -> str:
     pid = int(payment["id"])
@@ -80,46 +125,29 @@ def build_payment_notification_text(
     full_name = html.escape(full_name_from_payment(payment))
     username = html.escape(format_username(payment.get("username")))
     document = html.escape(format_document_type(kind, payment))
-    date_s, time_s = split_datetime(payment.get("created_at"))
+    when = html.escape(format_datetime_uz(payment.get("created_at")))
     amount = f"{settings.single_doc_price_uzs:,} so'm"
+    purchase = html.escape(purchase_ordinal_uz(purchase_number))
 
     user_line = full_name
     if telegram_id:
         user_line = f'<a href="tg://user?id={telegram_id}">{full_name}</a>'
 
-    header = "✅ AVTOMATIK TASDIQLANDI" if auto_approved else "💳 YANGI TO'LOV"
+    if rejected:
+        header = f"❌ RAD ETILDI #{pid}"
+    elif auto_approved:
+        header = f"✅ TASDIQLANDI #{pid}"
+    else:
+        header = f"💳 YANGI TO'LOV #{pid}"
     lines = [
         f"<b>{header}</b>",
         "",
-        "To'lov ID:",
-        f"#{pid}",
-        "",
-        "Foydalanuvchi:",
-        user_line,
-        "",
-        "Username:",
-        username,
-        "",
-        "User ID:",
-        f"<code>{telegram_id}</code>" if telegram_id else "—",
-        "",
-        "Xarid raqami:",
-        html.escape(purchase_ordinal_uz(purchase_number)),
-        "",
-        "Hujjat turi:",
-        document,
-        "",
-        "Summa:",
-        amount,
-        "",
-        "Sana:",
-        date_s,
-        "",
-        "Vaqt:",
-        time_s,
+        f"👤 {user_line} · {username}",
+        f"📄 {document} · {purchase} · {amount}",
+        f"🕐 {when}",
     ]
     if auto_approved:
-        lines.extend(["", "Kredit balansi:", f"<b>{credits}</b>"])
+        lines.append(f"💳 Balans: <b>{credits}</b> ta")
     return "\n".join(lines)
 
 
@@ -152,19 +180,16 @@ def build_pending_payment_reminder(payment: dict[str, Any], *, hours_pending: in
     full_name = html.escape(full_name_from_payment(payment))
     username = html.escape(format_username(payment.get("username")))
     document = html.escape(format_document_type(None, payment))
-    date_s, time_s = split_datetime(payment.get("created_at"))
+    when = html.escape(format_datetime_uz(payment.get("created_at")))
     user_line = full_name
     if telegram_id:
         user_line = f'<a href="tg://user?id={telegram_id}">{full_name}</a>'
     return (
-        f"<b>⚠️ Kutilayotgan to'lov</b>\n\n"
-        f"To'lov ID: #{pid}\n"
-        f"Kutilmoqda: <b>{hours_pending}+ soat</b>\n\n"
-        f"Foydalanuvchi: {user_line}\n"
-        f"Username: {username}\n"
-        f"User ID: <code>{telegram_id}</code>\n"
-        f"Hujjat: {document}\n"
-        f"Yuborilgan: {date_s} {time_s}"
+        f"<b>⚠️ Kutilayotgan to'lov #{pid}</b>\n"
+        f"⏳ {hours_pending}+ soat kutmoqda\n\n"
+        f"👤 {user_line} · {username}\n"
+        f"📄 {document}\n"
+        f"🕐 {when}"
     )
 
 
@@ -183,9 +208,9 @@ def build_returning_customer_alert(
         user_line = f'<a href="tg://user?id={telegram_id}">{full_name}</a>'
     return (
         f"<b>🔥 QAYTA MIJOZ</b>\n\n"
-        f"Ism: {user_line}\n"
-        f"Username: {username}\n"
-        f"Xarid: {html.escape(purchase_ordinal_uz(purchase_number))}\n"
-        f"Oldingi tasdiqlangan: <b>{previous_approved}</b>\n"
-        f"To'lov ID: #{int(payment['id'])}"
+        f"👤 {user_line} · {username}\n"
+        f"📄 {html.escape(format_document_type(kind, payment))} · "
+        f"{html.escape(purchase_ordinal_uz(purchase_number))}\n"
+        f"Oldingi tasdiqlangan: <b>{previous_approved}</b> · "
+        f"To'lov #{int(payment['id'])}"
     )
