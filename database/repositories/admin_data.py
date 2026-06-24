@@ -161,6 +161,9 @@ def get_global_metrics() -> dict[str, Any]:
 
 
 def list_users_enriched(limit: int = 20, offset: int = 0) -> list[dict[str, Any]]:
+    from shared.payment_test_filter import filter_real_users
+
+    fetch = max(limit + offset, limit) * 4
     with get_connection() as conn:
         rows = conn.execute(
             """
@@ -174,14 +177,17 @@ def list_users_enriched(limit: int = 20, offset: int = 0) -> list[dict[str, Any]
                     WHERE g.user_id = u.id AND g.file_type = 'obyektivka') AS obyektivka_count
             FROM users u
             ORDER BY u.created_at DESC
-            LIMIT ? OFFSET ?
+            LIMIT ?
             """,
-            (limit, offset),
+            (fetch,),
         ).fetchall()
-    return [row_to_dict(r) for r in rows if r]
+    real = filter_real_users([row_to_dict(r) for r in rows if r])
+    return real[offset : offset + limit]
 
 
 def search_users_enriched(query: str, limit: int = 10) -> list[dict[str, Any]]:
+    from shared.payment_test_filter import filter_real_users
+
     q = (query or "").strip()
     if not q:
         return []
@@ -223,7 +229,7 @@ def search_users_enriched(query: str, limit: int = 10) -> list[dict[str, Any]]:
                 ),
                 (like, like, like, like, like, limit),
             ).fetchall()
-    return [row_to_dict(r) for r in rows if r]
+    return filter_real_users([row_to_dict(r) for r in rows if r])
 
 
 def list_payments_enriched(

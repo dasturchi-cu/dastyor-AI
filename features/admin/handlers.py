@@ -5,6 +5,7 @@ import asyncio
 import logging
 
 from aiogram import F, Router
+from aiogram.exceptions import TelegramBadRequest
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, FSInputFile, Message
@@ -51,6 +52,17 @@ async def _update_payment_review_message(message: Message | None, text: str) -> 
         await message.answer(text)
     except Exception as exc:
         logger.warning("Payment review message update failed: %s", exc)
+
+
+async def _notify_payment_user(bot, telegram_id: int, text: str) -> bool:
+    try:
+        await bot.send_message(telegram_id, text)
+        return True
+    except TelegramBadRequest as exc:
+        if "chat not found" in str(exc).lower():
+            logger.warning("Payment notify skipped — chat not found (telegram_id=%s)", telegram_id)
+            return False
+        raise
 
 
 # ── Global admin menu (har qanday FSM holatidan ishlaydi) ─────────────────
@@ -475,12 +487,18 @@ async def payment_callback(query: CallbackQuery) -> None:
                     f"✅ To'lov #{pid} tasdiqlandi.\n"
                     f"Foydalanuvchi pul balansi: {credits} ta hujjat",
                 )
-                await query.bot.send_message(
+                notified = await _notify_payment_user(
+                    query.bot,
                     tid,
                     f"✅ To'lovingiz tasdiqlandi!\n"
                     f"💳 Pul balansi: <b>{credits}</b> ta hujjat\n"
                     f"ℹ️ Har biri CV <b>yoki</b> Obyektivka uchun.",
                 )
+                if not notified and query.message:
+                    await query.message.reply(
+                        f"ℹ️ To'lov tasdiqlandi, lekin foydalanuvchiga xabar yuborilmadi "
+                        f"(chat topilmadi: {tid})."
+                    )
             elif query.message:
                 await query.message.reply("Tasdiqlash xatosi — to'lov allaqachon ko'rib chiqilgan.")
         else:
@@ -497,10 +515,16 @@ async def payment_callback(query: CallbackQuery) -> None:
                     f"❌ To'lov #{pid} rad etildi.",
                 )
                 if payment:
-                    await query.bot.send_message(
+                    notified = await _notify_payment_user(
+                        query.bot,
                         int(payment["telegram_id"]),
                         "❌ To'lovingiz rad etildi. Qayta urinib ko'ring.",
                     )
+                    if not notified and query.message:
+                        await query.message.reply(
+                            f"ℹ️ To'lov rad etildi, lekin foydalanuvchiga xabar yuborilmadi "
+                            f"(chat topilmadi: {payment['telegram_id']})."
+                        )
             elif query.message:
                 await query.message.reply("Rad etish xatosi.")
     except Exception as exc:

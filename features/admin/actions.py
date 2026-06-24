@@ -40,8 +40,7 @@ logger = logging.getLogger(__name__)
 
 async def handle_users(message: Message, state: FSMContext) -> None:
     await state.clear()
-    rows = await _run_sync(stats_repo.list_users_enriched, 200)
-    rows = filter_real_users(rows)[:20]
+    rows = await _run_sync(stats_repo.list_users_enriched, 20)
     total = await _run_sync(stats_repo.count_real_users)
     text = build_users_list_text(rows, total=total)
     await message.answer(text, reply_markup=admin_menu())

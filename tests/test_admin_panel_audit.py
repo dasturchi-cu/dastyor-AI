@@ -163,9 +163,11 @@ class TestAdminPanelAudit(unittest.TestCase):
         self.assertIn(str(metrics["users_count"]), text)
 
     def test_search_users_enriched(self) -> None:
-        rows = stats_repo.search_users_enriched(str(self._SEED_TID), 5)
+        real_tid = 8714123163
+        users_repo.upsert_user(real_tid, first_name="Real", last_name="SearchTest")
+        rows = stats_repo.search_users_enriched(str(real_tid), 5)
         self.assertGreater(len(rows), 0)
-        self.assertEqual(int(rows[0]["telegram_id"]), self._SEED_TID)
+        self.assertEqual(int(rows[0]["telegram_id"]), real_tid)
 
     def test_formatters_use_real_rows(self) -> None:
         users = stats_repo.list_users_enriched(3)

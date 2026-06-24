@@ -46,6 +46,8 @@ def top_payers(limit: int = 10) -> list[dict[str, Any]]:
 
 
 def export_users_rows() -> list[dict[str, Any]]:
+    from shared.payment_test_filter import filter_real_users
+
     with get_connection() as conn:
         rows = conn.execute(
             """
@@ -61,7 +63,7 @@ def export_users_rows() -> list[dict[str, Any]]:
             ORDER BY u.created_at DESC
             """
         ).fetchall()
-    return [row_to_dict(r) for r in rows if r]
+    return filter_real_users([row_to_dict(r) for r in rows if r])
 
 
 def export_payments_rows() -> list[dict[str, Any]]:

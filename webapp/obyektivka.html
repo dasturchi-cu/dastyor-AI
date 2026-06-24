@@ -292,7 +292,7 @@
               <div class="field">
                 <label id="lbl-nation">Millati</label>
                 <div class="ac-wrap">
-                  <input type="text" id="nation" placeholder="O'zbek" autocomplete="off" oninput="onSmartACInput(this,'nation');saveToLocal();updatePreview()" onfocus="onSmartACInput(this,'nation')" onblur="onSmartACBlur(this,'nation')">
+                  <input type="text" id="nation" placeholder="O'zbek" autocomplete="off" spellcheck="false" onkeydown="onSmartACKeydown(this,event)" oninput="onSmartACInput(this,'nation');saveToLocal();updatePreview()" onfocus="onSmartACFocus(this,'nation')" onblur="onSmartACBlur(this,'nation')">
                   <div id="suggest-nation" class="ac-suggest hidden"></div>
                 </div>
                 <datalist id="nation-list"></datalist>
@@ -301,7 +301,7 @@
             <div class="field">
               <label id="lbl-birthplace">Tug'ilgan joyi</label>
               <div class="ac-wrap">
-                <input type="text" id="birthplace" placeholder="Toshkent shahri" autocomplete="off" oninput="onSmartACInput(this,'birthplace');saveToLocal();updatePreview()" onfocus="onSmartACInput(this,'birthplace')" onblur="onSmartACBlur(this,'birthplace')">
+                <input type="text" id="birthplace" placeholder="Toshkent shahri" autocomplete="off" spellcheck="false" onkeydown="onSmartACKeydown(this,event)" oninput="onSmartACInput(this,'birthplace');saveToLocal();updatePreview()" onfocus="onSmartACFocus(this,'birthplace')" onblur="onSmartACBlur(this,'birthplace')">
                 <div id="suggest-birthplace" class="ac-suggest hidden"></div>
               </div>
             </div>
@@ -323,7 +323,7 @@
         </div>
         <div class="grid-2">
           <div class="field"><label id="lbl-party">Partiyaviyligi</label><input type="text" id="party" value="yo'q" oninput="saveToLocal();updatePreview()"></div>
-          <div class="field"><label id="lbl-edu">Ma'lumoti</label><div class="ac-wrap"><input type="text" id="edu" placeholder="Oliy" autocomplete="off" oninput="onSmartACInput(this,'edu');saveToLocal();updatePreview()" onfocus="onSmartACInput(this,'edu')" onblur="onSmartACBlur(this,'edu')"><div id="suggest-edu" class="ac-suggest hidden"></div></div><datalist id="edu-list"></datalist></div>
+          <div class="field"><label id="lbl-edu">Ma'lumoti</label><div class="ac-wrap"><input type="text" id="edu" placeholder="Oliy" autocomplete="off" spellcheck="false" onkeydown="onSmartACKeydown(this,event)" oninput="onSmartACInput(this,'edu');saveToLocal();updatePreview()" onfocus="onSmartACFocus(this,'edu')" onblur="onSmartACBlur(this,'edu')"><div id="suggest-edu" class="ac-suggest hidden"></div></div><datalist id="edu-list"></datalist></div>
           <div class="field"><label id="lbl-graduated">Tamomlagan</label><textarea id="graduated" rows="2" placeholder="OTM nomi" oninput="handleWX(this);saveToLocal();updatePreview()"></textarea></div>
           <div class="field"><label id="lbl-spec">Mutaxassisligi</label><input type="text" id="spec" placeholder="Mutaxassislik" oninput="saveToLocal();updatePreview()"></div>
           <div class="field"><label id="lbl-degree">Ilmiy darajasi</label><input type="text" id="degree" value="yo'q" oninput="saveToLocal();updatePreview()"></div>
@@ -686,12 +686,22 @@ function getACSegment(val){
   return {prefix:parts.slice(0,-1).join(','),segment:(parts[parts.length-1]||'').replace(/^\s+/,''),hasComma:parts.length>1};
 }
 
-function resolveACAlias(type, segment){
+function resolveACAliasExact(type, segment){
   var opts=getACOptions(type);
   var aliases=getACAliasIdx(type);
   var key=normalizeAC(segment);
   if(!key) return null;
   if(aliases[key]!=null && opts[aliases[key]]) return opts[aliases[key]];
+  return null;
+}
+
+function resolveACAlias(type, segment){
+  var exact=resolveACAliasExact(type, segment);
+  if(exact) return exact;
+  var opts=getACOptions(type);
+  var aliases=getACAliasIdx(type);
+  var key=normalizeAC(segment);
+  if(!key) return null;
   for(var k in aliases){
     if(!Object.prototype.hasOwnProperty.call(aliases,k)) continue;
     if(key.indexOf(k)===0 || k.indexOf(key)===0){
@@ -754,25 +764,35 @@ function applyACSelection(input, type, selected, autoComma){
   try{saveToLocal();updatePreview();}catch(e){}
 }
 
+function onSmartACKeydown(input, e){
+  if(!input || !e) return;
+  if(e.key==='Backspace' || e.key==='Delete'){
+    input.dataset.acDeleting='1';
+  }
+}
+
 function onSmartACInput(input, type){
   if(!input) return;
+  var prevLen=parseInt(input.dataset.acPrevLen||String((input.value||'').length),10);
+  var curLen=(input.value||'').length;
+  var isDeleting=input.dataset.acDeleting==='1' || curLen<prevLen;
+  input.dataset.acDeleting='';
+  input.dataset.acPrevLen=String(curLen);
   var info=getACSegment(input.value);
   var segment=info.segment;
   var suggest=document.getElementById('suggest-'+type);
   if(!suggest) return;
   if(!segment){ suggest.classList.add('hidden'); return; }
   var matches=filterACOptions(type, segment);
-  if(matches.length===1){
-    var aliasHit=resolveACAlias(type, segment);
-    var minLen=aliasHit?2:3;
-    if(normalizeAC(segment).length>=minLen){
-      var exact=matches[0];
-      if(aliasHit || normalizeAC(exact).indexOf(normalizeAC(segment))===0){
-        var autoComma=(type==='birthplace');
-        input.value=buildACValue(info.prefix, segment, exact, autoComma);
-        segment=exact;
-        matches=filterACOptions(type, segment);
-      }
+  if(!isDeleting){
+    var aliasHit=resolveACAliasExact(type, segment);
+    if(aliasHit && normalizeAC(segment).length>=2){
+      var autoComma=(type==='birthplace');
+      input.value=buildACValue(info.prefix, segment, aliasHit, autoComma);
+      segment=aliasHit;
+      info=getACSegment(input.value);
+      matches=filterACOptions(type, segment);
+      input.dataset.acPrevLen=String((input.value||'').length);
     }
   }
   if(matches.length===0){ suggest.classList.add('hidden'); return; }
@@ -782,21 +802,20 @@ function onSmartACInput(input, type){
   suggest.classList.remove('hidden');
 }
 
+function onSmartACFocus(input, type){
+  if(input) input.dataset.acPrevLen=String((input.value||'').length);
+  onSmartACInput(input, type);
+}
+
 function onSmartACBlur(input, type){
   setTimeout(function(){
     closeACSuggest(type);
     if(!input) return;
     var info=getACSegment(input.value);
     if(!info.segment) return;
-    var alias=resolveACAlias(type, info.segment);
+    var alias=resolveACAliasExact(type, info.segment);
     if(alias){
       input.value=buildACValue(info.prefix, info.segment, alias, type==='birthplace');
-      try{saveToLocal();updatePreview();}catch(e){}
-      return;
-    }
-    var matches=filterACOptions(type, info.segment);
-    if(matches.length===1){
-      input.value=buildACValue(info.prefix, info.segment, matches[0], type==='birthplace');
       try{saveToLocal();updatePreview();}catch(e){}
     }
   }, 160);

@@ -191,11 +191,51 @@ def search_users(query: str, limit: int = 10) -> list[dict[str, Any]]:
 
 
 def list_broadcast_targets() -> list[int]:
+    from shared.payment_test_filter import is_test_user
+
     with get_connection() as conn:
         rows = conn.execute(
-            "SELECT telegram_id FROM users WHERE is_blocked = 0 ORDER BY id"
+            """
+            SELECT telegram_id, username, first_name, last_name
+            FROM users WHERE is_blocked = 0 ORDER BY id
+            """
         ).fetchall()
-    return [int(r["telegram_id"]) for r in rows if r]
+    out: list[int] = []
+    for row in rows:
+        user = row_to_dict(row)
+        if user and not is_test_user(user):
+            out.append(int(user["telegram_id"]))
+    return out
+
+
+def purge_test_users() -> list[int]:
+    """Test/audit foydalanuvchilarni va ularning ma'lumotlarini o'chirish (CASCADE)."""
+    from config.settings import settings
+    from shared.payment_test_filter import is_test_user
+
+    protect: set[int] = set(settings.admin_user_ids or ())
+
+    deleted: list[int] = []
+    with get_connection() as conn:
+        rows = conn.execute(
+            "SELECT id, telegram_id, username, first_name, last_name FROM users"
+        ).fetchall()
+        for row in rows:
+            user = row_to_dict(row) or {}
+            tid = int(user.get("telegram_id") or 0)
+            if tid in protect or not is_test_user(user):
+                continue
+            conn.execute("DELETE FROM users WHERE id = ?", (int(user["id"]),))
+            deleted.append(tid)
+
+    if deleted:
+        try:
+            from database.repositories.admin_data import invalidate_metrics_cache
+
+            invalidate_metrics_cache()
+        except Exception:
+            pass
+    return deleted
 
 
 def get_profile_stats(telegram_id: int) -> dict[str, Any] | None:
