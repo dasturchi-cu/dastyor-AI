@@ -17,7 +17,7 @@
   var WRAP_TRANSITION = 'width 200ms cubic-bezier(0.4, 0, 0.2, 1), height 200ms cubic-bezier(0.4, 0, 0.2, 1)';
   var PAGE_GAP = 12;
   var FETCH_TIMEOUT_MS = 120000;
-  var RENDER_TIMEOUT_MS = 45000;
+  var RENDER_TIMEOUT_MS = preferWorkerlessPdf() ? 90000 : 45000;
 
   var PDF_JS_URLS = [
     'vendor/pdf.min.js',
@@ -44,6 +44,24 @@
     } catch (_) {
       return false;
     }
+  }
+
+  function isMobileDevice() {
+    try {
+      var ua = String((global.navigator && global.navigator.userAgent) || '');
+      return /Android|iPhone|iPad|iPod|Mobile|Telegram/i.test(ua);
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /** Telegram iOS/Android WebView: PDF worker va iframe ishlamaydi. */
+  function preferWorkerlessPdf() {
+    return isTelegramWebView() || isMobileDevice();
+  }
+
+  function previewRenderScale() {
+    return preferWorkerlessPdf() ? 1.0 : 1.5;
   }
 
   function getApiBase() {
@@ -195,22 +213,31 @@
 
   function configurePdfWorker(pdfjs, workerIndex) {
     if (!pdfjs || !pdfjs.GlobalWorkerOptions) return;
+    if (preferWorkerlessPdf()) return;
     var idx = workerIndex || 0;
     pdfjs.GlobalWorkerOptions.workerSrc = webappAssetUrl(PDF_WORKER_URLS[idx] || PDF_WORKER_URLS[0]);
   }
 
   function loadPdfDocument(pdfjs, buf) {
-    var baseOpts = { data: buf, disableFontFace: true, useSystemFonts: true };
-    return pdfjs.getDocument(baseOpts).promise.catch(function (workerErr) {
-      try {
-        return pdfjs.getDocument(Object.assign({}, baseOpts, {
-          useWorkerFetch: false,
-          isEvalSupported: false,
-        })).promise;
-      } catch (_) {
-        throw workerErr;
-      }
+    var workerless = preferWorkerlessPdf();
+    var attempts = workerless
+      ? [
+          { disableWorker: true, disableFontFace: false, useSystemFonts: true },
+          { disableWorker: true, disableFontFace: true, useSystemFonts: true },
+          { disableWorker: true, useSystemFonts: true, useWorkerFetch: false, isEvalSupported: false },
+        ]
+      : [
+          { disableFontFace: true, useSystemFonts: true },
+          { disableWorker: true, disableFontFace: false, useSystemFonts: true },
+          { disableWorker: true, disableFontFace: true, useSystemFonts: true },
+        ];
+    var chain = Promise.reject(new Error('start'));
+    attempts.forEach(function (opts) {
+      chain = chain.catch(function () {
+        return pdfjs.getDocument(Object.assign({ data: buf }, opts)).promise;
+      });
     });
+    return chain;
   }
 
   function loadScriptOnce(url) {
@@ -371,6 +398,51 @@
     setTimeout(layoutOnce, 500);
   }
 
+  function appendPreviewPage(host, canvas, pw, ph) {
+    if (preferWorkerlessPdf()) {
+      var img = document.createElement('img');
+      img.className = 'oby-preview-page';
+      img.dataset.pageWidth = String(pw);
+      img.dataset.pageHeight = String(ph);
+      img.alt = 'Obyektivka preview';
+      img.decoding = 'async';
+      img.loading = 'lazy';
+      try {
+        img.src = canvas.toDataURL('image/jpeg', 0.9);
+        host.appendChild(img);
+        return;
+      } catch (_) {}
+    }
+    canvas.className = 'oby-preview-page';
+    canvas.dataset.pageWidth = String(pw);
+    canvas.dataset.pageHeight = String(ph);
+    host.appendChild(canvas);
+  }
+
+  function showPdfEmbed(blob, reqId) {
+    if (reqId != null && reqId !== previewRequestId) return;
+    var host = getPreviewHost();
+    var iframe = getPreviewIframe();
+    if (!host) throw new Error('Preview host topilmadi');
+
+    clearPreviewError();
+    if (iframe) {
+      iframe.hidden = true;
+      iframe.style.display = 'none';
+      iframe.removeAttribute('src');
+    }
+    revokeIframeBlob();
+    host.innerHTML = '';
+    host.style.display = 'block';
+    _iframeBlobUrl = URL.createObjectURL(blob);
+    var embed = document.createElement('embed');
+    embed.type = 'application/pdf';
+    embed.src = _iframeBlobUrl + '#toolbar=0&navpanes=0&scrollbar=0';
+    embed.className = 'oby-preview-embed';
+    embed.style.cssText = 'width:100%;min-height:min(68vh,560px);height:min(68vh,560px);border:0;display:block;background:#fff';
+    host.appendChild(embed);
+  }
+
   function showPdfIframe(blob, reqId) {
     if (reqId != null && reqId !== previewRequestId) return;
     var host = getPreviewHost();
@@ -456,40 +528,46 @@
     host.style.width = 'auto';
     host.style.height = 'auto';
 
-    var renderScale = 1.5;
+    var renderScale = previewRenderScale();
     var firstPageW = 0;
     var firstPageH = 0;
     var totalH = 0;
     var maxW = 0;
+    var rendered = 0;
 
     for (var pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
-      var page = await pdf.getPage(pageNum);
-      if (reqId != null && reqId !== previewRequestId) return;
-      var viewport = page.getViewport({ scale: renderScale });
-      var pw = Math.floor(viewport.width);
-      var ph = Math.floor(viewport.height);
+      try {
+        var page = await pdf.getPage(pageNum);
+        if (reqId != null && reqId !== previewRequestId) return;
+        var viewport = page.getViewport({ scale: renderScale });
+        var pw = Math.floor(viewport.width);
+        var ph = Math.floor(viewport.height);
 
-      var canvas = document.createElement('canvas');
-      canvas.width = pw;
-      canvas.height = ph;
-      canvas.className = 'oby-preview-page';
-      canvas.dataset.pageWidth = String(pw);
-      canvas.dataset.pageHeight = String(ph);
-      await page.render({
-        canvasContext: canvas.getContext('2d'),
-        viewport: viewport,
-      }).promise;
-      if (reqId != null && reqId !== previewRequestId) return;
+        var canvas = document.createElement('canvas');
+        canvas.width = pw;
+        canvas.height = ph;
+        await page.render({
+          canvasContext: canvas.getContext('2d'),
+          viewport: viewport,
+        }).promise;
+        if (reqId != null && reqId !== previewRequestId) return;
 
-      host.appendChild(canvas);
+        appendPreviewPage(host, canvas, pw, ph);
+        rendered += 1;
 
-      if (pageNum === 1) {
-        firstPageW = pw;
-        firstPageH = ph;
+        if (pageNum === 1) {
+          firstPageW = pw;
+          firstPageH = ph;
+        }
+        maxW = Math.max(maxW, pw);
+        totalH += ph + (pageNum < pdf.numPages ? PAGE_GAP : 0);
+      } catch (pageErr) {
+        if (rendered === 0) throw pageErr;
+        break;
       }
-      maxW = Math.max(maxW, pw);
-      totalH += ph + (pageNum < pdf.numPages ? PAGE_GAP : 0);
     }
+
+    if (!rendered) throw new Error('PDF sahifalari chizilmadi');
 
     host.dataset.docWidth = String(Math.ceil(maxW));
     host.dataset.docHeight = String(Math.ceil(totalH));
@@ -508,6 +586,14 @@
 
     try {
       await renderPreviewPdfImages(blob, reqId);
+      return;
+    } catch (err) {
+      errors.push(err);
+    }
+
+    try {
+      await showPdfEmbed(blob, reqId);
+      schedulePreviewLayout(reqId);
       return;
     } catch (err) {
       errors.push(err);
@@ -588,6 +674,9 @@
       el.style.display = 'block';
       el.style.margin = '0 auto';
       el.style.marginBottom = (i < pages.length - 1) ? PAGE_GAP + 'px' : '0';
+      if (el.tagName === 'IMG') {
+        el.style.objectFit = 'contain';
+      }
       maxW = Math.max(maxW, w);
       totalH += h + (i < pages.length - 1 ? PAGE_GAP : 0);
     }
