@@ -23,6 +23,7 @@ from features.obyektivka.docx_typography import (
 
 from features.obyektivka.spacing_config import (
     DOCX_GRID_BEFORE_TWIPS,
+    DOCX_FIELD_ROW_BEFORE_TWIPS,
     DOCX_MEHNAT_BEFORE_TWIPS,
 )
 
@@ -31,6 +32,7 @@ FONT_TIMES = "Times New Roman"
 # Namuna DOCX: ko'p joylarda line=240 (single); shablon klonida allaqachon bor.
 SP_LINE_REF = 240
 SP_GRID_BEFORE = DOCX_GRID_BEFORE_TWIPS
+SP_FIELD_ROW_BEFORE = DOCX_FIELD_ROW_BEFORE_TWIPS
 SP_MEHNAT_BEFORE = DOCX_MEHNAT_BEFORE_TWIPS
 PAGE_MARGIN_TOP_BOTTOM_MM = 20
 PAGE_MARGIN_LEFT_RIGHT_MM = 18
@@ -377,6 +379,7 @@ def enforce_reference_polish(root: etree._Element, context: dict[str, str] | Non
             grid_marked = True
 
         if _is_label_paragraph(text):
+            _set_spacing_if_missing(ppr, before=SP_FIELD_ROW_BEFORE, after=0)
             for r_el in p_el.findall(f".//{W}r"):
                 rt = _run_text(r_el).strip()
                 if not rt:

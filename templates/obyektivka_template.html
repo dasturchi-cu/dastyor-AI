@@ -13,7 +13,7 @@
     html, body {
       font-family: "Times Uzb Roman", "Times New Roman", Times, "Liberation Serif", serif;
       font-size: 11pt;
-      line-height: 1;
+      line-height: 1.15;
       color: #000;
       background: #fff;
       -webkit-print-color-adjust: exact;
@@ -106,7 +106,7 @@
     .hdr-block { position: relative; min-height: var(--hdr-block-min-h, 28mm); margin-bottom: 0.5mm; padding-right: 21.24mm; }
     .photo-float {
       position: absolute;
-      top: 0;
+      top: 4.99mm;
       right: 0;
       width: 30mm;
       height: 40mm;
@@ -147,7 +147,7 @@
     }
 
     .current-job {
-      margin: 0 0 var(--current-job-bottom, 2mm) 0;
+      margin: 0 0 var(--current-job-bottom, 2.82mm) 0;
       font-size: 11pt;
       line-height: 1.15;
       text-align: center;
@@ -165,18 +165,21 @@
     }
 
     .fields { width: 100%; border-collapse: collapse; table-layout: fixed; }
-    .fields td { border: none; vertical-align: top; padding: 0; font-size: 11pt; line-height: 1; }
+    .fields td { border: none; vertical-align: top; padding: 0; font-size: 11pt; line-height: 1.15; }
     .fields .left { width: 43%; padding-right: 2mm; }
     .fields .right { width: 57%; }
-    .fields tr.gap td { padding-top: var(--field-row-gap, 1.8mm); }
+    .fields tr.gap td { padding-top: var(--field-row-gap, 2.82mm); }
+    .fields tr.val-row td { padding-top: 0; }
     .fields .lbl { font-weight: bold; }
     .fields .val-row td {
-      padding-left: 76.2mm;
-      text-indent: -76.2mm;
       font-weight: normal;
     }
     .fields .val-row td.has-val { text-decoration: underline; }
-    .fields .val-row.first td { padding-right: 35.56mm; }
+    
+    /* Make space for the photo on the first 3 rows of the right column */
+    .fields tr:nth-child(-n+6) td.right {
+      padding-right: 32mm;
+    }
     .fields .inline-row td { padding-left: 28.61mm; text-indent: -28.61mm; font-weight: normal; }
     .fields .inline-row .lbl { font-weight: bold; }
     .fields .inline-row .field-val.has-val {
@@ -210,11 +213,11 @@
       text-align: center;
       font-weight: bold;
       font-size: 14pt;
-      margin: var(--sect-work-mt, 1.2mm) 0 var(--sect-work-mb, 1mm);
-      line-height: 1;
+      margin: var(--sect-work-mt, 1.41mm) 0 var(--sect-work-mb, 1.41mm);
+      line-height: 1.15;
     }
     .work-item {
-      margin: var(--work-item-gap, 0.8mm) 0 0;
+      margin: var(--work-item-gap, 1.41mm) 0 0;
       font-size: 11pt;
       line-height: 1.15;
       padding-left: 28.61mm;
@@ -363,14 +366,14 @@
 <div class="page">
   {{ wm_layer() }}
   <div class="page-content">
+    <div class="photo-float">
+      {%- if d.img -%}
+      <img src="{{ d.img }}" alt="">
+      {%- else -%}
+      {{ L.photo_hint }}
+      {%- endif -%}
+    </div>
     <div class="hdr-block">
-      <div class="photo-float">
-        {%- if d.img -%}
-        <img src="{{ d.img }}" alt="">
-        {%- else -%}
-        {{ L.photo_hint }}
-        {%- endif -%}
-      </div>
       <div class="hdr-title">{{ L.title }}</div>
       <div class="hdr-gap"></div>
       <div class="hdr-name">{{ fn }}</div>
