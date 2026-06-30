@@ -38,6 +38,9 @@ def _libreoffice_pdf(docx_path: Path, out_dir: Path) -> bytes | None:
                 "--headless",
                 "--nologo",
                 "--nofirststartwizard",
+                "--norestore",          # crash recovery dialog ochilmasin
+                "--nolockcheck",        # lock fayl tekshiruvi o'tkazib yuborish
+                "--disable-crash-report",
                 "--convert-to",
                 "pdf",
                 "--outdir",
@@ -46,7 +49,8 @@ def _libreoffice_pdf(docx_path: Path, out_dir: Path) -> bytes | None:
             ],
             check=True,
             capture_output=True,
-            timeout=120,
+            timeout=90,  # 120 o'rniga 90s — tez xato aniqlansin
+            env={**os.environ, "HOME": "/tmp", "TMPDIR": str(out_dir)},
         )
         pdf_path = out_dir / f"{docx_path.stem}.pdf"
         if pdf_path.is_file():

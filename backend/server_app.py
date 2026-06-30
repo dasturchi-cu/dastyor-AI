@@ -14,6 +14,7 @@ from backend.middleware.gzip_safe import SelectiveGZipMiddleware
 from backend.middleware.global_rate_limit import register_global_rate_limit_middleware
 from backend.middleware.origin_guard import register_origin_guard_middleware
 from backend.middleware.security_headers import register_security_headers_middleware
+from backend.middleware.static_cache import register_static_cache_middleware
 
 from backend.exception_handlers import register_exception_handlers
 from backend.middleware.maintenance import register_maintenance_middleware
@@ -130,6 +131,7 @@ def create_webhook_app() -> FastAPI:
     app.add_middleware(PerformanceMiddleware)
     register_webapp_middleware(app)
     register_maintenance_middleware(app)
+    register_static_cache_middleware(app)  # static JS/CSS/HTML cache headers
     register_exception_handlers(app)
 
     app.include_router(site_router)
