@@ -36,6 +36,12 @@ async def favicon():
     return Response(status_code=204)
 
 
+@router.get("/ping", include_in_schema=False)
+async def ping():
+    """UptimeRobot keep-alive — DB tekshiruvisiz, ultra-yengil."""
+    return {"pong": True, "time": time.time()}
+
+
 @router.get("/health")
 async def health():
     redis_status = "disabled"
