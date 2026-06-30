@@ -130,7 +130,7 @@ class TestObyektivkaTypography(unittest.TestCase):
         job_runs = find_runs_containing(root, job)
         self.assertTrue(year_runs)
         self.assertTrue(job_runs)
-        self.assertFalse(_is_bold_run(year_runs[0]))
+        self.assertTrue(_is_bold_run(year_runs[0]))
         self.assertFalse(run_has_underline(job_runs[0]), "namuna: hozirgi ish chiziqsiz")
 
 

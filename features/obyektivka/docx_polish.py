@@ -306,7 +306,7 @@ def enforce_reference_polish(root: etree._Element, context: dict[str, str] | Non
         if hozirgi_yil and _is_current_job_year(text, hozirgi_yil):
             for r_el in p_el.findall(f".//{W}r"):
                 if _run_text(r_el).strip():
-                    apply_form_value_rpr(r_el)
+                    apply_label_rpr(r_el)  # Year line must be bold
             continue
 
         if hozirgi_ish and _is_current_job_title(text, hozirgi_ish):
@@ -378,8 +378,13 @@ def enforce_reference_polish(root: etree._Element, context: dict[str, str] | Non
 
         if _is_label_paragraph(text):
             for r_el in p_el.findall(f".//{W}r"):
-                if _run_text(r_el).strip():
+                rt = _run_text(r_el).strip()
+                if not rt:
+                    continue
+                if rt.endswith(":") or "мутахассислиги" in rt:
                     apply_label_rpr(r_el)
+                else:
+                    apply_form_value_rpr(r_el)
         else:
             for r_el in p_el.findall(f".//{W}r"):
                 rt = _run_text(r_el).strip()

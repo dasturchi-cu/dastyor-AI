@@ -1459,7 +1459,7 @@
       } else {
         fromServer = await loadFromServer();
       }
-      if (!fromServer && !autoload) {
+      if (!fromServer) {
         loadFromLocalStorage();
       }
       try { triggerUpdate(false, { immediatePreview: true }); } catch (_) {}

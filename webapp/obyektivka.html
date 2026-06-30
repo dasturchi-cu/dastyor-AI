@@ -1029,6 +1029,12 @@ function onSmartACInput(input, type, forceShow){
 
 function onSmartACFocus(input, type){
   if(!input) return;
+  document.querySelectorAll('.ac-suggest, .work-suggest, .year-suggest').forEach(function(el){
+    var suggestId=input.dataset.acSuggest||('suggest-'+type);
+    if(el.id !== suggestId && !el.classList.contains('hidden')){
+      el.classList.add('hidden');
+    }
+  });
   input.dataset.acPrevLen=String((input.value||'').length);
   onSmartACInput(input, type, true);
   setTimeout(function(){ if(document.activeElement===input) onSmartACInput(input, type, true); }, 60);
@@ -1036,14 +1042,6 @@ function onSmartACFocus(input, type){
 
 function onSmartACBlur(input, type){
   setTimeout(function(){
-    if(acSuggestPicking){
-      acSuggestPicking=false;
-      return;
-    }
-    var suggestId=input&&input.dataset.acSuggest?input.dataset.acSuggest:('suggest-'+type);
-    var el=document.getElementById(suggestId);
-    if(el) el.classList.add('hidden');
-    closeACSuggest(type);
     if(!input) return;
     if(acValNoTypes.indexOf(type)>=0 && !String(input.value||'').trim()){
       input.value=(dict[currentLang]||{}).val_no||"yo'q";
@@ -1432,6 +1430,14 @@ function onACPickPointer(e){
     if(ylist && !isNaN(yidx) && yidx>=0 && yidx<ylist.length){
       pickWorkYearValue(yitem.closest('.ac-wrap'), ylist[yidx]);
     }
+    return;
+  }
+  var isInput = e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA';
+  var isSuggest = e.target.closest('.ac-suggest, .work-suggest, .year-suggest');
+  if(!isInput && !isSuggest){
+    document.querySelectorAll('.ac-suggest, .work-suggest, .year-suggest').forEach(function(el){
+      el.classList.add('hidden');
+    });
   }
 }
 
@@ -1779,9 +1785,7 @@ function initApp(lang){
   try{refreshWorkDateUi();}catch(e){}
   setupEventListeners();
   migrateLegacyObyDraft(resolveTelegramId());
-  var autoload = false;
-  try{ autoload = new URLSearchParams(window.location.search).get('autoload') === '1'; }catch(e){}
-  if(!autoload) loadFromLocal();
+  loadFromLocal();
   try{ensureDefaultWorkRow();}catch(e){}
   try{validateAllDateFields();}catch(e){}
   // Convert values AFTER localStorage restore so everything switches script

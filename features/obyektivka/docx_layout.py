@@ -178,7 +178,7 @@ def _style_current_job_block(body: etree._Element, ctx: dict[str, str]) -> int:
         p_year = paragraphs[year_idx]
         for r_el in p_year.findall(f".//{W}r"):
             if _run_text(r_el).strip():
-                apply_form_value_rpr(r_el)
+                apply_label_rpr(r_el)
         styled += 1
 
     if job_idx is not None:
