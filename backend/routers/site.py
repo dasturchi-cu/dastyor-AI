@@ -62,7 +62,7 @@ async def health():
 
 @router.get("/webapp")
 async def webapp_root():
-    return _index_response()
+    return RedirectResponse(url="/webapp/")
 
 
 @router.get("/webapp/")
