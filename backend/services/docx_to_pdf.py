@@ -31,35 +31,60 @@ def _libreoffice_pdf(docx_path: Path, out_dir: Path) -> bytes | None:
     soffice = _find_soffice()
     if not soffice:
         return None
+
+    # Har bir konvertatsiya uchun alohida profil papkasi —
+    # parallel so'rovlarda LibreOffice profili to'qnashmasin.
+    import uuid
+    profile_dir = out_dir / f"lo_profile_{uuid.uuid4().hex}"
+    profile_dir.mkdir(parents=True, exist_ok=True)
+    user_install = f"file://{profile_dir}"
+
     try:
-        subprocess.run(
+        result = subprocess.run(
             [
                 soffice,
+                f"-env:UserInstallation={user_install}",
                 "--headless",
                 "--nologo",
                 "--nofirststartwizard",
-                "--norestore",          # crash recovery dialog ochilmasin
-                "--nolockcheck",        # lock fayl tekshiruvi o'tkazib yuborish
-                "--disable-crash-report",
+                "--norestore",
+                "--nolockcheck",
                 "--convert-to",
                 "pdf",
                 "--outdir",
                 str(out_dir),
                 str(docx_path),
             ],
-            check=True,
+            check=False,
             capture_output=True,
-            timeout=90,  # 120 o'rniga 90s — tez xato aniqlansin
-            env={**os.environ, "HOME": "/tmp", "TMPDIR": str(out_dir)},
+            timeout=90,
+            env={**os.environ, "HOME": str(profile_dir), "TMPDIR": str(out_dir)},
         )
+        if result.returncode != 0:
+            stderr_msg = (result.stderr or b"").decode("utf-8", errors="replace")[:600]
+            stdout_msg = (result.stdout or b"").decode("utf-8", errors="replace")[:400]
+            logger.warning(
+                "LibreOffice exit %s stderr=%r stdout=%r",
+                result.returncode, stderr_msg, stdout_msg,
+            )
+            from shared.error_log import record_error
+            record_error("pdf", f"LibreOffice exit {result.returncode}: {stderr_msg[:300]}")
+            return None
+
         pdf_path = out_dir / f"{docx_path.stem}.pdf"
         if pdf_path.is_file():
             return pdf_path.read_bytes()
+        logger.warning("LibreOffice succeeded but PDF not found: %s", pdf_path)
+    except subprocess.TimeoutExpired:
+        logger.warning("LibreOffice DOCX→PDF timeout (90s)")
+        from shared.error_log import record_error
+        record_error("pdf", "LibreOffice timeout 90s")
     except Exception as exc:
         logger.warning("LibreOffice DOCX→PDF failed: %s", exc)
         from shared.error_log import record_error
-
         record_error("pdf", f"LibreOffice DOCX→PDF: {exc}")
+    finally:
+        shutil.rmtree(str(profile_dir), ignore_errors=True)
     return None
 
 
