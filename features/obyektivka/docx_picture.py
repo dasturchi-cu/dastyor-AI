@@ -146,6 +146,10 @@ def add_floating_picture(
     pos_v.append(off_v)
     anchor.append(pos_v)
 
+    # Make the photo float over the text without wrapping (matches VML styling)
+    wrap_none = OxmlElement("wp:wrapNone")
+    anchor.append(wrap_none)
+
     extent = inline.find(qn("wp:extent"))
     if extent is not None:
         anchor.append(deepcopy(extent))
