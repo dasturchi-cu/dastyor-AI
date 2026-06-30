@@ -128,7 +128,7 @@ def add_floating_picture(
     anchor.append(simple_pos)
 
     pos_h = OxmlElement("wp:positionH")
-    pos_h.set(qn("wp:relativeFrom"), "page" if relative_from_page else "column")
+    pos_h.set(qn("wp:relativeFrom"), "page" if relative_from_page else "margin")
     if pos_x is not None:
         off = OxmlElement("wp:posOffset")
         off.text = str(_emu(pos_x))
@@ -140,7 +140,7 @@ def add_floating_picture(
     anchor.append(pos_h)
 
     pos_v = OxmlElement("wp:positionV")
-    pos_v.set(qn("wp:relativeFrom"), "page" if relative_from_page else "paragraph")
+    pos_v.set(qn("wp:relativeFrom"), "page" if relative_from_page else "margin")
     off_v = OxmlElement("wp:posOffset")
     off_v.text = str(_emu(pos_y or Emu(0)))
     pos_v.append(off_v)
@@ -205,7 +205,7 @@ def add_reference_photo(paragraph: Paragraph, image_path: str) -> None:
         height=Pt(PHOTO_VML_HEIGHT_PT),
         pos_x=Pt(PHOTO_VML_MARGIN_LEFT_PT),
         pos_y=Pt(PHOTO_VML_MARGIN_TOP_PT),
-        relative_from_page=True,
+        relative_from_page=False,
     )
 
 

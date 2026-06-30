@@ -30,8 +30,8 @@ PHOTO_HEIGHT_MM = 40
 # Namuna VML v:rect (pt) — PPT A4: o'ng 18mm, yuqori 20mm, 3×4 sm
 PHOTO_VML_WIDTH_PT = 85.05   # 30 mm
 PHOTO_VML_HEIGHT_PT = 113.4  # 40 mm
-PHOTO_VML_MARGIN_LEFT_PT = 459.0  # sahifa chapidan (210mm - 18mm - 30mm)
-PHOTO_VML_MARGIN_TOP_PT = 57.0   # sahifa tepasidan (~20mm)
+PHOTO_VML_MARGIN_LEFT_PT = 406.0  # margin chapidan (143.1mm offset)
+PHOTO_VML_MARGIN_TOP_PT = 14.1   # margin tepasidan (4.99mm offset)
 PHOTO_VML_Z_INDEX = 251659264
 PHOTO_OFFSET_LEFT_MM = round(PHOTO_VML_MARGIN_LEFT_PT * 25.4 / 72 - PAGE_MARGIN_LEFT_MM, 2)
 PHOTO_OFFSET_TOP_MM = round(PHOTO_VML_MARGIN_TOP_PT * 25.4 / 72, 2)

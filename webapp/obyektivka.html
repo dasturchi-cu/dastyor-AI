@@ -807,7 +807,11 @@ function acUsesComma(type){
 var acSuggestPicking=false;
 var acValNoTypes=['party','degree','scititle','military','awards','idor_awards','deputy','langs'];
 
-function beginACPick(){ acSuggestPicking=true; }
+function beginACPick(){
+  acSuggestPicking=true;
+  /* click dan keyin reset qilish uchun qisqa timeout */
+  setTimeout(function(){ acSuggestPicking=false; }, 400);
+}
 
 function normalizeAC(s){
   return String(s||'').toLowerCase()
@@ -1041,8 +1045,14 @@ function onSmartACFocus(input, type){
 }
 
 function onSmartACBlur(input, type){
+  /* Agar foydalanuvchi suggestion ustiga bosganda (mousedown/touchstart),
+     acSuggestPicking=true bo'ladi — blur ni e'tiborsiz qoldiramiz,
+     chunki click hali yetib kelmagan. */
+  if(acSuggestPicking) return;
   setTimeout(function(){
     if(!input) return;
+    /* Agar click bilan tanlangan bo'lsa, blur da alias qo'llamaymiz */
+    if(acSuggestPicking) return;
     if(acValNoTypes.indexOf(type)>=0 && !String(input.value||'').trim()){
       input.value=(dict[currentLang]||{}).val_no||"yo'q";
       try{saveToLocal();updatePreview();}catch(e){}
@@ -3074,6 +3084,12 @@ function setupEventListeners(){
   applyRegionAC(document.getElementById('m-rel-addr'));
   document.addEventListener('mousedown', onACPickPointer);
   document.addEventListener('touchstart', onACPickPointer, {passive:false, capture:true});
+  /* Suggestion ustiga mousedown da blur ni bloklash — click yetib borsin */
+  document.addEventListener('mousedown', function(e){
+    if(e.target.closest('.ac-suggest .ac-item[data-ac-pick], .work-suggest .ac-item[data-ac-work-pick], .year-suggest .ac-item[data-ac-year-pick]')){
+      e.preventDefault();
+    }
+  }, true);
   document.addEventListener('click',function(e){
     if(!e.target.closest('.ac-wrap')) ['nation','birthplace','edu','langs','party','university','spec','degree','scititle','military','awards','idor_awards','deputy'].forEach(closeACSuggest);
     if(!e.target.closest('.work-desc-wrap')) document.querySelectorAll('.work-suggest').forEach(function(el){el.classList.add('hidden');});
@@ -3209,7 +3225,7 @@ async function generateObyektivkaViaApi(){
     if(d.trim()){works.push({year:yr,position:d});if(isC)cc={index:works.length-1,from:f,position:d.trim()};}
   });
   var cj='',cy='';
-  if(cc){var move=await askMove();if(move){cj=cc.position;cy=cc.from;works.splice(cc.index,1);}}
+  if(cc){var move=await askMove();if(move){cj=cc.position;cy=cc.from;}}
   var langMap={uz_l:'uz_lat',uz_k:'uz_cyr'};
   var relPayload=relatives.map(function(r){
     return{

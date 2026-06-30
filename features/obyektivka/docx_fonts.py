@@ -18,7 +18,7 @@ VAL = f"{{{W_NS}}}val"
 SZ_TITLE = 28  # 14 pt — MA'LUMOTNOMA, F.I.Sh, MEHNAT FAOLIYATI
 SZ_REL_LINE = 24  # 12 pt — «…qarindoshlari haqida», MA'LUMOT, jadval
 SZ_BODY = 22  # 11 pt — body, work history, form values, photo note
-SZ_TABLE = 24  # 12 pt — qarindoshlar jadvali (PPT)
+SZ_TABLE = 22  # 11 pt — qarindoshlar jadvali (PPT)
 SZ_PHOTO = 22  # 11 pt — photo hint (PPT)
 SZ_PHOTO_NOTE = 22  # 11 pt — «(rasmiy kiyimda).» (PPT)
 
@@ -133,7 +133,7 @@ def enforce_reference_fonts(root: etree._Element, context: dict[str, str] | None
             continue
 
         if _is_relatives_intro(text):
-            _set_paragraph_runs_sz(p_el, SZ_BODY, bold=False)
+            _set_paragraph_runs_sz(p_el, SZ_REL_LINE, bold=False)
             continue
 
         if _is_fish_name_line(text, fish):
@@ -154,17 +154,9 @@ def enforce_reference_fonts(root: etree._Element, context: dict[str, str] | None
         table_sz = SZ_TABLE if is_rel else SZ_BODY
         for ri, tr in enumerate(rows):
             for ci, tc in enumerate(tr.findall(f"{W}tc")):
+                is_bold = (ri == 0 or ci == 0) if is_rel else None
                 for p_el in tc.findall(f".//{W}p"):
-                    _set_paragraph_runs_sz(p_el, table_sz)
-                if not is_rel:
-                    continue
-                if ri == 0 or ci == 0:
-                    continue
-                for p_el in tc.findall(f".//{W}p"):
-                    for r_el in p_el.findall(f".//{W}r"):
-                        rpr = _r_pr(r_el)
-                        _set_bool(rpr, "b", False)
-                        _set_bool(rpr, "bCs", False)
+                    _set_paragraph_runs_sz(p_el, table_sz, bold=is_bold)
 
 
 def _is_relatives_table(tbl: etree._Element) -> bool:

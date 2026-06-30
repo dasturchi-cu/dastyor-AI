@@ -151,17 +151,20 @@
       font-size: 11pt;
       line-height: 1.15;
       text-align: center;
+      color: #000 !important;
     }
-    .current-job .line { display: block; }
+    .current-job .line { display: block; color: #000 !important; }
     .current-job .year-line {
       font-weight: normal;
       text-decoration: underline;
+      color: #000 !important;
     }
     .current-job .job-line {
       font-weight: bold;
       text-decoration: underline;
       margin-top: 1mm;
       margin-right: 0;
+      color: #000 !important;
     }
 
     .fields { width: 100%; border-collapse: collapse; table-layout: fixed; }
@@ -173,8 +176,9 @@
     .fields .lbl { font-weight: bold; }
     .fields .val-row td {
       font-weight: normal;
+      color: #000 !important;
     }
-    .fields .val-row td.has-val { text-decoration: underline; }
+    .fields .val-row td.has-val { text-decoration: underline; color: #000 !important; }
     
     /* Make space for the photo on the first 3 rows of the right column */
     .fields tr:nth-child(-n+6) td.right {
@@ -237,14 +241,15 @@
     .rel-page-title {
       text-align: center;
       font-size: var(--font-rel-title, 12pt);
-      font-weight: bold;
+      font-weight: normal;
       line-height: 1.15;
+      color: #000;
     }
     .rel-page-title + .rel-page-title { margin-bottom: var(--rel-title-gap, 3mm); }
 
     .rel-table-wrap {
       width: 100%;
-      margin: 0 auto;
+      margin: 3.5mm auto 0;
       text-align: center;
     }
     .rel {
@@ -260,12 +265,13 @@
       padding: 1.5mm 1.5mm;
       text-align: center;
       vertical-align: middle;
-      line-height: 1;
+      line-height: 1.15;
       word-wrap: break-word;
+      color: #000;
     }
-    .rel th { font-weight: bold; font-size: 11pt; }
-    .rel td.rel-type { font-weight: bold; }
-    .empty { font-style: italic; color: #666; text-align: center; padding: 3mm; font-size: 11pt; }
+    .rel th { font-weight: bold; font-size: 11pt; color: #000; }
+    .rel td.rel-type { font-weight: bold; color: #000; }
+    .empty { font-style: italic; color: #000; text-align: center; padding: 3mm; font-size: 11pt; }
 
     @media print {
       body { width: auto; }
@@ -437,7 +443,7 @@
   <div class="page-content">
     {%- if fn -%}
     <div class="rel-page-title">{{ fn }}{{ L.rel_line1_suffix }}</div>
-    <div class="rel-page-title">{{ L.rel_line2 }}</div>
+    <div class="rel-page-title" style="font-weight: bold;">{{ L.rel_line2 }}</div>
     {%- endif -%}
     <div class="rel-table-wrap">
     <table class="rel">
