@@ -1999,11 +1999,8 @@ function syncObyQuotaUi() {
       warn.classList.remove('hidden');
       warn.textContent = "🔒 Pul yetarli emas. Avval to'lov qiling (7 999 so'm = 1 ta hujjat).";
     } else if (canExport) {
-      applyObyQuotaWarnStyle('credit');
-      warn.classList.remove('hidden');
-      warn.textContent = DA.universalCreditMessage
-        ? DA.universalCreditMessage(u, 'obyektivka')
-        : '💳 Pul bor — Word yaratishingiz mumkin.';
+      warn.classList.add('hidden');
+      warn.textContent = '';
       setObyPayUiState('approved');
     } else if (pendingAdmin) {
       applyObyQuotaWarnStyle('wait');

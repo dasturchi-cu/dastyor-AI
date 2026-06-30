@@ -23,7 +23,7 @@ R = f"{{{R_NS}}}"
 CT = f"{{{CT_NS}}}"
 REL = f"{{{REL_NS}}}"
 
-DEFAULT_WATERMARK_TEXT = "DASTYOR AI DEMO"
+DEFAULT_WATERMARK_TEXT = "@DastyorAiBot"
 
 
 def watermark_text() -> str:

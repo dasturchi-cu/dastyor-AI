@@ -183,12 +183,12 @@ def map_obyektivka_fields(raw: dict) -> dict:
                 normalized.append(entry)
         out["work_experience"] = normalized
 
-    # Hozirgi ish (h.v.) — ajratib olish
     if not _present(out.get("current_job")):
         cj, cy, _rest = _split_current_job_from_works(out.get("work_experience") or [])
         if cj:
             out["current_job"] = cj
             out["current_job_year"] = cy
+            out["work_experience"] = _rest
 
     # relatives normalization
     rels = out.get("relatives") or []

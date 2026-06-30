@@ -53,7 +53,15 @@ class TestObyektivkaFonts(unittest.TestCase):
                 "education": "Oliy",
                 "scientific_title": "Professor",
                 "work_experience": [{"year": "1977-1982", "position": "Talaba"}],
-                "relatives": [],
+                "relatives": [
+                    {
+                        "degree": "ota",
+                        "fullname": "Test Ota",
+                        "birth_year_place": "1960",
+                        "work_place": "x",
+                        "address": "y",
+                    }
+                ],
             },
             output_filepath=str(out),
         )
