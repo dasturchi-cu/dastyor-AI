@@ -679,7 +679,8 @@
       throw new Error('Serverdan bo\'sh javob keldi');
     }
 
-    var header = String.fromCharCode(buf[0], buf[1], buf[2], buf[3]);
+    var _u8hdr = new Uint8Array(buf, 0, 4);
+    var header = String.fromCharCode(_u8hdr[0], _u8hdr[1], _u8hdr[2], _u8hdr[3]);
     if (header !== '%PDF') {
       throw new Error('Server PDF emas qaytardi');
     }
