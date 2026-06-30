@@ -132,23 +132,25 @@
       background: #fff;
     }
     .hdr-title {
-      font-size: 14pt;
+      font-size: 14pt !important;
       font-weight: bold;
       text-align: center;
       line-height: 1;
+      color: #000 !important;
     }
     .hdr-gap { height: var(--hdr-title-name-gap, 1.5mm); }
     .hdr-name {
-      font-size: 14pt;
+      font-size: 14pt !important;
       font-weight: bold;
       text-align: center;
       line-height: 1;
       margin-bottom: var(--hdr-name-bottom, 0.5mm);
+      color: #000 !important;
     }
 
     .current-job {
       margin: 0 0 var(--current-job-bottom, 2.82mm) 0;
-      font-size: 11pt;
+      font-size: 11pt !important;
       line-height: 1.15;
       text-align: center;
       color: #000 !important;
@@ -168,12 +170,12 @@
     }
 
     .fields { width: 100%; border-collapse: collapse; table-layout: fixed; }
-    .fields td { border: none; vertical-align: top; padding: 0; font-size: 11pt; line-height: 1.15; }
+    .fields td { border: none; vertical-align: top; padding: 0; font-size: 11pt !important; line-height: 1.15; color: #000 !important; }
     .fields .left { width: 43%; padding-right: 2mm; }
     .fields .right { width: 57%; }
     .fields tr.gap td { padding-top: var(--field-row-gap, 2.82mm); }
     .fields tr.val-row td { padding-top: 0; }
-    .fields .lbl { font-weight: bold; }
+    .fields .lbl { font-weight: bold; color: #000 !important; }
     .fields .val-row td {
       font-weight: normal;
       color: #000 !important;
@@ -184,66 +186,69 @@
     .fields tr:nth-child(-n+6) td.right {
       padding-right: 32mm;
     }
-    .fields .inline-row td { padding-left: 28.61mm; text-indent: -28.61mm; font-weight: normal; }
-    .fields .inline-row .lbl { font-weight: bold; }
+    .fields .inline-row td { padding-left: 28.61mm; text-indent: -28.61mm; font-weight: normal; color: #000 !important; }
+    .fields .inline-row .lbl { font-weight: bold; color: #000 !important; }
     .fields .inline-row .field-val.has-val {
       text-decoration: underline;
       font-weight: normal !important;
-      color: #000;
+      color: #000 !important;
       background: #fff;
     }
     .fields .inline-row .field-val {
       font-weight: normal !important;
-      color: #000;
+      color: #000 !important;
       background: #fff;
     }
-    .fields tr.spec-row td { padding-left: 28.61mm; text-indent: -28.61mm; font-weight: normal; }
-    .fields tr.spec-row .lbl { font-weight: bold; }
+    .fields tr.spec-row td { padding-left: 28.61mm; text-indent: -28.61mm; font-weight: normal; color: #000 !important; }
+    .fields tr.spec-row .lbl { font-weight: bold; color: #000 !important; }
     .fields tr.spec-row .field-val.has-val {
       text-decoration: underline;
       font-weight: normal !important;
-      color: #000;
+      color: #000 !important;
       background: #fff;
     }
     .fields tr.spec-row .field-val {
       font-weight: normal !important;
-      color: #000;
+      color: #000 !important;
       background: #fff;
     }
-    .fields .stack-val td { padding-left: 28.61mm; text-indent: -28.61mm; }
-    .fields .dep-val td { padding-left: 26.67mm; text-indent: -26.67mm; }
+    .fields .stack-val td { padding-left: 28.61mm; text-indent: -28.61mm; color: #000 !important; }
+    .fields .dep-val td { padding-left: 26.67mm; text-indent: -26.67mm; color: #000 !important; }
 
     .sect-work {
       text-align: center;
       font-weight: bold;
-      font-size: 14pt;
+      font-size: 14pt !important;
       margin: var(--sect-work-mt, 1.41mm) 0 var(--sect-work-mb, 1.41mm);
       line-height: 1.15;
+      color: #000 !important;
     }
     .work-item {
       margin: var(--work-item-gap, 1.41mm) 0 0;
-      font-size: 11pt;
+      font-size: 11pt !important;
       line-height: 1.15;
       padding-left: 28.61mm;
       text-indent: -28.61mm;
+      color: #000 !important;
     }
     .work-item .work-pos {
       text-decoration: underline;
       font-weight: normal;
+      color: #000 !important;
     }
     .work-item.work-none {
       text-decoration: none;
       font-weight: bold;
       font-style: normal;
-      color: inherit;
+      color: #000 !important;
     }
 
     .rel-page-title {
       text-align: center;
-      font-size: var(--font-rel-title, 12pt);
+      font-size: var(--font-rel-title, 12pt) !important;
       font-weight: normal;
       line-height: 1.15;
-      color: #000;
+      color: #000 !important;
     }
     .rel-page-title + .rel-page-title { margin-bottom: var(--rel-title-gap, 3mm); }
 
@@ -256,7 +261,7 @@
       width: 100%;
       max-width: 100%;
       border-collapse: collapse;
-      font-size: 11pt;
+      font-size: 11pt !important;
       table-layout: fixed;
       margin: 0 auto;
     }
@@ -267,11 +272,11 @@
       vertical-align: middle;
       line-height: 1.15;
       word-wrap: break-word;
-      color: #000;
+      color: #000 !important;
     }
-    .rel th { font-weight: bold; font-size: 11pt; color: #000; }
-    .rel td.rel-type { font-weight: bold; color: #000; }
-    .empty { font-style: italic; color: #000; text-align: center; padding: 3mm; font-size: 11pt; }
+    .rel th { font-weight: bold; font-size: 11pt !important; color: #000 !important; }
+    .rel td.rel-type { font-weight: bold; color: #000 !important; }
+    .empty { font-style: italic; color: #000 !important; text-align: center; padding: 3mm; font-size: 11pt !important; }
 
     @media print {
       body { width: auto; }

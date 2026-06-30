@@ -81,7 +81,7 @@ def _p_pr(p_el: etree._Element) -> etree._Element:
     return ppr
 
 
-def _set_spacing_if_missing(
+def _set_spacing_enforce(
     ppr: etree._Element,
     *,
     before: int | None = None,
@@ -89,19 +89,17 @@ def _set_spacing_if_missing(
     line: int | None = None,
     line_rule: str | None = None,
 ) -> None:
-    """Shablon (namuna klon) spacingini buzmaslik — faqat yo'q bo'lsa qo'shish."""
+    """Paragraph spacingini qat'iy o'rnatadi (mavjud bo'lsa ham o'zgartiradi)."""
     sp = ppr.find(f"{W}spacing")
     if sp is None:
-        if before is None and after is None and line is None:
-            return
         sp = etree.SubElement(ppr, f"{W}spacing")
-    if before is not None and not sp.get(f"{W}before"):
+    if before is not None:
         sp.set(f"{W}before", str(before))
-    if after is not None and not sp.get(f"{W}after"):
+    if after is not None:
         sp.set(f"{W}after", str(after))
-    if line is not None and not sp.get(f"{W}line"):
+    if line is not None:
         sp.set(f"{W}line", str(line))
-    if line_rule is not None and not sp.get(f"{W}lineRule"):
+    if line_rule is not None:
         sp.set(f"{W}lineRule", line_rule)
 
 
@@ -352,6 +350,7 @@ def enforce_reference_polish(root: etree._Element, context: dict[str, str] | Non
             continue
 
         if in_mehnat and _is_work_line(text, in_mehnat=True):
+            _set_spacing_enforce(ppr, before=SP_MEHNAT_BEFORE, after=0)
             for r_el in p_el.findall(f".//{W}r"):
                 if _run_text(r_el).strip():
                     apply_plain_value_rpr(r_el)
@@ -364,7 +363,7 @@ def enforce_reference_polish(root: etree._Element, context: dict[str, str] | Non
             _set_jc(ppr, "center")
             for r_el in p_el.findall(f".//{W}r"):
                 if _run_text(r_el).strip():
-                    apply_plain_value_rpr(r_el)
+                    apply_label_rpr(r_el)
             continue
 
         if _is_malumot_line(text):
@@ -375,11 +374,11 @@ def enforce_reference_polish(root: etree._Element, context: dict[str, str] | Non
             continue
 
         if not grid_marked and _GRID_LABEL_RE.search(text):
-            _set_spacing_if_missing(ppr, before=SP_GRID_BEFORE)
+            _set_spacing_enforce(ppr, before=SP_GRID_BEFORE, after=0)
             grid_marked = True
 
         if _is_label_paragraph(text):
-            _set_spacing_if_missing(ppr, before=SP_FIELD_ROW_BEFORE, after=0)
+            _set_spacing_enforce(ppr, before=SP_FIELD_ROW_BEFORE, after=0)
             for r_el in p_el.findall(f".//{W}r"):
                 rt = _run_text(r_el).strip()
                 if not rt:

@@ -170,7 +170,7 @@ def build_objective_data(raw: dict[str, Any]) -> dict[str, Any]:
         ),
         "deputy_info": _val(_to_text(raw.get("deputy") or raw.get("dep")), none=none),
         "current_position": current_job or "",
-        "current_position_year": current_job_year if current_job else "",
+        "current_position_year": current_job_year or "",
         "work_history": work_lines,
         "relatives_table": rel_rows,
         "photo": L["photo_hint"],

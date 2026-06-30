@@ -133,7 +133,7 @@ def enforce_reference_fonts(root: etree._Element, context: dict[str, str] | None
             continue
 
         if _is_relatives_intro(text):
-            _set_paragraph_runs_sz(p_el, SZ_REL_LINE, bold=False)
+            _set_paragraph_runs_sz(p_el, SZ_REL_LINE, bold=True)
             continue
 
         if _is_fish_name_line(text, fish):

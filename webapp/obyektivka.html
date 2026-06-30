@@ -3225,7 +3225,7 @@ async function generateObyektivkaViaApi(){
     if(d.trim()){works.push({year:yr,position:d});if(isC)cc={index:works.length-1,from:f,position:d.trim()};}
   });
   var cj='',cy='';
-  if(cc){var move=await askMove();if(move){cj=cc.position;cy=cc.from;}}
+  if(cc){cj=cc.position;cy=cc.from;}
   var langMap={uz_l:'uz_lat',uz_k:'uz_cyr'};
   var relPayload=relatives.map(function(r){
     return{
