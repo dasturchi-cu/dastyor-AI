@@ -56,3 +56,36 @@ async def admin_db_info(
         raise HTTPException(status_code=403, detail="Admin access required")
 
     return get_database_info()
+
+
+@router.post("/admin/payments/reset")
+async def admin_reset_payments(
+    request: Request,
+    telegram_id: str | None = Query(None),
+    token: str | None = Query(None),
+    x_admin_secret: str | None = Header(None, alias="X-Admin-Secret"),
+    authorization: str | None = Header(None),
+):
+    """
+    Barcha to'lovlarni o'chirib, ID sequence ni 0 ga qaytaradi.
+    Keyingi to'lov #1 dan boshlanadi.
+    DIQQAT: Bu amalni qaytarib bo'lmaydi!
+    """
+    if not _admin_authorized(request, telegram_id, token, x_admin_secret, authorization):
+        raise HTTPException(status_code=403, detail="Admin access required")
+
+    from database.connection import get_connection
+
+    with get_connection() as conn:
+        count_before = conn.execute("SELECT COUNT(*) FROM payments").fetchone()[0]
+        conn.execute("DELETE FROM payments")
+        conn.execute("DELETE FROM sqlite_sequence WHERE name = 'payments'")
+        count_after = conn.execute("SELECT COUNT(*) FROM payments").fetchone()[0]
+
+    return {
+        "ok": True,
+        "deleted": count_before,
+        "remaining": count_after,
+        "message": f"{count_before} ta to'lov o'chirildi. Keyingi to'lov #1 dan boshlanadi.",
+    }
+
