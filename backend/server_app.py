@@ -77,12 +77,23 @@ def create_webhook_app() -> FastAPI:
         try:
             await bot.delete_webhook(drop_pending_updates=True)
             if settings.webhook_url and not skip_webhook:
+                import socket
+                from urllib.parse import urlparse
+                ip_addr = None
+                parsed_url = urlparse(settings.webhook_url)
+                if parsed_url.hostname:
+                    try:
+                        ip_addr = socket.gethostbyname(parsed_url.hostname)
+                    except Exception as e:
+                        logger.warning("Failed to resolve webhook hostname %r: %s", parsed_url.hostname, e)
+                
                 await bot.set_webhook(
                     url=settings.webhook_url,
+                    ip_address=ip_addr,
                     secret_token=webhook_secret or None,
                     drop_pending_updates=True,
                 )
-                logger.info("Webhook set: %s (secret=%s)", settings.webhook_url, bool(webhook_secret))
+                logger.info("Webhook set: %s (ip=%s, secret=%s)", settings.webhook_url, ip_addr, bool(webhook_secret))
             elif skip_webhook:
                 logger.info("SKIP_WEBHOOK=1 — polling mode (webhook o'rnatilmadi)")
         except Exception as webhook_err:
