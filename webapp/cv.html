@@ -2567,42 +2567,61 @@
       // Show blocked state ASAP from current cache, then refresh.
       try { _cvApprovedRequestId = Number(localStorage.getItem('cv_paid_request_id') || 0); } catch (_) {}
       try { syncCvQuotaUi(); } catch (_) {}
-      try {
-        if (window.DastyorAI && window.DastyorAI.init) {
-          await window.DastyorAI.init({ refreshProfile: true });
-        }
-        resolveCvTelegramId();
-        var maxRetries=15, retries=0;
-        while(!telegramId && retries<maxRetries){
-          await new Promise(function(r){setTimeout(r,100);});
-          resolveCvTelegramId();
-          retries++;
-        }
-        migrateLegacyCvDraft(telegramId);
-        await reconcileCvPaidRequestStatus();
-        syncCvQuotaUi();
-        if (window.DastyorAI && window.DastyorAI.resumePaidDocWatcher) {
-          window.DastyorAI.resumePaidDocWatcher({
-            kind: 'cv',
-            storageKey: 'cv_paid_request_id',
-            onApproved: async function () {
-              _cvApprovedRequestId = 0;
-              try { localStorage.removeItem('cv_paid_request_id'); } catch (_) {}
-              try { if (window.DastyorAI && window.DastyorAI.refreshProfile) await window.DastyorAI.refreshProfile(true); } catch (_) {}
-              setCvPayUiState('approved');
-              syncCvQuotaUi();
-            },
-            onCompleted: async function () {
-              _cvApprovedRequestId = 0;
-              try { localStorage.removeItem('cv_paid_request_id'); } catch (_) {}
-              syncCvQuotaUi();
-            },
-          });
-        }
-      } catch (_) {}
       setPreviewPlaceholder("⏳ Ko‘rinish yuklanmoqda…");
-      await initCvData();
-      try { triggerUpdate(false, { immediatePreview: true }); } catch (_) {}
+
+      var isAutoload = new URLSearchParams(window.location.search).get('autoload') === '1';
+
+      void (async function(){
+        try { await initCvData(); } catch(_) {}
+        try { triggerUpdate(false, { immediatePreview: true }); } catch (_) {}
+      })();
+
+      (function(){
+        var initTries = 0;
+        var initInterval = setInterval(function(){
+          initTries++;
+          var currentTid = resolveCvTelegramId();
+          if(currentTid){
+            clearInterval(initInterval);
+            telegramId = currentTid;
+            migrateLegacyCvDraft(telegramId);
+            void (async function(){
+              try { await initCvData(); } catch(_) {}
+              try { triggerUpdate(false, { immediatePreview: true }); } catch (_) {}
+            })();
+          } else if(initTries > 150){
+            clearInterval(initInterval);
+          }
+        }, 100);
+      })();
+
+      void (async function(){
+        try {
+          if (window.DastyorAI && window.DastyorAI.init) {
+            await window.DastyorAI.init({ refreshProfile: true });
+          }
+          await reconcileCvPaidRequestStatus();
+          syncCvQuotaUi();
+          if (window.DastyorAI && window.DastyorAI.resumePaidDocWatcher) {
+            window.DastyorAI.resumePaidDocWatcher({
+              kind: 'cv',
+              storageKey: 'cv_paid_request_id',
+              onApproved: async function () {
+                _cvApprovedRequestId = 0;
+                try { localStorage.removeItem('cv_paid_request_id'); } catch (_) {}
+                try { if (window.DastyorAI && window.DastyorAI.refreshProfile) await window.DastyorAI.refreshProfile(true); } catch (_) {}
+                setCvPayUiState('approved');
+                syncCvQuotaUi();
+              },
+              onCompleted: async function () {
+                _cvApprovedRequestId = 0;
+                try { localStorage.removeItem('cv_paid_request_id'); } catch (_) {}
+                syncCvQuotaUi();
+              },
+            });
+          }
+        } catch (_) {}
+      })();
       try {
         window.addEventListener('dastyor:profile-updated', () => syncCvQuotaUi());
         window.addEventListener('dastyor:payment-approved', () => {

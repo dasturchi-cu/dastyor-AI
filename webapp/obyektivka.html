@@ -3633,21 +3633,28 @@ document.addEventListener('DOMContentLoaded',function(){
     try{ initApp('uz_l'); }catch(e){}
   }
 
-  void (async function(){
-    try{
-      telegramId = resolveTelegramId();
-      var maxRetries=15, retries=0;
-      while(!telegramId && retries<maxRetries){
-        await new Promise(function(r){setTimeout(r,100);});
-        telegramId = resolveTelegramId();
-        retries++;
-      }
-      if(telegramId){
+  (function(){
+    var initTries = 0;
+    var initInterval = setInterval(function(){
+      initTries++;
+      var currentTid = resolveTelegramId();
+      if(currentTid){
+        clearInterval(initInterval);
+        telegramId = currentTid;
         migrateLegacyObyDraft(telegramId);
         if(isAutoload){
           try{ loadFromLocal(); }catch(e){}
+          try{ updatePreview(); scaleLivePreview(); }catch(e){}
+          runAutoloadObyData();
         }
+      } else if(initTries > 150){
+        clearInterval(initInterval);
       }
+    }, 100);
+  })();
+
+  void (async function(){
+    try{
       if(window.DastyorAI&&typeof window.DastyorAI.init==='function'){
         await window.DastyorAI.init({ refreshProfile: true });
       }
@@ -3671,11 +3678,6 @@ document.addEventListener('DOMContentLoaded',function(){
           }
         });
       }
-      try{
-        if(isAutoload && telegramId){
-          runAutoloadObyData();
-        }
-      }catch(e){console.warn(e);}
     }catch(e){console.warn(e);}
   })();
   try{
