@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <script>
     (function(){
-      var CURRENT_V = "20260701_v3";
+      var CURRENT_V = "20260701_v4";
       var params = new URLSearchParams(window.location.search);
       var v = params.get('v') || '';
       if(v !== CURRENT_V && !params.get('rcb')){
@@ -19,11 +19,11 @@
   <meta name="description" content="Obyektivka yaratish — ovoz orqali avtomatik to'ldirish, DOCX eksport." />
   <meta name="theme-color" content="#1D6FE8" />
   <title>Obyektivka | DASTYOR AI</title>
-  <link rel="preload" href="theme.css?v=20260701_v3" as="style" />
-  <link rel="stylesheet" href="theme.css?v=20260701_v3" />
-  <link rel="stylesheet" href="css/preview-zoom.css?v=20260701_v3" />
+  <link rel="preload" href="theme.css?v=20260701_v4" as="style" />
+  <link rel="stylesheet" href="theme.css?v=20260701_v4" />
+  <link rel="stylesheet" href="css/preview-zoom.css?v=20260701_v4" />
   <script src="https://telegram.org/js/telegram-web-app.js" defer></script>
-  <script src="app.js?v=20260701_v3" defer></script>
+  <script src="app.js?v=20260701_v4" defer></script>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
@@ -585,8 +585,8 @@ if (window.pdfjsLib && window.pdfjsLib.GlobalWorkerOptions) {
   }
 }
 </script>
-<script src="js/preview-zoom.js?v=20260701_v3" defer></script>
-<script src="js/obyektivka-preview.js?v=20260701_v3" defer></script>
+<script src="js/preview-zoom.js?v=20260701_v4" defer></script>
+<script src="js/obyektivka-preview.js?v=20260701_v4" defer></script>
 <script>
 function daToast(msg, type) {
   if (window.DastyorAI && DastyorAI.showToast) DastyorAI.showToast(msg, type || 'info');
@@ -3626,19 +3626,31 @@ document.addEventListener('DOMContentLoaded',function(){
   }
   try{ _obyApprovedRequestId = Number(localStorage.getItem('oby_paid_request_id') || 0); }catch(e){}
   try{ syncObyQuotaUi(); }catch(e){}
+
+  var up = new URLSearchParams(window.location.search);
+  var isAutoload = up.get('autoload') === '1';
+  if(isAutoload){
+    try{ initApp('uz_l'); }catch(e){}
+  }
+
   void (async function(){
     try{
-      if(window.DastyorAI&&typeof window.DastyorAI.init==='function'){
-        await window.DastyorAI.init({ refreshProfile: true });
-      }
       telegramId = resolveTelegramId();
-      var maxRetries=10, retries=0;
+      var maxRetries=15, retries=0;
       while(!telegramId && retries<maxRetries){
         await new Promise(function(r){setTimeout(r,100);});
         telegramId = resolveTelegramId();
         retries++;
       }
-      migrateLegacyObyDraft(telegramId);
+      if(telegramId){
+        migrateLegacyObyDraft(telegramId);
+        if(isAutoload){
+          try{ loadFromLocal(); }catch(e){}
+        }
+      }
+      if(window.DastyorAI&&typeof window.DastyorAI.init==='function'){
+        await window.DastyorAI.init({ refreshProfile: true });
+      }
       await reconcileObyPaidRequestStatus();
       syncObyQuotaUi();
       if(window.DastyorAI && window.DastyorAI.resumePaidDocWatcher){
@@ -3660,8 +3672,7 @@ document.addEventListener('DOMContentLoaded',function(){
         });
       }
       try{
-        var up=new URLSearchParams(window.location.search);
-        if(up.get('autoload')==='1' && telegramId){
+        if(isAutoload && telegramId){
           runAutoloadObyData();
         }
       }catch(e){console.warn(e);}
