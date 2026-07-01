@@ -25,6 +25,7 @@ from features.obyektivka.none_values import is_none_token
 def _paragraph_text(p_el: etree._Element) -> str:
     return "".join(t.text or "" for t in p_el.findall(f".//{W}t")).strip()
 
+from features.obyektivka.layout import REL_COL_DXA
 from features.obyektivka.spacing_config import (
     DOCX_GRID_BEFORE_TWIPS,
 )
@@ -392,7 +393,7 @@ def _fix_relatives_table(root: etree._Element) -> None:
         if not _is_relatives_table(tbl):
             continue
         # Apply programmatic column widths (twips / dxa, total = 9864 dxa ~ 174mm printable area)
-        cols = (1600, 2400, 1800, 2364, 1700)
+        cols = REL_COL_DXA
         _apply_rel_table_column_widths(tbl, cols, sum(cols))
         rows = tbl.findall(f"{W}tr")
         for ri, tr in enumerate(rows):

@@ -203,6 +203,7 @@ def objective_to_template_context(objective: dict[str, Any]) -> dict[str, str]:
         TEMPLATE_KEY_MAP["current_position"]: _to_text(objective.get("current_position")),
         TEMPLATE_KEY_MAP["photo"]: _to_text(objective.get("photo")),
         "mehnat_faoliyati": work_lines[0] if len(work_lines) > 0 else none,
+        "lang": lang,
     }
 
     for i in range(2, 9):

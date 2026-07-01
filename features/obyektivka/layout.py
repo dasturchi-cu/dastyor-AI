@@ -59,7 +59,7 @@ IND_WORK_HANGING_TWIPS = 1622
 IND_REL_COL0_TWIPS = -113
 
 # Qarindoshlar jadvali ustunlari (dxa)
-REL_COL_DXA = (1260, 2160, 1830, 3027, 2057)
+REL_COL_DXA = (1600, 2400, 1800, 2364, 1700)
 
 _REL_TOTAL = sum(REL_COL_DXA)
 REL_COL_PCT = tuple(round(w * 100 / _REL_TOTAL, 2) for w in REL_COL_DXA)

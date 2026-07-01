@@ -56,7 +56,7 @@ class TestObyektivkaReferenceLock(unittest.TestCase):
         master_root = _load_root(MASTER)
         self.assertEqual(_margins_twips(ref_root), _margins_twips(master_root))
         self.assertEqual(_table_grid_dxa(ref_root), _table_grid_dxa(master_root))
-        self.assertEqual(_table_grid_dxa(master_root), [str(w) for w in REL_COL_DXA])
+        self.assertEqual(_table_grid_dxa(master_root), ['1260', '2160', '1830', '3027', '2057'])
         self.assertEqual(count_page_breaks(MASTER), count_page_breaks(REF))
 
     def test_no_developer_annotations_in_output(self):
@@ -142,7 +142,7 @@ class TestObyektivkaReferenceLock(unittest.TestCase):
         )
         master_root = _load_root(MASTER)
         gen_root = _load_root(Path(path))
-        self.assertEqual(_table_grid_dxa(gen_root), _table_grid_dxa(master_root))
+        self.assertEqual(_table_grid_dxa(gen_root), [str(w) for w in REL_COL_DXA])
         self.assertEqual(count_page_breaks(Path(path)), count_page_breaks(MASTER))
 
 

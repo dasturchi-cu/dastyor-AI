@@ -295,10 +295,71 @@ def _strip_highlights(root: etree._Element) -> None:
                 parent.remove(shd)
 
 
+CYR_TO_LAT_MAP = {
+    "А": "A", "а": "a",
+    "Б": "B", "б": "b",
+    "В": "V", "в": "v",
+    "Г": "G", "г": "g",
+    "Д": "D", "д": "d",
+    "Е": "E", "е": "e",
+    "Ё": "Yo", "ё": "yo",
+    "Ж": "J", "ж": "j",
+    "З": "Z", "з": "z",
+    "И": "I", "и": "i",
+    "Й": "Y", "й": "y",
+    "К": "K", "к": "k",
+    "Л": "L", "л": "l",
+    "М": "M", "м": "m",
+    "Н": "N", "н": "n",
+    "О": "O", "о": "o",
+    "П": "P", "п": "p",
+    "Р": "R", "р": "r",
+    "С": "S", "с": "s",
+    "Т": "T", "т": "t",
+    "У": "U", "у": "u",
+    "Ф": "F", "ф": "f",
+    "Х": "X", "х": "x",
+    "Ц": "Ts", "ц": "ts",
+    "Ч": "Ch", "ч": "ch",
+    "Ш": "Sh", "ш": "sh",
+    "Ъ": "'", "ъ": "'",
+    "Э": "E", "э": "e",
+    "Ю": "Yu", "ю": "yu",
+    "Я": "Ya", "я": "ya",
+    "Ў": "O'", "ў": "o'",
+    "Қ": "Q", "қ": "q",
+    "Ғ": "G'", "ғ": "g'",
+    "Ҳ": "H", "ҳ": "h",
+}
+
+def cyrillic_to_latin(text: str) -> str:
+    if not text:
+        return text
+    vowels = "АЕЁИОУЭЮЯЎаеёиоуэюяў"
+    res = []
+    for i, char in enumerate(text):
+        if char in ("Е", "е"):
+            if i == 0 or text[i - 1] in vowels or text[i - 1].isspace():
+                res.append("Ye" if char == "Е" else "ye")
+            else:
+                res.append("E" if char == "Е" else "e")
+        else:
+            res.append(CYR_TO_LAT_MAP.get(char, char))
+    return "".join(res)
+
+
 def enforce_reference_polish(root: etree._Element, context: dict[str, str] | None = None) -> None:
     """Namuna klon: Times New Roman, qora matn, label/qalinlik — spacing shablondan."""
     _strip_highlights(root)
     ctx = context or {}
+    lang = (ctx.get("lang") or "uz_lat").strip().lower()
+    
+    # If the requested language is Latin, transliterate all Cyrillic text in the document to Latin
+    if lang in ("uz_lat", "uz_l", "uz"):
+        for t_el in root.findall(f".//{W}t"):
+            if t_el.text:
+                t_el.text = cyrillic_to_latin(t_el.text)
+
     fish = (ctx.get("fish") or "").strip()
     hozirgi_yil = (ctx.get("hozirgi_yil") or "").strip()
     hozirgi_ish = (ctx.get("hozirgi_ish") or "").strip()
