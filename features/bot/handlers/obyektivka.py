@@ -31,7 +31,7 @@ router = Router()
 
 OBY_EXAMPLE_TEMPLATE = (
     "\n\n💡 <b>Nusxa ko'chirib, o'z ma'lumotlaringizni yozib yuborishingiz mumkin bo'lgan namuna:</b>\n"
-    "<blockquote>"
+    "<blockquote expandable>"
     "Ism: Karimov Jasur Alisherovich\n"
     "Tug'ilgan sana: 1995-yil 12-may\n"
     "Tug'ilgan joy: Toshkent shahri\n"
