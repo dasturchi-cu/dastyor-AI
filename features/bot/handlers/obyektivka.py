@@ -29,6 +29,27 @@ from shared.voice import download_voice_message
 logger = logging.getLogger(__name__)
 router = Router()
 
+OBY_EXAMPLE_TEMPLATE = (
+    "\n\n💡 <b>Nusxa ko'chirib, o'z ma'lumotlaringizni yozib yuborishingiz mumkin bo'lgan namuna:</b>\n"
+    "<code>"
+    "Ism: Karimov Jasur Alisherovich\n"
+    "Tug'ilgan sana: 1995-yil 12-may\n"
+    "Tug'ilgan joy: Toshkent shahri\n"
+    "Millati: O'zbek\n"
+    "Ma'lumoti: Oliy\n"
+    "OTM: Toshkent axborot texnologiyalari universiteti, 2017-yilda tamomlagan\n"
+    "Mutaxassisligi: Dasturiy injiniring\n"
+    "Tillar: Rus tili, Ingliz tili\n"
+    "Mehnat faoliyati:\n"
+    "2017-2020 EPAM Systems dasturchisi\n"
+    "2020-hozirgi vaqt Dastyor AI yetakchi dasturchisi\n\n"
+    "Oilam:\n"
+    "Otam: Karimov Alisher, 1968-yil, nafaqaxo'r, yashash joyi Toshkent shahri\n"
+    "Onam: Karimova Ra'no, 1972-yil, o'qituvchi, yashash joyi Toshkent shahri\n"
+    "</code>"
+)
+
+
 OBY_INSTRUCTION = (
     oby_intro_hook()
     + "📌 <b>Obyektivka tayyorlash uchun quyidagi ma'lumotlarni bitta audio xabar "
@@ -57,6 +78,7 @@ OBY_INSTRUCTION = (
     "• Lavozimi\n"
     "• Yashash manzili\n\n"
     "🎙 <b>Ovozli xabar yoki matn yuboring</b> — AI formani avtomatik to'ldiradi."
+    f"{OBY_EXAMPLE_TEMPLATE}"
 )
 
 SAMPLE_AUDIO_PATHS = [
@@ -140,6 +162,7 @@ async def _process_voice_background(
             await status_msg.edit_text(
                 "❌ Ma'lumotlarni ajratib bo'lmadi.\n"
                 "Iltimos, namunadagi tartibda to'liqroq o'qib yuboring."
+                f"{OBY_EXAMPLE_TEMPLATE}"
             )
             return
 
@@ -231,6 +254,7 @@ async def _handle_oby_text_flow(text: str, status: Message, uid: int, state: FSM
             await status.edit_text(
                 "❌ Ma'lumotlarni ajratib bo'lmadi.\n"
                 "Namunadagi tartibda to'liqroq yozing."
+                f"{OBY_EXAMPLE_TEMPLATE}"
             )
             return
         await db_run(oby_service.save_pending, uid, data)

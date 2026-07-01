@@ -31,6 +31,23 @@ from shared.voice import download_voice_message
 logger = logging.getLogger(__name__)
 router = Router()
 
+CV_EXAMPLE_TEMPLATE = (
+    "\n\n💡 <b>Nusxa ko'chirib, o'z ma'lumotlaringizni yozib yuborishingiz mumkin bo'lgan namuna:</b>\n"
+    "<code>"
+    "Ism: Akbar Ahmadjonov\n"
+    "Telefon: +998918010770\n"
+    "Email: akbar@example.com\n"
+    "Kasb: Iqtisodchi\n\n"
+    "Ta'lim:\n"
+    "2023-2026 OTM nomi, Iqtisodiyot tarmoqlari\n\n"
+    "Ish tajribasi:\n"
+    "2026-hozirgi vaqtgacha Dastyor AI, mutaxassis\n\n"
+    "Tillar:\n"
+    "Rus tili, O'zbek tili\n"
+    "</code>"
+)
+
+
 CV_INSTRUCTION = (
     "📌 <b>CV uchun quyidagilarni ovoz yoki matn ko'rinishida yuboring:</b>\n\n"
     "• Ism familiya\n"
@@ -40,6 +57,7 @@ CV_INSTRUCTION = (
     "• Ish tajribasi\n"
     "• Ko'nikmalar va tillar\n\n"
     "🎙 Ovoz yoki 📝 matn yuboring."
+    f"{CV_EXAMPLE_TEMPLATE}"
 )
 
 
@@ -77,6 +95,7 @@ async def _handle_cv_text_flow(text: str, status: Message, uid: int, state: FSMC
             reason = cv_fill_rejection_reason(cv_data)
             await status.edit_text(
                 f"ℹ️ CV rad etildi.\n\nSabab: {reason}"
+                f"{CV_EXAMPLE_TEMPLATE}"
             )
             return
         await db_run(cv_service.save_user_data, uid, cv_data)
@@ -120,6 +139,7 @@ async def _handle_cv_voice_flow(
             await status.edit_text(
                 f"ℹ️ CV rad etildi.\n\nSabab: {reason}\n\n"
                 f"Qayta yuboring yoki <b>{BTN_OBY}</b> tanlang."
+                f"{CV_EXAMPLE_TEMPLATE}"
             )
             return
 
