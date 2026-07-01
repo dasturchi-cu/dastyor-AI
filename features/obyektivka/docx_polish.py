@@ -83,6 +83,26 @@ def _p_pr(p_el: etree._Element) -> etree._Element:
     return ppr
 
 
+def _sort_ppr_children(ppr: etree._Element) -> None:
+    """Sort children of w:pPr according to strict OpenXML schema order."""
+    children = list(ppr)
+    order = [
+        f"{W}pStyle", f"{W}keepNext", f"{W}keepLines", f"{W}pageBreakBefore",
+        f"{W}widowControl", f"{W}numPr", f"{W}pBdr", f"{W}shd", f"{W}tabs",
+        f"{W}spacing", f"{W}ind", f"{W}jc", f"{W}rPr", f"{W}sectPr"
+    ]
+    def get_order_key(el: etree._Element) -> int:
+        tag = el.tag
+        if tag in order:
+            return order.index(tag)
+        return len(order)
+    children.sort(key=get_order_key)
+    for child in children:
+        ppr.remove(child)
+    for child in children:
+        ppr.append(child)
+
+
 def _set_spacing_enforce(
     ppr: etree._Element,
     *,
@@ -103,6 +123,7 @@ def _set_spacing_enforce(
         sp.set(f"{W}line", str(line))
     if line_rule is not None:
         sp.set(f"{W}lineRule", line_rule)
+    _sort_ppr_children(ppr)
 
 
 def _set_jc(ppr: etree._Element, align: str) -> None:
@@ -110,6 +131,7 @@ def _set_jc(ppr: etree._Element, align: str) -> None:
     if jc is None:
         jc = etree.SubElement(ppr, f"{W}jc")
     jc.set(VAL, align)
+    _sort_ppr_children(ppr)
 
 
 def _set_rfonts(rpr: etree._Element, name: str = FONT_TIMES) -> None:
@@ -331,6 +353,8 @@ def enforce_reference_polish(root: etree._Element, context: dict[str, str] | Non
             continue
 
         if _is_fish_paragraph(text, fish):
+            ppr = _p_pr(p_el)
+            _set_spacing_enforce(ppr, before=0, after=0)
             _set_jc(ppr, "center")
             for r_el in p_el.findall(f".//{W}r"):
                 if _run_text(r_el).strip():
