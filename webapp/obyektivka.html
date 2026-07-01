@@ -3642,9 +3642,9 @@ document.addEventListener('DOMContentLoaded',function(){
         clearInterval(initInterval);
         telegramId = currentTid;
         migrateLegacyObyDraft(telegramId);
+        try{ loadFromLocal(); }catch(e){}
+        try{ updatePreview(); scaleLivePreview(); }catch(e){}
         if(isAutoload){
-          try{ loadFromLocal(); }catch(e){}
-          try{ updatePreview(); scaleLivePreview(); }catch(e){}
           runAutoloadObyData();
         }
       } else if(initTries > 150){
