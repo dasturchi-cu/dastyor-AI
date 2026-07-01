@@ -32,7 +32,7 @@ def welcome_message() -> str:
 
 def cv_intro_header() -> str:
     return (
-        "📄 <b>CV Resume</b> — AI yordamida 3 daqiqada!\n"
+        "📄 <b>CV Resume</b> — AI yordamida 1 daqiqada!\n"
         "🎙 Ovoz yoki 📝 matn yuboring — AI avtomatik to'ldiradi."
     )
 
