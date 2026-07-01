@@ -20,7 +20,7 @@ from features.bot.handlers.start import WELCOME
 from features.obyektivka import service as oby_service
 from shared.ai_errors import AI_QUOTA_USER_MSG, AiQuotaError, translate_error_to_user_message
 from shared.async_db import run as db_run
-from shared.keyboards import BTN_BACK, BTN_OBY, back_menu, is_menu_button, open_oby_preview_inline, user_menu
+from shared.keyboards import BTN_BACK, BTN_OBY, back_menu, is_menu_button, open_oby_preview_inline, open_webapp_inline, user_menu
 from shared.marketing import cross_sell_cv_line, oby_intro_hook
 from shared.progress import STEP_AI, STEP_AUDIO, STEP_EXTRACTED, STEP_READY, telegram_message
 from shared.telegram_progress import set_step
