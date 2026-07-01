@@ -411,11 +411,12 @@ def _fix_relatives_table(root: etree._Element) -> None:
                     mar = tc_pr.find(f"{W}tcMar")
                     if mar is None:
                         mar = etree.SubElement(tc_pr, f"{W}tcMar")
-                    for side in ("top", "bottom"):
-                        el = mar.find(f"{W}{side}")
-                        if el is None:
-                            el = etree.SubElement(mar, f"{W}{side}")
-                        el.set(VAL, "0")
+                    for child in list(mar):
+                        mar.remove(child)
+                    for side in ("top", "bottom", "left", "right"):
+                        el = etree.SubElement(mar, f"{W}{side}")
+                        w_val = "60" if side in ("left", "right") else "0"
+                        el.set(f"{W}w", w_val)
                         el.set(f"{W}type", "dxa")
                 for p_el in tc.findall(f".//{W}p"):
                     ppr = _p_pr(p_el)
