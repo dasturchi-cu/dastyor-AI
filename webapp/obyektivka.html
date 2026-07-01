@@ -858,7 +858,7 @@ function getACAliasIdx(type){
 }
 
 function acSingleValueType(type){
-  return type==='university' || type==='spec' || type==='party' || type==='degree' || type==='scititle' || type==='military' || type==='awards' || type==='idor_awards' || type==='deputy';
+  return type==='edu' || type==='nation' || type==='university' || type==='spec' || type==='party' || type==='degree' || type==='scititle' || type==='military' || type==='awards' || type==='idor_awards' || type==='deputy';
 }
 
 function getACSegmentInfo(input, type, val){
@@ -1414,7 +1414,7 @@ function pickWorkYearValue(wrap, value){
 }
 
 function onACPickPointer(e){
-  if(e.type==='touchstart' && e.target.closest('.ac-suggest .ac-item[data-ac-pick], .work-suggest .ac-item[data-ac-work-pick], .year-suggest .ac-item[data-ac-year-pick]')){
+  if(e.target.closest('.ac-suggest .ac-item[data-ac-pick], .work-suggest .ac-item[data-ac-work-pick], .year-suggest .ac-item[data-ac-year-pick]')){
     beginACPick();
   }
   if(handleACSuggestPick(e)) return;
@@ -3084,6 +3084,7 @@ function setupEventListeners(){
   applyRegionAC(document.getElementById('m-rel-addr'));
   document.addEventListener('mousedown', onACPickPointer);
   document.addEventListener('touchstart', onACPickPointer, {passive:false, capture:true});
+  document.addEventListener('click', onACPickPointer);
   /* Suggestion ustiga mousedown da blur ni bloklash — click yetib borsin */
   document.addEventListener('mousedown', function(e){
     if(e.target.closest('.ac-suggest .ac-item[data-ac-pick], .work-suggest .ac-item[data-ac-work-pick], .year-suggest .ac-item[data-ac-year-pick]')){
