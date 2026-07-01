@@ -4,7 +4,6 @@ from __future__ import annotations
 import html
 from typing import Any
 
-from features.admin.service import display_name
 from shared.payment_notifications import format_document_type, format_username
 
 
@@ -57,7 +56,49 @@ def build_dashboard_text(metrics: dict[str, Any], *, updated_at: str) -> str:
     return "\n".join(lines)
 
 
+def to_uzb_time(utc_val: Any) -> str:
+    if not utc_val:
+        return "—"
+    raw = str(utc_val).strip()
+    if not raw or raw == "—":
+        return "—"
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
+    import re
+    dt = None
+    if raw.endswith("Z"):
+        raw = raw[:-1] + "+00:00"
+    if "T" in raw:
+        try:
+            dt = datetime.fromisoformat(raw[:26])
+            if dt.tzinfo is None:
+                dt = dt.replace(tzinfo=ZoneInfo("UTC"))
+        except ValueError:
+            pass
+    if not dt:
+        for fmt in ("%Y-%m-%d %H:%M:%S", "%Y-%m-%d %H:%M"):
+            try:
+                dt = datetime.strptime(raw[:19], fmt)
+                dt = dt.replace(tzinfo=ZoneInfo("UTC"))
+                break
+            except ValueError:
+                continue
+    if not dt:
+        match = re.match(r"(\d{4}-\d{2}-\d{2})\s+(\d{2}:\d{2})", raw)
+        if match:
+            try:
+                dt = datetime.strptime(f"{match.group(1)} {match.group(2)}", "%Y-%m-%d %H:%M")
+                dt = dt.replace(tzinfo=ZoneInfo("UTC"))
+            except ValueError:
+                pass
+    if dt:
+        local = dt.astimezone(ZoneInfo("Asia/Tashkent"))
+        return local.strftime("%Y-%m-%d %H:%M:%S")
+    return raw
+
+
 def build_users_list_text(rows: list[dict[str, Any]], *, total: int) -> str:
+    from features.admin.service import display_name
     if not rows:
         return "👥 SQLite: foydalanuvchilar yo'q."
     lines = [f"<b>👥 Foydalanuvchilar</b> (jami: {total}, ko'rsatilmoqda: {len(rows)})\n"]
@@ -70,8 +111,8 @@ def build_users_list_text(rows: list[dict[str, Any]], *, total: int) -> str:
             f"ID: <code>{tid}</code>\n"
             f"Ism: {name}\n"
             f"Username: {uname}\n"
-            f"Ro'yxatdan: {u.get('created_at') or '—'}\n"
-            f"Oxirgi aktivlik: {u.get('last_activity') or '—'}\n"
+            f"Ro'yxatdan: {to_uzb_time(u.get('created_at'))}\n"
+            f"Oxirgi aktivlik: {to_uzb_time(u.get('last_activity'))}\n"
             f"Xaridlar: <b>{u.get('payments_count', 0)}</b> | "
             f"CV: <b>{u.get('cv_count', 0)}</b> | "
             f"Oby: <b>{u.get('obyektivka_count', 0)}</b>"
@@ -80,6 +121,7 @@ def build_users_list_text(rows: list[dict[str, Any]], *, total: int) -> str:
 
 
 def build_payments_list_text(rows: list[dict[str, Any]], *, title: str) -> str:
+    from features.admin.service import display_name
     if not rows:
         return f"💳 {title}: to'lovlar topilmadi."
     lines = [f"<b>💳 {title}</b> ({len(rows)} ta)\n"]
@@ -98,7 +140,7 @@ def build_payments_list_text(rows: list[dict[str, Any]], *, title: str) -> str:
             f"User ID: <code>{p.get('telegram_id')}</code>\n"
             f"Hujjat: {doc}\n"
             f"Summa: <b>{amount:,} so'm</b>\n"
-            f"Vaqt: {p.get('created_at') or '—'}"
+            f"Vaqt: {to_uzb_time(p.get('created_at'))}"
         )
     return "\n".join(lines)
 
@@ -154,7 +196,7 @@ def build_top_users_report(report: dict[str, list[dict[str, Any]]]) -> str:
         for i, r in enumerate(active, 1):
             uname = html.escape(format_username(r.get("username")))
             la = r.get("last_activity") or "—"
-            lines.append(f"{i}. {uname} — {la}")
+            lines.append(f"{i}. {uname} — {to_uzb_time(la)}")
     else:
         lines.append("<i>Ma'lumot yo'q</i>")
 

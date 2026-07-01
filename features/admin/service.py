@@ -14,19 +14,22 @@ from config.settings import settings
 from database.repositories import admin_stats as stats_repo
 from database.repositories import users as users_repo
 from shared.payment_notifications import format_username
+from features.admin.formatters import to_uzb_time
 
 
 def display_name(user: dict[str, Any]) -> str:
     first = str(user.get("first_name") or "").strip()
     last = str(user.get("last_name") or "").strip()
     combined = f"{first} {last}".strip()
-    return combined or str(user.get("payer_name") or "—")
+    if combined:
+        return combined
+    return str(user.get("payer_name") or "—").strip()
 
 
 def build_profile_text(profile: dict[str, Any]) -> str:
     tid = int(profile.get("telegram_id") or 0)
-    name = html.escape(display_name(profile))
     username = html.escape(format_username(profile.get("username")))
+    name = html.escape(display_name(profile))
     blocked = bool(int(profile.get("is_blocked") or 0))
     user_line = (
         f'<a href="tg://user?id={tid}">{name}</a>' if tid else name
@@ -36,12 +39,12 @@ def build_profile_text(profile: dict[str, Any]) -> str:
         f"ID: <code>{tid}</code>\n"
         f"Username: {username}\n"
         f"Ism: {user_line}\n"
-        f"Ro'yxatdan o'tgan: {profile.get('created_at') or '—'}\n"
+        f"Ro'yxatdan o'tgan: {to_uzb_time(profile.get('created_at'))}\n"
         f"CV soni: <b>{profile.get('cv_count', 0)}</b>\n"
         f"Obyektivka soni: <b>{profile.get('obyektivka_count', 0)}</b>\n"
         f"To'lovlar soni: <b>{profile.get('payments_count', 0)}</b>\n"
         f"Kredit: <b>{profile.get('credits', 0)}</b>\n"
-        f"Oxirgi aktivlik: {profile.get('last_activity') or '—'}\n"
+        f"Oxirgi aktivlik: {to_uzb_time(profile.get('last_activity'))}\n"
         f"Holat: {'🚫 Bloklangan' if blocked else '✅ Faol'}"
     )
 
@@ -79,7 +82,7 @@ def build_error_log_text(rows: list[dict[str, Any]], *, title: str = "Oxirgi xat
     for row in rows[:15]:
         cat = html.escape(str(row.get("category") or "general"))
         msg = html.escape(str(row.get("message") or "")[:200])
-        ts = row.get("created_at") or ""
+        ts = to_uzb_time(row.get("created_at"))
         lines.append(f"• [{cat}] {msg}\n  <i>{ts}</i>")
     return "\n".join(lines)
 
