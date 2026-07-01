@@ -349,6 +349,8 @@ def enforce_reference_polish(root: etree._Element, context: dict[str, str] | Non
 
         if _is_mehnat_header(text):
             in_mehnat = True
+            ppr = _p_pr(p_el)
+            _set_spacing_enforce(ppr, before=280, after=120)
             _set_jc(ppr, "center")
             for r_el in p_el.findall(f".//{W}r"):
                 if _run_text(r_el).strip():
@@ -366,6 +368,8 @@ def enforce_reference_polish(root: etree._Element, context: dict[str, str] | Non
             in_mehnat = False
 
         if _is_relatives_intro(text):
+            ppr = _p_pr(p_el)
+            _set_spacing_enforce(ppr, before=280, after=0)
             _set_jc(ppr, "center")
             for r_el in p_el.findall(f".//{W}r"):
                 if _run_text(r_el).strip():
@@ -373,6 +377,8 @@ def enforce_reference_polish(root: etree._Element, context: dict[str, str] | Non
             continue
 
         if _is_malumot_line(text):
+            ppr = _p_pr(p_el)
+            _set_spacing_enforce(ppr, before=0, after=120)
             _set_jc(ppr, "center")
             for r_el in p_el.findall(f".//{W}r"):
                 if _run_text(r_el).strip():
