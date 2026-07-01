@@ -452,3 +452,27 @@ def export_statistics_rows() -> list[dict[str, Any]]:
                 }
             )
     return rows
+
+
+def get_daily_trends(days: int = 7) -> list[dict[str, Any]]:
+    from datetime import datetime, timedelta
+    price = settings.single_doc_price_uzs
+    result = []
+    with get_connection() as conn:
+        for i in range(days):
+            d = datetime.now() - timedelta(days=i)
+            date_str = d.strftime("%Y-%m-%d")
+            users = _scalar(conn, f"SELECT COUNT(*) FROM users WHERE date(created_at) = '{date_str}'")
+            cv = _scalar(conn, f"SELECT COUNT(*) FROM generated_files WHERE file_type='cv' AND date(created_at) = '{date_str}'")
+            oby = _scalar(conn, f"SELECT COUNT(*) FROM generated_files WHERE file_type='obyektivka' AND date(created_at) = '{date_str}'")
+            approved = _scalar(conn, f"SELECT COUNT(*) FROM payments WHERE status='APPROVED' AND date(created_at) = '{date_str}'")
+            result.append({
+                "date": date_str,
+                "users": users,
+                "cv": cv,
+                "obyektivka": oby,
+                "revenue": approved * price,
+                "payments": approved,
+            })
+    result.reverse()
+    return result

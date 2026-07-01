@@ -146,7 +146,8 @@ def build_payments_list_text(rows: list[dict[str, Any]], *, title: str) -> str:
 
 
 def build_statistics_text(metrics: dict[str, Any]) -> str:
-    return (
+    from database.repositories import admin_stats as stats_repo
+    body = (
         f"<b>📊 Statistika (SQLite)</b>\n\n"
         f"<b>JAMI</b>\n"
         f"Foydalanuvchilar: <b>{metrics.get('users_count', 0)}</b>\n"
@@ -163,8 +164,42 @@ def build_statistics_text(metrics: dict[str, Any]) -> str:
         f"CV: <b>{metrics.get('cv_today', 0)}</b>\n"
         f"Obyektivka: <b>{metrics.get('obyektivka_today', 0)}</b>\n"
         f"Tasdiqlangan: <b>{metrics.get('approved_today', 0)}</b>\n"
-        f"Tushum: <b>{int(metrics.get('revenue_today_uzs') or 0):,} so'm</b>"
+        f"Tushum: <b>{int(metrics.get('revenue_today_uzs') or 0):,} so'm</b>\n\n"
     )
+    try:
+        trends = stats_repo.get_daily_trends(7)
+        if trends:
+            body += "<b>📈 OXIRGI 7 KUNLIK TREND</b>\n\n"
+            max_users = max(1, max(t["users"] for t in trends))
+            max_docs = max(1, max(t["cv"] + t["obyektivka"] for t in trends))
+            max_payments = max(1, max(t["payments"] for t in trends))
+            body += "<b>👥 Yangi userlar:</b>\n"
+            for t in trends:
+                dt = t["date"].split("-")[-2:]
+                day_lbl = "-".join(dt)
+                val = t["users"]
+                bar_len = round((val / max_users) * 8)
+                bar = "■" * bar_len + "□" * (8 - bar_len)
+                body += f"<code>{day_lbl} | {bar} | {val}</code>\n"
+            body += "\n<b>📄 Hujjatlar (CV+Oby):</b>\n"
+            for t in trends:
+                dt = t["date"].split("-")[-2:]
+                day_lbl = "-".join(dt)
+                val = t["cv"] + t["obyektivka"]
+                bar_len = round((val / max_docs) * 8)
+                bar = "■" * bar_len + "□" * (8 - bar_len)
+                body += f"<code>{day_lbl} | {bar} | {val}</code>\n"
+            body += "\n<b>💰 Tasdiqlangan to'lovlar:</b>\n"
+            for t in trends:
+                dt = t["date"].split("-")[-2:]
+                day_lbl = "-".join(dt)
+                val = t["payments"]
+                bar_len = round((val / max_payments) * 8)
+                bar = "■" * bar_len + "□" * (8 - bar_len)
+                body += f"<code>{day_lbl} | {bar} | {val}</code>\n"
+    except Exception as e:
+        body += f"\n<i>Trend yuklashda xatolik: {e}</i>"
+    return body
 
 
 def build_top_users_report(report: dict[str, list[dict[str, Any]]]) -> str:

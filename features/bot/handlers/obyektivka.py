@@ -18,7 +18,7 @@ from features.ai.service import process_text_for_obyektivka, process_voice_for_o
 from features.bot.states import ObyektivkaStates
 from features.bot.handlers.start import WELCOME
 from features.obyektivka import service as oby_service
-from shared.ai_errors import AI_QUOTA_USER_MSG, AiQuotaError
+from shared.ai_errors import AI_QUOTA_USER_MSG, AiQuotaError, translate_error_to_user_message
 from shared.async_db import run as db_run
 from shared.keyboards import BTN_BACK, BTN_OBY, back_menu, is_menu_button, open_oby_preview_inline, user_menu
 from shared.marketing import cross_sell_cv_line, oby_intro_hook
@@ -107,7 +107,7 @@ async def obyektivka_start(message: Message, state: FSMContext) -> None:
         await message.answer("⛔ Siz bloklangansiz.")
         return
     await state.set_state(ObyektivkaStates.waiting_voice)
-    await message.answer(OBY_INSTRUCTION, reply_markup=back_menu())
+    await message.answer(OBY_INSTRUCTION, reply_markup=open_webapp_inline(uid, "obyektivka"))
 
     sample = _find_sample_audio()
     if sample:
@@ -202,7 +202,7 @@ async def _process_voice_background(
         await status_msg.edit_text(AI_QUOTA_USER_MSG)
     except Exception as e:
         logger.exception("Obyektivka voice error: %s", e)
-        await status_msg.edit_text(f"❌ Xatolik: {str(e)[:200]}")
+        await status_msg.edit_text(translate_error_to_user_message(e))
     finally:
         if path:
             try:
@@ -273,7 +273,7 @@ async def _handle_oby_text_flow(text: str, status: Message, uid: int, state: FSM
         await status.edit_text(AI_QUOTA_USER_MSG)
     except Exception as e:
         logger.exception("Obyektivka text error: %s", e)
-        await status.edit_text(f"❌ Xatolik: {str(e)[:200]}")
+        await status.edit_text(translate_error_to_user_message(e))
 
 
 @router.message(ObyektivkaStates.waiting_voice)

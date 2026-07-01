@@ -491,7 +491,28 @@
       </div>
       <div class="preview-port">
         <div id="oby-preview-error" class="oby-preview-error hidden" role="alert" aria-live="polite"></div>
-        <div id="previewSkeleton" class="da-skeleton da-skeleton-preview hidden" aria-hidden="true"></div>
+        <div id="previewSkeleton" class="da-preview-loading hidden" aria-hidden="true" style="z-index: 10;">
+          <div class="da-skeleton da-skeleton-preview" style="display: flex; flex-direction: column; padding: 24px; gap: 20px; box-sizing: border-box; background: none; animation: none; max-width: 400px; width: 100%; margin: 0 auto; opacity: 0.7;">
+             <div style="display: flex; gap: 16px; align-items: center;">
+                <div class="da-skeleton" style="width: 72px; height: 72px; border-radius: 50%;"></div>
+                <div style="display: flex; flex-direction: column; gap: 10px; flex: 1;">
+                   <div class="da-skeleton" style="height: 18px; width: 70%; border-radius: 4px;"></div>
+                   <div class="da-skeleton" style="height: 14px; width: 45%; border-radius: 4px;"></div>
+                </div>
+             </div>
+             <div style="margin-top: 10px; display: flex; flex-direction: column; gap: 12px;">
+                 <div class="da-skeleton" style="height: 14px; width: 100%; border-radius: 4px;"></div>
+                 <div class="da-skeleton" style="height: 14px; width: 92%; border-radius: 4px;"></div>
+                 <div class="da-skeleton" style="height: 14px; width: 96%; border-radius: 4px;"></div>
+                 <div class="da-skeleton" style="height: 14px; width: 85%; border-radius: 4px;"></div>
+                 <div class="da-skeleton" style="height: 14px; width: 90%; border-radius: 4px;"></div>
+             </div>
+          </div>
+          <div style="display: flex; align-items: center; gap: 10px; margin-top: -10px;">
+              <div class="da-spinner"></div>
+              <span data-i18n="loading" style="font-weight: 600; font-size: 15px;">Yuklanmoqda...</span>
+          </div>
+        </div>
         <div class="preview-scroll">
           <div id="obyPreviewPane">
             <div id="obyPreviewScaleWrapper">
@@ -1943,7 +1964,7 @@ function setObyPayUiState(phase) {
     if (sendBtn) { sendBtn.disabled = true; sendBtn.textContent = '✅ Yuborildi'; sendBtn.style.opacity = '1'; }
     if (statusEl) { statusEl.textContent = '✅ Chek yuborildi. Admin tekshiruvidan o\'tkazilmoqda...'; statusEl.style.color = '#166534'; }
   } else if (phase === 'waiting') {
-    if (sendBtn) { sendBtn.disabled = true; sendBtn.textContent = '⏳ Admin kutyapti'; sendBtn.style.opacity = '1'; }
+    if (sendBtn) { sendBtn.disabled = true; sendBtn.innerHTML = '⏳ &nbsp; Admin tekshirmoqda'; sendBtn.style.opacity = '1'; }
     if (statusEl) { statusEl.textContent = '⏳ Admin to\'lovingizni tekshirmoqda...'; statusEl.style.color = '#166534'; }
   } else if (phase === 'approved') {
     if (sendBtn) { sendBtn.disabled = true; sendBtn.textContent = '✅ Tasdiqlandi'; sendBtn.style.opacity = '1'; }
@@ -3504,10 +3525,13 @@ function showMissingBanner(missing){
 }
 
 function toggleVoiceFormEdit(){
+  _voiceFirstMode = false;
+  document.body.classList.remove('voice-first-active');
   var card=document.getElementById('main-card');
-  if(!card) return;
+  if(card) card.classList.remove('voice-first-mode');
+  var bar=document.getElementById('voiceFlowBar');
+  if(bar) bar.classList.add('hidden');
   goToStep(1);
-  document.getElementById('page-1').classList.remove('hidden');
   try{ document.getElementById('page-1').scrollIntoView({behavior:'smooth'}); }catch(_){}
 }
 
@@ -3567,7 +3591,8 @@ function runAutoloadObyData(){
                 var msg = currentLang === 'uz_l' 
                   ? "Sizda to'ldirilgan qoralama (draft) ma'lumotlar mavjud. Serverdagi ma'lumotlarni yuklab, ularni almashtirishni xohlaysizmi?" 
                   : "У сизда тўлдирилган қоралама (draft) маълумотлар мавжуд. Сервердаги маълумотlarni юклаб, уларни алмаштиришни хоҳлайсизми?";
-                if(!confirm(msg)){
+                var isAuto = window.location.search.indexOf('autoload=1') !== -1;
+                if(!isAuto && !confirm(msg)){
                   if(voiceMode) enterVoiceFirstMode(js.missing_fields||[]);
                   return;
                 }

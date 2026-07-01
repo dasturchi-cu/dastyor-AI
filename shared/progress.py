@@ -31,6 +31,17 @@ STEP_EXTRACTED = 3
 STEP_DOC = 4
 STEP_READY = 5
 
+_BAR_FILLED = "▓"
+_BAR_EMPTY = "░"
+_BAR_WIDTH = 10
+
+
+def _progress_bar(current_step: int, total: int) -> str:
+    pct = int((current_step / total) * 100)
+    filled = round((current_step / total) * _BAR_WIDTH)
+    bar = _BAR_FILLED * filled + _BAR_EMPTY * (_BAR_WIDTH - filled)
+    return f"{bar} {pct}%"
+
 
 def stage_label(step: int, *, input_mode: str = "audio") -> str:
     if input_mode == "doc":
@@ -49,14 +60,16 @@ def telegram_message(
     highlight: str | None = None,
     input_mode: str = "audio",
 ) -> str:
-    """Multi-line progress for Telegram status edits."""
+    """Multi-line progress with visual bar for Telegram status edits."""
     if input_mode == "doc":
         stages = STAGES_DOC
     elif input_mode == "text":
         stages = STAGES_TEXT
     else:
         stages = STAGES
-    lines: list[str] = []
+    total = len(stages)
+    bar = _progress_bar(current_step, total)
+    lines: list[str] = [f"<code>{bar}</code>", ""]
     for i, (_, label) in enumerate(stages, start=1):
         if i < current_step:
             mark = "✅"

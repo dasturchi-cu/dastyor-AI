@@ -20,7 +20,7 @@ from features.ai.service import (
 )
 from features.bot.states import CvStates, ObyektivkaStates
 from features.cv import service as cv_service
-from shared.ai_errors import AI_QUOTA_USER_MSG, AiQuotaError
+from shared.ai_errors import AI_QUOTA_USER_MSG, AiQuotaError, translate_error_to_user_message
 from shared.async_db import run as db_run
 from shared.keyboards import BTN_BACK, BTN_OBY, is_menu_button, open_webapp_inline
 from shared.marketing import cross_sell_oby_line
@@ -111,7 +111,7 @@ async def _handle_cv_text_flow(text: str, status: Message, uid: int, state: FSMC
         await status.edit_text(AI_QUOTA_USER_MSG)
     except Exception as e:
         logger.exception("CV text fill failed: %s", e)
-        await status.edit_text(f"❌ Xatolik: {str(e)[:200]}")
+        await status.edit_text(translate_error_to_user_message(e))
 
 
 async def _handle_cv_voice_flow(
@@ -159,7 +159,7 @@ async def _handle_cv_voice_flow(
         await status.edit_text(AI_QUOTA_USER_MSG)
     except Exception as e:
         logger.exception("Voice processing failed: %s", e)
-        await status.edit_text(f"❌ Xatolik: {str(e)[:200]}")
+        await status.edit_text(translate_error_to_user_message(e))
     finally:
         if path:
             try:

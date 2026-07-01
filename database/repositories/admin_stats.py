@@ -95,3 +95,4 @@ list_payments_enriched = admin_data.list_payments_enriched
 top_users_report = admin_data.top_users_report
 count_users = admin_data.count_users
 count_real_users = admin_data.count_real_users
+get_daily_trends = admin_data.get_daily_trends

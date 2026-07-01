@@ -132,7 +132,7 @@ def open_webapp_inline(uid: int, service: str) -> InlineKeyboardMarkup:
         url = f"{url}&autoload=1&voice=1"
     elif url and service == "obyektivka":
         url = f"{url}&autoload=1&voice=1"
-    label = "🚀 CV formasini ochish" if service == "cv" else "🚀 Obyektivka formasini ochish"
+    label = "🚀 CV formasini ochish / Tahrirlash" if service == "cv" else "🚀 Obyektivka formasini ochish / Tahrirlash"
     if not url:
         return InlineKeyboardMarkup(inline_keyboard=[])
     return InlineKeyboardMarkup(
