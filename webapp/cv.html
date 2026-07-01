@@ -2,18 +2,6 @@
 <html lang="uz">
 <head>
   <meta charset="UTF-8" />
-  <script>
-    (function(){
-      var CURRENT_V = "20260701_v4";
-      var params = new URLSearchParams(window.location.search);
-      var v = params.get('v') || '';
-      if(v !== CURRENT_V && !params.get('rcb')){
-        params.set('v', CURRENT_V);
-        params.set('rcb', String(Date.now()));
-        window.location.search = params.toString();
-      }
-    })();
-  </script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <!-- Bo‘sh = location.origin; Railway da alohida API domeni bo‘lsa to‘ldiring -->
   <meta name="dastyor-api-base" content="" />
