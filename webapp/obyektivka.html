@@ -1414,14 +1414,14 @@ function pickWorkYearValue(wrap, value){
 }
 
 function onACPickPointer(e){
-  if(e.target.closest('.ac-suggest .ac-item[data-ac-pick], .work-suggest .ac-item[data-ac-work-pick], .year-suggest .ac-item[data-ac-year-pick]')){
+  var suggestItem = e.target.closest('.ac-suggest .ac-item[data-ac-pick], .work-suggest .ac-item[data-ac-work-pick], .year-suggest .ac-item[data-ac-year-pick]');
+  if(suggestItem){
     beginACPick();
+    if(e.cancelable) e.preventDefault();
   }
   if(handleACSuggestPick(e)) return;
   var witem=e.target.closest('.work-suggest .ac-item[data-ac-work-pick]');
   if(witem){
-    beginACPick();
-    if(e.cancelable) e.preventDefault();
     var box=witem.closest('.work-suggest');
     var idx=parseInt(witem.getAttribute('data-ac-work-pick'),10);
     var list=box&&box._acPickList;
@@ -1432,8 +1432,6 @@ function onACPickPointer(e){
   }
   var yitem=e.target.closest('.year-suggest .ac-item[data-ac-year-pick]');
   if(yitem){
-    beginACPick();
-    if(e.cancelable) e.preventDefault();
     var ybox=yitem.closest('.year-suggest');
     var yidx=parseInt(yitem.getAttribute('data-ac-year-pick'),10);
     var ylist=ybox&&ybox._acPickList;
@@ -3319,18 +3317,23 @@ function applyServerObyData(d){
   setv('awards',d.awards);
   setv('idor-awards',d.departmental_awards||d['idor-awards']);
   setv('deputy',d.deputy);
-  var wc=document.getElementById('work-container');
-  if(wc){
-    wc.innerHTML='';
-    workItemsToRows(d.work_experience||d.works||[], d.current_job, d.current_job_year).forEach(function(r){
-      addWorkRow(r.f,r.t,r.d,r.fs);
-    });
+  var sWorks = d.work_experience || d.works || [];
+  if(sWorks.length > 0 || (d.current_job && String(d.current_job).trim() !== '')){
+    var wc=document.getElementById('work-container');
+    if(wc){
+      wc.innerHTML='';
+      workItemsToRows(sWorks, d.current_job, d.current_job_year).forEach(function(r){
+        addWorkRow(r.f,r.t,r.d,r.fs);
+      });
+    }
   }
-  relatives=[];
-  (d.relatives||[]).forEach(function(r){
-    relatives.push({type:r.degree||'',name:r.fullname||'',birth:r.birth_year_place||'',job:r.work_place||'',addr:r.address||''});
-  });
-  renderRelList();
+  if(d.relatives && d.relatives.length > 0){
+    relatives=[];
+    d.relatives.forEach(function(r){
+      relatives.push({type:r.degree||'',name:r.fullname||'',birth:r.birth_year_place||'',job:r.work_place||'',addr:r.address||''});
+    });
+    renderRelList();
+  }
   try{saveToLocal();}catch(e){}
   try{updatePreview();scaleLivePreview();}catch(e){}
   try{if(typeof triggerObyPreviewNow==='function')triggerObyPreviewNow();}catch(e){}

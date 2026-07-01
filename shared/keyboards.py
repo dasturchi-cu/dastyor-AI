@@ -94,7 +94,8 @@ def webapp_url(uid: int, page: str) -> str | None:
     base = settings.webapp_base.rstrip("/")
     if not base.startswith("https://"):
         return None
-    return f"{base}/{page}?telegram_id={uid}&v={settings.webapp_version}"
+    import time
+    return f"{base}/{page}?telegram_id={uid}&v={int(time.time())}"
 
 
 def user_menu() -> ReplyKeyboardMarkup:
@@ -163,9 +164,10 @@ def open_oby_preview_inline(uid: int, *, missing_count: int = 0) -> InlineKeyboa
     base = settings.webapp_base.rstrip("/")
     if not base.startswith("https://"):
         return InlineKeyboardMarkup(inline_keyboard=[])
+    import time
     url = (
         f"{base}/obyektivka.html?telegram_id={uid}"
-        f"&v={settings.webapp_version}&autoload=1&voice=1"
+        f"&v={int(time.time())}&autoload=1&voice=1"
     )
     if missing_count:
         url += f"&missing={missing_count}"
