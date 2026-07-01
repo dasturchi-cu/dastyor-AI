@@ -25,6 +25,7 @@ from features.obyektivka.spacing_config import (
     DOCX_GRID_BEFORE_TWIPS,
     DOCX_FIELD_ROW_BEFORE_TWIPS,
     DOCX_MEHNAT_BEFORE_TWIPS,
+    DOCX_CURRENT_JOB_BEFORE_TWIPS,
 )
 
 FONT_TIMES = "Times New Roman"
@@ -34,6 +35,7 @@ SP_LINE_REF = 240
 SP_GRID_BEFORE = DOCX_GRID_BEFORE_TWIPS
 SP_FIELD_ROW_BEFORE = DOCX_FIELD_ROW_BEFORE_TWIPS
 SP_MEHNAT_BEFORE = DOCX_MEHNAT_BEFORE_TWIPS
+SP_CURRENT_JOB_BEFORE = DOCX_CURRENT_JOB_BEFORE_TWIPS
 PAGE_MARGIN_TOP_BOTTOM_MM = 20
 PAGE_MARGIN_LEFT_RIGHT_MM = 18
 _MM_TWIPS = 1440 / 25.4
@@ -304,12 +306,16 @@ def enforce_reference_polish(root: etree._Element, context: dict[str, str] | Non
             continue
 
         if hozirgi_yil and _is_current_job_year(text, hozirgi_yil):
+            ppr = _p_pr(p_el)
+            _set_spacing_enforce(ppr, before=SP_CURRENT_JOB_BEFORE, after=0)
             for r_el in p_el.findall(f".//{W}r"):
                 if _run_text(r_el).strip():
                     apply_label_rpr(r_el)  # Year line must be bold
             continue
 
         if hozirgi_ish and _is_current_job_title(text, hozirgi_ish):
+            ppr = _p_pr(p_el)
+            _set_spacing_enforce(ppr, before=0, after=0)
             for r_el in p_el.findall(f".//{W}r"):
                 if _run_text(r_el).strip():
                     apply_form_value_rpr(r_el)
