@@ -3632,6 +3632,12 @@ document.addEventListener('DOMContentLoaded',function(){
         await window.DastyorAI.init({ refreshProfile: true });
       }
       telegramId = resolveTelegramId();
+      var maxRetries=10, retries=0;
+      while(!telegramId && retries<maxRetries){
+        await new Promise(function(r){setTimeout(r,100);});
+        telegramId = resolveTelegramId();
+        retries++;
+      }
       migrateLegacyObyDraft(telegramId);
       await reconcileObyPaidRequestStatus();
       syncObyQuotaUi();
