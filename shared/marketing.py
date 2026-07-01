@@ -32,18 +32,15 @@ def welcome_message() -> str:
 
 def cv_intro_header() -> str:
     return (
-        "🔥 <b>Ishga kirish uchun professional CV</b> — 3 daqiqada!\n\n"
-        "📄 <b>CV Resume</b>\n\n"
-        "• Forma orqali to'ldiring, ovoz yoki matn yuboring\n"
-        "• AI ma'lumotlarni ajratadi va formani to'ldiradi\n"
-        "• Shablon: Modern / Classic / Corporate\n"
-        "• Natija: <b>PDF</b> (ATS-friendly)"
+        "📄 <b>CV Resume</b> — AI yordamida 3 daqiqada!\n"
+        "🎙 Ovoz yoki 📝 matn yuboring — AI avtomatik to'ldiradi."
     )
 
 
 def oby_intro_hook() -> str:
     return (
-        "🎙 <b>Ovoz va matn — bepul.</b> Tayyor Word fayl uchun to'lov kerak.\n\n"
+        "✍️ <b>Obyektivka</b> — AI yordamida tez va oson!\n"
+        "🎙 Ovoz va matn — bepul. Tayyor Word fayl uchun to'lov kerak.\n\n"
     )
 
 

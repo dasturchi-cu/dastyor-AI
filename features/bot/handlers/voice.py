@@ -49,14 +49,7 @@ CV_EXAMPLE_TEMPLATE = (
 
 
 CV_INSTRUCTION = (
-    "📌 <b>CV uchun quyidagilarni ovoz yoki matn ko'rinishida yuboring:</b>\n\n"
-    "• Ism familiya\n"
-    "• Telefon, email, manzil\n"
-    "• Kasb / lavozim\n"
-    "• Ta'lim (OTM, yillar)\n"
-    "• Ish tajribasi\n"
-    "• Ko'nikmalar va tillar\n\n"
-    "🎙 Ovoz yoki 📝 matn yuboring."
+    "📌 <b>Ism, kasb, ta'lim, ish tajribasi, tillar</b> — yozing yoki ovoz yuboring."
     f"{CV_EXAMPLE_TEMPLATE}"
 )
 
