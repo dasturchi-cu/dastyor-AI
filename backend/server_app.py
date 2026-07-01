@@ -74,16 +74,19 @@ def create_webhook_app() -> FastAPI:
         skip_webhook = os.getenv("SKIP_WEBHOOK", "").strip().lower() in ("1", "true", "yes")
         webhook_secret = settings.webhook_secret
         app.state.webhook_secret = webhook_secret
-        await bot.delete_webhook(drop_pending_updates=True)
-        if settings.webhook_url and not skip_webhook:
-            await bot.set_webhook(
-                url=settings.webhook_url,
-                secret_token=webhook_secret or None,
-                drop_pending_updates=True,
-            )
-            logger.info("Webhook set: %s (secret=%s)", settings.webhook_url, bool(webhook_secret))
-        elif skip_webhook:
-            logger.info("SKIP_WEBHOOK=1 — polling mode (webhook o'rnatilmadi)")
+        try:
+            await bot.delete_webhook(drop_pending_updates=True)
+            if settings.webhook_url and not skip_webhook:
+                await bot.set_webhook(
+                    url=settings.webhook_url,
+                    secret_token=webhook_secret or None,
+                    drop_pending_updates=True,
+                )
+                logger.info("Webhook set: %s (secret=%s)", settings.webhook_url, bool(webhook_secret))
+            elif skip_webhook:
+                logger.info("SKIP_WEBHOOK=1 — polling mode (webhook o'rnatilmadi)")
+        except Exception as webhook_err:
+            logger.error("Failed to set webhook on startup: %s", webhook_err, exc_info=True)
         from features.admin.jobs import start_admin_jobs
         from shared.bot_commands import register_bot_commands
 
