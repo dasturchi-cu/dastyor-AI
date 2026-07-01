@@ -33,7 +33,7 @@ router = Router()
 
 CV_EXAMPLE_TEMPLATE = (
     "\n\n💡 <b>Nusxa ko'chirib, o'z ma'lumotlaringizni yozib yuborishingiz mumkin bo'lgan namuna:</b>\n"
-    "<code>"
+    "<blockquote>"
     "Ism: Aliyev Vali\n"
     "Telefon: +998901234567\n"
     "Email: vali.aliyev@example.com\n"
@@ -43,8 +43,8 @@ CV_EXAMPLE_TEMPLATE = (
     "Ish tajribasi:\n"
     "2026-hozirgi vaqtgacha Dastyor AI, mutaxassis\n\n"
     "Tillar:\n"
-    "Rus tili, O'zbek tili\n"
-    "</code>"
+    "Rus tili, O'zbek tili"
+    "</blockquote>"
 )
 
 
