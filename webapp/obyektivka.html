@@ -994,6 +994,14 @@ function applyACSelection(input, type, selected, autoComma){
   var el=document.getElementById(suggestId);
   if(el) el.classList.add('hidden');
   closeACSuggest(type);
+  
+  try {
+    var ev = new Event('input', { bubbles: true });
+    input.dispatchEvent(ev);
+    var ev2 = new Event('change', { bubbles: true });
+    input.dispatchEvent(ev2);
+  } catch(e) {}
+
   try{saveToLocal();updatePreview();}catch(e){}
 }
 
@@ -1065,6 +1073,12 @@ function onSmartACBlur(input, type){
     if(!input) return;
     /* Agar click bilan tanlangan bo'lsa, blur da alias qo'llamaymiz */
     if(acSuggestPicking) return;
+    
+    // Hide the suggestion popup on blur
+    var suggestId = input.dataset.acSuggest || ('suggest-' + type);
+    var el = document.getElementById(suggestId);
+    if(el) el.classList.add('hidden');
+
     if(acValNoTypes.indexOf(type)>=0 && !String(input.value||'').trim()){
       input.value=(dict[currentLang]||{}).val_no||"yo'q";
       try{saveToLocal();updatePreview();}catch(e){}
@@ -1078,7 +1092,7 @@ function onSmartACBlur(input, type){
       else input.value=alias;
       try{saveToLocal();updatePreview();}catch(e){}
     }
-  }, 200);
+  }, 250);
 }
 
 function onValNoFieldFocus(input, type){
@@ -3556,6 +3570,22 @@ function runAutoloadObyData(){
       .then(function(js){
         var DA = window.DastyorAI || {};
         if(js&&js.ok&&js.data&&(DA.countObyDataFields?DA.countObyDataFields(js.data)>0:true)){
+          var localStr = localStorage.getItem(obyDraftStorageKey());
+          if(localStr){
+            try{
+              var localData = JSON.parse(localStr);
+              var hasLocalData = localData.fullname || (localData.works && localData.works.length > 0) || (localData.relatives && localData.relatives.length > 0);
+              if(hasLocalData){
+                var msg = currentLang === 'uz_l' 
+                  ? "Sizda to'ldirilgan qoralama (draft) ma'lumotlar mavjud. Serverdagi ma'lumotlarni yuklab, ularni almashtirishni xohlaysizmi?" 
+                  : "У сизда тўлдирилган қоралама (draft) маълумотлар мавжуд. Сервердаги маълумотlarni юклаб, уларни алмаштиришни хоҳлайсизми?";
+                if(!confirm(msg)){
+                  if(voiceMode) enterVoiceFirstMode(js.missing_fields||[]);
+                  return;
+                }
+              }
+            }catch(e){}
+          }
           assertObyFormPopulated(js.data);
           if(voiceMode) enterVoiceFirstMode(js.missing_fields||[]);
           return;

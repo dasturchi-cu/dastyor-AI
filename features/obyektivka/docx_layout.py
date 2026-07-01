@@ -392,7 +392,7 @@ def _fix_relatives_table(root: etree._Element) -> None:
         if not _is_relatives_table(tbl):
             continue
         # Apply programmatic column widths (twips / dxa, total = 9864 dxa ~ 174mm printable area)
-        cols = (1380, 2268, 1874, 2564, 1778)
+        cols = (1600, 2400, 1800, 2364, 1700)
         _apply_rel_table_column_widths(tbl, cols, sum(cols))
         rows = tbl.findall(f"{W}tr")
         for ri, tr in enumerate(rows):
