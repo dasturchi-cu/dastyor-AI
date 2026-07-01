@@ -107,6 +107,23 @@ async def _delete_waiting_prompt(bot: Bot, state: FSMContext) -> None:
     await state.update_data(waiting_prompt_msg_id=None, waiting_prompt_chat_id=None)
 
 
+async def _auto_delete_waiting_prompt_after_delay(
+    bot: Bot, state: FSMContext, chat_id: int, message_id: int, delay: int = 60
+) -> None:
+    await asyncio.sleep(delay)
+    try:
+        data = await state.get_data()
+        current_msg_id = data.get("waiting_prompt_msg_id")
+        if current_msg_id == message_id:
+            try:
+                await bot.delete_message(chat_id=chat_id, message_id=message_id)
+            except Exception:
+                pass
+            await state.update_data(waiting_prompt_msg_id=None, waiting_prompt_chat_id=None)
+    except Exception:
+        pass
+
+
 @router.message(F.text == BTN_OBY)
 async def obyektivka_start(message: Message, state: FSMContext) -> None:
     uid = message.from_user.id if message.from_user else 0
@@ -129,6 +146,12 @@ async def obyektivka_start(message: Message, state: FSMContext) -> None:
         waiting_prompt_msg_id=waiting_msg.message_id,
         waiting_prompt_chat_id=waiting_msg.chat.id,
     )
+    if message.bot:
+        asyncio.create_task(
+            _auto_delete_waiting_prompt_after_delay(
+                message.bot, state, waiting_msg.chat.id, waiting_msg.message_id
+            )
+        )
 
 
 async def _send_sample_audio(message: Message, sample: Path) -> None:
