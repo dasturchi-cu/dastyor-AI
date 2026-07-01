@@ -1972,6 +1972,30 @@
       const btnSpan = btn ? btn.querySelector('[data-i18n="download_pdf"]') : null;
 
       if (!DA.getCredits) {
+        // DA hali tayyor emas — sessionStorage dan tekshiramiz
+        try {
+          var _ssRaw = sessionStorage.getItem('tg_user');
+          if (_ssRaw) {
+            var _ssU = JSON.parse(_ssRaw);
+            var _ssCredits = Math.max(0, Number(_ssU.credits || 0));
+            var _ssHasAccess = !!(_ssU.has_access);
+            if (!_ssHasAccess && _ssCredits === 0) {
+              // Kredit yo'q — darhol to'lov ko'rsatamiz
+              if (btn) {
+                btn.disabled = true;
+                if (DA.applyExportButtonState) DA.applyExportButtonState(btn, 'locked', 'cv');
+                if (btnSpan) btnSpan.textContent = '🔒 PDF botga yuborish';
+              }
+              if (payBtn) payBtn.classList.remove('hidden');
+              if (warn) {
+                applyCvQuotaWarnStyle('pay');
+                warn.classList.remove('hidden');
+                warn.textContent = "🔒 Pul yetarli emas. Avval to'lov qiling (7 999 so'm = 1 ta hujjat).";
+              }
+              return;
+            }
+          }
+        } catch (_) {}
         if (warn) warn.classList.add('hidden');
         return;
       }

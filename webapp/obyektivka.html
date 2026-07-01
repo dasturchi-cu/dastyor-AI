@@ -2019,6 +2019,17 @@ function syncObyQuotaUi() {
   } else if (DA.getCredits) {
     canExport = DA.getCredits(u) > 0
       || (DA.hasSingleDocAccess && DA.hasSingleDocAccess(u, 'obyektivka'));
+  } else {
+    // DA hali tayyor emas — sessionStorage dan darhol tekshiramiz
+    try {
+      var _ssRawOby = sessionStorage.getItem('tg_user');
+      if (_ssRawOby) {
+        var _ssUOby = JSON.parse(_ssRawOby);
+        var _ssCreditsOby = Math.max(0, Number(_ssUOby.credits || 0));
+        var _ssHasAccessOby = !!(_ssUOby.has_access || _ssUOby.has_objective_access);
+        canExport = _ssCreditsOby > 0 || _ssHasAccessOby;
+      }
+    } catch (_) {}
   }
 
   var pendingAdmin = !!(_obyApprovedRequestId && !canExport);
