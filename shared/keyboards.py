@@ -16,12 +16,13 @@ BTN_OBY = "✍️ Obyektivka yaratish"
 BTN_BACK = "🔙 Orqaga"
 BTN_HELP = "ℹ️ Yordam"
 BTN_CREDITS = "💳 Pul balansi"
+BTN_SAMPLES = "📁 Namunalar"
 
 # Eski Telegram klaviatura (cache) — menyu tugmasi sifatida tanish
 LEGACY_BTN_CREDITS = ("💳 Kreditlar", "Kreditlar", "💳 Kredit")
 
 MENU_BUTTON_TEXTS = frozenset(
-    {BTN_CV, BTN_OBY, BTN_CREDITS, BTN_HELP, BTN_BACK, *LEGACY_BTN_CREDITS}
+    {BTN_CV, BTN_OBY, BTN_CREDITS, BTN_HELP, BTN_SAMPLES, BTN_BACK, *LEGACY_BTN_CREDITS}
 )
 
 
@@ -102,7 +103,8 @@ def user_menu(uid: int | None = None) -> ReplyKeyboardMarkup:
     return ReplyKeyboardMarkup(
         keyboard=[
             [KeyboardButton(text=BTN_CV), KeyboardButton(text=BTN_OBY)],
-            [KeyboardButton(text=BTN_CREDITS), KeyboardButton(text=BTN_HELP)],
+            [KeyboardButton(text=BTN_CREDITS), KeyboardButton(text=BTN_SAMPLES)],
+            [KeyboardButton(text=BTN_HELP)],
         ],
         resize_keyboard=True,
         input_field_placeholder="Xizmatni tanlang",
@@ -203,3 +205,16 @@ def payment_review_kb(payment_id: int) -> InlineKeyboardMarkup:
             ]
         ]
     )
+
+
+def payment_choice_keyboard(uid: int) -> InlineKeyboardMarkup:
+    url = webapp_url(uid, "index.html")
+    keyboard = []
+    if url:
+        keyboard.append([
+            InlineKeyboardButton(text="💳 Web-ilova orqali to'lash", web_app=WebAppInfo(url=url))
+        ])
+    keyboard.append([
+        InlineKeyboardButton(text="🤖 Telegram bot orqali to'lash", callback_data="pay_via_bot")
+    ])
+    return InlineKeyboardMarkup(inline_keyboard=keyboard)

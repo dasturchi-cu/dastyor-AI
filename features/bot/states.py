@@ -13,3 +13,7 @@ class CvStates(StatesGroup):
 
 class ContactStates(StatesGroup):
     waiting_message = State()
+
+
+class PaymentStates(StatesGroup):
+    waiting_screenshot = State()

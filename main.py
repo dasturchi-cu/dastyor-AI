@@ -19,6 +19,7 @@ from features.bot.handlers import start as start_handlers
 from features.bot.handlers import voice as voice_handlers
 from features.bot.handlers import cover_letter as cover_letter_handlers
 from features.bot.handlers import translate as translate_handlers
+from features.bot.handlers import marketing_payment as marketing_payment_handlers
 
 logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
@@ -48,6 +49,7 @@ def create_dispatcher() -> Dispatcher:
     dp.include_router(voice_handlers.router)
     dp.include_router(cover_letter_handlers.router)
     dp.include_router(translate_handlers.router)
+    dp.include_router(marketing_payment_handlers.router)
     dp.include_router(admin_support.router)
     return dp
 

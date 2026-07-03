@@ -187,6 +187,12 @@ async def cv_intro(message: Message, state: FSMContext) -> None:
         reply_markup=open_webapp_inline(uid, "cv"),
     )
 
+    from features.bot.handlers.obyektivka import _find_sample_audio, _send_sample_audio
+    sample = _find_sample_audio()
+    if sample:
+        import asyncio
+        asyncio.create_task(_send_sample_audio(message, sample))
+
 
 @router.message(F.text == BTN_BACK)
 async def menu_back(message: Message, state: FSMContext) -> None:
@@ -203,6 +209,7 @@ async def show_credits(message: Message) -> None:
     ref_count = await db_run(users_repo.get_referral_count, uid)
     bot_username = settings.bot_username or "DastyorAiBot"
     ref_link = f"https://t.me/{bot_username}?start=ref_{uid}"
+    from shared.keyboards import payment_choice_keyboard
     await message.answer(
         f"💳 <b>Sotib olingan yuklashlar:</b> {status} ta\n"
         f"ℹ️ Ovoz va matn to'ldirish — <b>bepul</b>\n"
@@ -212,5 +219,5 @@ async def show_credits(message: Message) -> None:
         f"👥 <b>Siz taklif qilgan faol do'stlaringiz:</b> {ref_count} ta\n"
         f"🎁 <b>Bepul yuklash olish:</b> Do'stlaringizga taklif havolangizni ulashing. Har 3 ta do'stingiz botdan foydalanib o'zining birinchi bepul hujjatini yuklab olganida sizga +1 ta bepul yuklash sovg'a qilinadi!\n"
         f"Havolangiz:\n<code>{ref_link}</code>",
-        reply_markup=user_menu(uid if uid else None),
+        reply_markup=payment_choice_keyboard(uid),
     )
