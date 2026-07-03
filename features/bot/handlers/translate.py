@@ -63,6 +63,7 @@ async def cmd_translate(message: Message) -> None:
 
 
 async def translate_payload(payload: dict[str, Any], target_language: str) -> dict[str, Any]:
+    import re
     json_str = json.dumps(payload, ensure_ascii=False)
     prompt = f"""
 Siz professional tarjimonsiz. Quyidagi JSON formatidagi ma'lumotlarning kalitlarini (keys) o'zgartirmasdan, ularning qiymatlarini (values) o'zbek tilidan {target_language} tiliga professional darajada tarjima qiling.
@@ -71,15 +72,33 @@ JSON:
 {json_str}
 
 Qoidalar:
+- Kalitlarni (keys) aslo o'zgartirmang va tarjima qilmang, faqat ularga tegishli bo'lgan qiymatlarni (values) tarjima qiling.
 - Faqat to'g'ri JSON formatida javob bering.
 - Har qanday qo'shimcha tushuntirish yoki markdown kod bloklarini (masalan, ```json) qo'shmang.
 - Agar qiymat bo'sh bo'lsa yoki ism/telefon kabi tarjima qilinmaydigan narsa bo'lsa, o'zgarishsiz qoldiring.
 - OTM nomlari, kasblar va ish tajribalarini tarjimada to'g'ri ko'rsating.
 """
     raw_text = await generate_text_with_fallback(prompt, timeout=60)
-    # Strip any markdown formatting
-    cleaned = raw_text.replace("```json", "").replace("```", "").strip()
-    return json.loads(cleaned)
+    if not raw_text or not raw_text.strip():
+        raise ValueError("AI returned an empty translation response")
+
+    cleaned = raw_text.strip()
+    # Remove markdown code block wrapping
+    if cleaned.startswith("```"):
+        cleaned = re.sub(r"^```(?:json)?\n", "", cleaned)
+        cleaned = re.sub(r"\n```$", "", cleaned)
+    cleaned = cleaned.strip()
+
+    # Regex search for first '{' to last '}' to strip any conversational prefixes/suffixes
+    match = re.search(r"(\{.*\})", cleaned, re.DOTALL)
+    if match:
+        cleaned = match.group(1)
+
+    try:
+        return json.loads(cleaned)
+    except json.JSONDecodeError as e:
+        logger.error("JSON decode error in translation: %s. Raw text: %s", e, raw_text)
+        raise
 
 
 @router.callback_query(F.data.startswith("tr_"))
