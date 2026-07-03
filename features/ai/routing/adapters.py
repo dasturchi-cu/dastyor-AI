@@ -133,7 +133,11 @@ async def _cloudflare_generate(endpoint: Endpoint, prompt: str, *, timeout_sec: 
         "Authorization": f"Bearer {endpoint.api_key}",
         "Content-Type": "application/json",
     }
-    payload = {"messages": [{"role": "user", "content": prompt}]}
+    payload = {
+        "messages": [{"role": "user", "content": prompt}],
+        "max_tokens": 1500,
+        "max_decoding_tokens": 1500,
+    }
     t0 = time.perf_counter()
     try:
         async with httpx.AsyncClient(timeout=httpx.Timeout(timeout_sec)) as client:
