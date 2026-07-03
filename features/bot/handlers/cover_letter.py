@@ -101,10 +101,13 @@ Qoidalar:
 
         # Deduct credit
         await db_run(users_repo.consume_credit, uid)
-        
         await state.clear()
-        
-        await status.edit_text(
+
+        try:
+            await status.delete()
+        except Exception:
+            pass
+        await message.answer(
             "✅ <b>Muqova xati (Cover Letter) muvaffaqiyatli tayyorlandi!</b>\n"
             "<i>(Balansingizdan 1 ta yuklash sarflandi)</i>\n\n"
             f"<blockquote expandable>{cover_letter}</blockquote>",
@@ -112,7 +115,11 @@ Qoidalar:
         )
     except Exception as e:
         logger.exception("Cover letter generation failed: %s", e)
-        await status.edit_text(
+        try:
+            await status.delete()
+        except Exception:
+            pass
+        await message.answer(
             "❌ Muqova xati yaratishda xatolik yuz berdi. Iltimos, keyinroq qayta urinib ko'ring.",
             reply_markup=user_menu(uid),
         )

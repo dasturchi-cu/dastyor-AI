@@ -1,0 +1,310 @@
+=== STDOUT ===
+INFO:     127.0.0.1:45202 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49654 - "GET /health HTTP/1.1" 200 OK
+INFO:     172.20.0.1:36238 - "POST /webhook HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52472 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:43328 - "GET /health HTTP/1.1" 200 OK
+INFO:     172.20.0.1:35914 - "POST /webhook HTTP/1.1" 200 OK
+INFO:     127.0.0.1:35828 - "GET /health HTTP/1.1" 200 OK
+INFO:     172.20.0.1:35930 - "POST /webhook HTTP/1.1" 200 OK
+INFO:     172.20.0.1:35940 - "POST /webhook HTTP/1.1" 200 OK
+INFO:     172.20.0.1:55568 - "GET /webapp/index.html HTTP/1.1" 200 OK
+INFO:     172.20.0.1:55570 - "POST /api/auth HTTP/1.1" 200 OK
+INFO:     172.20.0.1:55582 - "GET /api/me?telegram_id=7458702074&token=dccbedd274fe71c99a20a3d9acc1c2d7 HTTP/1.1" 200 OK
+INFO:     172.20.0.1:55590 - "GET /webapp/obyektivka.html?voice=1 HTTP/1.1" 304 Not Modified
+INFO:     172.20.0.1:55596 - "GET /webapp/vendor/pdf.min.js HTTP/1.1" 304 Not Modified
+INFO:     172.20.0.1:55604 - "GET /webapp/js/obyektivka-preview.js?v=20260701_v4 HTTP/1.1" 304 Not Modified
+INFO:     172.20.0.1:55620 - "GET /api/me?telegram_id=7458702074&token=dccbedd274fe71c99a20a3d9acc1c2d7 HTTP/1.1" 200 OK
+INFO:     172.20.0.1:55632 - "GET /api/me?telegram_id=7458702074&token=dccbedd274fe71c99a20a3d9acc1c2d7 HTTP/1.1" 200 OK
+INFO:     172.20.0.1:55646 - "GET /api/me?telegram_id=7458702074&token=dccbedd274fe71c99a20a3d9acc1c2d7 HTTP/1.1" 200 OK
+INFO:     172.20.0.1:55650 - "POST /api/preview_obyektivka HTTP/1.1" 200 OK
+INFO:     172.20.0.1:48726 - "GET /api/me?telegram_id=7458702074&token=dccbedd274fe71c99a20a3d9acc1c2d7 HTTP/1.1" 200 OK
+INFO:     172.20.0.1:48730 - "GET /api/payment_card HTTP/1.1" 200 OK
+INFO:     172.20.0.1:48736 - "GET /webapp/vendor/pdf.worker.min.js HTTP/1.1" 304 Not Modified
+INFO:     172.20.0.1:48744 - "POST /api/request_paid_obyektivka HTTP/1.1" 200 OK
+INFO:     172.20.0.1:48756 - "POST /api/paid_doc_submit_screenshot?request_id=148&kind=obyektivka&telegram_id=7458702074&token=dccbedd274fe71c99a20a3d9acc1c2d7 HTTP/1.1" 200 OK
+INFO:     172.20.0.1:48772 - "GET /api/paid_doc_status?request_id=148&telegram_id=7458702074&token=dccbedd274fe71c99a20a3d9acc1c2d7 HTTP/1.1" 200 OK
+INFO:     172.20.0.1:48776 - "POST /webhook HTTP/1.1" 200 OK
+INFO:     172.20.0.1:48790 - "GET /api/paid_doc_status?request_id=148&telegram_id=7458702074&token=dccbedd274fe71c99a20a3d9acc1c2d7 HTTP/1.1" 200 OK
+INFO:     172.20.0.1:55432 - "GET /api/paid_doc_status?request_id=148&telegram_id=7458702074&token=dccbedd274fe71c99a20a3d9acc1c2d7 HTTP/1.1" 200 OK
+INFO:     172.20.0.1:55440 - "POST /webhook HTTP/1.1" 200 OK
+INFO:     172.20.0.1:55452 - "GET /api/paid_doc_status?request_id=148&telegram_id=7458702074&token=dccbedd274fe71c99a20a3d9acc1c2d7 HTTP/1.1" 200 OK
+INFO:     172.20.0.1:55464 - "GET /api/me?telegram_id=7458702074&token=dccbedd274fe71c99a20a3d9acc1c2d7 HTTP/1.1" 200 OK
+INFO:     172.20.0.1:55472 - "GET /api/me?telegram_id=7458702074&token=dccbedd274fe71c99a20a3d9acc1c2d7 HTTP/1.1" 200 OK
+INFO:     172.20.0.1:55488 - "POST /api/export_release_pending?category=obyektivka&telegram_id=7458702074&token=dccbedd274fe71c99a20a3d9acc1c2d7 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58784 - "GET /health HTTP/1.1" 200 OK
+INFO:     172.20.0.1:36096 - "POST /webhook HTTP/1.1" 200 OK
+INFO:     172.20.0.1:54588 - "POST /webhook HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50918 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50956 - "GET /health HTTP/1.1" 200 OK
+INFO:     172.20.0.1:52730 - "POST /webhook HTTP/1.1" 500 Internal Server Error
+INFO:     172.20.0.1:51990 - "POST /webhook HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49556 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:36746 - "GET /health HTTP/1.1" 200 OK
+INFO:     172.20.0.1:44560 - "POST /webhook HTTP/1.1" 200 OK
+INFO:     127.0.0.1:35840 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52856 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50564 - "GET /health HTTP/1.1" 200 OK
+INFO:     172.20.0.1:44428 - "POST /api/paid_doc_submit_screenshot?request_id=148&kind=obyektivka&telegram_id=7458702074&token=dccbedd274fe71c99a20a3d9acc1c2d7 HTTP/1.1" 200 OK
+INFO:     172.20.0.1:44432 - "GET /api/paid_doc_status?request_id=148&telegram_id=7458702074&token=dccbedd274fe71c99a20a3d9acc1c2d7 HTTP/1.1" 200 OK
+INFO:     172.20.0.1:56338 - "POST /webhook HTTP/1.1" 200 OK
+INFO:     172.20.0.1:40392 - "POST /webhook HTTP/1.1" 200 OK
+INFO:     172.20.0.1:40396 - "POST /webhook HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60168 - "GET /health HTTP/1.1" 200 OK
+INFO:     172.20.0.1:49246 - "POST /webhook HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60274 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47368 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37012 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51410 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:35822 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58202 - "GET /health HTTP/1.1" 200 OK
+
+=== STDERR ===
+Playwright not installed — PDF will fall back to WeasyPrint
+2026-07-03 10:37:19,216 - main - INFO - FSM storage: Memory
+2026-07-03 10:37:19,221 - backend.server_app - INFO - WebApp mounted at /webapp
+INFO:     Started server process [1]
+INFO:     Waiting for application startup.
+2026-07-03 10:37:19,254 - database.connection - INFO - SQLite initialize: /data/app.db
+2026-07-03 10:37:19,258 - database.migrations - INFO - Applying migration 013_referral_active
+2026-07-03 10:37:19,642 - database.connection - INFO - SQLite ready: /data/app.db (16 tables, integrity=ok)
+2026-07-03 10:37:19,642 - backend.server_app - INFO - Database initialized: /data/app.db ok=True
+2026-07-03 10:37:19,919 - backend.server_app - INFO - Webhook set: https://dastyorai.duckdns.org/webhook (ip=84.46.243.149, secret=True)
+2026-07-03 10:37:20,017 - shared.bot_commands - INFO - Bot commands registered (8, private chats only)
+2026-07-03 10:37:20,017 - features.admin.jobs - INFO - Admin jobs started (daily report 21:00 Asia/Tashkent)
+2026-07-03 10:37:20,019 - features.ai.routing.health - INFO - AI health checker started (interval=60s)
+2026-07-03 10:37:20,021 - database.connection - INFO - SQLite initialize: /data/app.db
+2026-07-03 10:37:20,407 - database.connection - INFO - SQLite ready: /data/app.db (16 tables, integrity=ok)
+2026-07-03 10:37:20,411 - database.connection - INFO - SQLite connect: /data/app.db
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+2026-07-03 10:37:59,387 - database.connection - INFO - SQLite initialize: /data/app.db
+2026-07-03 10:37:59,826 - database.connection - INFO - SQLite ready: /data/app.db (16 tables, integrity=ok)
+2026-07-03 10:37:59,827 - database.connection - INFO - SQLite connect: /data/app.db
+2026-07-03 10:37:59,958 - aiogram.event - INFO - Update id=554228657 is handled. Duration 571 ms by bot id=8378958011
+2026-07-03 10:39:25,101 - aiogram.event - INFO - Update id=554228658 is handled. Duration 98 ms by bot id=8378958011
+2026-07-03 10:39:31,617 - aiogram.event - INFO - Update id=554228659 is handled. Duration 198 ms by bot id=8378958011
+2026-07-03 10:39:32,647 - aiogram.event - INFO - Update id=554228660 is handled. Duration 65 ms by bot id=8378958011
+2026-07-03 10:39:36,245 - dastyor.webapp - INFO - Webapp GET path=/webapp/index.html status=200
+2026-07-03 10:39:36,448 - shared.security_audit - INFO - SECURITY event=auth_success severity=info ip=172.20.0.1 user=7458702074 detail=
+2026-07-03 10:39:37,739 - dastyor.webapp - INFO - Webapp GET path=/webapp/obyektivka.html status=304
+2026-07-03 10:39:38,351 - dastyor.webapp - INFO - Webapp GET path=/webapp/vendor/pdf.min.js status=304
+2026-07-03 10:39:38,389 - dastyor.webapp - INFO - Webapp GET path=/webapp/js/obyektivka-preview.js status=304
+2026-07-03 10:39:39,698 - database.connection - INFO - SQLite initialize: /data/app.db
+2026-07-03 10:39:40,073 - database.connection - INFO - SQLite ready: /data/app.db (16 tables, integrity=ok)
+2026-07-03 10:39:40,073 - database.connection - INFO - SQLite connect: /data/app.db
+2026-07-03 10:39:42,970 - features.obyektivka.router - INFO - preview_obyektivka: served via master DOCX→PDF
+2026-07-03 10:39:42,972 - perf.request - WARNING - SLOW POST /api/preview_obyektivka 3690.4ms
+2026-07-03 10:39:42,972 - observability - INFO - HTTP http:POST:/api/preview_obyektivka status=success ms=3690 user=None meta={'status_code': 200}
+2026-07-03 10:39:43,460 - features.obyektivka.router - INFO - preview_obyektivka: served via master DOCX→PDF
+2026-07-03 10:39:43,461 - perf.request - WARNING - SLOW POST /api/preview_obyektivka 3253.4ms
+2026-07-03 10:39:43,461 - observability - INFO - HTTP http:POST:/api/preview_obyektivka status=success ms=3253 user=None meta={'status_code': 200}
+2026-07-03 10:39:43,844 - dastyor.webapp - INFO - Webapp GET path=/webapp/vendor/pdf.worker.min.js status=304
+2026-07-03 10:39:48,950 - features.payment.auto_approve_scheduler - INFO - Stealth auto-approve scheduled #148 in 25s
+2026-07-03 10:39:51,323 - aiogram.event - INFO - Update id=554228661 is handled. Duration 70 ms by bot id=8378958011
+2026-07-03 10:39:56,023 - aiogram.event - INFO - Update id=554228662 is handled. Duration 165 ms by bot id=8378958011
+2026-07-03 10:40:09,120 - aiogram.event - INFO - Update id=554228663 is handled. Duration 124 ms by bot id=8378958011
+2026-07-03 10:40:16,369 - aiogram.event - INFO - Update id=554228664 is handled. Duration 95 ms by bot id=8378958011
+2026-07-03 10:40:42,197 - features.ai.routing.engine - WARNING - AI failover provider=gemini key#1 model=gemini-2.0-flash err=429 You exceeded your current quota, please check your plan and billing details. For more information on this error, hea
+2026-07-03 10:40:43,827 - features.ai.routing.engine - WARNING - AI failover provider=gemini key#2 model=gemini-2.0-flash err=429 You exceeded your current quota, please check your plan and billing details. For more information on this error, hea
+2026-07-03 10:40:45,416 - features.ai.routing.engine - WARNING - AI failover provider=gemini key#3 model=gemini-2.0-flash err=400 API key not valid. Please pass a valid API key. [reason: "API_KEY_INVALID"
+domain: "googleapis.com"
+metadata {
+  key
+2026-07-03 10:40:47,082 - features.ai.routing.engine - WARNING - AI failover provider=gemini key#4 model=gemini-2.0-flash err=429 You exceeded your current quota, please check your plan and billing details. For more information on this error, hea
+2026-07-03 10:40:48,719 - features.ai.routing.engine - WARNING - AI failover provider=gemini key#5 model=gemini-2.0-flash err=429 You exceeded your current quota, please check your plan and billing details. For more information on this error, hea
+2026-07-03 10:40:50,341 - features.ai.routing.engine - WARNING - AI failover provider=gemini key#6 model=gemini-2.0-flash err=429 You exceeded your current quota, please check your plan and billing details. For more information on this error, hea
+2026-07-03 10:40:51,989 - features.ai.routing.engine - WARNING - AI failover provider=gemini key#7 model=gemini-2.0-flash err=429 You exceeded your current quota, please check your plan and billing details. For more information on this error, hea
+2026-07-03 10:40:53,627 - features.ai.routing.engine - WARNING - AI failover provider=gemini key#8 model=gemini-2.0-flash err=429 You exceeded your current quota, please check your plan and billing details. For more information on this error, hea
+2026-07-03 10:40:55,385 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 429 Too Many Requests"
+2026-07-03 10:40:55,419 - features.ai.routing.engine - WARNING - AI failover provider=openai key#1 model=gpt-4.1-mini err=429 rate limit: {
+    "error": {
+        "message": "You exceeded your current quota, please check your plan and billing
+2026-07-03 10:40:57,172 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 429 Too Many Requests"
+2026-07-03 10:40:57,186 - features.ai.routing.engine - WARNING - AI failover provider=openai key#2 model=gpt-4.1-mini err=429 rate limit: {
+    "error": {
+        "message": "You exceeded your current quota, please check your plan and billing
+2026-07-03 10:40:58,909 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 429 Too Many Requests"
+2026-07-03 10:40:58,929 - features.ai.routing.engine - WARNING - AI failover provider=openai key#3 model=gpt-4.1-mini err=429 rate limit: {
+    "error": {
+        "message": "You exceeded your current quota, please check your plan and billing
+2026-07-03 10:41:01,134 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 429 Too Many Requests"
+2026-07-03 10:41:01,267 - features.ai.routing.engine - WARNING - AI failover provider=openai key#4 model=gpt-4.1-mini err=429 rate limit: {
+    "error": {
+        "message": "You exceeded your current quota, please check your plan and billing
+2026-07-03 10:41:02,987 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 429 Too Many Requests"
+2026-07-03 10:41:03,294 - features.ai.routing.engine - WARNING - AI failover provider=openai key#5 model=gpt-4.1-mini err=429 rate limit: {
+    "error": {
+        "message": "You exceeded your current quota, please check your plan and billing
+2026-07-03 10:41:05,036 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 429 Too Many Requests"
+2026-07-03 10:41:05,060 - features.ai.routing.engine - WARNING - AI failover provider=openai key#6 model=gpt-4.1-mini err=429 rate limit: {
+    "error": {
+        "message": "You exceeded your current quota, please check your plan and billing
+2026-07-03 10:41:07,557 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 429 Too Many Requests"
+2026-07-03 10:41:07,602 - features.ai.routing.engine - WARNING - AI failover provider=openai key#7 model=gpt-4.1-mini err=429 rate limit: {
+    "error": {
+        "message": "You exceeded your current quota, please check your plan and billing
+2026-07-03 10:41:09,356 - httpx - INFO - HTTP Request: POST https://openrouter.ai/api/v1/chat/completions "HTTP/1.1 402 Payment Required"
+2026-07-03 10:41:09,432 - features.ai.routing.engine - WARNING - AI failover provider=openrouter key#1 model=deepseek/deepseek-chat err=Client error '402 Payment Required' for url 'https://openrouter.ai/api/v1/chat/completions'
+For more information check: 
+2026-07-03 10:41:11,013 - httpx - INFO - HTTP Request: POST https://api.groq.com/openai/v1/chat/completions "HTTP/1.1 400 Bad Request"
+2026-07-03 10:41:11,033 - features.ai.routing.engine - WARNING - AI failover provider=groq key#1 model=gemma2-9b-it err=Client error '400 Bad Request' for url 'https://api.groq.com/openai/v1/chat/completions'
+For more information check: htt
+2026-07-03 10:41:13,882 - httpx - INFO - HTTP Request: POST https://api.cloudflare.com/client/v4/accounts/df5ed4d8f230918a3140c1734d869b14/ai/run/@cf/meta/llama-3.1-8b-instruct "HTTP/1.1 200 OK"
+2026-07-03 10:41:13,904 - features.ai.routing.engine - INFO - AI route OK provider=cloudflare key#1 model=@cf/meta/llama-3.1-8b-instruct 1351ms
+2026-07-03 10:41:13,914 - features.bot.handlers.cover_letter - ERROR - Cover letter generation failed: 1 validation error for EditMessageText
+reply_markup
+  Input should be a valid dictionary or instance of InlineKeyboardMarkup [type=model_type, input_value=ReplyKeyboardMarkup(keybo...anlang', selective=None), input_type=ReplyKeyboardMarkup]
+    For further information visit https://errors.pydantic.dev/2.13/v/model_type
+Traceback (most recent call last):
+  File "/app/features/bot/handlers/cover_letter.py", line 107, in process_vacancy_text
+    await status.edit_text(
+          ^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/aiogram/types/message.py", line 4033, in edit_text
+    return EditMessageText(
+           ^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/pydantic/main.py", line 263, in __init__
+    validated_self = self.__pydantic_validator__.validate_python(data, self_instance=self)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+pydantic_core._pydantic_core.ValidationError: 1 validation error for EditMessageText
+reply_markup
+  Input should be a valid dictionary or instance of InlineKeyboardMarkup [type=model_type, input_value=ReplyKeyboardMarkup(keybo...anlang', selective=None), input_type=ReplyKeyboardMarkup]
+    For further information visit https://errors.pydantic.dev/2.13/v/model_type
+2026-07-03 10:41:13,929 - aiogram.event - INFO - Update id=554228665 is not handled. Duration 32064 ms by bot id=8378958011
+2026-07-03 10:41:13,929 - backend.routers.tg_update - ERROR - Webhook error: 1 validation error for EditMessageText
+reply_markup
+  Input should be a valid dictionary or instance of InlineKeyboardMarkup [type=model_type, input_value=ReplyKeyboardMarkup(keybo...anlang', selective=None), input_type=ReplyKeyboardMarkup]
+    For further information visit https://errors.pydantic.dev/2.13/v/model_type
+Traceback (most recent call last):
+  File "/app/backend/routers/tg_update.py", line 39, in webhook
+    await dp.feed_update(bot, update)
+  File "/usr/local/lib/python3.12/site-packages/aiogram/dispatcher/dispatcher.py", line 164, in feed_update
+    response = await self.update.wrap_outer_middleware(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/aiogram/dispatcher/middlewares/error.py", line 27, in __call__
+    return await handler(event, data)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/aiogram/dispatcher/middlewares/user_context.py", line 58, in __call__
+    return await handler(event, data)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/aiogram/fsm/middleware.py", line 43, in __call__
+    return await handler(event, data)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/aiogram/dispatcher/event/telegram.py", line 126, in trigger
+    return await wrapped_inner(event, kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/app/features/bot/middleware/user_persistence.py", line 31, in __call__
+    return await handler(event, data)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/aiogram/dispatcher/event/handler.py", line 71, in call
+    return await wrapped()
+           ^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/aiogram/dispatcher/dispatcher.py", line 283, in _listen_update
+    return await self.propagate_event(update_type=update_type, event=event, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/aiogram/dispatcher/router.py", line 165, in propagate_event
+    return await observer.wrap_outer_middleware(_wrapped, event=event, data=kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/aiogram/dispatcher/router.py", line 157, in _wrapped
+    return await self._propagate_event(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/aiogram/dispatcher/router.py", line 193, in _propagate_event
+    response = await router.propagate_event(update_type=update_type, event=event, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/aiogram/dispatcher/router.py", line 165, in propagate_event
+    return await observer.wrap_outer_middleware(_wrapped, event=event, data=kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/aiogram/dispatcher/router.py", line 157, in _wrapped
+    return await self._propagate_event(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/aiogram/dispatcher/router.py", line 185, in _propagate_event
+    response = await observer.trigger(event, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/aiogram/dispatcher/event/telegram.py", line 126, in trigger
+    return await wrapped_inner(event, kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/aiogram/dispatcher/event/handler.py", line 71, in call
+    return await wrapped()
+           ^^^^^^^^^^^^^^^
+  File "/app/features/bot/handlers/cover_letter.py", line 115, in process_vacancy_text
+    await status.edit_text(
+          ^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/aiogram/types/message.py", line 4033, in edit_text
+    return EditMessageText(
+           ^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/pydantic/main.py", line 263, in __init__
+    validated_self = self.__pydantic_validator__.validate_python(data, self_instance=self)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+pydantic_core._pydantic_core.ValidationError: 1 validation error for EditMessageText
+reply_markup
+  Input should be a valid dictionary or instance of InlineKeyboardMarkup [type=model_type, input_value=ReplyKeyboardMarkup(keybo...anlang', selective=None), input_type=ReplyKeyboardMarkup]
+    For further information visit https://errors.pydantic.dev/2.13/v/model_type
+2026-07-03 10:41:13,948 - perf.request - WARNING - SLOW POST /webhook 32097.6ms
+2026-07-03 10:41:14,346 - aiogram.event - INFO - Update id=554228665 is handled. Duration 358 ms by bot id=8378958011
+2026-07-03 10:41:21,887 - features.ai.routing.quota - INFO - [2026-07-03] Gemini Key #1 quota refreshed. Usage: 0 Remaining: 100% Status: ACTIVE
+2026-07-03 10:41:21,902 - features.ai.routing.health - INFO - Health recovery: gemini key#1 back in pool
+2026-07-03 10:41:22,390 - features.ai.routing.quota - INFO - [2026-07-03] Gemini Key #2 quota refreshed. Usage: 0 Remaining: 100% Status: ACTIVE
+2026-07-03 10:41:22,408 - features.ai.routing.health - INFO - Health recovery: gemini key#2 back in pool
+2026-07-03 10:41:23,266 - features.ai.routing.quota - INFO - [2026-07-03] Gemini Key #6 quota refreshed. Usage: 0 Remaining: 100% Status: ACTIVE
+2026-07-03 10:41:23,311 - features.ai.routing.health - INFO - Health recovery: gemini key#6 back in pool
+2026-07-03 10:41:23,868 - features.ai.routing.quota - INFO - [2026-07-03] Gemini Key #7 quota refreshed. Usage: 0 Remaining: 100% Status: ACTIVE
+2026-07-03 10:41:23,895 - features.ai.routing.health - INFO - Health recovery: gemini key#7 back in pool
+2026-07-03 10:41:24,401 - features.ai.routing.quota - INFO - [2026-07-03] Gemini Key #8 quota refreshed. Usage: 0 Remaining: 100% Status: ACTIVE
+2026-07-03 10:41:24,418 - features.ai.routing.health - INFO - Health recovery: gemini key#8 back in pool
+2026-07-03 10:41:24,537 - httpx - INFO - HTTP Request: POST https://api.groq.com/openai/v1/chat/completions "HTTP/1.1 200 OK"
+2026-07-03 10:41:24,545 - features.ai.routing.health - INFO - Health recovery: groq key#1 back in pool
+2026-07-03 10:41:25,275 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 429 Too Many Requests"
+2026-07-03 10:41:25,458 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 429 Too Many Requests"
+2026-07-03 10:41:25,642 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 429 Too Many Requests"
+2026-07-03 10:41:25,853 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 429 Too Many Requests"
+2026-07-03 10:41:26,063 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 429 Too Many Requests"
+2026-07-03 10:41:26,302 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 429 Too Many Requests"
+2026-07-03 10:41:26,482 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 429 Too Many Requests"
+2026-07-03 10:41:26,590 - httpx - INFO - HTTP Request: POST https://openrouter.ai/api/v1/chat/completions "HTTP/1.1 402 Payment Required"
+WARNING:  Invalid HTTP request received.
+2026-07-03 10:42:21,645 - aiogram.event - INFO - Update id=554228666 is handled. Duration 174 ms by bot id=8378958011
+2026-07-03 10:42:28,145 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 429 Too Many Requests"
+2026-07-03 10:42:28,381 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 429 Too Many Requests"
+2026-07-03 10:42:28,597 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 429 Too Many Requests"
+2026-07-03 10:42:29,049 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 429 Too Many Requests"
+2026-07-03 10:42:29,829 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 429 Too Many Requests"
+2026-07-03 10:42:30,782 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 429 Too Many Requests"
+2026-07-03 10:42:31,081 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 429 Too Many Requests"
+2026-07-03 10:42:31,342 - httpx - INFO - HTTP Request: POST https://openrouter.ai/api/v1/chat/completions "HTTP/1.1 402 Payment Required"
+2026-07-03 10:43:32,548 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 429 Too Many Requests"
+2026-07-03 10:43:32,760 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 429 Too Many Requests"
+2026-07-03 10:43:33,633 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 429 Too Many Requests"
+2026-07-03 10:43:33,852 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 429 Too Many Requests"
+2026-07-03 10:43:34,095 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 429 Too Many Requests"
+2026-07-03 10:43:34,309 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 429 Too Many Requests"
+2026-07-03 10:43:34,500 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 429 Too Many Requests"
+2026-07-03 10:43:34,757 - httpx - INFO - HTTP Request: POST https://openrouter.ai/api/v1/chat/completions "HTTP/1.1 402 Payment Required"
+2026-07-03 10:43:42,118 - features.payment.auto_approve_scheduler - INFO - Stealth auto-approve scheduled #148 in 16s
+2026-07-03 10:43:47,255 - aiogram.event - INFO - Update id=554228667 is handled. Duration 156 ms by bot id=8378958011
+2026-07-03 10:43:59,031 - aiogram.event - INFO - Update id=554228668 is handled. Duration 91 ms by bot id=8378958011
+2026-07-03 10:44:01,079 - aiogram.event - INFO - Update id=554228669 is handled. Duration 185 ms by bot id=8378958011
+2026-07-03 10:44:09,973 - aiogram.event - INFO - Update id=554228670 is handled. Duration 85 ms by bot id=8378958011
+2026-07-03 10:44:35,573 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 429 Too Many Requests"
+2026-07-03 10:44:35,807 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 429 Too Many Requests"
+2026-07-03 10:44:36,022 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 429 Too Many Requests"
+2026-07-03 10:44:36,225 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 429 Too Many Requests"
+2026-07-03 10:44:36,583 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 429 Too Many Requests"
+2026-07-03 10:44:36,868 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 429 Too Many Requests"
+2026-07-03 10:44:37,074 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 429 Too Many Requests"
+2026-07-03 10:44:37,835 - httpx - INFO - HTTP Request: POST https://openrouter.ai/api/v1/chat/completions "HTTP/1.1 402 Payment Required"
+2026-07-03 10:45:38,951 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 429 Too Many Requests"
+2026-07-03 10:45:39,252 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 429 Too Many Requests"
+2026-07-03 10:45:39,632 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 429 Too Many Requests"
+2026-07-03 10:45:39,845 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 429 Too Many Requests"
+2026-07-03 10:45:40,231 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 429 Too Many Requests"
+2026-07-03 10:45:40,486 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 429 Too Many Requests"
+2026-07-03 10:45:40,960 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 429 Too Many Requests"
+2026-07-03 10:45:41,216 - httpx - INFO - HTTP Request: POST https://openrouter.ai/api/v1/chat/completions "HTTP/1.1 402 Payment Required"
+2026-07-03 10:46:42,193 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 429 Too Many Requests"
+2026-07-03 10:46:43,220 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 429 Too Many Requests"
+2026-07-03 10:46:43,525 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 429 Too Many Requests"
+2026-07-03 10:46:43,736 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 429 Too Many Requests"
+2026-07-03 10:46:44,155 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 429 Too Many Requests"
+2026-07-03 10:46:44,374 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 429 Too Many Requests"
+2026-07-03 10:46:44,586 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 429 Too Many Requests"
+2026-07-03 10:46:44,835 - httpx - INFO - HTTP Request: POST https://openrouter.ai/api/v1/chat/completions "HTTP/1.1 402 Payment Required"
