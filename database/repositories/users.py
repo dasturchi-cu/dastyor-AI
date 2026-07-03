@@ -33,9 +33,10 @@ def upsert_user(
             """
             INSERT INTO users (
                 telegram_id, username, first_name, last_name, full_name,
+                credits,
                 first_seen_at, last_seen_at, last_active_at
             )
-            VALUES (?, ?, ?, ?, ?, datetime('now'), datetime('now'), datetime('now'))
+            VALUES (?, ?, ?, ?, ?, 1, datetime('now'), datetime('now'), datetime('now'))
             ON CONFLICT(telegram_id) DO UPDATE SET
                 username = COALESCE(excluded.username, users.username),
                 first_name = COALESCE(excluded.first_name, users.first_name),

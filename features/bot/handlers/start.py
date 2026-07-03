@@ -76,13 +76,13 @@ async def cmd_start(message: Message, state: FSMContext) -> None:
             first_name=user.first_name,
             last_name=user.last_name,
         )
-    await message.answer(WELCOME, reply_markup=user_menu())
+    await message.answer(WELCOME, reply_markup=user_menu(user.id if user else None))
 
 
 @router.message(Command("help"))
 @router.message(F.text == BTN_HELP)
 async def cmd_help(message: Message) -> None:
-    await message.answer(HELP_TEXT, reply_markup=user_menu())
+    await message.answer(HELP_TEXT, reply_markup=user_menu(message.from_user.id if message.from_user else None))
 
 
 @router.message(Command("cv"))
@@ -174,7 +174,8 @@ async def cv_intro(message: Message, state: FSMContext) -> None:
 @router.message(F.text == BTN_BACK)
 async def menu_back(message: Message, state: FSMContext) -> None:
     await state.clear()
-    await message.answer("Bosh menyu:", reply_markup=user_menu())
+    uid = message.from_user.id if message.from_user else None
+    await message.answer("Bosh menyu:", reply_markup=user_menu(uid))
 
 
 @router.message(F.text == BTN_CREDITS)
@@ -189,5 +190,5 @@ async def show_credits(message: Message) -> None:
         f"Karta: <code>{settings.payment_card_number}</code>\n"
         f"Egasi: {settings.payment_card_owner}\n\n"
         "To'lov chekini WebApp orqali yuboring.",
-        reply_markup=user_menu(),
+        reply_markup=user_menu(uid if uid else None),
     )

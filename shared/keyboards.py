@@ -98,10 +98,23 @@ def webapp_url(uid: int, page: str) -> str | None:
     return f"{base}/{page}?telegram_id={uid}&v={int(time.time())}"
 
 
-def user_menu() -> ReplyKeyboardMarkup:
+def user_menu(uid: int | None = None) -> ReplyKeyboardMarkup:
+    cv_url = webapp_url(uid, "cv.html") if uid else None
+    oby_url = webapp_url(uid, "obyektivka.html") if uid else None
+
+    if cv_url:
+        btn_cv = KeyboardButton(text=BTN_CV, web_app=WebAppInfo(url=f"{cv_url}&autoload=1&voice=1"))
+    else:
+        btn_cv = KeyboardButton(text=BTN_CV)
+
+    if oby_url:
+        btn_oby = KeyboardButton(text=BTN_OBY, web_app=WebAppInfo(url=f"{oby_url}&autoload=1&voice=1"))
+    else:
+        btn_oby = KeyboardButton(text=BTN_OBY)
+
     return ReplyKeyboardMarkup(
         keyboard=[
-            [KeyboardButton(text=BTN_CV), KeyboardButton(text=BTN_OBY)],
+            [btn_cv, btn_oby],
             [KeyboardButton(text=BTN_CREDITS), KeyboardButton(text=BTN_HELP)],
         ],
         resize_keyboard=True,

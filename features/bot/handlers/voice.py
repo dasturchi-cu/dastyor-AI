@@ -86,9 +86,13 @@ async def _handle_cv_text_flow(text: str, status: Message, uid: int, state: FSMC
         transcript, cv_data, cv_missing = await process_text_for_cv(text)
         if not cv_fill_is_acceptable(cv_data, cv_missing):
             reason = cv_fill_rejection_reason(cv_data)
+            if cv_data:
+                await db_run(cv_service.save_user_data, uid, cv_data)
             await status.edit_text(
-                f"ℹ️ CV rad etildi.\n\nSabab: {reason}"
-                f"{CV_EXAMPLE_TEMPLATE}"
+                f"ℹ️ <b>Ma'lumotlar kamlik qilmoqda.</b>\n\n"
+                f"<b>Sabab:</b> {reason}\n\n"
+                "Quyidagi tugmani bosib, formani WebApp orqali o'zingiz to'ldirishingiz mumkin 👇",
+                reply_markup=open_webapp_inline(uid, "cv")
             )
             return
         await db_run(cv_service.save_user_data, uid, cv_data)
@@ -129,10 +133,13 @@ async def _handle_cv_voice_flow(
 
         if not cv_fill_is_acceptable(cv_data, cv_missing):
             reason = cv_fill_rejection_reason(cv_data)
+            if cv_data:
+                await db_run(cv_service.save_user_data, uid, cv_data)
             await status.edit_text(
-                f"ℹ️ CV rad etildi.\n\nSabab: {reason}\n\n"
-                f"Qayta yuboring yoki <b>{BTN_OBY}</b> tanlang."
-                f"{CV_EXAMPLE_TEMPLATE}"
+                f"ℹ️ <b>Ma'lumotlar kamlik qilmoqda.</b>\n\n"
+                f"<b>Sabab:</b> {reason}\n\n"
+                "Quyidagi tugmani bosib, formani WebApp orqali o'zingiz to'ldirishingiz mumkin 👇",
+                reply_markup=open_webapp_inline(uid, "cv")
             )
             return
 

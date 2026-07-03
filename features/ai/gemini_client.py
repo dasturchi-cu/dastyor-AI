@@ -265,9 +265,25 @@ async def transcribe_audio(audio_file_path: str) -> str:
 
     def blocking_upload(path: str):
         import time
+        import mimetypes
 
         try:
-            myfile = genai.upload_file(path)
+            mime_type, _ = mimetypes.guess_type(path)
+            if not mime_type:
+                ext = os.path.splitext(path)[1].lower()
+                if ext == ".ogg":
+                    mime_type = "audio/ogg"
+                elif ext == ".opus":
+                    mime_type = "audio/opus"
+                elif ext == ".mp3":
+                    mime_type = "audio/mp3"
+                elif ext == ".wav":
+                    mime_type = "audio/wav"
+                elif ext == ".m4a":
+                    mime_type = "audio/m4a"
+
+            logger.info("STT: uploading %s with mime_type=%s", path, mime_type)
+            myfile = genai.upload_file(path, mime_type=mime_type)
             waited = 0.0
             while getattr(myfile.state, "name", str(myfile.state)) == "PROCESSING" and waited < STT_FILE_PROCESS_MAX_WAIT_SECONDS:
                 time.sleep(STT_FILE_PROCESS_POLL_SECONDS)

@@ -158,10 +158,12 @@ async def _process_voice_background(
         transcript, data, missing = await process_voice_for_obyektivka(path)
 
         if not oby_fill_is_acceptable(data):
+            if data:
+                await db_run(oby_service.save_pending, uid, data)
             await status_msg.edit_text(
-                "❌ Ma'lumotlarni ajratib bo'lmadi.\n"
-                "Iltimos, namunadagi tartibda to'liqroq o'qib yuboring."
-                f"{OBY_EXAMPLE_TEMPLATE}"
+                "ℹ️ <b>Ma'lumotlar kamlik qilmoqda.</b>\n\n"
+                "Lekin xavotirlanmang! Quyidagi tugmani bosib, formani WebApp orqali o'zingiz to'ldirishingiz mumkin 👇",
+                reply_markup=open_webapp_inline(uid, "obyektivka")
             )
             return
 
@@ -226,7 +228,8 @@ async def obyektivka_back(message: Message, state: FSMContext) -> None:
     text = "Bosh menyu:"
     if message.text and message.text.startswith("/start"):
         text = WELCOME
-    await message.answer(text, reply_markup=user_menu())
+    uid = message.from_user.id if message.from_user else None
+    await message.answer(text, reply_markup=user_menu(uid))
 
 
 @router.message(ObyektivkaStates.waiting_voice, F.text, ~F.text.startswith("/"))
@@ -250,10 +253,12 @@ async def _handle_oby_text_flow(text: str, status: Message, uid: int, state: FSM
     try:
         transcript, data, missing = await process_text_for_obyektivka(text)
         if not oby_fill_is_acceptable(data):
+            if data:
+                await db_run(oby_service.save_pending, uid, data)
             await status.edit_text(
-                "❌ Ma'lumotlarni ajratib bo'lmadi.\n"
-                "Namunadagi tartibda to'liqroq yozing."
-                f"{OBY_EXAMPLE_TEMPLATE}"
+                "ℹ️ <b>Ma'lumotlar kamlik qilmoqda.</b>\n\n"
+                "Lekin xavotirlanmang! Quyidagi tugmani bosib, formani WebApp orqali o'zingiz to'ldirishingiz mumkin 👇",
+                reply_markup=open_webapp_inline(uid, "obyektivka")
             )
             return
         await db_run(oby_service.save_pending, uid, data)

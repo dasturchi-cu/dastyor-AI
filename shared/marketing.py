@@ -14,19 +14,17 @@ def price_tag() -> str:
 
 
 def welcome_message() -> str:
-    p = format_price_uzs()
     return (
-        "👋 <b>DASTYOR AI</b> — ishga kirish hujjatlaringiz tayyor!\n\n"
+        "👋 <b>DASTYOR AI</b> — ishga kirish hujjatlaringizni 1 daqiqada tayyorlang!\n\n"
         "🎯 <b>3 qadamda tayyor:</b>\n"
-        "1️⃣ Ovoz yoki matn yuboring\n"
-        "2️⃣ AI formani to'ldiradi\n"
-        "3️⃣ Demo yuklash — bepul (watermark)\n"
-        "4️⃣ Tayyor fayl — to'lov kerak\n\n"
-        "📄 <b>CV Resume</b> — zamonaviy PDF (ish beruvchilar uchun)\n"
-        "✍️ <b>Obyektivka</b> — rasmiy Word (.docx)\n\n"
-        f"💰 <b>Tayyor fayl:</b> {p} so'm (1 ta hujjat)\n"
-        "🎙 Ovoz va matn to'ldirish — <b>bepul</b>\n\n"
-        "👇 Qaysi hujjat kerak?"
+        "1️⃣ Ovozli xabar yoki matn yuboring (yoki pastdagi tugmani bosing)\n"
+        "2️⃣ AI formani avtomatik to'ldiradi\n"
+        "3️⃣ Hujjatni tekshiring va yuklab oling\n\n"
+        "📄 <b>CV Resume</b> — zamonaviy PDF format\n"
+        "✍️ <b>Obyektivka</b> — rasmiy Word (.docx) format\n\n"
+        "🎁 <b>Ajoyib yangilik:</b> Yangi foydalanuvchilar uchun <b>birinchi hujjatni yaratish va yuklash mutlaqo BEPUL!</b>\n"
+        "🎙 Tahrirlash va tahlil qilish — <b>bepul</b>\n\n"
+        "👇 Boshlash uchun xizmatlardan birini tanlang:"
     )
 
 

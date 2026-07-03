@@ -193,8 +193,8 @@ async def handle_close(message: Message, state: FSMContext) -> None:
 
     if message.from_user:
         stop_dashboard(message.from_user.id)
-    await state.clear()
-    await message.answer("Admin panel yopildi.", reply_markup=user_menu())
+    uid = message.from_user.id if message.from_user else None
+    await message.answer("Admin panel yopildi.", reply_markup=user_menu(uid))
 
 
 async def _send_payment_rows(message: Message, rows: list[dict]) -> None:
