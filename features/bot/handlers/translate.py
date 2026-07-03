@@ -247,9 +247,7 @@ async def process_translation(callback: CallbackQuery) -> None:
         if doc_type == "cv":
             translated["lang"] = "en" if "en" in action else "ru"
         else:
-            # Obyektivka technically has no separate layout language template for English/Russian,
-            # but we update the lang tag just in case
-            translated["lang"] = "uz_lat"
+            translated["lang"] = "en" if "en" in action else "ru"
         
         await callback.message.edit_text(f"⏳ <b>Yangi {label} fayli render qilinmoqda...</b>")
 

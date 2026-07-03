@@ -151,7 +151,75 @@ OB_LABELS: dict[str, dict[str, str]] = {
         "rDep1": (
             "Халқ депутатлари, республика, вилоят, шаҳар ва туман Кенгаши депутатими ёки бошқа"
         ),
-        "rDep2": "сайланadigan органларнинг аъзосими (тўлиқ кўрсатилиши лозим)",
+        "rDep2": "сайланадиган органларнинг аъзосими (тўлиқ кўрсатилиши лозим)",
+    },
+    "en": {
+        "title": "REFERENCE SHEET",
+        "photo_hint": (
+            "Color photograph 3x4 cm, taken in the last 3 months, "
+            "in electronic form (formal wear)."
+        ),
+        "none": "none",
+        "work": "WORK HISTORY",
+        "rel_line1_suffix": "'s close relatives information",
+        "rel_line2": "INFORMATION",
+        "no_rel": "No information about close relatives entered.",
+        "qar": "Relationship",
+        "fish": "Surname, Name and Patronymic",
+        "tug": "Year and place of birth",
+        "ish": "Place of work and position",
+        "tur": "Place of residence",
+        "r1l": "Year of birth",
+        "r1r": "Place of birth",
+        "r2l": "Nationality",
+        "r2r": "Party membership",
+        "r3l": "Education",
+        "r3r": "Graduated",
+        "rSpec": "Speciality by education",
+        "r4l": "Academic degree",
+        "r4r": "Academic title",
+        "r5l": "Which foreign languages does he/she know",
+        "r5r": "Military (special) rank",
+        "rAw": "Has he/she been awarded state awards and prizes (what)",
+        "rIdo": "Has he/she been awarded departmental awards (what)",
+        "rDep1": (
+            "Whether a deputy of national, regional, city or district Council or a member"
+        ),
+        "rDep2": "of other elective bodies (specify in full)",
+    },
+    "ru": {
+        "title": "СПРАВКА-ОБЪЕКТИВКА",
+        "photo_hint": (
+            "Цветная фотография 3х4 см, сделанная за последние 3 месяца, "
+            "в электронном виде (в деловой одежде)."
+        ),
+        "none": "нет",
+        "work": "ТРУДОВАЯ ДЕЯТЕЛЬНОСТЬ",
+        "rel_line1_suffix": " о близких родственниках",
+        "rel_line2": "СВЕДЕНИЯ",
+        "no_rel": "Сведения о близких родственниках не внесены.",
+        "qar": "Степень родства",
+        "fish": "Фамилия, имя и отчество",
+        "tug": "Год и место рождения",
+        "ish": "Место работы и должность",
+        "tur": "Место жительства",
+        "r1l": "Год рождения",
+        "r1r": "Место рождения",
+        "r2l": "Национальность",
+        "r2r": "Партийность",
+        "r3l": "Образование",
+        "r3r": "Окончил",
+        "rSpec": "Специальность по образованию",
+        "r4l": "Ученая степень",
+        "r4r": "Ученое звание",
+        "r5l": "Какими иностранными языками владеет",
+        "r5r": "Воинское (специальное) звание",
+        "rAw": "Награжден ли государственными наградами и премиями (какими)",
+        "rIdo": "Награжден ли ведомственными наградами (какими)",
+        "rDep1": (
+            "Является ли депутатом Совета народных депутатов, республиканского, областного, городского"
+        ),
+        "rDep2": "или членом других выборных органов (указать полностью)",
     },
 }
 

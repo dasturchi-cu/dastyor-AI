@@ -77,7 +77,12 @@ def _to_text(value: Any) -> str:
 
 
 def _none(lang: str) -> str:
-    return NONE_CYR if lang == "uz_cyr" else NONE_UZ
+    lang_clean = (lang or "").strip().lower()
+    if lang_clean == "en":
+        return "none"
+    if lang_clean == "ru":
+        return "none" if "en" in lang_clean else "нет"
+    return NONE_CYR if lang_clean == "uz_cyr" else NONE_UZ
 
 
 def _parse_list(value: Any) -> list[dict[str, Any]]:

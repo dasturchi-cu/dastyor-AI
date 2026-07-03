@@ -77,6 +77,38 @@ _MONTH_CYR = {
     "dekabr": "декабр",
 }
 
+_MONTH_EN = {
+    "yanvar": "January",
+    "fevral": "February",
+    "mart": "March",
+    "aprel": "April",
+    "may": "May",
+    "iyun": "June",
+    "iyul": "July",
+    "avgust": "August",
+    "sentyabr": "September",
+    "oktyabr": "October",
+    "oktabr": "October",
+    "noyabr": "November",
+    "dekabr": "December",
+}
+
+_MONTH_RU = {
+    "yanvar": "января",
+    "fevral": "февраля",
+    "mart": "марта",
+    "aprel": "апреля",
+    "may": "мая",
+    "iyun": "июня",
+    "iyul": "июля",
+    "avgust": "августа",
+    "sentyabr": "сентября",
+    "oktyabr": "октября",
+    "oktabr": "октября",
+    "noyabr": "ноября",
+    "dekabr": "декабря",
+}
+
 
 def _month_key_from_text(text: str) -> str:
     low = (text or "").lower()
@@ -105,7 +137,7 @@ def _already_formatted_job_year(text: str) -> bool:
     raw = (text or "").strip().rstrip(":")
     if not raw:
         return False
-    if re.search(r"(yildan|йилдан)", raw, re.IGNORECASE):
+    if re.search(r"(yildan|йилдан|since|года)", raw, re.IGNORECASE):
         return True
     return bool(re.search(r"\d{1,2}\s+\S+\s*(dan|дан)\s*:?$", raw, re.IGNORECASE))
 
@@ -130,7 +162,21 @@ def format_current_job_year(
         return ""
 
     day, month_key = _parse_since_detail(since or raw, year)
-    cyr = (lang or "uz_lat") == "uz_cyr"
+    lang_clean = (lang or "uz_lat").strip().lower()
+
+    if lang_clean == "en":
+        if day and month_key:
+            month_disp = _MONTH_EN.get(month_key, month_key)
+            return f"Since {month_disp} {day}, {year}:"
+        return f"Since {year}:"
+
+    if lang_clean == "ru":
+        if day and month_key:
+            month_disp = _MONTH_RU.get(month_key, month_key)
+            return f"С {day} {month_disp} {year} года:"
+        return f"С {year} года:"
+
+    cyr = lang_clean == "uz_cyr"
     if day and month_key:
         month_disp = _MONTH_CYR[month_key] if cyr else _MONTH_LAT[month_key]
         if cyr:
@@ -370,20 +416,41 @@ def _resolve_current_display(
 def _mehnat_year_prefix(item: dict[str, Any], lang: str) -> str:
     f = _to_text(item.get("from_year"))
     t = _to_text(item.get("to_year"))
-    cyr = (lang or "uz_lat") == "uz_cyr"
-    hv = "ҳ.в." if cyr else "h.v."
-    y_mark = "й." if cyr else "y."
-    yy_mark = "йй." if cyr else "yy."
+    lang_clean = (lang or "uz_lat").strip().lower()
+
+    if lang_clean == "en":
+        hv = "present"
+        y_mark = "y."
+        yy_mark = "yrs"
+    elif lang_clean == "ru":
+        hv = "н.в."
+        y_mark = "г."
+        yy_mark = "гг."
+    else:
+        cyr = lang_clean == "uz_cyr"
+        hv = "ҳ.в." if cyr else "h.v."
+        y_mark = "й." if cyr else "y."
+        yy_mark = "йй." if cyr else "yy."
 
     if item.get("is_current") or is_present_year_token(t):
+        if lang_clean == "en":
+            return f"{f} - {hv}" if f else hv
         return f"{f} {y_mark} - {hv}" if f else hv
 
     if f and t and t not in ("h.v", "hv"):
         core = f"{f}-{t}"
+        if lang_clean == "en":
+            return core
+        if lang_clean == "ru":
+            return f"{core} {yy_mark}"
         if "yy" not in core.lower() and "йй" not in core:
             return f"{core} {yy_mark}"
         return core
     if f:
+        if lang_clean == "en":
+            return f
+        if lang_clean == "ru":
+            return f"{f} {y_mark}"
         if "yy" not in f.lower() and "йй" not in f:
             return f"{f} {yy_mark}"
         return f
