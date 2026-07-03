@@ -36,7 +36,9 @@ HELP_TEXT = (
     "/start — bosh menyu\n"
     "/cv — PDF resume\n"
     "/obyektivka — rasmiy Word hujjat\n"
-    "/balance — to'langan mablag' va hujjat\n"
+    "/cover — AI Muqova xati (Cover Letter) yozish\n"
+    "/translate — Hujjatni boshqa tilga tarjima qilish\n"
+    "/balance — to'langan mablag' va hujjatlar\n"
     "/contact — admin bilan bog'lanish\n"
     "/help — yordam\n\n"
     "🎙 Ovoz yoki matn — AI avtomatik to'ldirish (bepul)\n\n"
@@ -65,18 +67,45 @@ async def _blocked_reply(message: Message) -> bool:
 async def cmd_start(message: Message, state: FSMContext) -> None:
     await state.clear()
     user = message.from_user
-    if user:
-        if users_repo.is_blocked(user.id):
-            await message.answer("⛔ Siz bloklangansiz.")
-            return
-        await db_run(
-            users_repo.upsert_user,
-            user.id,
-            username=user.username,
-            first_name=user.first_name,
-            last_name=user.last_name,
-        )
-    await message.answer(WELCOME, reply_markup=user_menu(user.id if user else None))
+    if not user:
+        return
+    if users_repo.is_blocked(user.id):
+        await message.answer("⛔ Siz bloklangansiz.")
+        return
+
+    ref_id = None
+    if message.text and len(message.text.split()) > 1:
+        arg = message.text.split()[1]
+        if arg.startswith("ref_"):
+            try:
+                ref_id = int(arg.replace("ref_", ""))
+            except ValueError:
+                pass
+
+    is_new = not users_repo.get_by_telegram_id(user.id)
+
+    await db_run(
+        users_repo.upsert_user,
+        user.id,
+        username=user.username,
+        first_name=user.first_name,
+        last_name=user.last_name,
+        referred_by_id=ref_id if (ref_id and ref_id != user.id and is_new) else None,
+    )
+
+    if is_new and ref_id and ref_id != user.id:
+        got_reward = await db_run(users_repo.check_and_reward_referrer, ref_id)
+        if got_reward:
+            try:
+                await message.bot.send_message(
+                    chat_id=ref_id,
+                    text="🎉 <b>Tabriklaymiz!</b> Taklifnomangiz orqali 3 ta do'stingiz ro'yxatdan o'tdi.\n\n"
+                         "Sizga <b>+1 ta bepul yuklash limiti</b> berildi! 💳"
+                )
+            except Exception as e:
+                logger.warning("Referrer notification failed: %s", e)
+
+    await message.answer(WELCOME, reply_markup=user_menu(user.id))
 
 
 @router.message(Command("help"))
@@ -183,12 +212,17 @@ async def menu_back(message: Message, state: FSMContext) -> None:
 async def show_credits(message: Message) -> None:
     uid = message.from_user.id if message.from_user else 0
     status = await db_run(users_repo.get_credits, uid)
+    ref_count = await db_run(users_repo.get_referral_count, uid)
+    bot_username = settings.bot_username or "DastyorAiBot"
+    ref_link = f"https://t.me/{bot_username}?start=ref_{uid}"
     await message.answer(
         f"💳 <b>To'langan hujjatlar:</b> {status} ta\n"
         f"ℹ️ Ovoz va matn to'ldirish — <b>bepul</b>\n"
         f"💰 Tayyor fayl: <b>{settings.single_doc_price_uzs:,} so'm</b> (1 ta)\n"
         f"Karta: <code>{settings.payment_card_number}</code>\n"
         f"Egasi: {settings.payment_card_owner}\n\n"
-        "To'lov chekini WebApp orqali yuboring.",
+        f"👥 <b>Siz taklif qilganlar:</b> {ref_count} ta\n"
+        f"🎁 <b>Bepul limit olish:</b> Do'stlaringizga taklif havolangizni ulashing. Har 3 ta ro'yxatdan o'tgan do'stingiz uchun sizga +1 bepul limit beriladi!\n"
+        f"Havolangiz:\n<code>{ref_link}</code>",
         reply_markup=user_menu(uid if uid else None),
     )

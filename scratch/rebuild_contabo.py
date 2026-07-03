@@ -20,6 +20,7 @@ def cleanup_and_start():
     # We will find any running containers, stop them if they bind to 8000 or have name 'dastyor-ai'
     commands = [
         "docker ps -a",
+        "cd /opt/dastyor-ai && git -c http.sslVerify=false pull origin main",
         "docker stop dastyor-ai || true",
         "docker rm dastyor-ai || true",
         "docker stop dastyor-ai-app-1 || true",

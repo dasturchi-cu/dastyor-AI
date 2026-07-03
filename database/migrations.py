@@ -412,6 +412,13 @@ def migration_011_ai_quota_monitoring(conn: sqlite3.Connection) -> None:
     )
 
 
+def migration_012_referrals(conn: sqlite3.Connection) -> None:
+    if _table_exists(conn, "users"):
+        cols = _columns(conn, "users")
+        if "referred_by_id" not in cols:
+            _add_column(conn, "users", "referred_by_id INTEGER")
+
+
 MIGRATIONS: list[tuple[int, str, MigrationFn]] = [
     (1, "legacy_columns", migration_001_legacy_columns),
     (2, "new_tables", migration_002_new_tables),
@@ -424,6 +431,7 @@ MIGRATIONS: list[tuple[int, str, MigrationFn]] = [
     (9, "ai_routing_logs", migration_009_ai_routing_logs),
     (10, "security_events", migration_010_security_events),
     (11, "ai_quota_monitoring", migration_011_ai_quota_monitoring),
+    (12, "referrals", migration_012_referrals),
 ]
 
 

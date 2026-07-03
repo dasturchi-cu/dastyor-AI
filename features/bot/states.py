@@ -8,6 +8,7 @@ class ObyektivkaStates(StatesGroup):
 
 class CvStates(StatesGroup):
     waiting_input = State()
+    waiting_cover_letter_vacancy = State()
 
 
 class ContactStates(StatesGroup):

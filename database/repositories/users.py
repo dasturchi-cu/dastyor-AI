@@ -24,6 +24,7 @@ def upsert_user(
     username: str | None = None,
     first_name: str | None = None,
     last_name: str | None = None,
+    referred_by_id: int | None = None,
 ) -> dict[str, Any]:
     tid = int(telegram_id)
     existed = _exists_in_db(tid)
@@ -33,10 +34,10 @@ def upsert_user(
             """
             INSERT INTO users (
                 telegram_id, username, first_name, last_name, full_name,
-                credits,
+                credits, referred_by_id,
                 first_seen_at, last_seen_at, last_active_at
             )
-            VALUES (?, ?, ?, ?, ?, 1, datetime('now'), datetime('now'), datetime('now'))
+            VALUES (?, ?, ?, ?, ?, 1, ?, datetime('now'), datetime('now'), datetime('now'))
             ON CONFLICT(telegram_id) DO UPDATE SET
                 username = COALESCE(excluded.username, users.username),
                 first_name = COALESCE(excluded.first_name, users.first_name),
@@ -51,7 +52,7 @@ def upsert_user(
                 last_active_at = datetime('now'),
                 updated_at = datetime('now')
             """,
-            (tid, username, first_name, last_name, full_name),
+            (tid, username, first_name, last_name, full_name, referred_by_id),
         )
         row = conn.execute("SELECT * FROM users WHERE telegram_id = ?", (tid,)).fetchone()
     data = row_to_dict(row) or {}
@@ -267,3 +268,21 @@ def get_profile_stats(telegram_id: int) -> dict[str, Any] | None:
         "payments_count": int(pay_row["c"]) if pay_row else 0,
         "last_activity": user.get("last_active_at") or user.get("updated_at"),
     }
+
+
+def get_referral_count(telegram_id: int) -> int:
+    with get_connection() as conn:
+        row = conn.execute(
+            "SELECT COUNT(*) AS c FROM users WHERE referred_by_id = ?",
+            (int(telegram_id),),
+        ).fetchone()
+    return int(row["c"]) if row else 0
+
+
+def check_and_reward_referrer(referrer_id: int) -> bool:
+    """Checks if referrer has a multiple of 3 referrals, and rewards them."""
+    count = get_referral_count(referrer_id)
+    if count > 0 and count % 3 == 0:
+        add_credits(referrer_id, 1)
+        return True
+    return False
