@@ -12,6 +12,8 @@ class ProviderName(str, Enum):
     OPENROUTER = "openrouter"
     GROQ = "groq"
     CLOUDFLARE = "cloudflare"
+    SAMBANOVA = "sambanova"
+    GITHUB = "github"
 
 
 class RequestStatus(str, Enum):

@@ -181,6 +181,22 @@ async def generate_with_endpoint(
             timeout_sec=timeout_sec,
         )
 
+    if endpoint.provider == ProviderName.SAMBANOVA:
+        return await _openai_compatible_chat(
+            endpoint,
+            prompt,
+            base_url="https://api.sambanova.ai/v1",
+            timeout_sec=timeout_sec,
+        )
+
+    if endpoint.provider == ProviderName.GITHUB:
+        return await _openai_compatible_chat(
+            endpoint,
+            prompt,
+            base_url="https://models.inference.ai.azure.com",
+            timeout_sec=timeout_sec,
+        )
+
     if endpoint.provider == ProviderName.OPENROUTER:
         extra: dict[str, str] = {}
         if endpoint.extras.get("http_referer"):

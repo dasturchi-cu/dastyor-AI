@@ -50,6 +50,8 @@ def _collect_api_keys(provider: ProviderName) -> tuple[str, ...]:
         ProviderName.OPENROUTER: "OPENROUTER_API_KEYS",
         ProviderName.GROQ: "GROQ_API_KEYS",
         ProviderName.CLOUDFLARE: "CLOUDFLARE_API_KEYS",
+        ProviderName.SAMBANOVA: "SAMBANOVA_API_KEYS",
+        ProviderName.GITHUB: "GITHUB_API_KEYS",
     }
     singular_prefix = {
         ProviderName.GEMINI: "GEMINI_API_KEY",
@@ -57,6 +59,8 @@ def _collect_api_keys(provider: ProviderName) -> tuple[str, ...]:
         ProviderName.OPENROUTER: "OPENROUTER_API_KEY",
         ProviderName.GROQ: "GROQ_API_KEY",
         ProviderName.CLOUDFLARE: "CLOUDFLARE_API_TOKEN",
+        ProviderName.SAMBANOVA: "SAMBANOVA_API_KEY",
+        ProviderName.GITHUB: "GITHUB_API_KEY",
     }
 
     plural_raw = _strip_bom(plural[provider])
@@ -87,6 +91,8 @@ def _collect_models(provider: ProviderName) -> tuple[str, ...]:
         ProviderName.OPENROUTER: "OPENROUTER_MODEL",
         ProviderName.GROQ: "GROQ_MODEL",
         ProviderName.CLOUDFLARE: "CLOUDFLARE_AI_MODEL",
+        ProviderName.SAMBANOVA: "SAMBANOVA_MODEL",
+        ProviderName.GITHUB: "GITHUB_MODEL",
     }
     fallback_key = {
         ProviderName.GEMINI: "GEMINI_MODEL_FALLBACKS",
@@ -94,6 +100,8 @@ def _collect_models(provider: ProviderName) -> tuple[str, ...]:
         ProviderName.OPENROUTER: "OPENROUTER_MODEL_FALLBACKS",
         ProviderName.GROQ: "GROQ_MODEL_FALLBACKS",
         ProviderName.CLOUDFLARE: "CLOUDFLARE_AI_MODEL_FALLBACKS",
+        ProviderName.SAMBANOVA: "SAMBANOVA_MODEL_FALLBACKS",
+        ProviderName.GITHUB: "GITHUB_MODEL_FALLBACKS",
     }
     defaults = {
         ProviderName.GEMINI: ("gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash-latest"),
@@ -101,6 +109,8 @@ def _collect_models(provider: ProviderName) -> tuple[str, ...]:
         ProviderName.OPENROUTER: ("deepseek/deepseek-chat", "openai/gpt-4o-mini"),
         ProviderName.GROQ: ("llama-3.1-8b-instant", "llama-3.1-70b-versatile"),
         ProviderName.CLOUDFLARE: ("@cf/meta/llama-3.1-8b-instruct",),
+        ProviderName.SAMBANOVA: ("Meta-Llama-3.1-8B-Instruct", "Meta-Llama-3.1-70B-Instruct"),
+        ProviderName.GITHUB: ("meta-llama-3.1-8b-instruct", "meta-llama-3.1-70b-instruct", "gpt-4o-mini"),
     }
 
     primary = _strip_bom(primary_key[provider])
@@ -155,7 +165,7 @@ def load_routing_config() -> RoutingConfig:
     primary_raw = _strip_bom("AI_PROVIDER") or "gemini"
     primary = _parse_provider_name(primary_raw) or ProviderName.GEMINI
 
-    order_raw = _strip_bom("AI_FALLBACK_ORDER") or "openai,openrouter,groq,cloudflare"
+    order_raw = _strip_bom("AI_FALLBACK_ORDER") or "openai,sambanova,github,openrouter,groq,cloudflare"
     fallback: list[ProviderName] = []
     for part in order_raw.split(","):
         p = _parse_provider_name(part)
@@ -164,6 +174,8 @@ def load_routing_config() -> RoutingConfig:
 
     default_order = [
         ProviderName.OPENAI,
+        ProviderName.SAMBANOVA,
+        ProviderName.GITHUB,
         ProviderName.OPENROUTER,
         ProviderName.GROQ,
         ProviderName.CLOUDFLARE,
