@@ -7,7 +7,7 @@ from typing import Any
 
 from aiogram import F, Router
 from aiogram.filters import Command
-from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, Message
+from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, Message, WebAppInfo
 
 from database.repositories import users as users_repo
 from features.cv import service as cv_service
@@ -42,15 +42,34 @@ async def cmd_translate(message: Message) -> None:
     if not uid:
         return
 
-    # Check if they have at least one document
+    # Check if they have at least one document actually filled
     cv_data = await db_run(cv_service.get_saved_data, uid)
     oby_data = await db_run(oby_service.get_saved_data, uid) or await db_run(oby_service.get_pending, uid)
 
-    if not cv_data and not oby_data:
+    has_cv = cv_data and cv_data.get("name") and len(str(cv_data.get("name")).strip()) > 0
+    has_oby = oby_data and (oby_data.get("fullname") or oby_data.get("name")) and len(str(oby_data.get("fullname") or oby_data.get("name")).strip()) > 0
+
+    if not has_cv and not has_oby:
+        from shared.keyboards import webapp_url
+        cv_url = webapp_url(uid, "cv.html")
+        oby_url = webapp_url(uid, "obyektivka.html")
+        
+        inline_buttons = []
+        if cv_url:
+            inline_buttons.append([
+                InlineKeyboardButton(text="🚀 CV Resume to'ldirish", web_app=WebAppInfo(url=f"{cv_url}&voice=1&autoload=1"))
+            ])
+        if oby_url:
+            inline_buttons.append([
+                InlineKeyboardButton(text="🚀 Obyektivka to'ldirish", web_app=WebAppInfo(url=f"{oby_url}&voice=1&autoload=1"))
+            ])
+            
         await message.answer(
-            "❌ <b>Sizda hali saqlangan hujjatlar mavjud emas.</b>\n\n"
-            "Avval rezyume yoki obyektivka yarating.",
-            reply_markup=user_menu(uid),
+            "❌ <b>Sizda hali tayyorlangan hujjatlar mavjud emas!</b>\n\n"
+            "Matnni tarjima qilishdan oldin avval rezyume yoki obyektivka to'ldirib, uni yaratishingiz kerak.\n"
+            "Iltimos, quyidagi tugmalar orqali ularni to'ldiring:",
+            reply_markup=InlineKeyboardMarkup(inline_keyboard=inline_buttons) if inline_buttons else user_menu(uid),
+            parse_mode="HTML"
         )
         return
 
@@ -59,6 +78,7 @@ async def cmd_translate(message: Message) -> None:
         "Tarjima qilinadigan hujjat turi va maqsadli tilni tanlang:\n"
         "<i>(Tarjima qilish 1 ta yuklash balansini sarflaydi)</i>",
         reply_markup=get_translate_kb(),
+        parse_mode="HTML"
     )
 
 
@@ -190,16 +210,32 @@ async def process_translation(callback: CallbackQuery) -> None:
         await callback.answer("Yuklashlar yetarli emas. Balansingizni to'ldiring.", show_alert=True)
         return
 
-    # Load data
+    # Load data and check if actually ready
     if doc_type == "cv":
         data = await db_run(cv_service.get_saved_data, uid)
-        label = "CV"
+        label = "CV Resume"
+        is_ready = data and data.get("name") and len(str(data.get("name")).strip()) > 0
     else:
         data = await db_run(oby_service.get_saved_data, uid) or await db_run(oby_service.get_pending, uid)
         label = "Obyektivka"
+        is_ready = data and (data.get("fullname") or data.get("name")) and len(str(data.get("fullname") or data.get("name")).strip()) > 0
 
-    if not data:
-        await callback.answer(f"Sizda hali saqlangan {label} ma'lumotlari yo'q.", show_alert=True)
+    if not is_ready:
+        from shared.keyboards import webapp_url
+        page = "cv.html" if doc_type == "cv" else "obyektivka.html"
+        url = webapp_url(uid, page)
+        inline_kb = None
+        if url:
+            inline_kb = InlineKeyboardMarkup(inline_keyboard=[[
+                InlineKeyboardButton(text=f"🚀 {label} to'ldirish", web_app=WebAppInfo(url=f"{url}&voice=1&autoload=1"))
+            ]])
+        await callback.message.edit_text(
+            f"❌ <b>Sizda hali tayyorlangan {label} hujjati mavjud emas!</b>\n\n"
+            f"Tarjima qilishdan oldin avval {label} formasini to'ldirib, uni yaratishingiz kerak.",
+            reply_markup=inline_kb,
+            parse_mode="HTML"
+        )
+        await callback.answer()
         return
 
     await callback.message.edit_text(f"⏳ <b>AI {label} ma'lumotlarini {lang} tiliga tarjima qilmoqda...</b>")
