@@ -174,6 +174,16 @@ async def menu_from_flow_waiting(message: Message, state: FSMContext) -> None:
         await menu_back(message, state)
 
 
+def _find_cv_sample_audio() -> Path | None:
+    from config.settings import PROJECT_ROOT
+    for filename in ("cv_speech.mp3", "cv_speech.ogg", "cv_speech.wav"):
+        for folder in (PROJECT_ROOT / "assets" / "samples", PROJECT_ROOT):
+            p = folder / filename
+            if p.is_file():
+                return p
+    return None
+
+
 @router.message(F.text == BTN_CV)
 async def cv_intro(message: Message, state: FSMContext) -> None:
     uid = message.from_user.id if message.from_user else 0
@@ -187,8 +197,8 @@ async def cv_intro(message: Message, state: FSMContext) -> None:
         reply_markup=open_webapp_inline(uid, "cv"),
     )
 
-    from features.bot.handlers.obyektivka import _find_sample_audio, _send_sample_audio
-    sample = _find_sample_audio()
+    from features.bot.handlers.obyektivka import _send_sample_audio
+    sample = _find_cv_sample_audio()
     if sample:
         import asyncio
         asyncio.create_task(_send_sample_audio(message, sample))
