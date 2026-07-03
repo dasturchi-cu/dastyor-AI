@@ -1406,11 +1406,20 @@
         if (birthEl) birthEl.value = d.birthdate;
       }
       if (d.about && !isCvAboutGarbage(d.about)) document.getElementById('f_about').value = d.about;
+
+      // Set document language and populate/update static text controls (like achievements dropdown)
+      const savedLang = d.lang || d.docLang || d.currentLang || docLang || 'uz_lat';
+      setDocLang(savedLang, false);
+
       const eduItems = d.education_list || d.education;
       if (Array.isArray(eduItems) && eduItems.length) {
         eduData = eduItems.map((x) => ({ title: x.title || x.degree || '', place: x.place || x.company || '', date: x.date || x.years || '' }));
         renderList('eduList', eduData, 'edu');
+      } else {
+        eduData = [];
+        renderList('eduList', eduData, 'edu');
       }
+
       const workItems = d.works || d.experience || d.work_experience;
       if (Array.isArray(workItems) && workItems.length) {
         expData = workItems.map((x) => ({
@@ -1420,11 +1429,47 @@
           desc: x.description || ''
         }));
         renderList('expList', expData, 'exp');
+      } else {
+        expData = [];
+        renderList('expList', expData, 'exp');
       }
+
+      const langItems = d.languages_list || d.languages || d.langData;
+      if (Array.isArray(langItems) && langItems.length) {
+        langData = langItems.map((x) => ({
+          lang: x.lang || '',
+          listen: Number(x.listen) || 0,
+          read: Number(x.read) || 0,
+          speak: Number(x.speak) || 0,
+          write: Number(x.write) || 0,
+        }));
+        renderList('langList', langData, 'lang');
+      } else {
+        langData = [];
+        renderList('langList', langData, 'lang');
+      }
+
+      const achItems = d.achievements_list || d.achievements || d.achData;
+      if (Array.isArray(achItems) && achItems.length) {
+        achData = achItems.map((x) => ({
+          type: x.type || '',
+          title: x.title || x.name || '',
+          year: x.year || '',
+        }));
+        renderList('achList', achData, 'ach');
+      } else {
+        achData = [];
+        renderList('achList', achData, 'ach');
+      }
+
       if (d.skills) {
         skillsData = String(d.skills).split(/[,;\n]+/).map(s => s.trim()).filter(Boolean);
         renderSkills();
+      } else {
+        skillsData = [];
+        renderSkills();
       }
+
       resetCvPhotoPreview();
       return true;
     }

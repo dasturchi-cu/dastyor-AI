@@ -63,42 +63,117 @@ async def cmd_translate(message: Message) -> None:
 
 
 async def translate_payload(payload: dict[str, Any], target_language: str) -> dict[str, Any]:
+    import copy
+    import json
     import re
-    json_str = json.dumps(payload, ensure_ascii=False)
-    prompt = f"""
-Siz professional tarjimonsiz. Quyidagi JSON formatidagi ma'lumotlarning kalitlarini (keys) o'zgartirmasdan, ularning qiymatlarini (values) o'zbek tilidan {target_language} tiliga professional darajada tarjima qiling.
+    from features.ai.gemini_client import generate_text_with_fallback
+
+    # 1. Walk payload to collect all translatable strings
+    EXCLUDE_KEYS = {
+        "phone", "email", "img", "photo_data", "photo", "accent_color",
+        "template", "lang", "id", "user_id", "status", "created_at", "updated_at",
+        "gender", "birth_date", "birthdate", "f", "t", "from", "to", "date", "year"
+    }
+
+    def collect(data: Any, path: list) -> list[tuple[list, str]]:
+        res = []
+        if isinstance(data, dict):
+            for k, v in data.items():
+                if k in EXCLUDE_KEYS:
+                    continue
+                res.extend(collect(v, path + [k]))
+        elif isinstance(data, list):
+            for i, item in enumerate(data):
+                res.extend(collect(item, path + [i]))
+        elif isinstance(data, str):
+            val = data.strip()
+            if not val:
+                return res
+            # Skip base64 images
+            if val.startswith("data:") or len(val) > 200:
+                if "," in val or (len(val) > 80 and " " not in val):
+                    return res
+            # Skip email
+            if "@" in val and " " not in val:
+                return res
+            # Skip URL
+            if val.startswith("http://") or val.startswith("https://"):
+                return res
+            # Skip hex color
+            if val.startswith("#") and len(val) in (4, 7) and " " not in val:
+                return res
+            # Skip pure numbers
+            cleaned_num = val.replace("+", "").replace("-", "").replace(" ", "").replace("(", "").replace(")", "")
+            if cleaned_num.isdigit():
+                return res
+            
+            res.append((path, data))
+        return res
+
+    results = collect(payload, [])
+    if not results:
+        return payload
+
+    texts_to_translate = [val for path, val in results]
+
+    # 2. Translate strings as a flat JSON array
+    json_to_send = json.dumps(texts_to_translate, ensure_ascii=False)
+    prompt = f"""Siz professional tarjimonsiz. Quyidagi JSON ro'yxati (array) ichidagi matnlarni o'zbek tilidan {target_language} tiliga professional darajada tarjima qiling.
+Qoidalar:
+- Faqatgina matnlar qiymatini tarjima qiling, tartibini va ro'yxat uzunligini o'zgartirmang.
+- Javob faqat va faqat tarjima qilingan matnlardan iborat bo'lgan to'g'ri JSON ro'yxati (array) bo'lishi shart.
+- Hech qanday qo'shimcha tushuntirish, markdown bezaklari (```json kabi) qo'shmang. Faqat toza JSON javob bering.
+
+Matnlar soni: {len(texts_to_translate)}
 
 JSON:
-{json_str}
-
-Qoidalar:
-- Kalitlarni (keys) aslo o'zgartirmang va tarjima qilmang, faqat ularga tegishli bo'lgan qiymatlarni (values) tarjima qiling.
-- Faqat to'g'ri JSON formatida javob bering.
-- Har qanday qo'shimcha tushuntirish yoki markdown kod bloklarini (masalan, ```json) qo'shmang.
-- Agar qiymat bo'sh bo'lsa yoki ism/telefon kabi tarjima qilinmaydigan narsa bo'lsa, o'zgarishsiz qoldiring.
-- OTM nomlari, kasblar va ish tajribalarini tarjimada to'g'ri ko'rsating.
-"""
-    raw_text = await generate_text_with_fallback(prompt, timeout=60)
-    if not raw_text or not raw_text.strip():
-        raise ValueError("AI returned an empty translation response")
-
-    cleaned = raw_text.strip()
-    # Remove markdown code block wrapping
-    if cleaned.startswith("```"):
-        cleaned = re.sub(r"^```(?:json)?\n", "", cleaned)
-        cleaned = re.sub(r"\n```$", "", cleaned)
-    cleaned = cleaned.strip()
-
-    # Regex search for first '{' to last '}' to strip any conversational prefixes/suffixes
-    match = re.search(r"(\{.*\})", cleaned, re.DOTALL)
-    if match:
-        cleaned = match.group(1)
+{json_to_send}"""
 
     try:
-        return json.loads(cleaned)
-    except json.JSONDecodeError as e:
-        logger.error("JSON decode error in translation: %s. Raw text: %s", e, raw_text)
-        raise
+        raw_text = await generate_text_with_fallback(prompt, timeout=60)
+        if not raw_text or not raw_text.strip():
+            logger.error("AI returned empty translation")
+            return payload
+
+        cleaned = raw_text.strip()
+        # Remove markdown wrapping
+        if cleaned.startswith("```"):
+            cleaned = re.sub(r"^```(?:json)?\n", "", cleaned)
+            cleaned = re.sub(r"\n```$", "", cleaned)
+        cleaned = cleaned.strip()
+
+        # Regex search for first '[' to last ']'
+        match = re.search(r"(\[.*\])", cleaned, re.DOTALL)
+        if match:
+            cleaned = match.group(1)
+
+        translated_texts = json.loads(cleaned)
+        if not isinstance(translated_texts, list) or len(translated_texts) != len(texts_to_translate):
+            logger.error(
+                "Translation array size mismatch. Expected %d, got %d. Raw: %s",
+                len(texts_to_translate),
+                len(translated_texts) if isinstance(translated_texts, list) else -1,
+                raw_text
+            )
+            return payload
+
+        # 3. Map translated strings back into a deep copy of payload
+        translated_payload = copy.deepcopy(payload)
+
+        def set_by_path(d: Any, p: list, value: Any):
+            curr = d
+            for key in p[:-1]:
+                curr = curr[key]
+            curr[p[-1]] = value
+
+        for (p, _), trans_val in zip(results, translated_texts):
+            set_by_path(translated_payload, p, trans_val)
+
+        return translated_payload
+
+    except Exception as e:
+        logger.exception("Failed in robust translate_payload: %s", e)
+        return payload
 
 
 @router.callback_query(F.data.startswith("tr_"))
@@ -131,6 +206,14 @@ async def process_translation(callback: CallbackQuery) -> None:
 
     try:
         translated = await translate_payload(data, lang)
+        
+        # Set proper language code for templates
+        if doc_type == "cv":
+            translated["lang"] = "en" if "en" in action else "ru"
+        else:
+            # Obyektivka technically has no separate layout language template for English/Russian,
+            # but we update the lang tag just in case
+            translated["lang"] = "uz_lat"
         
         await callback.message.edit_text(f"⏳ <b>Yangi {label} fayli render qilinmoqda...</b>")
 

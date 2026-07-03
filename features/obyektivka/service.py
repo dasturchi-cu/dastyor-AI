@@ -63,14 +63,27 @@ async def export_docx(telegram_id: int, payload: dict[str, Any], bot: Any | None
         res = await async_db.run(_export_docx_sync, telegram_id, payload)
 
         # Activate referral
-        referrer_id = await async_db.run(users_repo.activate_referral, telegram_id)
-        if referrer_id and bot:
+        ref_info = await async_db.run(users_repo.activate_referral, telegram_id)
+        if ref_info and bot:
+            ref_id = ref_info["referrer_id"]
+            active_count = ref_info["active_count"]
+            rewarded = ref_info["rewarded"]
             try:
-                await bot.send_message(
-                    chat_id=referrer_id,
-                    text="🎉 <b>Tabriklaymiz!</b> Taklifnomangiz orqali do'stingiz o'zining birinchi bepul hujjatini yuklab oldi.\n\n"
-                         "Sizga <b>+1 ta bepul yuklash limiti</b> berildi! 💳"
-                )
+                if rewarded:
+                    await bot.send_message(
+                        chat_id=ref_id,
+                        text=f"🎉 <b>Tabriklaymiz!</b> Taklifnomangiz orqali 3 ta do'stingiz (jami {active_count} ta) "
+                             f"o'zining birinchi bepul hujjatini yuklab oldi.\n\n"
+                             f"Sizga <b>+1 ta bepul yuklash limiti</b> berildi! 💳"
+                    )
+                else:
+                    needed = 3 - (active_count % 3)
+                    await bot.send_message(
+                        chat_id=ref_id,
+                        text=f"👥 <b>Yangi faol taklif!</b> Do'stingiz o'zining birinchi bepul hujjatini yuklab oldi.\n\n"
+                             f"Hozirda faol takliflaringiz: <b>{active_count} ta</b>.\n"
+                             f"Yana <b>{needed} ta</b> do'stingiz yuklab olsa, sizga +1 bepul yuklash limiti sovg'a qilinadi! 🎁"
+                    )
             except Exception:
                 pass
 

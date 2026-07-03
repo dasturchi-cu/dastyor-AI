@@ -279,11 +279,10 @@ def get_referral_count(telegram_id: int) -> int:
     return int(row["c"]) if row else 0
 
 
-def activate_referral(telegram_id: int) -> int | None:
+def activate_referral(telegram_id: int) -> dict[str, Any] | None:
     """
     Marks a user's referral as active.
-    Returns the referrer's telegram_id if they should be rewarded (multiple of 3),
-    otherwise None.
+    Returns a dict with referrer details and count if active, otherwise None.
     """
     tid = int(telegram_id)
     with get_connection() as conn:
@@ -307,11 +306,16 @@ def activate_referral(telegram_id: int) -> int | None:
         ).fetchone()
 
         active_count = int(ref_row["c"]) if ref_row else 0
+        rewarded = False
         if active_count > 0 and active_count % 3 == 0:
             conn.execute(
                 "UPDATE users SET credits = credits + 1, updated_at = datetime('now') WHERE telegram_id = ?",
                 (referrer_id,),
             )
-            return referrer_id
+            rewarded = True
 
-    return None
+    return {
+        "referrer_id": referrer_id,
+        "active_count": active_count,
+        "rewarded": rewarded
+    }

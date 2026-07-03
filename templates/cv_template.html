@@ -182,13 +182,16 @@
     }
 
     .tpl-split .contact-item {
-      display: flex;
-      align-items: center;
-      gap: 0.4em;
+      display: block;
       font-size: 9.5pt;
       margin-bottom: 10px;
       line-height: 1.4;
       word-break: break-all;
+    }
+    .tpl-split .contact-item svg.cv-ico {
+      display: inline-block;
+      vertical-align: middle;
+      margin-right: 0.4em;
     }
 
     .tpl-split .section {
@@ -483,16 +486,16 @@
     }
 
     .tpl-creative .contact-item {
-      display: flex;
-      align-items: flex-start;
-      gap: 0.4em;
+      display: block;
       font-size: 10pt;
       margin-bottom: 12px;
       color: #475569;
     }
 
     .tpl-creative .contact-item svg.cv-ico {
-      margin-top: 0.12em;
+      display: inline-block;
+      vertical-align: middle;
+      margin-right: 0.4em;
       flex-shrink: 0;
     }
 
@@ -557,11 +560,15 @@
     }
 
     .tpl-prof .contact-wrap {
-      display: flex;
-      gap: 20px;
+      display: block;
       font-size: 10pt;
       color: #64748b;
       margin-top: 15px;
+    }
+    .tpl-prof .contact-wrap > span {
+      display: inline-block;
+      vertical-align: middle;
+      margin-right: 20px;
     }
 
     .tpl-prof .sec-title {
@@ -673,13 +680,13 @@
       background: transparent;
     }
 
-    /* Contact icons: .cv-ico was previously undefined → UAs/PDF used varying intrinsic SVG sizes */
+    /* Contact icons: WeasyPrint compatible inline-block and absolute sizing */
     .cv-canvas svg.cv-ico {
       display: inline-block;
-      width: var(--cv-ico-size);
-      height: var(--cv-ico-size);
-      max-width: var(--cv-ico-max);
-      max-height: var(--cv-ico-max);
+      width: 16px;
+      height: 16px;
+      max-width: 20px;
+      max-height: 20px;
       min-width: 0;
       min-height: 0;
       flex-shrink: 0;
@@ -689,29 +696,50 @@
     }
 
     .tpl-minimal .contact-wrap {
-      align-items: center;
+      display: block;
     }
 
     .tpl-minimal .contact-wrap > span,
     .tpl-ats .contact-wrap > span {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.35em;
-      max-width: 100%;
+      display: inline-block;
+      vertical-align: middle;
+      margin-right: 15px;
+    }
+
+    .tpl-minimal .contact-wrap > span:last-child,
+    .tpl-ats .contact-wrap > span:last-child {
+      margin-right: 0;
+    }
+
+    .tpl-minimal .contact-wrap > span svg.cv-ico,
+    .tpl-ats .contact-wrap > span svg.cv-ico {
+      display: inline-block;
+      vertical-align: middle;
+      margin-right: 4px;
     }
 
     .tpl-modern .contact > div {
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      gap: 0.35em;
+      display: block;
+      line-height: 1.5;
+    }
+
+    .tpl-modern .contact > div svg.cv-ico {
+      display: inline-block;
+      vertical-align: middle;
+      margin-right: 4px;
+      margin-left: 4px;
     }
 
     .tpl-corporate .contact-wrap > div {
-      display: flex;
-      align-items: center;
-      justify-content: flex-end;
-      gap: 0.4em;
+      display: block;
+      margin-bottom: 5px;
+      text-align: right;
+    }
+
+    .tpl-corporate .contact-wrap > div svg.cv-ico {
+      display: inline-block;
+      vertical-align: middle;
+      margin-right: 4px;
     }
 
     @page {
