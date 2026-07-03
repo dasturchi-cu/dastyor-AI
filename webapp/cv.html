@@ -2618,6 +2618,10 @@
             void (async function(){
               try { await initCvData(); } catch(_) {}
               try { triggerUpdate(false, { immediatePreview: true }); } catch (_) {}
+              var payParam = new URLSearchParams(window.location.search).get('pay') === '1';
+              if (payParam) {
+                try { payCvSingle('pdf'); } catch(_) {}
+              }
             })();
           } else if(initTries > 150){
             clearInterval(initInterval);
@@ -2632,10 +2636,6 @@
           }
           await reconcileCvPaidRequestStatus();
           syncCvQuotaUi();
-          var payParam = new URLSearchParams(window.location.search).get('pay') === '1';
-          if (payParam) {
-            try { payCvSingle('pdf'); } catch(_) {}
-          }
           if (window.DastyorAI && window.DastyorAI.resumePaidDocWatcher) {
             window.DastyorAI.resumePaidDocWatcher({
               kind: 'cv',

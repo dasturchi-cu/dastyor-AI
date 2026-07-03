@@ -3671,6 +3671,10 @@ document.addEventListener('DOMContentLoaded',function(){
         if(isAutoload){
           runAutoloadObyData();
         }
+        var payParam = new URLSearchParams(window.location.search).get('pay') === '1';
+        if (payParam) {
+          try { payObySingle('word'); } catch(_) {}
+        }
       } else if(initTries > 150){
         clearInterval(initInterval);
       }
@@ -3684,10 +3688,6 @@ document.addEventListener('DOMContentLoaded',function(){
       }
       await reconcileObyPaidRequestStatus();
       syncObyQuotaUi();
-      var payParam = new URLSearchParams(window.location.search).get('pay') === '1';
-      if (payParam) {
-        try { payObySingle('word'); } catch(_) {}
-      }
       if(window.DastyorAI && window.DastyorAI.resumePaidDocWatcher){
         window.DastyorAI.resumePaidDocWatcher({
           kind: 'obyektivka',
