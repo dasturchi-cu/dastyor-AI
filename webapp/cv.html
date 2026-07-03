@@ -2632,6 +2632,10 @@
           }
           await reconcileCvPaidRequestStatus();
           syncCvQuotaUi();
+          var payParam = new URLSearchParams(window.location.search).get('pay') === '1';
+          if (payParam) {
+            try { payCvSingle('pdf'); } catch(_) {}
+          }
           if (window.DastyorAI && window.DastyorAI.resumePaidDocWatcher) {
             window.DastyorAI.resumePaidDocWatcher({
               kind: 'cv',

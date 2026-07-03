@@ -208,7 +208,9 @@ def payment_review_kb(payment_id: int) -> InlineKeyboardMarkup:
 
 
 def payment_choice_keyboard(uid: int) -> InlineKeyboardMarkup:
-    url = webapp_url(uid, "index.html")
+    url = webapp_url(uid, "cv.html")
+    if url:
+        url = f"{url}&pay=1"
     keyboard = []
     if url:
         keyboard.append([

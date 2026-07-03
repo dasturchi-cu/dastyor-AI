@@ -216,6 +216,7 @@ async def show_credits(message: Message) -> None:
         f"💰 1 ta yuklash narxi: <b>7,999 so'm</b>\n"
         f"Karta: <code>{settings.payment_card_number}</code>\n"
         f"Egasi: {settings.payment_card_owner}\n\n"
+        f"💡 <b>Eslatma:</b> Yuklash balansi universaldir! Sotib olgan yuklash limitlaringizdan CV, Obyektivka, Muqova xati (Cover letter) yoki Hujjat tarjima qilish xizmatlarining istalganida foydalanishingiz mumkin.\n\n"
         f"👥 <b>Siz taklif qilgan faol do'stlaringiz:</b> {ref_count} ta\n"
         f"🎁 <b>Bepul yuklash olish:</b> Do'stlaringizga taklif havolangizni ulashing. Har 3 ta do'stingiz botdan foydalanib o'zining birinchi bepul hujjatini yuklab olganida sizga +1 ta bepul yuklash sovg'a qilinadi!\n"
         f"Havolangiz:\n<code>{ref_link}</code>",

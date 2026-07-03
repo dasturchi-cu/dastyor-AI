@@ -61,8 +61,8 @@ async def show_samples(message: Message) -> None:
 @router.callback_query(F.data == "pay_via_bot")
 async def choose_payment_type(callback: CallbackQuery) -> None:
     await callback.message.edit_text(
-        "❓ <b>Qaysi hujjat uchun to'lov qilmoqchisiz?</b>\n\n"
-        "To'lov qilmoqchi bo'lgan xizmat turini tanlang:",
+        "❓ <b>Qaysi xizmat uchun to'lov qilmoqchisiz?</b>\n\n"
+        "💡 <i>Eslatma: Qaysi birini tanlasangiz ham, sotib olingan yuklash limiti universaldir — CV, Obyektivka, Muqova xati va Tarjima xizmatlarining barchasiga birdek amal qiladi.</i>",
         reply_markup=InlineKeyboardMarkup(
             inline_keyboard=[
                 [
@@ -75,6 +75,9 @@ async def choose_payment_type(callback: CallbackQuery) -> None:
                     InlineKeyboardButton(text="📝 Muqova xati uchun", callback_data="pay_bot_type_cover"),
                 ],
                 [
+                    InlineKeyboardButton(text="🌐 Hujjatni tarjima qilish uchun", callback_data="pay_bot_type_translate"),
+                ],
+                [
                     InlineKeyboardButton(text="❌ Orqaga", callback_data="pay_cancel"),
                 ]
             ]
@@ -85,9 +88,15 @@ async def choose_payment_type(callback: CallbackQuery) -> None:
 @router.callback_query(F.data.startswith("pay_bot_type_"))
 async def start_bot_payment(callback: CallbackQuery, state: FSMContext) -> None:
     kind_raw = callback.data.split("_")[-1]
-    # Map cover letter to CV payment type since it shares same credit pricing and flow
-    kind = "cv" if kind_raw in ("cv", "cover") else "obyektivka"
-    label = "CV Resume" if kind_raw == "cv" else ("Obyektivka" if kind_raw == "oby" else "Muqova xati")
+    kind = "cv" if kind_raw in ("cv", "cover", "translate") else "obyektivka"
+    if kind_raw == "cv":
+        label = "CV Resume"
+    elif kind_raw == "cover":
+        label = "Muqova xati"
+    elif kind_raw == "translate":
+        label = "Hujjat tarjimasi"
+    else:
+        label = "Obyektivka"
 
     await state.set_state(PaymentStates.waiting_screenshot)
     await state.update_data(payment_kind=kind, payment_label=label)
