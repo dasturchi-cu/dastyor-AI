@@ -31,12 +31,33 @@ def format_document_type(kind: str | None, payment: dict[str, Any] | None = None
     raw = (payment or {}).get("document_type") or kind or ""
     key = str(raw).strip().lower()
     labels = {
-        "cv": "CV",
+        "cv": "CV Resume",
         "obyektivka": "Obyektivka",
         "oby": "Obyektivka",
+        "cover": "Muqova xati",
+        "translate": "Hujjat tarjimasi",
         "manual": "Qo'lda",
     }
     return labels.get(key, raw.title() if raw else "—")
+
+
+def normalize_payment_service(document_type: str | None) -> str:
+    key = str(document_type or "cv").strip().lower()
+    if key == "oby":
+        return "obyektivka"
+    if key in {"cv", "obyektivka", "cover", "translate"}:
+        return key
+    return "cv"
+
+
+def payment_service_command(document_type: str | None) -> str:
+    service = normalize_payment_service(document_type)
+    return {
+        "cv": "/cv",
+        "obyektivka": "/obyektivka",
+        "cover": "/cover",
+        "translate": "/translate",
+    }.get(service, "/cv")
 
 
 def full_name_from_payment(payment: dict[str, Any]) -> str:

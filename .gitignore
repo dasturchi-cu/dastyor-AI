@@ -49,10 +49,10 @@ htmlcov/
 Thumbs.db
 desktop.ini
 
-# --- Loyiha va loglar ---
-node_modules/
-data/
-temp/
+# Deploy skriptlari (parollar scratch/.deploy.env da — git ga kirmaydi)
+scratch/
+!scratch/.deploy.env.example
+!scratch/_deploy_ssh.py
 *.log
 *.bak
 *.backup

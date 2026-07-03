@@ -34,7 +34,9 @@ RUN apt-get update \
 RUN pip install --no-cache-dir --upgrade pip
 
 COPY requirements.txt /app/requirements.txt
-RUN pip install --no-cache-dir -r /app/requirements.txt
+ARG PIP_CACHE_BUST=1
+RUN pip install --no-cache-dir -r /app/requirements.txt \
+    && python -m playwright install --with-deps chromium
 
 COPY . /app
 COPY --from=webapp-css /build/webapp/css/cv.css /app/webapp/css/cv.css

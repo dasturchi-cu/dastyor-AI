@@ -13,16 +13,16 @@ from database.repositories import cv_data as cv_repo
 from features.bot.states import CvStates
 from features.ai.gemini_client import generate_text_with_fallback
 from shared.async_db import run as db_run
-from shared.keyboards import user_menu
+from shared.keyboards import insufficient_balance_keyboard, user_menu
 
 logger = logging.getLogger(__name__)
 router = Router()
 
 
 @router.message(Command("cover"))
-async def cmd_cover(message: Message, state: FSMContext) -> None:
+async def cmd_cover(message: Message, state: FSMContext, *, actor_uid: int | None = None) -> None:
     await state.clear()
-    uid = message.from_user.id if message.from_user else 0
+    uid = actor_uid or (message.from_user.id if message.from_user else 0)
     if not uid:
         return
 
@@ -41,9 +41,8 @@ async def cmd_cover(message: Message, state: FSMContext) -> None:
     if credits < 1:
         await message.answer(
             "💳 <b>Balansingizda yuklashlar yetarli emas.</b>\n\n"
-            "Muqova xati (Cover Letter) yaratish 1 ta yuklash balansini sarflaydi. "
-            "Iltimos, 💳 Pul balansi bo'limidan hisobingizni to'ldiring.",
-            reply_markup=user_menu(uid),
+            "Muqova xati (Cover Letter) yaratish 1 ta yuklash balansini sarflaydi.",
+            reply_markup=insufficient_balance_keyboard(uid),
         )
         return
 
@@ -68,7 +67,7 @@ async def process_vacancy_text(message: Message, state: FSMContext) -> None:
         await state.clear()
         await message.answer(
             "💳 <b>Hisobingizda yuklashlar qolmagan.</b> Avval balansingizni to'ldiring.",
-            reply_markup=user_menu(uid),
+            reply_markup=insufficient_balance_keyboard(uid),
         )
         return
 

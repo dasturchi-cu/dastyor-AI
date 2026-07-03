@@ -81,6 +81,11 @@ def _collect_api_keys(provider: ProviderName) -> tuple[str, ...]:
         if token:
             return (token,)
 
+    if provider == ProviderName.GITHUB:
+        pat = _strip_bom("GITHUB_PERSONAL_ACCESS_TOKEN")
+        if pat:
+            return (pat,)
+
     return ()
 
 
@@ -109,7 +114,12 @@ def _collect_models(provider: ProviderName) -> tuple[str, ...]:
         ProviderName.OPENROUTER: ("deepseek/deepseek-chat", "openai/gpt-4o-mini"),
         ProviderName.GROQ: ("llama-3.1-8b-instant", "llama-3.1-70b-versatile"),
         ProviderName.CLOUDFLARE: ("@cf/meta/llama-3.1-8b-instruct",),
-        ProviderName.SAMBANOVA: ("Meta-Llama-3.1-8B-Instruct", "Meta-Llama-3.1-70B-Instruct"),
+        ProviderName.SAMBANOVA: (
+            "DeepSeek-V3.1",
+            "Meta-Llama-3.3-70B-Instruct",
+            "gpt-oss-120b",
+            "DeepSeek-V3.2",
+        ),
         ProviderName.GITHUB: (
             "meta-llama-3.1-8b-instruct",
             "meta-llama-3.1-70b-instruct",
@@ -176,7 +186,7 @@ def load_routing_config() -> RoutingConfig:
     primary_raw = _strip_bom("AI_PROVIDER") or "gemini"
     primary = _parse_provider_name(primary_raw) or ProviderName.GEMINI
 
-    order_raw = _strip_bom("AI_FALLBACK_ORDER") or "openai,sambanova,github,openrouter,groq,cloudflare"
+    order_raw = _strip_bom("AI_FALLBACK_ORDER") or "sambanova,github,groq,cloudflare"
     fallback: list[ProviderName] = []
     for part in order_raw.split(","):
         p = _parse_provider_name(part)
@@ -184,10 +194,8 @@ def load_routing_config() -> RoutingConfig:
             fallback.append(p)
 
     default_order = [
-        ProviderName.OPENAI,
         ProviderName.SAMBANOVA,
         ProviderName.GITHUB,
-        ProviderName.OPENROUTER,
         ProviderName.GROQ,
         ProviderName.CLOUDFLARE,
     ]

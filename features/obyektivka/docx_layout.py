@@ -244,11 +244,21 @@ def _is_relatives_table(tbl: etree._Element) -> bool:
         or "қариндош" in norm
         or "турар жойи" in norm
         or "turar joyi" in norm
+        or "relationship" in norm
+        or "place of residence" in norm
+        or "место жительства" in norm
+        or "степень родства" in norm
     )
 
 
 def _is_relatives_intro(text: str) -> bool:
-    return "қариндошлари ҳақида" in text or "qarindoshlari haqida" in text.lower()
+    low = text.lower()
+    return (
+        "қариндошлари ҳақида" in text
+        or "qarindoshlari haqida" in low
+        or "close relatives" in low
+        or "близких родственниках" in low
+    )
 
 
 def _is_malumot_line(text: str) -> bool:

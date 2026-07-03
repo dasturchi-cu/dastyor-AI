@@ -1883,28 +1883,41 @@ function buildObyPayload(fmt){
 }
 
 var _obyApprovedRequestId = 0;
+var _obyAwaitingAdmin = false;
+
+function clearObyAwaitingAdminState() {
+  _obyAwaitingAdmin = false;
+  _obyApprovedRequestId = 0;
+  try { localStorage.removeItem('oby_paid_request_id'); } catch (e) {}
+}
 
 async function reconcileObyPaidRequestStatus(){
-  var rid = _obyApprovedRequestId || Number(localStorage.getItem('oby_paid_request_id') || 0);
+  var rid = Number(localStorage.getItem('oby_paid_request_id') || 0) || _obyApprovedRequestId;
   if(!rid || !window.DastyorAI || !window.DastyorAI.fetchPaidDocStatus) return;
   try{
     var js = await window.DastyorAI.fetchPaidDocStatus(rid, 'oby_paid_request_id');
     if(!js) return;
     if(js.stale){
-      _obyApprovedRequestId = 0;
+      clearObyAwaitingAdminState();
       syncObyQuotaUi();
       return;
     }
     var s = String(js.status || '').toLowerCase();
+    if(s === 'awaiting_receipt'){
+      _obyAwaitingAdmin = false;
+      _obyApprovedRequestId = 0;
+      syncObyQuotaUi();
+      return;
+    }
     if(s === 'pending' || s === 'pending_payment' || s === 'payment_submitted'){
+      _obyAwaitingAdmin = true;
       _obyApprovedRequestId = rid;
       try{ localStorage.setItem('oby_paid_request_id', String(rid)); }catch(e){}
       syncObyQuotaUi();
       return;
     }
     if(s === 'completed' || s === 'rejected' || s === 'cancelled'){
-      _obyApprovedRequestId = 0;
-      try{ localStorage.removeItem('oby_paid_request_id'); }catch(e){}
+      clearObyAwaitingAdminState();
       syncObyQuotaUi();
       return;
     }
@@ -1915,13 +1928,13 @@ async function reconcileObyPaidRequestStatus(){
         ? window.DastyorAI.hasSingleDocAccess(u, 'obyektivka')
         : !!(u && (u.has_objective_access || Number(u.credits || 0) > 0 || u.has_access));
       if(!paidOk){
+        _obyAwaitingAdmin = false;
         _obyApprovedRequestId = rid;
         try{ localStorage.setItem('oby_paid_request_id', String(rid)); }catch(e){}
         syncObyQuotaUi();
         return;
       }
-      _obyApprovedRequestId = 0;
-      try{ localStorage.removeItem('oby_paid_request_id'); }catch(e){}
+      clearObyAwaitingAdminState();
       setObyPayUiState('approved');
       var panel=document.getElementById('obyPayPanel');
       if(panel) panel.classList.add('hidden');
@@ -1930,14 +1943,12 @@ async function reconcileObyPaidRequestStatus(){
       await window.DastyorAI.processPaidDocStatus('obyektivka', rid, s, {
         silent: true,
         onApproved: async function(){
-          _obyApprovedRequestId = 0;
-          try{ localStorage.removeItem('oby_paid_request_id'); }catch(e){}
+          clearObyAwaitingAdminState();
           setObyPayUiState('approved');
           syncObyQuotaUi();
         },
         onCompleted: async function(){
-          _obyApprovedRequestId = 0;
-          try{ localStorage.removeItem('oby_paid_request_id'); }catch(e){}
+          clearObyAwaitingAdminState();
           syncObyQuotaUi();
         }
       });
@@ -2032,7 +2043,7 @@ function syncObyQuotaUi() {
     } catch (_) {}
   }
 
-  var pendingAdmin = !!(_obyApprovedRequestId && !canExport);
+  var pendingAdmin = !!(_obyAwaitingAdmin && !canExport);
 
   if (btn) {
     btn.disabled = _obyExportInFlight || !canExport || pendingAdmin;
@@ -2048,7 +2059,7 @@ function syncObyQuotaUi() {
     }
   }
   if (payBtn) {
-    if (!canExport || pendingAdmin) payBtn.classList.remove('hidden');
+    if (!canExport && !pendingAdmin) payBtn.classList.remove('hidden');
     else payBtn.classList.add('hidden');
   }
   if (warn) {
@@ -2428,8 +2439,7 @@ async function sendObyektivkaToBot(fmt){
   }
   try{
     await sendObyektivkaViaApi(fmt);
-    _obyApprovedRequestId = 0;
-    try{ localStorage.removeItem('oby_paid_request_id'); }catch(e){}
+    clearObyAwaitingAdminState();
     if(window.DastyorAI && window.DastyorAI.stopPaidDocWatcher) window.DastyorAI.stopPaidDocWatcher('obyektivka');
     try{ if(window.DastyorAI&&window.DastyorAI.refreshProfile) await window.DastyorAI.refreshProfile(true); }catch(e){}
     syncObyQuotaUi();
@@ -2446,8 +2456,7 @@ async function sendObyektivkaToBot(fmt){
       try{
         _obyExportInFlight = true;
         await sendObyektivkaViaApi(fmt);
-        _obyApprovedRequestId = 0;
-        try{ localStorage.removeItem('oby_paid_request_id'); }catch(ex){}
+        clearObyAwaitingAdminState();
         if(window.DastyorAI && window.DastyorAI.stopPaidDocWatcher) window.DastyorAI.stopPaidDocWatcher('obyektivka');
         try{ if(window.DastyorAI&&window.DastyorAI.refreshProfile) await window.DastyorAI.refreshProfile(); }catch(ex){}
         syncObyQuotaUi();
@@ -2639,8 +2648,7 @@ async function payObySingle(fmt){
           var submitJson = {};
           try{ submitJson = await r2.json(); }catch(e){}
           if(submitJson.status === 'approved' && window.DastyorAI){
-            _obyApprovedRequestId = 0;
-            try{ localStorage.removeItem('oby_paid_request_id'); }catch(e){}
+            clearObyAwaitingAdminState();
             try{ if(window.DastyorAI.refreshProfile) await window.DastyorAI.refreshProfile(true); }catch(e){}
             setObyPayUiState('approved');
             syncObyQuotaUi();
@@ -2656,7 +2664,10 @@ async function payObySingle(fmt){
           return;
         }
         setObyPayUiState('sent');
+        _obyAwaitingAdmin = true;
+        _obyApprovedRequestId = _obyPayState.requestId;
         try{ localStorage.setItem('oby_paid_request_id', String(_obyPayState.requestId)); }catch(e){}
+        syncObyQuotaUi();
         if(window.DastyorAI && window.DastyorAI.stopPaidDocWatcher) window.DastyorAI.stopPaidDocWatcher('obyektivka');
         var spin = setInterval(function(){
           setObyPayUiState('waiting');
@@ -2669,16 +2680,14 @@ async function payObySingle(fmt){
             getRequestId: function(){ return _obyPayState.requestId; },
             onApproved: async function(){
               clearInterval(spin);
-              _obyApprovedRequestId = 0;
-              try{ localStorage.removeItem('oby_paid_request_id'); }catch(e){}
+              clearObyAwaitingAdminState();
               try{ if(window.DastyorAI&&window.DastyorAI.refreshProfile) await window.DastyorAI.refreshProfile(true); }catch(e){}
               setObyPayUiState('approved');
               syncObyQuotaUi();
             },
             onCompleted: async function(){
               clearInterval(spin);
-              _obyApprovedRequestId = 0;
-              try{ localStorage.removeItem('oby_paid_request_id'); }catch(e){}
+              clearObyAwaitingAdminState();
               setObyPayUiState('approved');
               syncObyQuotaUi();
             },
@@ -3566,7 +3575,7 @@ async function confirmObyektivka(){
   var canExport = DA.canExportForCategory
     ? DA.canExportForCategory(u, 'obyektivka')
     : ((DA.getCredits ? DA.getCredits(u) : 0) > 0 || (DA.hasSingleDocAccess && DA.hasSingleDocAccess(u, 'obyektivka')));
-  var pendingAdmin = !!(_obyApprovedRequestId && !canExport);
+  var pendingAdmin = !!(_obyAwaitingAdmin && !canExport);
   if(!canExport || pendingAdmin){
     syncObyQuotaUi();
     if(!canExport && !pendingAdmin){
@@ -3648,7 +3657,6 @@ document.addEventListener('DOMContentLoaded',function(){
       sendObyektivkaToBot('word');
     });
   }
-  try{ _obyApprovedRequestId = Number(localStorage.getItem('oby_paid_request_id') || 0); }catch(e){}
   try{ syncObyQuotaUi(); }catch(e){}
 
   var up = new URLSearchParams(window.location.search);
@@ -3693,15 +3701,13 @@ document.addEventListener('DOMContentLoaded',function(){
           kind: 'obyektivka',
           storageKey: 'oby_paid_request_id',
           onApproved: async function(){
-            _obyApprovedRequestId = 0;
-            try{ localStorage.removeItem('oby_paid_request_id'); }catch(e){}
+            clearObyAwaitingAdminState();
             try{ if(window.DastyorAI&&window.DastyorAI.refreshProfile) await window.DastyorAI.refreshProfile(true); }catch(e){}
             setObyPayUiState('approved');
             syncObyQuotaUi();
           },
           onCompleted: async function(){
-            _obyApprovedRequestId = 0;
-            try{ localStorage.removeItem('oby_paid_request_id'); }catch(e){}
+            clearObyAwaitingAdminState();
             syncObyQuotaUi();
           }
         });

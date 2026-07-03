@@ -225,15 +225,23 @@ async def generate_with_endpoint(
     return AttemptResult(error=f"Unknown provider: {endpoint.provider}")
 
 
-async def probe_endpoint(endpoint: Endpoint, *, timeout_sec: float = 15.0) -> bool:
-    """Lightweight health probe."""
+async def probe_endpoint(endpoint: Endpoint, *, timeout_sec: float = 15.0) -> tuple[bool, str | None]:
+    """Lightweight health probe. Returns (ok, error_message)."""
     try:
         result = await generate_with_endpoint(
             endpoint,
             "Reply with exactly: OK",
             timeout_sec=timeout_sec,
         )
-        return bool(result.text and not result.error)
+        if result.text and not result.error:
+            return True, None
+        return False, (result.error or "empty_response")[:200]
     except Exception as e:
-        logger.debug("Probe failed %s key#%s %s: %s", endpoint.provider.value, endpoint.key_index, endpoint.model, e)
-        return False
+        logger.debug(
+            "Probe failed %s key#%s %s: %s",
+            endpoint.provider.value,
+            endpoint.key_index,
+            endpoint.model,
+            e,
+        )
+        return False, str(e)[:200]

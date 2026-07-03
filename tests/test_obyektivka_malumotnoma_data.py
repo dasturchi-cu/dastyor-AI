@@ -122,6 +122,22 @@ class TestMalumotnomaEmployment(unittest.TestCase):
         self.assertEqual(data["current_job"], "")
         self.assertEqual(len(data["work_lines"]), 1)
 
+    def test_translated_current_job_dedupes_uzbek_work_row(self):
+        raw = {
+            "lang": "en",
+            "current_job": "Dastyor AI's leading developer",
+            "current_job_year": "Boshidan 2020-yildan buyon",
+            "work_experience": [
+                {"year": "2017-2020", "position": "EPAM Systems developer"},
+                {"year": "2020-h.v", "position": "Bosh direktori Dastyor AI ning bir dasturchi"},
+            ],
+        }
+        data = build_malumotnoma_data(raw)
+        self.assertEqual(data["current_job_year"], "Since 2020:")
+        current_lines = [line for line in data["work_lines"] if "present" in line]
+        self.assertEqual(len(current_lines), 1)
+        self.assertIn("Dastyor AI's leading developer", current_lines[0])
+        self.assertNotIn("Bosh direktori", "\n".join(data["work_lines"]))
 
 class TestCurrentJobCompat(unittest.TestCase):
     def test_present_token(self):

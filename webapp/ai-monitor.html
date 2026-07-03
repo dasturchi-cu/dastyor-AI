@@ -64,9 +64,20 @@
   </div>
 
   <div class="card">
+    <div class="label">Configured Providers</div>
+    <div class="scroll-x" style="margin-top:0.5rem;">
+      <table id="configTable">
+        <thead><tr><th>Provider</th><th>Keys</th><th>Primary model</th><th>Status</th></tr></thead>
+        <tbody id="configBody"><tr><td colspan="4" style="color:var(--muted)">Loading…</td></tr></tbody>
+      </table>
+    </div>
+    <button id="probeBtn" style="margin-top:0.75rem;padding:0.45rem 0.9rem;border-radius:8px;border:1px solid var(--border);background:#1a2433;color:var(--text);cursor:pointer;">Test all keys</button>
+    <pre id="probeOut" class="mono" style="margin-top:0.6rem;white-space:pre-wrap;color:var(--muted);display:none;"></pre>
+  </div>
+
+  <div class="card">
     <div class="label">Quota by API Key</div>
     <div class="scroll-x" style="margin-top:0.5rem;">
-      <table id="quotaTable">
         <thead>
           <tr>
             <th>Provider</th><th>Key</th><th>Model</th><th>Quota %</th>
@@ -119,6 +130,60 @@
     function fmtTs(v) {
       if (!v) return "—";
       return String(v).replace("T", " ").slice(0, 16);
+    }
+
+    function renderConfig(cfg) {
+      const tbody = document.getElementById("configBody");
+      const providers = (cfg && cfg.providers) || {};
+      const names = Object.keys(providers).sort();
+      if (!names.length) {
+        tbody.innerHTML = '<tr><td colspan="4" style="color:var(--muted)">No providers</td></tr>';
+        return;
+      }
+      tbody.innerHTML = names.map(name => {
+        const row = providers[name] || {};
+        const n = row.key_count || 0;
+        const st = n ? "configured" : "missing";
+        return `<tr>
+          <td><strong>${name.toUpperCase()}</strong></td>
+          <td>${n}</td>
+          <td class="mono">${row.primary_model || "—"}</td>
+          <td>${st}</td>
+        </tr>`;
+      }).join("");
+    }
+
+    async function loadConfig() {
+      const url = apiBase + "/admin/ai-monitor/config" + (qs ? "?" + qs : "");
+      const res = await fetch(url, { headers: authHeaders() });
+      if (!res.ok) return;
+      renderConfig(await res.json());
+    }
+
+    async function runProbe() {
+      const btn = document.getElementById("probeBtn");
+      const out = document.getElementById("probeOut");
+      btn.disabled = true;
+      out.style.display = "block";
+      out.textContent = "Probing all keys...";
+      try {
+        const url = apiBase + "/admin/ai-monitor/probe" + (qs ? "?" + qs : "");
+        const res = await fetch(url, { method: "POST", headers: authHeaders() });
+        if (!res.ok) throw new Error(res.status + " " + res.statusText);
+        const data = await res.json();
+        const lines = [`OK: ${data.ok_keys || 0} / ${data.total_keys || 0}`];
+        const summary = data.summary || {};
+        Object.keys(summary).sort().forEach(name => {
+          const row = summary[name] || {};
+          if (!row.key_count) lines.push(`${name}: no keys`);
+          else lines.push(`${name}: ${row.ok}/${row.key_count} OK`);
+        });
+        out.textContent = lines.join("\n");
+      } catch (e) {
+        out.textContent = "Probe failed: " + e.message;
+      } finally {
+        btn.disabled = false;
+      }
     }
 
     function render(data) {
@@ -199,6 +264,8 @@
     }
 
     poll();
+    loadConfig();
+    document.getElementById("probeBtn").addEventListener("click", runProbe);
     setInterval(poll, refreshSec * 1000);
   </script>
 </body>

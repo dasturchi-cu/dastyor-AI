@@ -23,7 +23,7 @@ from features.cv import service as cv_service
 from shared.ai_errors import AI_QUOTA_USER_MSG, AiQuotaError, translate_error_to_user_message
 from shared.async_db import run as db_run
 from shared.keyboards import BTN_BACK, BTN_OBY, is_menu_button, open_webapp_inline
-from shared.marketing import cross_sell_oby_line
+from shared.marketing import cross_sell_cover_line, cross_sell_oby_line, cross_sell_translate_line
 from shared.progress import STEP_AI, STEP_AUDIO, STEP_EXTRACTED, STEP_READY, telegram_message
 from shared.telegram_progress import set_step
 from shared.voice import download_voice_message
@@ -108,7 +108,7 @@ async def _handle_cv_text_flow(text: str, status: Message, uid: int, state: FSMC
         await status.edit_text(
             f"{telegram_message(STEP_READY, input_mode='text')}\n\n"
             f"CV formasi to'ldirildi.{warn_text}"
-            f"{cross_sell_oby_line()}",
+            f"{cross_sell_oby_line()}{cross_sell_cover_line()}{cross_sell_translate_line()}",
             reply_markup=open_webapp_inline(uid, "cv"),
         )
     except AiQuotaError:
@@ -159,7 +159,7 @@ async def _handle_cv_voice_flow(
         await status.edit_text(
             f"{telegram_message(STEP_READY)}\n\n"
             f"Formani tekshiring.{warn_text}"
-            f"{cross_sell_oby_line()}",
+            f"{cross_sell_oby_line()}{cross_sell_cover_line()}{cross_sell_translate_line()}",
             reply_markup=open_webapp_inline(uid, "cv"),
         )
     except AiQuotaError:

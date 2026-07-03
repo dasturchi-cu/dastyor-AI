@@ -17,6 +17,8 @@ _COST_PER_M_TOKEN: dict[str, float] = {
     "openrouter": 0.40,
     "groq": 0.05,
     "cloudflare": 0.01,
+    "sambanova": 0.08,
+    "github": 0.20,
 }
 
 
@@ -234,6 +236,14 @@ def snapshot_to_dict() -> dict[str, Any]:
     except Exception:
         pass
 
+    config_summary: dict[str, Any] = {}
+    try:
+        from features.ai.routing.probe import build_config_summary
+
+        config_summary = build_config_summary()
+    except Exception:
+        pass
+
     return {
         "active": {
             "provider": snap.active.provider.value,
@@ -243,6 +253,7 @@ def snapshot_to_dict() -> dict[str, Any]:
             "health_pct": round(snap.active.health_pct, 1),
             "updated_at": snap.active.updated_at,
         },
+        "config": config_summary,
         "quota": quota_rows,
         "quota_events": quota_events,
         "providers": [

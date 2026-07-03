@@ -61,9 +61,14 @@ def approve_payment(
     *,
     approved_by: int | None = None,
 ) -> dict[str, Any] | None:
-    return payments_repo.approve_atomic(
+    result = payments_repo.approve_atomic(
         payment_id, admin_note, approved_by=approved_by
     )
+    if result and result.get("telegram_id"):
+        ref_info = users_repo.mark_referral_paid(int(result["telegram_id"]))
+        if ref_info:
+            result["referral_info"] = ref_info
+    return result
 
 
 def try_auto_approve(payment_id: int) -> dict[str, Any] | None:

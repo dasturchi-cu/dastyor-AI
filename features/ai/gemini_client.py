@@ -432,6 +432,104 @@ async def translate_document_gemini(file_path: str, target_language: str = "uz")
         return ""
 
 
+_TRANSLATE_FAILURE_MSGS = frozenset(
+    {
+        "Tarjima vaqtincha mavjud emas.",
+        "Tarjima natijasi original bilan bir xil chiqdi.",
+    }
+)
+
+_AI_GARBAGE_MARKERS = (
+    "i'm ready to translate",
+    "what is the o'zbek text",
+    "what is the uzbek text",
+    "please provide",
+    "translate the following",
+    "return only",
+    "меня готовы перевести",
+    "готов перевести",
+    "готовы перевести",
+    "какой текст",
+    "что перевести",
+    "что из узбекского",
+    "какой текст из узбекского",
+    "какой текст на узбекском",
+    "я должен перевести",
+    "должен перевести",
+    "предоставьте текст",
+    "переведите следующий",
+    "qanday matn",
+    "qaysi matnni",
+    "tarjima qilishga tayyor",
+)
+
+
+def _none_for_direction(direction: str) -> str | None:
+    if direction.endswith("_en"):
+        return "none"
+    if direction.endswith("_ru"):
+        return "нет"
+    return None
+
+
+def _is_ai_garbage(text: str) -> bool:
+    low = (text or "").strip().lower()
+    if any(marker in low for marker in _AI_GARBAGE_MARKERS):
+        return True
+    if re.search(r"\b(none|нет)\s*$", low) and any(
+        x in low for x in ("перевести", "translate", "matn", "текст", "text")
+    ):
+        return True
+    return False
+
+
+def is_ai_garbage(text: str) -> bool:
+    """Public helper — detect meta-responses instead of real translations."""
+    return _is_ai_garbage(text)
+
+
+async def translate_strings_batch(
+    texts: list[str],
+    direction: str,
+    *,
+    concurrency: int = 8,
+) -> list[str]:
+    """Translate many strings via translate_text (Gemini + Google fallback per item)."""
+    if not texts:
+        return []
+
+    from features.obyektivka.none_values import is_none_token
+
+    sem = asyncio.Semaphore(max(1, concurrency))
+
+    async def _one(src: str) -> str:
+        if is_none_token(src):
+            mapped = _none_for_direction(direction)
+            return mapped if mapped is not None else src
+
+        async with sem:
+            out = await translate_text(src, direction=direction)
+            if out == "Tarjima vaqtincha mavjud emas.":
+                raise RuntimeError("translation_unavailable")
+            if out in _TRANSLATE_FAILURE_MSGS:
+                mapped = _none_for_direction(direction)
+                if is_none_token(src) and mapped is not None:
+                    return mapped
+                return src
+            if _is_ai_garbage(out):
+                mapped = _none_for_direction(direction)
+                if is_none_token(src) and mapped is not None:
+                    return mapped
+                logger.warning("AI garbage translation dropped for: %r -> %r", src[:80], out[:120])
+                mapped = _none_for_direction(direction)
+                if mapped is not None and not (src or "").strip():
+                    return mapped
+                return src
+            return out
+
+    return list(await asyncio.gather(*[_one(t) for t in texts]))
+
+
 async def translate_text(text: str, direction: str = "uz_en") -> str:
     """
     Translate plain text using Gemini. Used by /api/translate web endpoint.

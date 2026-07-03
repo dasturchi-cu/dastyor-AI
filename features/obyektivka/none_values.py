@@ -33,11 +33,20 @@ def is_none_token(value: str) -> bool:
 
 
 def none_for_lang(lang: str) -> str:
-    return NONE_CYR if (lang or "uz_lat") == "uz_cyr" else NONE_UZ
+    key = (lang or "uz_lat").strip().lower()
+    if key == "en":
+        return "none"
+    if key == "ru":
+        return "нет"
+    return NONE_CYR if key == "uz_cyr" else NONE_UZ
 
 
 def field_or_none(value: str, lang: str = "uz_lat") -> str:
     """Formadagi yo'q/йўқ → joriy til uchun to'g'ri «yo'q» yoki «йўқ»."""
+    from features.ai.gemini_client import is_ai_garbage
+
+    if is_ai_garbage(value):
+        return none_for_lang(lang)
     if is_none_token(value):
         return none_for_lang(lang)
     return (value or "").strip()

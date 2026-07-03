@@ -1,6 +1,8 @@
 """Aiogram 3 — start, menu, help."""
 from __future__ import annotations
 
+from pathlib import Path
+
 from aiogram import F, Router
 from aiogram.filters import Command, CommandStart
 from aiogram.fsm.context import FSMContext
@@ -10,13 +12,14 @@ from config.settings import settings
 from database.repositories import users as users_repo
 from features.bot.states import ContactStates, CvStates, ObyektivkaStates
 from shared.async_db import run as db_run
-from shared.marketing import cv_intro_header, welcome_message
 from shared.keyboards import (
     BTN_BACK,
+    BTN_COVER,
     BTN_CREDITS,
     BTN_CV,
     BTN_HELP,
     BTN_OBY,
+    BTN_TRANSLATE,
     LEGACY_BTN_CREDITS,
     contact_admin_kb,
     is_credits_button,
@@ -24,6 +27,7 @@ from shared.keyboards import (
     open_webapp_inline,
     user_menu,
 )
+from shared.marketing import cv_intro_header, format_price_uzs, welcome_message
 
 router = Router()
 
@@ -42,7 +46,7 @@ HELP_TEXT = (
     "/contact — admin bilan bog'lanish\n"
     "/help — yordam\n\n"
     "🎙 Ovoz yoki matn — AI avtomatik to'ldirish (bepul)\n\n"
-    f"Narx: <b>{settings.single_doc_price_uzs:,} so'm</b> = 1 hujjat"
+    f"Narx: <b>{format_price_uzs()} so'm</b> = 1 hujjat (barcha xizmatlar uchun)"
 )
 
 
@@ -148,6 +152,14 @@ async def menu_from_contact(message: Message, state: FSMContext) -> None:
         from features.bot.handlers.obyektivka import obyektivka_start
 
         await obyektivka_start(message, state)
+    elif text == BTN_COVER:
+        from features.bot.handlers.cover_letter import cmd_cover
+
+        await cmd_cover(message, state)
+    elif text == BTN_TRANSLATE:
+        from features.bot.handlers.translate import cmd_translate
+
+        await cmd_translate(message)
     elif text == BTN_HELP:
         await cmd_help(message)
     elif text == BTN_BACK:
@@ -168,6 +180,14 @@ async def menu_from_flow_waiting(message: Message, state: FSMContext) -> None:
         from features.bot.handlers.obyektivka import obyektivka_start
 
         await obyektivka_start(message, state)
+    elif text == BTN_COVER:
+        from features.bot.handlers.cover_letter import cmd_cover
+
+        await cmd_cover(message, state)
+    elif text == BTN_TRANSLATE:
+        from features.bot.handlers.translate import cmd_translate
+
+        await cmd_translate(message)
     elif text == BTN_HELP:
         await cmd_help(message)
     elif text == BTN_BACK:
@@ -204,6 +224,24 @@ async def cv_intro(message: Message, state: FSMContext) -> None:
         asyncio.create_task(_send_sample_audio(message, sample))
 
 
+@router.message(F.text == BTN_COVER)
+async def cover_from_menu(message: Message, state: FSMContext) -> None:
+    if await _blocked_reply(message):
+        return
+    from features.bot.handlers.cover_letter import cmd_cover
+
+    await cmd_cover(message, state)
+
+
+@router.message(F.text == BTN_TRANSLATE)
+async def translate_from_menu(message: Message) -> None:
+    if await _blocked_reply(message):
+        return
+    from features.bot.handlers.translate import cmd_translate
+
+    await cmd_translate(message)
+
+
 @router.message(F.text == BTN_BACK)
 async def menu_back(message: Message, state: FSMContext) -> None:
     await state.clear()
@@ -211,24 +249,29 @@ async def menu_back(message: Message, state: FSMContext) -> None:
     await message.answer("Bosh menyu:", reply_markup=user_menu(uid))
 
 
+async def show_credits_for_uid(message: Message, uid: int) -> None:
+    status = await db_run(users_repo.get_credits, uid)
+    progress = await db_run(users_repo.get_referral_progress, uid)
+    bot_username = settings.bot_username or "DastyorAiBot"
+    ref_link = f"https://t.me/{bot_username}?start=ref_{uid}"
+    price = format_price_uzs()
+    from shared.keyboards import payment_choice_keyboard
+    from shared.referral import referral_balance_block
+
+    await message.answer(
+        f"💳 <b>Sotib olingan yuklashlar:</b> {status} ta\n"
+        f"ℹ️ Ovoz va matn to'ldirish — <b>bepul</b>\n"
+        f"💰 1 ta yuklash narxi: <b>{price} so'm</b>\n"
+        f"Karta: <code>{settings.payment_card_number}</code>\n"
+        f"Egasi: {settings.payment_card_owner}\n\n"
+        f"💡 <b>Eslatma:</b> Yuklash balansi universaldir! Sotib olgan yuklash limitlaringizdan CV, Obyektivka, Muqova xati (Cover letter) yoki Hujjat tarjima qilish xizmatlarining istalganida foydalanishingiz mumkin.\n\n"
+        f"{referral_balance_block(ref_link, progress)}",
+        reply_markup=payment_choice_keyboard(uid),
+    )
+
+
 @router.message(F.text == BTN_CREDITS)
 @router.message(F.text.in_(LEGACY_BTN_CREDITS))
 async def show_credits(message: Message) -> None:
     uid = message.from_user.id if message.from_user else 0
-    status = await db_run(users_repo.get_credits, uid)
-    ref_count = await db_run(users_repo.get_referral_count, uid)
-    bot_username = settings.bot_username or "DastyorAiBot"
-    ref_link = f"https://t.me/{bot_username}?start=ref_{uid}"
-    from shared.keyboards import payment_choice_keyboard
-    await message.answer(
-        f"💳 <b>Sotib olingan yuklashlar:</b> {status} ta\n"
-        f"ℹ️ Ovoz va matn to'ldirish — <b>bepul</b>\n"
-        f"💰 1 ta yuklash narxi: <b>7,999 so'm</b>\n"
-        f"Karta: <code>{settings.payment_card_number}</code>\n"
-        f"Egasi: {settings.payment_card_owner}\n\n"
-        f"💡 <b>Eslatma:</b> Yuklash balansi universaldir! Sotib olgan yuklash limitlaringizdan CV, Obyektivka, Muqova xati (Cover letter) yoki Hujjat tarjima qilish xizmatlarining istalganida foydalanishingiz mumkin.\n\n"
-        f"👥 <b>Siz taklif qilgan faol do'stlaringiz:</b> {ref_count} ta\n"
-        f"🎁 <b>Bepul yuklash olish:</b> Do'stlaringizga taklif havolangizni ulashing. Har 3 ta do'stingiz botdan foydalanib o'zining birinchi bepul hujjatini yuklab olganida sizga +1 ta bepul yuklash sovg'a qilinadi!\n"
-        f"Havolangiz:\n<code>{ref_link}</code>",
-        reply_markup=payment_choice_keyboard(uid),
-    )
+    await show_credits_for_uid(message, uid)

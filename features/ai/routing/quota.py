@@ -18,6 +18,8 @@ _DEFAULT_DAILY_LIMITS: dict[str, int] = {
     "openrouter": 5000,
     "groq": 14_400,
     "cloudflare": 10_000,
+    "sambanova": 5000,
+    "github": 5000,
 }
 
 

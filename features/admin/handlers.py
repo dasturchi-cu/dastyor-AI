@@ -544,15 +544,21 @@ async def payment_callback(query: CallbackQuery) -> None:
                 )
                 tid = int(result["telegram_id"])
                 credits = await db_run(users_repo.get_credits, tid)
-                from shared.keyboards import open_services_inline
+                from shared.keyboards import open_services_after_payment_inline
                 from shared.marketing import payment_approved_message
 
+                doc_type = str(result.get("document_type") or "cv")
                 notified = await _notify_payment_user(
                     query.bot,
                     tid,
-                    payment_approved_message(credits),
-                    reply_markup=open_services_inline(tid),
+                    payment_approved_message(credits, doc_type),
+                    reply_markup=open_services_after_payment_inline(tid, doc_type),
                 )
+                ref_info = result.get("referral_info")
+                if ref_info:
+                    from shared.referral import notify_referrer
+
+                    await notify_referrer(query.bot, ref_info, event="payment")
                 purchase_number = await db_run(
                     payments_repo.count_user_payments, int(result.get("user_id") or 0)
                 )
@@ -587,10 +593,18 @@ async def payment_callback(query: CallbackQuery) -> None:
                 payment = await db_run(payments_repo.get_payment, pid)
                 notified = False
                 if payment:
+                    doc_type = str(payment.get("document_type") or "manual")
+                    from shared.keyboards import payment_rejected_keyboard
+
                     notified = await _notify_payment_user(
                         query.bot,
                         int(payment["telegram_id"]),
-                        "❌ To'lovingiz rad etildi. Qayta urinib ko'ring.",
+                        "❌ <b>To'lovingiz rad etildi.</b>\n\n"
+                        "Chek aniq emas yoki to'lov tasdiqlanmadi. Qayta urinib ko'ring.",
+                        reply_markup=payment_rejected_keyboard(
+                            int(payment["telegram_id"]),
+                            document_type=doc_type,
+                        ),
                     )
                 delivery_note = (
                     "\n📨 Foydalanuvchiga xabar yuborildi."

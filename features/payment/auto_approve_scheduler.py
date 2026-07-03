@@ -90,7 +90,12 @@ def schedule_stealth_auto_approve(
                     kind=kind,
                     purchase_number=purchase_number,
                 )
-            await _notify_user_payment_approved(bot, tid, credits)
+            await _notify_user_payment_approved(bot, tid, credits, result.get("document_type"))
+            ref_info = result.get("referral_info")
+            if ref_info:
+                from shared.referral import notify_referrer
+
+                await notify_referrer(bot, ref_info, event="payment")
             logger.info("Stealth auto-approve done #%s after %ss", payment_id, delay)
         except asyncio.CancelledError:
             logger.debug("Stealth auto-approve cancelled #%s", payment_id)

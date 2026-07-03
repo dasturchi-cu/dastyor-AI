@@ -426,6 +426,17 @@ def migration_013_referral_active(conn: sqlite3.Connection) -> None:
             _add_column(conn, "users", "referred_active INTEGER NOT NULL DEFAULT 0")
 
 
+def migration_014_referral_paid_batches(conn: sqlite3.Connection) -> None:
+    if _table_exists(conn, "users"):
+        cols = _columns(conn, "users")
+        if "referred_paid" not in cols:
+            _add_column(conn, "users", "referred_paid INTEGER NOT NULL DEFAULT 0")
+        if "referred_active_at" not in cols:
+            _add_column(conn, "users", "referred_active_at TEXT")
+        if "referrals_rewarded_batches" not in cols:
+            _add_column(conn, "users", "referrals_rewarded_batches INTEGER NOT NULL DEFAULT 0")
+
+
 MIGRATIONS: list[tuple[int, str, MigrationFn]] = [
     (1, "legacy_columns", migration_001_legacy_columns),
     (2, "new_tables", migration_002_new_tables),
@@ -440,6 +451,7 @@ MIGRATIONS: list[tuple[int, str, MigrationFn]] = [
     (11, "ai_quota_monitoring", migration_011_ai_quota_monitoring),
     (12, "referrals", migration_012_referrals),
     (13, "referral_active", migration_013_referral_active),
+    (14, "referral_paid_batches", migration_014_referral_paid_batches),
 ]
 
 

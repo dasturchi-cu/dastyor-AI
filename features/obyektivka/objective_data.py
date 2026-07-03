@@ -6,7 +6,8 @@ import json
 from typing import Any
 
 from features.obyektivka.layout import labels_for
-from features.obyektivka.malumotnoma_data import build_malumotnoma_data
+from features.obyektivka.malumotnoma_data import build_malumotnoma_data, normalize_obyektivka_raw
+from features.obyektivka.translate_phrases import relationship_label
 from features.obyektivka.none_values import field_or_none
 
 NONE_UZ = "yo'q"
@@ -38,33 +39,56 @@ REL_MATCHERS: list[tuple[str, str]] = [
     ("otasi", "ota"),
     ("otas", "ota"),
     ("father", "ota"),
+    ("отец", "ota"),
+    ("отаси", "ota"),
     ("onasi", "ona"),
     ("onas", "ona"),
     ("mother", "ona"),
+    ("мать", "ona"),
+    ("онаси", "ona"),
     ("opasi", "opa"),
     ("opas", "opa"),
+    ("elder sister", "opa"),
+    ("старшая сестра", "opa"),
     ("singlisi", "singil"),
     ("singli", "singil"),
     ("singil", "singil"),
     ("sister", "singil"),
+    ("younger sister", "singil"),
+    ("младшая сестра", "singil"),
     ("akasi", "aka"),
     ("akas", "aka"),
+    ("elder brother", "aka"),
+    ("старший брат", "aka"),
     ("ukasi", "uka"),
     ("ukas", "uka"),
     ("brother", "uka"),
+    ("younger brother", "uka"),
+    ("младший брат", "uka"),
+    ("брат", "uka"),
     ("turmush", "turmush_ortogi"),
     ("xotin", "turmush_ortogi"),
     ("wife", "turmush_ortogi"),
     ("eri", "turmush_ortogi"),
     ("husband", "turmush_ortogi"),
+    ("spouse", "turmush_ortogi"),
+    ("супруг", "turmush_ortogi"),
+    ("жена", "turmush_ortogi"),
+    ("муж", "turmush_ortogi"),
     ("qaynota", "qaynota"),
+    ("father-in-law", "qaynota"),
+    ("свекор", "qaynota"),
     ("qaynona", "qaynona"),
+    ("mother-in-law", "qaynona"),
+    ("свекровь", "qaynona"),
     ("o'g'il", "child"),
     ("ogil", "child"),
     ("qizi", "child"),
     ("farzand", "child"),
     ("son", "child"),
     ("daughter", "child"),
+    ("сын", "child"),
+    ("дочь", "child"),
 ]
 
 
@@ -97,8 +121,7 @@ def _parse_list(value: Any) -> list[dict[str, Any]]:
     return []
 
 
-def _val(value: str, *, none: str) -> str:
-    lang = "uz_cyr" if none == NONE_CYR else "uz_lat"
+def _val(value: str, *, lang: str) -> str:
     return field_or_none(value, lang)
 
 
@@ -114,14 +137,14 @@ def _rel_bucket(degree: str) -> str | None:
     return None
 
 
-def _rel_cells(rel: dict[str, Any] | None, *, none: str) -> dict[str, str]:
+def _rel_cells(rel: dict[str, Any] | None, *, lang: str) -> dict[str, str]:
     if not rel:
         return {"": "", "_yil": "", "_ish": "", "_tur": ""}
     return {
-        "": _val(_to_text(rel.get("fullname") or rel.get("name")), none=none),
-        "_yil": _val(_to_text(rel.get("birth_year_place") or rel.get("birth")), none=none),
-        "_ish": _val(_to_text(rel.get("work_place") or rel.get("job")), none=none),
-        "_tur": _val(_to_text(rel.get("address") or rel.get("addr")), none=none),
+        "": _val(_to_text(rel.get("fullname") or rel.get("name")), lang=lang),
+        "_yil": _val(_to_text(rel.get("birth_year_place") or rel.get("birth")), lang=lang),
+        "_ish": _val(_to_text(rel.get("work_place") or rel.get("job")), lang=lang),
+        "_tur": _val(_to_text(rel.get("address") or rel.get("addr")), lang=lang),
     }
 
 
@@ -144,36 +167,38 @@ def build_objective_data(raw: dict[str, Any]) -> dict[str, Any]:
     for rel in relatives:
         rel_rows.append(
             {
-                "relationship": _to_text(rel.get("degree") or rel.get("type")),
-                "full_name": _val(_to_text(rel.get("fullname") or rel.get("name")), none=none),
-                "birth_info": _val(
-                    _to_text(rel.get("birth_year_place") or rel.get("birth")), none=none
+                "relationship": relationship_label(
+                    _to_text(rel.get("degree") or rel.get("type")), lang
                 ),
-                "work_place": _val(_to_text(rel.get("work_place") or rel.get("job")), none=none),
-                "residence": _val(_to_text(rel.get("address") or rel.get("addr")), none=none),
+                "full_name": _val(_to_text(rel.get("fullname") or rel.get("name")), lang=lang),
+                "birth_info": _val(
+                    _to_text(rel.get("birth_year_place") or rel.get("birth")), lang=lang
+                ),
+                "work_place": _val(_to_text(rel.get("work_place") or rel.get("job")), lang=lang),
+                "residence": _val(_to_text(rel.get("address") or rel.get("addr")), lang=lang),
             }
         )
 
     return {
         "lang": lang,
         "full_name": _to_text(raw.get("fullname")),
-        "birth_date": _val(_to_text(raw.get("birthdate") or raw.get("birth")), none=none),
-        "birth_place": _val(_to_text(raw.get("birthplace") or raw.get("place")), none=none),
-        "nationality": _val(_to_text(raw.get("nation")), none=none),
-        "party_membership": _val(_to_text(raw.get("party")), none=none),
-        "education": _val(_to_text(raw.get("education") or raw.get("edu")), none=none),
-        "graduated_university": _val(_to_text(raw.get("graduated") or raw.get("grad")), none=none),
-        "speciality": _val(_to_text(raw.get("specialty") or raw.get("spec")), none=none),
-        "academic_degree": _val(_to_text(raw.get("degree") or raw.get("deg")), none=none),
-        "academic_title": _val(_to_text(raw.get("scientific_title") or raw.get("ttl")), none=none),
-        "languages": _val(_to_text(raw.get("languages") or raw.get("langs")), none=none),
-        "military_rank": _val(_to_text(raw.get("military_rank") or raw.get("mil")), none=none),
-        "state_awards": _val(_to_text(raw.get("awards") or raw.get("award")), none=none),
+        "birth_date": _val(_to_text(raw.get("birthdate") or raw.get("birth")), lang=lang),
+        "birth_place": _val(_to_text(raw.get("birthplace") or raw.get("place")), lang=lang),
+        "nationality": _val(_to_text(raw.get("nation")), lang=lang),
+        "party_membership": _val(_to_text(raw.get("party")), lang=lang),
+        "education": _val(_to_text(raw.get("education") or raw.get("edu")), lang=lang),
+        "graduated_university": _val(_to_text(raw.get("graduated") or raw.get("grad")), lang=lang),
+        "speciality": _val(_to_text(raw.get("specialty") or raw.get("spec")), lang=lang),
+        "academic_degree": _val(_to_text(raw.get("degree") or raw.get("deg")), lang=lang),
+        "academic_title": _val(_to_text(raw.get("scientific_title") or raw.get("ttl")), lang=lang),
+        "languages": _val(_to_text(raw.get("languages") or raw.get("langs")), lang=lang),
+        "military_rank": _val(_to_text(raw.get("military_rank") or raw.get("mil")), lang=lang),
+        "state_awards": _val(_to_text(raw.get("awards") or raw.get("award")), lang=lang),
         "department_awards": _val(
             _to_text(raw.get("departmental_awards") or raw.get("idor_awards") or raw.get("idor")),
-            none=none,
+            lang=lang,
         ),
-        "deputy_info": _val(_to_text(raw.get("deputy") or raw.get("dep")), none=none),
+        "deputy_info": _val(_to_text(raw.get("deputy") or raw.get("dep")), lang=lang),
         "current_position": current_job or "",
         "current_position_year": current_job_year or "",
         "work_history": work_lines,
@@ -253,7 +278,7 @@ def objective_to_template_context(objective: dict[str, Any]) -> dict[str, str]:
             buckets[bucket].append(rel)
 
     def set_rel(prefix: str, rel: dict[str, Any] | None) -> None:
-        cells = _rel_cells(rel, none=none)
+        cells = _rel_cells(rel, lang=lang)
         for suffix, val in cells.items():
             ctx[f"{prefix}{suffix}"] = val
 
@@ -315,6 +340,8 @@ def build_placeholder_context(raw: dict[str, Any]) -> dict[str, str]:
     relatives_raw = _parse_list(raw.get("relatives") or raw.get("rels"))
     objective["relatives_raw"] = relatives_raw
     ctx = objective_to_template_context(objective)
+    lang = _to_text(raw.get("lang")) or "uz_lat"
+    ctx.update(labels_for(lang))
     if relatives_raw:
         ctx["_has_relatives"] = "1"
     return ctx

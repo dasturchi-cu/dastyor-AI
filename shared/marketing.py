@@ -14,6 +14,7 @@ def price_tag() -> str:
 
 
 def welcome_message() -> str:
+    p = format_price_uzs()
     return (
         "👋 <b>DASTYOR AI</b> — ishga kirish hujjatlaringizni 1 daqiqada tayyorlang!\n\n"
         "🎯 <b>3 qadamda tayyor:</b>\n"
@@ -21,9 +22,12 @@ def welcome_message() -> str:
         "2️⃣ AI formani avtomatik to'ldiradi\n"
         "3️⃣ Hujjatni tekshiring va yuklab oling\n\n"
         "📄 <b>CV Resume</b> — zamonaviy PDF format\n"
-        "✍️ <b>Obyektivka</b> — rasmiy Word (.docx) format\n\n"
+        "✍️ <b>Obyektivka</b> — rasmiy Word (.docx) format\n"
+        "📝 <b>Muqova xati</b> — AI Cover Letter\n"
+        "🌐 <b>Tarjima</b> — hujjatni ingliz yoki rus tiliga\n\n"
         "🎁 <b>Ajoyib yangilik:</b> Yangi foydalanuvchilar uchun <b>birinchi hujjatni yaratish va yuklash mutlaqo BEPUL!</b>\n"
-        "🎙 Tahrirlash va tahlil qilish — <b>bepul</b>\n\n"
+        "🎙 Tahrirlash va tahlil qilish — <b>bepul</b>\n"
+        f"💰 Keyingi hujjatlar: <b>{p} so'm</b> = 1 ta yuklash\n\n"
         "👇 Boshlash uchun xizmatlardan birini tanlang:"
     )
 
@@ -50,12 +54,26 @@ def cross_sell_oby_line() -> str:
     return "\n\n💡 <b>Obyektivka ham kerakmi?</b> Bosh menyudan ✍️ Obyektivka tugmasini bosing."
 
 
-def payment_approved_message(credits: int) -> str:
+def cross_sell_cover_line() -> str:
+    return "\n\n💡 <b>Muqova xati kerakmi?</b> Bosh menyudan 📝 Muqova xati tugmasini bosing yoki /cover yozing."
+
+
+def cross_sell_translate_line() -> str:
+    return "\n\n💡 <b>Tarjima kerakmi?</b> Bosh menyudan 🌐 Tarjima tugmasini bosing yoki /translate yozing."
+
+
+def payment_approved_message(credits: int, document_type: str | None = None) -> str:
+    from shared.payment_notifications import format_document_type, payment_service_command
+
     p = format_price_uzs()
+    service_label = format_document_type(document_type)
+    service_cmd = payment_service_command(document_type)
+    service_hint = f"{service_label} — <code>{service_cmd}</code>"
     return (
         "✅ <b>To'lovingiz tasdiqlandi!</b>\n\n"
         "Admin to'lovingizni ko'rib chiqdi va tasdiqladi.\n\n"
-        f"💳 Oldin to'langan: <b>{credits}</b> ta tayyor hujjat\n"
-        f"ℹ️ Yangi tayyor fayl: <b>{p} so'm</b> (CV yoki Obyektivka).\n\n"
-        "👇 Hujjatni tanlang va yaratishni boshlang:"
+        f"💳 <b>Joriy balans:</b> {credits} ta yuklash\n"
+        f"ℹ️ 1 ta yuklash = <b>{p} so'm</b> (CV, Obyektivka, Muqova xati, Tarjima — barchasiga)\n"
+        f"📄 Tanlangan xizmat: {service_hint}\n\n"
+        "👇 Xizmatingizni boshlang:"
     )

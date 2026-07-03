@@ -49,7 +49,22 @@ class TestCurrentJob(unittest.TestCase):
         self.assertEqual(year, "2007 yil 5 oktabrdan:")
         self.assertEqual(len(rest), 1)
 
-    def test_explicit_current_stays_in_works(self):
+    def test_format_year_en_from_uz_formatted(self):
+        self.assertEqual(
+            format_current_job_year("Boshidan 2020-yildan buyon", "en"),
+            "Since 2020:",
+        )
+        self.assertEqual(
+            format_current_job_year("2020-yildan", "en"),
+            "Since 2020:",
+        )
+
+    def test_format_year_ru_from_uz_formatted(self):
+        self.assertEqual(
+            format_current_job_year("2020-yildan", "ru"),
+            "С 2020 года:",
+        )
+
         job, year, rest = extract_current_job(
             [
                 {"year": "2010-2013", "position": "Eski ish"},

@@ -1090,12 +1090,13 @@ const DastyorAI = (() => {
     ];
     const PROGRESS_STEPS_DOC = [
         "So'rov qabul qilindi",
-        "Ma'lumotlar tekshirilmoqda",
-        'Hujjat tayyorlanmoqda',
-        'Fayl yuborilmoqda',
+        'Ma\'lumotlar tekshirilmoqda',
+        'PDF tayyorlanmoqda',
+        'PDF botga yuborilmoqda',
         'Tayyor',
     ];
     let _progressMode = 'voice';
+    let _progressStepsMode = '';
 
     function _injectDocumentLoadingStyles() {
         if (document.getElementById('da-doc-loading-styles')) return;
@@ -1135,7 +1136,14 @@ html[data-theme="dark"] .da-doc-loading-ring{border-color:#334155;border-top-col
         if (!_docLoadingEl) return null;
         let stepsEl = _docLoadingEl.querySelector('.da-progress-steps');
         const labels = _activeProgressSteps();
-        if (stepsEl && stepsEl.childElementCount === labels.length) return stepsEl;
+        if (
+            stepsEl
+            && stepsEl.childElementCount === labels.length
+            && _progressStepsMode === _progressMode
+        ) {
+            return stepsEl;
+        }
+        _progressStepsMode = _progressMode;
         if (stepsEl) stepsEl.remove();
         stepsEl = document.createElement('div');
         stepsEl.className = 'da-progress-steps';
@@ -1189,6 +1197,7 @@ html[data-theme="dark"] .da-doc-loading-ring{border-color:#334155;border-top-col
         if (mode === 'text') _progressMode = 'text';
         else if (mode === 'doc') _progressMode = 'doc';
         else _progressMode = 'voice';
+        _progressStepsMode = '';
         const steps = _activeProgressSteps();
         showDocumentLoading(steps[0], '');
         setProgressStep(1);
@@ -1724,6 +1733,10 @@ html[data-theme="dark"] .da-doc-loading-ring{border-color:#334155;border-top-col
             }
             if (!js.status) return;
             const st = String(js.status || '').toLowerCase();
+            if (st === 'awaiting_receipt') {
+                stopPaidDocWatcher(kind);
+                return;
+            }
             await processPaidDocStatus(kind, rid, js.status, opts);
             if (PAID_DOC_TERMINAL_STATUSES.has(st)) {
                 stopPaidDocWatcher(kind);

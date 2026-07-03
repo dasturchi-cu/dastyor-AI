@@ -231,7 +231,7 @@
     .tpl-modern .role {
       font-size: 14pt;
       font-weight: 500;
-      color: #94a3b8;
+      color: rgba(255, 255, 255, 0.88);
       margin-bottom: 15px;
     }
 
@@ -740,6 +740,79 @@
       display: inline-block;
       vertical-align: middle;
       margin-right: 4px;
+    }
+
+    /* PDF eksport: 8 shablon — rang va layout (WeasyPrint + Chromium) */
+    html, body, .cv-canvas, .cv-canvas * {
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+
+    .cv-canvas {
+      width: 210mm !important;
+      max-width: 210mm !important;
+    }
+
+    .tpl-modern .header,
+    .tpl-corporate .header {
+      background-color: var(--cv-accent) !important;
+      color: #ffffff !important;
+    }
+
+    .tpl-modern .header .name,
+    .tpl-modern .header .role,
+    .tpl-modern .header .contact,
+    .tpl-corporate .header .name,
+    .tpl-corporate .header .role,
+    .tpl-corporate .header .contact-wrap {
+      color: #ffffff !important;
+    }
+
+    .tpl-split .sidebar {
+      background-color: #0f172a !important;
+      color: #e2e8f0 !important;
+    }
+
+    .tpl-prof .left-strip {
+      background-color: var(--cv-accent) !important;
+    }
+
+    .tpl-split,
+    .tpl-modern .body,
+    .tpl-elegant .body-cols,
+    .tpl-corporate,
+    .tpl-corporate .body-cols,
+    .tpl-creative,
+    .tpl-prof {
+      display: flex !important;
+      flex-wrap: nowrap !important;
+    }
+
+    .tpl-split .sidebar,
+    .tpl-creative .left,
+    .tpl-prof .left-strip {
+      flex-shrink: 0 !important;
+    }
+
+    .tpl-split .main,
+    .tpl-creative .right,
+    .tpl-modern .col-main,
+    .tpl-modern .col-side,
+    .tpl-elegant .col-main,
+    .tpl-elegant .col-side,
+    .tpl-corporate .col-main,
+    .tpl-corporate .col-side,
+    .tpl-prof .content {
+      min-width: 0;
+    }
+
+    .badge {
+      background-color: #eff6ff !important;
+      color: var(--cv-accent) !important;
+    }
+
+    .lang-dot.on {
+      background-color: var(--cv-accent) !important;
     }
 
     @page {

@@ -21,7 +21,7 @@ from features.obyektivka import service as oby_service
 from shared.ai_errors import AI_QUOTA_USER_MSG, AiQuotaError, translate_error_to_user_message
 from shared.async_db import run as db_run
 from shared.keyboards import BTN_BACK, BTN_OBY, back_menu, is_menu_button, open_oby_preview_inline, open_webapp_inline, user_menu
-from shared.marketing import cross_sell_cv_line, oby_intro_hook
+from shared.marketing import cross_sell_cover_line, cross_sell_cv_line, cross_sell_translate_line, oby_intro_hook
 from shared.progress import STEP_AI, STEP_AUDIO, STEP_EXTRACTED, STEP_READY, telegram_message
 from shared.telegram_progress import set_step
 from shared.voice import download_voice_message
@@ -197,7 +197,7 @@ async def _process_voice_background(
             f"{('👤 ' + fn) if fn else ''}"
             f"{missing_text}\n\n"
             "👇 Preview ni ko'ring va <b>Tasdiqlash</b> tugmasini bosing."
-            f"{cross_sell_cv_line()}",
+            f"{cross_sell_cv_line()}{cross_sell_cover_line()}{cross_sell_translate_line()}",
             reply_markup=open_oby_preview_inline(uid, missing_count=len(missing)),
         )
     except AiQuotaError:
@@ -272,7 +272,7 @@ async def _handle_oby_text_flow(text: str, status: Message, uid: int, state: FSM
             f"<b>Obyektivka tayyorlandi!</b> (~{filled}% to'ldirildi)\n"
             f"{('👤 ' + fn) if fn else ''}\n\n"
             "👇 Preview ni ko'ring va tasdiqlang."
-            f"{cross_sell_cv_line()}",
+            f"{cross_sell_cv_line()}{cross_sell_cover_line()}{cross_sell_translate_line()}",
             reply_markup=open_oby_preview_inline(uid, missing_count=len(missing)),
         )
     except AiQuotaError:

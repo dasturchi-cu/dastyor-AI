@@ -161,7 +161,7 @@ OB_LABELS: dict[str, dict[str, str]] = {
         ),
         "none": "none",
         "work": "WORK HISTORY",
-        "rel_line1_suffix": "'s close relatives information",
+        "rel_line1_suffix": "'s close relatives",
         "rel_line2": "INFORMATION",
         "no_rel": "No information about close relatives entered.",
         "qar": "Relationship",

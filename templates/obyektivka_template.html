@@ -346,6 +346,48 @@
     'tug': "Туғилган йили ва жойи", 'ish': "Иш жойи ва лавозими", 'tur': "Турар жойи",
     'none': "йўқ", 'no_rel': "Яқин қариндошлар ҳақида маълумот киритилмаган.",
     'yy': 'йй.'
+  },
+  'en': {
+    'title': "REFERENCE SHEET",
+    'photo_hint': "Color photograph 3x4 cm, taken in the last 3 months, in electronic form (formal wear).",
+    'r1l': "Year of birth", 'r1r': "Place of birth",
+    'r2l': "Nationality", 'r2r': "Party membership",
+    'r3l': "Education", 'r3r': "Graduated",
+    'rSpec': "Speciality by education",
+    'r4l': "Academic degree", 'r4r': "Academic title",
+    'r5l': "Which foreign languages does he/she know", 'r5r': "Military (special) rank",
+    'rAw': "Has he/she been awarded state awards and prizes (what)",
+    'rIdo': "Has he/she been awarded departmental awards (what)",
+    'rDep1': "Whether a deputy of national, regional, city or district Council or a member",
+    'rDep2': "of other elective bodies (specify in full)",
+    'work': "WORK HISTORY",
+    'rel_line1_suffix': "'s close relatives",
+    'rel_line2': "INFORMATION",
+    'qar': "Relationship", 'fish': "Surname, Name and Patronymic",
+    'tug': "Year and place of birth", 'ish': "Place of work and position", 'tur': "Place of residence",
+    'none': "none", 'no_rel': "No information about close relatives entered.",
+    'yy': ''
+  },
+  'ru': {
+    'title': "СПРАВКА-ОБЪЕКТИВКА",
+    'photo_hint': "Цветная фотография 3х4 см, сделанная за последние 3 месяца, в электронном виде (в деловой одежде).",
+    'r1l': "Год рождения", 'r1r': "Место рождения",
+    'r2l': "Национальность", 'r2r': "Партийность",
+    'r3l': "Образование", 'r3r': "Окончил",
+    'rSpec': "Специальность по образованию",
+    'r4l': "Ученая степень", 'r4r': "Ученое звание",
+    'r5l': "Какими иностранными языками владеет", 'r5r': "Воинское (специальное) звание",
+    'rAw': "Награжден ли государственными наградами и премиями (какими)",
+    'rIdo': "Награжден ли ведомственными наградами (какими)",
+    'rDep1': "Является ли депутатом Совета народных депутатов, республиканского, областного, городского",
+    'rDep2': "или членом других выборных органов (указать полностью)",
+    'work': "ТРУДОВАЯ ДЕЯТЕЛЬНОСТЬ",
+    'rel_line1_suffix': " о близких родственниках",
+    'rel_line2': "СВЕДЕНИЯ",
+    'qar': "Степень родства", 'fish': "Фамилия, имя и отчество",
+    'tug': "Год и место рождения", 'ish': "Место работы и должность", 'tur': "Место жительства",
+    'none': "нет", 'no_rel': "Сведения о близких родственниках не внесены.",
+    'yy': 'г.'
   }
 } -%}
 {%- set L = ll.get(d.lang or 'uz_lat', ll['uz_lat']) -%}
@@ -458,9 +500,9 @@
     <table class="rel">
       <thead>
         <tr>
-          <th style="width:14%">{%- if d.lang == 'uz_cyr' -%}Қариндош-<br>лиги{%- else -%}{{ L.qar }}{%- endif -%}</th>
-          <th style="width:23%">{%- if d.lang == 'uz_cyr' -%}Фамилияси, исми <br>ва отасининг исми {%- else -%}Familiyasi, ismi <br>va otasining ismi {%- endif -%}</th>
-          <th style="width:22%">{%- if d.lang == 'uz_cyr' -%}Туғилган йили <br>ва жойи{%- else -%}Tug'ilgan yili <br>va joyi{%- endif -%}</th>
+          <th style="width:14%">{{ L.qar }}</th>
+          <th style="width:23%">{{ L.fish }}</th>
+          <th style="width:22%">{{ L.tug }}</th>
           <th style="width:23%">{{ L.ish }}</th>
           <th style="width:18%">{{ L.tur }}</th>
         </tr>

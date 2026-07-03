@@ -394,7 +394,9 @@ async def _pdf_bytes_weasy(html_str: str, base_url: str | None) -> bytes | None:
         loop = asyncio.get_event_loop()
         return await loop.run_in_executor(
             None,
-            lambda: WeasyHTML(string=html_str, base_url=base_url).write_pdf(),
+            lambda: WeasyHTML(string=html_str, base_url=base_url).write_pdf(
+                optimize_images=False,
+            ),
         )
     except Exception as e:
         logger.warning("WeasyPrint PDF failed: %s", e)
@@ -440,6 +442,9 @@ async def _html_pdf_playwright(html_str: str, *, cv_pdf: bool = False, print_med
             return None
         page = await browser.new_page()
         try:
+            if cv_pdf:
+                # A4 @ 96dpi — preview iframe bilan bir xil kenglik, siqilish oldini oladi
+                await page.set_viewport_size({"width": 794, "height": 1123})
             try:
                 await page.emulate_media(media=media)
             except Exception:
@@ -460,6 +465,7 @@ async def _html_pdf_playwright(html_str: str, *, cv_pdf: bool = False, print_med
                 format="A4",
                 print_background=True,
                 prefer_css_page_size=True,
+                scale=1,
                 margin={"top": "0", "right": "0", "bottom": "0", "left": "0"},
             )
             return pdf_bytes

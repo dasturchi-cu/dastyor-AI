@@ -48,7 +48,7 @@ async def api_me(token: str | None = Query(None), telegram_id: str | None = Quer
         "credits": int(user.get("credits") or 0),
         "single_doc_price_uzs": settings.single_doc_price_uzs,
         "has_access": int(user.get("credits") or 0) > 0,
-        "credit_note": "Ovoz/matn bepul. Tayyor fayl: 7 999 so'm = 1 ta hujjat (CV yoki Obyektivka)",
+        "credit_note": f"Ovoz/matn bepul. Tayyor fayl: {settings.single_doc_price_uzs:,} so'm = 1 ta hujjat (CV, Obyektivka, Muqova, Tarjima)",
     }
 
 
@@ -217,15 +217,20 @@ def _map_payment_status(status: str) -> str:
     return "pending"
 
 
-async def _notify_user_payment_approved(bot, telegram_id: int, credits: int) -> None:
-    from shared.keyboards import open_services_inline
+async def _notify_user_payment_approved(
+    bot,
+    telegram_id: int,
+    credits: int,
+    document_type: str | None = None,
+) -> None:
+    from shared.keyboards import open_services_after_payment_inline
     from shared.marketing import payment_approved_message
 
     try:
         await bot.send_message(
             telegram_id,
-            payment_approved_message(credits),
-            reply_markup=open_services_inline(telegram_id),
+            payment_approved_message(credits, document_type),
+            reply_markup=open_services_after_payment_inline(telegram_id, document_type),
         )
     except Exception as e:
         logger.warning("User approve notify failed: %s", e)
@@ -431,10 +436,19 @@ async def api_paid_doc_status(
     if not payment:
         raise HTTPException(status_code=404, detail="So'rov topilmadi")
     st = _map_payment_status(str(payment.get("status") or ""))
+    receipt = str(payment.get("receipt_path") or payment.get("screenshot_path") or "").strip()
+    screenshot_submitted = bool(receipt)
+    if st == "pending" and not screenshot_submitted:
+        st = "awaiting_receipt"
     credits = payment_service.user_status(uid)["credits"]
     if st == "approved" and credits < 1:
         st = "completed"
-    return {"ok": True, "request_id": request_id, "status": st}
+    return {
+        "ok": True,
+        "request_id": request_id,
+        "status": st,
+        "screenshot_submitted": screenshot_submitted,
+    }
 
 
 @router.post("/api/export_release_pending")

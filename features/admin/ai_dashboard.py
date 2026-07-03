@@ -88,10 +88,23 @@ def build_ai_status_text(snapshot: dict, *, compact: bool = False) -> str:
             cd = " 🟡" if p.get("in_cooldown") else ""
             lines.append(f"• {name}{cd} — {reqs} so'rov, {hp:.0f}%")
 
+    config = snapshot.get("config") or {}
+    cfg_providers = config.get("providers") or {}
+    if cfg_providers:
+        lines.extend(["", "<b>🔑 Sozlangan kalitlar</b>"])
+        total = int(config.get("total_keys") or 0)
+        lines.append(f"Jami: <b>{total}</b> ta API kalit")
+        for name in sorted(cfg_providers.keys()):
+            row = cfg_providers.get(name) or {}
+            n = int(row.get("key_count") or 0)
+            mark = "✅" if n else "❌"
+            model = html.escape(str(row.get("primary_model") or "—"))
+            lines.append(f"{mark} <b>{html.escape(name.upper())}</b> — {n} kalit · <code>{model}</code>")
+
     quota = snapshot.get("quota") or []
     if quota:
         lines.extend(["", "<b>📊 Quota (har kalit)</b>"])
-        for q in quota[:12]:
+        for q in quota[:24]:
             prov = html.escape(str(q.get("provider") or "").upper())
             ki = int(q.get("key_index") or 0)
             qp = float(q.get("quota_percent") or 0)

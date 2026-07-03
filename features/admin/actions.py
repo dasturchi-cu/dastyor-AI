@@ -4,6 +4,8 @@ from __future__ import annotations
 import logging
 from pathlib import Path
 
+import html
+
 from aiogram.fsm.context import FSMContext
 from aiogram.types import FSInputFile, Message
 
@@ -186,6 +188,44 @@ async def handle_ai_status(message: Message, state: FSMContext) -> None:
     snapshot = await _run_sync(fetch_ai_snapshot)
     text = build_ai_status_text(snapshot, compact=False)
     await message.answer(text, reply_markup=admin_menu())
+
+
+async def handle_ai_probe(message: Message, state: FSMContext) -> None:
+    await state.clear()
+    await message.answer("🧪 Barcha AI kalitlar tekshirilmoqda... (1-2 daqiqa)")
+    try:
+        from features.ai.routing.probe import probe_all_keys
+
+        report = await probe_all_keys(timeout_sec=18.0)
+    except Exception as exc:
+        await message.answer(f"❌ Test xatosi: {html.escape(str(exc)[:200])}", reply_markup=admin_menu())
+        return
+
+    lines = [
+        "<b>🧪 AI kalit testi</b>",
+        f"Jami: <b>{report.get('ok_keys', 0)}</b> OK · <b>{report.get('fail_keys', 0)}</b> xato",
+        "",
+    ]
+    for name in sorted((report.get("summary") or {}).keys()):
+        row = report["summary"][name]
+        n = int(row.get("key_count") or 0)
+        if not n:
+            lines.append(f"❌ <b>{html.escape(name.upper())}</b> — kalit yo'q")
+            continue
+        ok = int(row.get("ok") or 0)
+        fail = int(row.get("fail") or 0)
+        mark = "✅" if fail == 0 and ok > 0 else ("⚠️" if ok else "❌")
+        lines.append(f"{mark} <b>{html.escape(name.upper())}</b> — {ok}/{n} OK")
+    fails = [r for r in (report.get("results") or []) if not r.get("ok")]
+    if fails:
+        lines.extend(["", "<b>Xatolar:</b>"])
+        for row in fails[:8]:
+            err = html.escape(str(row.get("error") or "probe_failed")[:80])
+            lines.append(
+                f"• {html.escape(str(row.get('provider') or '').upper())} "
+                f"#{row.get('key_index')} — {err}"
+            )
+    await message.answer("\n".join(lines), reply_markup=admin_menu())
 
 
 async def handle_close(message: Message, state: FSMContext) -> None:

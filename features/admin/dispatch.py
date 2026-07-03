@@ -12,6 +12,7 @@ from features.admin import actions as admin_actions
 from shared.keyboards import (
     ADMIN_BTN_ACTIVITY,
     ADMIN_BTN_AI,
+    ADMIN_BTN_AI_PROBE,
     ADMIN_BTN_BROADCAST,
     ADMIN_BTN_CLOSE,
     ADMIN_BTN_DASHBOARD,
@@ -49,6 +50,7 @@ MENU_DISPATCH: dict[str, MenuHandler] = {
     ADMIN_BTN_DASHBOARD: admin_actions.handle_dashboard_refresh,
     ADMIN_BTN_SECURITY: admin_actions.handle_security_dashboard,
     ADMIN_BTN_AI: admin_actions.handle_ai_status,
+    ADMIN_BTN_AI_PROBE: admin_actions.handle_ai_probe,
     ADMIN_BTN_CLOSE: admin_actions.handle_close,
 }
 

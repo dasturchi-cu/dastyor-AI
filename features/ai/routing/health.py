@@ -45,7 +45,7 @@ async def _health_loop() -> None:
                         api_key=api_key,
                         extras=dict(pcfg.extras),
                     )
-                    ok = await probe_endpoint(ep, timeout_sec=12.0)
+                    ok, _err = await probe_endpoint(ep, timeout_sec=12.0)
                     if ok:
                         cooldown.clear(provider, key_index)
                         pool.record_success(ep)

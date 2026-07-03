@@ -133,13 +133,28 @@ def _parse_since_detail(text: str, year: str = "") -> tuple[str, str]:
     return day, month
 
 
-def _already_formatted_job_year(text: str) -> bool:
+def _already_formatted_job_year(text: str, lang: str = "uz_lat") -> bool:
     raw = (text or "").strip().rstrip(":")
     if not raw:
         return False
-    if re.search(r"(yildan|йилдан|since|года)", raw, re.IGNORECASE):
+    lang_clean = (lang or "uz_lat").strip().lower()
+    if lang_clean == "en":
+        return bool(re.search(r"\bsince\b", raw, re.IGNORECASE))
+    if lang_clean == "ru":
+        return bool(re.search(r"\b(с|года)\b", raw, re.IGNORECASE))
+    if re.search(r"(yildan|йилдан)", raw, re.IGNORECASE):
         return True
     return bool(re.search(r"\d{1,2}\s+\S+\s*(dan|дан)\s*:?$", raw, re.IGNORECASE))
+
+
+def _uz_job_year_markers(text: str) -> bool:
+    return bool(
+        re.search(
+            r"(yildan|йилдан|buyon|бўян|boshidan|бошидан|dan|дан|октябр|yanvar|iyul|sentabr)",
+            text or "",
+            re.IGNORECASE,
+        )
+    )
 
 
 def format_current_job_year(
@@ -152,8 +167,14 @@ def format_current_job_year(
     raw = (year_raw or "").strip().rstrip(":")
     since = (since or "").strip()
     combined = f"{raw} {since}".strip()
-    if _already_formatted_job_year(raw) or _already_formatted_job_year(combined):
-        result = raw if _already_formatted_job_year(raw) else combined
+    lang_clean = (lang or "uz_lat").strip().lower()
+
+    if lang_clean in ("en", "ru") and _uz_job_year_markers(combined):
+        raw = ""
+        since = combined
+
+    if _already_formatted_job_year(raw, lang_clean) or _already_formatted_job_year(combined, lang_clean):
+        result = raw if _already_formatted_job_year(raw, lang_clean) else combined
         return result if result.endswith(":") else f"{result.rstrip(':')}:"
 
     year_m = re.search(r"(19|20)\d{2}", raw or since)
@@ -162,7 +183,6 @@ def format_current_job_year(
         return ""
 
     day, month_key = _parse_since_detail(since or raw, year)
-    lang_clean = (lang or "uz_lat").strip().lower()
 
     if lang_clean == "en":
         if day and month_key:
@@ -472,6 +492,34 @@ def _to_render_work_item(item: dict[str, Any], lang: str) -> dict[str, str]:
     }
 
 
+def _sync_current_work_items(
+    items: list[dict[str, Any]],
+    job: str,
+) -> list[dict[str, Any]]:
+    """Hozirgi ish bir marta qolsin; lavozim explicit current_job bilan moslashtiriladi."""
+    if not job:
+        return items
+
+    current_indexes = [
+        index
+        for index, item in enumerate(items)
+        if item.get("is_current") or is_present_year_token(item.get("to_year") or "")
+    ]
+    if not current_indexes:
+        return items
+
+    keep = current_indexes[0]
+    synced: list[dict[str, Any]] = []
+    for index, item in enumerate(items):
+        is_current = item.get("is_current") or is_present_year_token(item.get("to_year") or "")
+        if is_current and index != keep:
+            continue
+        if index == keep:
+            item = {**item, "position": job, "is_current": True}
+        synced.append(item)
+    return synced
+
+
 def _ensure_current_in_list(
     items: list[dict[str, Any]],
     job: str,
@@ -480,9 +528,7 @@ def _ensure_current_in_list(
     if not job:
         return items
     for item in items:
-        if _to_text(item.get("position")) == job and (
-            item.get("is_current") or is_present_year_token(item.get("to_year") or "")
-        ):
+        if item.get("is_current") or is_present_year_token(item.get("to_year") or ""):
             return items
     m = re.search(r"(19|20)\d{2}", year or "")
     from_y = m.group(0) if m else ""
@@ -524,6 +570,7 @@ def build_malumotnoma_data(raw: dict[str, Any]) -> dict[str, Any]:
         current_job_year=explicit_year,
         lang=lang,
     )
+    items = _sync_current_work_items(items, current_job)
     items = _ensure_current_in_list(items, current_job, current_job_year)
 
     work_experience = [_to_render_work_item(x, lang) for x in items]

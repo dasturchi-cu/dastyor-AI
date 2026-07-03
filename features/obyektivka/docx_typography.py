@@ -210,11 +210,13 @@ def apply_master_template_styles(root: etree._Element) -> None:
 def render_document_xml(xml_bytes: bytes, context: dict[str, str]) -> bytes:
     from features.obyektivka.docx_annotations import strip_reference_annotations
     from features.obyektivka.docx_fonts import enforce_reference_fonts
+    from features.obyektivka.docx_labels import apply_document_labels
     from features.obyektivka.docx_layout import enforce_reference_layout
     from features.obyektivka.docx_polish import enforce_reference_polish
 
     root = etree.fromstring(xml_bytes)
     apply_document_typography(root, context)
+    apply_document_labels(root, (context.get("lang") or "uz_lat"))
     strip_reference_annotations(root)
     enforce_reference_fonts(root, context)
     enforce_reference_layout(root, context)
