@@ -38,7 +38,7 @@ async def show_samples(message: Message) -> None:
         return
 
     # Send CV sample
-    cv_path = PROJECT_ROOT / "assets" / "samples" / "cv_sample.png"
+    cv_path = PROJECT_ROOT / "assets" / "samples" / "cv_sample_v2.png"
     if cv_path.is_file():
         await message.answer_photo(
             FSInputFile(cv_path),
@@ -48,7 +48,7 @@ async def show_samples(message: Message) -> None:
         logger.warning("CV sample file not found at %s", cv_path)
 
     # Send Obyektivka sample
-    oby_path = PROJECT_ROOT / "assets" / "samples" / "obyektivka_sample.png"
+    oby_path = PROJECT_ROOT / "assets" / "samples" / "oby_sample_v2.png"
     if oby_path.is_file():
         await message.answer_photo(
             FSInputFile(oby_path),
