@@ -376,8 +376,9 @@ async def api_export_oby(req: ExportObyektivkaRequest, request: Request) -> Stre
     await rate_limit(request)
     uid = _uid_from_req(req)
     payload = req.model_dump(exclude={"telegram_id", "token", "send_only", "format", "init_data"})
+    bot = getattr(request.app.state, "bot", None)
     try:
-        docx_bytes, filename = await oby_service.export_docx(uid, payload)
+        docx_bytes, filename = await oby_service.export_docx(uid, payload, bot)
     except PermissionError as e:
         raise HTTPException(status_code=402, detail=str(e)) from e
     except Exception as e:

@@ -93,18 +93,6 @@ async def cmd_start(message: Message, state: FSMContext) -> None:
         referred_by_id=ref_id if (ref_id and ref_id != user.id and is_new) else None,
     )
 
-    if is_new and ref_id and ref_id != user.id:
-        got_reward = await db_run(users_repo.check_and_reward_referrer, ref_id)
-        if got_reward:
-            try:
-                await message.bot.send_message(
-                    chat_id=ref_id,
-                    text="🎉 <b>Tabriklaymiz!</b> Taklifnomangiz orqali 3 ta do'stingiz ro'yxatdan o'tdi.\n\n"
-                         "Sizga <b>+1 ta bepul yuklash limiti</b> berildi! 💳"
-                )
-            except Exception as e:
-                logger.warning("Referrer notification failed: %s", e)
-
     await message.answer(WELCOME, reply_markup=user_menu(user.id))
 
 
@@ -221,8 +209,8 @@ async def show_credits(message: Message) -> None:
         f"💰 Tayyor fayl: <b>{settings.single_doc_price_uzs:,} so'm</b> (1 ta)\n"
         f"Karta: <code>{settings.payment_card_number}</code>\n"
         f"Egasi: {settings.payment_card_owner}\n\n"
-        f"👥 <b>Siz taklif qilganlar:</b> {ref_count} ta\n"
-        f"🎁 <b>Bepul limit olish:</b> Do'stlaringizga taklif havolangizni ulashing. Har 3 ta ro'yxatdan o'tgan do'stingiz uchun sizga +1 bepul limit beriladi!\n"
+        f"👥 <b>Siz taklif qilgan faol do'stlaringiz:</b> {ref_count} ta\n"
+        f"🎁 <b>Bepul limit olish:</b> Do'stlaringizga taklif havolangizni ulashing. Har 3 ta do'stingiz botdan foydalanib o'zining birinchi bepul hujjatini yuklab olganida sizga +1 bepul limit beriladi!\n"
         f"Havolangiz:\n<code>{ref_link}</code>",
         reply_markup=user_menu(uid if uid else None),
     )

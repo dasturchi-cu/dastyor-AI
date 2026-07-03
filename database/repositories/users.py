@@ -273,16 +273,45 @@ def get_profile_stats(telegram_id: int) -> dict[str, Any] | None:
 def get_referral_count(telegram_id: int) -> int:
     with get_connection() as conn:
         row = conn.execute(
-            "SELECT COUNT(*) AS c FROM users WHERE referred_by_id = ?",
+            "SELECT COUNT(*) AS c FROM users WHERE referred_by_id = ? AND referred_active = 1",
             (int(telegram_id),),
         ).fetchone()
     return int(row["c"]) if row else 0
 
 
-def check_and_reward_referrer(referrer_id: int) -> bool:
-    """Checks if referrer has a multiple of 3 referrals, and rewards them."""
-    count = get_referral_count(referrer_id)
-    if count > 0 and count % 3 == 0:
-        add_credits(referrer_id, 1)
-        return True
-    return False
+def activate_referral(telegram_id: int) -> int | None:
+    """
+    Marks a user's referral as active.
+    Returns the referrer's telegram_id if they should be rewarded (multiple of 3),
+    otherwise None.
+    """
+    tid = int(telegram_id)
+    with get_connection() as conn:
+        row = conn.execute(
+            "SELECT referred_by_id, referred_active FROM users WHERE telegram_id = ?",
+            (tid,),
+        ).fetchone()
+        if not row or not row["referred_by_id"] or row["referred_active"] == 1:
+            return None
+
+        referrer_id = int(row["referred_by_id"])
+
+        conn.execute(
+            "UPDATE users SET referred_active = 1, updated_at = datetime('now') WHERE telegram_id = ?",
+            (tid,),
+        )
+
+        ref_row = conn.execute(
+            "SELECT COUNT(*) AS c FROM users WHERE referred_by_id = ? AND referred_active = 1",
+            (referrer_id,),
+        ).fetchone()
+
+        active_count = int(ref_row["c"]) if ref_row else 0
+        if active_count > 0 and active_count % 3 == 0:
+            conn.execute(
+                "UPDATE users SET credits = credits + 1, updated_at = datetime('now') WHERE telegram_id = ?",
+                (referrer_id,),
+            )
+            return referrer_id
+
+    return None

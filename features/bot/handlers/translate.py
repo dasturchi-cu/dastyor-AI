@@ -115,10 +115,10 @@ async def process_translation(callback: CallbackQuery) -> None:
         
         await callback.message.edit_text(f"⏳ <b>Yangi {label} fayli render qilinmoqda...</b>")
 
+        bot = callback.message.bot
         if doc_type == "cv":
             # Consumes 1 credit
-            pdf_bytes, filename = await cv_service.export_pdf(uid, translated)
-            bot = callback.message.bot
+            pdf_bytes, filename = await cv_service.export_pdf(uid, translated, bot)
             sent = await send_bytes_to_telegram(
                 bot,
                 uid,
@@ -128,8 +128,7 @@ async def process_translation(callback: CallbackQuery) -> None:
             )
         else:
             # Consumes 1 credit
-            docx_bytes, filename = await oby_service.export_docx(uid, translated)
-            bot = callback.message.bot
+            docx_bytes, filename = await oby_service.export_docx(uid, translated, bot)
             sent = await send_bytes_to_telegram(
                 bot,
                 uid,

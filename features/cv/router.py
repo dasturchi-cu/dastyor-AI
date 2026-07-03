@@ -71,8 +71,9 @@ async def api_export_cv(req: ExportCVRequest, request: Request) -> Response:
     await rate_limit(request)
     uid = _uid_from_req(req)
     payload = req.model_dump(exclude={"telegram_id", "token", "send_only", "format", "init_data"})
+    bot = getattr(request.app.state, "bot", None)
     try:
-        pdf_bytes, filename = await cv_service.export_pdf(uid, payload)
+        pdf_bytes, filename = await cv_service.export_pdf(uid, payload, bot)
     except PermissionError as e:
         raise HTTPException(status_code=402, detail=str(e)) from e
     except Exception as e:

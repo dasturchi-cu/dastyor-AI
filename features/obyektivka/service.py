@@ -55,12 +55,26 @@ def _export_docx_sync(telegram_id: int, payload: dict[str, Any]) -> tuple[bytes,
     return docx_bytes, filename
 
 
-async def export_docx(telegram_id: int, payload: dict[str, Any]) -> tuple[bytes, str]:
+async def export_docx(telegram_id: int, payload: dict[str, Any], bot: Any | None = None) -> tuple[bytes, str]:
     if not await async_db.run(users_repo.consume_credit, telegram_id):
         raise PermissionError("Pul yetarli emas. Avval to'lov qiling.")
 
     try:
-        return await async_db.run(_export_docx_sync, telegram_id, payload)
+        res = await async_db.run(_export_docx_sync, telegram_id, payload)
+
+        # Activate referral
+        referrer_id = await async_db.run(users_repo.activate_referral, telegram_id)
+        if referrer_id and bot:
+            try:
+                await bot.send_message(
+                    chat_id=referrer_id,
+                    text="🎉 <b>Tabriklaymiz!</b> Taklifnomangiz orqali do'stingiz o'zining birinchi bepul hujjatini yuklab oldi.\n\n"
+                         "Sizga <b>+1 ta bepul yuklash limiti</b> berildi! 💳"
+                )
+            except Exception:
+                pass
+
+        return res
     except Exception:
         await async_db.run(users_repo.add_credits, telegram_id, 1)
         raise
