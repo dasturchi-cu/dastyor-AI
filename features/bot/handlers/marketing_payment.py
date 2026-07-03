@@ -59,29 +59,9 @@ async def show_samples(message: Message) -> None:
         await message.answer_photo(
             FSInputFile(oby_path),
             caption=(
-                "✍️ <b>Obyektivka (Ma'lumotnoma) shablonimiz namunasi</b>\n\n"
+                "✍️ <b>Obyektivka (Ma'lumotnoma) namunasi</b>\n\n"
                 "📋 Davlat va xususiy tashkilotlar standarti asosida tayyorlanadigan rasmiy format.\n\n"
-                "📝 <b>Qanday to'ldirish kerak?</b>\n\n"
-                "Botga quyidagi ma'lumotlarni yozing yoki ovozli xabar sifatida ayting:\n\n"
-                "👤 <b>Shaxsiy ma'lumotlar:</b>\n"
-                "• To'liq ismi-sharif\n"
-                "• Tug'ilgan sana va joy (viloyat, tuman)\n"
-                "• Millati va fuqaroligi\n"
-                "• Partiyaviylik holati\n"
-                "• Oilaviy holati (uylanganmi, farzandlar soni)\n"
-                "• Uy manzili\n\n"
-                "🎓 <b>Ta'lim:</b>\n"
-                "• O'qigan maktab/kollej/oliy o'quv yurti, yillar\n"
-                "• Mutaxassislik\n\n"
-                "💼 <b>Mehnat faoliyati (oxirgidan boshlab):</b>\n"
-                "• Tashkilot nomi, lavozim, yillar\n\n"
-                "🌍 <b>Qo'shimcha ma'lumotlar:</b>\n"
-                "• Xorijga chiqqanmi? (qaysi mamlakat, yil)\n"
-                "• Davlat mukofotlari bormi?\n"
-                "• Qarindoshlari xorijda yashaydimi?\n\n"
-                "📞 <b>Aloqa:</b>\n"
-                "• Telefon raqami\n\n"
-                "💡 <i>Barcha ma'lumotlarni berib, «Obyektivka» tugmasini bosing — bot avtomatik ravishda rasmiy hujjat tayyorlab beradi!</i>"
+                "💡 <i>«Obyektivka yaratish» tugmasini bosing — bot sizdan ma'lumotlarni so'raydi va avtomatik rasmiy hujjat tayyorlab beradi!</i>"
             ),
             parse_mode="HTML",
         )

@@ -104,7 +104,7 @@ async def _auto_delete_waiting_prompt_after_delay(
 async def obyektivka_start(message: Message, state: FSMContext) -> None:
     uid = message.from_user.id if message.from_user else 0
     if uid and users_repo.is_blocked(uid):
-        await message.answer("⛔ Siz bloklangansiz.")
+        await message.answer("⛔ Siz bloklangansiz.", reply_markup=user_menu(uid))
         return
     await state.set_state(ObyektivkaStates.waiting_voice)
     await message.answer(OBY_INSTRUCTION, reply_markup=open_webapp_inline(uid, "obyektivka"))
@@ -116,7 +116,7 @@ async def obyektivka_start(message: Message, state: FSMContext) -> None:
     waiting_msg = await message.answer(
         "⏳ <b>Ovozli xabar yoki matn kutmoqdamiz...</b>\n"
         "Audio yozuv yoki matn ko'rinishida yuboring.",
-        reply_markup=back_menu(),
+        reply_markup=user_menu(uid),
     )
     await state.update_data(
         waiting_prompt_msg_id=waiting_msg.message_id,
@@ -215,8 +215,9 @@ async def _process_voice_background(
 
 @router.message(ObyektivkaStates.waiting_voice, F.voice | F.audio)
 async def obyektivka_voice(message: Message, bot: Bot, state: FSMContext) -> None:
+    uid = message.from_user.id if message.from_user else 0
     await _delete_waiting_prompt(bot, state)
-    status = await message.answer(telegram_message(STEP_AUDIO))
+    status = await message.answer(telegram_message(STEP_AUDIO), reply_markup=user_menu(uid))
     asyncio.create_task(_process_voice_background(message, bot, state, status))
 
 
@@ -244,8 +245,8 @@ async def obyektivka_text(message: Message, bot: Bot, state: FSMContext) -> None
         await menu_from_flow_waiting(message, state)
         return
     await _delete_waiting_prompt(bot, state)
-    status = await message.answer("✅ Matn qabul qilindi\n⏳ AI tahlil qilmoqda...")
     uid = message.from_user.id if message.from_user else 0
+    status = await message.answer("✅ Matn qabul qilindi\n⏳ AI tahlil qilmoqda...", reply_markup=user_menu(uid))
     asyncio.create_task(_handle_oby_text_flow(message.text or "", status, uid, state))
 
 
@@ -283,9 +284,10 @@ async def _handle_oby_text_flow(text: str, status: Message, uid: int, state: FSM
 
 @router.message(ObyektivkaStates.waiting_voice)
 async def obyektivka_waiting_hint(message: Message) -> None:
+    uid = message.from_user.id if message.from_user else 0
     await message.answer(
         "🎙 <b>Ovozli xabar</b> yoki 📝 <b>matn</b> yuboring.\n"
         "Namunadagi tartibda ma'lumotlaringizni yozing.",
-        reply_markup=back_menu(),
+        reply_markup=user_menu(uid),
     )
 
