@@ -40,8 +40,8 @@ async def cmd_cover(message: Message, state: FSMContext) -> None:
     credits = await db_run(users_repo.get_credits, uid)
     if credits < 1:
         await message.answer(
-            "💳 <b>Balansingizda limit yetarli emas.</b>\n\n"
-            "Muqova xati (Cover Letter) yaratish uchun kamida 1 ta limit bo'lishi kerak. "
+            "💳 <b>Balansingizda yuklashlar yetarli emas.</b>\n\n"
+            "Muqova xati (Cover Letter) yaratish 1 ta yuklash balansini sarflaydi. "
             "Iltimos, 💳 Pul balansi bo'limidan hisobingizni to'ldiring.",
             reply_markup=user_menu(uid),
         )
@@ -67,7 +67,7 @@ async def process_vacancy_text(message: Message, state: FSMContext) -> None:
     if credits < 1:
         await state.clear()
         await message.answer(
-            "💳 <b>Limit yetarli emas.</b> Avval balansingizni to'ldiring.",
+            "💳 <b>Hisobingizda yuklashlar qolmagan.</b> Avval balansingizni to'ldiring.",
             reply_markup=user_menu(uid),
         )
         return
@@ -106,7 +106,7 @@ Qoidalar:
         
         await status.edit_text(
             "✅ <b>Muqova xati (Cover Letter) muvaffaqiyatli tayyorlandi!</b>\n"
-            "<i>(Balansingizdan 1 ta limit sarflandi)</i>\n\n"
+            "<i>(Balansingizdan 1 ta yuklash sarflandi)</i>\n\n"
             f"<blockquote expandable>{cover_letter}</blockquote>",
             reply_markup=user_menu(uid),
         )

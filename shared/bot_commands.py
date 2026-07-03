@@ -17,6 +17,8 @@ BOT_COMMANDS: tuple[BotCommand, ...] = (
     BotCommand(command="start", description="Bosh menyu"),
     BotCommand(command="cv", description="CV resume yaratish"),
     BotCommand(command="obyektivka", description="Obyektivka yaratish"),
+    BotCommand(command="cover", description="AI Muqova xati (Cover Letter) yozish"),
+    BotCommand(command="translate", description="Hujjatni boshqa tilga tarjima qilish"),
     BotCommand(command="balance", description="To'lov va kirish holati"),
     BotCommand(command="contact", description="Bog'lanish"),
     BotCommand(command="help", description="Yordam"),

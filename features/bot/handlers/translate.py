@@ -57,7 +57,7 @@ async def cmd_translate(message: Message) -> None:
     await message.answer(
         "🌐 <b>Hujjatni boshqa tilga tarjima qilish (AI)</b>\n\n"
         "Tarjima qilinadigan hujjat turi va maqsadli tilni tanlang:\n"
-        "<i>(Tarjima qilish uchun balansingizdan 1 ta limit sarflanadi)</i>",
+        "<i>(Tarjima qilish 1 ta yuklash balansini sarflaydi)</i>",
         reply_markup=get_translate_kb(),
     )
 
@@ -93,7 +93,7 @@ async def process_translation(callback: CallbackQuery) -> None:
     # Check credits first
     credits = await db_run(users_repo.get_credits, uid)
     if credits < 1:
-        await callback.answer("Limit yetarli emas. Pul balansingizni to'ldiring.", show_alert=True)
+        await callback.answer("Yuklashlar yetarli emas. Balansingizni to'ldiring.", show_alert=True)
         return
 
     # Load data
@@ -124,7 +124,7 @@ async def process_translation(callback: CallbackQuery) -> None:
                 uid,
                 pdf_bytes,
                 filename,
-                caption=f"✅ <b>CV {lang} tilida tayyorlandi!</b>\n<i>(Balansingizdan 1 ta limit sarflandi)</i>",
+                caption=f"✅ <b>CV {lang} tilida tayyorlandi!</b>\n<i>(Balansingizdan 1 ta yuklash sarflandi)</i>",
             )
         else:
             # Consumes 1 credit
@@ -134,7 +134,7 @@ async def process_translation(callback: CallbackQuery) -> None:
                 uid,
                 docx_bytes,
                 filename,
-                caption=f"✅ <b>Obyektivka {lang} tilida tayyorlandi!</b>\n<i>(Balansingizdan 1 ta limit sarflandi)</i>",
+                caption=f"✅ <b>Obyektivka {lang} tilida tayyorlandi!</b>\n<i>(Balansingizdan 1 ta yuklash sarflandi)</i>",
             )
             
         if sent:
@@ -142,7 +142,7 @@ async def process_translation(callback: CallbackQuery) -> None:
         else:
             await callback.message.edit_text("❌ Faylni Telegramga yuborib bo'lmadi. Qayta urinib ko'ring.")
     except PermissionError:
-        await callback.message.edit_text("💳 <b>Hisobingizda limit qolmagan.</b> Iltimos, balansingizni to'ldiring.")
+        await callback.message.edit_text("💳 <b>Hisobingizda yuklashlar qolmagan.</b> Iltimos, balansingizni to'ldiring.")
     except Exception as e:
         logger.exception("Document translation failed: %s", e)
         await callback.message.edit_text("❌ Tarjima qilishda kutilmagan xatolik yuz berdi. Iltimos, keyinroq qayta urinib ko'ring.")
