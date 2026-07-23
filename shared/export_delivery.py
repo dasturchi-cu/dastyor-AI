@@ -23,17 +23,13 @@ async def send_bytes_to_telegram(
         return False
     markup = reply_markup
     text = caption
-    if with_referral_share:
-        from shared.keyboards import document_ready_share_note, referral_share_keyboard
+    # Referral share tugmasi ixtiyoriy — default o'chirilgan (friction kam)
+    if with_referral_share and markup is None:
+        from shared.keyboards import referral_share_keyboard
 
-        if markup is None:
-            markup = referral_share_keyboard(int(chat_id))
-        if text:
-            text = f"{text}{document_ready_share_note()}"
-        else:
-            text = document_ready_share_note().lstrip()
+        markup = referral_share_keyboard(int(chat_id))
     try:
-        use_html = bool(with_referral_share) or (bool(text) and "<" in text)
+        use_html = bool(text) and "<" in str(text)
         await bot.send_document(
             chat_id=int(chat_id),
             document=BufferedInputFile(data, filename=filename),

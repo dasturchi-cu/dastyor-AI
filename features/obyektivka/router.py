@@ -269,15 +269,17 @@ async def _build_oby_docx_pdf(
 
 
 async def _build_oby_preview_pdf(payload: dict) -> bytes:
-    """Preview PDF = paid DOCX (watermarksiz) → PDF."""
-    pdf_bytes = await _build_oby_docx_pdf(payload, watermark=False)
-    logger.info("preview_obyektivka: served via master DOCX→PDF")
+    """Preview PDF = demo watermark bilan (toza fayl faqat credit export)."""
+    pdf_bytes = await _build_oby_docx_pdf(
+        payload, watermark=True, watermark_text="DEMO · @DastyorAiBot"
+    )
+    logger.info("preview_obyektivka: served watermarked DOCX→PDF")
     return pdf_bytes
 
 
 @router.post("/api/preview_obyektivka")
 async def api_preview_oby(req: PreviewObyektivkaRequest, request: Request) -> Response:
-    """Preview PDF = master DOCX (watermarksiz) → PDF — paid export bilan bir xil."""
+    """Preview PDF — belgi bilan (toza export alohida pullik)."""
     uid = resolve_uid_from_webapp(req.telegram_id, req.token, req.init_data)
     if not uid:
         raise HTTPException(status_code=401, detail="Avtorizatsiya talab qilinadi.")
@@ -414,17 +416,22 @@ async def api_export_oby(req: ExportObyektivkaRequest, request: Request) -> Stre
 
     if req.send_only:
         bot = getattr(request.app.state, "bot", None)
+        from database.repositories import users as users_repo
+        from shared import async_db
+
+        left = await async_db.run(users_repo.get_credits, uid)
+        left_txt = f"Qoldi: <b>{left}</b> ta." if left > 0 else "Yuklashlar tugadi — yangi paket tanlang."
         sent = await send_bytes_to_telegram(
             bot,
             uid,
             docx_bytes,
             filename,
-            caption="✅ Obyektivka Word tayyor! Keyingi hujjat uchun pul to'lov qiling.",
-            with_referral_share=True,
+            caption=f"✅ Obyektivka Word tayyor! {left_txt}",
+            with_referral_share=False,
         )
         if not sent:
             raise HTTPException(status_code=500, detail="Telegramga yuborib bo'lmadi")
-        return JSONResponse({"ok": True, "sent": True, "filename": filename})
+        return JSONResponse({"ok": True, "sent": True, "filename": filename, "credits_left": left})
 
     return StreamingResponse(
         io.BytesIO(docx_bytes),

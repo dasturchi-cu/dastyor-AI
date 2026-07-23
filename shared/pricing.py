@@ -76,39 +76,23 @@ def format_uzs(amount: int) -> str:
 def packages_block_text() -> str:
     lines = ["💰 <b>Paketlar:</b>"]
     for p in _packages():
-        badge = f" — <i>{p.badge}</i>" if p.badge else ""
+        badge = f" · {p.badge}" if p.badge else ""
         mark = " ← tavsiya" if p.id == DEFAULT_PACKAGE_ID else ""
-        lines.append(
-            f"• <b>{p.credits}×</b> = <b>{format_uzs(p.price_uzs)} so'm</b> "
-            f"(~{format_uzs(p.per_unit_uzs)}/dona){badge}{mark}"
-        )
+        lines.append(f"• <b>{p.credits}×</b> — {format_uzs(p.price_uzs)} so'm{badge}{mark}")
     return "\n".join(lines)
 
 
 def soft_paywall_text(*, promo_active: bool = False, promo_hours_left: int | None = None) -> str:
-    """Yumshoq sotuv — to'siq emas."""
+    """Qisqa, tushunarli sotuv matni."""
     lines = [
-        "✨ <b>Hujjatingiz tayyor!</b>",
-        "",
-        "📄 <b>Demo (belgili)</b> — bepul ko'rish/tekshirish uchun.",
-        "💎 <b>Toza fayl</b> (watermarksiz) — paketdan birini tanlang:",
+        "✨ <b>Hujjat tayyor!</b>",
+        "📄 Demo (belgi bilan) — bepul.",
+        "💎 Toza fayl — paketlardan birini tanlang:",
         "",
         packages_block_text(),
     ]
     if promo_active:
-        left = ""
-        if promo_hours_left is not None and promo_hours_left > 0:
-            left = f" ({promo_hours_left} soat qoldi)"
-        lines.extend(
-            [
-                "",
-                f"⚡️ <b>Bugun to'lasangiz:</b> +1 Muqova xati bepul{left}!",
-            ]
-        )
-    lines.extend(
-        [
-            "",
-            "👇 Paketni tanlang — to'lov 1–2 daqiqada tasdiqlanadi.",
-        ]
-    )
+        left = f" ({promo_hours_left} soat)" if promo_hours_left else ""
+        lines.append(f"\n⚡️ Bugun to'lasangiz{left}: +1 Muqova bepul!")
+    lines.append("\n👇 Paketni tanlang.")
     return "\n".join(lines)

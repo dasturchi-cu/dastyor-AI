@@ -1,6 +1,7 @@
 """Obyektivka DOCX — master template placeholder replace (reference clone)."""
 from __future__ import annotations
 
+import logging
 import time
 from pathlib import Path
 from typing import Any
@@ -12,6 +13,8 @@ from database.repositories import generated_files as files_repo
 from database.repositories import obyektivka_data as oby_repo
 from database.repositories import users as users_repo
 from shared import async_db
+
+logger = logging.getLogger(__name__)
 
 
 def _prepare_payload(payload: dict[str, Any]) -> dict[str, Any]:
@@ -63,15 +66,20 @@ async def export_docx(telegram_id: int, payload: dict[str, Any], bot: Any | None
 
     try:
         res = await async_db.run(_export_docx_sync, telegram_id, payload)
+    except Exception:
+        try:
+            await async_db.run(users_repo.add_credits, telegram_id, 1)
+        except Exception:
+            logger.exception("Oby credit refund failed tid=%s", telegram_id)
+        raise
 
-        # Activate referral
+    try:
         ref_info = await async_db.run(users_repo.activate_referral, telegram_id)
         if ref_info and bot:
             from shared.referral import notify_referrer
 
             await notify_referrer(bot, ref_info, event="download")
-
-        return res
     except Exception:
-        await async_db.run(users_repo.add_credits, telegram_id, 1)
-        raise
+        logger.exception("Oby referral notify failed tid=%s", telegram_id)
+
+    return res

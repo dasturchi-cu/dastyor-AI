@@ -10,7 +10,7 @@ from collections import OrderedDict
 
 _MAX = max(64, int(os.getenv("OBY_PREVIEW_CACHE_MAX", "512") or "512"))
 _TTL = float(os.getenv("OBY_PREVIEW_CACHE_TTL_SECONDS", "300") or "300")  # 60→300s
-_TEMPLATE_REV = (os.getenv("OBY_PREVIEW_TEMPLATE_REVISION", "20260701-perf") or "1").strip()
+_TEMPLATE_REV = (os.getenv("OBY_PREVIEW_TEMPLATE_REVISION", "20260723-wm") or "1").strip()
 
 _lock = threading.Lock()
 _store: OrderedDict[str, tuple[float, bytes]] = OrderedDict()

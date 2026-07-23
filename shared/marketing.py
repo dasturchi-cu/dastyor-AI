@@ -67,22 +67,14 @@ def cross_sell_translate_line() -> str:
 
 def payment_approved_message(credits: int, document_type: str | None = None, *, promo_bonus: int = 0) -> str:
     from shared.payment_notifications import format_document_type, payment_service_command
-    from shared.pricing import packages_block_text
 
-    p = format_price_uzs()
     service_label = format_document_type(document_type)
     service_cmd = payment_service_command(document_type)
-    service_hint = f"{service_label} — <code>{service_cmd}</code>"
-    bonus_line = ""
-    if promo_bonus:
-        bonus_line = "\n🎁 <b>Bonus:</b> +1 Muqova xati (bugungi aksiya) qo'shildi!\n"
+    bonus_line = f"\n🎁 Bonus: +1 Muqova qo'shildi!\n" if promo_bonus else ""
     return (
-        "✅ <b>To'lovingiz tasdiqlandi!</b>\n\n"
-        "Admin to'lovingizni ko'rib chiqdi va tasdiqladi.\n\n"
-        f"💳 <b>Joriy balans:</b> {credits} ta yuklash\n"
+        f"✅ <b>To'lov tasdiqlandi!</b>\n"
+        f"💳 Qolgan yuklashlar: <b>{credits}</b> ta\n"
         f"{bonus_line}"
-        f"ℹ️ 1 yuklash = CV / Obyektivka / Muqova / Tarjima\n"
-        f"📄 Tanlangan xizmat: {service_hint}\n\n"
-        f"{packages_block_text()}\n\n"
-        "👇 Xizmatingizni boshlang:"
+        f"Har bir toza fayl = 1 yuklash.\n"
+        f"👇 {service_label}: <code>{service_cmd}</code>"
     )

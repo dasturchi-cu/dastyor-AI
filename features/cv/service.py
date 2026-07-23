@@ -1,6 +1,7 @@
 """CV business logic."""
 from __future__ import annotations
 
+import logging
 import time
 from typing import Any
 
@@ -10,6 +11,8 @@ from database.repositories import generated_files as files_repo
 from database.repositories import users as users_repo
 from features.cv.render import generate_cv_pdf, preview_html
 from shared import async_db
+
+logger = logging.getLogger(__name__)
 
 
 def save_user_data(telegram_id: int, payload: dict[str, Any]) -> None:
@@ -41,21 +44,27 @@ async def export_pdf(telegram_id: int, payload: dict[str, Any], bot: Any | None 
     try:
         pdf = await generate_cv_pdf(payload, base_url=settings.site_base_url or settings.webapp_base)
         if not pdf:
-            await async_db.run(users_repo.add_credits, telegram_id, 1)
             raise RuntimeError("PDF yaratib bo'lmadi")
         res = await async_db.run(_export_pdf_sync, telegram_id, payload, pdf)
+    except Exception:
+        # Faqat fayl yaratilmasa kreditni qaytarish (notify xatosi qaytarmasligi kerak)
+        try:
+            await async_db.run(users_repo.add_credits, telegram_id, 1)
+        except Exception:
+            logger.exception("CV credit refund failed tid=%s", telegram_id)
+        raise
 
-        # Activate referral
+    # Referral side-effects — xato bo'lsa ham kredit sarflangan holda qoladi
+    try:
         ref_info = await async_db.run(users_repo.activate_referral, telegram_id)
         if ref_info and bot:
             from shared.referral import notify_referrer
 
             await notify_referrer(bot, ref_info, event="download")
-
-        return res
     except Exception:
-        await async_db.run(users_repo.add_credits, telegram_id, 1)
-        raise
+        logger.exception("CV referral notify failed tid=%s", telegram_id)
+
+    return res
 
 
 def preview(payload: dict[str, Any]) -> str:

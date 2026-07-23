@@ -98,6 +98,8 @@ async def cmd_start(message: Message, state: FSMContext) -> None:
         last_name=user.last_name,
         referred_by_id=ref_id if (ref_id and ref_id != user.id and is_new) else None,
     )
+    if ref_id and ref_id != user.id and not is_new:
+        await db_run(users_repo.attach_referrer_if_empty, user.id, ref_id)
 
     await message.answer(WELCOME, reply_markup=user_menu(user.id))
 
@@ -264,20 +266,15 @@ async def show_credits_for_uid(message: Message, uid: int) -> None:
     promo_line = ""
     if promo.get("active"):
         h = int(promo.get("hours_left") or 0)
-        promo_line = (
-            f"\n⚡️ <b>Aksiya:</b> {h} soat ichida to'lasangiz — "
-            f"<b>+1 Muqova xati bepul</b>!\n"
-        )
+        promo_line = f"\n⚡️ {h} soat ichida to'lasangiz: +1 Muqova bepul\n"
 
     await message.answer(
-        f"💳 <b>Yuklashlaringiz:</b> {status} ta\n"
-        f"ℹ️ Ovoz/matn/preview — <b>bepul</b>\n"
-        f"📄 Demo (belgili) — bepul · 💎 Toza fayl — paket\n"
+        f"💳 <b>Qolgan yuklashlar:</b> {status} ta\n"
+        f"Har bir toza fayl = 1 yuklash.\n"
         f"{promo_line}\n"
         f"{packages_block_text()}\n"
         f"Karta: <code>{settings.payment_card_number}</code>\n"
         f"Egasi: {settings.payment_card_owner}\n\n"
-        f"💡 Yuklashlar universal: CV, Obyektivka, Muqova, Tarjima.\n\n"
         f"{referral_balance_block(ref_link, progress)}",
         reply_markup=payment_choice_keyboard(uid),
     )

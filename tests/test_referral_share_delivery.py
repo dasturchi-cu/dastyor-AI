@@ -27,11 +27,14 @@ class TestReferralShareOnDocuments(unittest.TestCase):
     def test_payment_keyboard_has_packages(self) -> None:
         kb = payment_choice_keyboard(7)
         callbacks = [b.callback_data or "" for row in kb.inline_keyboard for b in row]
+        texts = [b.text or "" for row in kb.inline_keyboard for b in row]
         self.assertTrue(any(c.startswith("pay_pack_") for c in callbacks))
+        # Referral share to'lov klaviaturasidan olib tashlangan
+        self.assertFalse(any("Do'st" in t for t in texts))
 
-    def test_ready_note_mentions_reward(self) -> None:
+    def test_ready_note_is_empty(self) -> None:
         note = document_ready_share_note()
-        self.assertIn("+1", note)
+        self.assertEqual(note, "")
 
     def test_share_keyboard_shape(self) -> None:
         kb = referral_share_keyboard(1)

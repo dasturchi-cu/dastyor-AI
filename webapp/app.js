@@ -508,9 +508,7 @@ const DastyorAI = (() => {
     }
 
     function hasUniversalCredit(u) {
-        const subject = u || user;
-        if (getCredits(subject) > 0) return true;
-        return !!(subject && subject.has_access === true);
+        return getCredits(u || user) > 0;
     }
 
     function universalCreditMessage(u, category) {
@@ -1317,17 +1315,11 @@ html[data-theme="dark"] .da-doc-loading-ring{border-color:#334155;border-top-col
         return getCredits(u) > 0;
     }
 
-    /** CV/Obyektivka eksport: pul balansi, kategoriya huquqi yoki obuna limiti */
+    /** CV/Obyektivka eksport: faqat credits (eski has_*_access loophole yo'q) */
     function canExportForCategory(u, category) {
         const subject = u || user;
         if (!subject) return false;
-        if (Number(subject.credits || 0) > 0) return true;
-        if (hasSingleDocAccess(subject, category)) return true;
-        const plan = String(subject.plan || subject.user_plan || 'free').toLowerCase();
-        if (plan === 'standard' || plan === 'premium') {
-            return !isQuotaBlockedForCategory(subject, category);
-        }
-        return false;
+        return Number(subject.credits || 0) > 0;
     }
 
     /** PDF/Word tugmasi: ready | locked (pul yo'q) | waiting (admin/export) */

@@ -29,6 +29,8 @@ def upsert_user(
 ) -> dict[str, Any]:
     tid = int(telegram_id)
     existed = _exists_in_db(tid)
+    # Yangi user uchun referral; mavjud userda referred_by_id bo'sh bo'lsa keyinroq attach_referrer
+    ref_for_insert = referred_by_id if (not existed and referred_by_id) else None
     if existed:
         referred_by_id = None
     full_name = " ".join(filter(None, [first_name, last_name])).strip() or None
@@ -55,7 +57,7 @@ def upsert_user(
                 last_active_at = datetime('now'),
                 updated_at = datetime('now')
             """,
-            (tid, username, first_name, last_name, full_name, referred_by_id),
+            (tid, username, first_name, last_name, full_name, ref_for_insert),
         )
         row = conn.execute("SELECT * FROM users WHERE telegram_id = ?", (tid,)).fetchone()
     data = row_to_dict(row) or {}
@@ -72,6 +74,32 @@ def get_by_telegram_id(telegram_id: int) -> dict[str, Any] | None:
     with get_connection() as conn:
         row = conn.execute("SELECT * FROM users WHERE telegram_id = ?", (tid,)).fetchone()
     return row_to_dict(row)
+
+
+def attach_referrer_if_empty(telegram_id: int, referrer_id: int) -> bool:
+    """Mavjud userda referred_by_id bo'sh bo'lsa bir marta biriktirish."""
+    tid = int(telegram_id)
+    rid = int(referrer_id)
+    if tid == rid or rid <= 0:
+        return False
+    with get_connection() as conn:
+        row = conn.execute(
+            "SELECT referred_by_id FROM users WHERE telegram_id = ?",
+            (tid,),
+        ).fetchone()
+        if not row:
+            return False
+        if row["referred_by_id"]:
+            return False
+        cur = conn.execute(
+            """
+            UPDATE users
+            SET referred_by_id = ?, updated_at = datetime('now')
+            WHERE telegram_id = ? AND referred_by_id IS NULL
+            """,
+            (rid, tid),
+        )
+        return cur.rowcount > 0
 
 
 def get_by_id(user_id: int) -> dict[str, Any] | None:
@@ -357,13 +385,19 @@ def _evaluate_referrer_reward(conn, referrer_id: int) -> dict[str, Any]:
         )
         invalidate_cache(rid)
 
-    progress = get_referral_progress(rid)
+    active_row = conn.execute(
+        "SELECT COUNT(*) AS c FROM users WHERE referred_by_id = ? AND referred_active = 1",
+        (rid,),
+    ).fetchone()
+    paid_count = eligible
+    rewarded_batches_after = eligible if rewarded else rewarded_batches
+    pending = max(0, paid_count - rewarded_batches_after)
     return {
         "referrer_id": rid,
-        "active_count": progress["active_count"],
-        "paid_count": progress["paid_count"],
-        "batch_progress": progress["batch_progress"],
-        "batch_has_paid": progress["batch_has_paid"],
+        "active_count": int(active_row["c"]) if active_row else 0,
+        "paid_count": paid_count,
+        "batch_progress": 1 if pending else 0,
+        "batch_has_paid": paid_count > 0,
         "rewarded": rewarded,
         "credits_added": new_rewards,
     }
@@ -470,10 +504,21 @@ def activate_referral(telegram_id: int) -> dict[str, Any] | None:
             (tid,),
         )
         invalidate_cache(tid)
-        progress = get_referral_progress(referrer_id)
+        # Nested get_connection() ochmaslik — progress shu conn da
+        active_row = conn.execute(
+            "SELECT COUNT(*) AS c FROM users WHERE referred_by_id = ? AND referred_active = 1",
+            (referrer_id,),
+        ).fetchone()
+        paid_row = conn.execute(
+            "SELECT COUNT(*) AS c FROM users WHERE referred_by_id = ? AND referred_paid = 1",
+            (referrer_id,),
+        ).fetchone()
         return {
             "referrer_id": referrer_id,
             "rewarded": False,
             "credits_added": 0,
-            **progress,
+            "active_count": int(active_row["c"]) if active_row else 0,
+            "paid_count": int(paid_row["c"]) if paid_row else 0,
+            "batch_progress": 0,
+            "batch_has_paid": False,
         }

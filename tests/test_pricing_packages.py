@@ -35,7 +35,7 @@ class TestPricingPackages(unittest.TestCase):
 class TestReferralShareCopy(unittest.TestCase):
     def test_share_mentions_paid_friend(self) -> None:
         btn = referral_share_button(42)
-        self.assertIn("to'lasa", btn.text.lower().replace("ʻ", "'").replace("'", "'") or btn.text)
+        self.assertIn("+1", btn.text)
         self.assertIn("ref_42", btn.url or "")
 
 

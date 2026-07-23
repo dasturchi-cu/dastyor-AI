@@ -16,6 +16,7 @@ from backend.services.cv_preview_cache import (
 from core.security import rate_limit
 from features.cv import service as cv_service
 from features.cv.render import preview_html
+from database.repositories import users as users_repo
 from shared import async_db
 from shared.auth import resolve_uid_from_webapp
 from shared.export_delivery import send_bytes_to_telegram
@@ -82,17 +83,19 @@ async def api_export_cv(req: ExportCVRequest, request: Request) -> Response:
 
     if req.send_only:
         bot = getattr(request.app.state, "bot", None)
+        left = await async_db.run(users_repo.get_credits, uid)
+        left_txt = f"Qoldi: <b>{left}</b> ta." if left > 0 else "Yuklashlar tugadi — yangi paket tanlang."
         sent = await send_bytes_to_telegram(
             bot,
             uid,
             pdf_bytes,
             filename,
-            caption="✅ CV PDF tayyor! Keyingi hujjat uchun pul to'lov qiling.",
-            with_referral_share=True,
+            caption=f"✅ CV PDF tayyor! {left_txt}",
+            with_referral_share=False,
         )
         if not sent:
             raise HTTPException(status_code=500, detail="Telegramga yuborib bo'lmadi")
-        return JSONResponse({"ok": True, "sent": True, "filename": filename})
+        return JSONResponse({"ok": True, "sent": True, "filename": filename, "credits_left": left})
 
     return Response(
         content=pdf_bytes,

@@ -186,13 +186,12 @@ async def cancel_bot_payment(callback: CallbackQuery, state: FSMContext) -> None
     promo_line = ""
     if promo.get("active"):
         promo_line = (
-            f"\n⚡️ <b>Aksiya:</b> {int(promo.get('hours_left') or 0)} soat ichida "
-            f"to'lasangiz — +1 Muqova bepul!\n"
+            f"\n⚡️ {int(promo.get('hours_left') or 0)} soat ichida to'lasangiz: +1 Muqova bepul\n"
         )
 
     await callback.message.edit_text(
-        f"💳 <b>Yuklashlaringiz:</b> {status} ta\n"
-        f"ℹ️ Demo bepul · Toza fayl — paket\n"
+        f"💳 <b>Qolgan yuklashlar:</b> {status} ta\n"
+        f"Har bir toza fayl = 1 yuklash.\n"
         f"{promo_line}\n"
         f"{packages_block_text()}\n"
         f"Karta: <code>{settings.payment_card_number}</code>\n"

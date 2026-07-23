@@ -98,8 +98,10 @@ Qoidalar:
             await status.edit_text("❌ Muqova xatini yaratib bo'lmadi. Qayta urinib ko'ring.")
             return
 
-        # Deduct credit
-        await db_run(users_repo.consume_credit, uid)
+        # Deduct credit — muvaffaqiyatsiz bo'lsa to'xtatish
+        if not await db_run(users_repo.consume_credit, uid):
+            await status.edit_text("❌ Yuklash tugagan. Avval paket sotib oling.")
+            return
         await state.clear()
 
         try:

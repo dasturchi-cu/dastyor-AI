@@ -275,7 +275,7 @@ def package_choice_keyboard(uid: int, document_type: str | None = None) -> Inlin
         rows.append(
             [InlineKeyboardButton(text="💳 Web-ilova orqali to'lash", web_app=WebAppInfo(url=web_url))]
         )
-    rows.append([referral_share_button(uid)])
+    # Referral share — to'lov klaviaturasini chalkashtirmaslik uchun bu yerda yo'q
     return InlineKeyboardMarkup(inline_keyboard=rows)
 
 
@@ -316,21 +316,14 @@ def referral_share_button(uid: int) -> InlineKeyboardButton:
     from urllib.parse import quote
 
     ref = referral_link(uid)
-    share_text = (
-        "CV/obyektivka 1 daqiqada! DASTYOR AI — demo bepul, toza fayl arzon paketlarda.\n"
-        "Mening havolam orqali kiring 👇\n"
-        f"{ref}"
-    )
+    share_text = f"DASTYOR AI — CV/obyektivka 1 daqiqada.\n{ref}"
     share_url = (
         "https://t.me/share/url?url="
         + quote(ref, safe="")
         + "&text="
         + quote(share_text, safe="")
     )
-    return InlineKeyboardButton(
-        text="📤 Do'stimga yubor — u to'lasa +1",
-        url=share_url,
-    )
+    return InlineKeyboardButton(text="📤 Do'stga ulashish (+1)", url=share_url)
 
 
 def referral_share_keyboard(uid: int) -> InlineKeyboardMarkup:
@@ -338,10 +331,7 @@ def referral_share_keyboard(uid: int) -> InlineKeyboardMarkup:
 
 
 def document_ready_share_note() -> str:
-    return (
-        "\n\n📤 <b>Do'stingizga yuboring:</b> u to'lov qilsa — "
-        "sizga <b>+1 bepul</b> yuklash."
-    )
+    return ""
 
 
 def payment_choice_keyboard(uid: int, document_type: str | None = None) -> InlineKeyboardMarkup:
