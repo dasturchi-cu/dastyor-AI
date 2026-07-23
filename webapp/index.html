@@ -395,7 +395,7 @@
         </ol>
         <p class="home-price" id="homePriceTag">
           <span class="home-price-icon" aria-hidden="true">💰</span>
-          <span>Tayyor fayl: 7 999 so'm</span>
+          <span>Paketlar: 3× 14 999 · 5× 19 999 · 1× 7 999</span>
         </p>
       </section>
 
@@ -447,16 +447,22 @@
       }
 
       function showPrice(amount) {
-        if (!priceTagEl || !amount) return;
-        var p = Number(amount);
-        if (!p) return;
-        var formatted = p.toLocaleString('fr-FR').replace(/\u202f/g, ' ').replace(/,/g, ' ');
+        if (!priceTagEl) return;
+        var DA = window.DastyorAI;
         var textSpan = priceTagEl.querySelector('span:last-child');
-        if (textSpan) {
-          textSpan.textContent = 'Tayyor fayl: ' + formatted + " so'm";
+        var text = '';
+        if (DA && DA.packagesShortText) {
+          text = 'Paketlar: ' + DA.packagesShortText();
+        } else if (amount) {
+          var p = Number(amount);
+          if (!p) return;
+          var formatted = p.toLocaleString('fr-FR').replace(/\u202f/g, ' ').replace(/,/g, ' ');
+          text = 'Tayyor fayl: ' + formatted + " so'm";
         } else {
-          priceTagEl.textContent = '💰 Tayyor fayl: ' + formatted + " so'm";
+          return;
         }
+        if (textSpan) textSpan.textContent = text;
+        else priceTagEl.textContent = '💰 ' + text;
       }
 
       document.addEventListener('DOMContentLoaded', function () {
@@ -466,7 +472,7 @@
           if (!me) return;
           var n = DA.getCredits ? DA.getCredits(me) : Number(me.credits || 0);
           showCredits(n);
-          if (DA.docPriceUzs) showPrice(DA.docPriceUzs(me));
+          showPrice(DA.docPriceUzs ? DA.docPriceUzs(me) : 0);
         }).catch(function () {});
         if (DA.bindPrefetchOnHover) DA.bindPrefetchOnHover('.service-card');
       });

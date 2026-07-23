@@ -199,6 +199,30 @@ def build_statistics_text(metrics: dict[str, Any]) -> str:
                 body += f"<code>{day_lbl} | {bar} | {val}</code>\n"
     except Exception as e:
         body += f"\n<i>Trend yuklashda xatolik: {e}</i>"
+
+    try:
+        packs = metrics.get("package_sales")
+        if packs is None:
+            packs = stats_repo.package_sales_stats()
+        if packs:
+            from shared.pricing import format_uzs, get_package
+
+            body += "\n\n<b>📦 PAKET SAVDOSI</b>\n"
+            for row in packs:
+                pid = str(row.get("package_id") or "pack1")
+                try:
+                    label = get_package(pid).label
+                except Exception:
+                    label = pid
+                sales = int(row.get("sales") or 0)
+                rev = int(row.get("revenue_uzs") or 0)
+                creds = int(row.get("credits_sold") or 0)
+                body += (
+                    f"• <b>{html.escape(label)}</b> ({html.escape(pid)}): "
+                    f"<b>{sales}</b> sotuv · {format_uzs(rev)} so'm · {creds} kredit\n"
+                )
+    except Exception as e:
+        body += f"\n<i>Paket statistikasi: {e}</i>"
     return body
 
 

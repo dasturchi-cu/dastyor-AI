@@ -553,12 +553,13 @@
             <path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-2.5 0-4.5 1.6-4.5 3.6S9.5 15.2 12 15.2s4.5 1.6 4.5 3.6S14.5 22.4 12 22.4" />
             <path stroke-linecap="round" stroke-linejoin="round" d="M12 2v20" />
           </svg>
-          <span data-i18n="pay_5000">💳 7 999 so'm to'lash</span>
+          <span data-i18n="pay_5000">💳 Paket tanlash</span>
         </button>
         </div>
       </div>
       <div id="cvPayPanel" class="hidden w-full rounded-2xl border border-emerald-200 bg-emerald-50 p-4 mb-4">
-        <div class="text-sm font-bold text-emerald-800 mb-2" data-i18n="pay_5000">💳 7 999 so'm to'lash</div>
+        <div class="text-sm font-bold text-emerald-800 mb-2" data-i18n="pay_5000">💳 Paket tanlash</div>
+        <div id="cvPackPicker" class="mb-2"></div>
         <div id="cvPayCardInfo" class="text-xs text-slate-700 whitespace-pre-line mb-3">Karta ma'lumotlari yuklanmoqda...</div>
         <div class="flex flex-wrap gap-2 mb-3">
           <button type="button" id="cvCopyCardBtn" class="px-3 py-2 rounded-lg bg-white border border-slate-300 text-slate-700 text-xs font-semibold">📋 Kartani nusxa olish</button>
@@ -629,10 +630,10 @@
     }
     // --- UI: faqat hujjat tili (#langSelect / docLang); ilova sozlamalari tiliga bog‘lanmaydi ---
     const cvDocPack = {
-      uz_lat: {"app_title":"CV Builder","step_1":"Shaxsiy","step_2":"Tajriba","step_3":"Yutuqlar","upload_img":"Rasmni tanlang","drag_img":"yoki rasmni shu yerga tortib tashlang","photo_hint":"JPG yoki PNG (3×4 rasm)","img_wrong_doc":"Bu CV fayli (PDF/Word). Rasm uchun «Rasmni tanlang» tugmasini bosing.","img_bad_format":"Rasm ochilmadi. JPG yoki PNG tanlang.","img_heic_hint":"iPhone HEIC: galereyada «Eng mos format» yoki JPG qilib saqlang.","name":"Ism Familiya","name_ph":"Ali Valiyev","role":"Kasb / Lavozim","role_ph":"Masalan: Dasturchi","phone":"Telefon","cv_phone_ph":"+998 90 123 45 67","email":"Email","location":"Manzil (Viloyat, Shahar)","loc_ph":"Masalan: Toshkent shahri","about":"Men haqimda","about_ph":"Men haqimda...","next_btn":"Keyingisi","back_btn":"Orqaga","edu_title":"Ta'lim","add_edu":"+ Ta'lim qo'shish","exp_title":"Ish tajribasi","add_exp":"+ Tajriba qo'shish","lang_title":"Til bilish","add_lang":"+ Til qo'shish","skills_title":"Ko'nikmalar (Skills)","ach_title":"Yutuqlar va qobiliyatlar","preview":"Jonli ko'rinish","cv_color":"Rang:","download_pdf":"PDF botga yuborish","pay_5000":"💳 7 999 so'm to'lash","pay_help":"Limit tugasa pastdagi '7 999 so'm to'lash' tugmasi orqali davom etasiz.","cv_pay_shot_picked_title":"Rasm tanlandi","cv_pay_shot_next":"Endi «Yuborish» tugmasini bosing.","clear_data":"Ma'lumotlarni tozalash","cv_clear_confirm":"Ishonchingiz komilmi?","cv_select_lang":"Til tanlang","cv_lang_en":"Ingliz tili","cv_lang_ru":"Rus tili","cv_lang_de":"Nemis tili","cv_lang_tr":"Turk tili","cv_lang_other":"Boshqa","cv_listen":"Tinglash","cv_read":"O'qish","cv_speak":"Gapirish","cv_write":"Yozish","cv_cert":"Sertifikat","cv_dip":"Diplom","cv_honor":"Faxriy yorliq","cv_prize":"Sovrin","cv_ach_name_ph":"Nomi (masalan: IELTS 7.5)","cv_year_ph":"Yili","cv_title_ph":"Sarlavha","cv_place_ph":"Joy nomi","cv_date_ph":"2020-2024","cv_quick_skills":"Tezkor tanlash:","cv_skills_ph":"Masalan: Liderlik, Python...","cv_sug_skills":"Microsoft Word, Microsoft Excel, PowerPoint, Jamoaviy ishlash, Muammoni hal qilish"},
-      uz_cyr: {"app_title":"CV Builder","step_1":"Шахсий","step_2":"Тажриба","step_3":"Ютуқлар","upload_img":"Расмни танланг","drag_img":"ёки расмни шу ерга тортиб ташланг","photo_hint":"JPG ёки PNG (3×4 расм)","img_wrong_doc":"Бу CV файли. Расм учун «Расмни танланг» тугмасини босинг.","img_bad_format":"Расм очилмади. JPG ёки PNG танланг.","img_heic_hint":"iPhone HEIC: галереяда JPG қилиб сақланг.","name":"Исм Фамилия","name_ph":"Али Валиев","role":"Касб / Лавозим","role_ph":"Масалан: Дастурчи","phone":"Телефон","cv_phone_ph":"+998 90 123 45 67","email":"Email","location":"Манзил (Вилоят, Шаҳар)","loc_ph":"Масалан: Тошкент шаҳри","about":"Мен ҳақимда","about_ph":"Мен ҳақимда...","next_btn":"Кейингиси","back_btn":"Орқага","edu_title":"Таълим","add_edu":"+ Таълим қўшиш","exp_title":"Иш Тажрибаси","add_exp":"+ Тажриба қўшиш","lang_title":"Тил Билиш","add_lang":"+ Тил қўшиш","skills_title":"Кўникмалар (Skills)","ach_title":"Ютуқлар ва Қобилиятлар","preview":"Жонли Кўриниш","cv_color":"Ранг:","download_pdf":"PDF ботга юбориш","pay_5000":"💳 7 999 сўм тўлаш","pay_help":"Лимит тугаса пастдаги '7 999 сўм тўлаш' тугмаси орқали давом этасиз.","cv_pay_shot_picked_title":"Расм танланди","cv_pay_shot_next":"Энди «Юбориш» тугмасини босинг.","clear_data":"Маълумотларни тозалаш","cv_clear_confirm":"Ишончингиз комилми?","cv_select_lang":"Тил танланг","cv_lang_en":"Инглиз тили","cv_lang_ru":"Рус тили","cv_lang_de":"Немис тили","cv_lang_tr":"Турк тили","cv_lang_other":"Бошқа","cv_listen":"Тинглаш","cv_read":"Ўқиш","cv_speak":"Гапириш","cv_write":"Ёзиш","cv_cert":"Сертификат","cv_dip":"Диплом","cv_honor":"Фахрий ёрлиқ","cv_prize":"Соврин","cv_ach_name_ph":"Номи (масалан: IELTS 7.5)","cv_year_ph":"Йили","cv_title_ph":"Сарлавҳа","cv_place_ph":"Жой номи","cv_date_ph":"2020-2024","cv_quick_skills":"Тезкор танлаш:","cv_skills_ph":"Масалан: Лидерлик, Python...","cv_sug_skills":"Microsoft Word, Microsoft Excel, PowerPoint, Жамоавий ишлаш, Муаммони ҳал қилиш"},
-      en: {"app_title":"CV Builder","step_1":"Personal","step_2":"Experience","step_3":"Achievements","upload_img":"Select image","drag_img":"or drag and drop here","photo_hint":"JPG or PNG photo","img_wrong_doc":"This is a CV document. Use «Select image» for your photo.","img_bad_format":"Could not open image. Choose JPG or PNG.","img_heic_hint":"HEIC from iPhone: save as JPG in gallery first.","name":"Full name","name_ph":"John Doe","role":"Profession / Role","role_ph":"e.g. Software Engineer","phone":"Phone","cv_phone_ph":"+998 90 123 45 67","email":"Email","location":"Location (region, city)","loc_ph":"e.g. Tashkent","about":"About you","about_ph":"A few words about yourself...","next_btn":"Next","back_btn":"Back","edu_title":"Education","add_edu":"+ Add education","exp_title":"Work experience","add_exp":"+ Add experience","lang_title":"Languages","add_lang":"+ Add language","skills_title":"Skills","ach_title":"Achievements","preview":"Live preview","cv_color":"Color:","download_pdf":"Send PDF to bot","pay_5000":"💳 Pay 7,999 UZS","pay_help":"If limit is reached, continue by paying 7,999 UZS from the button below.","cv_pay_shot_picked_title":"Image selected","cv_pay_shot_next":"Tap «Send» to continue.","clear_data":"Clear data","cv_clear_confirm":"Are you sure?","cv_select_lang":"Select language","cv_lang_en":"English","cv_lang_ru":"Russian","cv_lang_de":"German","cv_lang_tr":"Turkish","cv_lang_other":"Other","cv_listen":"Listening","cv_read":"Reading","cv_speak":"Speaking","cv_write":"Writing","cv_cert":"Certificate","cv_dip":"Diploma","cv_honor":"Certificate of honor","cv_prize":"Award","cv_ach_name_ph":"Name (e.g. IELTS 7.5)","cv_year_ph":"Year","cv_title_ph":"Title","cv_place_ph":"Place / company","cv_date_ph":"2020–2024","cv_quick_skills":"Quick pick:","cv_skills_ph":"e.g. Leadership, Python...","cv_sug_skills":"Microsoft Word, Microsoft Excel, PowerPoint, Teamwork, Problem solving"},
-      ru: {"app_title":"Конструктор CV","step_1":"Личное","step_2":"Опыт","step_3":"Достижения","upload_img":"Выбрать фото","drag_img":"или перетащите фото сюда","photo_hint":"JPG или PNG","img_wrong_doc":"Это файл CV. Для фото нажмите «Выбрать фото».","img_bad_format":"Не удалось открыть фото. Выберите JPG или PNG.","img_heic_hint":"HEIC с iPhone: сначала сохраните как JPG.","name":"Имя Фамилия","name_ph":"Иван Иванов","role":"Профессия / Должность","role_ph":"Например: Разработчик","phone":"Телефон","cv_phone_ph":"+998 90 123 45 67","email":"Email","location":"Адрес (область, город)","loc_ph":"Например: Ташкент","about":"О себе","about_ph":"Кратко о себе...","next_btn":"Далее","back_btn":"Назад","edu_title":"Образование","add_edu":"+ Добавить образование","exp_title":"Опыт работы","add_exp":"+ Добавить опыт","lang_title":"Языки","add_lang":"+ Добавить язык","skills_title":"Навыки","ach_title":"Достижения","preview":"Предпросмотр","cv_color":"Цвет:","download_pdf":"Отправить PDF в бота","pay_5000":"💳 Оплатить 7 999 сум","pay_help":"Если лимит исчерпан, продолжите через оплату 7 999 сум с кнопки ниже.","cv_pay_shot_picked_title":"Скриншот выбран","cv_pay_shot_next":"Нажмите «Отправить».","clear_data":"Очистить данные","cv_clear_confirm":"Вы уверены?","cv_select_lang":"Выберите язык","cv_lang_en":"Английский","cv_lang_ru":"Русский","cv_lang_de":"Немецкий","cv_lang_tr":"Турецкий","cv_lang_other":"Другой","cv_listen":"Аудирование","cv_read":"Чтение","cv_speak":"Говорение","cv_write":"Письмо","cv_cert":"Сертификат","cv_dip":"Диплом","cv_honor":"Почетная грамота","cv_prize":"Награда","cv_ach_name_ph":"Название (напр., IELTS 7.5)","cv_year_ph":"Год","cv_title_ph":"Заголовок","cv_place_ph":"Место / компания","cv_date_ph":"2020–2024","cv_quick_skills":"Быстрый выбор:","cv_skills_ph":"Например: Лидерство, Python...","cv_sug_skills":"Microsoft Word, Microsoft Excel, PowerPoint, Работа в команде, Решение проблем"}
+      uz_lat: {"app_title":"CV Builder","step_1":"Shaxsiy","step_2":"Tajriba","step_3":"Yutuqlar","upload_img":"Rasmni tanlang","drag_img":"yoki rasmni shu yerga tortib tashlang","photo_hint":"JPG yoki PNG (3×4 rasm)","img_wrong_doc":"Bu CV fayli (PDF/Word). Rasm uchun «Rasmni tanlang» tugmasini bosing.","img_bad_format":"Rasm ochilmadi. JPG yoki PNG tanlang.","img_heic_hint":"iPhone HEIC: galereyada «Eng mos format» yoki JPG qilib saqlang.","name":"Ism Familiya","name_ph":"Ali Valiyev","role":"Kasb / Lavozim","role_ph":"Masalan: Dasturchi","phone":"Telefon","cv_phone_ph":"+998 90 123 45 67","email":"Email","location":"Manzil (Viloyat, Shahar)","loc_ph":"Masalan: Toshkent shahri","about":"Men haqimda","about_ph":"Men haqimda...","next_btn":"Keyingisi","back_btn":"Orqaga","edu_title":"Ta'lim","add_edu":"+ Ta'lim qo'shish","exp_title":"Ish tajribasi","add_exp":"+ Tajriba qo'shish","lang_title":"Til bilish","add_lang":"+ Til qo'shish","skills_title":"Ko'nikmalar (Skills)","ach_title":"Yutuqlar va qobiliyatlar","preview":"Jonli ko'rinish","cv_color":"Rang:","download_pdf":"PDF botga yuborish","pay_5000":"💳 Paket tanlash","pay_help":"Demo bepul. Toza fayl: 3× 14 999 · 5× 19 999 · 1× 7 999. Bugun to'lasangiz +1 muqova!","cv_pay_shot_picked_title":"Rasm tanlandi","cv_pay_shot_next":"Endi «Yuborish» tugmasini bosing.","clear_data":"Ma'lumotlarni tozalash","cv_clear_confirm":"Ishonchingiz komilmi?","cv_select_lang":"Til tanlang","cv_lang_en":"Ingliz tili","cv_lang_ru":"Rus tili","cv_lang_de":"Nemis tili","cv_lang_tr":"Turk tili","cv_lang_other":"Boshqa","cv_listen":"Tinglash","cv_read":"O'qish","cv_speak":"Gapirish","cv_write":"Yozish","cv_cert":"Sertifikat","cv_dip":"Diplom","cv_honor":"Faxriy yorliq","cv_prize":"Sovrin","cv_ach_name_ph":"Nomi (masalan: IELTS 7.5)","cv_year_ph":"Yili","cv_title_ph":"Sarlavha","cv_place_ph":"Joy nomi","cv_date_ph":"2020-2024","cv_quick_skills":"Tezkor tanlash:","cv_skills_ph":"Masalan: Liderlik, Python...","cv_sug_skills":"Microsoft Word, Microsoft Excel, PowerPoint, Jamoaviy ishlash, Muammoni hal qilish"},
+      uz_cyr: {"app_title":"CV Builder","step_1":"Шахсий","step_2":"Тажриба","step_3":"Ютуқлар","upload_img":"Расмни танланг","drag_img":"ёки расмни шу ерга тортиб ташланг","photo_hint":"JPG ёки PNG (3×4 расм)","img_wrong_doc":"Бу CV файли. Расм учун «Расмни танланг» тугмасини босинг.","img_bad_format":"Расм очилмади. JPG ёки PNG танланг.","img_heic_hint":"iPhone HEIC: галереяда JPG қилиб сақланг.","name":"Исм Фамилия","name_ph":"Али Валиев","role":"Касб / Лавозим","role_ph":"Масалан: Дастурчи","phone":"Телефон","cv_phone_ph":"+998 90 123 45 67","email":"Email","location":"Манзил (Вилоят, Шаҳар)","loc_ph":"Масалан: Тошкент шаҳри","about":"Мен ҳақимда","about_ph":"Мен ҳақимда...","next_btn":"Кейингиси","back_btn":"Орқага","edu_title":"Таълим","add_edu":"+ Таълим қўшиш","exp_title":"Иш Тажрибаси","add_exp":"+ Тажриба қўшиш","lang_title":"Тил Билиш","add_lang":"+ Тил қўшиш","skills_title":"Кўникмалар (Skills)","ach_title":"Ютуқлар ва Қобилиятлар","preview":"Жонли Кўриниш","cv_color":"Ранг:","download_pdf":"PDF ботга юбориш","pay_5000":"💳 Paket tanlash","pay_help":"Demo bepul. Toza fayl: 3× 14 999 · 5× 19 999 · 1× 7 999. Bugun to'lasangiz +1 muqova!","cv_pay_shot_picked_title":"Расм танланди","cv_pay_shot_next":"Энди «Юбориш» тугмасини босинг.","clear_data":"Маълумотларни тозалаш","cv_clear_confirm":"Ишончингиз комилми?","cv_select_lang":"Тил танланг","cv_lang_en":"Инглиз тили","cv_lang_ru":"Рус тили","cv_lang_de":"Немис тили","cv_lang_tr":"Турк тили","cv_lang_other":"Бошқа","cv_listen":"Тинглаш","cv_read":"Ўқиш","cv_speak":"Гапириш","cv_write":"Ёзиш","cv_cert":"Сертификат","cv_dip":"Диплом","cv_honor":"Фахрий ёрлиқ","cv_prize":"Соврин","cv_ach_name_ph":"Номи (масалан: IELTS 7.5)","cv_year_ph":"Йили","cv_title_ph":"Сарлавҳа","cv_place_ph":"Жой номи","cv_date_ph":"2020-2024","cv_quick_skills":"Тезкор танлаш:","cv_skills_ph":"Масалан: Лидерлик, Python...","cv_sug_skills":"Microsoft Word, Microsoft Excel, PowerPoint, Жамоавий ишлаш, Муаммони ҳал қилиш"},
+      en: {"app_title":"CV Builder","step_1":"Personal","step_2":"Experience","step_3":"Achievements","upload_img":"Select image","drag_img":"or drag and drop here","photo_hint":"JPG or PNG photo","img_wrong_doc":"This is a CV document. Use «Select image» for your photo.","img_bad_format":"Could not open image. Choose JPG or PNG.","img_heic_hint":"HEIC from iPhone: save as JPG in gallery first.","name":"Full name","name_ph":"John Doe","role":"Profession / Role","role_ph":"e.g. Software Engineer","phone":"Phone","cv_phone_ph":"+998 90 123 45 67","email":"Email","location":"Location (region, city)","loc_ph":"e.g. Tashkent","about":"About you","about_ph":"A few words about yourself...","next_btn":"Next","back_btn":"Back","edu_title":"Education","add_edu":"+ Add education","exp_title":"Work experience","add_exp":"+ Add experience","lang_title":"Languages","add_lang":"+ Add language","skills_title":"Skills","ach_title":"Achievements","preview":"Live preview","cv_color":"Color:","download_pdf":"Send PDF to bot","pay_5000":"💳 Paket tanlash","pay_help":"Demo bepul. Toza fayl: 3× 14 999 · 5× 19 999 · 1× 7 999. Bugun to'lasangiz +1 muqova!","cv_pay_shot_picked_title":"Image selected","cv_pay_shot_next":"Tap «Send» to continue.","clear_data":"Clear data","cv_clear_confirm":"Are you sure?","cv_select_lang":"Select language","cv_lang_en":"English","cv_lang_ru":"Russian","cv_lang_de":"German","cv_lang_tr":"Turkish","cv_lang_other":"Other","cv_listen":"Listening","cv_read":"Reading","cv_speak":"Speaking","cv_write":"Writing","cv_cert":"Certificate","cv_dip":"Diploma","cv_honor":"Certificate of honor","cv_prize":"Award","cv_ach_name_ph":"Name (e.g. IELTS 7.5)","cv_year_ph":"Year","cv_title_ph":"Title","cv_place_ph":"Place / company","cv_date_ph":"2020–2024","cv_quick_skills":"Quick pick:","cv_skills_ph":"e.g. Leadership, Python...","cv_sug_skills":"Microsoft Word, Microsoft Excel, PowerPoint, Teamwork, Problem solving"},
+      ru: {"app_title":"Конструктор CV","step_1":"Личное","step_2":"Опыт","step_3":"Достижения","upload_img":"Выбрать фото","drag_img":"или перетащите фото сюда","photo_hint":"JPG или PNG","img_wrong_doc":"Это файл CV. Для фото нажмите «Выбрать фото».","img_bad_format":"Не удалось открыть фото. Выберите JPG или PNG.","img_heic_hint":"HEIC с iPhone: сначала сохраните как JPG.","name":"Имя Фамилия","name_ph":"Иван Иванов","role":"Профессия / Должность","role_ph":"Например: Разработчик","phone":"Телефон","cv_phone_ph":"+998 90 123 45 67","email":"Email","location":"Адрес (область, город)","loc_ph":"Например: Ташкент","about":"О себе","about_ph":"Кратко о себе...","next_btn":"Далее","back_btn":"Назад","edu_title":"Образование","add_edu":"+ Добавить образование","exp_title":"Опыт работы","add_exp":"+ Добавить опыт","lang_title":"Языки","add_lang":"+ Добавить язык","skills_title":"Навыки","ach_title":"Достижения","preview":"Предпросмотр","cv_color":"Цвет:","download_pdf":"Отправить PDF в бота","pay_5000":"💳 Paket tanlash","pay_help":"Demo bepul. Toza fayl: 3× 14 999 · 5× 19 999 · 1× 7 999. Bugun to'lasangiz +1 muqova!","cv_pay_shot_picked_title":"Скриншот выбран","cv_pay_shot_next":"Нажмите «Отправить».","clear_data":"Очистить данные","cv_clear_confirm":"Вы уверены?","cv_select_lang":"Выберите язык","cv_lang_en":"Английский","cv_lang_ru":"Русский","cv_lang_de":"Немецкий","cv_lang_tr":"Турецкий","cv_lang_other":"Другой","cv_listen":"Аудирование","cv_read":"Чтение","cv_speak":"Говорение","cv_write":"Письмо","cv_cert":"Сертификат","cv_dip":"Диплом","cv_honor":"Почетная грамота","cv_prize":"Награда","cv_ach_name_ph":"Название (напр., IELTS 7.5)","cv_year_ph":"Год","cv_title_ph":"Заголовок","cv_place_ph":"Место / компания","cv_date_ph":"2020–2024","cv_quick_skills":"Быстрый выбор:","cv_skills_ph":"Например: Лидерство, Python...","cv_sug_skills":"Microsoft Word, Microsoft Excel, PowerPoint, Работа в команде, Решение проблем"}
     };
     function cvDocStrings() { return cvDocPack[docLang] || cvDocPack.uz_lat; }
     function cvT(key, fallback = '') {
@@ -2020,6 +2021,7 @@
     }
 
     let _cvExportInFlight = false;
+    let _cvReadyExportDone = false;
 
     function applyCvQuotaWarnStyle(mode) {
       const warn = document.getElementById('cvQuotaWarn');
@@ -2060,7 +2062,9 @@
               if (warn) {
                 applyCvQuotaWarnStyle('pay');
                 warn.classList.remove('hidden');
-                warn.textContent = "🔒 Pul yetarli emas. Avval to'lov qiling (7 999 so'm = 1 ta hujjat).";
+                warn.textContent = (window.DastyorAI && window.DastyorAI.needPaymentText)
+                  ? window.DastyorAI.needPaymentText()
+                  : "🔒 Pul yetarli emas. Paket tanlang: 3× 14 999 · 5× 19 999 · 1× 7 999.";
               }
               return;
             }
@@ -2094,7 +2098,9 @@
         if (!canExport && !pendingAdmin) {
           applyCvQuotaWarnStyle('pay');
           warn.classList.remove('hidden');
-          warn.textContent = "🔒 Pul yetarli emas. Avval to'lov qiling (7 999 so'm = 1 ta hujjat).";
+          warn.textContent = DA.needPaymentText
+            ? DA.needPaymentText(u)
+            : "🔒 Pul yetarli emas. Paket tanlang: 3× 14 999 · 5× 19 999 · 1× 7 999.";
         } else if (canExport) {
           warn.classList.add('hidden');
           warn.textContent = '';
@@ -2184,7 +2190,7 @@
           if (msg.indexOf('Limitiz tugagan') >= 0 || msg.indexOf('ishlatilgan') >= 0) {
             alert(msg.slice(0, 140));
           } else {
-            alert('💳 Avval to‘lov qiling (7 999 so‘m).');
+            alert((window.DastyorAI&&window.DastyorAI.needPaymentText)?window.DastyorAI.needPaymentText():'💳 Paket tanlang.');
           }
           try { await payCvSingle(fmt); } catch (_) {}
         } else {
@@ -2415,7 +2421,7 @@
       }
     }
 
-    let _cvPayState = { requestId: 0, token: "", telegramId: 0, screenshot: "", pollTimer: null, cardNumber: "" };
+    let _cvPayState = { requestId: 0, token: "", telegramId: 0, screenshot: "", pollTimer: null, cardNumber: "", cardOwner: "", packageId: "pack3", pendingReq: null };
 
     function formatApiDetail(d) {
       if (d == null || d === undefined) return '';
@@ -2474,6 +2480,8 @@
       try {
         if (window.DastyorAI && window.DastyorAI.init) await window.DastyorAI.init({ refreshProfile: true });
       } catch (_) {}
+      const DA = window.DastyorAI || {};
+      if (DA.injectPackagePickerStyles) DA.injectPackagePickerStyles();
       const base = getCvApiBase();
       const panel = document.getElementById('cvPayPanel');
       const cardInfo = document.getElementById('cvPayCardInfo');
@@ -2484,6 +2492,7 @@
       const previewWrap = document.getElementById('cvPayShotPreviewWrap');
       const thumb = document.getElementById('cvPayShotThumb');
       const fnameEl = document.getElementById('cvPayShotFileName');
+      const packPicker = document.getElementById('cvPackPicker');
       if (previewWrap) previewWrap.classList.add('hidden');
       if (thumb) { thumb.removeAttribute('src'); }
       if (fnameEl) fnameEl.textContent = '';
@@ -2491,24 +2500,23 @@
         const payload = buildCvPayload(fmt);
         if (payload.img && String(payload.img).startsWith('data:image')) payload.img = await maybeCompressDataUrl(payload.img);
         let sessionToken = null;
-        try { if (window.DastyorAI && window.DastyorAI.getToken) sessionToken = window.DastyorAI.getToken(); } catch (_) {}
+        try { if (DA.getToken) sessionToken = DA.getToken(); } catch (_) {}
         if (!sessionToken) { try { sessionToken = sessionStorage.getItem('tg_token'); } catch (_) {} }
-        const req = Object.assign({}, payload, { telegram_id: telegramId ? parseInt(telegramId, 10) : null, token: sessionToken || undefined });
+        const packageId = (DA.getSelectedPackageId && DA.getSelectedPackageId()) || 'pack3';
+        const req = Object.assign({}, payload, {
+          telegram_id: telegramId ? parseInt(telegramId, 10) : null,
+          token: sessionToken || undefined,
+          package_id: packageId,
+        });
         delete req.action; delete req.format;
-
-        const res = await fetch(base + '/api/request_paid_cv', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(req) });
-        if (!res.ok) { let d=''; try{const j=await res.json(); d=j.detail||j.message||'';}catch(_){} throw new Error(d||('Server '+res.status)); }
-        const data = await res.json();
-        const rid = data && data.request_id ? Number(data.request_id) : 0;
-        if (!rid) throw new Error("request_id yo'q");
-
-        _cvPayState.requestId = rid;
+        _cvPayState.pendingReq = req;
+        _cvPayState.packageId = packageId;
+        _cvPayState.requestId = 0;
         _cvPayState.token = req.token || "";
         _cvPayState.telegramId = req.telegram_id || 0;
         _cvPayState.screenshot = "";
-        try { localStorage.setItem('cv_paid_request_id', String(rid)); } catch (_) {}
         if (_cvPayState.pollTimer) { clearInterval(_cvPayState.pollTimer); _cvPayState.pollTimer = null; }
-        if (window.DastyorAI && window.DastyorAI.stopPaidDocWatcher) window.DastyorAI.stopPaidDocWatcher('cv');
+        if (DA.stopPaidDocWatcher) DA.stopPaidDocWatcher('cv');
 
         if (panel) panel.classList.remove('hidden');
         applyCvDocI18nToDom();
@@ -2516,19 +2524,59 @@
         if (status) {
           status.classList.remove("text-red-700", "text-emerald-800", "font-semibold");
           status.classList.add("text-slate-700");
-          status.textContent = "Skrenshot tanlang va yuboring.";
+          status.textContent = "Paketni tanlang, to'lov qiling, skrinshot yuboring.";
+        }
+
+        const refreshCvCardInfo = function (pack) {
+          const p = pack || (DA.getPackageById && DA.getPackageById(_cvPayState.packageId)) || null;
+          const price = p ? (DA.formatPriceUzs ? DA.formatPriceUzs(p.price_uzs) : String(p.price_uzs)) : '';
+          const label = p ? (p.credits + '×') : '';
+          if (cardInfo && _cvPayState.cardNumber) {
+            cardInfo.textContent = "Karta: " + _cvPayState.cardNumber +
+              (_cvPayState.cardOwner ? ("\nEga: " + _cvPayState.cardOwner) : "") +
+              (price ? ("\nPaket: " + label + " — " + price + " so'm") : "");
+          }
+        };
+
+        if (packPicker && DA.renderPackagePicker) {
+          DA.renderPackagePicker(packPicker, {
+            user: DA.getUser ? DA.getUser() : null,
+            onChange: function (pack) {
+              _cvPayState.packageId = pack && pack.id ? pack.id : 'pack3';
+              if (_cvPayState.pendingReq) _cvPayState.pendingReq.package_id = _cvPayState.packageId;
+              _cvPayState.requestId = 0;
+              refreshCvCardInfo(pack);
+            },
+          });
         }
 
         try {
           const cardRes = await fetch(base + '/api/payment_card', { cache:'no-store' });
           if (cardRes.ok) {
             const c = await cardRes.json();
+            if (Array.isArray(c.packages) && DA.getUser) {
+              try {
+                const u = DA.getUser() || {};
+                u.packages = c.packages;
+                if (c.single_doc_price_uzs) u.single_doc_price_uzs = c.single_doc_price_uzs;
+              } catch (_) {}
+              if (packPicker && DA.renderPackagePicker) {
+                DA.renderPackagePicker(packPicker, {
+                  user: DA.getUser ? DA.getUser() : null,
+                  onChange: function (pack) {
+                    _cvPayState.packageId = pack && pack.id ? pack.id : 'pack3';
+                    if (_cvPayState.pendingReq) _cvPayState.pendingReq.package_id = _cvPayState.packageId;
+                    _cvPayState.requestId = 0;
+                    refreshCvCardInfo(pack);
+                  },
+                });
+              }
+            }
             const cardNum = String(c.card_number || '');
             const owner = String(c.card_owner || '');
-            const priceNum = Number(c.single_doc_price_uzs) > 0 ? Number(c.single_doc_price_uzs) : 7999;
-            const price = priceNum.toLocaleString('fr-FR').replace(/\u202f/g, ' ').replace(/,/g, ' ');
             _cvPayState.cardNumber = cardNum;
-            if (cardInfo) cardInfo.textContent = "Karta: " + cardNum + "\nEga: " + owner + "\nNarx: " + price + " so'm";
+            _cvPayState.cardOwner = owner;
+            refreshCvCardInfo();
           }
         } catch (_) {}
 
@@ -2582,6 +2630,35 @@
                 throw new Error("Rasm formati noto'g'ri. JPG yoki PNG tanlang.");
               }
             } catch (_) {}
+            try {
+              if (!_cvPayState.requestId) {
+                if (status) status.textContent = "⏳ So'rov saqlanmoqda...";
+                const bodyReq = Object.assign({}, _cvPayState.pendingReq || {}, {
+                  package_id: _cvPayState.packageId || 'pack3',
+                });
+                const res0 = await fetch(base + '/api/request_paid_cv', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify(bodyReq),
+                });
+                if (!res0.ok) {
+                  let d = '';
+                  try { const j = await res0.json(); d = formatApiDetail(j.detail || j.message); } catch (_) {}
+                  throw new Error(d || ('Server ' + res0.status));
+                }
+                const d0 = await res0.json();
+                _cvPayState.requestId = d0 && d0.request_id ? Number(d0.request_id) : 0;
+                if (!_cvPayState.requestId) throw new Error("request_id yo'q");
+                try { localStorage.setItem('cv_paid_request_id', String(_cvPayState.requestId)); } catch (_) {}
+              }
+            } catch (e0) {
+              if (status) {
+                status.textContent = "Xatolik: " + ((e0 && e0.message) ? e0.message : String(e0));
+                status.classList.add("text-red-700", "font-semibold");
+              }
+              if (sendBtn) { sendBtn.disabled = false; sendBtn.textContent = "📤 Yuborish"; }
+              return;
+            }
             const qs = new URLSearchParams({ request_id: String(_cvPayState.requestId), kind: 'cv' });
             if (_cvPayState.telegramId) qs.set('telegram_id', String(_cvPayState.telegramId));
             if (_cvPayState.token) qs.set('token', String(_cvPayState.token));
@@ -2736,6 +2813,20 @@
               },
             });
           }
+          // To'lovdan keyin 1-click: ready_export=1 → kredit bo'lsa darhol yuklash
+          try {
+            var readyExport = new URLSearchParams(window.location.search).get('ready_export') === '1';
+            if (readyExport && !_cvReadyExportDone) {
+              var uReady = window.DastyorAI && window.DastyorAI.getUser ? window.DastyorAI.getUser() : null;
+              var creditsReady = window.DastyorAI && window.DastyorAI.getCredits ? window.DastyorAI.getCredits(uReady) : 0;
+              if (creditsReady > 0) {
+                _cvReadyExportDone = true;
+                setTimeout(function () {
+                  try { sendCvToBot('pdf'); } catch (_) {}
+                }, 600);
+              }
+            }
+          } catch (_) {}
         } catch (_) {}
       })();
       try {

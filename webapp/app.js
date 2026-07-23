@@ -66,8 +66,8 @@ const DastyorAI = (() => {
         skills_title: "Ko'nikmalar", cv_skills_ph: 'Masalan: Liderlik, Python...',
         ach_title: 'Yutuqlar va Qobiliyatlar', cv_ach_name_ph: 'Nomi (masalan: IELTS 7.5)', cv_year_ph: 'Yili',
         preview: "Jonli Ko'rinish", cv_color: 'Rang:',
-        download_pdf: 'PDF botga yuborish', pay_5000: "💳 Paket tanlash",
-        pay_help: "Demo bepul (belgi bilan). Toza fayl: 1× 7 999 · 3× 14 999 · 5× 19 999. Bugun to'lasangiz +1 muqova bonus!",
+        download_pdf: 'PDF botga yuborish',         pay_5000: "💳 Paket tanlash",
+        pay_help: "Demo bepul (belgi bilan). Toza fayl uchun paket tanlang: 3× 14 999 · 5× 19 999 · 1× 7 999. Bugun to'lasangiz +1 muqova bonus!",
         cv_pay_shot_picked_title: 'Rasm tanlandi', cv_pay_shot_next: "Endi «Yuborish» tugmasini bosing.",
         clear_data: "Ma'lumotlarni tozalash",
         loading: 'Yuklanmoqda...', success: 'Muvaffaqiyatli!',
@@ -353,6 +353,12 @@ const DastyorAI = (() => {
             'credits',
             'has_access',
             'credit_note',
+            'packages',
+            'single_doc_price_uzs',
+            'pay_promo_hours',
+            'pay_promo_hours_left',
+            'pay_promo_active',
+            'demo_free',
             // Referral marketing
             'referred_by',
             'referrals_count',
@@ -367,14 +373,118 @@ const DastyorAI = (() => {
         return o;
     }
 
+    const DEFAULT_PACKAGE_ID = 'pack3';
+    const FALLBACK_PACKAGES = [
+        { id: 'pack3', credits: 3, price_uzs: 14999, label: '3 hujjat', per_unit_uzs: 4999, badge: '⭐ eng ommabop', is_default: true },
+        { id: 'pack5', credits: 5, price_uzs: 19999, label: '5 hujjat', per_unit_uzs: 3999, badge: '🔥 eng arzon', is_default: false },
+        { id: 'pack1', credits: 1, price_uzs: 7999, label: '1 hujjat', per_unit_uzs: 7999, badge: '', is_default: false },
+    ];
+    let selectedPackageId = DEFAULT_PACKAGE_ID;
+
     function formatPriceUzs(amount) {
         const n = Number(amount || 0);
         if (!n) return '0';
         return n.toLocaleString('fr-FR').replace(/\u202f/g, ' ').replace(/,/g, ' ');
     }
 
+    function getPackages(u) {
+        const subject = u || user;
+        const packs = subject && Array.isArray(subject.packages) ? subject.packages : null;
+        if (packs && packs.length) return packs;
+        return FALLBACK_PACKAGES.slice();
+    }
+
+    function getPackageById(packageId, u) {
+        const pid = String(packageId || selectedPackageId || DEFAULT_PACKAGE_ID).toLowerCase();
+        const packs = getPackages(u);
+        return packs.find((p) => String(p.id).toLowerCase() === pid)
+            || packs.find((p) => p.is_default)
+            || packs[0]
+            || FALLBACK_PACKAGES[0];
+    }
+
+    function getSelectedPackageId() {
+        return selectedPackageId || DEFAULT_PACKAGE_ID;
+    }
+
+    function setSelectedPackageId(packageId) {
+        const pack = getPackageById(packageId);
+        selectedPackageId = pack && pack.id ? String(pack.id) : DEFAULT_PACKAGE_ID;
+        return selectedPackageId;
+    }
+
+    function selectedPackagePriceUzs(u) {
+        return Number(getPackageById(getSelectedPackageId(), u).price_uzs || 0);
+    }
+
+    function packagesShortText(u) {
+        return getPackages(u)
+            .map((p) => `${p.credits}× ${formatPriceUzs(p.price_uzs)}`)
+            .join(' · ');
+    }
+
+    function packagesHelpText(u) {
+        return `Demo bepul (belgi bilan). Toza fayl: ${packagesShortText(u)}. Bugun to'lasangiz +1 muqova bonus!`;
+    }
+
+    function needPaymentText(u) {
+        return `🔒 Pul yetarli emas. Paket tanlang: ${packagesShortText(u)}.`;
+    }
+
+    function renderPackagePicker(container, opts) {
+        if (!container) return null;
+        const options = opts || {};
+        const packs = getPackages(options.user);
+        if (!selectedPackageId || !packs.some((p) => p.id === selectedPackageId)) {
+            const def = packs.find((p) => p.is_default) || packs[0];
+            selectedPackageId = def ? def.id : DEFAULT_PACKAGE_ID;
+        }
+        container.innerHTML = '';
+        container.classList.add('da-pack-picker');
+        packs.forEach((p) => {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'da-pack-btn' + (p.id === selectedPackageId ? ' da-pack-btn--active' : '');
+            btn.setAttribute('data-package-id', p.id);
+            const badge = p.badge ? `<span class="da-pack-badge">${p.badge}</span>` : '';
+            btn.innerHTML =
+                `<span class="da-pack-credits">${p.credits}×</span>` +
+                `<span class="da-pack-price">${formatPriceUzs(p.price_uzs)} so'm</span>` +
+                badge;
+            btn.addEventListener('click', () => {
+                setSelectedPackageId(p.id);
+                container.querySelectorAll('.da-pack-btn').forEach((el) => {
+                    el.classList.toggle('da-pack-btn--active', el.getAttribute('data-package-id') === selectedPackageId);
+                });
+                if (typeof options.onChange === 'function') options.onChange(getPackageById(selectedPackageId));
+            });
+            container.appendChild(btn);
+        });
+        if (typeof options.onChange === 'function') options.onChange(getPackageById(selectedPackageId));
+        return selectedPackageId;
+    }
+
+    function injectPackagePickerStyles() {
+        if (document.getElementById('da-pack-picker-style')) return;
+        const style = document.createElement('style');
+        style.id = 'da-pack-picker-style';
+        style.textContent = `
+.da-pack-picker{display:flex;flex-direction:column;gap:8px;margin:8px 0 12px;}
+.da-pack-btn{display:flex;align-items:center;gap:10px;flex-wrap:wrap;width:100%;text-align:left;
+  border:1.5px solid #86efac;background:#fff;border-radius:12px;padding:10px 12px;cursor:pointer;
+  font-size:13px;font-weight:700;color:#14532d;transition:border-color .15s,box-shadow .15s,background .15s;}
+.da-pack-btn--active{border-color:#059669;background:#ecfdf5;box-shadow:0 0 0 2px rgba(16,185,129,.25);}
+.da-pack-credits{font-size:15px;font-weight:800;min-width:2.2em;}
+.da-pack-price{flex:1;font-weight:800;}
+.da-pack-badge{font-size:11px;font-weight:700;color:#047857;background:#d1fae5;border-radius:999px;padding:2px 8px;}
+`;
+        document.head.appendChild(style);
+    }
+
     function docPriceUzs(u) {
         const subject = u || user;
+        const pack = getPackageById(DEFAULT_PACKAGE_ID, subject);
+        if (pack && Number(pack.price_uzs) > 0) return Number(pack.price_uzs);
         const p = subject && subject.single_doc_price_uzs;
         return Number(p) > 0 ? Number(p) : 7999;
     }
@@ -496,7 +606,7 @@ const DastyorAI = (() => {
     function singleDocLimitMessage(category) {
         const cat = String(category || '').toLowerCase();
         const label = cat === 'cv' ? 'CV' : 'Obyektivka';
-        return `❌ Limitiz tugagan. Yana ${formatPriceUzs(docPriceUzs())} so'm to'lov qiling (${label}).`;
+        return `❌ Limitiz tugagan. ${label} uchun paket tanlang: ${packagesShortText()}.`;
     }
 
     /**
@@ -1779,6 +1889,17 @@ html[data-theme="dark"] .da-doc-loading-ring{border-color:#334155;border-top-col
         refreshProfile,
         formatPriceUzs,
         docPriceUzs,
+        getPackages,
+        getPackageById,
+        getSelectedPackageId,
+        setSelectedPackageId,
+        selectedPackagePriceUzs,
+        packagesShortText,
+        packagesHelpText,
+        needPaymentText,
+        renderPackagePicker,
+        injectPackagePickerStyles,
+        DEFAULT_PACKAGE_ID,
         getCredits,
         canExportWithCredit,
         canExportForCategory,

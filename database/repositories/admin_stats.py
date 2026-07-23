@@ -10,12 +10,31 @@ from database.repositories import admin_data
 invalidate_metrics_cache = admin_data.invalidate_metrics_cache
 
 
+def package_sales_stats() -> list[dict[str, Any]]:
+    """Approved payments grouped by package_id."""
+    with get_connection() as conn:
+        rows = conn.execute(
+            """
+            SELECT COALESCE(NULLIF(TRIM(package_id), ''), 'pack1') AS package_id,
+                   COUNT(*) AS sales,
+                   COALESCE(SUM(amount), 0) AS revenue_uzs,
+                   COALESCE(SUM(COALESCE(credits_granted, 1)), 0) AS credits_sold
+            FROM payments
+            WHERE status = 'APPROVED'
+            GROUP BY COALESCE(NULLIF(TRIM(package_id), ''), 'pack1')
+            ORDER BY sales DESC
+            """
+        ).fetchall()
+    return [row_to_dict(r) for r in rows if r]
+
+
 def dashboard_snapshot() -> dict[str, Any]:
     from shared.payment_test_filter import filter_real_users
 
     data = admin_data.get_global_metrics()
     data["users_count"] = admin_data.count_real_users()
     data["top_users"] = filter_real_users(data.get("top_users") or [])
+    data["package_sales"] = package_sales_stats()
     return data
 
 

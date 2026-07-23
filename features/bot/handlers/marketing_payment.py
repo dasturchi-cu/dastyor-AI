@@ -270,7 +270,7 @@ async def process_payment_screenshot(message: Message, state: FSMContext) -> Non
     data = await state.get_data()
     document_type = data.get("payment_document_type", "cv")
     label = data.get("payment_label", "CV Resume")
-    package_id = data.get("payment_package_id") or "pack1"
+    package_id = data.get("payment_package_id") or "pack3"
     await state.clear()
 
     # Get primary user name

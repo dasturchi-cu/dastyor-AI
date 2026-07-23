@@ -57,7 +57,7 @@ def submit_payment(
         card_number=card_number,
         receipt_path=str(receipt_path),
         document_type="manual",
-        package_id="pack1",
+        package_id="pack3",
     )
     if not payment:
         raise RuntimeError("To'lov saqlanmadi")

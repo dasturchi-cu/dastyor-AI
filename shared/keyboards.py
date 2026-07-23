@@ -158,7 +158,7 @@ def open_webapp_inline(uid: int, service: str) -> InlineKeyboardMarkup:
 
 
 def open_services_after_payment_inline(uid: int, document_type: str | None = None) -> InlineKeyboardMarkup:
-    """To'lovdan keyin — tanlangan xizmat + cross-sell."""
+    """To'lovdan keyin — 1-click hujjat yuklash + cross-sell."""
     from shared.payment_notifications import normalize_payment_service, payment_service_command
 
     service = normalize_payment_service(document_type)
@@ -166,25 +166,38 @@ def open_services_after_payment_inline(uid: int, document_type: str | None = Non
     rows: list[list[InlineKeyboardButton]] = []
 
     if service == "cover":
-        rows.append([InlineKeyboardButton(text=f"📝 Muqova xati ({cmd})", callback_data="postpay_cover")])
+        rows.append(
+            [InlineKeyboardButton(text="📥 Muqova xatini hozir yaratish", callback_data="postpay_cover")]
+        )
     elif service == "translate":
         rows.append(
-            [InlineKeyboardButton(text=f"🌐 Hujjat tarjimasi ({cmd})", callback_data="postpay_translate")]
+            [InlineKeyboardButton(text="🌐 Tarjimani hozir boshlash", callback_data="postpay_translate")]
         )
     else:
         page = "cv.html" if service == "cv" else "obyektivka.html"
         url = webapp_url(uid, page)
         if url:
-            url = f"{url}&voice=1&autoload=1"
+            # ready_export=1 → WebApp ochilganda toza faylni 1 bosishda yuboradi
+            url = f"{url}&voice=1&autoload=1&ready_export=1"
         if url:
             label = (
-                f"📄 CV yaratish ({cmd})"
+                "📥 CV ni hozir yuklash"
                 if service == "cv"
-                else f"✍️ Obyektivka yaratish ({cmd})"
+                else "📥 Obyektivkani hozir yuklash"
             )
             rows.append([InlineKeyboardButton(text=label, web_app=WebAppInfo(url=url))])
 
     if service in ("cv", "obyektivka"):
+        other_page = "obyektivka.html" if service == "cv" else "cv.html"
+        other_url = webapp_url(uid, other_page)
+        if other_url:
+            other_url = f"{other_url}&voice=1&autoload=1&ready_export=1"
+            other_label = (
+                "✍️ Obyektivka ham yaratish"
+                if service == "cv"
+                else "📄 CV ham yaratish"
+            )
+            rows.append([InlineKeyboardButton(text=other_label, web_app=WebAppInfo(url=other_url))])
         rows.append([InlineKeyboardButton(text="📝 Muqova xati (/cover)", callback_data="postpay_cover")])
         rows.append(
             [InlineKeyboardButton(text="🌐 Hujjat tarjimasi (/translate)", callback_data="postpay_translate")]

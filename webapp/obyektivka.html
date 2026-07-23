@@ -450,12 +450,13 @@
           </button>
           <button type="button" class="btn btn-outline" id="payBtn" onclick="payObySingle('word')">
             <svg viewBox="0 0 24 24"><path d="M12 2v20"/><path d="M16 6a4 4 0 0 0-8 0c0 2.2 2 3.2 4 3.8s4 1.6 4 3.8a4 4 0 0 1-8 0"/></svg>
-            <span id="btn_pay_5000">💳 7 999 so'm to'lash</span>
+            <span id="btn_pay_5000">💳 Paket tanlash</span>
           </button>
         </div>
       </div>
       <div id="obyPayPanel" class="hidden" style="margin-top:10px;border:1px solid #86efac;background:#ecfdf5;border-radius:12px;padding:12px 12px;">
-        <div style="font-size:13px;font-weight:800;color:#166534;margin-bottom:8px;">💳 To'lov (7 999 so'm)</div>
+        <div id="obyPayTitle" style="font-size:13px;font-weight:800;color:#166534;margin-bottom:8px;">💳 Paket tanlash</div>
+        <div id="obyPackPicker"></div>
         <div id="obyPayCardInfo" style="white-space:pre-line;font-size:12px;color:#334155;margin-bottom:8px;">Karta ma'lumotlari yuklanmoqda...</div>
         <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;">
           <button type="button" class="btn btn-outline" id="obyCopyCardBtn">📋 Kartani nusxa olish</button>
@@ -528,7 +529,7 @@
 
 <div id="voiceFlowBar" class="voice-flow-bar hidden">
   <button type="button" class="btn btn-outline" onclick="toggleVoiceFormEdit()">✏️ Tahrir</button>
-  <button type="button" class="btn btn-outline hidden" onclick="payObySingle('word')" id="btn_voice_pay">💳 To'lov (7 999)</button>
+  <button type="button" class="btn btn-outline hidden" onclick="payObySingle('word')" id="btn_voice_pay">💳 Paket tanlash</button>
   <button type="button" class="btn btn-primary da-export-btn da-export-locked" onclick="confirmObyektivka()" id="btn_confirm_oby" disabled aria-disabled="true">🔒 Tasdiqlash</button>
 </div>
 
@@ -1542,8 +1543,8 @@ uz_l:{
   ui_next:"Keyingisi",ui_back:"Orqaga",ui_clear:"Tozalash",
   ui_voice:"🎤 Ovoz",ui_live:"⏺ Jonli",ui_text:"📝 Matn",
   ui_word_bot:"Word botga yuborish",
-  ui_pay_5000:"💳 7 999 so'm to'lash",
-  ui_pay_help:"Limit tugasa alohida to'lov tugmasi orqali davom etasiz (7 999 so'm = 1 hujjat).",
+  ui_pay_5000:"💳 Paket tanlash",
+  ui_pay_help:"Demo bepul. Toza fayl: 3× 14 999 · 5× 19 999 · 1× 7 999.",
   ui_rel_modal:"Qarindosh ma'lumotlari",ui_cancel:"Bekor qilish",ui_save:"Saqlash",
   ui_m_type:"Qarindoshligi",ui_m_name:"F.I.SH",ui_m_birth:"Tug'ilgan yili va joyi",ui_m_job:"Ish joyi va lavozimi",ui_m_job_custom:"Boshqa ish joyi / lavozimi",ui_m_addr:"Turar joyi"
 },
@@ -1964,6 +1965,7 @@ var _obyLiveChunks = [];
 var _obyLiveRecording = false;
 
 var _obyExportInFlight = false;
+var _obyReadyExportDone = false;
 
 function setObyPayUiState(phase) {
   var sendBtn = document.getElementById('obyPaySendBtn');
@@ -2066,7 +2068,7 @@ function syncObyQuotaUi() {
     if (!canExport && !pendingAdmin) {
       applyObyQuotaWarnStyle('pay');
       warn.classList.remove('hidden');
-      warn.textContent = "🔒 Pul yetarli emas. Avval to'lov qiling (7 999 so'm = 1 ta hujjat).";
+      warn.textContent = (DA.needPaymentText ? DA.needPaymentText(u) : "🔒 Pul yetarli emas. Paket tanlang.");
     } else if (canExport) {
       warn.classList.add('hidden');
       warn.textContent = '';
@@ -2471,7 +2473,7 @@ async function sendObyektivkaToBot(fmt){
       if(em.indexOf('Limitiz tugagan') >= 0 || em.indexOf('ishlatilgan') >= 0){
         alert(em.slice(0, 140));
       } else {
-        alert('💳 Avval to‘lov qiling (7 999 so‘m).');
+        alert((window.DastyorAI&&window.DastyorAI.needPaymentText)?window.DastyorAI.needPaymentText():'💳 Paket tanlang.');
       }
       try{ await payObySingle(fmt); }catch(_){}
     } else {
@@ -2483,12 +2485,15 @@ async function sendObyektivkaToBot(fmt){
   }
 }
 
-var _obyPayState = { requestId:0, token:"", telegramId:0, screenshot:"", pollTimer:null, cardNumber:"", pendingReq:null, fmt:"word" };
+var _obyPayState = { requestId:0, token:"", telegramId:0, screenshot:"", pollTimer:null, cardNumber:"", cardOwner:"", packageId:"pack3", pendingReq:null, fmt:"word" };
 
 function _buildPaidObyRequest(fmt, forPayment){
   var payload = buildObyPayload(fmt);
+  var DA = window.DastyorAI || {};
+  var packageId = (DA.getSelectedPackageId && DA.getSelectedPackageId()) || 'pack3';
   var req = {
     telegram_id: telegramId ? parseInt(telegramId, 10) : null,
+    package_id: packageId,
     lang: payload.lang,
     fullname: payload.fullname || '',
     birthdate: payload.bdate || '',
@@ -2525,6 +2530,8 @@ async function payObySingle(fmt){
   try{
     if(window.DastyorAI && window.DastyorAI.init) await window.DastyorAI.init({ refreshProfile: true });
   }catch(_){}
+  var DA = window.DastyorAI || {};
+  if(DA.injectPackagePickerStyles) DA.injectPackagePickerStyles();
   var panel=document.getElementById('obyPayPanel');
   var cardInfo=document.getElementById('obyPayCardInfo');
   var statusEl=document.getElementById('obyPayStatus');
@@ -2534,12 +2541,14 @@ async function payObySingle(fmt){
   var previewWrap=document.getElementById('obyPayShotPreviewWrap');
   var shotThumb=document.getElementById('obyPayShotThumb');
   var shotFname=document.getElementById('obyPayShotFileName');
+  var packPicker=document.getElementById('obyPackPicker');
   if(previewWrap) previewWrap.style.display='none';
   if(shotThumb) shotThumb.removeAttribute('src');
   if(shotFname) shotFname.textContent='';
   try{
     _obyPayState.fmt = fmt || 'word';
     _obyPayState.pendingReq = _buildPaidObyRequest(_obyPayState.fmt, true);
+    _obyPayState.packageId = _obyPayState.pendingReq.package_id || 'pack3';
     _obyPayState.token = _obyPayState.pendingReq.token || "";
     _obyPayState.telegramId = _obyPayState.pendingReq.telegram_id || 0;
     _obyPayState.requestId = 0;
@@ -2555,22 +2564,62 @@ async function payObySingle(fmt){
     }else if(panel && panel.scrollIntoView) panel.scrollIntoView({ behavior:'smooth', block:'nearest' });
     if(sendBtn){ sendBtn.disabled = true; sendBtn.textContent = "📤 Yuborish"; sendBtn.style.opacity = '0.6'; }
     if(statusEl){
-      statusEl.textContent = "💳 Quyidagi kartaga to'lov o'tkazing, keyin skrinshot yuboring.";
+      statusEl.textContent = "Paketni tanlang, to'lov qiling, skrinshot yuboring.";
       statusEl.style.color = '#334155';
       statusEl.style.fontWeight = '600';
     }
     if(cardInfo) cardInfo.textContent = "Karta ma'lumotlari yuklanmoqda...";
 
+    function refreshObyCardInfo(pack){
+      var p = pack || (DA.getPackageById && DA.getPackageById(_obyPayState.packageId)) || null;
+      var price = p ? (DA.formatPriceUzs ? DA.formatPriceUzs(p.price_uzs) : String(p.price_uzs)) : '';
+      var label = p ? (p.credits + '×') : '';
+      if(cardInfo && _obyPayState.cardNumber){
+        cardInfo.textContent = "💳 Karta: "+_obyPayState.cardNumber+
+          (_obyPayState.cardOwner ? ("\n👤 Ega: "+_obyPayState.cardOwner) : "")+
+          (price ? ("\n💰 Paket: "+label+" — "+price+" so'm") : "");
+      }
+    }
+
+    if(packPicker && DA.renderPackagePicker){
+      DA.renderPackagePicker(packPicker, {
+        user: DA.getUser ? DA.getUser() : null,
+        onChange: function(pack){
+          _obyPayState.packageId = pack && pack.id ? pack.id : 'pack3';
+          if(_obyPayState.pendingReq) _obyPayState.pendingReq.package_id = _obyPayState.packageId;
+          _obyPayState.requestId = 0;
+          refreshObyCardInfo(pack);
+        }
+      });
+    }
+
     try{
       var cardRes = await fetch(getApiUrl() + '/api/payment_card', { cache:'no-store' });
       if(cardRes.ok){
         var c = await cardRes.json();
+        if(Array.isArray(c.packages) && DA.getUser){
+          try{
+            var u = DA.getUser() || {};
+            u.packages = c.packages;
+            if(c.single_doc_price_uzs) u.single_doc_price_uzs = c.single_doc_price_uzs;
+          }catch(_){}
+          if(packPicker && DA.renderPackagePicker){
+            DA.renderPackagePicker(packPicker, {
+              user: DA.getUser ? DA.getUser() : null,
+              onChange: function(pack){
+                _obyPayState.packageId = pack && pack.id ? pack.id : 'pack3';
+                if(_obyPayState.pendingReq) _obyPayState.pendingReq.package_id = _obyPayState.packageId;
+                _obyPayState.requestId = 0;
+                refreshObyCardInfo(pack);
+              }
+            });
+          }
+        }
         var cardNum = String(c.card_number||'');
         var owner = String(c.card_owner||'');
-        var priceNum = Number(c.single_doc_price_uzs) > 0 ? Number(c.single_doc_price_uzs) : 7999;
-        var price = priceNum.toLocaleString('fr-FR').replace(/\u202f/g, ' ').replace(/,/g, ' ');
         _obyPayState.cardNumber = cardNum;
-        if(cardInfo) cardInfo.textContent = "💳 Karta: "+cardNum+"\n👤 Ega: "+owner+"\n💰 Narx: "+price+" so'm";
+        _obyPayState.cardOwner = owner;
+        refreshObyCardInfo();
       } else if(cardInfo) cardInfo.textContent = "Karta ma'lumotlari yuklanmadi. Qayta urinib ko'ring.";
     }catch(e){
       if(cardInfo) cardInfo.textContent = "Karta ma'lumotlari yuklanmadi.";
@@ -3712,6 +3761,19 @@ document.addEventListener('DOMContentLoaded',function(){
           }
         });
       }
+      try{
+        var readyExport = new URLSearchParams(window.location.search).get('ready_export') === '1';
+        if(readyExport && !_obyReadyExportDone){
+          var uReady = window.DastyorAI && window.DastyorAI.getUser ? window.DastyorAI.getUser() : null;
+          var creditsReady = window.DastyorAI && window.DastyorAI.getCredits ? window.DastyorAI.getCredits(uReady) : 0;
+          if(creditsReady > 0){
+            _obyReadyExportDone = true;
+            setTimeout(function(){
+              try{ sendObyektivkaToBot('word'); }catch(e){}
+            }, 800);
+          }
+        }
+      }catch(e){}
     }catch(e){console.warn(e);}
   })();
   try{

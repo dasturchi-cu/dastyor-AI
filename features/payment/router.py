@@ -348,7 +348,7 @@ async def api_request_paid_cv(body: dict) -> dict:
     uid = resolve_uid(str(body.get("telegram_id") or ""), body.get("token"))
     if not uid:
         raise HTTPException(status_code=401, detail="Foydalanuvchi aniqlanmadi")
-    package_id = str(body.get("package_id") or "pack1")
+    package_id = str(body.get("package_id") or "pack3")
     payload = {
         k: v
         for k, v in body.items()
@@ -378,7 +378,7 @@ async def api_request_paid_obyektivka(body: dict) -> dict:
     uid = resolve_uid(str(body.get("telegram_id") or ""), body.get("token"))
     if not uid:
         raise HTTPException(status_code=401, detail="Foydalanuvchi aniqlanmadi")
-    package_id = str(body.get("package_id") or "pack1")
+    package_id = str(body.get("package_id") or "pack3")
     payload = {
         k: v
         for k, v in body.items()

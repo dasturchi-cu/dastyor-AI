@@ -11,15 +11,17 @@ class TestPricingPackages(unittest.TestCase):
     def test_three_packages(self) -> None:
         packs = list_packages()
         self.assertEqual(len(packs), 3)
-        self.assertEqual(packs[0]["credits"], 1)
-        self.assertEqual(packs[0]["price_uzs"], 7999)
-        self.assertEqual(packs[1]["credits"], 3)
-        self.assertEqual(packs[1]["price_uzs"], 14999)
-        self.assertEqual(packs[2]["credits"], 5)
-        self.assertEqual(packs[2]["price_uzs"], 19999)
+        # Display order: 3× first (popular), then 5×, then 1×
+        self.assertEqual(packs[0]["credits"], 3)
+        self.assertEqual(packs[0]["price_uzs"], 14999)
+        self.assertTrue(packs[0]["is_default"])
+        self.assertEqual(packs[1]["credits"], 5)
+        self.assertEqual(packs[1]["price_uzs"], 19999)
+        self.assertEqual(packs[2]["credits"], 1)
+        self.assertEqual(packs[2]["price_uzs"], 7999)
 
     def test_get_package_default(self) -> None:
-        self.assertEqual(get_package(None).id, "pack1")
+        self.assertEqual(get_package(None).id, "pack3")
         self.assertEqual(get_package("pack5").credits, 5)
 
     def test_soft_paywall_mentions_demo(self) -> None:
@@ -27,6 +29,7 @@ class TestPricingPackages(unittest.TestCase):
         self.assertIn("Demo", text)
         self.assertIn("Muqova", text)
         self.assertIn("3×", text)
+        self.assertIn("tavsiya", text)
 
 
 class TestReferralShareCopy(unittest.TestCase):
