@@ -11,8 +11,8 @@ from pathlib import Path
 class TestDbPathResolution(unittest.TestCase):
     def _resolve_db_path(self, **env: str) -> tuple[str, str]:
         merged = os.environ.copy()
-        for key in ("DB_PATH", "DATA_DIR", "RAILWAY_VOLUME_MOUNT_PATH"):
-            merged.pop(key, None)
+        merged["DATA_DIR"] = ""
+        merged["RAILWAY_VOLUME_MOUNT_PATH"] = ""
         merged.update(env)
         merged["_HUJJATCHI_TEST"] = "1"
         code = """

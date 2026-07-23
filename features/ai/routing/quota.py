@@ -172,15 +172,18 @@ class QuotaMonitor:
                 health_status=state.health_status,
                 daily_limit=state.daily_limit,
             )
-            insert_history(
-                provider=state.provider,
-                key_index=state.key_index,
-                quota_percent=state.quota_percent,
-                requests_used=state.requests_used,
-                requests_remaining=state.requests_remaining,
-                status=state.status,
-                event_type=event_type,
-            )
+            # Periodic "snapshot" must NOT inflate ai_quota_history (was 700k+ rows
+            # and made PRAGMA integrity_check / health probes multi-second).
+            if event_type != "snapshot":
+                insert_history(
+                    provider=state.provider,
+                    key_index=state.key_index,
+                    quota_percent=state.quota_percent,
+                    requests_used=state.requests_used,
+                    requests_remaining=state.requests_remaining,
+                    status=state.status,
+                    event_type=event_type,
+                )
         except Exception as e:
             logger.debug("Quota persist failed: %s", e)
 
@@ -213,7 +216,7 @@ class QuotaMonitor:
             state.health_status = "HEALTHY"
             state.was_exhausted = False
             self._recalc(state)
-            self._persist(state)
+            self._persist(state, event_type="success")
 
     def record_quota_exhausted(self, provider: str, key_index: int, model: str) -> None:
         with self._lock:
@@ -241,7 +244,7 @@ class QuotaMonitor:
                 state.status = "DEGRADED"
                 state.health_status = "DEGRADED"
             self._recalc(state)
-            self._persist(state)
+            self._persist(state, event_type="failure")
 
     def mark_cooldown(self, provider: str, key_index: int) -> None:
         with self._lock:
@@ -249,7 +252,7 @@ class QuotaMonitor:
             if state.status != "EXHAUSTED":
                 state.status = "COOLDOWN"
                 state.health_status = "COOLDOWN"
-                self._persist(state)
+                self._persist(state, event_type="cooldown")
 
     def snapshot_all(self) -> list[dict]:
         """Periodic snapshot — persists all keys without incrementing counters."""

@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import sqlite3
+import time
 from typing import Any
 
 from config.settings import settings
@@ -39,23 +40,71 @@ REQUIRED_INDEXES = (
 
 REQUIRED_VIEWS = ("generated_files",)
 
+# Full PRAGMA integrity_check on a large DB is multi-second and must NOT run
+# on every Docker/K8s /health probe (blocks the asyncio event loop).
+_INTEGRITY_CACHE_TTL_SEC = 3600.0
+_integrity_cache: tuple[float, bool, str] | None = None
 
-def check_db_integrity() -> tuple[bool, str]:
+
+def check_db_integrity(*, force: bool = False) -> tuple[bool, str]:
+    global _integrity_cache
+    now = time.monotonic()
+    if not force and _integrity_cache is not None:
+        cached_at, ok, msg = _integrity_cache
+        if now - cached_at < _INTEGRITY_CACHE_TTL_SEC:
+            return ok, msg
+
     with sqlite3.connect(settings.db_path) as conn:
         row = conn.execute("PRAGMA integrity_check").fetchone()
     msg = str(row[0]) if row else "unknown"
-    return msg == "ok", msg
+    ok = msg == "ok"
+    _integrity_cache = (now, ok, msg)
+    return ok, msg
 
 
-def verify_schema() -> dict[str, Any]:
-    """Return verification report for startup / health checks."""
+def quick_health_check() -> dict[str, Any]:
+    """Fast liveness/readiness for /health — no full integrity scan."""
+    report: dict[str, Any] = {
+        "ok": True,
+        "db_path": str(settings.db_path),
+        "errors": [],
+        "tables_ok": False,
+    }
+    if not settings.db_path.is_file():
+        report["ok"] = False
+        report["errors"].append(f"Database file missing: {settings.db_path}")
+        return report
+
+    try:
+        with sqlite3.connect(f"file:{settings.db_path}?mode=ro", uri=True, timeout=2.0) as conn:
+            existing = {
+                r[0]
+                for r in conn.execute(
+                    "SELECT name FROM sqlite_master WHERE type = 'table'"
+                ).fetchall()
+            }
+            missing = [t for t in ("users", "payments", "error_logs") if t not in existing]
+            if missing:
+                report["ok"] = False
+                report["errors"].append(f"Missing core tables: {', '.join(missing)}")
+            else:
+                report["tables_ok"] = True
+                conn.execute("SELECT 1 FROM users LIMIT 1").fetchone()
+    except sqlite3.Error as exc:
+        report["ok"] = False
+        report["errors"].append(f"DB probe failed: {exc}")
+    return report
+
+
+def verify_schema(*, include_integrity: bool = True) -> dict[str, Any]:
+    """Return verification report for startup / deep admin checks."""
     report: dict[str, Any] = {
         "ok": True,
         "db_path": str(settings.db_path),
         "tables": {},
         "indexes": {},
         "views": {},
-        "integrity": "unknown",
+        "integrity": "skipped",
         "errors": [],
     }
 
@@ -64,11 +113,12 @@ def verify_schema() -> dict[str, Any]:
         report["errors"].append(f"Database file missing: {settings.db_path}")
         return report
 
-    ok, msg = check_db_integrity()
-    report["integrity"] = msg
-    if not ok:
-        report["ok"] = False
-        report["errors"].append(f"integrity_check failed: {msg}")
+    if include_integrity:
+        ok, msg = check_db_integrity()
+        report["integrity"] = msg
+        if not ok:
+            report["ok"] = False
+            report["errors"].append(f"integrity_check failed: {msg}")
 
     with sqlite3.connect(settings.db_path) as conn:
         existing_tables = {

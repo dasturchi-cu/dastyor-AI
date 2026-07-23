@@ -19,6 +19,8 @@ def _reset_redis_state():
     redis_client.close_sync()
     redis_client._redis_checked = False
     redis_client._redis_ok = False
+    session_service._loaded = False
+    session_service._cache = {}
     yield
     redis_client.close_sync()
 

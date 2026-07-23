@@ -137,3 +137,23 @@ def list_recent_reset_events(limit: int = 20) -> list[dict[str, Any]]:
             (limit,),
         ).fetchall()
     return [row_to_dict(r) for r in rows if row_to_dict(r)]
+
+
+def prune_history(*, keep_days: int = 14) -> int:
+    """Drop bloated snapshot rows and old non-snapshot events. Returns deleted count."""
+    keep_days = max(1, min(int(keep_days), 365))
+    with get_connection() as conn:
+        cur = conn.execute(
+            "DELETE FROM ai_quota_history WHERE event_type = 'snapshot'"
+        )
+        deleted = int(cur.rowcount or 0)
+        cur2 = conn.execute(
+            """
+            DELETE FROM ai_quota_history
+            WHERE event_type != 'snapshot'
+              AND updated_at < datetime('now', ?)
+            """,
+            (f"-{keep_days} days",),
+        )
+        deleted += int(cur2.rowcount or 0)
+        return deleted

@@ -275,6 +275,8 @@ def _web_pay_url(uid: int, document_type: str | None = None) -> str | None:
 
 
 def payment_choice_keyboard(uid: int, document_type: str | None = None) -> InlineKeyboardMarkup:
+    from urllib.parse import quote
+
     url = _web_pay_url(uid, document_type)
     keyboard: list[list[InlineKeyboardButton]] = []
     if url:
@@ -283,6 +285,21 @@ def payment_choice_keyboard(uid: int, document_type: str | None = None) -> Inlin
         )
     keyboard.append(
         [InlineKeyboardButton(text="🤖 Telegram bot orqali to'lash", callback_data="pay_via_bot")]
+    )
+    bot_username = (settings.bot_username or "DastyorAiBot").lstrip("@")
+    ref_link = f"https://t.me/{bot_username}?start=ref_{uid}"
+    share_text = (
+        "CV yoki obyektivka 1 daqiqada! DASTYOR AI — birinchi hujjat bepul.\n"
+        f"{ref_link}"
+    )
+    share_url = (
+        "https://t.me/share/url?url="
+        + quote(ref_link, safe="")
+        + "&text="
+        + quote(share_text, safe="")
+    )
+    keyboard.append(
+        [InlineKeyboardButton(text="📤 Do'stlarga ulashish (+1 bepul)", url=share_url)]
     )
     return InlineKeyboardMarkup(inline_keyboard=keyboard)
 

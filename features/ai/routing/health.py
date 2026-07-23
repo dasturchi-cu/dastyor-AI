@@ -14,6 +14,7 @@ from features.ai.routing.types import Endpoint, ProviderName
 logger = logging.getLogger(__name__)
 
 _CHECK_INTERVAL_SEC = 60
+_PRUNE_EVERY_N = 60  # ~once per hour at 60s interval
 _task: asyncio.Task | None = None
 _stop_event: asyncio.Event | None = None
 _thread_local_started = False
@@ -25,8 +26,10 @@ async def _health_loop() -> None:
     cfg = load_routing_config()
     pool = get_endpoint_pool()
     cooldown = get_cooldown_registry(cfg.cooldown_ms)
+    loops = 0
 
     while _stop_event and not _stop_event.is_set():
+        loops += 1
         try:
             active_cooldowns = cooldown.list_active()
             if active_cooldowns:
@@ -71,6 +74,16 @@ async def _health_loop() -> None:
             get_quota_monitor().snapshot_all()
         except Exception as e:
             logger.debug("Quota snapshot skipped: %s", e)
+
+        if loops == 1 or loops % _PRUNE_EVERY_N == 0:
+            try:
+                from database.repositories import ai_quota as ai_quota_repo
+
+                deleted = await asyncio.to_thread(ai_quota_repo.prune_history, keep_days=14)
+                if deleted:
+                    logger.info("Pruned %s ai_quota_history row(s)", deleted)
+            except Exception as e:
+                logger.debug("Quota history prune skipped: %s", e)
 
         try:
             await asyncio.wait_for(_stop_event.wait(), timeout=_CHECK_INTERVAL_SEC)

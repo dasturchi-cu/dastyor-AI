@@ -341,7 +341,9 @@ def build_placeholder_context(raw: dict[str, Any]) -> dict[str, str]:
     objective["relatives_raw"] = relatives_raw
     ctx = objective_to_template_context(objective)
     lang = _to_text(raw.get("lang")) or "uz_lat"
-    ctx.update(labels_for(lang))
+    for k, v in labels_for(lang).items():
+        if k not in ctx:
+            ctx[k] = v
     if relatives_raw:
         ctx["_has_relatives"] = "1"
     return ctx

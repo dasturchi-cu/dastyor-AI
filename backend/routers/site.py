@@ -8,7 +8,7 @@ from fastapi.responses import FileResponse, RedirectResponse, Response
 
 from backend.paths import webapp_index_path
 from core.redis_client import ping_async, redis_enabled
-from database.verify import check_db_integrity, verify_schema
+from database.verify import quick_health_check
 
 router = APIRouter(tags=["site"])
 
@@ -44,18 +44,24 @@ async def ping():
 
 @router.get("/health")
 async def health():
+    """Liveness probe — must stay under Docker HEALTHCHECK timeout (~5s).
+
+    Full PRAGMA integrity_check is intentionally NOT run here: on a large
+    SQLite file it takes seconds and blocks the single uvicorn worker,
+    starving Telegram webhooks and WebApp requests.
+    """
     redis_status = "disabled"
     if redis_enabled():
         redis_status = "ok" if await ping_async() else "unavailable"
-    db_ok, db_msg = check_db_integrity()
-    schema = verify_schema() if db_ok else {"ok": False}
+    db = quick_health_check()
+    db_ok = bool(db.get("ok"))
     return {
-        "ok": db_ok and schema.get("ok", False),
-        "status": "healthy" if db_ok and schema.get("ok") else "degraded",
+        "ok": db_ok,
+        "status": "healthy" if db_ok else "degraded",
         "webapp_mounted": True,
         "redis": redis_status,
-        "database": db_msg,
-        "schema": schema.get("tables") if schema else None,
+        "database": "ok" if db_ok else "; ".join(db.get("errors") or ["unavailable"]),
+        "tables_ok": db.get("tables_ok"),
         "time": time.time(),
     }
 

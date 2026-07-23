@@ -121,16 +121,15 @@ def _collect_models(provider: ProviderName) -> tuple[str, ...]:
             "DeepSeek-V3.2",
         ),
         ProviderName.GITHUB: (
-            "meta-llama-3.1-8b-instruct",
-            "meta-llama-3.1-70b-instruct",
-            "meta-llama-3.1-405b-instruct",
             "gpt-4o-mini",
             "gpt-4o",
-            "cohere-command-r-plus",
-            "mistral-large",
-            "phi-3-medium-128k-instruct",
-            "mistral-nemo",
-            "cohere-command-r"
+            "Llama-3.3-70B-Instruct",
+            "Meta-Llama-3.1-8B-Instruct",
+            "Phi-3.5-mini-instruct",
+            "Mistral-small",
+            "Mistral-large",
+            "Cohere-command-r-plus",
+            "Cohere-command-r",
         ),
     }
 

@@ -4,6 +4,7 @@ from __future__ import annotations
 import hmac
 import logging
 
+from aiogram.exceptions import TelegramForbiddenError, TelegramRetryAfter
 from aiogram.types import Update
 from fastapi import APIRouter, Request, Response
 
@@ -19,6 +20,23 @@ def _verify_webhook_secret(request: Request) -> bool:
         return True
     got = (request.headers.get("X-Telegram-Bot-Api-Secret-Token") or "").strip()
     return bool(got) and hmac.compare_digest(got, secret)
+
+
+def _is_benign_delivery_error(exc: BaseException) -> bool:
+    """Errors that should ACK the update (HTTP 200) so Telegram stops retrying."""
+    if isinstance(exc, (TelegramForbiddenError, TelegramRetryAfter)):
+        return True
+    text = str(exc).lower()
+    return any(
+        token in text
+        for token in (
+            "bot was blocked by the user",
+            "user is deactivated",
+            "chat not found",
+            "bot can't initiate conversation",
+            "forbidden: bot was kicked",
+        )
+    )
 
 
 @router.post("/webhook")
@@ -39,6 +57,9 @@ async def webhook(request: Request) -> Response:
         await dp.feed_update(bot, update)
         return Response(status_code=200)
     except Exception as e:
+        if _is_benign_delivery_error(e):
+            logger.info("Webhook delivery skipped (benign): %s", e)
+            return Response(status_code=200)
         logger.error("Webhook error: %s", e, exc_info=True)
         return Response(status_code=500)
 

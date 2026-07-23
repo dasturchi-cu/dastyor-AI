@@ -14,6 +14,31 @@ from shared.ai_errors import AiQuotaError, is_failover_error, is_quota_error
 logger = logging.getLogger(__name__)
 
 
+def _message_content_to_text(content: Any) -> str:
+    """Normalize chat completion `message.content` (str | list | None) to text."""
+    if content is None:
+        return ""
+    if isinstance(content, str):
+        return content.strip()
+    if isinstance(content, list):
+        parts: list[str] = []
+        for item in content:
+            if isinstance(item, str):
+                parts.append(item)
+            elif isinstance(item, dict):
+                text = item.get("text")
+                if text:
+                    parts.append(str(text))
+                elif item.get("type") == "text" and item.get("content"):
+                    parts.append(str(item["content"]))
+            else:
+                text = getattr(item, "text", None)
+                if text:
+                    parts.append(str(text))
+        return "".join(parts).strip()
+    return str(content).strip()
+
+
 async def _openai_compatible_chat(
     endpoint: Endpoint,
     prompt: str,
@@ -45,12 +70,8 @@ async def _openai_compatible_chat(
                 raise RuntimeError(f"{resp.status_code} server error: {resp.text[:200]}")
             resp.raise_for_status()
             data = resp.json()
-            text = (
-                data.get("choices", [{}])[0]
-                .get("message", {})
-                .get("content", "")
-                or ""
-            ).strip()
+            message = (data.get("choices") or [{}])[0].get("message") or {}
+            text = _message_content_to_text(message.get("content"))
             usage = data.get("usage") or {}
             return AttemptResult(
                 text=text,
@@ -150,10 +171,12 @@ async def _cloudflare_generate(endpoint: Endpoint, prompt: str, *, timeout_sec: 
             resp.raise_for_status()
             data = resp.json()
             result = data.get("result") or {}
-            text = (result.get("response") or result.get("text") or "").strip()
-            if not text and isinstance(result, dict):
-                # Some models return nested message
-                text = str(result.get("message", "") or "").strip()
+            text = ""
+            if isinstance(result, dict):
+                raw = result.get("response") or result.get("text") or result.get("message")
+                text = _message_content_to_text(raw)
+            elif isinstance(result, str):
+                text = result.strip()
             return AttemptResult(text=text, response_time_ms=elapsed)
     except Exception as e:
         elapsed = int((time.perf_counter() - t0) * 1000)
