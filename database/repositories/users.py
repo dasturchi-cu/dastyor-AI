@@ -40,7 +40,7 @@ def upsert_user(
                 credits, referred_by_id,
                 first_seen_at, last_seen_at, last_active_at
             )
-            VALUES (?, ?, ?, ?, ?, 1, ?, datetime('now'), datetime('now'), datetime('now'))
+            VALUES (?, ?, ?, ?, ?, 0, ?, datetime('now'), datetime('now'), datetime('now'))
             ON CONFLICT(telegram_id) DO UPDATE SET
                 username = COALESCE(excluded.username, users.username),
                 first_name = COALESCE(excluded.first_name, users.first_name),
@@ -295,16 +295,13 @@ def _referred_active_rows(conn, referrer_id: int) -> list[sqlite3.Row]:
 
 
 def count_eligible_referral_batches(referrer_id: int) -> int:
+    """1 do'st to'lagan = 1 mukofot."""
     with get_connection() as conn:
-        rows = _referred_active_rows(conn, int(referrer_id))
-    eligible = 0
-    for index in range(0, len(rows), 3):
-        chunk = rows[index : index + 3]
-        if len(chunk) < 3:
-            break
-        if any(int(r["referred_paid"] or 0) for r in chunk):
-            eligible += 1
-    return eligible
+        row = conn.execute(
+            "SELECT COUNT(*) AS c FROM users WHERE referred_by_id = ? AND referred_paid = 1",
+            (int(referrer_id),),
+        ).fetchone()
+    return int(row["c"]) if row else 0
 
 
 def get_referral_progress(referrer_id: int) -> dict[str, Any]:
@@ -314,35 +311,31 @@ def get_referral_progress(referrer_id: int) -> dict[str, Any]:
             "SELECT COUNT(*) AS c FROM users WHERE referred_by_id = ? AND referred_paid = 1",
             (int(referrer_id),),
         ).fetchone()
+        rewarded_row = conn.execute(
+            "SELECT referrals_rewarded_batches FROM users WHERE telegram_id = ?",
+            (int(referrer_id),),
+        ).fetchone()
     active_count = len(rows)
     paid_count = int(paid_row["c"]) if paid_row else 0
-    batch_progress = active_count % 3
-    if batch_progress == 0 and active_count > 0:
-        current_chunk = rows[-3:]
-        batch_progress = 3
-    elif batch_progress == 0:
-        current_chunk = []
-    else:
-        current_chunk = rows[-batch_progress:]
-    batch_has_paid = any(int(r["referred_paid"] or 0) for r in current_chunk)
+    rewarded = int(rewarded_row["referrals_rewarded_batches"] or 0) if rewarded_row else 0
+    pending = max(0, paid_count - rewarded)
     return {
         "active_count": active_count,
         "paid_count": paid_count,
-        "batch_progress": batch_progress,
-        "batch_has_paid": batch_has_paid,
+        "batch_progress": 1 if pending else 0,
+        "batch_has_paid": paid_count > 0,
+        "rewards_pending": pending,
     }
 
 
 def _evaluate_referrer_reward(conn, referrer_id: int) -> dict[str, Any]:
+    """Har bir to'lov qilgan do'st uchun +1 kredit."""
     rid = int(referrer_id)
-    eligible = 0
-    rows = _referred_active_rows(conn, rid)
-    for index in range(0, len(rows), 3):
-        chunk = rows[index : index + 3]
-        if len(chunk) < 3:
-            break
-        if any(int(r["referred_paid"] or 0) for r in chunk):
-            eligible += 1
+    row = conn.execute(
+        "SELECT COUNT(*) AS c FROM users WHERE referred_by_id = ? AND referred_paid = 1",
+        (rid,),
+    ).fetchone()
+    eligible = int(row["c"]) if row else 0
 
     ref_user = conn.execute(
         "SELECT referrals_rewarded_batches FROM users WHERE telegram_id = ?",
@@ -377,7 +370,7 @@ def _evaluate_referrer_reward(conn, referrer_id: int) -> dict[str, Any]:
 
 
 def mark_referral_paid(telegram_id: int) -> dict[str, Any] | None:
-    """Taklif qilingan foydalanuvchi pullik xarid qilganda."""
+    """Taklif qilingan foydalanuvchi pullik xarid qilganda → referrerga +1."""
     tid = int(telegram_id)
     with get_connection() as conn:
         row = conn.execute(
@@ -399,10 +392,62 @@ def mark_referral_paid(telegram_id: int) -> dict[str, Any] | None:
         return _evaluate_referrer_reward(conn, int(row["referred_by_id"]))
 
 
+def ensure_pay_promo(telegram_id: int) -> dict[str, Any]:
+    """24 soatlik 'bugun to'lasangiz +1 cover' oynasini yoqadi/yangilaydi."""
+    from config.settings import settings
+
+    tid = int(telegram_id)
+    hours = max(1, int(getattr(settings, "pay_promo_hours", 24) or 24))
+    with get_connection() as conn:
+        row = conn.execute(
+            "SELECT pay_promo_expires_at FROM users WHERE telegram_id = ?",
+            (tid,),
+        ).fetchone()
+        if not row:
+            return {"active": False, "expires_at": None, "hours_left": 0}
+
+        expires = row["pay_promo_expires_at"]
+        still_active = False
+        if expires:
+            ok = conn.execute(
+                "SELECT 1 AS ok WHERE datetime(?) > datetime('now')",
+                (str(expires),),
+            ).fetchone()
+            still_active = bool(ok)
+
+        if not still_active:
+            conn.execute(
+                """
+                UPDATE users
+                SET pay_promo_expires_at = datetime('now', ?),
+                    updated_at = datetime('now')
+                WHERE telegram_id = ?
+                """,
+                (f"+{hours} hours", tid),
+            )
+            expires_row = conn.execute(
+                "SELECT pay_promo_expires_at FROM users WHERE telegram_id = ?",
+                (tid,),
+            ).fetchone()
+            expires = expires_row["pay_promo_expires_at"] if expires_row else None
+
+        hours_left = 0
+        if expires:
+            hl = conn.execute(
+                """
+                SELECT CAST((julianday(?) - julianday('now')) * 24 AS INTEGER) AS h
+                """,
+                (str(expires),),
+            ).fetchone()
+            hours_left = max(0, int(hl["h"] or 0)) if hl else 0
+
+    return {"active": True, "expires_at": expires, "hours_left": hours_left}
+
+
 def activate_referral(telegram_id: int) -> dict[str, Any] | None:
     """
-    Taklif qilingan do'st birinchi hujjatini yuklab olganda faollashtiriladi.
-    Mukofot: har 3 ta faol taklif guruhi + guruhdan kamida 1 pullik xarid.
+    Do'st birinchi hujjatni yuklaganda faol bo'ladi.
+    Mukofot faqat do'st to'lov qilganda (+1).
     """
     tid = int(telegram_id)
     with get_connection() as conn:
@@ -425,4 +470,10 @@ def activate_referral(telegram_id: int) -> dict[str, Any] | None:
             (tid,),
         )
         invalidate_cache(tid)
-        return _evaluate_referrer_reward(conn, referrer_id)
+        progress = get_referral_progress(referrer_id)
+        return {
+            "referrer_id": referrer_id,
+            "rewarded": False,
+            "credits_added": 0,
+            **progress,
+        }

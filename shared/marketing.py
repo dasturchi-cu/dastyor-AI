@@ -14,20 +14,23 @@ def price_tag() -> str:
 
 
 def welcome_message() -> str:
-    p = format_price_uzs()
+    from shared.pricing import format_uzs, list_packages
+
+    packs = list_packages()
+    p1 = format_uzs(packs[0]["price_uzs"]) if packs else format_price_uzs()
     return (
         "👋 <b>DASTYOR AI</b> — ishga kirish hujjatlaringizni 1 daqiqada tayyorlang!\n\n"
         "🎯 <b>3 qadamda tayyor:</b>\n"
         "1️⃣ Ovozli xabar yoki matn yuboring (yoki pastdagi tugmani bosing)\n"
         "2️⃣ AI formani avtomatik to'ldiradi\n"
-        "3️⃣ Hujjatni tekshiring va yuklab oling\n\n"
+        "3️⃣ Demo ko'ring → toza fayl uchun paket tanlang\n\n"
         "📄 <b>CV Resume</b> — zamonaviy PDF format\n"
         "✍️ <b>Obyektivka</b> — rasmiy Word (.docx) format\n"
         "📝 <b>Muqova xati</b> — AI Cover Letter\n"
         "🌐 <b>Tarjima</b> — hujjatni ingliz yoki rus tiliga\n\n"
-        "🎁 <b>Ajoyib yangilik:</b> Yangi foydalanuvchilar uchun <b>birinchi hujjatni yaratish va yuklash mutlaqo BEPUL!</b>\n"
-        "🎙 Tahrirlash va tahlil qilish — <b>bepul</b>\n"
-        f"💰 Keyingi hujjatlar: <b>{p} so'm</b> = 1 ta yuklash\n\n"
+        "🎁 <b>Demo bepul</b> (belgi bilan). <b>Toza fayl</b> — to'lov.\n"
+        "🎙 Tahrirlash va tahlil — <b>bepul</b>\n"
+        f"💰 Paketlar: 1× = {p1} so'm · 3× va 5× arzonroq\n\n"
         "👇 Boshlash uchun xizmatlardan birini tanlang:"
     )
 
@@ -62,18 +65,24 @@ def cross_sell_translate_line() -> str:
     return "\n\n💡 <b>Tarjima kerakmi?</b> Bosh menyudan 🌐 Tarjima tugmasini bosing yoki /translate yozing."
 
 
-def payment_approved_message(credits: int, document_type: str | None = None) -> str:
+def payment_approved_message(credits: int, document_type: str | None = None, *, promo_bonus: int = 0) -> str:
     from shared.payment_notifications import format_document_type, payment_service_command
+    from shared.pricing import packages_block_text
 
     p = format_price_uzs()
     service_label = format_document_type(document_type)
     service_cmd = payment_service_command(document_type)
     service_hint = f"{service_label} — <code>{service_cmd}</code>"
+    bonus_line = ""
+    if promo_bonus:
+        bonus_line = "\n🎁 <b>Bonus:</b> +1 Muqova xati (bugungi aksiya) qo'shildi!\n"
     return (
         "✅ <b>To'lovingiz tasdiqlandi!</b>\n\n"
         "Admin to'lovingizni ko'rib chiqdi va tasdiqladi.\n\n"
         f"💳 <b>Joriy balans:</b> {credits} ta yuklash\n"
-        f"ℹ️ 1 ta yuklash = <b>{p} so'm</b> (CV, Obyektivka, Muqova xati, Tarjima — barchasiga)\n"
+        f"{bonus_line}"
+        f"ℹ️ 1 yuklash = CV / Obyektivka / Muqova / Tarjima\n"
         f"📄 Tanlangan xizmat: {service_hint}\n\n"
+        f"{packages_block_text()}\n\n"
         "👇 Xizmatingizni boshlang:"
     )

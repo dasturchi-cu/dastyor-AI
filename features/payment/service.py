@@ -12,10 +12,18 @@ from database.repositories import users as users_repo
 
 
 def payment_info() -> dict[str, Any]:
+    from shared.pricing import list_packages
+
     return {
         "card_number": settings.payment_card_number,
         "card_owner": settings.payment_card_owner,
         "single_doc_price_uzs": settings.single_doc_price_uzs,
+        "packages": list_packages(),
+        "pay_promo_hours": int(getattr(settings, "pay_promo_hours", 24) or 24),
+        "credit_note": (
+            "Demo (belgili) bepul. Toza fayl — paket: "
+            "1× / 3× / 5×. Bugun to'lasangiz +1 muqova bonus."
+        ),
     }
 
 
@@ -49,6 +57,7 @@ def submit_payment(
         card_number=card_number,
         receipt_path=str(receipt_path),
         document_type="manual",
+        package_id="pack1",
     )
     if not payment:
         raise RuntimeError("To'lov saqlanmadi")

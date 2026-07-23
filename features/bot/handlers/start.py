@@ -27,7 +27,8 @@ from shared.keyboards import (
     open_webapp_inline,
     user_menu,
 )
-from shared.marketing import cv_intro_header, format_price_uzs, welcome_message
+from shared.marketing import cv_intro_header, welcome_message
+from shared.pricing import packages_block_text
 
 router = Router()
 
@@ -45,8 +46,9 @@ HELP_TEXT = (
     "/balance — to'langan mablag' va hujjatlar\n"
     "/contact — admin bilan bog'lanish\n"
     "/help — yordam\n\n"
-    "🎙 Ovoz yoki matn — AI avtomatik to'ldirish (bepul)\n\n"
-    f"Narx: <b>{format_price_uzs()} so'm</b> = 1 hujjat (barcha xizmatlar uchun)"
+    "🎙 Ovoz yoki matn — AI avtomatik to'ldirish (bepul)\n"
+    "📄 Demo (belgili) bepul · 💎 Toza fayl — paket\n\n"
+    f"{packages_block_text()}"
 )
 
 
@@ -252,19 +254,30 @@ async def menu_back(message: Message, state: FSMContext) -> None:
 async def show_credits_for_uid(message: Message, uid: int) -> None:
     status = await db_run(users_repo.get_credits, uid)
     progress = await db_run(users_repo.get_referral_progress, uid)
+    promo = await db_run(users_repo.ensure_pay_promo, uid)
     bot_username = settings.bot_username or "DastyorAiBot"
     ref_link = f"https://t.me/{bot_username}?start=ref_{uid}"
-    price = format_price_uzs()
     from shared.keyboards import payment_choice_keyboard
+    from shared.pricing import packages_block_text
     from shared.referral import referral_balance_block
 
+    promo_line = ""
+    if promo.get("active"):
+        h = int(promo.get("hours_left") or 0)
+        promo_line = (
+            f"\n⚡️ <b>Aksiya:</b> {h} soat ichida to'lasangiz — "
+            f"<b>+1 Muqova xati bepul</b>!\n"
+        )
+
     await message.answer(
-        f"💳 <b>Sotib olingan yuklashlar:</b> {status} ta\n"
-        f"ℹ️ Ovoz va matn to'ldirish — <b>bepul</b>\n"
-        f"💰 1 ta yuklash narxi: <b>{price} so'm</b>\n"
+        f"💳 <b>Yuklashlaringiz:</b> {status} ta\n"
+        f"ℹ️ Ovoz/matn/preview — <b>bepul</b>\n"
+        f"📄 Demo (belgili) — bepul · 💎 Toza fayl — paket\n"
+        f"{promo_line}\n"
+        f"{packages_block_text()}\n"
         f"Karta: <code>{settings.payment_card_number}</code>\n"
         f"Egasi: {settings.payment_card_owner}\n\n"
-        f"💡 <b>Eslatma:</b> Yuklash balansi universaldir! Sotib olgan yuklash limitlaringizdan CV, Obyektivka, Muqova xati (Cover letter) yoki Hujjat tarjima qilish xizmatlarining istalganida foydalanishingiz mumkin.\n\n"
+        f"💡 Yuklashlar universal: CV, Obyektivka, Muqova, Tarjima.\n\n"
         f"{referral_balance_block(ref_link, progress)}",
         reply_markup=payment_choice_keyboard(uid),
     )

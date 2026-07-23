@@ -90,7 +90,13 @@ def schedule_stealth_auto_approve(
                     kind=kind,
                     purchase_number=purchase_number,
                 )
-            await _notify_user_payment_approved(bot, tid, credits, result.get("document_type"))
+            await _notify_user_payment_approved(
+                bot,
+                tid,
+                credits,
+                result.get("document_type"),
+                promo_bonus=int(result.get("promo_bonus_granted") or 0),
+            )
             ref_info = result.get("referral_info")
             if ref_info:
                 from shared.referral import notify_referrer

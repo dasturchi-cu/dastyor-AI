@@ -80,6 +80,7 @@ def generate_obyektivka_docx(
     output_filepath: str | None = None,
     *,
     watermark: bool = False,
+    watermark_text: str | None = None,
     **kwargs: Any,
 ) -> str:
     data = user_data or kwargs.get("data") or {}
@@ -125,16 +126,25 @@ def generate_obyektivka_docx(
     if watermark:
         from features.obyektivka.docx_watermark import apply_demo_watermark
 
-        apply_demo_watermark(Path(output_filepath))
+        apply_demo_watermark(Path(output_filepath), text=watermark_text)
 
     return output_filepath
 
 
 def generate_obyektivka_docx_bytes(
-    data: dict[str, Any], *, photo_path: str | None = None, watermark: bool = False
+    data: dict[str, Any],
+    *,
+    photo_path: str | None = None,
+    watermark: bool = False,
+    watermark_text: str | None = None,
 ) -> bytes:
     """DOCX bytes — master shablon; preview/demo/paid bitta pipeline."""
-    path = generate_obyektivka_docx(data, photo_path=photo_path, watermark=watermark)
+    path = generate_obyektivka_docx(
+        data,
+        photo_path=photo_path,
+        watermark=watermark,
+        watermark_text=watermark_text,
+    )
     try:
         return Path(path).read_bytes()
     finally:

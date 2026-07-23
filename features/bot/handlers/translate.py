@@ -623,6 +623,7 @@ async def process_translation(callback: CallbackQuery) -> None:
                     f"✅ <b>CV {lang_label} tilida tayyorlandi!</b>\n"
                     f"<i>(Balansingizdan 1 ta yuklash sarflandi)</i>"
                 ),
+                with_referral_share=True,
             )
         else:
             docx_bytes, filename = await oby_service.export_docx(uid, translated, bot)
@@ -635,6 +636,7 @@ async def process_translation(callback: CallbackQuery) -> None:
                     f"✅ <b>Obyektivka {lang_label} tilida tayyorlandi!</b>\n"
                     f"<i>(Balansingizdan 1 ta yuklash sarflandi)</i>"
                 ),
+                with_referral_share=True,
             )
 
         if sent:

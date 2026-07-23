@@ -40,6 +40,9 @@ async def api_me(token: str | None = Query(None), telegram_id: str | None = Quer
     if not user:
         user = await async_db.run(users_repo.upsert_user, uid)
     session = get_session_by_telegram_id(uid) or {}
+    promo = await async_db.run(users_repo.ensure_pay_promo, uid)
+    from shared.pricing import list_packages
+
     return {
         "ok": True,
         "telegram_id": uid,
@@ -47,8 +50,17 @@ async def api_me(token: str | None = Query(None), telegram_id: str | None = Quer
         "username": session.get("username", user.get("username", "")),
         "credits": int(user.get("credits") or 0),
         "single_doc_price_uzs": settings.single_doc_price_uzs,
+        "packages": list_packages(),
+        "pay_promo_hours": int(getattr(settings, "pay_promo_hours", 24) or 24),
+        "pay_promo_hours_left": int(promo.get("hours_left") or 0),
+        "pay_promo_active": bool(promo.get("active")),
         "has_access": int(user.get("credits") or 0) > 0,
-        "credit_note": f"Ovoz/matn bepul. Tayyor fayl: {settings.single_doc_price_uzs:,} so'm = 1 ta hujjat (CV, Obyektivka, Muqova, Tarjima)",
+        "demo_free": True,
+        "credit_note": (
+            "Demo (belgili) bepul. Toza fayl uchun paket tanlang "
+            f"(1× = {settings.single_doc_price_uzs:,} so'm). "
+            "Bugun to'lasangiz +1 muqova bonus."
+        ),
     }
 
 
@@ -222,6 +234,8 @@ async def _notify_user_payment_approved(
     telegram_id: int,
     credits: int,
     document_type: str | None = None,
+    *,
+    promo_bonus: int = 0,
 ) -> None:
     from shared.keyboards import open_services_after_payment_inline
     from shared.marketing import payment_approved_message
@@ -229,7 +243,7 @@ async def _notify_user_payment_approved(
     try:
         await bot.send_message(
             telegram_id,
-            payment_approved_message(credits, document_type),
+            payment_approved_message(credits, document_type, promo_bonus=promo_bonus),
             reply_markup=open_services_after_payment_inline(telegram_id, document_type),
         )
     except Exception as e:
@@ -334,15 +348,25 @@ async def api_request_paid_cv(body: dict) -> dict:
     uid = resolve_uid(str(body.get("telegram_id") or ""), body.get("token"))
     if not uid:
         raise HTTPException(status_code=401, detail="Foydalanuvchi aniqlanmadi")
-    payload = {k: v for k, v in body.items() if k not in ("telegram_id", "token")}
+    package_id = str(body.get("package_id") or "pack1")
+    payload = {
+        k: v
+        for k, v in body.items()
+        if k not in ("telegram_id", "token", "package_id")
+    }
     cv_repo.save(uid, payload)
     name = str(payload.get("name") or "User")[:80]
-    payment = payments_repo.create_payment(uid, payer_name=name, document_type="cv")
+    payment = payments_repo.create_payment(
+        uid, payer_name=name, document_type="cv", package_id=package_id
+    )
     if not payment:
         raise HTTPException(status_code=500, detail="So'rov saqlanmadi")
     return {
         "ok": True,
         "request_id": int(payment["id"]),
+        "package_id": payment.get("package_id"),
+        "amount": payment.get("amount"),
+        "credits_granted": payment.get("credits_granted"),
         "message": "To'lov qiling va skrinshot yuboring.",
     }
 
@@ -354,15 +378,25 @@ async def api_request_paid_obyektivka(body: dict) -> dict:
     uid = resolve_uid(str(body.get("telegram_id") or ""), body.get("token"))
     if not uid:
         raise HTTPException(status_code=401, detail="Foydalanuvchi aniqlanmadi")
-    payload = {k: v for k, v in body.items() if k not in ("telegram_id", "token")}
+    package_id = str(body.get("package_id") or "pack1")
+    payload = {
+        k: v
+        for k, v in body.items()
+        if k not in ("telegram_id", "token", "package_id")
+    }
     oby_repo.save_payload(uid, payload)
     name = str(payload.get("fullname") or "User")[:80]
-    payment = payments_repo.create_payment(uid, payer_name=name, document_type="obyektivka")
+    payment = payments_repo.create_payment(
+        uid, payer_name=name, document_type="obyektivka", package_id=package_id
+    )
     if not payment:
         raise HTTPException(status_code=500, detail="So'rov saqlanmadi")
     return {
         "ok": True,
         "request_id": int(payment["id"]),
+        "package_id": payment.get("package_id"),
+        "amount": payment.get("amount"),
+        "credits_granted": payment.get("credits_granted"),
         "message": "To'lov qiling va skrinshot yuboring.",
     }
 

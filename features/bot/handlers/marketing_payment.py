@@ -35,7 +35,6 @@ from shared.keyboards import (
     is_menu_button,
     user_menu,
 )
-from shared.marketing import format_price_uzs
 from features.payment.router import _finalize_payment_submission
 
 logger = logging.getLogger(__name__)
@@ -83,33 +82,57 @@ async def show_samples(message: Message) -> None:
 
 @router.callback_query(F.data == "pay_via_bot")
 async def choose_payment_type(callback: CallbackQuery) -> None:
+    """Eski tugma — to'g'ridan-to'g'ri paketlar."""
+    uid = callback.from_user.id if callback.from_user else 0
+    from shared.keyboards import package_choice_keyboard
+    from shared.pricing import soft_paywall_text
+    from database.repositories import users as users_repo
+    from shared.async_db import run as db_run
+
+    promo = await db_run(users_repo.ensure_pay_promo, uid)
     await callback.message.edit_text(
-        "❓ <b>Qaysi xizmat uchun to'lov qilmoqchisiz?</b>\n\n"
-        "💡 <i>Eslatma: Qaysi birini tanlasangiz ham, sotib olingan yuklash limiti universaldir — CV, Obyektivka, Muqova xati va Tarjima xizmatlarining barchasiga birdek amal qiladi.</i>",
+        soft_paywall_text(
+            promo_active=bool(promo.get("active")),
+            promo_hours_left=int(promo.get("hours_left") or 0),
+        ),
+        reply_markup=package_choice_keyboard(uid),
+    )
+    await callback.answer()
+
+
+@router.callback_query(F.data.startswith("pay_pack_"))
+async def choose_package(callback: CallbackQuery, state: FSMContext) -> None:
+    pack_id = (callback.data or "").replace("pay_pack_", "", 1).strip()
+    from shared.pricing import format_uzs, get_package
+
+    pack = get_package(pack_id)
+    prev = await state.get_data()
+    document_type = prev.get("payment_document_type") or "cv"
+    await state.set_state(PaymentStates.waiting_screenshot)
+    await state.update_data(
+        payment_document_type=document_type,
+        payment_label=pack.label,
+        payment_package_id=pack.id,
+    )
+    await callback.message.edit_text(
+        f"💳 <b>{pack.label}</b> — <b>{format_uzs(pack.price_uzs)} so'm</b> "
+        f"({pack.credits} ta yuklash)\n\n"
+        f"Karta: <code>{settings.payment_card_number}</code>\n"
+        f"Egasi: <b>{settings.payment_card_owner}</b>\n\n"
+        "To'lovni qilib, chek/skrinshotni shu yerga yuboring 👇\n\n"
+        "⚡️ Agar 24 soatlik aksiya faol bo'lsa — tasdiqlanganda <b>+1 Muqova xati</b> bonus qo'shiladi.",
         reply_markup=InlineKeyboardMarkup(
             inline_keyboard=[
-                [
-                    InlineKeyboardButton(text="📄 CV Resume uchun", callback_data="pay_bot_type_cv"),
-                ],
-                [
-                    InlineKeyboardButton(text="✍️ Obyektivka uchun", callback_data="pay_bot_type_oby"),
-                ],
-                [
-                    InlineKeyboardButton(text="📝 Muqova xati uchun", callback_data="pay_bot_type_cover"),
-                ],
-                [
-                    InlineKeyboardButton(text="🌐 Hujjatni tarjima qilish uchun", callback_data="pay_bot_type_translate"),
-                ],
-                [
-                    InlineKeyboardButton(text="❌ Orqaga", callback_data="pay_cancel"),
-                ]
+                [InlineKeyboardButton(text="❌ Bekor qilish", callback_data="pay_cancel")]
             ]
-        )
+        ),
     )
+    await callback.answer()
 
 
 @router.callback_query(F.data.startswith("pay_bot_type_"))
 async def start_bot_payment(callback: CallbackQuery, state: FSMContext) -> None:
+    """Legacy: xizmat tanlash → paketlar."""
     kind_raw = callback.data.replace("pay_bot_type_", "")
     if kind_raw not in ("cv", "oby", "cover", "translate"):
         await callback.answer("Noto'g'ri tanlov", show_alert=True)
@@ -123,23 +146,25 @@ async def start_bot_payment(callback: CallbackQuery, state: FSMContext) -> None:
         "translate": "Hujjat tarjimasi",
     }
     label = labels[document_type]
-    price = format_price_uzs()
-
-    await state.set_state(PaymentStates.waiting_screenshot)
+    uid = callback.from_user.id if callback.from_user else 0
     await state.update_data(payment_document_type=document_type, payment_label=label)
 
+    from shared.keyboards import package_choice_keyboard
+    from shared.pricing import soft_paywall_text
+    from database.repositories import users as users_repo
+    from shared.async_db import run as db_run
+
+    promo = await db_run(users_repo.ensure_pay_promo, uid)
     await callback.message.edit_text(
-        f"💳 <b>{label} to'lovi ({price} so'm)</b>\n\n"
-        f"Karta: <code>{settings.payment_card_number}</code>\n"
-        f"Egasi: <b>{settings.payment_card_owner}</b>\n\n"
-        f"Iltimos, to'lovni amalga oshirgach, to'lov cheki rasm/skrinshotini shu yerga yuboring 👇\n\n"
-        "ℹ️ Chek kutishda ham 💳 Pul balansi yoki boshqa menyu tugmalaridan foydalanishingiz mumkin.",
-        reply_markup=InlineKeyboardMarkup(
-            inline_keyboard=[
-                [InlineKeyboardButton(text="❌ Bekor qilish", callback_data="pay_cancel")]
-            ]
+        f"📄 <b>{label}</b> uchun paket tanlang:\n\n"
+        + soft_paywall_text(
+            promo_active=bool(promo.get("active")),
+            promo_hours_left=int(promo.get("hours_left") or 0),
         ),
+        reply_markup=package_choice_keyboard(uid, document_type=document_type),
     )
+    await callback.answer()
+
 
 
 @router.callback_query(F.data == "pay_cancel")
@@ -150,17 +175,26 @@ async def cancel_bot_payment(callback: CallbackQuery, state: FSMContext) -> None
     uid = callback.from_user.id
     status = await db_run(users_repo.get_credits, uid)
     progress = await db_run(users_repo.get_referral_progress, uid)
+    promo = await db_run(users_repo.ensure_pay_promo, uid)
     bot_username = settings.bot_username or "DastyorAiBot"
     ref_link = f"https://t.me/{bot_username}?start=ref_{uid}"
-    price = format_price_uzs()
 
     from shared.keyboards import payment_choice_keyboard
+    from shared.pricing import packages_block_text
     from shared.referral import referral_balance_block
 
+    promo_line = ""
+    if promo.get("active"):
+        promo_line = (
+            f"\n⚡️ <b>Aksiya:</b> {int(promo.get('hours_left') or 0)} soat ichida "
+            f"to'lasangiz — +1 Muqova bepul!\n"
+        )
+
     await callback.message.edit_text(
-        f"💳 <b>Sotib olingan yuklashlar:</b> {status} ta\n"
-        f"ℹ️ Ovoz va matn to'ldirish — <b>bepul</b>\n"
-        f"💰 1 ta yuklash narxi: <b>{price} so'm</b>\n"
+        f"💳 <b>Yuklashlaringiz:</b> {status} ta\n"
+        f"ℹ️ Demo bepul · Toza fayl — paket\n"
+        f"{promo_line}\n"
+        f"{packages_block_text()}\n"
         f"Karta: <code>{settings.payment_card_number}</code>\n"
         f"Egasi: {settings.payment_card_owner}\n\n"
         f"{referral_balance_block(ref_link, progress)}",
@@ -236,6 +270,7 @@ async def process_payment_screenshot(message: Message, state: FSMContext) -> Non
     data = await state.get_data()
     document_type = data.get("payment_document_type", "cv")
     label = data.get("payment_label", "CV Resume")
+    package_id = data.get("payment_package_id") or "pack1"
     await state.clear()
 
     # Get primary user name
@@ -249,7 +284,13 @@ async def process_payment_screenshot(message: Message, state: FSMContext) -> Non
     RECEIPTS_DIR.mkdir(parents=True, exist_ok=True)
     
     # We must insert payment row first to obtain payment request ID
-    payment = await db_run(payments_repo.create_payment, uid, payer_name=name, document_type=document_type)
+    payment = await db_run(
+        payments_repo.create_payment,
+        uid,
+        payer_name=name,
+        document_type=document_type,
+        package_id=package_id,
+    )
     if not payment:
         await message.answer("❌ To'lov so'rovini saqlashda xatolik yuz berdi. Qayta urinib ko'ring.")
         return

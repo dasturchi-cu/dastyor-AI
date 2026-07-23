@@ -132,6 +132,13 @@ class Settings:
     payment_card_number: str = field(default_factory=lambda: _env("PAYMENT_CARD_NUMBER"))
     payment_card_owner: str = field(default_factory=lambda: _env("PAYMENT_CARD_OWNER"))
     single_doc_price_uzs: int = field(default_factory=lambda: _env_int("SINGLE_DOC_PRICE_UZS", 7999))
+    package_1_price_uzs: int = field(
+        default_factory=lambda: _env_int("PACKAGE_1_PRICE_UZS", _env_int("SINGLE_DOC_PRICE_UZS", 7999))
+    )
+    package_3_price_uzs: int = field(default_factory=lambda: _env_int("PACKAGE_3_PRICE_UZS", 14_999))
+    package_5_price_uzs: int = field(default_factory=lambda: _env_int("PACKAGE_5_PRICE_UZS", 19_999))
+    # Bugun to'lasangiz +1 cover bonus (soat)
+    pay_promo_hours: int = field(default_factory=lambda: _env_int("PAY_PROMO_HOURS", 24))
     webapp_base: str = field(default_factory=resolve_webapp_base)
     webapp_version: str = field(default_factory=lambda: _env("WEBAPP_VERSION", "20260622i"))
     site_base_url: str = field(default_factory=lambda: _env("SITE_BASE_URL").rstrip("/"))

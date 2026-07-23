@@ -437,6 +437,49 @@ def migration_014_referral_paid_batches(conn: sqlite3.Connection) -> None:
             _add_column(conn, "users", "referrals_rewarded_batches INTEGER NOT NULL DEFAULT 0")
 
 
+def migration_015_packages_and_promo(conn: sqlite3.Connection) -> None:
+    """Credit packages on payments + 24h pay promo window on users."""
+    if _table_exists(conn, "payments"):
+        cols = _columns(conn, "payments")
+        if "package_id" not in cols:
+            _add_column(conn, "payments", "package_id TEXT")
+        if "credits_granted" not in cols:
+            _add_column(conn, "payments", "credits_granted INTEGER NOT NULL DEFAULT 1")
+        if "promo_bonus_granted" not in cols:
+            _add_column(conn, "payments", "promo_bonus_granted INTEGER NOT NULL DEFAULT 0")
+        # Legacy rows: map amount → package / credits
+        conn.execute(
+            """
+            UPDATE payments
+            SET package_id = COALESCE(package_id, 'pack1'),
+                credits_granted = COALESCE(NULLIF(credits_granted, 0), 1)
+            WHERE package_id IS NULL OR credits_granted IS NULL OR credits_granted = 0
+            """
+        )
+        conn.execute(
+            """
+            UPDATE payments SET package_id = 'pack5', credits_granted = 5
+            WHERE package_id = 'pack1' AND amount >= 19999
+            """
+        )
+        conn.execute(
+            """
+            UPDATE payments SET package_id = 'pack3', credits_granted = 3
+            WHERE package_id = 'pack1' AND amount >= 14999 AND amount < 19999
+            """
+        )
+        conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_payments_package ON payments(package_id)"
+        )
+    if _table_exists(conn, "users"):
+        cols = _columns(conn, "users")
+        if "pay_promo_expires_at" not in cols:
+            _add_column(conn, "users", "pay_promo_expires_at TEXT")
+        conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_users_pay_promo ON users(pay_promo_expires_at)"
+        )
+
+
 MIGRATIONS: list[tuple[int, str, MigrationFn]] = [
     (1, "legacy_columns", migration_001_legacy_columns),
     (2, "new_tables", migration_002_new_tables),
@@ -452,6 +495,7 @@ MIGRATIONS: list[tuple[int, str, MigrationFn]] = [
     (12, "referrals", migration_012_referrals),
     (13, "referral_active", migration_013_referral_active),
     (14, "referral_paid_batches", migration_014_referral_paid_batches),
+    (15, "packages_and_promo", migration_015_packages_and_promo),
 ]
 
 

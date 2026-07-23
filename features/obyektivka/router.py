@@ -244,13 +244,22 @@ def _pdf_inline_response(pdf_bytes: bytes, *, filename: str = "obyektivka_previe
     )
 
 
-async def _build_oby_docx_pdf(payload: dict, *, watermark: bool = False) -> bytes:
+async def _build_oby_docx_pdf(
+    payload: dict,
+    *,
+    watermark: bool = False,
+    watermark_text: str | None = None,
+) -> bytes:
     """Master DOCX → PDF (preview, demo, paid — bitta manba)."""
     from backend.services.docx_to_pdf import docx_bytes_to_pdf
     from features.obyektivka.docx_template import generate_obyektivka_docx_bytes
 
     def _render() -> bytes:
-        docx_bytes = generate_obyektivka_docx_bytes(payload, watermark=watermark)
+        docx_bytes = generate_obyektivka_docx_bytes(
+            payload,
+            watermark=watermark,
+            watermark_text=watermark_text,
+        )
         return docx_bytes_to_pdf(docx_bytes)
 
     pdf_bytes = await asyncio.to_thread(_render)
@@ -320,8 +329,9 @@ async def api_preview_obyektivka_html(req: PreviewObyektivkaRequest, request: Re
 
 @router.post("/api/test_obyektivka_pdf")
 async def api_test_obyektivka_pdf(req: TestObyektivkaPdfRequest, request: Request):
-    """Demo PDF — master DOCX + watermark → PDF."""
+    """Demo PDF — master DOCX + watermark (+ ref) → PDF."""
     from config.settings import settings
+    from shared.keyboards import referral_link
 
     if not settings.enable_demo_pdf_api:
         logger.warning("test_obyektivka_pdf: disabled (ENABLE_DEMO_PDF_API=0)")
@@ -332,8 +342,15 @@ async def api_test_obyektivka_pdf(req: TestObyektivkaPdfRequest, request: Reques
         exclude={"watermark", "mask_pii", "telegram_id", "token", "init_data", "send_to_bot"}
     )
 
+    uid = resolve_uid_from_webapp(req.telegram_id, req.token, req.init_data)
+    bot_handle = f"@{settings.bot_username.lstrip('@')}"
+    wm_text = bot_handle
+    if uid:
+        # PDF forward/share = bepul reklama (shaxsiy ref watermark)
+        wm_text = f"{bot_handle} · start=ref_{uid}"
+
     try:
-        pdf_bytes = await _build_oby_docx_pdf(payload, watermark=True)
+        pdf_bytes = await _build_oby_docx_pdf(payload, watermark=True, watermark_text=wm_text)
     except Exception as exc:
         logger.exception("test_obyektivka_pdf")
         from shared.error_log import record_error
@@ -343,25 +360,35 @@ async def api_test_obyektivka_pdf(req: TestObyektivkaPdfRequest, request: Reques
 
     safe_name = re.sub(r"[^\w\u0400-\u04FF]+", "_", (payload.get("fullname") or "Obyektivka"))[:40]
     filename = f"DEMO_Malumotnoma_{safe_name or 'Obyektivka'}.pdf"
-    bot_handle = f"@{settings.bot_username.lstrip('@')}"
 
     if req.send_to_bot:
-        uid = resolve_uid_from_webapp(req.telegram_id, req.token, req.init_data)
         if not uid:
             raise HTTPException(status_code=401, detail="Bot orqali oching va qayta urinib ko'ring.")
         bot = getattr(request.app.state, "bot", None)
+        ref = referral_link(uid)
         sent = await send_bytes_to_telegram(
             bot,
             uid,
             pdf_bytes,
             filename,
             caption=(
-                f"📄 DEMO PDF — orqasida {bot_handle} belgisi bilan.\n"
-                "Ma'lumotlarni tekshiring. To'lovdan keyin toza Word fayl olasiz."
+                f"📄 DEMO PDF — orqasida {bot_handle} + sizning ref havolangiz.\n"
+                f"🔗 <code>{ref}</code>\n"
+                "Ma'lumotlarni tekshiring. Toza Word/PDF uchun paket tanlang "
+                "(1× / 3× / 5×). Bugun to'lasangiz +1 muqova bonus!"
             ),
+            with_referral_share=True,
         )
         if not sent:
             raise HTTPException(status_code=500, detail="Telegramga yuborib bo'lmadi")
+        # Referral: demo yuklash ham faollashtiradi
+        from database.repositories import users as users_repo
+        from shared import async_db
+        from shared.referral import notify_referrer
+
+        ref_info = await async_db.run(users_repo.activate_referral, uid)
+        if ref_info and bot:
+            await notify_referrer(bot, ref_info, event="download")
         return JSONResponse({"ok": True, "sent": True, "filename": filename})
 
     return StreamingResponse(
@@ -393,6 +420,7 @@ async def api_export_oby(req: ExportObyektivkaRequest, request: Request) -> Stre
             docx_bytes,
             filename,
             caption="✅ Obyektivka Word tayyor! Keyingi hujjat uchun pul to'lov qiling.",
+            with_referral_share=True,
         )
         if not sent:
             raise HTTPException(status_code=500, detail="Telegramga yuborib bo'lmadi")

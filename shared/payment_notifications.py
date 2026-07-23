@@ -147,7 +147,13 @@ def build_payment_notification_text(
     username = html.escape(format_username(payment.get("username")))
     document = html.escape(format_document_type(kind, payment))
     when = html.escape(format_datetime_uz(payment.get("created_at")))
-    amount = f"{settings.single_doc_price_uzs:,} so'm"
+    amount_raw = payment.get("amount")
+    try:
+        amount_n = int(amount_raw) if amount_raw is not None else settings.single_doc_price_uzs
+    except (TypeError, ValueError):
+        amount_n = settings.single_doc_price_uzs
+    credits_g = int(payment.get("credits_granted") or 1)
+    amount = f"{amount_n:,} so'm ({credits_g}×)"
     purchase = html.escape(purchase_ordinal_uz(purchase_number))
 
     user_line = full_name

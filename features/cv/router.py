@@ -88,6 +88,7 @@ async def api_export_cv(req: ExportCVRequest, request: Request) -> Response:
             pdf_bytes,
             filename,
             caption="✅ CV PDF tayyor! Keyingi hujjat uchun pul to'lov qiling.",
+            with_referral_share=True,
         )
         if not sent:
             raise HTTPException(status_code=500, detail="Telegramga yuborib bo'lmadi")

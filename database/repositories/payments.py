@@ -3,7 +3,6 @@ from __future__ import annotations
 
 from typing import Any
 
-from config.settings import settings
 from database.connection import get_connection, row_to_dict
 from database.repositories import users as users_repo
 from database.repositories import admin_data
@@ -16,19 +15,24 @@ def create_payment(
     receipt_path: str | None = None,
     *,
     document_type: str | None = None,
+    package_id: str | None = None,
 ) -> dict[str, Any] | None:
+    from shared.pricing import get_package
+
     user = users_repo.upsert_user(telegram_id)
     uid = int(user["id"])
     doc = (document_type or "").strip().lower()[:32] or None
-    amount = settings.single_doc_price_uzs
+    pack = get_package(package_id)
+    amount = int(pack.price_uzs)
+    credits = int(pack.credits)
     with get_connection() as conn:
         cur = conn.execute(
             """
             INSERT INTO payments (
                 user_id, payer_name, card_number, receipt_path, screenshot_path,
-                document_type, amount, status
+                document_type, amount, status, package_id, credits_granted
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, 'PENDING')
+            VALUES (?, ?, ?, ?, ?, ?, ?, 'PENDING', ?, ?)
             """,
             (
                 uid,
@@ -38,6 +42,8 @@ def create_payment(
                 receipt_path,
                 doc,
                 amount,
+                pack.id,
+                credits,
             ),
         )
         pid = cur.lastrowid
@@ -118,14 +124,17 @@ def approve_atomic(
     approved_by: int | None = None,
 ) -> dict[str, Any] | None:
     """
-    Atomically: PENDING → APPROVED + grant 1 credit.
+    Atomically: PENDING → APPROVED + grant package credits (+ optional 24h promo bonus).
     Idempotent if already APPROVED (no extra credit).
     """
+    from shared.pricing import get_package, package_from_amount
+
     pid = int(payment_id)
     with get_connection() as conn:
         row = conn.execute(
             """
-            SELECT p.id, p.status, p.user_id, u.telegram_id
+            SELECT p.id, p.status, p.user_id, p.amount, p.package_id, p.credits_granted,
+                   u.telegram_id, u.pay_promo_expires_at
             FROM payments p
             JOIN users u ON u.id = p.user_id
             WHERE p.id = ?
@@ -139,6 +148,26 @@ def approve_atomic(
         if status == "APPROVED":
             pass
         elif status == "PENDING":
+            pack_id = row["package_id"]
+            granted_raw = row["credits_granted"]
+            if pack_id:
+                credits = int(get_package(str(pack_id)).credits)
+            elif granted_raw is not None and int(granted_raw) > 0:
+                credits = int(granted_raw)
+            else:
+                credits = int(package_from_amount(row["amount"]).credits)
+
+            promo_bonus = 0
+            promo_expires = row["pay_promo_expires_at"]
+            if promo_expires:
+                active = conn.execute(
+                    "SELECT 1 AS ok WHERE datetime(?) > datetime('now')",
+                    (str(promo_expires),),
+                ).fetchone()
+                if active:
+                    promo_bonus = 1
+
+            total_grant = credits + promo_bonus
             cur = conn.execute(
                 """
                 UPDATE payments
@@ -146,22 +175,25 @@ def approve_atomic(
                     admin_note = COALESCE(?, admin_note),
                     approved_by = COALESCE(?, approved_by),
                     approved_at = datetime('now'),
-                    updated_at = datetime('now')
+                    updated_at = datetime('now'),
+                    credits_granted = ?,
+                    promo_bonus_granted = ?
                 WHERE id = ? AND status = 'PENDING'
                 """,
-                (admin_note, approved_by, pid),
+                (admin_note, approved_by, credits, promo_bonus, pid),
             )
             if cur.rowcount != 1:
                 return None
             conn.execute(
                 """
                 UPDATE users
-                SET credits = credits + 1,
+                SET credits = credits + ?,
                     total_purchases = total_purchases + 1,
+                    pay_promo_expires_at = CASE WHEN ? > 0 THEN NULL ELSE pay_promo_expires_at END,
                     updated_at = datetime('now')
                 WHERE id = ?
                 """,
-                (int(row["user_id"]),),
+                (total_grant, promo_bonus, int(row["user_id"])),
             )
             users_repo.invalidate_cache(int(row["telegram_id"]))
         else:

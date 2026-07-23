@@ -548,10 +548,11 @@ async def payment_callback(query: CallbackQuery) -> None:
                 from shared.marketing import payment_approved_message
 
                 doc_type = str(result.get("document_type") or "cv")
+                promo_bonus = int(result.get("promo_bonus_granted") or 0)
                 notified = await _notify_payment_user(
                     query.bot,
                     tid,
-                    payment_approved_message(credits, doc_type),
+                    payment_approved_message(credits, doc_type, promo_bonus=promo_bonus),
                     reply_markup=open_services_after_payment_inline(tid, doc_type),
                 )
                 ref_info = result.get("referral_info")

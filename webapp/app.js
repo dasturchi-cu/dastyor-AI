@@ -66,8 +66,8 @@ const DastyorAI = (() => {
         skills_title: "Ko'nikmalar", cv_skills_ph: 'Masalan: Liderlik, Python...',
         ach_title: 'Yutuqlar va Qobiliyatlar', cv_ach_name_ph: 'Nomi (masalan: IELTS 7.5)', cv_year_ph: 'Yili',
         preview: "Jonli Ko'rinish", cv_color: 'Rang:',
-        download_pdf: 'PDF botga yuborish', pay_5000: "💳 7 999 so'm to'lash",
-        pay_help: "Limit tugasa pastdagi '7 999 so'm to'lash' tugmasi orqali davom etasiz.",
+        download_pdf: 'PDF botga yuborish', pay_5000: "💳 Paket tanlash",
+        pay_help: "Demo bepul (belgi bilan). Toza fayl: 1× 7 999 · 3× 14 999 · 5× 19 999. Bugun to'lasangiz +1 muqova bonus!",
         cv_pay_shot_picked_title: 'Rasm tanlandi', cv_pay_shot_next: "Endi «Yuborish» tugmasini bosing.",
         clear_data: "Ma'lumotlarni tozalash",
         loading: 'Yuklanmoqda...', success: 'Muvaffaqiyatli!',
@@ -77,7 +77,7 @@ const DastyorAI = (() => {
         payment_pending: "Admin to'lovingizni tekshirmoqda...",
         payment_approved: "To'lov tasdiqlandi! Hujjatni yuklab olishingiz mumkin.",
         payment_rejected: "To'lov rad etildi. Qayta urinib ko'ring.",
-        demo_watermark_note: "Demo versiya — «DEMO VERSIYA» belgisi bilan. To'lovdan keyin toza fayl.",
+        demo_watermark_note: "Demo versiya — belgi bilan. Toza fayl uchun paket tanlang.",
         test_download: 'Demo yuklash', test_download_loading: 'Yuklanmoqda...',
     };
 

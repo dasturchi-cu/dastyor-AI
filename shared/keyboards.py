@@ -239,17 +239,36 @@ def _pay_bot_type_callback(document_type: str | None) -> str:
 
 
 def insufficient_balance_keyboard(uid: int) -> InlineKeyboardMarkup:
-    return InlineKeyboardMarkup(
-        inline_keyboard=[
-            [InlineKeyboardButton(text="💳 Balansni to'ldirish", callback_data="pay_via_bot")],
-        ]
-    )
+    return package_choice_keyboard(uid)
+
+
+def package_choice_keyboard(uid: int, document_type: str | None = None) -> InlineKeyboardMarkup:
+    from shared.pricing import format_uzs, list_packages
+
+    rows: list[list[InlineKeyboardButton]] = []
+    for p in list_packages():
+        badge = f" · {p['badge']}" if p.get("badge") else ""
+        text = f"{p['credits']}× — {format_uzs(p['price_uzs'])} so'm{badge}"
+        rows.append(
+            [
+                InlineKeyboardButton(
+                    text=text,
+                    callback_data=f"pay_pack_{p['id']}",
+                )
+            ]
+        )
+    web_url = _web_pay_url(uid, document_type)
+    if web_url:
+        rows.append(
+            [InlineKeyboardButton(text="💳 Web-ilova orqali to'lash", web_app=WebAppInfo(url=web_url))]
+        )
+    rows.append([referral_share_button(uid)])
+    return InlineKeyboardMarkup(inline_keyboard=rows)
 
 
 def payment_rejected_keyboard(uid: int, document_type: str | None = None) -> InlineKeyboardMarkup:
-    retry_cb = _pay_bot_type_callback(document_type)
     rows: list[list[InlineKeyboardButton]] = [
-        [InlineKeyboardButton(text="🔄 Qayta to'lov qilish", callback_data=retry_cb)],
+        [InlineKeyboardButton(text="🔄 Paket tanlash", callback_data="pay_via_bot")],
     ]
     web_url = _web_pay_url(uid, document_type)
     if web_url:
@@ -274,34 +293,47 @@ def _web_pay_url(uid: int, document_type: str | None = None) -> str | None:
     return pay_url
 
 
-def payment_choice_keyboard(uid: int, document_type: str | None = None) -> InlineKeyboardMarkup:
+def referral_link(uid: int) -> str:
+    bot_username = (settings.bot_username or "DastyorAiBot").lstrip("@")
+    return f"https://t.me/{bot_username}?start=ref_{int(uid)}"
+
+
+def referral_share_button(uid: int) -> InlineKeyboardButton:
+    """Telegram share — 1 do'st to'lasa = +1."""
     from urllib.parse import quote
 
-    url = _web_pay_url(uid, document_type)
-    keyboard: list[list[InlineKeyboardButton]] = []
-    if url:
-        keyboard.append(
-            [InlineKeyboardButton(text="💳 Web-ilova orqali to'lash", web_app=WebAppInfo(url=url))]
-        )
-    keyboard.append(
-        [InlineKeyboardButton(text="🤖 Telegram bot orqali to'lash", callback_data="pay_via_bot")]
-    )
-    bot_username = (settings.bot_username or "DastyorAiBot").lstrip("@")
-    ref_link = f"https://t.me/{bot_username}?start=ref_{uid}"
+    ref = referral_link(uid)
     share_text = (
-        "CV yoki obyektivka 1 daqiqada! DASTYOR AI — birinchi hujjat bepul.\n"
-        f"{ref_link}"
+        "CV/obyektivka 1 daqiqada! DASTYOR AI — demo bepul, toza fayl arzon paketlarda.\n"
+        "Mening havolam orqali kiring 👇\n"
+        f"{ref}"
     )
     share_url = (
         "https://t.me/share/url?url="
-        + quote(ref_link, safe="")
+        + quote(ref, safe="")
         + "&text="
         + quote(share_text, safe="")
     )
-    keyboard.append(
-        [InlineKeyboardButton(text="📤 Do'stlarga ulashish (+1 bepul)", url=share_url)]
+    return InlineKeyboardButton(
+        text="📤 Do'stimga yubor — u to'lasa +1",
+        url=share_url,
     )
-    return InlineKeyboardMarkup(inline_keyboard=keyboard)
+
+
+def referral_share_keyboard(uid: int) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(inline_keyboard=[[referral_share_button(uid)]])
+
+
+def document_ready_share_note() -> str:
+    return (
+        "\n\n📤 <b>Do'stingizga yuboring:</b> u to'lov qilsa — "
+        "sizga <b>+1 bepul</b> yuklash."
+    )
+
+
+def payment_choice_keyboard(uid: int, document_type: str | None = None) -> InlineKeyboardMarkup:
+    """Balans / paywall — paket tanlash."""
+    return package_choice_keyboard(uid, document_type)
 
 
 def open_oby_preview_inline(uid: int, *, missing_count: int = 0) -> InlineKeyboardMarkup:

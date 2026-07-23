@@ -57,7 +57,9 @@ def _export_docx_sync(telegram_id: int, payload: dict[str, Any]) -> tuple[bytes,
 
 async def export_docx(telegram_id: int, payload: dict[str, Any], bot: Any | None = None) -> tuple[bytes, str]:
     if not await async_db.run(users_repo.consume_credit, telegram_id):
-        raise PermissionError("Pul yetarli emas. Avval to'lov qiling.")
+        raise PermissionError(
+            "Toza Word uchun paket kerak. Demo PDF bepul (belgi bilan) — to'lovdan keyin toza fayl."
+        )
 
     try:
         res = await async_db.run(_export_docx_sync, telegram_id, payload)

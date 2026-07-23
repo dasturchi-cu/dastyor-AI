@@ -19,6 +19,12 @@ CREATE TABLE IF NOT EXISTS users (
     total_purchases     INTEGER NOT NULL DEFAULT 0,
     credits             INTEGER NOT NULL DEFAULT 0 CHECK (credits >= 0),
     is_blocked          INTEGER NOT NULL DEFAULT 0,
+    referred_by_id      INTEGER,
+    referred_active     INTEGER NOT NULL DEFAULT 0,
+    referred_paid       INTEGER NOT NULL DEFAULT 0,
+    referred_active_at  TEXT,
+    referrals_rewarded_batches INTEGER NOT NULL DEFAULT 0,
+    pay_promo_expires_at TEXT,
     created_at          TEXT NOT NULL DEFAULT (datetime('now')),
     updated_at          TEXT NOT NULL DEFAULT (datetime('now'))
 );
@@ -36,6 +42,9 @@ CREATE TABLE IF NOT EXISTS payments (
     card_number             TEXT NOT NULL DEFAULT '',
     document_type           TEXT,
     amount                  INTEGER NOT NULL DEFAULT 0,
+    package_id              TEXT,
+    credits_granted         INTEGER NOT NULL DEFAULT 1,
+    promo_bonus_granted     INTEGER NOT NULL DEFAULT 0,
     status                  TEXT NOT NULL DEFAULT 'PENDING'
                             CHECK (status IN ('PENDING', 'APPROVED', 'REJECTED')),
     screenshot_path         TEXT,

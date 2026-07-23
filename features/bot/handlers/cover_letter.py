@@ -40,8 +40,8 @@ async def cmd_cover(message: Message, state: FSMContext, *, actor_uid: int | Non
     credits = await db_run(users_repo.get_credits, uid)
     if credits < 1:
         await message.answer(
-            "💳 <b>Balansingizda yuklashlar yetarli emas.</b>\n\n"
-            "Muqova xati (Cover Letter) yaratish 1 ta yuklash balansini sarflaydi.",
+            "✨ <b>Muqova xati uchun 1 yuklash kerak.</b>\n\n"
+            "Paket tanlang — 3× va 5× arzonroq. Bugun to'lasangiz +1 bonus ham bor!",
             reply_markup=insufficient_balance_keyboard(uid),
         )
         return

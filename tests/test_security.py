@@ -50,6 +50,13 @@ class TestPaymentAtomic(unittest.TestCase):
         tid = 88001122
         users_repo.upsert_user(tid)
         users_repo.invalidate_cache(tid)
+        from database.connection import get_connection
+
+        with get_connection() as conn:
+            conn.execute(
+                "UPDATE users SET credits = 0, pay_promo_expires_at = NULL WHERE telegram_id = ?",
+                (tid,),
+            )
         before = users_repo.get_credits(tid)
         payment = payments_repo.create_payment(tid, payer_name="Test User")
         self.assertIsNotNone(payment)
@@ -66,9 +73,15 @@ class TestPaymentAtomic(unittest.TestCase):
 
     def test_try_auto_approve_when_enabled(self):
         from features.payment import service as payment_service
+        from database.connection import get_connection
 
         tid = 88003344
         users_repo.upsert_user(tid)
+        with get_connection() as conn:
+            conn.execute(
+                "UPDATE users SET credits = 0, pay_promo_expires_at = NULL WHERE telegram_id = ?",
+                (tid,),
+            )
         payment = payments_repo.create_payment(tid, payer_name="Auto User")
         pid = int(payment["id"])
         before = users_repo.get_credits(tid)
