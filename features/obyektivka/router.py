@@ -32,6 +32,11 @@ from shared.export_delivery import send_bytes_to_telegram
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["obyektivka"])
 
+# LibreOffice DOCX→PDF is heavy (CPU/RAM); on a small VM, concurrent
+# conversions fight for the same 1-2 cores and each one slows to a crawl.
+# Serialize them so requests queue briefly instead of all degrading together.
+_docx_pdf_semaphore = asyncio.Semaphore(int(os.getenv("OBY_DOCX_PDF_CONCURRENCY", "1") or "1"))
+
 
 def _uid_from_req(req) -> int:
     uid = resolve_uid_from_webapp(
@@ -263,7 +268,8 @@ async def _build_oby_docx_pdf(
         )
         return docx_bytes_to_pdf(docx_bytes)
 
-    pdf_bytes = await asyncio.to_thread(_render)
+    async with _docx_pdf_semaphore:
+        pdf_bytes = await asyncio.to_thread(_render)
     if not _valid_pdf(pdf_bytes):
         raise RuntimeError("DOCX→PDF yaratib bo'lmadi")
     return pdf_bytes
