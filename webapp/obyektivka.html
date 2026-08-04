@@ -670,8 +670,8 @@ function getApiUrl(){
   if(_qApi) return String(_qApi).replace(/\/$/,'');
   if(/^https?:\/\//i.test(window.location.origin||'')) return String(window.location.origin).replace(/\/+$/,'');
   if(/localhost|127\.0\.0\.1/.test(window.location.origin||'')) return 'http://localhost:8000';
-  if(window.location.protocol==='file:') return 'https://dastyor-ai-production.up.railway.app';
-  return 'https://dastyor-ai-production.up.railway.app';
+  if(window.location.protocol==='file:') return 'https://dastyorai.duckdns.org';
+  return 'https://dastyorai.duckdns.org';
 }
 
 function getDastyorSessionToken(){
@@ -3640,12 +3640,13 @@ function runAutoloadObyData(){
   if(up.get('autoload')!=='1'||!telegramId)return;
   var voiceMode=up.get('voice')==='1';
   try{initApp('uz_l');}catch(e){}
-  var tries=0,maxTries=8,delayMs=400;
+  var tries=0,maxTries=20,delayMs=500;
   function attempt(){
     tries++;
     var tok = getDastyorSessionToken();
     var qs = new URLSearchParams({ telegram_id: String(telegramId) });
     if(tok) qs.set('token', tok);
+    try{ if(tg && tg.initData) qs.set('init_data', tg.initData); }catch(_){}
     fetch(getApiUrl()+'/api/get_oby_data?'+qs.toString(),{cache:'no-store'})
       .then(function(r){return r.json();})
       .then(function(js){

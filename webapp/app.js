@@ -7,8 +7,8 @@
 const DastyorAI = (() => {
     'use strict';
 
-    /** Production fallback — Railway (file:// yoki origin yo'q bo'lsa). */
-    const PROD_API_FALLBACK = 'https://dastyor-ai-production.up.railway.app';
+    /** Production fallback (file:// yoki origin yo'q bo'lsa). */
+    const PROD_API_FALLBACK = 'https://dastyorai.duckdns.org';
 
     /**
      * API bazasi: avvalo ?api=, keyin meta[name=dastyor-api-base], keyin joriy origin.

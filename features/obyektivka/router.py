@@ -111,8 +111,9 @@ async def _run_oby_voice_job(job_id: str, uid: int, raw: bytes, ext: str) -> Non
 async def api_get_oby_data(
     token: str | None = Query(None),
     telegram_id: str | None = Query(None),
+    init_data: str | None = Query(None),
 ) -> dict:
-    uid = resolve_uid(telegram_id, token)
+    uid = resolve_uid_from_webapp(telegram_id, token, init_data)
     if not uid:
         raise HTTPException(status_code=401, detail="Foydalanuvchi aniqlanmadi")
     pending = await async_db.run(oby_service.get_pending, uid)
