@@ -70,6 +70,25 @@ def _find_sample_audio() -> Path | None:
     return None
 
 
+AI_FLOW_TIMEOUT_SECONDS = 50
+
+
+async def _finish_status(status: Message, text: str, **kwargs) -> None:
+    """Deliver the final status update, guaranteeing the user gets *something*.
+
+    If editing the status message fails (deleted, rate-limited, stale), fall
+    back to a fresh message instead of letting the background task die with
+    the user stuck on "AI tahlil qilmoqda..." forever.
+    """
+    try:
+        await status.edit_text(text, **kwargs)
+    except Exception:
+        try:
+            await status.answer(text, **kwargs)
+        except Exception:
+            logger.exception("Failed to deliver final obyektivka status to user")
+
+
 async def _delete_waiting_prompt(bot: Bot, state: FSMContext) -> None:
     data = await state.get_data()
     msg_id = data.get("waiting_prompt_msg_id")
@@ -151,16 +170,19 @@ async def _process_voice_background(
     try:
         path = await download_voice_message(bot, message, prefix="oby_voice")
         if not path:
-            await status_msg.edit_text("❌ Audio topilmadi. Qayta yuboring.")
+            await _finish_status(status_msg, "❌ Audio topilmadi. Qayta yuboring.")
             return
 
         await set_step(status_msg, STEP_AI)
-        transcript, data, missing = await process_voice_for_obyektivka(path)
+        transcript, data, missing = await asyncio.wait_for(
+            process_voice_for_obyektivka(path), timeout=AI_FLOW_TIMEOUT_SECONDS
+        )
 
         if not oby_fill_is_acceptable(data):
             if data:
                 await db_run(oby_service.save_pending, uid, data)
-            await status_msg.edit_text(
+            await _finish_status(
+                status_msg,
                 "ℹ️ <b>Ma'lumotlar kamlik qilmoqda.</b>\n\n"
                 "Lekin xavotirlanmang! Quyidagi tugmani bosib, formani WebApp orqali o'zingiz to'ldirishingiz mumkin 👇",
                 reply_markup=open_webapp_inline(uid, "obyektivka")
@@ -191,7 +213,8 @@ async def _process_voice_background(
             )
 
         fn = data.get("fullname") or ""
-        await status_msg.edit_text(
+        await _finish_status(
+            status_msg,
             f"{telegram_message(STEP_READY)}\n\n"
             f"<b>Obyektivka tayyorlandi!</b> (~{filled}% to'ldirildi)\n"
             f"{('👤 ' + fn) if fn else ''}"
@@ -201,10 +224,10 @@ async def _process_voice_background(
             reply_markup=open_oby_preview_inline(uid, missing_count=len(missing)),
         )
     except AiQuotaError:
-        await status_msg.edit_text(AI_QUOTA_USER_MSG)
+        await _finish_status(status_msg, AI_QUOTA_USER_MSG)
     except Exception as e:
         logger.exception("Obyektivka voice error: %s", e)
-        await status_msg.edit_text(translate_error_to_user_message(e))
+        await _finish_status(status_msg, translate_error_to_user_message(e))
     finally:
         if path:
             try:
@@ -252,11 +275,14 @@ async def obyektivka_text(message: Message, bot: Bot, state: FSMContext) -> None
 
 async def _handle_oby_text_flow(text: str, status: Message, uid: int, state: FSMContext) -> None:
     try:
-        transcript, data, missing = await process_text_for_obyektivka(text)
+        transcript, data, missing = await asyncio.wait_for(
+            process_text_for_obyektivka(text), timeout=AI_FLOW_TIMEOUT_SECONDS
+        )
         if not oby_fill_is_acceptable(data):
             if data:
                 await db_run(oby_service.save_pending, uid, data)
-            await status.edit_text(
+            await _finish_status(
+                status,
                 "ℹ️ <b>Ma'lumotlar kamlik qilmoqda.</b>\n\n"
                 "Lekin xavotirlanmang! Quyidagi tugmani bosib, formani WebApp orqali o'zingiz to'ldirishingiz mumkin 👇",
                 reply_markup=open_webapp_inline(uid, "obyektivka")
@@ -267,7 +293,8 @@ async def _handle_oby_text_flow(text: str, status: Message, uid: int, state: FSM
         await state.clear()
         filled = max(10, min(95, 100 - len(missing) * 8))
         fn = data.get("fullname") or ""
-        await status.edit_text(
+        await _finish_status(
+            status,
             f"{telegram_message(STEP_READY, input_mode='text')}\n\n"
             f"<b>Obyektivka tayyorlandi!</b> (~{filled}% to'ldirildi)\n"
             f"{('👤 ' + fn) if fn else ''}\n\n"
@@ -276,10 +303,10 @@ async def _handle_oby_text_flow(text: str, status: Message, uid: int, state: FSM
             reply_markup=open_oby_preview_inline(uid, missing_count=len(missing)),
         )
     except AiQuotaError:
-        await status.edit_text(AI_QUOTA_USER_MSG)
+        await _finish_status(status, AI_QUOTA_USER_MSG)
     except Exception as e:
         logger.exception("Obyektivka text error: %s", e)
-        await status.edit_text(translate_error_to_user_message(e))
+        await _finish_status(status, translate_error_to_user_message(e))
 
 
 @router.message(ObyektivkaStates.waiting_voice)
