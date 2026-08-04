@@ -6,6 +6,7 @@ import base64
 import logging
 import os
 import tempfile
+import uuid
 from pathlib import Path
 from typing import Any
 
@@ -38,7 +39,7 @@ def _decode_photo_data(data: dict[str, Any]) -> str | None:
         mime = header.split(";")[0].split(":")[1].lower()
         ext = {"image/png": "png", "image/jpeg": "jpg", "image/jpg": "jpg", "image/webp": "webp"}.get(mime, "jpg")
         os.makedirs(str(temp_dir()), exist_ok=True)
-        path = str(temp_dir() / f"oby_tpl_photo_{os.getpid()}.{ext}")
+        path = str(temp_dir() / f"oby_tpl_photo_{os.getpid()}_{uuid.uuid4().hex[:8]}.{ext}")
         with open(path, "wb") as fh:
             fh.write(base64.b64decode(b64))
         return path
@@ -100,7 +101,9 @@ def generate_obyektivka_docx(
     if not output_filepath:
         os.makedirs(str(temp_dir()), exist_ok=True)
         safe = (_to_text(data.get("fullname")) or "Obyektivka").replace(" ", "_").replace("/", "_")
-        output_filepath = str(temp_dir() / f"obyektivka_{safe}_{os.getpid()}.docx")
+        output_filepath = str(
+            temp_dir() / f"obyektivka_{safe}_{os.getpid()}_{uuid.uuid4().hex[:8]}.docx"
+        )
     else:
         os.makedirs(os.path.dirname(output_filepath) or ".", exist_ok=True)
 

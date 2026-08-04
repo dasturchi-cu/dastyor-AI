@@ -201,7 +201,7 @@ async def api_oby_voice_fill_sync(
 
     os.makedirs("temp", exist_ok=True)
     ext = os.path.splitext(audio.filename or "")[1] or ".ogg"
-    temp_path = os.path.join("temp", f"oby_voice_{uid}_{os.getpid()}{ext}")
+    temp_path = os.path.join("temp", f"oby_voice_{uid}_{os.getpid()}_{uuid.uuid4().hex[:8]}{ext}")
     raw = await audio.read()
     if not raw:
         raise HTTPException(status_code=400, detail="Audio bo'sh")
