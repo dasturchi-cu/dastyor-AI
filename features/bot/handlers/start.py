@@ -6,7 +6,7 @@ from pathlib import Path
 from aiogram import F, Router
 from aiogram.filters import Command, CommandStart
 from aiogram.fsm.context import FSMContext
-from aiogram.types import Message
+from aiogram.types import CallbackQuery, Message
 
 from config.settings import settings
 from database.repositories import users as users_repo
@@ -19,12 +19,15 @@ from shared.keyboards import (
     BTN_CV,
     BTN_HELP,
     BTN_OBY,
+    BTN_REFERRAL,
     BTN_TRANSLATE,
     LEGACY_BTN_CREDITS,
     contact_admin_kb,
+    help_quick_actions_kb,
     is_credits_button,
     is_menu_button,
     open_webapp_inline,
+    referral_share_keyboard,
     user_menu,
 )
 from shared.marketing import cv_intro_header, welcome_message
@@ -108,6 +111,18 @@ async def cmd_start(message: Message, state: FSMContext) -> None:
 @router.message(F.text == BTN_HELP)
 async def cmd_help(message: Message) -> None:
     await message.answer(HELP_TEXT, reply_markup=user_menu(message.from_user.id if message.from_user else None))
+    await message.answer("👇 Tezkor xizmatlar:", reply_markup=help_quick_actions_kb())
+
+
+@router.callback_query(F.data == "help_samples")
+async def help_samples_callback(callback: CallbackQuery) -> None:
+    if not callback.message:
+        await callback.answer("Xabar topilmadi", show_alert=True)
+        return
+    from features.bot.handlers.marketing_payment import show_samples
+
+    await show_samples(callback.message)
+    await callback.answer()
 
 
 @router.message(Command("cv"))
@@ -166,6 +181,8 @@ async def menu_from_contact(message: Message, state: FSMContext) -> None:
         await cmd_translate(message)
     elif text == BTN_HELP:
         await cmd_help(message)
+    elif text == BTN_REFERRAL:
+        await show_referral(message)
     elif text == BTN_BACK:
         await menu_back(message, state)
 
@@ -194,6 +211,8 @@ async def menu_from_flow_waiting(message: Message, state: FSMContext) -> None:
         await cmd_translate(message)
     elif text == BTN_HELP:
         await cmd_help(message)
+    elif text == BTN_REFERRAL:
+        await show_referral(message)
     elif text == BTN_BACK:
         await menu_back(message, state)
 
@@ -255,27 +274,25 @@ async def menu_back(message: Message, state: FSMContext) -> None:
 
 async def show_credits_for_uid(message: Message, uid: int) -> None:
     status = await db_run(users_repo.get_credits, uid)
-    progress = await db_run(users_repo.get_referral_progress, uid)
     promo = await db_run(users_repo.ensure_pay_promo, uid)
-    bot_username = settings.bot_username or "DastyorAiBot"
-    ref_link = f"https://t.me/{bot_username}?start=ref_{uid}"
     from shared.keyboards import payment_choice_keyboard
     from shared.pricing import packages_block_text
-    from shared.referral import referral_balance_block
 
     promo_line = ""
     if promo.get("active"):
         h = int(promo.get("hours_left") or 0)
-        promo_line = f"\n⚡️ {h} soat ichida to'lasangiz: +1 Muqova bepul\n"
+        promo_line = f"\n⚡️ <b>{h} soat ichida to'lasangiz</b> — +1 Muqova xati bepul!\n"
 
     await message.answer(
-        f"💳 <b>Qolgan yuklashlar:</b> {status} ta\n"
-        f"Har bir toza fayl = 1 yuklash.\n"
+        "💳 <b>Balansingiz</b>\n\n"
+        f"Qolgan yuklashlar: <b>{status} ta</b>\n"
+        "<i>Har bir toza fayl = 1 yuklash</i>\n"
         f"{promo_line}\n"
-        f"{packages_block_text()}\n"
-        f"Karta: <code>{settings.payment_card_number}</code>\n"
+        f"{packages_block_text()}\n\n"
+        "💳 <b>To'lov uchun karta:</b>\n"
+        f"<code>{settings.payment_card_number}</code>\n"
         f"Egasi: {settings.payment_card_owner}\n\n"
-        f"{referral_balance_block(ref_link, progress)}",
+        "👇 Paket tanlang:",
         reply_markup=payment_choice_keyboard(uid),
     )
 
@@ -285,3 +302,21 @@ async def show_credits_for_uid(message: Message, uid: int) -> None:
 async def show_credits(message: Message) -> None:
     uid = message.from_user.id if message.from_user else 0
     await show_credits_for_uid(message, uid)
+
+
+@router.message(F.text == BTN_REFERRAL)
+async def show_referral(message: Message) -> None:
+    uid = message.from_user.id if message.from_user else 0
+    if not uid or await _blocked_reply(message):
+        return
+    progress = await db_run(users_repo.get_referral_progress, uid)
+    bot_username = settings.bot_username or "DastyorAiBot"
+    ref_link = f"https://t.me/{bot_username}?start=ref_{uid}"
+    from shared.referral import referral_balance_block
+
+    await message.answer(
+        "🎁 <b>Do'stlarni taklif qiling — bepul yuklashlar oling!</b>\n\n"
+        f"{referral_balance_block(ref_link, progress)}\n\n"
+        "👇 Havolani do'stlaringizga yuboring:",
+        reply_markup=referral_share_keyboard(uid),
+    )

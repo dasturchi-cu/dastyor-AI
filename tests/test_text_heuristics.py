@@ -50,11 +50,16 @@ class TestTextHeuristics(unittest.TestCase):
         self.assertEqual(data["fullname"], "Ali Valiyev")
         self.assertTrue(data.get("work_experience"))
 
-    def test_cv_fill_acceptable_requires_name_and_two_bonus_fields(self):
+    def test_cv_fill_acceptable_requires_name_and_one_bonus_field(self):
         self.assertFalse(cv_fill_is_acceptable({"about": "Men Ali"}, []))
         self.assertFalse(cv_fill_is_acceptable({}, []))
         self.assertFalse(
             cv_fill_is_acceptable({"name": "Ali Valiyev", "phone": "+998901234567"}, [])
+        )
+        # A single bonus field (e.g. profession) is enough — avoids over-rejecting
+        # brief-but-useful voice/text input from the flagship AI-fill feature.
+        self.assertTrue(
+            cv_fill_is_acceptable({"name": "Ali Valiyev", "spec": "Sotuvchi"}, [])
         )
         self.assertTrue(
             cv_fill_is_acceptable(

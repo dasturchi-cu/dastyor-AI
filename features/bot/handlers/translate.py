@@ -20,6 +20,7 @@ from features.obyektivka import service as oby_service
 from shared.ai_errors import AiQuotaError, translate_error_to_user_message
 from shared.async_db import run as db_run
 from shared.export_delivery import send_bytes_to_telegram
+from shared.keyboards import insufficient_balance_keyboard, user_menu
 from shared.name_patronymic import translate_patronymic_suffixes
 
 logger = logging.getLogger(__name__)

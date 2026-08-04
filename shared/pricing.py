@@ -20,14 +20,14 @@ class CreditPackage:
 
 
 def _packages() -> tuple[CreditPackage, ...]:
-    """Display order: 3× (default/popular) first, then 5×, then 1×."""
+    """Display order: ascending by credit count (1×, 3×, 5×) — easiest to read/compare."""
     p1 = int(getattr(settings, "package_1_price_uzs", None) or settings.single_doc_price_uzs or 7999)
     p3 = int(getattr(settings, "package_3_price_uzs", None) or 14_999)
     p5 = int(getattr(settings, "package_5_price_uzs", None) or 19_999)
     return (
+        CreditPackage("pack1", 1, p1, "1 hujjat", p1, ""),
         CreditPackage("pack3", 3, p3, "3 hujjat", p3 // 3, "⭐ eng ommabop"),
         CreditPackage("pack5", 5, p5, "5 hujjat", p5 // 5, "🔥 eng arzon"),
-        CreditPackage("pack1", 1, p1, "1 hujjat", p1, ""),
     )
 
 

@@ -14,10 +14,9 @@ def price_tag() -> str:
 
 
 def welcome_message() -> str:
-    from shared.pricing import format_uzs, list_packages
+    from shared.pricing import format_uzs, get_package
 
-    packs = list_packages()
-    p1 = format_uzs(packs[0]["price_uzs"]) if packs else format_price_uzs()
+    p1 = format_uzs(get_package("pack1").price_uzs)
     return (
         "👋 <b>DASTYOR AI</b> — ishga kirish hujjatlaringizni 1 daqiqada tayyorlang!\n\n"
         "🎯 <b>3 qadamda tayyor:</b>\n"

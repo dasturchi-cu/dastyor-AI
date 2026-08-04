@@ -45,7 +45,8 @@ class TestObyektivkaPreviewApi(unittest.TestCase):
         self.assertEqual(res.status_code, 200, res.text[:300])
         self.assertEqual(res.content, fake_pdf)
         docx_pdf.assert_awaited_once()
-        self.assertFalse(docx_pdf.await_args.kwargs.get("watermark"))
+        # Server must force watermark=True regardless of client-sent flag (PII leak guard).
+        self.assertTrue(docx_pdf.await_args.kwargs.get("watermark"))
 
     def test_preview_html_endpoint_returns_docx_pdf(self):
         fake_pdf = b"%PDF-1.4\n" + (b"0" * 120)

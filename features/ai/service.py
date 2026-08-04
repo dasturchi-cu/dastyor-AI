@@ -400,9 +400,9 @@ def cv_fill_rejection_reason(data: dict | None) -> str:
     if not str(data.get("name") or "").strip():
         return "Ism topilmadi."
     bonus = count_cv_bonus_fields(data)
-    if bonus < 2:
+    if bonus < 1:
         return (
-            "Kamida 2 ta maydon kerak: ta'lim, ish tajribasi, "
+            "Kamida 1 ta maydon kerak: ta'lim, ish tajribasi, "
             "ko'nikmalar, tillar yoki kasb."
         )
     return ""

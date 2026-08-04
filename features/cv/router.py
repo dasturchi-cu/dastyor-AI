@@ -14,6 +14,7 @@ from backend.services.cv_preview_cache import (
     cv_preview_cache_set,
 )
 from core.security import rate_limit
+from features.ai.service import count_cv_populated_fields
 from features.cv import service as cv_service
 from features.cv.render import preview_html
 from database.repositories import users as users_repo
@@ -67,11 +68,20 @@ async def api_cv_preview(req: ExportCVRequest, request: Request) -> HTMLResponse
     return HTMLResponse(content=html, media_type="text/html; charset=utf-8")
 
 
+def _cv_export_is_acceptable(payload: dict) -> bool:
+    return count_cv_populated_fields(payload) >= 1 and bool(str(payload.get("name") or "").strip())
+
+
 @router.post("/api/export_cv")
 async def api_export_cv(req: ExportCVRequest, request: Request) -> Response:
     await rate_limit(request)
     uid = _uid_from_req(req)
     payload = req.model_dump(exclude={"telegram_id", "token", "send_only", "format", "init_data"})
+    if not _cv_export_is_acceptable(payload):
+        raise HTTPException(
+            status_code=400,
+            detail="Forma to'ldirilmagan — avval ism va boshqa ma'lumotlarni kiriting.",
+        )
     bot = getattr(request.app.state, "bot", None)
     try:
         pdf_bytes, filename = await cv_service.export_pdf(uid, payload, bot)

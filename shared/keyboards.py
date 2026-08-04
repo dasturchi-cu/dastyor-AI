@@ -19,6 +19,7 @@ BTN_BACK = "🔙 Orqaga"
 BTN_HELP = "ℹ️ Yordam"
 BTN_CREDITS = "💳 Pul balansi"
 BTN_SAMPLES = "📁 Namunalar"
+BTN_REFERRAL = "🎁 Do'stni taklif qilish"
 
 # Eski Telegram klaviatura (cache) — menyu tugmasi sifatida tanish
 LEGACY_BTN_CREDITS = ("💳 Kreditlar", "Kreditlar", "💳 Kredit")
@@ -33,6 +34,7 @@ MENU_BUTTON_TEXTS = frozenset(
         BTN_HELP,
         BTN_SAMPLES,
         BTN_BACK,
+        BTN_REFERRAL,
         *LEGACY_BTN_CREDITS,
     }
 )
@@ -114,11 +116,15 @@ def webapp_url(uid: int, page: str) -> str | None:
 
 
 def user_menu(uid: int | None = None) -> ReplyKeyboardMarkup:
+    """Asosiy menyu — eng ko'p ishlatiladigan 5 ta amal.
+
+    Muqova xati / Tarjima / Namunalar — /cover, /translate buyruqlari va
+    Yordam ekranidagi tezkor tugmalar orqali hamon bir bosishda ochiladi.
+    """
     return ReplyKeyboardMarkup(
         keyboard=[
             [KeyboardButton(text=BTN_CV), KeyboardButton(text=BTN_OBY)],
-            [KeyboardButton(text=BTN_COVER), KeyboardButton(text=BTN_TRANSLATE)],
-            [KeyboardButton(text=BTN_CREDITS), KeyboardButton(text=BTN_SAMPLES)],
+            [KeyboardButton(text=BTN_CREDITS), KeyboardButton(text=BTN_REFERRAL)],
             [KeyboardButton(text=BTN_HELP)],
         ],
         resize_keyboard=True,
@@ -353,6 +359,17 @@ def open_oby_preview_inline(uid: int, *, missing_count: int = 0) -> InlineKeyboa
     return InlineKeyboardMarkup(
         inline_keyboard=[
             [InlineKeyboardButton(text="👁 Preview va Tasdiqlash", web_app=WebAppInfo(url=url))]
+        ]
+    )
+
+
+def help_quick_actions_kb() -> InlineKeyboardMarkup:
+    """Yordam ekranidagi tezkor tugmalar — asosiy menyudan olib tashlangan xizmatlar."""
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text=BTN_COVER, callback_data="postpay_cover")],
+            [InlineKeyboardButton(text=BTN_TRANSLATE, callback_data="postpay_translate")],
+            [InlineKeyboardButton(text=BTN_SAMPLES, callback_data="help_samples")],
         ]
     )
 

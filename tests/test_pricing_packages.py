@@ -11,14 +11,14 @@ class TestPricingPackages(unittest.TestCase):
     def test_three_packages(self) -> None:
         packs = list_packages()
         self.assertEqual(len(packs), 3)
-        # Display order: 3× first (popular), then 5×, then 1×
-        self.assertEqual(packs[0]["credits"], 3)
-        self.assertEqual(packs[0]["price_uzs"], 14999)
-        self.assertTrue(packs[0]["is_default"])
-        self.assertEqual(packs[1]["credits"], 5)
-        self.assertEqual(packs[1]["price_uzs"], 19999)
-        self.assertEqual(packs[2]["credits"], 1)
-        self.assertEqual(packs[2]["price_uzs"], 7999)
+        # Display order: ascending (1×, 3×, 5×) — easiest to read/compare
+        self.assertEqual(packs[0]["credits"], 1)
+        self.assertEqual(packs[0]["price_uzs"], 7999)
+        self.assertEqual(packs[1]["credits"], 3)
+        self.assertEqual(packs[1]["price_uzs"], 14999)
+        self.assertTrue(packs[1]["is_default"])
+        self.assertEqual(packs[2]["credits"], 5)
+        self.assertEqual(packs[2]["price_uzs"], 19999)
 
     def test_get_package_default(self) -> None:
         self.assertEqual(get_package(None).id, "pack3")

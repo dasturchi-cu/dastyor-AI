@@ -58,7 +58,7 @@ class TestPaymentAtomic(unittest.TestCase):
                 (tid,),
             )
         before = users_repo.get_credits(tid)
-        payment = payments_repo.create_payment(tid, payer_name="Test User")
+        payment = payments_repo.create_payment(tid, payer_name="Test User", package_id="pack1")
         self.assertIsNotNone(payment)
         pid = int(payment["id"])
 
@@ -82,7 +82,7 @@ class TestPaymentAtomic(unittest.TestCase):
                 "UPDATE users SET credits = 0, pay_promo_expires_at = NULL WHERE telegram_id = ?",
                 (tid,),
             )
-        payment = payments_repo.create_payment(tid, payer_name="Auto User")
+        payment = payments_repo.create_payment(tid, payer_name="Auto User", package_id="pack1")
         pid = int(payment["id"])
         before = users_repo.get_credits(tid)
 
