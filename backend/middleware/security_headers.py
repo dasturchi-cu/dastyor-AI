@@ -15,8 +15,18 @@ def register_security_headers_middleware(app) -> None:
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next) -> Response:
         response = await call_next(request)
+        path = request.url.path
+        is_webapp = path.startswith("/webapp") or path in ("/", "/index.html", "/favicon.ico")
+
         response.headers.setdefault("X-Content-Type-Options", "nosniff")
-        response.headers.setdefault("X-Frame-Options", "DENY")
+
+        if is_webapp:
+            # Telegram WebApp needs to be embeddable in Telegram iframe / webview.
+            if "X-Frame-Options" in response.headers:
+                del response.headers["X-Frame-Options"]
+        else:
+            response.headers.setdefault("X-Frame-Options", "DENY")
+
         response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
         response.headers.setdefault(
             "Permissions-Policy",
@@ -36,7 +46,7 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
             "font-src 'self' data:; "
             "connect-src 'self' https: wss:; "
             "frame-src https://telegram.org https://challenges.cloudflare.com; "
-            "frame-ancestors 'self' https://web.telegram.org https://telegram.org; "
+            "frame-ancestors 'self' https://web.telegram.org https://*.telegram.org https://telegram.org https://t.me https://*.t.me; "
             "object-src 'none'; "
             "base-uri 'self'; "
             "form-action 'self'"

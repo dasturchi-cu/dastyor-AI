@@ -151,13 +151,19 @@ def contact_admin_kb(username: str) -> InlineKeyboardMarkup:
 
 
 def open_webapp_inline(uid: int, service: str) -> InlineKeyboardMarkup:
-    page = "cv.html" if service == "cv" else "obyektivka.html"
+    if service == "cv":
+        page = "cv.html"
+        label = "🚀 CV formasini ochish / Tahrirlash"
+    elif service == "obyektivka":
+        page = "obyektivka.html"
+        label = "🚀 Obyektivka formasini ochish / Tahrirlash"
+    else:
+        page = "index.html"
+        label = "🚀 Web App ni ochish"
+
     url = webapp_url(uid, page)
-    if url and service == "cv":
+    if url and service in ("cv", "obyektivka"):
         url = f"{url}&autoload=1&voice=1"
-    elif url and service == "obyektivka":
-        url = f"{url}&autoload=1&voice=1"
-    label = "🚀 CV formasini ochish / Tahrirlash" if service == "cv" else "🚀 Obyektivka formasini ochish / Tahrirlash"
     if not url:
         return InlineKeyboardMarkup(inline_keyboard=[])
     return InlineKeyboardMarkup(

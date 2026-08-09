@@ -40,5 +40,23 @@ async def register_bot_commands(bot: Bot) -> None:
             except Exception as exc:
                 logger.debug("delete_my_commands scope=%s: %s", scope.__class__.__name__, exc)
         logger.info("Bot commands registered (%d, private chats only)", len(BOT_COMMANDS))
+
+        # Synchronize Telegram Bot Chat Menu Button (bottom-left app button in Telegram)
+        from config.settings import settings
+        from aiogram.types import MenuButtonWebApp, WebAppInfo
+
+        base_url = (settings.webapp_base or "").strip().rstrip("/")
+        if base_url.startswith("https://"):
+            webapp_main_url = f"{base_url}/index.html"
+            try:
+                await bot.set_chat_menu_button(
+                    menu_button=MenuButtonWebApp(
+                        text="🚀 Web App",
+                        web_app=WebAppInfo(url=webapp_main_url),
+                    )
+                )
+                logger.info("Bot menu button set to WebApp: %s", webapp_main_url)
+            except Exception as mb_err:
+                logger.warning("Failed to set chat menu button: %s", mb_err)
     except Exception as exc:
         logger.warning("set_my_commands failed: %s", exc)
