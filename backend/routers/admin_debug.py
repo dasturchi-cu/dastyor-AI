@@ -89,3 +89,24 @@ async def admin_reset_payments(
         "message": f"{count_before} ta to'lov o'chirildi. Keyingi to'lov #1 dan boshlanadi.",
     }
 
+
+@router.get("/admin/recent-errors")
+async def admin_recent_errors(
+    request: Request,
+    limit: int = 10,
+    telegram_id: str | None = Query(None),
+    token: str | None = Query(None),
+    x_admin_secret: str | None = Header(None, alias="X-Admin-Secret"),
+    authorization: str | None = Header(None),
+):
+    if not _admin_authorized(request, telegram_id, token, x_admin_secret, authorization):
+        raise HTTPException(status_code=403, detail="Admin access required")
+
+    from database.connection import get_connection
+
+    with get_connection() as conn:
+        rows = conn.execute(
+            "SELECT * FROM error_logs ORDER BY id DESC LIMIT ?", (limit,)
+        ).fetchall()
+        return {"ok": True, "errors": [dict(r) for r in rows]}
+
