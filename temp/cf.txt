@@ -1,3 +1,0 @@
-q in norm: True
-lower q in blob.lower: True
-q in blob: False

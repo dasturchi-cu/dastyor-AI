@@ -1,5 +1,0 @@
-blob[:30]='Қариндош-лигиФамилияси, исми в'
-q in blob: False
-q in blob.lower: True
-q in blob.casefold: True
-hyphen norm: True

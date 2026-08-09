@@ -1,3 +1,0 @@
-jc=center
-ind=False
-fish='Ismoilov SardorbekIsmoilov Sardorbekнинг яқин қариндошлари ҳақида'

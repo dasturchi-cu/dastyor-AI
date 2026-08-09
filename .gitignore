@@ -60,3 +60,16 @@ flake8_report.txt
 test_*.docx
 test_*.pdf
 pytest-cache-files-*/
+
+# --- Node.js ---
+node_modules/
+npm-debug.log*
+package-lock.json
+
+# --- Database ---
+*.db
+*.sqlite
+*.sqlite3
+
+# --- Temp fayllar ---
+temp/
