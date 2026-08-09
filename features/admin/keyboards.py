@@ -98,3 +98,32 @@ def error_filter_kb() -> InlineKeyboardMarkup:
             ],
         ]
     )
+
+
+def channels_list_kb(channels: list[dict]) -> InlineKeyboardMarkup:
+    """Keyboard listing required channels with delete buttons."""
+    rows: list[list[InlineKeyboardButton]] = []
+    for ch in channels:
+        if not ch.get("is_active"):
+            continue
+        title = (ch.get("title") or ch["channel_id"])[:30]
+        rows.append([
+            InlineKeyboardButton(text=f"📢 {title}", callback_data=f"adm_ch_info_{ch['id']}"),
+            InlineKeyboardButton(text="🗑 O'chirish", callback_data=f"adm_ch_del_{ch['id']}"),
+        ])
+    rows.append([InlineKeyboardButton(text="➕ Kanal qo'shish", callback_data="adm_ch_add")])
+    rows.append([InlineKeyboardButton(text="🔙 Orqaga", callback_data="adm_back")])
+    return InlineKeyboardMarkup(inline_keyboard=rows)
+
+
+def channel_delete_confirm_kb(channel_id: int) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(
+                    text="🗑 Ha, o'chirish", callback_data=f"adm_ch_del_confirm_{channel_id}"
+                ),
+                InlineKeyboardButton(text="❌ Bekor", callback_data="adm_ch_list"),
+            ]
+        ]
+    )

@@ -78,6 +78,7 @@ ADMIN_BTN_DASHBOARD = "🔄 Dashboard"
 ADMIN_BTN_SECURITY = "🔒 Xavfsizlik"
 ADMIN_BTN_AI = "🤖 AI holati"
 ADMIN_BTN_AI_PROBE = "🧪 AI kalit test"
+ADMIN_BTN_CHANNELS = "📢 Majburiy kanallar"
 ADMIN_BTN_CLOSE = "🚪 Yopish"
 
 ADMIN_MENU_TEXTS = frozenset(
@@ -98,6 +99,7 @@ ADMIN_MENU_TEXTS = frozenset(
         ADMIN_BTN_SECURITY,
         ADMIN_BTN_AI,
         ADMIN_BTN_AI_PROBE,
+        ADMIN_BTN_CHANNELS,
         ADMIN_BTN_CLOSE,
     }
 )
@@ -383,8 +385,9 @@ def admin_menu() -> ReplyKeyboardMarkup:
             [KeyboardButton(text=ADMIN_BTN_BROADCAST), KeyboardButton(text=ADMIN_BTN_EXPORT)],
             [KeyboardButton(text=ADMIN_BTN_TOP), KeyboardButton(text=ADMIN_BTN_SETTINGS)],
             [KeyboardButton(text=ADMIN_BTN_AI), KeyboardButton(text=ADMIN_BTN_AI_PROBE)],
-            [KeyboardButton(text=ADMIN_BTN_DASHBOARD), KeyboardButton(text=ADMIN_BTN_SECURITY)],
-            [KeyboardButton(text=ADMIN_BTN_ERRORS), KeyboardButton(text=ADMIN_BTN_CLOSE)],
+            [KeyboardButton(text=ADMIN_BTN_CHANNELS), KeyboardButton(text=ADMIN_BTN_SECURITY)],
+            [KeyboardButton(text=ADMIN_BTN_DASHBOARD), KeyboardButton(text=ADMIN_BTN_ERRORS)],
+            [KeyboardButton(text=ADMIN_BTN_CLOSE)],
         ],
         resize_keyboard=True,
     )

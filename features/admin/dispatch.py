@@ -14,6 +14,7 @@ from shared.keyboards import (
     ADMIN_BTN_AI,
     ADMIN_BTN_AI_PROBE,
     ADMIN_BTN_BROADCAST,
+    ADMIN_BTN_CHANNELS,
     ADMIN_BTN_CLOSE,
     ADMIN_BTN_DASHBOARD,
     ADMIN_BTN_SECURITY,
@@ -34,6 +35,20 @@ logger = logging.getLogger(__name__)
 
 MenuHandler = Callable[[Message, FSMContext], Awaitable[None]]
 
+
+async def _handle_channels(message: Message, state: FSMContext) -> None:
+    """Show required channels management panel."""
+    from database.repositories import required_channels as channels_repo
+    from features.admin.channels import _channels_text
+    from features.admin.keyboards import channels_list_kb
+    from shared.async_db import run as db_run
+
+    channels = await db_run(channels_repo.get_all_channels)
+    text = _channels_text(channels)
+    kb = channels_list_kb(channels)
+    await message.answer(text, reply_markup=kb)
+
+
 MENU_DISPATCH: dict[str, MenuHandler] = {
     ADMIN_BTN_USERS: admin_actions.handle_users,
     ADMIN_BTN_SEARCH: admin_actions.handle_search_prompt,
@@ -51,6 +66,7 @@ MENU_DISPATCH: dict[str, MenuHandler] = {
     ADMIN_BTN_SECURITY: admin_actions.handle_security_dashboard,
     ADMIN_BTN_AI: admin_actions.handle_ai_status,
     ADMIN_BTN_AI_PROBE: admin_actions.handle_ai_probe,
+    ADMIN_BTN_CHANNELS: _handle_channels,
     ADMIN_BTN_CLOSE: admin_actions.handle_close,
 }
 

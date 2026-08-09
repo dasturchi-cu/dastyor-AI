@@ -1,0 +1,13 @@
+﻿written temp\layout_check.docx
+--- Test User 'Test User'
+ underline True before None after None line None
+--- 2024 '2024-yildan:'
+ underline True before None after None line None
+--- Tadbirkor 'Tadbirkor'
+ underline True before None after None line 240
+--- 1986-1987 '1986-1987 щщ. - tst'
+ underline True before 80 after None line None
+--- tasd 'tasd'
+ underline True before None after None line None
+--- yo'q "yo'qyo'q"
+ underline True before None after None line None

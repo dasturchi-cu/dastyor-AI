@@ -1,0 +1,36 @@
+=== obyektivka_master.docx ===
+P000 [14.0]pt style=7 | Шрифт 11Шрифт 14МАЪЛУМОТНОМА
+P001 []pt style= | Шрифт 11
+P002 []pt style= | Шрифт 14
+P003 [9.0, 10.0, 14.0]pt style= | Шрифт 14{{photo}}3х4 см, охирги 3 ой давомида олинган рангли фотосурат, эле
+P004 []pt style= | Шрифт 14
+P005 [9.0, 10.0]pt style= | {{photo}}3х4 см, охирги 3 ой давомида олинган рангли фотосурат, электрон кў
+P006 [14.0]pt style= | {{fish}}
+P009 []pt style=3 | {{hozirgi_ish}}
+P010 [11.0]pt style= | Туғилган йили:Туғилган жойи:
+P019 [9.0, 11.0]pt style= | 8 пт0 птИлмий даражаси:Илмий унвони:
+P020 [9.0]pt style= | 8 пт0 пт
+P032 []pt style= | Шрифт 14
+P033 [2.0, 10.0, 11.0, 14.0]pt style= | 4 пт0 птМЕҲНАТ ФАОЛИЯТИ
+P034 [2.0, 10.0]pt style= | 4 пт0 пт
+P047 [11.0, 12.0]pt style=2 | Шрифт 11Шрифт 11{{fish}}нинг яқин қариндошлари ҳақида
+P048 []pt style= | Шрифт 11
+P050 [11.0]pt style= | Шрифт 12МАЪЛУМОТ
+
+TABLE ROWS:
+T0R0 [11.0]pt | Қариндош-лиги | Фамилияси, исми ва отасин | Туғилган йили ва жойи | Иш жойи ва лавозими | Турар жойи
+T0R1 [11.0]pt | Отаси | {{ota}} | {{ota_yil}} | {{ota_ish}} | {{ota_tur}}
+T0R2 [11.0]pt | Онаси | {{ona}} | {{ona_yil}} | {{ona_ish}}
+T0R3 [11.0]pt | Опаси | {{opa}} | {{opa_yil}} | {{opa_ish}} | {{opa_tur}}
+T0R4 [11.0]pt | Синглиси | {{singil}} | {{singil_yil}} | {{singil_ish}} | {{singil_tur}}
+T0R5 [11.0]pt | Укаси | {{uka}} | {{uka_yil}} | {{uka_ish}} | {{uka_tur}}
+T0R6 [11.0]pt | Укаси | {{aka}} | {{aka_yil}} | {{aka_ish}} | {{aka_tur}}
+T0R7 [11.0]pt | Турмуш ўртоғи | {{turmush_ortogi}} | {{turmush_ortogi_yil}} | {{turmush_ortogi_ish}} | {{turmush_ortogi_tur}}
+T0R8 [11.0]pt | Ўғли | {{farzandlar}} | {{farzandlar_yil}} | {{farzandlar_ish}} | {{farzandlar_tur}}
+T0R9 [11.0]pt | Қизи | {{farzandlar_2}} | {{farzandlar_2_yil}} | {{farzandlar_2_ish}} | {{farzandlar_2_tur}}
+T0R10 [11.0]pt | Ўғли | {{farzandlar_3}} | {{farzandlar_3_yil}} | {{farzandlar_3_ish}} | {{farzandlar_3_tur}}
+T0R11 [11.0]pt | Ўғли | {{farzandlar_4}} | {{farzandlar_4_yil}} | {{farzandlar_4_ish}} | {{farzandlar_4_tur}}
+T0R12 [11.0]pt | Қизи | {{farzandlar_5}} | {{farzandlar_5_yil}} | {{farzandlar_5_ish}} | {{farzandlar_5_tur}}
+T0R13 [11.0]pt | Ўғли | {{farzandlar_6}} | {{farzandlar_6_yil}} | {{farzandlar_6_ish}} | {{farzandlar_6_tur}}
+T0R14 [11.0]pt | Қайнотаси | {{qaynota}} | {{qaynota_yil}} | {{qaynota_ish}}
+T0R15 [11.0]pt | Қайнонаси | {{qaynona}} | {{qaynona_yil}} | {{qaynona_ish}} | {{qaynona_tur}}

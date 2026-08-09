@@ -20,6 +20,7 @@ from features.bot.handlers import voice as voice_handlers
 from features.bot.handlers import cover_letter as cover_letter_handlers
 from features.bot.handlers import translate as translate_handlers
 from features.bot.handlers import marketing_payment as marketing_payment_handlers
+from features.bot.handlers import subscription as subscription_handlers
 
 logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
@@ -41,9 +42,14 @@ def create_dispatcher() -> Dispatcher:
     storage = _create_fsm_storage()
     dp = Dispatcher(storage=storage)
     from features.bot.middleware.user_persistence import UserPersistenceMiddleware
+    from features.bot.middleware.subscription_check import SubscriptionCheckMiddleware
+    from features.admin import channels as admin_channels
 
     dp.update.middleware(UserPersistenceMiddleware())
+    dp.update.middleware(SubscriptionCheckMiddleware())
     dp.include_router(admin_router)
+    dp.include_router(admin_channels.router)
+    dp.include_router(subscription_handlers.router)
     dp.include_router(start_handlers.router)
     dp.include_router(obyektivka_handlers.router)
     dp.include_router(voice_handlers.router)

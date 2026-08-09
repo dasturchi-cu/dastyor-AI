@@ -1,0 +1,22 @@
+FILE: C:\Users\User\hujjatchi_ai_bot\temp\ref_converted.docx
+SIZE COUNTS:
+  9.0pt -> 4 runs (bold 0) samples=['(расмий кийимда).', '8', 'пт']
+  10.0pt -> 8 runs (bold 0) samples=['Оқ фондаги', '3х4 см,', 'охирги']
+  11.0pt -> 135 runs (bold 41) samples=['2007 йил 5 октябрдан:', 'Туғилган йили:', 'Туғилган жойи:']
+  12.0pt -> 1 runs (bold 1) samples=['Эшматов Ботир Баҳодировичнинг яқин қариндошлари ҳақида']
+  14.0pt -> 5 runs (bold 4) samples=['МАЪЛУМОТНОМА', 'Оқ фондаги 3х4 см, охирги 3 ой давомида олинган рангли ', 'Эшматов Ботир Баҳодирович']
+
+FILE: C:\Users\User\hujjatchi_ai_bot\templates\obyektivka_master.docx
+SIZE COUNTS:
+  9.0pt -> 1 runs (bold 0) samples=['(расмий кийимда).']
+  10.0pt -> 6 runs (bold 0) samples=['{{photo}}3х4 см, охирги 3 ой давомида олинган рангли фо', '{{photo}}', '3х4 см,']
+  11.0pt -> 128 runs (bold 41) samples=['{{hozirgi_yil}}', '{{hozirgi_ish}}', 'Туғилган йили:']
+  12.0pt -> 2 runs (bold 2) samples=['{{fish}}нинг яқин қариндошлари ҳақида', 'МАЪЛУМОТ']
+  14.0pt -> 3 runs (bold 2) samples=['МАЪЛУМОТНОМА', '{{fish}}', 'МЕҲНАТ ФАОЛИЯТИ']
+
+FILE: C:\Users\User\hujjatchi_ai_bot\temp\font_audit_gen.docx
+SIZE COUNTS:
+  10.0pt -> 2 runs (bold 0) samples=['Оқ фондаги 3х4 см, охирги 3 ой давомида олинган рангли ', 'Оқ фондаги 3х4 см, охирги 3 ой давомида олинган рангли ']
+  11.0pt -> 119 runs (bold 99) samples=['Туғилган йили:', 'Туғилган жойи:', '25.10.1960']
+  12.0pt -> 2 runs (bold 2) samples=['Test Userнинг яқин қариндошлари ҳақида', 'МАЪЛУМОТ']
+  14.0pt -> 3 runs (bold 2) samples=['МАЪЛУМОТНОМА', 'Test User', 'МЕҲНАТ ФАОЛИЯТИ']

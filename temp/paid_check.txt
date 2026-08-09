@@ -1,0 +1,2 @@
+tbl0 jc=center tw_w=10334 ind=False
+page_breaks=0

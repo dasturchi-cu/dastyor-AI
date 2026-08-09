@@ -1,0 +1,2020 @@
+{
+  "source": "temp\\ref_converted.docx",
+  "section": {
+    "page_w_mm": 209.99,
+    "page_h_mm": 296.99,
+    "margin_top_mm": 15.01,
+    "margin_right_mm": 10.0,
+    "margin_bottom_mm": 5.93,
+    "margin_left_mm": 26.9
+  },
+  "styles": {
+    "Normal": {
+      "font_name": null,
+      "font_size_pt": 12.0,
+      "bold": null,
+      "italic": null,
+      "align": "None"
+    },
+    "Heading 1": {
+      "font_name": null,
+      "font_size_pt": 20.0,
+      "bold": null,
+      "italic": null,
+      "align": "None"
+    },
+    "Heading 2": {
+      "font_name": "Times Uzb Roman",
+      "font_size_pt": 11.0,
+      "bold": true,
+      "italic": null,
+      "align": "None"
+    },
+    "Heading 6": {
+      "font_name": "Times Uzb Roman",
+      "font_size_pt": 18.0,
+      "bold": true,
+      "italic": null,
+      "align": "CENTER (1)"
+    }
+  },
+  "paragraphs": [
+    {
+      "style": "Heading 6",
+      "align": "None",
+      "space_before_pt": null,
+      "space_after_pt": null,
+      "line_spacing": "1.0",
+      "line_rule": "SINGLE (0)",
+      "left_indent_mm": null,
+      "right_indent_mm": 21.24,
+      "first_line_indent_mm": null,
+      "tabs": [
+        {
+          "pos_emu": 5600700,
+          "align": "LEFT (0)"
+        }
+      ],
+      "text": "МАЪЛУМОТНОМА",
+      "runs": [
+        {
+          "text": "",
+          "bold": null,
+          "italic": null,
+          "underline": null,
+          "size_pt": 14.0,
+          "name": null,
+          "color": null
+        },
+        {
+          "text": "",
+          "bold": null,
+          "italic": null,
+          "underline": null,
+          "size_pt": 14.0,
+          "name": "Times New Roman",
+          "color": null
+        },
+        {
+          "text": "МАЪЛУМОТНОМА",
+          "bold": null,
+          "italic": null,
+          "underline": null,
+          "size_pt": 14.0,
+          "name": "Times New Roman",
+          "color": null
+        }
+      ],
+      "idx": 0
+    },
+    {
+      "style": "Normal",
+      "align": "CENTER (1)",
+      "space_before_pt": null,
+      "space_after_pt": null,
+      "line_spacing": "None",
+      "line_rule": "None",
+      "left_indent_mm": null,
+      "right_indent_mm": 21.24,
+      "first_line_indent_mm": null,
+      "tabs": [
+        {
+          "pos_emu": 5600700,
+          "align": "LEFT (0)"
+        }
+      ],
+      "text": "",
+      "runs": [
+        {
+          "text": "",
+          "bold": null,
+          "italic": null,
+          "underline": null,
+          "size_pt": 14.0,
+          "name": null,
+          "color": null
+        },
+        {
+          "text": "",
+          "bold": true,
+          "italic": null,
+          "underline": null,
+          "size_pt": 14.0,
+          "name": null,
+          "color": null
+        }
+      ],
+      "idx": 1
+    },
+    {
+      "style": "Normal",
+      "align": "CENTER (1)",
+      "space_before_pt": null,
+      "space_after_pt": null,
+      "line_spacing": "None",
+      "line_rule": "None",
+      "left_indent_mm": null,
+      "right_indent_mm": 21.24,
+      "first_line_indent_mm": null,
+      "tabs": [
+        {
+          "pos_emu": 3023870,
+          "align": "CENTER (1)"
+        },
+        {
+          "pos_emu": 5600700,
+          "align": "LEFT (0)"
+        }
+      ],
+      "text": "Эшматов Ботир Баҳодирович",
+      "runs": [
+        {
+          "text": "Эшматов Ботир Баҳодирович",
+          "bold": true,
+          "italic": null,
+          "underline": null,
+          "size_pt": 14.0,
+          "name": null,
+          "color": null
+        }
+      ],
+      "idx": 2
+    },
+    {
+      "style": "Normal",
+      "align": "None",
+      "space_before_pt": null,
+      "space_after_pt": null,
+      "line_spacing": "None",
+      "line_rule": "None",
+      "left_indent_mm": null,
+      "right_indent_mm": null,
+      "first_line_indent_mm": null,
+      "tabs": [
+        {
+          "pos_emu": 428625,
+          "align": "LEFT (0)"
+        }
+      ],
+      "text": "2007 йил 5 октябрдан:",
+      "runs": [
+        {
+          "text": "2007 йил 5 октябрдан:",
+          "bold": null,
+          "italic": null,
+          "underline": null,
+          "size_pt": 11.0,
+          "name": null,
+          "color": null
+        }
+      ],
+      "idx": 4
+    },
+    {
+      "style": "Heading 2",
+      "align": "None",
+      "space_before_pt": null,
+      "space_after_pt": null,
+      "line_spacing": "1.0",
+      "line_rule": "SINGLE (0)",
+      "left_indent_mm": null,
+      "right_indent_mm": 44.93,
+      "first_line_indent_mm": null,
+      "tabs": [],
+      "text": "Андижон вилояти Андижон тумани “Makon Mirzo” масъулияти чекланган жамияти раҳбари",
+      "runs": [
+        {
+          "text": "Андижон вилояти Андижон тумани “Makon Mirzo” масъулияти чекланган жамияти раҳбари",
+          "bold": null,
+          "italic": null,
+          "underline": null,
+          "size_pt": null,
+          "name": "Times New Roman",
+          "color": null
+        }
+      ],
+      "idx": 5
+    },
+    {
+      "style": "Normal",
+      "align": "None",
+      "space_before_pt": 8.0,
+      "space_after_pt": null,
+      "line_spacing": "None",
+      "line_rule": "None",
+      "left_indent_mm": null,
+      "right_indent_mm": null,
+      "first_line_indent_mm": null,
+      "tabs": [
+        {
+          "pos_emu": 2684780,
+          "align": "LEFT (0)"
+        }
+      ],
+      "text": "Туғилган йили:\tТуғилган жойи:",
+      "runs": [
+        {
+          "text": "",
+          "bold": true,
+          "italic": null,
+          "underline": null,
+          "size_pt": 11.0,
+          "name": null,
+          "color": null
+        },
+        {
+          "text": "Туғилган йили:",
+          "bold": true,
+          "italic": null,
+          "underline": null,
+          "size_pt": 11.0,
+          "name": null,
+          "color": null
+        },
+        {
+          "text": "\t",
+          "bold": null,
+          "italic": null,
+          "underline": null,
+          "size_pt": 11.0,
+          "name": null,
+          "color": null
+        },
+        {
+          "text": "Туғилган жойи:",
+          "bold": true,
+          "italic": null,
+          "underline": null,
+          "size_pt": 11.0,
+          "name": null,
+          "color": null
+        }
+      ],
+      "idx": 6
+    },
+    {
+      "style": "Normal",
+      "align": "None",
+      "space_before_pt": null,
+      "space_after_pt": null,
+      "line_spacing": "None",
+      "line_rule": "None",
+      "left_indent_mm": 76.2,
+      "right_indent_mm": 35.56,
+      "first_line_indent_mm": -76.2,
+      "tabs": [
+        {
+          "pos_emu": 2684780,
+          "align": "LEFT (0)"
+        }
+      ],
+      "text": "25.10.1960\tТошкент вилояти, Қибрай тумани ",
+      "runs": [
+        {
+          "text": "25.10.1960",
+          "bold": null,
+          "italic": null,
+          "underline": null,
+          "size_pt": 11.0,
+          "name": null,
+          "color": null
+        },
+        {
+          "text": "\t",
+          "bold": null,
+          "italic": null,
+          "underline": null,
+          "size_pt": 11.0,
+          "name": null,
+          "color": null
+        },
+        {
+          "text": "Тошкент вилояти, Қибрай тумани ",
+          "bold": null,
+          "italic": null,
+          "underline": null,
+          "size_pt": 11.0,
+          "name": null,
+          "color": null
+        }
+      ],
+      "idx": 7
+    },
+    {
+      "style": "Normal",
+      "align": "None",
+      "space_before_pt": 8.0,
+      "space_after_pt": null,
+      "line_spacing": "None",
+      "line_rule": "None",
+      "left_indent_mm": null,
+      "right_indent_mm": null,
+      "first_line_indent_mm": null,
+      "tabs": [
+        {
+          "pos_emu": 2684780,
+          "align": "LEFT (0)"
+        }
+      ],
+      "text": "Миллати:\tПартиявийлиги:",
+      "runs": [
+        {
+          "text": "Миллати:",
+          "bold": true,
+          "italic": null,
+          "underline": null,
+          "size_pt": 11.0,
+          "name": null,
+          "color": null
+        },
+        {
+          "text": "\t",
+          "bold": null,
+          "italic": null,
+          "underline": null,
+          "size_pt": 11.0,
+          "name": null,
+          "color": null
+        },
+        {
+          "text": "Партиявийлиги:",
+          "bold": true,
+          "italic": null,
+          "underline": null,
+          "size_pt": 11.0,
+          "name": null,
+          "color": null
+        }
+      ],
+      "idx": 8
+    },
+    {
+      "style": "Normal",
+      "align": "None",
+      "space_before_pt": null,
+      "space_after_pt": null,
+      "line_spacing": "None",
+      "line_rule": "None",
+      "left_indent_mm": null,
+      "right_indent_mm": null,
+      "first_line_indent_mm": null,
+      "tabs": [
+        {
+          "pos_emu": 2684780,
+          "align": "LEFT (0)"
+        }
+      ],
+      "text": "ўзбек\tйўқ",
+      "runs": [
+        {
+          "text": "ўзбек",
+          "bold": null,
+          "italic": null,
+          "underline": null,
+          "size_pt": 11.0,
+          "name": null,
+          "color": null
+        },
+        {
+          "text": "\t",
+          "bold": null,
+          "italic": null,
+          "underline": null,
+          "size_pt": 11.0,
+          "name": null,
+          "color": null
+        },
+        {
+          "text": "йўқ",
+          "bold": null,
+          "italic": null,
+          "underline": null,
+          "size_pt": 11.0,
+          "name": null,
+          "color": null
+        }
+      ],
+      "idx": 9
+    },
+    {
+      "style": "Normal",
+      "align": "None",
+      "space_before_pt": 8.0,
+      "space_after_pt": null,
+      "line_spacing": "None",
+      "line_rule": "None",
+      "left_indent_mm": null,
+      "right_indent_mm": null,
+      "first_line_indent_mm": null,
+      "tabs": [
+        {
+          "pos_emu": 2684780,
+          "align": "LEFT (0)"
+        }
+      ],
+      "text": "Маълумоти:\tТамомлаган:",
+      "runs": [
+        {
+          "text": "Маълумоти:",
+          "bold": true,
+          "italic": null,
+          "underline": null,
+          "size_pt": 11.0,
+          "name": null,
+          "color": null
+        },
+        {
+          "text": "\t",
+          "bold": null,
+          "italic": null,
+          "underline": null,
+          "size_pt": 11.0,
+          "name": null,
+          "color": null
+        },
+        {
+          "text": "Тамомлаган:",
+          "bold": true,
+          "italic": null,
+          "underline": null,
+          "size_pt": 11.0,
+          "name": null,
+          "color": null
+        }
+      ],
+      "idx": 10
+    },
+    {
+      "style": "Normal",
+      "align": "None",
+      "space_before_pt": null,
+      "space_after_pt": null,
+      "line_spacing": "None",
+      "line_rule": "None",
+      "left_indent_mm": 76.2,
+      "right_indent_mm": null,
+      "first_line_indent_mm": -76.2,
+      "tabs": [
+        {
+          "pos_emu": 2684780,
+          "align": "LEFT (0)"
+        }
+      ],
+      "text": "олий\t1982 й. Тошкент давлат университети (кундузги)",
+      "runs": [
+        {
+          "text": "олий",
+          "bold": null,
+          "italic": null,
+          "underline": null,
+          "size_pt": 11.0,
+          "name": null,
+          "color": null
+        },
+        {
+          "text": "\t",
+          "bold": null,
+          "italic": null,
+          "underline": null,
+          "size_pt": 11.0,
+          "name": null,
+          "color": null
+        },
+        {
+          "text": "1982 й",
+          "bold": null,
+          "italic": null,
+          "underline": null,
+          "size_pt": 11.0,
+          "name": null,
+          "color": null
+        },
+        {
+          "text": ".",
+          "bold": null,
+          "italic": null,
+          "underline": null,
+          "size_pt": 11.0,
+          "name": null,
+          "color": null
+        },
+        {
+          "text": " Тошкент давлат университети (кундузги)",
+          "bold": null,
+          "italic": null,
+          "underline": null,
+          "size_pt": 11.0,
+          "name": null,
+          "color": null
+        }
+      ],
+      "idx": 11
+    },
+    {
+      "style": "Normal",
+      "align": "None",
+      "space_before_pt": 8.0,
+      "space_after_pt": null,
+      "line_spacing": "None",
+      "line_rule": "None",
+      "left_indent_mm": null,
+      "right_indent_mm": null,
+      "first_line_indent_mm": null,
+      "tabs": [
+        {
+          "pos_emu": 2684780,
+          "align": "LEFT (0)"
+        }
+      ],
+      "text": "Маълумоти бўйича мутахассислиги:\tиқтисодчи",
+      "runs": [
+        {
+          "text": "",
+          "bold": true,
+          "italic": null,
+          "underline": null,
+          "size_pt": 11.0,
+          "name": null,
+          "color": null
+        },
+        {
+          "text": "Маълумоти бўйича мутахассислиги:",
+          "bold": true,
+          "italic": null,
+          "underline": null,
+          "size_pt": 11.0,
+          "name": null,
+          "color": null
+        },
+        {
+          "text": "\t",
+          "bold": true,
+          "italic": null,
+          "underline": null,
+          "size_pt": 11.0,
+          "name": null,
+          "color": null
+        },
+        {
+          "text": "иқтисодчи",
+          "bold": null,
+          "italic": null,
+          "underline": null,
+          "size_pt": 11.0,
+          "name": null,
+          "color": null
+        }
+      ],
+      "idx": 12
+    },
+    {
+      "style": "Normal",
+      "align": "None",
+      "space_before_pt": 8.0,
+      "space_after_pt": null,
+      "line_spacing": "None",
+      "line_rule": "None",
+      "left_indent_mm": null,
+      "right_indent_mm": null,
+      "first_line_indent_mm": null,
+      "tabs": [
+        {
+          "pos_emu": 2684780,
+          "align": "LEFT (0)"
+        }
+      ],
+      "text": "Илмий даражаси:\tИлмий унвони:",
+      "runs": [
+        {
+          "text": "",
+          "bold": null,
+          "italic": null,
+          "underline": null,
+          "size_pt": 11.0,
+          "name": null,
+          "color": null
+        },
+        {
+          "text": "Илмий даражаси:",
+          "bold": true,
+          "italic": null,
+          "underline": null,
+          "size_pt": 11.0,
+          "name": null,
+          "color": null
+        },
+        {
+          "text": "\t",
+          "bold": null,
+          "italic": null,
+          "underline": null,
+          "size_pt": 11.0,
+          "name": null,
+          "color": null
+        },
+        {
+          "text": "Илмий унвони:",
+          "bold": true,
+          "italic": null,
+          "underline": null,
+          "size_pt": 11.0,
+          "name": null,
+          "color": null
+        }
+      ],
+      "idx": 13
+    },
+    {
+      "style": "Normal",
+      "align": "None",
+      "space_before_pt": null,
+      "space_after_pt": null,
+      "line_spacing": "None",
+      "line_rule": "None",
+      "left_indent_mm": null,
+      "right_indent_mm": null,
+      "first_line_indent_mm": null,
+      "tabs": [
+        {
+          "pos_emu": 2684780,
+          "align": "LEFT (0)"
+        }
+      ],
+      "text": "иқтисод фанлари доктори\tпрофессор",
+      "runs": [
+        {
+          "text": "иқтисод фанлари доктори",
+          "bold": null,
+          "italic": null,
+          "underline": null,
+          "size_pt": 11.0,
+          "name": null,
+          "color": null
+        },
+        {
+          "text": "\t",
+          "bold": null,
+          "italic": null,
+          "underline": null,
+          "size_pt": 11.0,
+          "name": null,
+          "color": null
+        },
+        {
+          "text": "профессор",
+          "bold": null,
+          "italic": null,
+          "underline": null,
+          "size_pt": 11.0,
+          "name": null,
+          "color": null
+        }
+      ],
+      "idx": 14
+    },
+    {
+      "style": "Normal",
+      "align": "None",
+      "space_before_pt": 8.0,
+      "space_after_pt": null,
+      "line_spacing": "None",
+      "line_rule": "None",
+      "left_indent_mm": null,
+      "right_indent_mm": null,
+      "first_line_indent_mm": null,
+      "tabs": [
+        {
+          "pos_emu": 428625,
+          "align": "LEFT (0)"
+        },
+        {
+          "pos_emu": 2684780,
+          "align": "LEFT (0)"
+        }
+      ],
+      "text": "Қайси чет тилларини билади:\tҲарбий (махсус) унвони:",
+      "runs": [
+        {
+          "text": "Қайси чет тилларини билади:",
+          "bold": true,
+          "italic": null,
+          "underline": null,
+          "size_pt": 11.0,
+          "name": null,
+          "color": null
+        },
+        {
+          "text": "\t",
+          "bold": true,
+          "italic": null,
+          "underline": null,
+          "size_pt": 11.0,
+          "name": null,
+          "color": null
+        },
+        {
+          "text": "Ҳарбий (махсус) унвони:",
+          "bold": true,
+          "italic": null,
+          "underline": null,
+          "size_pt": 11.0,
+          "name": null,
+          "color": null
+        }
+      ],
+      "idx": 15
+    },
+    {
+      "style": "Normal",
+      "align": "None",
+      "space_before_pt": null,
+      "space_after_pt": null,
+      "line_spacing": "None",
+      "line_rule": "None",
+      "left_indent_mm": null,
+      "right_indent_mm": null,
+      "first_line_indent_mm": null,
+      "tabs": [
+        {
+          "pos_emu": 2684780,
+          "align": "LEFT (0)"
+        }
+      ],
+      "text": "рус, инглиз тиллари \tйўқ",
+      "runs": [
+        {
+          "text": "рус, инглиз тиллари ",
+          "bold": null,
+          "italic": null,
+          "underline": null,
+          "size_pt": 11.0,
+          "name": null,
+          "color": null
+        },
+        {
+          "text": "\t",
+          "bold": null,
+          "italic": null,
+          "underline": null,
+          "size_pt": 11.0,
+          "name": null,
+          "color": null
+        },
+        {
+          "text": "йўқ",
+          "bold": null,
+          "italic": null,
+          "underline": null,
+          "size_pt": 11.0,
+          "name": null,
+          "color": null
+        }
+      ],
+      "idx": 16
+    },
+    {
+      "style": "Normal",
+      "align": "None",
+      "space_before_pt": 8.0,
+      "space_after_pt": null,
+      "line_spacing": "None",
+      "line_rule": "None",
+      "left_indent_mm": null,
+      "right_indent_mm": null,
+      "first_line_indent_mm": null,
+      "tabs": [
+        {
+          "pos_emu": 419735,
+          "align": "LEFT (0)"
+        }
+      ],
+      "text": "Давлат мукофотлари ва премиялари билан тақдирланганми (қанақа):\t\t",
+      "runs": [
+        {
+          "text": "Давлат мукофотлари ва премиялари билан тақдирланганми (қанақа):",
+          "bold": true,
+          "italic": null,
+          "underline": null,
+          "size_pt": 11.0,
+          "name": null,
+          "color": null
+        },
+        {
+          "text": "\t",
+          "bold": true,
+          "italic": null,
+          "underline": null,
+          "size_pt": 11.0,
+          "name": null,
+          "color": null
+        },
+        {
+          "text": "\t",
+          "bold": true,
+          "italic": null,
+          "underline": null,
+          "size_pt": 11.0,
+          "name": null,
+          "color": null
+        }
+      ],
+      "idx": 17
+    },
+    {
+      "style": "Normal",
+      "align": "None",
+      "space_before_pt": null,
+      "space_after_pt": null,
+      "line_spacing": "None",
+      "line_rule": "None",
+      "left_indent_mm": null,
+      "right_indent_mm": null,
+      "first_line_indent_mm": null,
+      "tabs": [],
+      "text": "2005 й. “Шуҳрати” медал, 2010 й. “Меҳнат шуҳрати” ордени",
+      "runs": [
+        {
+          "text": "2005 ",
+          "bold": null,
+          "italic": null,
+          "underline": null,
+          "size_pt": 11.0,
+          "name": null,
+          "color": null
+        },
+        {
+          "text": "й. “Шуҳрати” медал, 2010 й. “Меҳнат шуҳрати” ордени",
+          "bold": null,
+          "italic": null,
+          "underline": null,
+          "size_pt": 11.0,
+          "name": null,
+          "color": null
+        }
+      ],
+      "idx": 18
+    },
+    {
+      "style": "Normal",
+      "align": "None",
+      "space_before_pt": 8.0,
+      "space_after_pt": null,
+      "line_spacing": "None",
+      "line_rule": "None",
+      "left_indent_mm": null,
+      "right_indent_mm": null,
+      "first_line_indent_mm": null,
+      "tabs": [
+        {
+          "pos_emu": 419735,
+          "align": "LEFT (0)"
+        }
+      ],
+      "text": "Идоравий мукофотлар билан тақдирланганми (қанақа):\t\t",
+      "runs": [
+        {
+          "text": "Идоравий мукофотлар билан тақдирланганми (қанақа):",
+          "bold": true,
+          "italic": null,
+          "underline": null,
+          "size_pt": 11.0,
+          "name": null,
+          "color": null
+        },
+        {
+          "text": "\t",
+          "bold": true,
+          "italic": null,
+          "underline": null,
+          "size_pt": 11.0,
+          "name": null,
+          "color": null
+        },
+        {
+          "text": "\t",
+          "bold": true,
+          "italic": null,
+          "underline": null,
+          "size_pt": 11.0,
+          "name": null,
+          "color": null
+        }
+      ],
+      "idx": 19
+    },
+    {
+      "style": "Normal",
+      "align": "None",
+      "space_before_pt": null,
+      "space_after_pt": null,
+      "line_spacing": "None",
+      "line_rule": "None",
+      "left_indent_mm": null,
+      "right_indent_mm": null,
+      "first_line_indent_mm": null,
+      "tabs": [],
+      "text": "2008 й. «Халқ таълим аълочиси» кўкрак нишони, 2017 й. «Ўзбекистон Конституциясига 25 йил» эсдалик нишони, 2025 й. «Ғалабанинг 80 йиллиги» юбилей нишони, 2026 й. «Фидокорона меҳнати учун» кўкрак нишони",
+      "runs": [
+        {
+          "text": "2008 й. «Халқ таълим аълочиси» кўкрак нишони, 2017 й. «Ўзбекистон Конституциясига 25 йил» эсдалик нишони, 2025 й. «Ғалаб",
+          "bold": null,
+          "italic": null,
+          "underline": null,
+          "size_pt": 11.0,
+          "name": null,
+          "color": null
+        }
+      ],
+      "idx": 20
+    },
+    {
+      "style": "Normal",
+      "align": "None",
+      "space_before_pt": 8.0,
+      "space_after_pt": null,
+      "line_spacing": "None",
+      "line_rule": "None",
+      "left_indent_mm": null,
+      "right_indent_mm": null,
+      "first_line_indent_mm": null,
+      "tabs": [
+        {
+          "pos_emu": 428625,
+          "align": "LEFT (0)"
+        }
+      ],
+      "text": "Халқ депутатлари, республика, вилоят, шаҳар ва туман Кенгаши депутатими ёки бошқа",
+      "runs": [
+        {
+          "text": "Халқ депутатлари, республика, вилоят, шаҳар ва туман Кенгаши депутатими ёки бошқа",
+          "bold": true,
+          "italic": null,
+          "underline": null,
+          "size_pt": 11.0,
+          "name": null,
+          "color": null
+        }
+      ],
+      "idx": 21
+    },
+    {
+      "style": "Normal",
+      "align": "None",
+      "space_before_pt": null,
+      "space_after_pt": null,
+      "line_spacing": "None",
+      "line_rule": "None",
+      "left_indent_mm": null,
+      "right_indent_mm": null,
+      "first_line_indent_mm": null,
+      "tabs": [
+        {
+          "pos_emu": 419735,
+          "align": "LEFT (0)"
+        }
+      ],
+      "text": "сайланадиган органларнинг аъзосими (тўлиқ кўрсатилиши лозим):\t\t",
+      "runs": [
+        {
+          "text": "сайланадиган органларнинг аъзосими (тўлиқ кўрсатилиши лозим):",
+          "bold": true,
+          "italic": null,
+          "underline": null,
+          "size_pt": 11.0,
+          "name": null,
+          "color": null
+        },
+        {
+          "text": "\t",
+          "bold": null,
+          "italic": null,
+          "underline": null,
+          "size_pt": 11.0,
+          "name": null,
+          "color": null
+        },
+        {
+          "text": "\t",
+          "bold": null,
+          "italic": null,
+          "underline": null,
+          "size_pt": 11.0,
+          "name": null,
+          "color": null
+        }
+      ],
+      "idx": 22
+    },
+    {
+      "style": "Normal",
+      "align": "None",
+      "space_before_pt": null,
+      "space_after_pt": null,
+      "line_spacing": "None",
+      "line_rule": "None",
+      "left_indent_mm": null,
+      "right_indent_mm": null,
+      "first_line_indent_mm": null,
+      "tabs": [],
+      "text": "2024 й.  - ҳ.в. - Халқ депутатлари Тошкент вилояти Кенгаши депутати, Ўзбекистон Республикаси Олий Мажлиси Сенати аъзоси ",
+      "runs": [
+        {
+          "text": "2024 й.  - ҳ.в. - Халқ депутатлари Тошкент вилояти Кенгаши депутати, Ўзбекистон Республикаси Олий Мажлиси Сенати аъзоси ",
+          "bold": null,
+          "italic": null,
+          "underline": null,
+          "size_pt": 11.0,
+          "name": null,
+          "color": null
+        }
+      ],
+      "idx": 23
+    },
+    {
+      "style": "Normal",
+      "align": "None",
+      "space_before_pt": null,
+      "space_after_pt": null,
+      "line_spacing": "None",
+      "line_rule": "None",
+      "left_indent_mm": null,
+      "right_indent_mm": null,
+      "first_line_indent_mm": null,
+      "tabs": [],
+      "text": "",
+      "runs": [
+        {
+          "text": "",
+          "bold": null,
+          "italic": null,
+          "underline": null,
+          "size_pt": 11.0,
+          "name": null,
+          "color": null
+        }
+      ],
+      "idx": 24
+    },
+    {
+      "style": "Normal",
+      "align": "CENTER (1)",
+      "space_before_pt": null,
+      "space_after_pt": null,
+      "line_spacing": "None",
+      "line_rule": "None",
+      "left_indent_mm": null,
+      "right_indent_mm": null,
+      "first_line_indent_mm": null,
+      "tabs": [
+        {
+          "pos_emu": 2620010,
+          "align": "LEFT (0)"
+        }
+      ],
+      "text": "МЕҲНАТ ФАОЛИЯТИ",
+      "runs": [
+        {
+          "text": "",
+          "bold": null,
+          "italic": null,
+          "underline": null,
+          "size_pt": 11.0,
+          "name": null,
+          "color": null
+        },
+        {
+          "text": "МЕҲНАТ ФАОЛИЯТИ",
+          "bold": true,
+          "italic": null,
+          "underline": null,
+          "size_pt": 14.0,
+          "name": null,
+          "color": null
+        }
+      ],
+      "idx": 25
+    },
+    {
+      "style": "Normal",
+      "align": "None",
+      "space_before_pt": 4.0,
+      "space_after_pt": null,
+      "line_spacing": "None",
+      "line_rule": "None",
+      "left_indent_mm": 28.61,
+      "right_indent_mm": null,
+      "first_line_indent_mm": -28.61,
+      "tabs": [],
+      "text": "1977-1982 йй. - Тошкент давлат университети талабаси",
+      "runs": [
+        {
+          "text": "1977-1982 йй. - Тошкент давлат университети талабаси",
+          "bold": null,
+          "italic": null,
+          "underline": null,
+          "size_pt": 11.0,
+          "name": null,
+          "color": null
+        }
+      ],
+      "idx": 26
+    },
+    {
+      "style": "Normal",
+      "align": "None",
+      "space_before_pt": 4.0,
+      "space_after_pt": null,
+      "line_spacing": "None",
+      "line_rule": "None",
+      "left_indent_mm": 28.61,
+      "right_indent_mm": null,
+      "first_line_indent_mm": -28.61,
+      "tabs": [],
+      "text": "1982-1988 йй. - Тошкент давлат университети иқтисодиёт факультети кичик илмий ходими",
+      "runs": [
+        {
+          "text": "1982-1988 йй. - Тошкент давлат университети иқтисодиёт факультети кичик илмий ходими",
+          "bold": null,
+          "italic": null,
+          "underline": null,
+          "size_pt": 11.0,
+          "name": null,
+          "color": null
+        }
+      ],
+      "idx": 27
+    },
+    {
+      "style": "Normal",
+      "align": "None",
+      "space_before_pt": 4.0,
+      "space_after_pt": null,
+      "line_spacing": "None",
+      "line_rule": "None",
+      "left_indent_mm": 28.61,
+      "right_indent_mm": null,
+      "first_line_indent_mm": -28.61,
+      "tabs": [],
+      "text": "1988-1991 йй. - Тошкент давлат университети иқтисодиёт факультети аспиранти",
+      "runs": [
+        {
+          "text": "1988-1991 йй. - Тошкент давлат университети иқтисодиёт факультети аспиранти",
+          "bold": null,
+          "italic": null,
+          "underline": null,
+          "size_pt": 11.0,
+          "name": null,
+          "color": null
+        }
+      ],
+      "idx": 28
+    },
+    {
+      "style": "Normal",
+      "align": "None",
+      "space_before_pt": 4.0,
+      "space_after_pt": null,
+      "line_spacing": "None",
+      "line_rule": "None",
+      "left_indent_mm": 28.61,
+      "right_indent_mm": null,
+      "first_line_indent_mm": -28.61,
+      "tabs": [],
+      "text": "1991-1995 йй. - Тошкент давлат иқтисодиёт университети иқтисодиёт факультети катта илмий ходими",
+      "runs": [
+        {
+          "text": "1991-1995 йй. - Тошкент давлат иқтисодиёт университети иқтисодиёт факультети катта илмий ходими",
+          "bold": null,
+          "italic": null,
+          "underline": null,
+          "size_pt": 11.0,
+          "name": null,
+          "color": null
+        }
+      ],
+      "idx": 29
+    },
+    {
+      "style": "Normal",
+      "align": "None",
+      "space_before_pt": 4.0,
+      "space_after_pt": null,
+      "line_spacing": "None",
+      "line_rule": "None",
+      "left_indent_mm": 28.61,
+      "right_indent_mm": null,
+      "first_line_indent_mm": -28.61,
+      "tabs": [],
+      "text": "1995-1998 йй. - Тошкент давлат иқтисодиёт университети иқтисодиёт факультети докторанти",
+      "runs": [
+        {
+          "text": "1995-1998 йй. - Тошкент давлат иқтисодиёт университети иқтисодиёт факультети докторанти",
+          "bold": null,
+          "italic": null,
+          "underline": null,
+          "size_pt": 11.0,
+          "name": null,
+          "color": null
+        }
+      ],
+      "idx": 30
+    },
+    {
+      "style": "Normal",
+      "align": "None",
+      "space_before_pt": 4.0,
+      "space_after_pt": null,
+      "line_spacing": "None",
+      "line_rule": "None",
+      "left_indent_mm": 26.67,
+      "right_indent_mm": null,
+      "first_line_indent_mm": -26.67,
+      "tabs": [],
+      "text": "1998-2004 йй. - Ўзбекистон Республикаси Иқтисодиёт вазирлиги таълимни ривожлантириш бўлими мутахассиси, етакчи мутахассиси, бош мутахассиси",
+      "runs": [
+        {
+          "text": "1998-2004 йй. - Ўзбекистон Республикаси Иқтисодиёт вазирлиги таълимни ривожлантириш бўлими мутахассиси, етакчи мутахасси",
+          "bold": null,
+          "italic": null,
+          "underline": null,
+          "size_pt": 11.0,
+          "name": null,
+          "color": null
+        }
+      ],
+      "idx": 31
+    },
+    {
+      "style": "Normal",
+      "align": "None",
+      "space_before_pt": 4.0,
+      "space_after_pt": null,
+      "line_spacing": "None",
+      "line_rule": "None",
+      "left_indent_mm": 28.61,
+      "right_indent_mm": null,
+      "first_line_indent_mm": -28.61,
+      "tabs": [],
+      "text": "2004-2007 йй. - Тошкент давлат иқтисодиёт университети микроиқтисодиёт факультети декани",
+      "runs": [
+        {
+          "text": "2004-2007 йй. - Тошкент давлат иқтисодиёт университети микроиқтисодиёт факультети декани",
+          "bold": null,
+          "italic": null,
+          "underline": null,
+          "size_pt": 11.0,
+          "name": null,
+          "color": null
+        }
+      ],
+      "idx": 32
+    },
+    {
+      "style": "Normal",
+      "align": "None",
+      "space_before_pt": 4.0,
+      "space_after_pt": null,
+      "line_spacing": "None",
+      "line_rule": "None",
+      "left_indent_mm": 26.67,
+      "right_indent_mm": null,
+      "first_line_indent_mm": -26.67,
+      "tabs": [],
+      "text": "2007 й. -  ҳ.в.  - Андижон вилояти Андижон тумани “Makon Mirzo” масъулияти чекланган жамияти раҳбари",
+      "runs": [
+        {
+          "text": "2007 й. -  ҳ.в.  - Андижон вилояти Андижон тумани “Makon Mirzo” масъулияти чекланган жамияти раҳбари",
+          "bold": null,
+          "italic": null,
+          "underline": null,
+          "size_pt": 11.0,
+          "name": null,
+          "color": null
+        }
+      ],
+      "idx": 33
+    },
+    {
+      "style": "Heading 1",
+      "align": "CENTER (1)",
+      "space_before_pt": null,
+      "space_after_pt": null,
+      "line_spacing": "None",
+      "line_rule": "None",
+      "left_indent_mm": null,
+      "right_indent_mm": null,
+      "first_line_indent_mm": null,
+      "tabs": [],
+      "text": "Эшматов Ботир Баҳодировичнинг яқин қариндошлари ҳақида",
+      "runs": [
+        {
+          "text": "",
+          "bold": null,
+          "italic": null,
+          "underline": null,
+          "size_pt": 11.0,
+          "name": null,
+          "color": null
+        },
+        {
+          "text": "",
+          "bold": true,
+          "italic": null,
+          "underline": null,
+          "size_pt": null,
+          "name": null,
+          "color": null
+        },
+        {
+          "text": "Эшматов Ботир Баҳодировичнинг яқин қариндошлари ҳақида",
+          "bold": true,
+          "italic": null,
+          "underline": null,
+          "size_pt": 12.0,
+          "name": null,
+          "color": null
+        }
+      ],
+      "idx": 38
+    },
+    {
+      "style": "Normal",
+      "align": "CENTER (1)",
+      "space_before_pt": null,
+      "space_after_pt": null,
+      "line_spacing": "None",
+      "line_rule": "None",
+      "left_indent_mm": null,
+      "right_indent_mm": null,
+      "first_line_indent_mm": null,
+      "tabs": [],
+      "text": "МАЪЛУМОТ",
+      "runs": [
+        {
+          "text": "",
+          "bold": true,
+          "italic": null,
+          "underline": null,
+          "size_pt": null,
+          "name": null,
+          "color": null
+        },
+        {
+          "text": "МАЪЛУМОТ",
+          "bold": true,
+          "italic": null,
+          "underline": null,
+          "size_pt": null,
+          "name": null,
+          "color": null
+        }
+      ],
+      "idx": 39
+    }
+  ],
+  "tables": [
+    {
+      "idx": 0,
+      "rows": 16,
+      "cols": 5,
+      "grid_dxa": [
+        "1260",
+        "2160",
+        "1830",
+        "3027",
+        "2057"
+      ],
+      "cells_sample": [
+        [
+          {
+            "r": 0,
+            "c": 0,
+            "text": "Қариндош-лиги",
+            "para": {
+              "style": "Normal",
+              "align": "CENTER (1)",
+              "space_before_pt": null,
+              "space_after_pt": null,
+              "line_spacing": "None",
+              "line_rule": "None",
+              "left_indent_mm": -1.91,
+              "right_indent_mm": -1.91,
+              "first_line_indent_mm": null,
+              "tabs": [],
+              "text": "Қариндош-лиги",
+              "runs": [
+                {
+                  "text": "Қариндош",
+                  "bold": true,
+                  "italic": null,
+                  "underline": null,
+                  "size_pt": 11.0,
+                  "name": null,
+                  "color": null
+                },
+                {
+                  "text": "-",
+                  "bold": true,
+                  "italic": null,
+                  "underline": null,
+                  "size_pt": 11.0,
+                  "name": null,
+                  "color": null
+                },
+                {
+                  "text": "лиги",
+                  "bold": true,
+                  "italic": null,
+                  "underline": null,
+                  "size_pt": 11.0,
+                  "name": null,
+                  "color": null
+                }
+              ]
+            },
+            "cell": {
+              "width_dxa": "1260",
+              "borders": {}
+            }
+          },
+          {
+            "r": 0,
+            "c": 1,
+            "text": "Фамилияси, исми \nва отасининг исми ",
+            "para": {
+              "style": "Normal",
+              "align": "CENTER (1)",
+              "space_before_pt": null,
+              "space_after_pt": null,
+              "line_spacing": "None",
+              "line_rule": "None",
+              "left_indent_mm": null,
+              "right_indent_mm": null,
+              "first_line_indent_mm": null,
+              "tabs": [],
+              "text": "Фамилияси, исми \nва отасининг исми ",
+              "runs": [
+                {
+                  "text": "Фамилияси, исми ",
+                  "bold": true,
+                  "italic": null,
+                  "underline": null,
+                  "size_pt": 11.0,
+                  "name": null,
+                  "color": null
+                },
+                {
+                  "text": "\n",
+                  "bold": true,
+                  "italic": null,
+                  "underline": null,
+                  "size_pt": 11.0,
+                  "name": null,
+                  "color": null
+                },
+                {
+                  "text": "ва отасининг исми ",
+                  "bold": true,
+                  "italic": null,
+                  "underline": null,
+                  "size_pt": 11.0,
+                  "name": null,
+                  "color": null
+                }
+              ]
+            },
+            "cell": {
+              "width_dxa": "2160",
+              "borders": {}
+            }
+          },
+          {
+            "r": 0,
+            "c": 2,
+            "text": "Туғилган йили \nва жойи",
+            "para": {
+              "style": "Normal",
+              "align": "CENTER (1)",
+              "space_before_pt": null,
+              "space_after_pt": null,
+              "line_spacing": "None",
+              "line_rule": "None",
+              "left_indent_mm": null,
+              "right_indent_mm": null,
+              "first_line_indent_mm": null,
+              "tabs": [],
+              "text": "Туғилган йили \nва жойи",
+              "runs": [
+                {
+                  "text": "Туғилган йили ",
+                  "bold": true,
+                  "italic": null,
+                  "underline": null,
+                  "size_pt": 11.0,
+                  "name": null,
+                  "color": null
+                },
+                {
+                  "text": "\n",
+                  "bold": true,
+                  "italic": null,
+                  "underline": null,
+                  "size_pt": 11.0,
+                  "name": null,
+                  "color": null
+                },
+                {
+                  "text": "ва жойи",
+                  "bold": true,
+                  "italic": null,
+                  "underline": null,
+                  "size_pt": 11.0,
+                  "name": null,
+                  "color": null
+                }
+              ]
+            },
+            "cell": {
+              "width_dxa": "1830",
+              "borders": {}
+            }
+          },
+          {
+            "r": 0,
+            "c": 3,
+            "text": "Иш жойи ва лавозими",
+            "para": {
+              "style": "Normal",
+              "align": "CENTER (1)",
+              "space_before_pt": null,
+              "space_after_pt": null,
+              "line_spacing": "None",
+              "line_rule": "None",
+              "left_indent_mm": null,
+              "right_indent_mm": null,
+              "first_line_indent_mm": null,
+              "tabs": [],
+              "text": "Иш жойи ва лавозими",
+              "runs": [
+                {
+                  "text": "Иш жойи ва лавозими",
+                  "bold": true,
+                  "italic": null,
+                  "underline": null,
+                  "size_pt": 11.0,
+                  "name": null,
+                  "color": null
+                }
+              ]
+            },
+            "cell": {
+              "width_dxa": "3027",
+              "borders": {}
+            }
+          },
+          {
+            "r": 0,
+            "c": 4,
+            "text": "Турар жойи",
+            "para": {
+              "style": "Normal",
+              "align": "CENTER (1)",
+              "space_before_pt": null,
+              "space_after_pt": null,
+              "line_spacing": "None",
+              "line_rule": "None",
+              "left_indent_mm": null,
+              "right_indent_mm": null,
+              "first_line_indent_mm": null,
+              "tabs": [],
+              "text": "Турар жойи",
+              "runs": [
+                {
+                  "text": "Турар жойи",
+                  "bold": true,
+                  "italic": null,
+                  "underline": null,
+                  "size_pt": 11.0,
+                  "name": null,
+                  "color": null
+                }
+              ]
+            },
+            "cell": {
+              "width_dxa": "2057",
+              "borders": {}
+            }
+          }
+        ],
+        [
+          {
+            "r": 1,
+            "c": 0,
+            "text": "Отаси",
+            "para": {
+              "style": "Normal",
+              "align": "CENTER (1)",
+              "space_before_pt": null,
+              "space_after_pt": null,
+              "line_spacing": "None",
+              "line_rule": "None",
+              "left_indent_mm": -1.91,
+              "right_indent_mm": -1.91,
+              "first_line_indent_mm": null,
+              "tabs": [],
+              "text": "Отаси",
+              "runs": [
+                {
+                  "text": "Отаси",
+                  "bold": true,
+                  "italic": null,
+                  "underline": null,
+                  "size_pt": 11.0,
+                  "name": null,
+                  "color": null
+                }
+              ]
+            },
+            "cell": {
+              "width_dxa": "1260",
+              "borders": {}
+            }
+          },
+          {
+            "r": 1,
+            "c": 1,
+            "text": "Эшматов Баҳодир Темирович",
+            "para": {
+              "style": "Normal",
+              "align": "CENTER (1)",
+              "space_before_pt": null,
+              "space_after_pt": null,
+              "line_spacing": "None",
+              "line_rule": "None",
+              "left_indent_mm": null,
+              "right_indent_mm": null,
+              "first_line_indent_mm": null,
+              "tabs": [],
+              "text": "Эшматов Баҳодир Темирович",
+              "runs": [
+                {
+                  "text": "Эшматов Баҳодир Темирович",
+                  "bold": null,
+                  "italic": null,
+                  "underline": null,
+                  "size_pt": 11.0,
+                  "name": null,
+                  "color": null
+                }
+              ]
+            },
+            "cell": {
+              "width_dxa": "2160",
+              "borders": {}
+            }
+          },
+          {
+            "r": 1,
+            "c": 2,
+            "text": "1935 йил, Қибрай тумани",
+            "para": {
+              "style": "Normal",
+              "align": "CENTER (1)",
+              "space_before_pt": null,
+              "space_after_pt": null,
+              "line_spacing": "None",
+              "line_rule": "None",
+              "left_indent_mm": null,
+              "right_indent_mm": null,
+              "first_line_indent_mm": null,
+              "tabs": [],
+              "text": "1935 йил, Қибрай тумани",
+              "runs": [
+                {
+                  "text": "1935 йил, Қибрай тумани",
+                  "bold": null,
+                  "italic": null,
+                  "underline": null,
+                  "size_pt": 11.0,
+                  "name": null,
+                  "color": null
+                }
+              ]
+            },
+            "cell": {
+              "width_dxa": "1830",
+              "borders": {}
+            }
+          },
+          {
+            "r": 1,
+            "c": 3,
+            "text": "Пенсияда \n(Тошкент давлат иқтисодиёт университети доценти)",
+            "para": {
+              "style": "Normal",
+              "align": "CENTER (1)",
+              "space_before_pt": null,
+              "space_after_pt": null,
+              "line_spacing": "None",
+              "line_rule": "None",
+              "left_indent_mm": null,
+              "right_indent_mm": null,
+              "first_line_indent_mm": null,
+              "tabs": [],
+              "text": "Пенсияда \n(Тошкент давлат иқтисодиёт университети доценти)",
+              "runs": [
+                {
+                  "text": "Пенсияда ",
+                  "bold": null,
+                  "italic": null,
+                  "underline": null,
+                  "size_pt": 11.0,
+                  "name": null,
+                  "color": null
+                },
+                {
+                  "text": "\n",
+                  "bold": null,
+                  "italic": null,
+                  "underline": null,
+                  "size_pt": 11.0,
+                  "name": null,
+                  "color": null
+                },
+                {
+                  "text": "(Тошкент давлат иқтисодиёт университети доценти)",
+                  "bold": null,
+                  "italic": null,
+                  "underline": null,
+                  "size_pt": 11.0,
+                  "name": null,
+                  "color": null
+                }
+              ]
+            },
+            "cell": {
+              "width_dxa": "3027",
+              "borders": {}
+            }
+          },
+          {
+            "r": 1,
+            "c": 4,
+            "text": "Тошкент вилояти, Қибрай тумани",
+            "para": {
+              "style": "Normal",
+              "align": "CENTER (1)",
+              "space_before_pt": null,
+              "space_after_pt": null,
+              "line_spacing": "None",
+              "line_rule": "None",
+              "left_indent_mm": null,
+              "right_indent_mm": null,
+              "first_line_indent_mm": null,
+              "tabs": [],
+              "text": "Тошкент вилояти, Қибрай тумани",
+              "runs": [
+                {
+                  "text": "Тошкент вилояти, Қибрай тумани",
+                  "bold": null,
+                  "italic": null,
+                  "underline": null,
+                  "size_pt": 11.0,
+                  "name": null,
+                  "color": null
+                }
+              ]
+            },
+            "cell": {
+              "width_dxa": "2057",
+              "borders": {}
+            }
+          }
+        ],
+        [
+          {
+            "r": 2,
+            "c": 0,
+            "text": "Онаси",
+            "para": {
+              "style": "Normal",
+              "align": "CENTER (1)",
+              "space_before_pt": null,
+              "space_after_pt": null,
+              "line_spacing": "None",
+              "line_rule": "None",
+              "left_indent_mm": -1.91,
+              "right_indent_mm": -1.91,
+              "first_line_indent_mm": null,
+              "tabs": [],
+              "text": "Онаси",
+              "runs": [
+                {
+                  "text": "Онаси",
+                  "bold": true,
+                  "italic": null,
+                  "underline": null,
+                  "size_pt": 11.0,
+                  "name": null,
+                  "color": null
+                }
+              ]
+            },
+            "cell": {
+              "width_dxa": "1260",
+              "borders": {}
+            }
+          },
+          {
+            "r": 2,
+            "c": 1,
+            "text": "Абдушукурова Раҳима ",
+            "para": {
+              "style": "Normal",
+              "align": "CENTER (1)",
+              "space_before_pt": null,
+              "space_after_pt": null,
+              "line_spacing": "None",
+              "line_rule": "None",
+              "left_indent_mm": null,
+              "right_indent_mm": null,
+              "first_line_indent_mm": null,
+              "tabs": [],
+              "text": "Абдушукурова Раҳима ",
+              "runs": [
+                {
+                  "text": "Абдушукурова Раҳима ",
+                  "bold": null,
+                  "italic": null,
+                  "underline": null,
+                  "size_pt": 11.0,
+                  "name": null,
+                  "color": null
+                }
+              ]
+            },
+            "cell": {
+              "width_dxa": "2160",
+              "borders": {}
+            }
+          },
+          {
+            "r": 2,
+            "c": 2,
+            "text": "1936 йил, Қибрай тумани",
+            "para": {
+              "style": "Normal",
+              "align": "CENTER (1)",
+              "space_before_pt": null,
+              "space_after_pt": null,
+              "line_spacing": "None",
+              "line_rule": "None",
+              "left_indent_mm": null,
+              "right_indent_mm": null,
+              "first_line_indent_mm": null,
+              "tabs": [],
+              "text": "1936 йил, Қибрай тумани",
+              "runs": [
+                {
+                  "text": "1936 йил, Қибрай тумани",
+                  "bold": null,
+                  "italic": null,
+                  "underline": null,
+                  "size_pt": 11.0,
+                  "name": null,
+                  "color": null
+                }
+              ]
+            },
+            "cell": {
+              "width_dxa": "1830",
+              "borders": {}
+            }
+          },
+          {
+            "r": 2,
+            "c": 3,
+            "text": "2000 йил вафот этган \n(жамоа хўжалиги ишчиси)",
+            "para": {
+              "style": "Normal",
+              "align": "CENTER (1)",
+              "space_before_pt": null,
+              "space_after_pt": null,
+              "line_spacing": "None",
+              "line_rule": "None",
+              "left_indent_mm": null,
+              "right_indent_mm": null,
+              "first_line_indent_mm": null,
+              "tabs": [],
+              "text": "2000 йил вафот этган \n(жамоа хўжалиги ишчиси)",
+              "runs": [
+                {
+                  "text": "2000 йил вафот этган ",
+                  "bold": null,
+                  "italic": null,
+                  "underline": null,
+                  "size_pt": 11.0,
+                  "name": null,
+                  "color": null
+                },
+                {
+                  "text": "\n",
+                  "bold": null,
+                  "italic": null,
+                  "underline": null,
+                  "size_pt": 11.0,
+                  "name": null,
+                  "color": null
+                },
+                {
+                  "text": "(жамоа хўжалиги ишчиси)",
+                  "bold": null,
+                  "italic": null,
+                  "underline": null,
+                  "size_pt": 11.0,
+                  "name": null,
+                  "color": null
+                }
+              ]
+            },
+            "cell": {
+              "width_dxa": "5084",
+              "borders": {}
+            }
+          },
+          {
+            "r": 2,
+            "c": 4,
+            "text": "2000 йил вафот этган \n(жамоа хўжалиги ишчиси)",
+            "para": {
+              "style": "Normal",
+              "align": "CENTER (1)",
+              "space_before_pt": null,
+              "space_after_pt": null,
+              "line_spacing": "None",
+              "line_rule": "None",
+              "left_indent_mm": null,
+              "right_indent_mm": null,
+              "first_line_indent_mm": null,
+              "tabs": [],
+              "text": "2000 йил вафот этган \n(жамоа хўжалиги ишчиси)",
+              "runs": [
+                {
+                  "text": "2000 йил вафот этган ",
+                  "bold": null,
+                  "italic": null,
+                  "underline": null,
+                  "size_pt": 11.0,
+                  "name": null,
+                  "color": null
+                },
+                {
+                  "text": "\n",
+                  "bold": null,
+                  "italic": null,
+                  "underline": null,
+                  "size_pt": 11.0,
+                  "name": null,
+                  "color": null
+                },
+                {
+                  "text": "(жамоа хўжалиги ишчиси)",
+                  "bold": null,
+                  "italic": null,
+                  "underline": null,
+                  "size_pt": 11.0,
+                  "name": null,
+                  "color": null
+                }
+              ]
+            },
+            "cell": {
+              "width_dxa": "5084",
+              "borders": {}
+            }
+          }
+        ]
+      ]
+    }
+  ]
+}

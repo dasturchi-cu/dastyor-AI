@@ -480,6 +480,28 @@ def migration_015_packages_and_promo(conn: sqlite3.Connection) -> None:
         )
 
 
+
+
+def migration_016_required_channels(conn: sqlite3.Connection) -> None:
+    """Create required_channels table for mandatory subscription feature."""
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS required_channels (
+            id          INTEGER PRIMARY KEY AUTOINCREMENT,
+            channel_id  TEXT NOT NULL UNIQUE,
+            title       TEXT NOT NULL DEFAULT '',
+            invite_link TEXT NOT NULL DEFAULT '',
+            is_active   INTEGER NOT NULL DEFAULT 1,
+            added_by    INTEGER,
+            created_at  TEXT NOT NULL DEFAULT (datetime('now'))
+        )
+        """
+    )
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_req_channels_active ON required_channels(is_active)"
+    )
+
+
 MIGRATIONS: list[tuple[int, str, MigrationFn]] = [
     (1, "legacy_columns", migration_001_legacy_columns),
     (2, "new_tables", migration_002_new_tables),
@@ -496,6 +518,7 @@ MIGRATIONS: list[tuple[int, str, MigrationFn]] = [
     (13, "referral_active", migration_013_referral_active),
     (14, "referral_paid_batches", migration_014_referral_paid_batches),
     (15, "packages_and_promo", migration_015_packages_and_promo),
+    (16, "required_channels", migration_016_required_channels),
 ]
 
 

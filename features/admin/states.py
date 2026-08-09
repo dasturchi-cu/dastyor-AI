@@ -8,3 +8,4 @@ class AdminStates(StatesGroup):
     credit_amount = State()
     dm_user_text = State()
     support_reply = State()
+    add_channel = State()  # Majburiy kanal qo'shish

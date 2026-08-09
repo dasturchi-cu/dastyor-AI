@@ -1,0 +1,716 @@
+{
+  "steps": [],
+  "db_path": "/data/app.db",
+  "db_size_mb": 115.77,
+  "integrity_check": "ok",
+  "integrity_ms": 3084,
+  "tables": [
+    "users",
+    "sqlite_sequence",
+    "payments",
+    "cv_data",
+    "obyektivka_data",
+    "ai_sessions",
+    "error_logs",
+    "activity_events",
+    "schema_migrations",
+    "documents",
+    "cv_documents",
+    "obyektivka_documents",
+    "support_messages",
+    "admin_logs",
+    "settings",
+    "ai_request_logs",
+    "security_events",
+    "ai_quota_state",
+    "ai_quota_history"
+  ],
+  "error_by_category": [
+    {
+      "category": "pdf",
+      "c": 15
+    },
+    {
+      "category": "docx",
+      "c": 12
+    },
+    {
+      "category": "bot",
+      "c": 4
+    },
+    {
+      "category": "ai_failover",
+      "c": 2
+    }
+  ],
+  "errors_last_24h": 0,
+  "errors_last_7d": 0,
+  "error_logs": [
+    {
+      "id": 33,
+      "category": "ai_failover",
+      "message": "'list' object has no attribute 'strip'",
+      "details": "",
+      "created_at": "2026-07-03 12:53:54"
+    },
+    {
+      "id": 32,
+      "category": "ai_failover",
+      "message": "'list' object has no attribute 'strip'",
+      "details": "",
+      "created_at": "2026-07-03 12:46:45"
+    },
+    {
+      "id": 31,
+      "category": "docx",
+      "message": "Obyektivka preview: Bad CRC-32 for file 'word/document.xml'",
+      "details": "",
+      "created_at": "2026-07-01 05:06:26"
+    },
+    {
+      "id": 30,
+      "category": "docx",
+      "message": "Obyektivka preview: Error -3 while decompressing data: invalid distance too far back",
+      "details": "",
+      "created_at": "2026-07-01 05:06:26"
+    },
+    {
+      "id": 29,
+      "category": "docx",
+      "message": "Obyektivka preview: [Errno 2] No such file or directory: '/data/tmp/obyektivka_Muhammadsod_1.docx'",
+      "details": "",
+      "created_at": "2026-07-01 05:05:44"
+    },
+    {
+      "id": 28,
+      "category": "pdf",
+      "message": "Obyektivka demo PDF: DOCX\u2192PDF konvertatsiya mavjud emas. Production: LibreOffice. Windows: Microsoft Word.",
+      "details": "",
+      "created_at": "2026-06-30 19:23:07"
+    },
+    {
+      "id": 27,
+      "category": "pdf",
+      "message": "LibreOffice DOCX\u2192PDF: Command '['/usr/bin/soffice', '--headless', '--nologo', '--nofirststartwizard', '--norestore', '--nolockcheck', '--disable-crash-report', '--convert-to', 'pdf', '--outdir', '/tmp/oby_pdf_75x0z8mh', '/tmp/oby_pdf_75x0z8mh/obyektivka.docx']' returned non-zero exit status 1.",
+      "details": "",
+      "created_at": "2026-06-30 19:23:07"
+    },
+    {
+      "id": 26,
+      "category": "pdf",
+      "message": "Obyektivka demo PDF: DOCX\u2192PDF konvertatsiya mavjud emas. Production: LibreOffice. Windows: Microsoft Word.",
+      "details": "",
+      "created_at": "2026-06-30 19:23:03"
+    },
+    {
+      "id": 25,
+      "category": "pdf",
+      "message": "LibreOffice DOCX\u2192PDF: Command '['/usr/bin/soffice', '--headless', '--nologo', '--nofirststartwizard', '--norestore', '--nolockcheck', '--disable-crash-report', '--convert-to', 'pdf', '--outdir', '/tmp/oby_pdf_qyf6jeud', '/tmp/oby_pdf_qyf6jeud/obyektivka.docx']' returned non-zero exit status 1.",
+      "details": "",
+      "created_at": "2026-06-30 19:23:03"
+    },
+    {
+      "id": 24,
+      "category": "pdf",
+      "message": "Obyektivka demo PDF: DOCX\u2192PDF konvertatsiya mavjud emas. Production: LibreOffice. Windows: Microsoft Word.",
+      "details": "",
+      "created_at": "2026-06-30 19:23:01"
+    },
+    {
+      "id": 23,
+      "category": "pdf",
+      "message": "LibreOffice DOCX\u2192PDF: Command '['/usr/bin/soffice', '--headless', '--nologo', '--nofirststartwizard', '--norestore', '--nolockcheck', '--disable-crash-report', '--convert-to', 'pdf', '--outdir', '/tmp/oby_pdf_l8pt4o0x', '/tmp/oby_pdf_l8pt4o0x/obyektivka.docx']' returned non-zero exit status 1.",
+      "details": "",
+      "created_at": "2026-06-30 19:23:01"
+    },
+    {
+      "id": 22,
+      "category": "docx",
+      "message": "Obyektivka preview: DOCX\u2192PDF konvertatsiya mavjud emas. Production: LibreOffice. Windows: Microsoft Word.",
+      "details": "",
+      "created_at": "2026-06-30 19:22:59"
+    },
+    {
+      "id": 21,
+      "category": "pdf",
+      "message": "LibreOffice DOCX\u2192PDF: Command '['/usr/bin/soffice', '--headless', '--nologo', '--nofirststartwizard', '--norestore', '--nolockcheck', '--disable-crash-report', '--convert-to', 'pdf', '--outdir', '/tmp/oby_pdf_0ed_wtak', '/tmp/oby_pdf_0ed_wtak/obyektivka.docx']' returned non-zero exit status 1.",
+      "details": "",
+      "created_at": "2026-06-30 19:22:59"
+    },
+    {
+      "id": 20,
+      "category": "docx",
+      "message": "Obyektivka preview: DOCX\u2192PDF konvertatsiya mavjud emas. Production: LibreOffice. Windows: Microsoft Word.",
+      "details": "",
+      "created_at": "2026-06-30 19:22:45"
+    },
+    {
+      "id": 19,
+      "category": "pdf",
+      "message": "LibreOffice DOCX\u2192PDF: Command '['/usr/bin/soffice', '--headless', '--nologo', '--nofirststartwizard', '--norestore', '--nolockcheck', '--disable-crash-report', '--convert-to', 'pdf', '--outdir', '/tmp/oby_pdf_tya28433', '/tmp/oby_pdf_tya28433/obyektivka.docx']' returned non-zero exit status 1.",
+      "details": "",
+      "created_at": "2026-06-30 19:22:45"
+    },
+    {
+      "id": 18,
+      "category": "docx",
+      "message": "Obyektivka preview: DOCX\u2192PDF konvertatsiya mavjud emas. Production: LibreOffice. Windows: Microsoft Word.",
+      "details": "",
+      "created_at": "2026-06-30 19:22:41"
+    },
+    {
+      "id": 17,
+      "category": "pdf",
+      "message": "LibreOffice DOCX\u2192PDF: Command '['/usr/bin/soffice', '--headless', '--nologo', '--nofirststartwizard', '--norestore', '--nolockcheck', '--disable-crash-report', '--convert-to', 'pdf', '--outdir', '/tmp/oby_pdf_7lgmzmc4', '/tmp/oby_pdf_7lgmzmc4/obyektivka.docx']' returned non-zero exit status 1.",
+      "details": "",
+      "created_at": "2026-06-30 19:22:41"
+    },
+    {
+      "id": 16,
+      "category": "docx",
+      "message": "Obyektivka preview: DOCX\u2192PDF konvertatsiya mavjud emas. Production: LibreOffice. Windows: Microsoft Word.",
+      "details": "",
+      "created_at": "2026-06-30 19:22:40"
+    },
+    {
+      "id": 15,
+      "category": "pdf",
+      "message": "LibreOffice DOCX\u2192PDF: Command '['/usr/bin/soffice', '--headless', '--nologo', '--nofirststartwizard', '--norestore', '--nolockcheck', '--disable-crash-report', '--convert-to', 'pdf', '--outdir', '/tmp/oby_pdf_e4ffx5fc', '/tmp/oby_pdf_e4ffx5fc/obyektivka.docx']' returned non-zero exit status 1.",
+      "details": "",
+      "created_at": "2026-06-30 19:22:40"
+    },
+    {
+      "id": 14,
+      "category": "docx",
+      "message": "Obyektivka preview: DOCX\u2192PDF konvertatsiya mavjud emas. Production: LibreOffice. Windows: Microsoft Word.",
+      "details": "",
+      "created_at": "2026-06-30 19:22:34"
+    },
+    {
+      "id": 13,
+      "category": "pdf",
+      "message": "LibreOffice DOCX\u2192PDF: Command '['/usr/bin/soffice', '--headless', '--nologo', '--nofirststartwizard', '--norestore', '--nolockcheck', '--disable-crash-report', '--convert-to', 'pdf', '--outdir', '/tmp/oby_pdf_pulb958z', '/tmp/oby_pdf_pulb958z/obyektivka.docx']' returned non-zero exit status 1.",
+      "details": "",
+      "created_at": "2026-06-30 19:22:34"
+    },
+    {
+      "id": 12,
+      "category": "docx",
+      "message": "Obyektivka preview: DOCX\u2192PDF konvertatsiya mavjud emas. Production: LibreOffice. Windows: Microsoft Word.",
+      "details": "",
+      "created_at": "2026-06-30 19:22:22"
+    },
+    {
+      "id": 11,
+      "category": "pdf",
+      "message": "LibreOffice DOCX\u2192PDF: Command '['/usr/bin/soffice', '--headless', '--nologo', '--nofirststartwizard', '--norestore', '--nolockcheck', '--disable-crash-report', '--convert-to', 'pdf', '--outdir', '/tmp/oby_pdf_rsrfsxsy', '/tmp/oby_pdf_rsrfsxsy/obyektivka.docx']' returned non-zero exit status 1.",
+      "details": "",
+      "created_at": "2026-06-30 19:22:22"
+    },
+    {
+      "id": 10,
+      "category": "docx",
+      "message": "Obyektivka preview: DOCX\u2192PDF konvertatsiya mavjud emas. Production: LibreOffice. Windows: Microsoft Word.",
+      "details": "",
+      "created_at": "2026-06-30 19:22:17"
+    },
+    {
+      "id": 9,
+      "category": "pdf",
+      "message": "LibreOffice DOCX\u2192PDF: Command '['/usr/bin/soffice', '--headless', '--nologo', '--nofirststartwizard', '--norestore', '--nolockcheck', '--disable-crash-report', '--convert-to', 'pdf', '--outdir', '/tmp/oby_pdf_ks8ucp0z', '/tmp/oby_pdf_ks8ucp0z/obyektivka.docx']' returned non-zero exit status 1.",
+      "details": "",
+      "created_at": "2026-06-30 19:22:17"
+    },
+    {
+      "id": 8,
+      "category": "docx",
+      "message": "Obyektivka preview: DOCX\u2192PDF konvertatsiya mavjud emas. Production: LibreOffice. Windows: Microsoft Word.",
+      "details": "",
+      "created_at": "2026-06-30 18:12:17"
+    },
+    {
+      "id": 7,
+      "category": "pdf",
+      "message": "LibreOffice DOCX\u2192PDF: Command '['/usr/bin/soffice', '--headless', '--nologo', '--nofirststartwizard', '--convert-to', 'pdf', '--outdir', '/tmp/oby_pdf_qpbetmav', '/tmp/oby_pdf_qpbetmav/obyektivka.docx']' returned non-zero exit status 1.",
+      "details": "",
+      "created_at": "2026-06-30 18:12:17"
+    },
+    {
+      "id": 6,
+      "category": "docx",
+      "message": "Obyektivka preview: DOCX\u2192PDF konvertatsiya mavjud emas. Production: LibreOffice. Windows: Microsoft Word.",
+      "details": "",
+      "created_at": "2026-06-30 18:12:11"
+    },
+    {
+      "id": 5,
+      "category": "pdf",
+      "message": "LibreOffice DOCX\u2192PDF: Command '['/usr/bin/soffice', '--headless', '--nologo', '--nofirststartwizard', '--convert-to', 'pdf', '--outdir', '/tmp/oby_pdf_8202jnzu', '/tmp/oby_pdf_8202jnzu/obyektivka.docx']' returned non-zero exit status 1.",
+      "details": "",
+      "created_at": "2026-06-30 18:12:11"
+    },
+    {
+      "id": 4,
+      "category": "bot",
+      "message": "audit test error",
+      "details": "",
+      "created_at": "2026-06-22 18:28:47"
+    },
+    {
+      "id": 3,
+      "category": "bot",
+      "message": "audit test error",
+      "details": "",
+      "created_at": "2026-06-22 18:28:11"
+    },
+    {
+      "id": 2,
+      "category": "bot",
+      "message": "audit test error",
+      "details": "",
+      "created_at": "2026-06-22 18:16:18"
+    },
+    {
+      "id": 1,
+      "category": "bot",
+      "message": "audit test error",
+      "details": "",
+      "created_at": "2026-06-22 18:15:51"
+    }
+  ],
+  "count_ai_sessions": 11,
+  "sample_ai_sessions": [
+    {
+      "id": 11,
+      "user_id": 1959,
+      "session_type": "oby_voice",
+      "transcript": "Salom men sherhonjonaloshirbeklikjonalibekni jorasiman",
+      "extracted_data": "{\"fullname\": \"Sherhonjonaloshirbeklikjonalibekni Jorasi\", \"work_experience\": [], \"relatives\": [], \"party\": \"yo'q\", \"degree\": \"yo'q\", \"scientific_title\": \"yo'q\", \"awards\": \"yo'q\", \"deputy\": \"yo'q\", \"military_rank\": \"yo'q\", \"languages\": \"yo'q\"}",
+      "status": "active",
+      "created_at": "2026-07-22 15:04:35"
+    },
+    {
+      "id": 10,
+      "user_id": 279,
+      "session_type": "oby_voice",
+      "transcript": "Test, test.",
+      "extracted_data": "{\"fullname\": \"Test, Test.\", \"work_experience\": [], \"relatives\": [], \"party\": \"yo'q\", \"degree\": \"yo'q\", \"scientific_title\": \"yo'q\", \"awards\": \"yo'q\", \"deputy\": \"yo'q\", \"military_rank\": \"yo'q\", \"languages\": \"yo'q\"}",
+      "status": "active",
+      "created_at": "2026-07-17 09:11:54"
+    },
+    {
+      "id": 9,
+      "user_id": 1331,
+      "session_type": "cv_voice",
+      "transcript": "Ism: Axmatjonova Xadicha\nTelefon:+998935442912\nEmail:xadichaahmadjonova92@gmail.com\nKasb:Administrator\n\nTalim:2024-2026 Kasb hunar koledjini\n\nIsh tajribasi yoq\n\nTillar:Rus tili, O'zbek tili",
+      "extracted_data": "{\"name\": \"Axmatjonova Xadicha\", \"phone\": \"+998935442912\", \"email\": \"xadichaahmadjonova92@gmail.com\", \"loc\": \"\", \"birthdate\": \"\", \"about\": \"\", \"spec\": \"Administrator\", \"skills\": \"\", \"works\": [], \"education_list\": [{\"title\": \"\", \"company\": \"Kasb hunar koledjini\", \"date\": \"2024-2026\"}], \"languages_list\": [{\"lang\": \"Rus tili\", \"listen\": 0, \"read\": 0, \"speak\": 0, \"write\": 0}, {\"lang\": \"O'zbek tili\", \"listen\": 0, \"read\": 0, \"speak\": 0, \"write\": 0}]}",
+      "status": "active",
+      "created_at": "2026-07-09 09:51:12"
+    },
+    {
+      "id": 8,
+      "user_id": 1300,
+      "session_type": "cv_voice",
+      "transcript": "Ism : Abbosova Dilnoza Abdulvohid qizi\nTug\u02bbilgan yili : 10.10.2000\nTelefon : +998334350091\nEmail : dilnozaabbasova914@gmail.com \nKasb : maktabgacha ta\u02bclim pedagogi\n\nTa\u02bclim: 2015-2018 yillarda Namangan pedagogika kolleji, maktabgacha ta\u02bclim yo\u02bbnalishida \n2019-2024 yillarda Namangan Davlat universiteti, maktabgacha ta\u02bclim yo\u02bbnalishida \nIsh tajribasi: 2018-2020 yillarda bog\u02bbcha tarbiyachisi \n2022-2023 yillarda pedagogika kolleji bo\u02bblim boshlig\u02bbi va maxsus fan o\u02bbqituvchisi \nTillar : 1. O\u02bbzbek tili \n2. Ingliz tili boshlang\u02bbich darajada",
+      "extracted_data": "{\"name\": \"Abbosova Dilnoza\", \"phone\": \"+998334350091\", \"email\": \"dilnozaabbasova914@gmail.com\", \"loc\": \"\", \"birthdate\": \"10.10.2000\", \"about\": \"\", \"spec\": \"maktabgacha ta\u02bclim pedagogi\", \"skills\": \"\", \"works\": [{\"title\": \"bog\u02bbcha tarbiyachisi\", \"company\": \"\", \"from\": \"2018\", \"to\": \"2020\", \"description\": \"\"}, {\"title\": \"pedagogika kolleji bo\u02bblim boshlig\u02bbi va maxsus fan o\u02bbqituvchisi\", \"company\": \"\", \"from\": \"2022\", \"to\": \"2023\", \"description\": \"\"}], \"education_list\": [{\"title\": \"maktabgacha ta\u02bclim\", \"company\": \"Namangan pedagogika kolleji\", \"date\": \"2015-2018\"}, {\"title\": \"maktabgacha ta\u02bclim\", \"company\": \"Namangan Davlat universiteti\", \"date\": \"2019-2024\"}], \"languages_list\": [{\"lang\": \"O\u02bbzbek tili\", \"listen\": 0, \"read\": 0, \"speak\": 0, \"write\": 0}, {\"lang\": \"Ingliz tili\", \"listen\": 0, \"read\": 0, \"speak\": 0, \"write\": 0}]}",
+      "status": "active",
+      "created_at": "2026-07-08 07:54:30"
+    },
+    {
+      "id": 7,
+      "user_id": 1284,
+      "session_type": "cv_voice",
+      "transcript": "Ism : Abbosova Dilnoza Abdulvohid qizi\nTelefon : +998334350091\nEmail : dilnozaabbasova914@gmail.com \nKasb : maktabgacha ta\u02bclim pedagogi\n\nTa\u02bclim: 2015-2018 yillarda Namangan pedagogika kolleji, maktabgacha ta\u02bclim yo\u02bbnalishida \n2019-2024 yillarda Namangan Davlat universiteti, maktabgacha ta\u02bclim yo\u02bbnalishida \nIsh tajribasi: 2018-2020 yillarda bog\u02bbcha tarbiyachisi \n2022-2023 yillarda pedagogika kolleji bo\u02bblim boshlig\u02bbi va maxsus fan o\u02bbqituvchisi \nTillar : 1. O\u02bbzbek tili \n2. Ingliz tili boshlang\u02bbich darajada",
+      "extracted_data": "{\"name\": \"Abbosova Dilnoza\", \"phone\": \"+998334350091\", \"email\": \"dilnozaabbasova914@gmail.com\", \"loc\": \"\", \"birthdate\": \"\", \"about\": \"\", \"spec\": \"maktabgacha ta\u02bclim pedagogi\", \"skills\": \"\", \"works\": [{\"title\": \"bog\u02bbcha tarbiyachisi\", \"company\": \"\", \"from\": \"2018\", \"to\": \"2020\", \"description\": \"\"}, {\"title\": \"pedagogika kolleji bo\u02bblim boshlig\u02bbi va maxsus fan o\u02bbqituvchisi\", \"company\": \"\", \"from\": \"2022\", \"to\": \"2023\", \"description\": \"\"}], \"education_list\": [{\"title\": \"maktabgacha ta\u02bclim\", \"company\": \"Namangan pedagogika kolleji\", \"date\": \"2015-2018\"}, {\"title\": \"maktabgacha ta\u02bclim\", \"company\": \"Namangan Davlat universiteti\", \"date\": \"2019-2024\"}], \"languages_list\": [{\"lang\": \"O\u02bbzbek tili\", \"listen\": \"\", \"read\": \"\", \"speak\": \"\", \"write\": \"\"}, {\"lang\": \"Ingliz tili\", \"listen\": \"\", \"read\": \"\", \"speak\": \"\", \"write\": \"\"}]}",
+      "status": "active",
+      "created_at": "2026-07-08 07:13:11"
+    },
+    {
+      "id": 6,
+      "user_id": 279,
+      "session_type": "cv_voice",
+      "transcript": "F.I.Sh: Alivaliyev Bekzod Anvar o'g'li\n\nTug'ilgan sana: 15.03.2002\n\nTelefon raqami: +998 90 123 45 67\n\nElektron pochta: [bekzod.alivaliyev@example.com](mailto:bekzod.alivaliyev@example.com)\n\nManzil: Farg'ona viloyati, Marg'ilon shahri\n\nFuqaroligi: O'zbekiston Respublikasi\n\nMa'lumoti:\n2019\u20132023 \u2014 Toshkent Axborot Texnologiyalari Universiteti\nYo'nalish: Dasturiy injiniring\nDaraja: Bakalavr\n\nIsh tajribasi:\n2023\u20132024 \u2014 \"Tech Solutions\" MChJ\nLavozim: Junior Flutter Developer\nVazifalari:\n\n* Mobil ilovalar ishlab chiqish\n* REST API integratsiyasi\n* Firebase bilan ishlash\n* Xatolarni tuzatish va optimallashtirish\n* Jamoa bilan Agile metodologiyasi asosida ishlash\n\n2024\u2013hozirgacha \u2014 \"Digital Soft Group\"\nLavozim: Flutter Developer\nVazifalari:\n\n* Android va iOS ilovalar yaratish\n* Supabase va Firebase integratsiyasi\n* State management (Bloc, Riverpod)\n* UI/UX optimallashtirish\n* CI/CD jarayonlarida ishtirok etish\n\nTexnik ko'nikmalar:\n\n* Flutter\n* Dart\n* Firebase\n* Supabase\n* REST API\n* Git/GitHub\n* SQLite\n* PostgreSQL\n* Riverpod\n* Bloc\n* FastAPI\n* Docker\n\nKompyuter ko'nikmalari:\n\n* Microsoft Word\n* Microsoft Excel\n* Microsoft PowerPoint\n* Figma\n* Android Studio\n* VS Code\n\nTillar:\n\n* O'zbek tili \u2014 Ona tili\n* Rus tili \u2014 O'rta\n* Ingliz tili \u2014 B2\n\nLoyihalar:\n\n1. E-commerce mobil ilovasi\n\n   * Flutter, Firebase, Provider\n   * To'lov tizimi integratsiyasi\n   * Push notification\n\n2. CRM tizimi\n\n   * Flutter, Supabase\n   * Auth, Dashboard, Analytics\n   * Real-time ma'lumotlar\n\nShaxsiy sifatlar:\n\n* Mas'uliyatli\n* Tez o'rganuvchi\n* Jamoada ishlash qobiliyati\n* Muammolarni hal qilish ko'nikmasi\n* Vaqtni boshqarish\n\nQo'shimcha ma'lumot:\n\n* Haydovchilik guvohnomasi: B toifa\n* Harbiy xizmat: o'tagan\n* Xizmat safarlariga tayyor\n\nQiziqishlar:\n\n* Dasturlash\n* Sun'iy intellekt\n* Sport\n* Kitob o'qish",
+      "extracted_data": "{\"name\": \"Alivaliyev Bekzod Anvar o'g'li\", \"phone\": \"+998 90 123 45 67\", \"email\": \"bekzod.alivaliyev@example.com\", \"loc\": \"Farg'ona viloyati, Marg'ilon shahri\", \"birthdate\": \"15.03.2002\", \"about\": \"\", \"spec\": \"Dasturiy injiniring\", \"skills\": [\"Flutter\", \"Dart\", \"Firebase\", \"Supabase\", \"REST API\", \"Git/GitHub\", \"SQLite\", \"PostgreSQL\", \"Riverpod\", \"Bloc\", \"FastAPI\", \"Docker\", \"Microsoft Word\", \"Microsoft Excel\", \"Microsoft PowerPoint\", \"Figma\", \"Android Studio\", \"VS Code\"], \"works\": [{\"title\": \"Junior Flutter Developer\", \"company\": \"Tech Solutions\", \"from\": \"2023\u20132024\", \"to\": \"\", \"description\": \"Mobil ilovalar ishlab chiqish, REST API integratsiyasi, Firebase bilan ishlash, Xatolarni tuzatish va optimallashtirish, Jamoa bilan Agile metodologiyasi asosida ishlash\"}, {\"title\": \"Flutter Developer\", \"company\": \"Digital Soft Group\", \"from\": \"2024\u2013hozirgacha\", \"to\": \"\", \"description\": \"Android va iOS ilovalar yaratish, Supabase va Firebase integratsiyasi, State management (Bloc, Riverpod), UI/UX optimallashtirish, CI/CD jarayonlarida ishtirok etish\"}], \"education_list\": [{\"title\": \"Bakalavr\", \"company\": \"Toshkent Axborot Texnologiyalari Universiteti\", \"date\": \"2019\u20132023\"}], \"languages_list\": [{\"lang\": \"O'zbek tili\", \"listen\": 0, \"read\": 0, \"speak\": 0, \"write\": 0}, {\"lang\": \"Rus tili\", \"listen\": 0, \"read\": 0, \"speak\": 0, \"write\": 0}, {\"lang\": \"Ingliz tili\", \"listen\": 2, \"read\": 2, \"speak\": 2, \"write\": 2}]}",
+      "status": "active",
+      "created_at": "2026-07-03 15:00:55"
+    },
+    {
+      "id": 5,
+      "user_id": 273,
+      "session_type": "cv_voice",
+      "transcript": "Ism: Aliyev Vali\nTelefon: +998901234567\nEmail: vali.aliyev@example.com\nKasb: Iqtisodchi\n\nTa'lim:\n2023-2026 OTM nomi, Iqtisodiyot tarmoqlari\n\nIsh tajribasi:\n2026-hozirgi vaqtgacha Dastyor AI, mutaxassis\n\nTillar:\nRus tili, O'zbek tili",
+      "extracted_data": "{\"name\": \"Aliyev Vali\", \"spec\": \"Iqtisodchi\", \"phone\": \"+998901234567\", \"email\": \"vali.aliyev@example.com\", \"education_list\": [{\"title\": \"Iqtisodiyot tarmoqlari\", \"company\": \"OTM nomi\", \"date\": \"2023-2026\"}], \"works\": [{\"title\": \"2026-hozirgi vaqtgacha Dastyor AI, mutaxassis\", \"company\": \"\", \"from\": \"\", \"to\": \"\", \"description\": \"\"}], \"languages_list\": [{\"lang\": \"Rus tili\", \"listen\": 0, \"read\": 0, \"speak\": 0, \"write\": 0}]}",
+      "status": "active",
+      "created_at": "2026-07-01 08:55:46"
+    },
+    {
+      "id": 4,
+      "user_id": 279,
+      "session_type": "oby_voice",
+      "transcript": "Ism: Karimov Jasur Alisherovich\nTug'ilgan sana: 1995-yil 12-may\nTug'ilgan joy: Toshkent shahri\nMillati: O'zbek\nMa'lumoti: Oliy\nOTM: Toshkent axborot texnologiyalari universiteti, 2017-yilda tamomlagan\nMutaxassisligi: Dasturiy injiniring\nTillar: Rus tili, Ingliz tili\nMehnat faoliyati:\n2017-2020 EPAM Systems dasturchisi\n2020-hozirgi vaqt Dastyor AI yetakchi dasturchisi\n\nOilam:\nOtam: Karimov Alisher, 1968-yil, nafaqaxo'r, yashash joyi Toshkent shahri\nOnam: Karimova Ra'no, 1972-yil, o'qituvchi, yashash joyi Toshkent shahri",
+      "extracted_data": "{\"fullname\": \"Karimov Jasur Alisherovich\", \"birthdate\": \"12.05.1995\", \"birthplace\": \"Toshkent shahri\", \"nation\": \"O'zbek\", \"party\": \"yo'q\", \"education\": \"Oliy\", \"graduated\": \"Toshkent axborot texnologiyalari universiteti, 2017-yilda tamomlagan\", \"specialty\": \"Dasturiy injiniring\", \"degree\": \"yo'q\", \"scientific_title\": \"yo'q\", \"languages\": \"Rus tili, Ingliz tili\", \"military_rank\": \"yo'q\", \"awards\": \"yo'q\", \"deputy\": \"yo'q\", \"work_experience\": [{\"year\": \"2017-2020 yy.\", \"position\": \"EPAM Systems dasturchisi\"}], \"relatives\": [{\"degree\": \"Otam\", \"fullname\": \"Karimov Alisher\", \"birth_year_place\": \"1968-yil\", \"work_place\": \"nafaqaxo'r\", \"address\": \"Toshkent shahri\"}, {\"degree\": \"Onam\", \"fullname\": \"Karimova Ra'no\", \"birth_year_place\": \"1972-yil\", \"work_place\": \"o'qituvchi\", \"address\": \"Toshkent shahri\"}], \"current_job\": \"Dastyor AI yetakchi dasturchisi\", \"current_job_year\": \"2020-yildan\"}",
+      "status": "active",
+      "created_at": "2026-07-01 08:41:14"
+    }
+  ],
+  "count_ai_request_logs": 1278,
+  "sample_ai_request_logs": [
+    {
+      "id": 1278,
+      "provider": "gemini",
+      "key_index": 1,
+      "model": "gemini-2.5-flash",
+      "request_time": "2026-07-22T15:04:27Z",
+      "response_time_ms": 7298,
+      "status": "success",
+      "error": null,
+      "prompt_tokens": 544,
+      "completion_tokens": 111,
+      "total_tokens": 1832,
+      "created_at": "2026-07-22 15:04:35"
+    },
+    {
+      "id": 1277,
+      "provider": "gemini",
+      "key_index": 1,
+      "model": "gemini-2.5-flash",
+      "request_time": "2026-07-17T09:11:51Z",
+      "response_time_ms": 3384,
+      "status": "success",
+      "error": null,
+      "prompt_tokens": 532,
+      "completion_tokens": 111,
+      "total_tokens": 933,
+      "created_at": "2026-07-17 09:11:54"
+    },
+    {
+      "id": 1276,
+      "provider": "gemini",
+      "key_index": 1,
+      "model": "gemini-2.5-flash",
+      "request_time": "2026-07-09T09:51:09Z",
+      "response_time_ms": 3434,
+      "status": "success",
+      "error": null,
+      "prompt_tokens": 364,
+      "completion_tokens": 262,
+      "total_tokens": 1103,
+      "created_at": "2026-07-09 09:51:12"
+    },
+    {
+      "id": 1275,
+      "provider": "sambanova",
+      "key_index": 1,
+      "model": "DeepSeek-V3.1",
+      "request_time": "2026-07-08T07:54:28Z",
+      "response_time_ms": 1960,
+      "status": "success",
+      "error": null,
+      "prompt_tokens": 487,
+      "completion_tokens": 385,
+      "total_tokens": 872,
+      "created_at": "2026-07-08 07:54:30"
+    },
+    {
+      "id": 1274,
+      "provider": "gemini",
+      "key_index": 6,
+      "model": "gemini-2.0-flash",
+      "request_time": "2026-07-08T07:54:26Z",
+      "response_time_ms": 122,
+      "status": "failover",
+      "error": "429 You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 0, model: gemini-2.0-flash\n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 0, model: gemi",
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "total_tokens": 0,
+      "created_at": "2026-07-08 07:54:26"
+    },
+    {
+      "id": 1273,
+      "provider": "gemini",
+      "key_index": 5,
+      "model": "gemini-2.0-flash",
+      "request_time": "2026-07-08T07:54:24Z",
+      "response_time_ms": 138,
+      "status": "failover",
+      "error": "429 You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 0, model: gemini-2.0-flash\n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 0, model: gemi",
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "total_tokens": 0,
+      "created_at": "2026-07-08 07:54:25"
+    },
+    {
+      "id": 1272,
+      "provider": "gemini",
+      "key_index": 4,
+      "model": "gemini-2.0-flash",
+      "request_time": "2026-07-08T07:54:23Z",
+      "response_time_ms": 132,
+      "status": "failover",
+      "error": "429 You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_input_token_count, limit: 0, model: gemini-2.0-flash\n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 0, mo",
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "total_tokens": 0,
+      "created_at": "2026-07-08 07:54:23"
+    },
+    {
+      "id": 1271,
+      "provider": "gemini",
+      "key_index": 3,
+      "model": "gemini-2.0-flash",
+      "request_time": "2026-07-08T07:54:21Z",
+      "response_time_ms": 124,
+      "status": "failover",
+      "error": "429 You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 0, model: gemini-2.0-flash\n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 0, model: gemi",
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "total_tokens": 0,
+      "created_at": "2026-07-08 07:54:21"
+    }
+  ],
+  "count_ai_quota_state": 25,
+  "sample_ai_quota_state": [
+    {
+      "provider": "github",
+      "key_index": 1,
+      "model": "meta-llama-3.1-8b-instruct",
+      "quota_percent": 100.0,
+      "requests_used": 0,
+      "requests_remaining": 5000,
+      "status": "ACTIVE",
+      "last_success": null,
+      "last_failure": null,
+      "reset_time": null,
+      "health_status": "HEALTHY",
+      "daily_limit": 5000,
+      "updated_at": "2026-07-23T16:27:50Z"
+    },
+    {
+      "provider": "sambanova",
+      "key_index": 5,
+      "model": "Meta-Llama-3.1-8B-Instruct",
+      "quota_percent": 100.0,
+      "requests_used": 0,
+      "requests_remaining": 5000,
+      "status": "ACTIVE",
+      "last_success": null,
+      "last_failure": null,
+      "reset_time": null,
+      "health_status": "HEALTHY",
+      "daily_limit": 5000,
+      "updated_at": "2026-07-23T16:27:50Z"
+    },
+    {
+      "provider": "sambanova",
+      "key_index": 4,
+      "model": "Meta-Llama-3.1-8B-Instruct",
+      "quota_percent": 100.0,
+      "requests_used": 0,
+      "requests_remaining": 5000,
+      "status": "ACTIVE",
+      "last_success": null,
+      "last_failure": null,
+      "reset_time": null,
+      "health_status": "HEALTHY",
+      "daily_limit": 5000,
+      "updated_at": "2026-07-23T16:27:50Z"
+    },
+    {
+      "provider": "sambanova",
+      "key_index": 3,
+      "model": "Meta-Llama-3.1-8B-Instruct",
+      "quota_percent": 100.0,
+      "requests_used": 0,
+      "requests_remaining": 5000,
+      "status": "ACTIVE",
+      "last_success": null,
+      "last_failure": null,
+      "reset_time": null,
+      "health_status": "HEALTHY",
+      "daily_limit": 5000,
+      "updated_at": "2026-07-23T16:27:50Z"
+    },
+    {
+      "provider": "sambanova",
+      "key_index": 2,
+      "model": "Meta-Llama-3.1-8B-Instruct",
+      "quota_percent": 100.0,
+      "requests_used": 0,
+      "requests_remaining": 5000,
+      "status": "ACTIVE",
+      "last_success": null,
+      "last_failure": null,
+      "reset_time": null,
+      "health_status": "HEALTHY",
+      "daily_limit": 5000,
+      "updated_at": "2026-07-23T16:27:50Z"
+    },
+    {
+      "provider": "sambanova",
+      "key_index": 1,
+      "model": "DeepSeek-V3.1",
+      "quota_percent": 100.0,
+      "requests_used": 2,
+      "requests_remaining": 4998,
+      "status": "ACTIVE",
+      "last_success": "2026-07-08T07:54:30Z",
+      "last_failure": null,
+      "reset_time": null,
+      "health_status": "HEALTHY",
+      "daily_limit": 5000,
+      "updated_at": "2026-07-23T16:27:50Z"
+    },
+    {
+      "provider": "gemini",
+      "key_index": 9,
+      "model": "gemini-1.5-flash",
+      "quota_percent": 100.0,
+      "requests_used": 0,
+      "requests_remaining": 1500,
+      "status": "ACTIVE",
+      "last_success": null,
+      "last_failure": null,
+      "reset_time": null,
+      "health_status": "HEALTHY",
+      "daily_limit": 1500,
+      "updated_at": "2026-07-23T16:27:50Z"
+    },
+    {
+      "provider": "cloudflare",
+      "key_index": 1,
+      "model": "@cf/meta/llama-3.1-8b-instruct",
+      "quota_percent": 97.5,
+      "requests_used": 255,
+      "requests_remaining": 9745,
+      "status": "ACTIVE",
+      "last_success": "2026-07-03T17:19:00Z",
+      "last_failure": "2026-07-03T12:53:53Z",
+      "reset_time": null,
+      "health_status": "HEALTHY",
+      "daily_limit": 10000,
+      "updated_at": "2026-07-23T16:27:50Z"
+    }
+  ],
+  "count_ai_quota_history": 739304,
+  "sample_ai_quota_history": [
+    {
+      "id": 739304,
+      "provider": "sambanova",
+      "key_index": 5,
+      "quota_percent": 100.0,
+      "requests_used": 0,
+      "requests_remaining": 5000,
+      "status": "ACTIVE",
+      "event_type": "snapshot",
+      "updated_at": "2026-07-23T16:27:50Z"
+    },
+    {
+      "id": 739303,
+      "provider": "sambanova",
+      "key_index": 4,
+      "quota_percent": 100.0,
+      "requests_used": 0,
+      "requests_remaining": 5000,
+      "status": "ACTIVE",
+      "event_type": "snapshot",
+      "updated_at": "2026-07-23T16:27:50Z"
+    },
+    {
+      "id": 739302,
+      "provider": "sambanova",
+      "key_index": 3,
+      "quota_percent": 100.0,
+      "requests_used": 0,
+      "requests_remaining": 5000,
+      "status": "ACTIVE",
+      "event_type": "snapshot",
+      "updated_at": "2026-07-23T16:27:50Z"
+    },
+    {
+      "id": 739301,
+      "provider": "sambanova",
+      "key_index": 2,
+      "quota_percent": 100.0,
+      "requests_used": 0,
+      "requests_remaining": 5000,
+      "status": "ACTIVE",
+      "event_type": "snapshot",
+      "updated_at": "2026-07-23T16:27:50Z"
+    },
+    {
+      "id": 739300,
+      "provider": "sambanova",
+      "key_index": 1,
+      "quota_percent": 100.0,
+      "requests_used": 2,
+      "requests_remaining": 4998,
+      "status": "ACTIVE",
+      "event_type": "snapshot",
+      "updated_at": "2026-07-23T16:27:50Z"
+    },
+    {
+      "id": 739299,
+      "provider": "openrouter",
+      "key_index": 1,
+      "quota_percent": 99.2,
+      "requests_used": 42,
+      "requests_remaining": 4958,
+      "status": "DEGRADED",
+      "event_type": "snapshot",
+      "updated_at": "2026-07-23T16:27:50Z"
+    },
+    {
+      "id": 739298,
+      "provider": "openai",
+      "key_index": 7,
+      "quota_percent": 0.0,
+      "requests_used": 10000,
+      "requests_remaining": 0,
+      "status": "EXHAUSTED",
+      "event_type": "snapshot",
+      "updated_at": "2026-07-23T16:27:50Z"
+    },
+    {
+      "id": 739297,
+      "provider": "openai",
+      "key_index": 6,
+      "quota_percent": 0.0,
+      "requests_used": 10000,
+      "requests_remaining": 0,
+      "status": "EXHAUSTED",
+      "event_type": "snapshot",
+      "updated_at": "2026-07-23T16:27:50Z"
+    }
+  ],
+  "count_users": 57,
+  "count_payments": 20,
+  "payment_cols": [
+    "id",
+    "user_id",
+    "payer_name",
+    "card_number",
+    "receipt_path",
+    "status",
+    "admin_note",
+    "created_at",
+    "updated_at",
+    "document_type",
+    "pending_reminder_sent_at",
+    "payment_number",
+    "amount",
+    "screenshot_path",
+    "approved_by",
+    "approved_at"
+  ],
+  "payments_by_status": [
+    {
+      "status": "APPROVED",
+      "c": 20
+    }
+  ],
+  "check_db_integrity_ms": 3260,
+  "verify_schema_ms": 3182,
+  "check_db_ok": true,
+  "check_db_msg": "ok",
+  "schema_ok": true
+}
