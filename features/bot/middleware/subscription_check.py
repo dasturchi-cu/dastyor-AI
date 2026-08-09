@@ -29,8 +29,7 @@ _ALWAYS_ALLOWED_CALLBACKS = {"sub_check"}
 
 def _is_admin(user_id: int) -> bool:
     """Check if user is an admin — admins bypass subscription check."""
-    admin_ids = str(settings.admin_user_id or "").split(",")
-    return str(user_id) in [a.strip() for a in admin_ids if a.strip()]
+    return user_id in settings.admin_user_ids
 
 
 class SubscriptionCheckMiddleware(BaseMiddleware):
