@@ -42,6 +42,18 @@ class SubscriptionCheckMiddleware(BaseMiddleware):
         event: TelegramObject,
         data: dict[str, Any],
     ) -> Any:
+        try:
+            return await self._check(handler, event, data)
+        except Exception as exc:
+            logger.error("SubscriptionCheckMiddleware critical error: %s", exc, exc_info=True)
+            return await handler(event, data)
+
+    async def _check(
+        self,
+        handler: Callable[[TelegramObject, dict[str, Any]], Awaitable[Any]],
+        event: TelegramObject,
+        data: dict[str, Any],
+    ) -> Any:
         tg_user: User | None = data.get("event_from_user")
         if not tg_user or not tg_user.id:
             return await handler(event, data)
@@ -64,7 +76,7 @@ class SubscriptionCheckMiddleware(BaseMiddleware):
         try:
             unsubscribed = await get_unsubscribed_channels(bot, user_id)
         except Exception as exc:
-            logger.warning("Subscription middleware error: %s", exc)
+            logger.warning("Subscription check failed: %s", exc)
             return await handler(event, data)
 
         if not unsubscribed:
@@ -89,5 +101,4 @@ class SubscriptionCheckMiddleware(BaseMiddleware):
         except Exception as exc:
             logger.warning("Subscription prompt error: %s", exc)
 
-        # Stop processing — do NOT call handler
         return None

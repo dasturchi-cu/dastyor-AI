@@ -60,7 +60,12 @@ async def webhook(request: Request) -> Response:
         if _is_benign_delivery_error(e):
             logger.info("Webhook delivery skipped (benign): %s", e)
             return Response(status_code=200)
-        logger.error("Webhook error: %s", e, exc_info=True)
+        logger.error(
+            "Webhook 500 error: %s | update_id=%s",
+            e,
+            data.get("update_id", "?") if isinstance(data, dict) else "?",
+            exc_info=True,
+        )
         return Response(status_code=500)
 
 
