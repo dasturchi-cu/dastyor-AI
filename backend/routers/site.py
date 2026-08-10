@@ -31,18 +31,18 @@ def _index_response():
     return RedirectResponse(url="/webapp/index.html")
 
 
-@router.get("/favicon.ico", include_in_schema=False)
+@router.api_route("/favicon.ico", methods=["GET", "HEAD"], include_in_schema=False)
 async def favicon():
     return Response(status_code=204)
 
 
-@router.get("/ping", include_in_schema=False)
+@router.api_route("/ping", methods=["GET", "HEAD"], include_in_schema=False)
 async def ping():
     """UptimeRobot keep-alive — DB tekshiruvisiz, ultra-yengil."""
     return {"pong": True, "time": time.time()}
 
 
-@router.get("/health")
+@router.api_route("/health", methods=["GET", "HEAD"])
 async def health():
     """Liveness probe — must stay under Docker HEALTHCHECK timeout (~5s).
 
@@ -66,34 +66,34 @@ async def health():
     }
 
 
-@router.get("/webapp")
+@router.api_route("/webapp", methods=["GET", "HEAD"])
 async def webapp_root():
     return RedirectResponse(url="/webapp/")
 
 
-@router.get("/webapp/")
+@router.api_route("/webapp/", methods=["GET", "HEAD"])
 async def webapp_root_trailing_slash():
     return _index_response()
 
 
-@router.get("/webapp/index.html")
+@router.api_route("/webapp/index.html", methods=["GET", "HEAD"])
 async def webapp_index_explicit():
     """BotFather: .../webapp/index.html — ba'zi CDN/proksi faqat shu yo'lni chaqiradi."""
     return _index_response()
 
 
-@router.get("/")
+@router.api_route("/", methods=["GET", "HEAD"])
 async def root():
     return _index_response()
 
 
-@router.get("/index.html")
+@router.api_route("/index.html", methods=["GET", "HEAD"])
 async def root_index_alias():
     """BotFather sometimes uses https://host/index.html without /webapp prefix."""
     return _index_response()
 
 
-@router.get("/app")
+@router.api_route("/app", methods=["GET", "HEAD"])
 async def app_menu_alias():
     """Common typo / short path for menu button URL."""
     return _index_response()
