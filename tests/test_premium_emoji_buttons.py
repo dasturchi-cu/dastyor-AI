@@ -54,3 +54,16 @@ def test_cv_button_has_premium_icon():
     assert btn.text == "CV Resume"
     assert btn.icon_custom_emoji_id == EMOJI_MAP["📄"]
 
+
+@pytest.mark.asyncio
+async def test_safe_react():
+    from unittest.mock import AsyncMock
+
+    from shared.premium_emoji import safe_react
+
+    msg = MagicMock()
+    msg.react = AsyncMock()
+    await safe_react(msg, "⚡️")
+    msg.react.assert_called_once()
+
+

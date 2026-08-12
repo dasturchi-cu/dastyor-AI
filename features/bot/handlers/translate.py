@@ -539,6 +539,9 @@ async def translate_payload(
     return translated_payload
 
 
+from shared.premium_emoji import safe_react
+
+
 @router.callback_query(F.data.startswith("tr_"))
 async def process_translation(callback: CallbackQuery) -> None:
     uid = callback.from_user.id
@@ -547,6 +550,8 @@ async def process_translation(callback: CallbackQuery) -> None:
     if not msg:
         await callback.answer("Xabar topilmadi", show_alert=True)
         return
+
+    await safe_react(msg, "🌐")
 
     try:
         doc_type, target = _parse_action(action)

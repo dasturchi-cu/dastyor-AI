@@ -54,12 +54,16 @@ CV_INSTRUCTION = (
 )
 
 
+from shared.premium_emoji import safe_react
+
+
 @router.message(F.voice | F.audio)
 async def handle_voice(message: Message, bot: Bot, state: FSMContext) -> None:
     current = await state.get_state()
     if current == ObyektivkaStates.waiting_voice.state:
         return
 
+    await safe_react(message, "🎙")
     uid = message.from_user.id if message.from_user else 0
     status = await message.answer(telegram_message(STEP_AUDIO))
     asyncio.create_task(_handle_cv_voice_flow(message, bot, status, uid, state))
@@ -76,6 +80,7 @@ async def cv_text_fill(message: Message, state: FSMContext) -> None:
 
         await menu_from_flow_waiting(message, state)
         return
+    await safe_react(message, "✍️")
     uid = message.from_user.id if message.from_user else 0
     status = await message.answer("✅ Matn qabul qilindi\n⏳ AI tahlil qilmoqda...")
     asyncio.create_task(_handle_cv_text_flow(message.text or "", status, uid, state))

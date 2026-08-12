@@ -246,10 +246,14 @@ async def _process_voice_background(
                 pass
 
 
+from shared.premium_emoji import safe_react
+
+
 @router.message(ObyektivkaStates.waiting_voice, F.voice)
 @router.message(ObyektivkaStates.waiting_voice, F.audio)
 async def obyektivka_voice(message: Message, bot: Bot, state: FSMContext) -> None:
     uid = message.from_user.id if message.from_user else 0
+    await safe_react(message, "🎙")
     await _delete_waiting_prompt(bot, state)
     status = await message.answer(telegram_message(STEP_AUDIO), reply_markup=user_menu(uid))
     asyncio.create_task(_process_voice_background(message, bot, state, status))
@@ -278,6 +282,7 @@ async def obyektivka_text(message: Message, bot: Bot, state: FSMContext) -> None
 
         await menu_from_flow_waiting(message, state)
         return
+    await safe_react(message, "✍️")
     await _delete_waiting_prompt(bot, state)
     uid = message.from_user.id if message.from_user else 0
     status = await message.answer("✅ Matn qabul qilindi\n⏳ AI tahlil qilmoqda...", reply_markup=user_menu(uid))

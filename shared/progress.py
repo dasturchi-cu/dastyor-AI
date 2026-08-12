@@ -70,11 +70,20 @@ def telegram_message(
     total = len(stages)
     bar = _progress_bar(current_step, total)
     lines: list[str] = [f"<code>{bar}</code>", ""]
-    for i, (_, label) in enumerate(stages, start=1):
+    for i, (stage_key, label) in enumerate(stages, start=1):
         if i < current_step:
             mark = "✅"
         elif i == current_step:
-            mark = "⏳"
+            if stage_key == "audio_received":
+                mark = "🎙"
+            elif stage_key == "ai_analyzing":
+                mark = "⏳"
+            elif stage_key == "data_extracted":
+                mark = "✨"
+            elif stage_key in ("doc_generating", "request_received"):
+                mark = "📄"
+            else:
+                mark = "⏳"
         else:
             mark = "○"
         lines.append(f"{mark} {i}. {label}")

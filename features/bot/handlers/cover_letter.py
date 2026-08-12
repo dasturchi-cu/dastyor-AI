@@ -55,11 +55,16 @@ async def cmd_cover(message: Message, state: FSMContext, *, actor_uid: int | Non
     )
 
 
+from shared.premium_emoji import safe_react
+
+
 @router.message(CvStates.waiting_cover_letter_vacancy, F.text, ~F.text.startswith("/"))
 async def process_vacancy_text(message: Message, state: FSMContext) -> None:
     uid = message.from_user.id if message.from_user else 0
     if not uid or not message.text:
         return
+
+    await safe_react(message, "📝")
 
     # Double check credits before processing
     credits = await db_run(users_repo.get_credits, uid)

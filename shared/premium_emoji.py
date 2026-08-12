@@ -77,7 +77,25 @@ EMOJI_MAP: dict[str, str] = {
     "2️⃣": "5237704680372447424",
     "3️⃣": "5238044171767393675",
     "📤": "5433614747381538714",
+    "👍": "5427009714745517609",
+    "⚡": "5420315771991497307",
+    "⚡️": "5420315771991497307",
 }
+
+
+async def safe_react(message: Any, emoji: str = "⚡") -> None:
+    """Set reaction (e.g. ⚡, ✍️, 🎙, 👍, 🌐) on user message silently if supported."""
+    if not message or not hasattr(message, "react"):
+        return
+    try:
+        from aiogram.types import ReactionTypeEmoji
+
+        # Clean variation selector for standard emoji reactions
+        clean_emoji = emoji.replace("\ufe0f", "")
+        await message.react([ReactionTypeEmoji(emoji=clean_emoji)])
+    except Exception:
+        pass
+
 
 
 
