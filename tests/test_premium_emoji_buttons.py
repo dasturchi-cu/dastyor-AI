@@ -47,3 +47,10 @@ def test_btn_filter():
     assert flt(msg1) is True
     assert flt(msg2) is True
     assert flt(msg3) is False
+
+
+def test_cv_button_has_premium_icon():
+    btn = keyboards._kb(keyboards.BTN_CV)
+    assert btn.text == "CV Resume"
+    assert btn.icon_custom_emoji_id == EMOJI_MAP["📄"]
+
