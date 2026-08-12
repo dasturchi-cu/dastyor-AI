@@ -77,3 +77,17 @@ def test_headphones_emoji_in_map():
     assert EMOJI_MAP["🎧"] == "5382013970905309819"
 
 
+def test_bullet_and_list_emojis_in_map():
+    from shared.premium_emoji import premiumize
+
+    for char in ("○", "⚪", "⚪️", "⚫", "🔘", "🔹", "🔸", "⭐", "📋", "🔍"):
+        assert char in EMOJI_MAP
+
+    sample_progress_text = "✅ 1. audio_received\n⏳ 2. ai_analyzing\n○ 3. data_extracted\n○ 4. doc_generating"
+    res = premiumize(sample_progress_text)
+    assert '<tg-emoji emoji-id="' in res
+    assert "○" in res
+    assert "✅" in res
+    assert "⏳" in res
+
+
