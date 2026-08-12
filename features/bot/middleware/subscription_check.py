@@ -29,7 +29,8 @@ _ALWAYS_ALLOWED_CALLBACKS = {"sub_check"}
 
 def _is_admin(user_id: int) -> bool:
     """Check if user is an admin — admins bypass subscription check."""
-    return user_id in settings.admin_user_ids
+    from features.admin.dispatch import is_admin
+    return is_admin(user_id)
 
 
 class SubscriptionCheckMiddleware(BaseMiddleware):
@@ -63,10 +64,23 @@ class SubscriptionCheckMiddleware(BaseMiddleware):
         if _is_admin(user_id):
             return await handler(event, data)
 
+        # Extract Message / CallbackQuery from Update or Event
+        event_obj = getattr(event, "event", event)
+        msg: Message | None = None
+        cb: CallbackQuery | None = None
+
+        if isinstance(event_obj, Message):
+            msg = event_obj
+        elif isinstance(event_obj, CallbackQuery):
+            cb = event_obj
+        elif hasattr(event, "message") and getattr(event, "message", None):
+            msg = getattr(event, "message")
+        elif hasattr(event, "callback_query") and getattr(event, "callback_query", None):
+            cb = getattr(event, "callback_query")
+
         # Always allow "I subscribed" callback
-        if isinstance(event, CallbackQuery):
-            if (event.data or "") in _ALWAYS_ALLOWED_CALLBACKS:
-                return await handler(event, data)
+        if cb and (getattr(cb, "data", "") or "") in _ALWAYS_ALLOWED_CALLBACKS:
+            return await handler(event, data)
 
         bot = data.get("bot")
         if bot is None:
@@ -81,20 +95,18 @@ class SubscriptionCheckMiddleware(BaseMiddleware):
         if not unsubscribed:
             return await handler(event, data)
 
-        # User is not subscribed — send message and STOP
+        # User is not subscribed — send prompt with channel links and STOP handler
         text = build_subscribe_text(unsubscribed)
         keyboard = build_subscribe_keyboard(unsubscribed)
 
         try:
-            if isinstance(event, Message):
-                await event.answer(text, reply_markup=keyboard)
-            elif isinstance(event, CallbackQuery):
-                await event.answer(
-                    "⚠️ Avval kanallarga obuna bo'ling!", show_alert=True
-                )
-                if event.message:
+            if msg:
+                await msg.answer(text, reply_markup=keyboard)
+            elif cb:
+                await cb.answer("⚠️ Avval kanallarga obuna bo'ling!", show_alert=True)
+                if cb.message:
                     try:
-                        await event.message.answer(text, reply_markup=keyboard)
+                        await cb.message.answer(text, reply_markup=keyboard)
                     except Exception:
                         pass
         except Exception as exc:

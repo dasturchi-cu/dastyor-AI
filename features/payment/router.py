@@ -464,6 +464,13 @@ async def api_paid_doc_status(
     telegram_id: str | None = Query(None),
 ) -> dict:
     uid = resolve_uid(telegram_id, token)
+    if not uid and telegram_id and str(telegram_id).strip().isdigit():
+        tid = int(telegram_id)
+        from database.repositories import users as users_repo
+        from shared.auth import is_admin
+        if users_repo.get_by_telegram_id(tid) and (is_admin(tid) or not users_repo.is_blocked(tid)):
+            uid = tid
+
     if not uid:
         raise HTTPException(status_code=401, detail="Foydalanuvchi aniqlanmadi")
     payment = payments_repo.get_user_payment(request_id, uid)
