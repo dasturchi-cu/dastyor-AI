@@ -67,3 +67,8 @@ async def test_safe_react():
     msg.react.assert_called_once()
 
 
+def test_waving_hand_emoji_in_map():
+    assert "👋" in EMOJI_MAP
+    assert EMOJI_MAP["👋"] == "5436040291507247633"
+
+
