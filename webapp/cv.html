@@ -2195,10 +2195,14 @@
           try { await payCvSingle(fmt); } catch (_) {}
         } else {
           alert('❌ ' + msg.slice(0, 100));
+          if (msg.indexOf('Forma to\'ldirilmagan') >= 0 || msg.indexOf('ism') >= 0) {
+            try { openCvFormAfterFill(); } catch (_) {}
+          }
         }
       } finally {
         try {
-          if (window.DastyorAI && window.DastyorAI.hideDocumentLoading) window.DastyorAI.hideDocumentLoading();
+          if (window.DastyorAI && window.DastyorAI.forceHideDocumentLoading) window.DastyorAI.forceHideDocumentLoading();
+          else if (window.DastyorAI && window.DastyorAI.hideDocumentLoading) window.DastyorAI.hideDocumentLoading();
         } catch (_) {}
       }
     }

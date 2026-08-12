@@ -1523,8 +1523,7 @@ html[data-theme="dark"] .da-doc-loading-ring{border-color:#334155;border-top-col
     }
 
     function hideDocumentLoading() {
-        _docLoadingRef = Math.max(0, _docLoadingRef - 1);
-        if (_docLoadingRef > 0) return;
+        _docLoadingRef = 0;
         if (_docLoadingEl) {
             _docLoadingEl.classList.remove('da-doc-loading-visible');
         }

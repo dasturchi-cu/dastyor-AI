@@ -2481,7 +2481,10 @@ async function sendObyektivkaToBot(fmt){
       alert('❌ ' + em.slice(0, 120));
     }
   }finally{
-    try { if (window.DastyorAI && window.DastyorAI.hideDocumentLoading) window.DastyorAI.hideDocumentLoading(); } catch (_) {}
+    try {
+      if (window.DastyorAI && window.DastyorAI.forceHideDocumentLoading) window.DastyorAI.forceHideDocumentLoading();
+      else if (window.DastyorAI && window.DastyorAI.hideDocumentLoading) window.DastyorAI.hideDocumentLoading();
+    } catch (_) {}
   }
 }
 
