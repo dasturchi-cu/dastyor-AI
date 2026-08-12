@@ -21,6 +21,7 @@ from features.bot.handlers import cover_letter as cover_letter_handlers
 from features.bot.handlers import translate as translate_handlers
 from features.bot.handlers import marketing_payment as marketing_payment_handlers
 from features.bot.handlers import subscription as subscription_handlers
+from features.bot.handlers import emoji_tools as emoji_tools_handlers
 
 logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
@@ -32,10 +33,15 @@ logger = logging.getLogger(__name__)
 def create_bot() -> Bot:
     if not settings.bot_token:
         raise RuntimeError("BOT_TOKEN is missing")
-    return Bot(
+    bot = Bot(
         token=settings.bot_token,
         default=DefaultBotProperties(parse_mode=ParseMode.HTML),
     )
+    from shared.premium_emoji import PremiumEmojiMiddleware
+
+    # Chiqadigan barcha xabarlarni premium emoji bilan yuborish (polling+webhook).
+    bot.session.middleware(PremiumEmojiMiddleware())
+    return bot
 
 
 def create_dispatcher() -> Dispatcher:
@@ -49,6 +55,7 @@ def create_dispatcher() -> Dispatcher:
     dp.update.middleware(SubscriptionCheckMiddleware())
     dp.include_router(admin_router)
     dp.include_router(admin_channels.router)
+    dp.include_router(emoji_tools_handlers.router)
     dp.include_router(subscription_handlers.router)
     dp.include_router(start_handlers.router)
     dp.include_router(obyektivka_handlers.router)
