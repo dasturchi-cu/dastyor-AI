@@ -10,19 +10,19 @@ logger = logging.getLogger(__name__)
 
 
 def purge_test_payments() -> int:
-    """Test to'lovlari va yetim (user yo'q) yozuvlarni o'chirish."""
+    """Only delete orphan payment rows (where user was deleted from DB). Never delete real user/admin payments."""
     deleted = 0
     with get_connection() as conn:
         rows = conn.execute(
             """
-            SELECT p.id, p.payer_name, u.telegram_id, u.username, u.first_name, u.last_name
+            SELECT p.id, u.telegram_id
             FROM payments p
             LEFT JOIN users u ON u.id = p.user_id
             """
         ).fetchall()
         for row in rows:
             item = row_to_dict(row) or {}
-            if is_test_payment(item) or item.get("telegram_id") is None:
+            if item.get("telegram_id") is None:
                 conn.execute("DELETE FROM payments WHERE id = ?", (int(item["id"]),))
                 deleted += 1
     return deleted
@@ -59,13 +59,8 @@ def purge_test_activity_events() -> int:
 
 
 def reset_payment_id_sequence() -> bool:
-    """To'lovlar bo'sh bo'lsa keyingi to'lov #1 dan boshlanadi."""
-    with get_connection() as conn:
-        count = conn.execute("SELECT COUNT(*) FROM payments").fetchone()[0]
-        if int(count or 0) != 0:
-            return False
-        conn.execute("DELETE FROM sqlite_sequence WHERE name = 'payments'")
-    return True
+    """NEVER reset sequence — payment IDs must remain strictly unique and sequential (144, 145, 146...)."""
+    return False
 
 
 def purge_all_test_data() -> dict[str, int]:
