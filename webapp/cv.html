@@ -368,40 +368,47 @@
                 <div class="tpl-name">ATS</div>
               </div>
             </div>
-            <div class="cv-tpl-row" aria-label="Shablonlar 5–8">
-              <div class="tpl-card" onclick="setTpl('elegant')" id="tpl-elegant">
-                <img src="https://i.postimg.cc/j5nXZsfH/Screenshot-20260316-050836-WPS-Office.jpg" loading="lazy" decoding="async" alt="Elegant">
-                <div class="tpl-name">Elegant</div>
+
+            <button id="toggle-more-tpl-btn" type="button" class="w-full mt-2.5 py-2 px-4 text-xs font-semibold text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-xl border border-blue-200 transition-colors flex items-center justify-center gap-1.5 cursor-pointer" onclick="toggleMoreTemplates()">
+              <span>Ko'proq shablonlar (boshqa 8 ta shablon) 🔽</span>
+            </button>
+
+            <div id="more-templates-wrap" class="hidden transition-all duration-300">
+              <div class="cv-tpl-row mt-2" aria-label="Shablonlar 5–8">
+                <div class="tpl-card" onclick="setTpl('elegant')" id="tpl-elegant">
+                  <img src="https://i.postimg.cc/j5nXZsfH/Screenshot-20260316-050836-WPS-Office.jpg" loading="lazy" decoding="async" alt="Elegant">
+                  <div class="tpl-name">Elegant</div>
+                </div>
+                <div class="tpl-card" onclick="setTpl('corporate')" id="tpl-corporate">
+                  <img src="https://i.postimg.cc/8PX7PL91/Screenshot-20260316-050001-WPS-Office.jpg" loading="lazy" decoding="async" alt="Corporate">
+                  <div class="tpl-name">Corporate</div>
+                </div>
+                <div class="tpl-card" onclick="setTpl('creative')" id="tpl-creative">
+                  <img src="https://i.postimg.cc/2ST259mr/Screenshot-20260316-050942-WPS-Office.jpg" loading="lazy" decoding="async" alt="Creative">
+                  <div class="tpl-name">Creative</div>
+                </div>
+                <div class="tpl-card" onclick="setTpl('prof')" id="tpl-prof">
+                  <img src="https://i.postimg.cc/3w15YFfC/Screenshot-20260316-052841-WPS-Office.jpg" loading="lazy" decoding="async" alt="Prof">
+                  <div class="tpl-name">Prof</div>
+                </div>
               </div>
-              <div class="tpl-card" onclick="setTpl('corporate')" id="tpl-corporate">
-                <img src="https://i.postimg.cc/8PX7PL91/Screenshot-20260316-050001-WPS-Office.jpg" loading="lazy" decoding="async" alt="Corporate">
-                <div class="tpl-name">Corporate</div>
-              </div>
-              <div class="tpl-card" onclick="setTpl('creative')" id="tpl-creative">
-                <img src="https://i.postimg.cc/2ST259mr/Screenshot-20260316-050942-WPS-Office.jpg" loading="lazy" decoding="async" alt="Creative">
-                <div class="tpl-name">Creative</div>
-              </div>
-              <div class="tpl-card" onclick="setTpl('prof')" id="tpl-prof">
-                <img src="https://i.postimg.cc/3w15YFfC/Screenshot-20260316-052841-WPS-Office.jpg" loading="lazy" decoding="async" alt="Prof">
-                <div class="tpl-name">Prof</div>
-              </div>
-            </div>
-            <div class="cv-tpl-row mt-2" aria-label="Sohaviy Shablonlar 9–12">
-              <div class="tpl-card flex flex-col items-center justify-center p-2 bg-slate-900 text-sky-400" onclick="setTpl('it')" id="tpl-it">
-                <div class="text-xl font-bold">💻</div>
-                <div class="tpl-name">IT Tech</div>
-              </div>
-              <div class="tpl-card flex flex-col items-center justify-center p-2 bg-blue-900 text-amber-400" onclick="setTpl('finance')" id="tpl-finance">
-                <div class="text-xl font-bold">📊</div>
-                <div class="tpl-name">Finance</div>
-              </div>
-              <div class="tpl-card flex flex-col items-center justify-center p-2 bg-emerald-50 text-emerald-700" onclick="setTpl('medical')" id="tpl-medical">
-                <div class="text-xl font-bold">🏥</div>
-                <div class="tpl-name">Medical</div>
-              </div>
-              <div class="tpl-card flex flex-col items-center justify-center p-2 bg-purple-900 text-rose-300" onclick="setTpl('marketing')" id="tpl-marketing">
-                <div class="text-xl font-bold">🚀</div>
-                <div class="tpl-name">Marketing</div>
+              <div class="cv-tpl-row mt-2" aria-label="Sohaviy Shablonlar 9–12">
+                <div class="tpl-card flex flex-col items-center justify-center p-2 bg-slate-900 text-sky-400" onclick="setTpl('it')" id="tpl-it">
+                  <div class="text-xl font-bold">💻</div>
+                  <div class="tpl-name">IT Tech</div>
+                </div>
+                <div class="tpl-card flex flex-col items-center justify-center p-2 bg-blue-900 text-amber-400" onclick="setTpl('finance')" id="tpl-finance">
+                  <div class="text-xl font-bold">📊</div>
+                  <div class="tpl-name">Finance</div>
+                </div>
+                <div class="tpl-card flex flex-col items-center justify-center p-2 bg-emerald-50 text-emerald-700" onclick="setTpl('medical')" id="tpl-medical">
+                  <div class="text-xl font-bold">🏥</div>
+                  <div class="tpl-name">Medical</div>
+                </div>
+                <div class="tpl-card flex flex-col items-center justify-center p-2 bg-purple-900 text-rose-300" onclick="setTpl('marketing')" id="tpl-marketing">
+                  <div class="text-xl font-bold">🚀</div>
+                  <div class="tpl-name">Marketing</div>
+                </div>
               </div>
             </div>
           </div>
@@ -1196,8 +1203,26 @@
       })();
     }
 
+    function toggleMoreTemplates(forceShow) {
+      const wrap = document.getElementById('more-templates-wrap');
+      const btn = document.getElementById('toggle-more-tpl-btn');
+      if (!wrap || !btn) return;
+      const isHidden = wrap.classList.contains('hidden');
+      const show = forceShow !== undefined ? forceShow : isHidden;
+      if (show) {
+        wrap.classList.remove('hidden');
+        btn.innerHTML = "<span>Kamroq ko'rsatish 🔼</span>";
+      } else {
+        wrap.classList.add('hidden');
+        btn.innerHTML = "<span>Ko'proq shablonlar (boshqa 8 ta shablon) 🔽</span>";
+      }
+    }
+
     function setTpl(tpl, shouldTrigger = true) {
       activeTpl = tpl;
+      if (['elegant', 'corporate', 'creative', 'prof', 'it', 'finance', 'medical', 'marketing'].includes(tpl)) {
+        toggleMoreTemplates(true);
+      }
       document.querySelectorAll('.tpl-card').forEach(function (el) { el.classList.remove('tpl-active'); });
       const card = document.getElementById('tpl-' + tpl);
       if (card) card.classList.add('tpl-active');
