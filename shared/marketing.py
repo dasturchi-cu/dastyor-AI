@@ -14,23 +14,12 @@ def price_tag() -> str:
 
 
 def welcome_message() -> str:
-    from shared.pricing import format_uzs, get_package
-
-    p1 = format_uzs(get_package("pack1").price_uzs)
     return (
-        "👋 <b>DASTYOR AI</b> — ishga kirish hujjatlaringizni 1 daqiqada tayyorlang!\n\n"
-        "🎯 <b>3 qadamda tayyor:</b>\n"
-        "1️⃣ Ovozli xabar yoki matn yuboring (yoki pastdagi tugmani bosing)\n"
-        "2️⃣ AI formani avtomatik to'ldiradi\n"
-        "3️⃣ Demo ko'ring → toza fayl uchun paket tanlang\n\n"
-        "📄 <b>CV Resume</b> — zamonaviy PDF format\n"
-        "✍️ <b>Obyektivka</b> — rasmiy Word (.docx) format\n"
-        "📝 <b>Muqova xati</b> — AI Cover Letter\n"
-        "🌐 <b>Tarjima</b> — hujjatni ingliz yoki rus tiliga\n\n"
-        "🎁 <b>Demo bepul</b> (belgi bilan). <b>Toza fayl</b> — to'lov.\n"
-        "🎙 Tahrirlash va tahlil — <b>bepul</b>\n"
-        f"💰 Paketlar: 1× = {p1} so'm · 3× va 5× arzonroq\n\n"
-        "👇 Boshlash uchun xizmatlardan birini tanlang:"
+        "👋 <b>Xush kelibsiz!</b>\n\n"
+        "<b>DASTYOR AI</b> — ishga kirish hujjatlarini 1 daqiqada tayyorlab beradi:\n\n"
+        "📄 <b>CV Resume</b>  ·  ✍️ <b>Obyektivka</b>  ·  📝 <b>Muqova xati</b>  ·  🌐 <b>Tarjima</b>\n\n"
+        "🎙️ Ovozli xabar yoki matn yuboring — AI formani avtomatik to'ldiradi!\n\n"
+        "👇 Boshlash uchun pastdagi xizmatlardan birini tanlang:"
     )
 
 
