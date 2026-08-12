@@ -1,12 +1,7 @@
-"""Tests for domain-specific CV templates and Channel Auto-Poster."""
+"""Tests for domain-specific CV templates."""
 from __future__ import annotations
 
 from pathlib import Path
-from unittest.mock import AsyncMock, MagicMock, patch
-
-import pytest
-
-from features.marketing.channel_autopost import SHOWCASE_TEMPLATES, send_channel_autopost
 
 
 def test_cv_template_contains_domain_css_classes():
@@ -27,22 +22,3 @@ def test_webapp_cv_contains_domain_template_cards():
     assert 'id="tpl-finance"' in content
     assert 'id="tpl-medical"' in content
     assert 'id="tpl-marketing"' in content
-
-
-@pytest.mark.asyncio
-async def test_send_channel_autopost():
-    bot = MagicMock()
-    bot.send_message = AsyncMock()
-
-    with patch("features.marketing.channel_autopost.Settings") as mock_settings_cls:
-        settings_inst = MagicMock()
-        settings_inst.marketing_channel_id = -100123456789
-        settings_inst.bot_username = "DastyorAiBot"
-        mock_settings_cls.return_value = settings_inst
-
-        res = await send_channel_autopost(bot)
-        assert res is True
-        bot.send_message.assert_called_once()
-        args, kwargs = bot.send_message.call_args
-        assert kwargs["chat_id"] == -100123456789
-        assert "Bot:" in kwargs["text"]

@@ -1,1 +1,0 @@
-"""Marketing module package."""

@@ -60,10 +60,8 @@ def start_admin_jobs(bot: Bot) -> None:
         return
     _stop.clear()
     _task = asyncio.create_task(_jobs_loop(bot), name="admin_jobs")
-    from features.marketing.channel_autopost import start_autopost_scheduler
-    asyncio.create_task(start_autopost_scheduler(bot), name="channel_autopost")
     logger.info(
-        "Admin jobs started (daily report %s:00 %s, channel autopost active)",
+        "Admin jobs started (daily report %s:00 %s)",
         settings.admin_report_hour,
         settings.admin_report_timezone,
     )
