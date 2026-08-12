@@ -285,7 +285,7 @@ async def obyektivka_text(message: Message, bot: Bot, state: FSMContext) -> None
     await safe_react(message, "✍️")
     await _delete_waiting_prompt(bot, state)
     uid = message.from_user.id if message.from_user else 0
-    status = await message.answer("✅ Matn qabul qilindi\n⏳ AI tahlil qilmoqda...", reply_markup=user_menu(uid))
+    status = await message.answer(telegram_message(STEP_AI, input_mode="text"), reply_markup=user_menu(uid))
     asyncio.create_task(_handle_oby_text_flow(message.text or "", status, uid, state))
 
 
@@ -294,6 +294,7 @@ async def _handle_oby_text_flow(text: str, status: Message, uid: int, state: FSM
         transcript, data, missing = await asyncio.wait_for(
             process_text_for_obyektivka(text), timeout=AI_FLOW_TIMEOUT_SECONDS
         )
+        await _finish_status(status, telegram_message(STEP_EXTRACTED, input_mode="text"))
         if not oby_fill_is_acceptable(data):
             if data:
                 await db_run(oby_service.save_pending, uid, data)

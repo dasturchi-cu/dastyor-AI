@@ -82,13 +82,17 @@ async def cv_text_fill(message: Message, state: FSMContext) -> None:
         return
     await safe_react(message, "✍️")
     uid = message.from_user.id if message.from_user else 0
-    status = await message.answer("✅ Matn qabul qilindi\n⏳ AI tahlil qilmoqda...")
+    status = await message.answer(telegram_message(STEP_AI, input_mode="text"))
     asyncio.create_task(_handle_cv_text_flow(message.text or "", status, uid, state))
 
 
 async def _handle_cv_text_flow(text: str, status: Message, uid: int, state: FSMContext) -> None:
     try:
         transcript, cv_data, cv_missing = await process_text_for_cv(text)
+        try:
+            await status.edit_text(telegram_message(STEP_EXTRACTED, input_mode="text"))
+        except Exception:
+            pass
         if not cv_fill_is_acceptable(cv_data, cv_missing):
             reason = cv_fill_rejection_reason(cv_data)
             if cv_data:
