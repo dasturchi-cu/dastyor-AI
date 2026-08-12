@@ -2163,7 +2163,9 @@
         try { if (window.DastyorAI && window.DastyorAI.refreshProfile) await window.DastyorAI.refreshProfile(true); } catch (_) {}
         syncCvQuotaUi();
         tg.HapticFeedback && tg.HapticFeedback.notificationOccurred && tg.HapticFeedback.notificationOccurred('success');
-        setTimeout(() => { try { tg.close(); } catch (_) {} }, 350);
+        try { if (window.DastyorAI && window.DastyorAI.forceHideDocumentLoading) window.DastyorAI.forceHideDocumentLoading(); } catch (_) {}
+        try { if (window.DastyorAI && window.DastyorAI.daToast) window.DastyorAI.daToast('✅ CV Telegram botingizga yuborildi!', 'success'); } catch (_) {}
+        setTimeout(() => { try { tg.close(); } catch (_) {} }, 250);
       } catch (e) {
         _cvExportInFlight = false;
         syncCvQuotaUi();

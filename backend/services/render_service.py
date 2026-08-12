@@ -432,7 +432,7 @@ async def _html_pdf_playwright(html_str: str, *, cv_pdf: bool = False, print_med
     if not PLAYWRIGHT_OK:
         return None
     # Tarmoq shriftlari (Google Fonts) + katta HTML: domcontentloaded yetarli emas
-    font_wait_ms = 450 if cv_pdf else 200
+    font_wait_ms = 50
     content_timeout_ms = 90_000 if cv_pdf else 60_000
     media = "print" if print_media else "screen"
 
