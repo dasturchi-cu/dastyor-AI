@@ -30,15 +30,24 @@ async def sub_check_callback(callback: CallbackQuery) -> None:
 
     if not unsubscribed:
         # All channels subscribed!
-        await callback.answer("✅ Rahmat! Endi botdan foydalanishingiz mumkin.", show_alert=True)
+        await callback.answer("✅ Rahmat! Obuna tasdiqlandi.", show_alert=True)
         if callback.message:
+            from shared.keyboards import main_menu_keyboard
+            from shared.marketing import welcome_message
+
             try:
-                await callback.message.delete()
+                await callback.message.answer(
+                    welcome_message(),
+                    reply_markup=main_menu_keyboard(user_id),
+                )
+                try:
+                    await callback.message.delete()
+                except Exception:
+                    pass
             except Exception:
                 try:
                     await callback.message.edit_text(
-                        "✅ Obuna tasdiqlandi! Botdan foydalanishingiz mumkin.\n\n"
-                        "Boshlash uchun /start yozing."
+                        "✅ Obuna tasdiqlandi! Botdan foydalanishingiz mumkin."
                     )
                 except Exception:
                     pass

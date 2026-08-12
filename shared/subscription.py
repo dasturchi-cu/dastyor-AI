@@ -83,3 +83,40 @@ def build_subscribe_text(unsubscribed: list[dict]) -> str:
         "\n👇 Obuna bo'lgandan so'ng <b>«✅ Obuna bo'ldim»</b> tugmasini bosing."
     )
     return "\n".join(lines)
+
+
+async def ensure_user_subscribed_api(request, uid: int | None) -> None:
+    """Check subscription on REST API endpoints — raise HTTP 403 if unsubscribed."""
+    if not uid:
+        return
+    from shared.auth import is_admin
+    if is_admin(uid):
+        return
+
+    bot_app = getattr(getattr(request, "app", None), "state", None)
+    bot_obj = getattr(bot_app, "bot", None) if bot_app else None
+    if not bot_obj:
+        return
+
+    try:
+        unsubscribed = await get_unsubscribed_channels(bot_obj, uid)
+        if unsubscribed:
+            channels_info = []
+            for ch in unsubscribed:
+                cid = str(ch["channel_id"])
+                link = ch.get("invite_link") or (f"https://t.me/{cid.lstrip('@')}" if cid.startswith("@") else "")
+                channels_info.append({"title": ch.get("title") or cid, "link": link, "channel_id": cid})
+
+            from fastapi import HTTPException
+            raise HTTPException(
+                status_code=403,
+                detail={
+                    "error": "subscription_required",
+                    "message": "📢 Botdan foydalanish uchun rasmiy kanalimizga obuna bo'ling!",
+                    "channels": channels_info,
+                },
+            )
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.warning("ensure_user_subscribed_api check error: %s", exc)

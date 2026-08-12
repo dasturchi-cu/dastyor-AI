@@ -411,6 +411,8 @@ async def api_test_obyektivka_pdf(req: TestObyektivkaPdfRequest, request: Reques
 async def api_export_oby(req: ExportObyektivkaRequest, request: Request) -> StreamingResponse:
     await rate_limit(request)
     uid = _uid_from_req(req)
+    from shared.subscription import ensure_user_subscribed_api
+    await ensure_user_subscribed_api(request, uid)
     payload = req.model_dump(exclude={"telegram_id", "token", "send_only", "format", "init_data"})
     if not oby_fill_is_acceptable(payload):
         raise HTTPException(
