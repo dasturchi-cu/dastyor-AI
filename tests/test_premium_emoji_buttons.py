@@ -72,3 +72,8 @@ def test_waving_hand_emoji_in_map():
     assert EMOJI_MAP["👋"] == "5436040291507247633"
 
 
+def test_headphones_emoji_in_map():
+    assert "🎧" in EMOJI_MAP
+    assert EMOJI_MAP["🎧"] == "5382013970905309819"
+
+
