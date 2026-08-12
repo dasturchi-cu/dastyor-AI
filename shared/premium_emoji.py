@@ -116,6 +116,20 @@ def has_mapping() -> bool:
     return bool(EMOJI_MAP)
 
 
+def leading_emoji_id(text: str | None) -> str | None:
+    """Matn boshidagi emoji uchun custom_emoji_id (Bot API 9.4 tugma iconi).
+
+    Tugma matnining eng boshida turgan mos emojini topadi. Topilmasa None.
+    Reply-tugma matni o'zgarmaydi — faqat icon qo'shish uchun ishlatiladi.
+    """
+    if not text or _pattern is None:
+        return None
+    m = _pattern.match(text)
+    if m:
+        return EMOJI_MAP[m.group(0)]
+    return None
+
+
 def _parse_mode_ok(method: Any) -> bool:
     """Faqat HTML parse mode uchun tg-emoji ishlaydi.
 

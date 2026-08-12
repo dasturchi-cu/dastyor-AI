@@ -8,8 +8,32 @@ from aiogram.types import (
     ReplyKeyboardMarkup,
     WebAppInfo,
 )
+from aiogram.types import InlineKeyboardButton as _IKButton
+from aiogram.types import KeyboardButton as _KButton
 
 from config.settings import settings
+from shared.premium_emoji import leading_emoji_id
+
+
+def _kb(text: str, **kwargs) -> KeyboardButton:
+    """Reply-tugma — matn boshidagi emoji premium bo'lsa, icon qo'shiladi.
+
+    Matn o'zgarmaydi (handler matching saqlanadi), faqat Bot API 9.4
+    icon_custom_emoji_id maydoni qo'shiladi.
+    """
+    eid = leading_emoji_id(text)
+    if eid:
+        kwargs["icon_custom_emoji_id"] = eid
+    return _KButton(text=text, **kwargs)
+
+
+def _ikb(text: str, **kwargs) -> InlineKeyboardButton:
+    """Inline-tugma — matn boshidagi emoji premium bo'lsa, icon qo'shiladi."""
+    eid = leading_emoji_id(text)
+    if eid:
+        kwargs["icon_custom_emoji_id"] = eid
+    return _IKButton(text=text, **kwargs)
+
 
 BTN_CV = "📄 CV Resume"
 BTN_OBY = "✍️ Obyektivka yaratish"
@@ -125,9 +149,9 @@ def user_menu(uid: int | None = None) -> ReplyKeyboardMarkup:
     """
     return ReplyKeyboardMarkup(
         keyboard=[
-            [KeyboardButton(text=BTN_CV), KeyboardButton(text=BTN_OBY)],
-            [KeyboardButton(text=BTN_CREDITS), KeyboardButton(text=BTN_REFERRAL)],
-            [KeyboardButton(text=BTN_HELP)],
+            [_kb(text=BTN_CV), _kb(text=BTN_OBY)],
+            [_kb(text=BTN_CREDITS), _kb(text=BTN_REFERRAL)],
+            [_kb(text=BTN_HELP)],
         ],
         resize_keyboard=True,
         input_field_placeholder="Xizmatni tanlang",
@@ -136,7 +160,7 @@ def user_menu(uid: int | None = None) -> ReplyKeyboardMarkup:
 
 def back_menu() -> ReplyKeyboardMarkup:
     return ReplyKeyboardMarkup(
-        keyboard=[[KeyboardButton(text=BTN_BACK)]],
+        keyboard=[[_kb(text=BTN_BACK)]],
         resize_keyboard=True,
     )
 
@@ -145,7 +169,7 @@ def contact_admin_kb(username: str) -> InlineKeyboardMarkup:
     handle = username.lstrip("@")
     return InlineKeyboardMarkup(
         inline_keyboard=[
-            [InlineKeyboardButton(text="✉️ Adminga yozish", url=f"https://t.me/{handle}")]
+            [_ikb(text="✉️ Adminga yozish", url=f"https://t.me/{handle}")]
         ]
     )
 
@@ -167,7 +191,7 @@ def open_webapp_inline(uid: int, service: str) -> InlineKeyboardMarkup:
     if not url:
         return InlineKeyboardMarkup(inline_keyboard=[])
     return InlineKeyboardMarkup(
-        inline_keyboard=[[InlineKeyboardButton(text=label, web_app=WebAppInfo(url=url))]]
+        inline_keyboard=[[_ikb(text=label, web_app=WebAppInfo(url=url))]]
     )
 
 
@@ -181,11 +205,11 @@ def open_services_after_payment_inline(uid: int, document_type: str | None = Non
 
     if service == "cover":
         rows.append(
-            [InlineKeyboardButton(text="📥 Muqova xatini hozir yaratish", callback_data="postpay_cover")]
+            [_ikb(text="📥 Muqova xatini hozir yaratish", callback_data="postpay_cover")]
         )
     elif service == "translate":
         rows.append(
-            [InlineKeyboardButton(text="🌐 Tarjimani hozir boshlash", callback_data="postpay_translate")]
+            [_ikb(text="🌐 Tarjimani hozir boshlash", callback_data="postpay_translate")]
         )
     else:
         page = "cv.html" if service == "cv" else "obyektivka.html"
@@ -199,7 +223,7 @@ def open_services_after_payment_inline(uid: int, document_type: str | None = Non
                 if service == "cv"
                 else "📥 Obyektivkani hozir yuklash"
             )
-            rows.append([InlineKeyboardButton(text=label, web_app=WebAppInfo(url=url))])
+            rows.append([_ikb(text=label, web_app=WebAppInfo(url=url))])
 
     if service in ("cv", "obyektivka"):
         other_page = "obyektivka.html" if service == "cv" else "cv.html"
@@ -211,17 +235,17 @@ def open_services_after_payment_inline(uid: int, document_type: str | None = Non
                 if service == "cv"
                 else "📄 CV ham yaratish"
             )
-            rows.append([InlineKeyboardButton(text=other_label, web_app=WebAppInfo(url=other_url))])
-        rows.append([InlineKeyboardButton(text="📝 Muqova xati (/cover)", callback_data="postpay_cover")])
+            rows.append([_ikb(text=other_label, web_app=WebAppInfo(url=other_url))])
+        rows.append([_ikb(text="📝 Muqova xati (/cover)", callback_data="postpay_cover")])
         rows.append(
-            [InlineKeyboardButton(text="🌐 Hujjat tarjimasi (/translate)", callback_data="postpay_translate")]
+            [_ikb(text="🌐 Hujjat tarjimasi (/translate)", callback_data="postpay_translate")]
         )
     elif service == "cover":
         rows.append(
-            [InlineKeyboardButton(text="🌐 Hujjat tarjimasi (/translate)", callback_data="postpay_translate")]
+            [_ikb(text="🌐 Hujjat tarjimasi (/translate)", callback_data="postpay_translate")]
         )
     elif service == "translate":
-        rows.append([InlineKeyboardButton(text="📝 Muqova xati (/cover)", callback_data="postpay_cover")])
+        rows.append([_ikb(text="📝 Muqova xati (/cover)", callback_data="postpay_cover")])
 
     return InlineKeyboardMarkup(inline_keyboard=rows)
 
@@ -237,17 +261,17 @@ def open_services_inline(uid: int) -> InlineKeyboardMarkup:
         oby_url = f"{oby_url}&voice=1&autoload=1"
     if cv_url:
         rows.append(
-            [InlineKeyboardButton(text="📄 CV yaratish", web_app=WebAppInfo(url=cv_url))]
+            [_ikb(text="📄 CV yaratish", web_app=WebAppInfo(url=cv_url))]
         )
     if oby_url:
         rows.append(
-            [InlineKeyboardButton(text="✍️ Obyektivka yaratish", web_app=WebAppInfo(url=oby_url))]
+            [_ikb(text="✍️ Obyektivka yaratish", web_app=WebAppInfo(url=oby_url))]
         )
     rows.append(
-        [InlineKeyboardButton(text="📝 Muqova xati (/cover)", callback_data="postpay_cover")]
+        [_ikb(text="📝 Muqova xati (/cover)", callback_data="postpay_cover")]
     )
     rows.append(
-        [InlineKeyboardButton(text="🌐 Hujjat tarjimasi (/translate)", callback_data="postpay_translate")]
+        [_ikb(text="🌐 Hujjat tarjimasi (/translate)", callback_data="postpay_translate")]
     )
     return InlineKeyboardMarkup(inline_keyboard=rows)
 
@@ -278,7 +302,7 @@ def package_choice_keyboard(uid: int, document_type: str | None = None) -> Inlin
         text = f"{p['credits']}× — {format_uzs(p['price_uzs'])} so'm{badge}"
         rows.append(
             [
-                InlineKeyboardButton(
+                _ikb(
                     text=text,
                     callback_data=f"pay_pack_{p['id']}",
                 )
@@ -287,7 +311,7 @@ def package_choice_keyboard(uid: int, document_type: str | None = None) -> Inlin
     web_url = _web_pay_url(uid, document_type)
     if web_url:
         rows.append(
-            [InlineKeyboardButton(text="💳 Web-ilova orqali to'lash", web_app=WebAppInfo(url=web_url))]
+            [_ikb(text="💳 Web-ilova orqali to'lash", web_app=WebAppInfo(url=web_url))]
         )
     # Referral share — to'lov klaviaturasini chalkashtirmaslik uchun bu yerda yo'q
     return InlineKeyboardMarkup(inline_keyboard=rows)
@@ -295,14 +319,14 @@ def package_choice_keyboard(uid: int, document_type: str | None = None) -> Inlin
 
 def payment_rejected_keyboard(uid: int, document_type: str | None = None) -> InlineKeyboardMarkup:
     rows: list[list[InlineKeyboardButton]] = [
-        [InlineKeyboardButton(text="🔄 Paket tanlash", callback_data="pay_via_bot")],
+        [_ikb(text="🔄 Paket tanlash", callback_data="pay_via_bot")],
     ]
     web_url = _web_pay_url(uid, document_type)
     if web_url:
         rows.append(
-            [InlineKeyboardButton(text="💳 Web orqali to'lash", web_app=WebAppInfo(url=web_url))]
+            [_ikb(text="💳 Web orqali to'lash", web_app=WebAppInfo(url=web_url))]
         )
-    rows.append([InlineKeyboardButton(text="💳 Pul balansi", callback_data="pay_show_balance")])
+    rows.append([_ikb(text="💳 Pul balansi", callback_data="pay_show_balance")])
     return InlineKeyboardMarkup(inline_keyboard=rows)
 
 
@@ -337,7 +361,7 @@ def referral_share_button(uid: int) -> InlineKeyboardButton:
         + "&text="
         + quote(share_text, safe="")
     )
-    return InlineKeyboardButton(text="📤 Do'stga ulashish (+1)", url=share_url)
+    return _ikb(text="📤 Do'stga ulashish (+1)", url=share_url)
 
 
 def referral_share_keyboard(uid: int) -> InlineKeyboardMarkup:
@@ -366,7 +390,7 @@ def open_oby_preview_inline(uid: int, *, missing_count: int = 0) -> InlineKeyboa
         url += f"&missing={missing_count}"
     return InlineKeyboardMarkup(
         inline_keyboard=[
-            [InlineKeyboardButton(text="👁 Preview va Tasdiqlash", web_app=WebAppInfo(url=url))]
+            [_ikb(text="👁 Preview va Tasdiqlash", web_app=WebAppInfo(url=url))]
         ]
     )
 
@@ -375,9 +399,9 @@ def help_quick_actions_kb() -> InlineKeyboardMarkup:
     """Yordam ekranidagi tezkor tugmalar — asosiy menyudan olib tashlangan xizmatlar."""
     return InlineKeyboardMarkup(
         inline_keyboard=[
-            [InlineKeyboardButton(text=BTN_COVER, callback_data="postpay_cover")],
-            [InlineKeyboardButton(text=BTN_TRANSLATE, callback_data="postpay_translate")],
-            [InlineKeyboardButton(text=BTN_SAMPLES, callback_data="help_samples")],
+            [_ikb(text=BTN_COVER, callback_data="postpay_cover")],
+            [_ikb(text=BTN_TRANSLATE, callback_data="postpay_translate")],
+            [_ikb(text=BTN_SAMPLES, callback_data="help_samples")],
         ]
     )
 
@@ -385,15 +409,15 @@ def help_quick_actions_kb() -> InlineKeyboardMarkup:
 def admin_menu() -> ReplyKeyboardMarkup:
     return ReplyKeyboardMarkup(
         keyboard=[
-            [KeyboardButton(text=ADMIN_BTN_USERS), KeyboardButton(text=ADMIN_BTN_SEARCH)],
-            [KeyboardButton(text=ADMIN_BTN_PAYMENTS), KeyboardButton(text=ADMIN_BTN_PENDING)],
-            [KeyboardButton(text=ADMIN_BTN_STATS), KeyboardButton(text=ADMIN_BTN_ACTIVITY)],
-            [KeyboardButton(text=ADMIN_BTN_BROADCAST), KeyboardButton(text=ADMIN_BTN_EXPORT)],
-            [KeyboardButton(text=ADMIN_BTN_TOP), KeyboardButton(text=ADMIN_BTN_SETTINGS)],
-            [KeyboardButton(text=ADMIN_BTN_AI), KeyboardButton(text=ADMIN_BTN_AI_PROBE)],
-            [KeyboardButton(text=ADMIN_BTN_CHANNELS), KeyboardButton(text=ADMIN_BTN_SECURITY)],
-            [KeyboardButton(text=ADMIN_BTN_DASHBOARD), KeyboardButton(text=ADMIN_BTN_ERRORS)],
-            [KeyboardButton(text=ADMIN_BTN_CLOSE)],
+            [_kb(text=ADMIN_BTN_USERS), _kb(text=ADMIN_BTN_SEARCH)],
+            [_kb(text=ADMIN_BTN_PAYMENTS), _kb(text=ADMIN_BTN_PENDING)],
+            [_kb(text=ADMIN_BTN_STATS), _kb(text=ADMIN_BTN_ACTIVITY)],
+            [_kb(text=ADMIN_BTN_BROADCAST), _kb(text=ADMIN_BTN_EXPORT)],
+            [_kb(text=ADMIN_BTN_TOP), _kb(text=ADMIN_BTN_SETTINGS)],
+            [_kb(text=ADMIN_BTN_AI), _kb(text=ADMIN_BTN_AI_PROBE)],
+            [_kb(text=ADMIN_BTN_CHANNELS), _kb(text=ADMIN_BTN_SECURITY)],
+            [_kb(text=ADMIN_BTN_DASHBOARD), _kb(text=ADMIN_BTN_ERRORS)],
+            [_kb(text=ADMIN_BTN_CLOSE)],
         ],
         resize_keyboard=True,
     )
@@ -403,8 +427,8 @@ def payment_review_kb(payment_id: int) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         inline_keyboard=[
             [
-                InlineKeyboardButton(text="✅ Tasdiqlash", callback_data=f"pay_approve_{payment_id}"),
-                InlineKeyboardButton(text="❌ Rad etish", callback_data=f"pay_reject_{payment_id}"),
+                _ikb(text="✅ Tasdiqlash", callback_data=f"pay_approve_{payment_id}"),
+                _ikb(text="❌ Rad etish", callback_data=f"pay_reject_{payment_id}"),
             ]
         ]
     )
