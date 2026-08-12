@@ -510,12 +510,17 @@ async def payment_callback(query: CallbackQuery) -> None:
                     approved_by=query.from_user.id,
                 )
                 if result and query.message:
+                    msg = (
+                        f"✅ To'lov #{pid} allaqachon tasdiqlangan (test akkaunt)."
+                        if result.get("already_approved")
+                        else f"✅ To'lov #{pid} tasdiqlandi (test akkaunt — foydalanuvchiga xabar yuborilmaydi)."
+                    )
+                    await _update_payment_review_message(query.message, msg)
+                elif query.message:
                     await _update_payment_review_message(
                         query.message,
-                        f"✅ To'lov #{pid} tasdiqlandi (test akkaunt — foydalanuvchiga xabar yuborilmaydi).",
+                        f"✅ To'lov #{pid} allaqachon ko'rib chiqilgan (test akkaunt).",
                     )
-                elif query.message:
-                    await query.message.reply("Tasdiqlash xatosi — to'lov allaqachon ko'rib chiqilgan.")
             else:
                 ok = await db_run(payment_service.reject_payment, pid)
                 if ok and query.message:
@@ -544,6 +549,14 @@ async def payment_callback(query: CallbackQuery) -> None:
                 )
                 tid = int(result["telegram_id"])
                 credits = await db_run(users_repo.get_credits, tid)
+                if result.get("already_approved"):
+                    if query.message:
+                        await _update_payment_review_message(
+                            query.message,
+                            f"✅ To'lov #{pid} allaqachon tasdiqlangan! (Balans: {credits} ta)",
+                        )
+                    return
+
                 from shared.keyboards import open_services_after_payment_inline
                 from shared.marketing import payment_approved_message
 
@@ -581,7 +594,10 @@ async def payment_callback(query: CallbackQuery) -> None:
                     f"{resolved}{delivery_note}",
                 )
             elif query.message:
-                await query.message.reply("Tasdiqlash xatosi — to'lov allaqachon ko'rib chiqilgan.")
+                await _update_payment_review_message(
+                    query.message,
+                    f"✅ To'lov #{pid} allaqachon ko'rib chiqilgan.",
+                )
         else:
             ok = await db_run(payment_service.reject_payment, pid)
             if ok:

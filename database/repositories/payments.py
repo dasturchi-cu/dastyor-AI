@@ -146,7 +146,10 @@ def approve_atomic(
 
         status = str(row["status"] or "").upper()
         if status == "APPROVED":
-            pass
+            ret = get_payment(pid)
+            if ret:
+                ret["already_approved"] = True
+            return ret
         elif status == "PENDING":
             pack_id = row["package_id"]
             granted_raw = row["credits_granted"]
@@ -183,6 +186,10 @@ def approve_atomic(
                 (admin_note, approved_by, credits, promo_bonus, pid),
             )
             if cur.rowcount != 1:
+                ret = get_payment(pid)
+                if ret and str(ret.get("status") or "").upper() == "APPROVED":
+                    ret["already_approved"] = True
+                    return ret
                 return None
             conn.execute(
                 """

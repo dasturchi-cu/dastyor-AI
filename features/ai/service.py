@@ -414,7 +414,7 @@ def cv_fill_is_acceptable(data: dict | None, missing: list[str] | None = None) -
 
 
 def oby_fill_is_acceptable(data: dict | None) -> bool:
-    return count_oby_populated_fields(data) >= 1 and bool(str(data.get("fullname") or "").strip())
+    return count_oby_populated_fields(data) >= 1
 
 
 def get_cv_validation_report(data: dict | None) -> dict:
