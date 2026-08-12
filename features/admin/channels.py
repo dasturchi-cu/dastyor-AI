@@ -2,8 +2,10 @@
 from __future__ import annotations
 
 import logging
+import re
 
 from aiogram import F, Router
+from aiogram.enums import ChatType
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
 
@@ -57,6 +59,34 @@ async def show_channels_list(callback: CallbackQuery, state: FSMContext) -> None
     await callback.answer()
 
 
+def normalize_channel_input(raw: str) -> str:
+    s = (raw or "").strip()
+    if not s:
+        return s
+
+    # Parse full Telegram URLs (e.g. https://t.me/freelanser_uzbek or t.me/freelanser_uzbek)
+    if "t.me/" in s:
+        m_private = re.search(r"t\.me/c/(\d+)", s)
+        if m_private:
+            cid = m_private.group(1)
+            return f"-100{cid}" if not cid.startswith("-100") else cid
+        m_user = re.search(r"t\.me/([a-zA-Z0-9_]+)", s)
+        if m_user:
+            uname = m_user.group(1)
+            if not uname.startswith("+") and uname.lower() not in ("joinchat", "addlist"):
+                return f"@{uname}"
+
+    # Pure numeric string ID (e.g. -1001234567890)
+    if s.lstrip("-").isdigit():
+        return s
+
+    # Clean leading @ or raw username
+    s = s.lstrip("@").strip()
+    if s:
+        return f"@{s}"
+    return raw
+
+
 # ── Add channel — ask for username ───────────────────────────────────────────
 
 @router.callback_query(F.data == "adm_ch_add")
@@ -68,32 +98,39 @@ async def add_channel_start(callback: CallbackQuery, state: FSMContext) -> None:
     if callback.message:
         await callback.message.answer(
             "📢 <b>Kanal qo'shish</b>\n\n"
-            "Kanalning <b>username</b> ini yuboring:\n"
-            "<code>@kanalUsername</code>\n\n"
-            "Yoki kanalning <b>ID</b> sini yuboring:\n"
-            "<code>-1001234567890</code>\n\n"
-            "❗ Bot kanalning <b>adminstratori</b> bo'lishi shart!\n\n"
+            "Kanalning <b>username</b>, <b>havolasi</b> yoki <b>ID</b> sini yuboring:\n"
+            "• <code>@kanalUsername</code>\n"
+            "• <code>https://t.me/kanalUsername</code>\n"
+            "• <code>-1001234567890</code>\n\n"
+            "💡 <i>Yoki kanaldan istalgan postni shu yerga FORWARD qilishingiz ham mumkin!</i>\n\n"
+            "❗ Bot kanalning <b>administratori</b> bo'lishi shart!\n\n"
             "Bekor qilish uchun /cancel yozing."
         )
     await callback.answer()
 
 
-@router.message(AdminStates.add_channel, F.text)
+@router.message(AdminStates.add_channel)
 async def add_channel_receive(message: Message, state: FSMContext) -> None:
     if not message.from_user or not is_admin(message.from_user.id):
         return
 
-    text = (message.text or "").strip()
+    text = (message.text or message.caption or "").strip()
     if text.lower() == "/cancel":
         await state.clear()
         await message.answer("❌ Bekor qilindi.")
         return
 
-    # Normalize channel_id
-    channel_id = text
-    if not channel_id.startswith("@") and not channel_id.lstrip("-").isdigit():
-        # Try adding @ prefix
-        channel_id = f"@{channel_id}"
+    # Check if forwarded from channel
+    channel_id = None
+    if message.forward_from_chat:
+        channel_id = str(message.forward_from_chat.id)
+
+    if not channel_id:
+        channel_id = normalize_channel_input(text)
+
+    if not channel_id:
+        await message.answer("❌ Noto'g'ri kanal formati. Qayta yuboring yoki /cancel yozing.")
+        return
 
     # Try to get channel info via bot
     bot = message.bot
