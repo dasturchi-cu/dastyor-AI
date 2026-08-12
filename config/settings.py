@@ -126,6 +126,9 @@ class Settings:
     google_api_key: str = field(default_factory=lambda: _env("GOOGLE_API_KEY"))
     admin_user_ids: frozenset[int] = field(default_factory=lambda: frozenset(_admin_ids()))
     support_group_id: int = field(default_factory=lambda: _env_int("SUPPORT_GROUP_ID", -1003457224552))
+    marketing_channel_id: str | int = field(
+        default_factory=lambda: _env("MARKETING_CHANNEL_ID") or _env_int("SUPPORT_GROUP_ID", -1003457224552)
+    )
     premium_admin_group_id: int = field(
         default_factory=lambda: _env_int("PREMIUM_ADMIN_GROUP_ID", _env_int("SUPPORT_GROUP_ID", -1003457224552))
     )

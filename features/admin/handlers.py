@@ -125,6 +125,21 @@ async def admin_panel(message: Message, state: FSMContext) -> None:
         await message.answer(f"❌ Dashboard ochilmadi: {exc}", reply_markup=admin_menu())
 
 
+@router.message(Command("autopost"))
+async def cmd_autopost(message: Message, state: FSMContext) -> None:
+    if not message.from_user or not is_admin(message.from_user.id):
+        await message.answer("⛔ Faqat admin uchun.")
+        return
+    await state.clear()
+    from features.marketing.channel_autopost import send_channel_autopost
+    msg = await message.answer("⏳ Kanalga avto-post yuborilmoqda...")
+    success = await send_channel_autopost(message.bot)
+    if success:
+        await msg.edit_text("✅ Kanalga avto-post muvaffaqiyatli yuborildi!")
+    else:
+        await msg.edit_text("❌ Avto-post yuborishda xatolik ro'y berdi (MARKETING_CHANNEL_ID sozlamalarini tekshiring).")
+
+
 # ── FSM flows (menyu tugmalaridan tashqari matn) ──────────────────────────
 
 @router.message(AdminStates.user_search, _NOT_MENU, F.text)
