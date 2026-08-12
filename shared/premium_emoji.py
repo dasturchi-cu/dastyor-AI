@@ -121,7 +121,6 @@ def leading_emoji_id(text: str | None) -> str | None:
     """Matn boshidagi emoji uchun custom_emoji_id (Bot API 9.4 tugma iconi).
 
     Tugma matnining eng boshida turgan mos emojini topadi. Topilmasa None.
-    Reply-tugma matni o'zgarmaydi — faqat icon qo'shish uchun ishlatiladi.
     """
     if not text or _pattern is None:
         return None
@@ -129,6 +128,23 @@ def leading_emoji_id(text: str | None) -> str | None:
     if m:
         return EMOJI_MAP[m.group(0)]
     return None
+
+
+_GENERIC_LEADING_EMOJI_RE = re.compile(
+    r"^(?:[\U00010000-\U0010ffff\u2600-\u27bf\u2300-\u23ff\u2b50\u2b55\u203c\u2049\u2139\u2122]|\ufe0f|\u200d|\u20e3)+\s*"
+)
+
+
+def strip_leading_emoji(text: str | None) -> str:
+    """Matn boshidagi oddiy unicode emojini olib tashlaydi (tugmada takrorlanmasligi uchun)."""
+    if not text:
+        return ""
+    if _pattern is not None:
+        m = _pattern.match(text)
+        if m:
+            return text[len(m.group(0)) :].lstrip()
+    return _GENERIC_LEADING_EMOJI_RE.sub("", text).lstrip()
+
 
 
 def _parse_mode_ok(method: Any) -> bool:

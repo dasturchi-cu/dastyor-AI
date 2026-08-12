@@ -31,6 +31,8 @@ from shared.keyboards import (
     BTN_OBY,
     BTN_SAMPLES,
     BTN_TRANSLATE,
+    btn_filter,
+    is_btn_match,
     is_credits_button,
     is_menu_button,
     user_menu,
@@ -41,7 +43,7 @@ logger = logging.getLogger(__name__)
 router = Router()
 
 
-@router.message(F.text == BTN_SAMPLES)
+@router.message(btn_filter(BTN_SAMPLES))
 async def show_samples(message: Message) -> None:
     uid = message.from_user.id if message.from_user else 0
     if uid and users_repo.is_blocked(uid):
@@ -223,28 +225,28 @@ async def payment_escape_to_menu(message: Message, state: FSMContext) -> None:
 
         await show_credits_for_uid(message, message.from_user.id if message.from_user else 0)
         return
-    if text in (BTN_SAMPLES,):
+    if is_btn_match(text, BTN_SAMPLES):
         await show_samples(message)
         return
     from features.bot.handlers.start import cmd_help, cv_intro, menu_back
 
-    if text == BTN_CV:
+    if is_btn_match(text, BTN_CV):
         await cv_intro(message, state)
-    elif text == BTN_OBY:
+    elif is_btn_match(text, BTN_OBY):
         from features.bot.handlers.obyektivka import obyektivka_start
 
         await obyektivka_start(message, state)
-    elif text == BTN_COVER:
+    elif is_btn_match(text, BTN_COVER):
         from features.bot.handlers.cover_letter import cmd_cover
 
         await cmd_cover(message, state)
-    elif text == BTN_TRANSLATE:
+    elif is_btn_match(text, BTN_TRANSLATE):
         from features.bot.handlers.translate import cmd_translate
 
         await cmd_translate(message)
-    elif text == BTN_HELP:
+    elif is_btn_match(text, BTN_HELP):
         await cmd_help(message)
-    elif text == BTN_BACK:
+    elif is_btn_match(text, BTN_BACK):
         await menu_back(message, state)
     else:
         await message.answer("Bosh menyu:", reply_markup=user_menu(message.from_user.id if message.from_user else None))

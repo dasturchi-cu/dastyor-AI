@@ -12,26 +12,24 @@ from aiogram.types import InlineKeyboardButton as _IKButton
 from aiogram.types import KeyboardButton as _KButton
 
 from config.settings import settings
-from shared.premium_emoji import leading_emoji_id
+from shared.premium_emoji import leading_emoji_id, strip_leading_emoji
 
 
 def _kb(text: str, **kwargs) -> KeyboardButton:
-    """Reply-tugma — matn boshidagi emoji premium bo'lsa, icon qo'shiladi.
-
-    Matn o'zgarmaydi (handler matching saqlanadi), faqat Bot API 9.4
-    icon_custom_emoji_id maydoni qo'shiladi.
-    """
+    """Reply-tugma — matn boshidagi emoji premium bo'lsa, icon qo'shiladi va matndan emoji olib tashlanadi."""
     eid = leading_emoji_id(text)
     if eid:
         kwargs["icon_custom_emoji_id"] = eid
+        text = strip_leading_emoji(text)
     return _KButton(text=text, **kwargs)
 
 
 def _ikb(text: str, **kwargs) -> InlineKeyboardButton:
-    """Inline-tugma — matn boshidagi emoji premium bo'lsa, icon qo'shiladi."""
+    """Inline-tugma — matn boshidagi emoji premium bo'lsa, icon qo'shiladi va matndan emoji olib tashlanadi."""
     eid = leading_emoji_id(text)
     if eid:
         kwargs["icon_custom_emoji_id"] = eid
+        text = strip_leading_emoji(text)
     return _IKButton(text=text, **kwargs)
 
 
@@ -46,7 +44,7 @@ BTN_SAMPLES = "📁 Namunalar"
 BTN_REFERRAL = "🎁 Do'stni taklif qilish"
 
 # Eski Telegram klaviatura (cache) — menyu tugmasi sifatida tanish
-LEGACY_BTN_CREDITS = ("💳 Kreditlar", "Kreditlar", "💳 Kredit")
+LEGACY_BTN_CREDITS = ("💳 Kreditlar", "Kreditlar", "💳 Kredit", "Pul balansi")
 
 MENU_BUTTON_TEXTS = frozenset(
     {
@@ -63,24 +61,54 @@ MENU_BUTTON_TEXTS = frozenset(
     }
 )
 
+CLEAN_MENU_BUTTON_TEXTS = frozenset(
+    {strip_leading_emoji(t) for t in MENU_BUTTON_TEXTS if t}
+)
+
+
+def btn_filter(*targets: str):
+    """Aiogram router filter for matching original or cleaned button texts."""
+    clean_targets = {t.strip() for t in targets} | {strip_leading_emoji(t) for t in targets if t}
+
+    def _check(message: any) -> bool:
+        t = (getattr(message, "text", None) or "").strip()
+        if not t:
+            return False
+        return t in clean_targets or strip_leading_emoji(t) in clean_targets
+
+    return _check
+
+
+def is_btn_match(input_text: str | None, target_btn: str) -> bool:
+    """Check if input text matches target button string (with or without leading emoji)."""
+    t = (input_text or "").strip()
+    if not t:
+        return False
+    clean_t = strip_leading_emoji(t)
+    clean_target = strip_leading_emoji(target_btn)
+    return t == target_btn or clean_t == clean_target
+
+
 
 def is_credits_button(text: str | None) -> bool:
     t = (text or "").strip()
     if not t:
         return False
-    if t == BTN_CREDITS or t in LEGACY_BTN_CREDITS:
+    clean_t = strip_leading_emoji(t)
+    if t == BTN_CREDITS or clean_t == strip_leading_emoji(BTN_CREDITS) or t in LEGACY_BTN_CREDITS:
         return True
-    low = t.casefold()
-    return t.startswith("💳") and ("kredit" in low or "pul balans" in low)
+    low = clean_t.casefold()
+    return "kredit" in low or "pul balans" in low
 
 
 def is_menu_button(text: str | None) -> bool:
     t = (text or "").strip()
     if not t:
         return False
-    if t in MENU_BUTTON_TEXTS:
+    clean_t = strip_leading_emoji(t)
+    if t in MENU_BUTTON_TEXTS or clean_t in CLEAN_MENU_BUTTON_TEXTS:
         return True
-    if t.casefold() in ("bekor",):
+    if clean_t.casefold() in ("bekor", "back", "orqaga"):
         return True
     if is_credits_button(t):
         return True
@@ -128,9 +156,18 @@ ADMIN_MENU_TEXTS = frozenset(
     }
 )
 
+CLEAN_ADMIN_MENU_TEXTS = frozenset(
+    {strip_leading_emoji(t) for t in ADMIN_MENU_TEXTS if t}
+)
+
 
 def is_admin_menu_button(text: str | None) -> bool:
-    return (text or "").strip() in ADMIN_MENU_TEXTS
+    t = (text or "").strip()
+    if not t:
+        return False
+    clean_t = strip_leading_emoji(t)
+    return t in ADMIN_MENU_TEXTS or clean_t in CLEAN_ADMIN_MENU_TEXTS
+
 
 
 def webapp_url(uid: int, page: str) -> str | None:

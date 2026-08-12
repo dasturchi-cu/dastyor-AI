@@ -25,6 +25,8 @@ def _reset_redis_state():
     redis_client.close_sync()
 
 
+
+
 def test_redis_disabled_by_default():
     assert not redis_client.redis_enabled() or os.environ.get("USE_REDIS") == "0"
 

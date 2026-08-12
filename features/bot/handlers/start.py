@@ -22,8 +22,10 @@ from shared.keyboards import (
     BTN_REFERRAL,
     BTN_TRANSLATE,
     LEGACY_BTN_CREDITS,
+    btn_filter,
     contact_admin_kb,
     help_quick_actions_kb,
+    is_btn_match,
     is_credits_button,
     is_menu_button,
     open_webapp_inline,
@@ -108,7 +110,7 @@ async def cmd_start(message: Message, state: FSMContext) -> None:
 
 
 @router.message(Command("help"))
-@router.message(F.text == BTN_HELP)
+@router.message(btn_filter(BTN_HELP))
 async def cmd_help(message: Message) -> None:
     await message.answer(HELP_TEXT, reply_markup=user_menu(message.from_user.id if message.from_user else None))
     await message.answer("👇 Tezkor xizmatlar:", reply_markup=help_quick_actions_kb())
@@ -165,25 +167,25 @@ async def menu_from_contact(message: Message, state: FSMContext) -> None:
     text = message.text or ""
     if is_credits_button(text):
         await show_credits(message)
-    elif text == BTN_CV:
+    elif is_btn_match(text, BTN_CV):
         await cv_intro(message, state)
-    elif text == BTN_OBY:
+    elif is_btn_match(text, BTN_OBY):
         from features.bot.handlers.obyektivka import obyektivka_start
 
         await obyektivka_start(message, state)
-    elif text == BTN_COVER:
+    elif is_btn_match(text, BTN_COVER):
         from features.bot.handlers.cover_letter import cmd_cover
 
         await cmd_cover(message, state)
-    elif text == BTN_TRANSLATE:
+    elif is_btn_match(text, BTN_TRANSLATE):
         from features.bot.handlers.translate import cmd_translate
 
         await cmd_translate(message)
-    elif text == BTN_HELP:
+    elif is_btn_match(text, BTN_HELP):
         await cmd_help(message)
-    elif text == BTN_REFERRAL:
+    elif is_btn_match(text, BTN_REFERRAL):
         await show_referral(message)
-    elif text == BTN_BACK:
+    elif is_btn_match(text, BTN_BACK):
         await menu_back(message, state)
 
 
@@ -195,25 +197,25 @@ async def menu_from_flow_waiting(message: Message, state: FSMContext) -> None:
     text = message.text or ""
     if is_credits_button(text):
         await show_credits(message)
-    elif text == BTN_CV:
+    elif is_btn_match(text, BTN_CV):
         await cv_intro(message, state)
-    elif text == BTN_OBY:
+    elif is_btn_match(text, BTN_OBY):
         from features.bot.handlers.obyektivka import obyektivka_start
 
         await obyektivka_start(message, state)
-    elif text == BTN_COVER:
+    elif is_btn_match(text, BTN_COVER):
         from features.bot.handlers.cover_letter import cmd_cover
 
         await cmd_cover(message, state)
-    elif text == BTN_TRANSLATE:
+    elif is_btn_match(text, BTN_TRANSLATE):
         from features.bot.handlers.translate import cmd_translate
 
         await cmd_translate(message)
-    elif text == BTN_HELP:
+    elif is_btn_match(text, BTN_HELP):
         await cmd_help(message)
-    elif text == BTN_REFERRAL:
+    elif is_btn_match(text, BTN_REFERRAL):
         await show_referral(message)
-    elif text == BTN_BACK:
+    elif is_btn_match(text, BTN_BACK):
         await menu_back(message, state)
 
 
@@ -227,7 +229,7 @@ def _find_cv_sample_audio() -> Path | None:
     return None
 
 
-@router.message(F.text == BTN_CV)
+@router.message(btn_filter(BTN_CV))
 async def cv_intro(message: Message, state: FSMContext) -> None:
     uid = message.from_user.id if message.from_user else 0
     if uid and users_repo.is_blocked(uid):
@@ -247,7 +249,7 @@ async def cv_intro(message: Message, state: FSMContext) -> None:
         asyncio.create_task(_send_sample_audio(message, sample))
 
 
-@router.message(F.text == BTN_COVER)
+@router.message(btn_filter(BTN_COVER))
 async def cover_from_menu(message: Message, state: FSMContext) -> None:
     if await _blocked_reply(message):
         return
@@ -256,7 +258,7 @@ async def cover_from_menu(message: Message, state: FSMContext) -> None:
     await cmd_cover(message, state)
 
 
-@router.message(F.text == BTN_TRANSLATE)
+@router.message(btn_filter(BTN_TRANSLATE))
 async def translate_from_menu(message: Message) -> None:
     if await _blocked_reply(message):
         return
@@ -265,7 +267,7 @@ async def translate_from_menu(message: Message) -> None:
     await cmd_translate(message)
 
 
-@router.message(F.text == BTN_BACK)
+@router.message(btn_filter(BTN_BACK))
 async def menu_back(message: Message, state: FSMContext) -> None:
     await state.clear()
     uid = message.from_user.id if message.from_user else None
@@ -297,14 +299,13 @@ async def show_credits_for_uid(message: Message, uid: int) -> None:
     )
 
 
-@router.message(F.text == BTN_CREDITS)
-@router.message(F.text.in_(LEGACY_BTN_CREDITS))
+@router.message(btn_filter(BTN_CREDITS, *LEGACY_BTN_CREDITS))
 async def show_credits(message: Message) -> None:
     uid = message.from_user.id if message.from_user else 0
     await show_credits_for_uid(message, uid)
 
 
-@router.message(F.text == BTN_REFERRAL)
+@router.message(btn_filter(BTN_REFERRAL))
 async def show_referral(message: Message) -> None:
     uid = message.from_user.id if message.from_user else 0
     if not uid or await _blocked_reply(message):

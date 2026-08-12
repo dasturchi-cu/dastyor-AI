@@ -31,6 +31,8 @@ from shared.keyboards import (
     is_admin_menu_button,
 )
 
+from shared.premium_emoji import strip_leading_emoji
+
 logger = logging.getLogger(__name__)
 
 MenuHandler = Callable[[Message, FSMContext], Awaitable[None]]
@@ -70,6 +72,10 @@ MENU_DISPATCH: dict[str, MenuHandler] = {
     ADMIN_BTN_CLOSE: admin_actions.handle_close,
 }
 
+_CLEAN_MENU_DISPATCH: dict[str, MenuHandler] = {
+    strip_leading_emoji(k): v for k, v in MENU_DISPATCH.items() if k
+}
+
 
 def is_admin(user_id: int) -> bool:
     return user_id in settings.admin_user_ids
@@ -83,7 +89,8 @@ async def dispatch_admin_menu(message: Message, state: FSMContext) -> bool:
     if not message.from_user or not is_admin(message.from_user.id):
         return False
 
-    handler = MENU_DISPATCH.get(text)
+    clean_t = strip_leading_emoji(text)
+    handler = MENU_DISPATCH.get(text) or _CLEAN_MENU_DISPATCH.get(clean_t)
     if not handler:
         logger.warning("Admin menu tugmasi handler yo'q: %r", text)
         await message.answer(f"❌ Tugma hali ulanmagan: {text}")

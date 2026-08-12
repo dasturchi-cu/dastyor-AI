@@ -20,7 +20,17 @@ from features.bot.handlers.start import WELCOME
 from features.obyektivka import service as oby_service
 from shared.ai_errors import AI_QUOTA_USER_MSG, AiQuotaError, translate_error_to_user_message
 from shared.async_db import run as db_run
-from shared.keyboards import BTN_BACK, BTN_OBY, back_menu, is_menu_button, open_oby_preview_inline, open_webapp_inline, user_menu
+from shared.keyboards import (
+    BTN_BACK,
+    BTN_OBY,
+    back_menu,
+    btn_filter,
+    is_btn_match,
+    is_menu_button,
+    open_oby_preview_inline,
+    open_webapp_inline,
+    user_menu,
+)
 from shared.marketing import cross_sell_cover_line, cross_sell_cv_line, cross_sell_translate_line, oby_intro_hook
 from shared.progress import STEP_AI, STEP_AUDIO, STEP_EXTRACTED, STEP_READY, telegram_message
 from shared.telegram_progress import set_step
@@ -236,7 +246,8 @@ async def _process_voice_background(
                 pass
 
 
-@router.message(ObyektivkaStates.waiting_voice, F.voice | F.audio)
+@router.message(ObyektivkaStates.waiting_voice, F.voice)
+@router.message(ObyektivkaStates.waiting_voice, F.audio)
 async def obyektivka_voice(message: Message, bot: Bot, state: FSMContext) -> None:
     uid = message.from_user.id if message.from_user else 0
     await _delete_waiting_prompt(bot, state)
@@ -245,7 +256,7 @@ async def obyektivka_voice(message: Message, bot: Bot, state: FSMContext) -> Non
 
 
 @router.message(ObyektivkaStates.waiting_voice, CommandStart())
-@router.message(ObyektivkaStates.waiting_voice, F.text == BTN_BACK)
+@router.message(ObyektivkaStates.waiting_voice, btn_filter(BTN_BACK))
 @router.message(ObyektivkaStates.waiting_voice, F.text.casefold() == "bekor")
 async def obyektivka_back(message: Message, state: FSMContext) -> None:
     await state.clear()
@@ -260,7 +271,7 @@ async def obyektivka_back(message: Message, state: FSMContext) -> None:
 async def obyektivka_text(message: Message, bot: Bot, state: FSMContext) -> None:
     if not message.text:
         return
-    if message.text == BTN_BACK or message.text.casefold() == "bekor":
+    if is_btn_match(message.text, BTN_BACK) or message.text.casefold() == "bekor":
         return
     if is_menu_button(message.text):
         from features.bot.handlers.start import menu_from_flow_waiting

@@ -22,7 +22,7 @@ from features.bot.states import CvStates, ObyektivkaStates
 from features.cv import service as cv_service
 from shared.ai_errors import AI_QUOTA_USER_MSG, AiQuotaError, translate_error_to_user_message
 from shared.async_db import run as db_run
-from shared.keyboards import BTN_BACK, BTN_OBY, is_menu_button, open_webapp_inline
+from shared.keyboards import BTN_BACK, BTN_OBY, is_btn_match, is_menu_button, open_webapp_inline
 from shared.marketing import cross_sell_cover_line, cross_sell_oby_line, cross_sell_translate_line
 from shared.progress import STEP_AI, STEP_AUDIO, STEP_EXTRACTED, STEP_READY, telegram_message
 from shared.telegram_progress import set_step
@@ -69,7 +69,7 @@ async def handle_voice(message: Message, bot: Bot, state: FSMContext) -> None:
 async def cv_text_fill(message: Message, state: FSMContext) -> None:
     if not message.text:
         return
-    if message.text == BTN_BACK or message.text.casefold() == "bekor":
+    if is_btn_match(message.text, BTN_BACK) or message.text.casefold() == "bekor":
         return
     if is_menu_button(message.text):
         from features.bot.handlers.start import menu_from_flow_waiting
