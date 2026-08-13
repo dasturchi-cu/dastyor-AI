@@ -92,7 +92,9 @@ EMOJI_MAP: dict[str, str] = {
     "⚡": "5420315771991497307",
     "⚡️": "5420315771991497307",
     # Doira, status va ro'yxat emojilari (progress bar va statuslar uchun)
-    "○": "5472164874886846699",
+    # DIQQAT: faqat HAQIQIY emoji qo'shiladi. ○ ● ▫ ▪ kabi geometrik belgilar
+    # emoji EMAS — <tg-emoji> ichida Telegram ularni rad etadi va butun
+    # xabarni yubormaydi (progress xabarlari buziladi). Shuning uchun ular yo'q.
     "⚪": "5472164874886846699",
     "⚪️": "5472164874886846699",
     "⚫": "5472164874886846699",
@@ -101,9 +103,7 @@ EMOJI_MAP: dict[str, str] = {
     "🔹": "5382013970905309819",
     "🔸": "5420315771991497307",
     "▫️": "5472164874886846699",
-    "▫": "5472164874886846699",
     "▪️": "5472164874886846699",
-    "▪": "5472164874886846699",
     "✔": "5427009714745517609",
     "✔️": "5427009714745517609",
     "☑️": "5427009714745517609",
@@ -239,11 +239,25 @@ class PremiumEmojiMiddleware:
         bot: "Bot",
         method: "TelegramMethod[TelegramType]",
     ) -> "Response[TelegramType]":
+        originals: dict[str, str] = {}
         if _pattern is not None and _parse_mode_ok(method):
             for attr in ("text", "caption"):
                 value = getattr(method, attr, None)
                 if isinstance(value, str) and value:
                     new_value = premiumize(value)
                     if new_value != value:
+                        originals[attr] = value
                         setattr(method, attr, new_value)
-        return await make_request(bot, method)
+
+        if not originals:
+            return await make_request(bot, method)
+
+        try:
+            return await make_request(bot, method)
+        except Exception:
+            # Premium emoji (masalan noto'g'ri/emoji bo'lmagan belgi) xabarni
+            # buzgan bo'lishi mumkin — asl oddiy matn bilan qayta yuboramiz,
+            # shunda xabar hech qachon yo'qolmaydi.
+            for attr, value in originals.items():
+                setattr(method, attr, value)
+            return await make_request(bot, method)
