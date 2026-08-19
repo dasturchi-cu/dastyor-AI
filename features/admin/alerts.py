@@ -53,12 +53,16 @@ async def send_daily_report(bot: Bot) -> bool:
     if settings_repo.get(_DAILY_REPORT_KEY) == today:
         return False
 
-    stats = stats_repo.daily_report_stats()
-    text = build_daily_admin_report(stats, report_date=today)
-    await _send_admin(bot, text)
     settings_repo.set_value(_DAILY_REPORT_KEY, today)
-    logger.info("Daily admin report sent for %s", today)
-    return True
+    try:
+        stats = stats_repo.daily_report_stats()
+        text = build_daily_admin_report(stats, report_date=today)
+        await _send_admin(bot, text)
+        logger.info("Daily admin report sent for %s", today)
+        return True
+    except Exception as exc:
+        logger.exception("Daily admin report failed: %s", exc)
+        return False
 
 
 async def check_pending_payment_reminders(bot: Bot) -> int:

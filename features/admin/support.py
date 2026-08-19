@@ -106,6 +106,7 @@ async def relay_contact_mode(message: Message, state: FSMContext) -> None:
         return
     if users_repo.is_blocked(message.from_user.id):
         await message.answer("⛔ Siz bloklangansiz. Murojaat qabul qilinmaydi.")
+        await state.clear()
         return
     if message.text:
         if message.text.startswith("/"):
@@ -120,16 +121,17 @@ async def relay_contact_mode(message: Message, state: FSMContext) -> None:
             "❌ Hozircha murojaat yuborib bo'lmadi. "
             f"Iltimos, @{settings.support_admin_username} ga to'g'ridan-to'g'ri yozing."
         )
+    await state.clear()
 
 
 @router.message(F.chat.type == "private")
-async def relay_private_to_support(message: Message, state: FSMContext) -> None:
+async def handle_unknown_private_message(message: Message, state: FSMContext) -> None:
     if not message.from_user or _is_admin(message.from_user.id):
         return
     if await state.get_state():
         return
     if users_repo.is_blocked(message.from_user.id):
-        await message.answer("⛔ Siz bloklangansiz. Murojaat qabul qilinmaydi.")
+        await message.answer("⛔ Siz bloklangansiz.")
         return
     if message.text:
         if message.text.startswith("/"):
@@ -137,5 +139,17 @@ async def relay_private_to_support(message: Message, state: FSMContext) -> None:
         if is_menu_button(message.text) or is_admin_menu_button(message.text):
             return
 
-    if await relay_user_message_to_support(message):
-        await message.answer(_ACK)
+    from shared.keyboards import user_menu
+    await message.answer(
+        "❓ <b>Noma'lum buyruq yoki matn kiritildi.</b>\n\n"
+        "Iltimos, quyidagi menyu tugmalaridan birini tanlang yoki buyruqlardan foydalaning:\n"
+        "📄 /cv — CV Resume yaratish\n"
+        "✍️ /obyektivka — Obyektivka yaratish\n"
+        "📝 /cover — Muqova xati yaratish\n"
+        "🌐 /translate — Tarjima qilish\n"
+        "💳 /balance — Balansni tekshirish\n"
+        "📞 /contact — Admin bilan bog'lanish\n"
+        "ℹ️ /help — Yordam\n\n"
+        "<i>Agar adminga xabar yubormoqchi bo'lsangiz, avval /contact buyrug'ini bosing.</i>",
+        reply_markup=user_menu(message.from_user.id),
+    )
