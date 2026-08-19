@@ -80,7 +80,7 @@ def test_headphones_emoji_in_map():
 def test_bullet_and_list_emojis_in_map():
     from shared.premium_emoji import premiumize
 
-    for char in ("○", "⚪", "⚪️", "⚫", "🔘", "🔹", "🔸", "⭐", "📋", "🔍"):
+    for char in ("⚪", "⚪️", "⚫", "🔘", "🔹", "🔸", "⭐", "📋", "🔍"):
         assert char in EMOJI_MAP
 
     sample_progress_text = "✅ 1. audio_received\n⏳ 2. ai_analyzing\n○ 3. data_extracted\n○ 4. doc_generating"

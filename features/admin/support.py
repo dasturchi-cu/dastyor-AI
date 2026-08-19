@@ -126,7 +126,7 @@ async def relay_contact_mode(message: Message, state: FSMContext) -> None:
 
 @router.message(F.chat.type == "private")
 async def handle_unknown_private_message(message: Message, state: FSMContext) -> None:
-    if not message.from_user or _is_admin(message.from_user.id):
+    if not message.from_user:
         return
     if await state.get_state():
         return
