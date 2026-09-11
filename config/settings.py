@@ -116,6 +116,19 @@ def resolve_webapp_base() -> str:
     return "https://localhost/webapp"
 
 
+def resolve_public_base_url() -> str:
+    """Root https URL of this deployment (no path suffix) — used for gateway webhooks."""
+    site = _env("SITE_BASE_URL").rstrip("/")
+    if site.startswith("https://"):
+        return site
+
+    webhook = _env("WEBHOOK_URL").rstrip("/")
+    if webhook.startswith("https://"):
+        return webhook.split("/webhook")[0].split("/api/webhook")[0].rstrip("/")
+
+    return ""
+
+
 @dataclass(frozen=True)
 class Settings:
     bot_token: str = field(default_factory=lambda: _env("BOT_TOKEN"))
@@ -223,6 +236,18 @@ class Settings:
     )
     online_user_minutes: int = field(default_factory=lambda: _env_int("ONLINE_USER_MINUTES", 5))
     inactive_user_days: int = field(default_factory=lambda: _env_int("INACTIVE_USER_DAYS", 7))
+    public_base_url: str = field(default_factory=resolve_public_base_url)
+    checkout_uz_api_key: str = field(default_factory=lambda: _env("CHECKOUT_UZ_API_KEY"))
+    checkout_uz_base_url: str = field(
+        default_factory=lambda: _env("CHECKOUT_UZ_BASE_URL", "https://checkout.uz/api/v1").rstrip("/")
+    )
+    checkout_uz_webhook_url: str = field(
+        default_factory=lambda: (
+            f"{resolve_public_base_url()}/api/payments/checkout-uz/webhook"
+            if resolve_public_base_url()
+            else ""
+        )
+    )
 
 
 def _resolve_webhook_secret() -> str:

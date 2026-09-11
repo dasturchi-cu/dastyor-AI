@@ -116,20 +116,96 @@ async def choose_package(callback: CallbackQuery, state: FSMContext) -> None:
         payment_label=pack.label,
         payment_package_id=pack.id,
     )
+
+    from core.checkout_uz import is_configured as checkout_uz_is_configured
+
+    buttons: list[list[InlineKeyboardButton]] = []
+    if checkout_uz_is_configured():
+        buttons.append(
+            [
+                InlineKeyboardButton(
+                    text="💳 Karta orqali avtomatik to'lash",
+                    callback_data=f"pay_gw_{pack.id}",
+                )
+            ]
+        )
+    buttons.append([InlineKeyboardButton(text="❌ Bekor qilish", callback_data="pay_cancel")])
+
+    gateway_hint = (
+        "\n\n💳 <b>Yoki</b> — Click/Payme/Uzcard/Humo karta bilan avtomatik to'lash uchun "
+        "pastdagi tugmani bosing (admin tekshiruvi shart emas, darhol tasdiqlanadi)."
+        if checkout_uz_is_configured()
+        else ""
+    )
     await callback.message.edit_text(
         f"💳 <b>{pack.label}</b> — <b>{format_uzs(pack.price_uzs)} so'm</b> "
         f"({pack.credits} ta yuklash)\n\n"
         f"Karta: <code>{settings.payment_card_number}</code>\n"
         f"Egasi: <b>{settings.payment_card_owner}</b>\n\n"
         "To'lovni qilib, chek/skrinshotni shu yerga yuboring 👇\n\n"
-        "⚡️ Agar 24 soatlik aksiya faol bo'lsa — tasdiqlanganda <b>+1 Muqova xati</b> bonus qo'shiladi.",
-        reply_markup=InlineKeyboardMarkup(
-            inline_keyboard=[
-                [InlineKeyboardButton(text="❌ Bekor qilish", callback_data="pay_cancel")]
-            ]
-        ),
+        "⚡️ Agar 24 soatlik aksiya faol bo'lsa — tasdiqlanganda <b>+1 Muqova xati</b> bonus qo'shiladi."
+        f"{gateway_hint}",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=buttons),
     )
     await callback.answer()
+
+
+@router.callback_query(F.data.startswith("pay_gw_"))
+async def start_gateway_payment(callback: CallbackQuery, state: FSMContext) -> None:
+    """checkout.uz orqali avtomatik to'lov havolasi (admin tasdig'i shart emas)."""
+    pack_id = (callback.data or "").replace("pay_gw_", "", 1).strip()
+    uid = callback.from_user.id if callback.from_user else 0
+    if not uid:
+        await callback.answer()
+        return
+    if users_repo.is_blocked(uid):
+        await callback.answer("Siz bloklangansiz.", show_alert=True)
+        return
+
+    data = await state.get_data()
+    document_type = data.get("payment_document_type") or "cv"
+    await state.clear()
+
+    from core.checkout_uz import CheckoutUzError, is_configured
+    from features.payment import service as payment_service
+    from shared.pricing import format_uzs, get_package
+
+    if not is_configured():
+        await callback.answer()
+        await callback.message.edit_text(
+            "⚠️ Karta orqali avtomatik to'lov hozircha mavjud emas.\n"
+            "Iltimos, chek/skrinshot orqali to'lang yoki qo'llab-quvvatlash xizmatiga yozing."
+        )
+        return
+
+    await callback.answer("To'lov havolasi tayyorlanmoqda...")
+    try:
+        payment = await payment_service.create_checkout_uz_payment(uid, pack_id, document_type)
+    except CheckoutUzError as exc:
+        logger.warning("checkout.uz payment creation failed for uid=%s: %s", uid, exc)
+        await callback.message.edit_text(
+            "❌ To'lov havolasini yaratib bo'lmadi. Birozdan so'ng qayta urinib ko'ring "
+            "yoki chek/skrinshot orqali to'lang.",
+            reply_markup=InlineKeyboardMarkup(
+                inline_keyboard=[
+                    [InlineKeyboardButton(text="🔄 Qayta urinish", callback_data=f"pay_gw_{pack_id}")],
+                    [InlineKeyboardButton(text="⬅️ Orqaga", callback_data="pay_via_bot")],
+                ]
+            ),
+        )
+        return
+
+    pack = get_package(pack_id)
+    pay_url = str(payment.get("gateway_payment_url") or "")
+    await callback.message.edit_text(
+        f"💳 <b>{pack.label}</b> — <b>{format_uzs(pack.price_uzs)} so'm</b>\n\n"
+        "Quyidagi tugma orqali Click, Payme, Uzcard, Humo yoki Plum karta bilan to'lang.\n"
+        "To'lov tasdiqlangach, balansingiz <b>avtomatik</b> yangilanadi va sizga xabar yuboriladi — "
+        "kutish yoki chek yuborish shart emas.",
+        reply_markup=InlineKeyboardMarkup(
+            inline_keyboard=[[InlineKeyboardButton(text="💳 To'lash", url=pay_url)]]
+        ),
+    )
 
 
 @router.callback_query(F.data.startswith("pay_bot_type_"))

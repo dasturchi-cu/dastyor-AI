@@ -13,7 +13,9 @@ from shared.security_audit import EVENT_ORIGIN_REJECTED, log_security_event
 
 logger = logging.getLogger(__name__)
 
-_SKIP_PATHS = frozenset({"/webhook", "/", "/health", "/api/webhook"})
+_SKIP_PATHS = frozenset(
+    {"/webhook", "/", "/health", "/api/webhook", "/api/payments/checkout-uz/webhook"}
+)
 
 
 def _allowed_origins() -> set[str]:

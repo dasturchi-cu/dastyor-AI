@@ -16,6 +16,7 @@ def create_payment(
     *,
     document_type: str | None = None,
     package_id: str | None = None,
+    gateway: str = "manual",
 ) -> dict[str, Any] | None:
     from shared.pricing import get_package
 
@@ -25,14 +26,15 @@ def create_payment(
     pack = get_package(package_id)
     amount = int(pack.price_uzs)
     credits = int(pack.credits)
+    gw = (gateway or "manual").strip().lower()[:32] or "manual"
     with get_connection() as conn:
         cur = conn.execute(
             """
             INSERT INTO payments (
                 user_id, payer_name, card_number, receipt_path, screenshot_path,
-                document_type, amount, status, package_id, credits_granted
+                document_type, amount, status, package_id, credits_granted, gateway
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, 'PENDING', ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, 'PENDING', ?, ?, ?)
             """,
             (
                 uid,
@@ -44,6 +46,7 @@ def create_payment(
                 amount,
                 pack.id,
                 credits,
+                gw,
             ),
         )
         pid = cur.lastrowid
@@ -96,6 +99,40 @@ def get_user_payment(payment_id: int, telegram_id: int) -> dict[str, Any] | None
     if not payment or int(payment.get("telegram_id") or 0) != int(telegram_id):
         return None
     return payment
+
+
+def set_gateway_info(
+    payment_id: int,
+    *,
+    gateway_payment_id: str,
+    gateway_uuid: str = "",
+    gateway_payment_url: str = "",
+) -> bool:
+    with get_connection() as conn:
+        cur = conn.execute(
+            """
+            UPDATE payments
+            SET gateway_payment_id = ?, gateway_uuid = ?, gateway_payment_url = ?,
+                updated_at = datetime('now')
+            WHERE id = ?
+            """,
+            (gateway_payment_id, gateway_uuid or None, gateway_payment_url or None, int(payment_id)),
+        )
+        return cur.rowcount > 0
+
+
+def get_by_gateway_payment_id(gateway_payment_id: str) -> dict[str, Any] | None:
+    with get_connection() as conn:
+        row = conn.execute(
+            """
+            SELECT p.*, u.telegram_id, u.first_name, u.username
+            FROM payments p
+            JOIN users u ON u.id = p.user_id
+            WHERE p.gateway_payment_id = ?
+            """,
+            (str(gateway_payment_id),),
+        ).fetchone()
+    return row_to_dict(row)
 
 
 def set_status(payment_id: int, status: str, admin_note: str | None = None) -> bool:

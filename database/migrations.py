@@ -502,6 +502,24 @@ def migration_016_required_channels(conn: sqlite3.Connection) -> None:
     )
 
 
+def migration_017_checkout_uz_gateway(conn: sqlite3.Connection) -> None:
+    """checkout.uz gateway payments: track gateway id/uuid/pay-url per payment."""
+    if not _table_exists(conn, "payments"):
+        return
+    cols = _columns(conn, "payments")
+    if "gateway" not in cols:
+        _add_column(conn, "payments", "gateway TEXT NOT NULL DEFAULT 'manual'")
+    if "gateway_payment_id" not in cols:
+        _add_column(conn, "payments", "gateway_payment_id TEXT")
+    if "gateway_uuid" not in cols:
+        _add_column(conn, "payments", "gateway_uuid TEXT")
+    if "gateway_payment_url" not in cols:
+        _add_column(conn, "payments", "gateway_payment_url TEXT")
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_payments_gateway_id ON payments(gateway_payment_id)"
+    )
+
+
 MIGRATIONS: list[tuple[int, str, MigrationFn]] = [
     (1, "legacy_columns", migration_001_legacy_columns),
     (2, "new_tables", migration_002_new_tables),
@@ -519,6 +537,7 @@ MIGRATIONS: list[tuple[int, str, MigrationFn]] = [
     (14, "referral_paid_batches", migration_014_referral_paid_batches),
     (15, "packages_and_promo", migration_015_packages_and_promo),
     (16, "required_channels", migration_016_required_channels),
+    (17, "checkout_uz_gateway", migration_017_checkout_uz_gateway),
 ]
 
 

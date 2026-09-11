@@ -197,6 +197,33 @@ async def api_payment_status(
     }
 
 
+@router.post("/api/payments/checkout-uz/webhook")
+async def checkout_uz_webhook(request: Request) -> dict:
+    """checkout.uz payment_confirmed callback.
+
+    SECURITY: this body carries no signature — we only read order_id from it,
+    then re-verify with checkout.uz's own /status_payment using our API key
+    before crediting anything (see payment_service.confirm_checkout_uz_payment).
+    Always responds 200 quickly since checkout.uz does not retry.
+    """
+    try:
+        body = await request.json()
+    except Exception:
+        return {"ok": True}
+
+    try:
+        data = (body or {}).get("data") or {}
+        order_id = data.get("order_id", (body or {}).get("order_id"))
+        if order_id is not None:
+            await payment_service.confirm_checkout_uz_payment(
+                str(order_id), getattr(request.app.state, "bot", None)
+            )
+    except Exception as exc:
+        logger.warning("checkout.uz webhook processing failed: %s", exc)
+
+    return {"ok": True}
+
+
 @router.get("/api/receipt/{payment_id}")
 async def api_receipt(
     payment_id: int,
