@@ -7,7 +7,7 @@ import os
 from pathlib import Path
 
 from aiogram import Bot, F, Router
-from aiogram.filters import CommandStart
+from aiogram.filters import Command, CommandStart
 from aiogram.fsm.context import FSMContext
 from aiogram.types import FSInputFile, Message
 
@@ -129,7 +129,8 @@ async def _auto_delete_waiting_prompt_after_delay(
         pass
 
 
-@router.message(F.text == BTN_OBY)
+@router.message(Command("obyektivka"))
+@router.message(btn_filter(BTN_OBY))
 async def obyektivka_start(message: Message, state: FSMContext) -> None:
     uid = message.from_user.id if message.from_user else 0
     if uid and users_repo.is_blocked(uid):
