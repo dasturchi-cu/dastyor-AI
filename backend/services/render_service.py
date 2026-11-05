@@ -122,7 +122,12 @@ _pw_manager = None
 _pw_browser = None
 _pw_browser_lock: asyncio.Lock | None = None
 _pw_browser_uses = 0
+_pw_active_renders = 0
+_pw_last_used = 0.0
+_pw_idle_task: asyncio.Task | None = None
 _PW_BROWSER_MAX_USES = max(10, int(os.getenv("PLAYWRIGHT_BROWSER_MAX_USES", "40") or "40"))
+# Idle Chromium holds a few hundred MB of RAM; on usage-billed hosting that is paid 24/7.
+_PW_IDLE_CLOSE_SEC = max(30, int(os.getenv("PLAYWRIGHT_IDLE_CLOSE_SEC", "300") or "300"))
 
 
 def _browser_lock() -> asyncio.Lock:
@@ -132,40 +137,73 @@ def _browser_lock() -> asyncio.Lock:
     return _pw_browser_lock
 
 
-async def _get_shared_browser():
-    """Return a warm Chromium instance; recycle after N PDF renders."""
+async def _close_shared_browser() -> None:
+    """Caller must hold _browser_lock()."""
     global _pw_manager, _pw_browser, _pw_browser_uses
+    if _pw_browser is not None:
+        try:
+            await _pw_browser.close()
+        except Exception:
+            pass
+    if _pw_manager is not None:
+        try:
+            await _pw_manager.stop()
+        except Exception:
+            pass
+    _pw_browser = None
+    _pw_manager = None
+    _pw_browser_uses = 0
+
+
+async def _idle_browser_reaper() -> None:
+    while True:
+        await asyncio.sleep(min(60, _PW_IDLE_CLOSE_SEC))
+        async with _browser_lock():
+            if _pw_browser is None:
+                return
+            idle = time.monotonic() - _pw_last_used
+            if _pw_active_renders == 0 and idle >= _PW_IDLE_CLOSE_SEC:
+                await _close_shared_browser()
+                logger.info("Playwright: idle browser closed after %ds", int(idle))
+                return
+
+
+async def _acquire_shared_browser():
+    """Return a warm Chromium instance and mark a render in flight; pair with _release_shared_browser()."""
+    global _pw_manager, _pw_browser, _pw_browser_uses, _pw_active_renders, _pw_last_used, _pw_idle_task
     if not PLAYWRIGHT_OK:
         return None
     async with _browser_lock():
-        needs_new = (
-            _pw_browser is None
-            or not _pw_browser.is_connected()
-            or _pw_browser_uses >= _PW_BROWSER_MAX_USES
-        )
-        if needs_new:
-            if _pw_browser is not None:
-                try:
-                    await _pw_browser.close()
-                except Exception:
-                    pass
-            if _pw_manager is not None:
-                try:
-                    await _pw_manager.stop()
-                except Exception:
-                    pass
+        dead = _pw_browser is None or not _pw_browser.is_connected()
+        # Recycling while another render still has a page open would kill that render.
+        worn_out = _pw_browser_uses >= _PW_BROWSER_MAX_USES and _pw_active_renders == 0
+        if dead or worn_out:
+            await _close_shared_browser()
             _pw_manager = await async_playwright().start()
-            _pw_browser = await _pw_manager.chromium.launch(
-                args=[
-                    "--no-sandbox",
-                    "--disable-setuid-sandbox",
-                    "--disable-dev-shm-usage",
-                ]
-            )
-            _pw_browser_uses = 0
+            try:
+                _pw_browser = await _pw_manager.chromium.launch(
+                    args=[
+                        "--no-sandbox",
+                        "--disable-setuid-sandbox",
+                        "--disable-dev-shm-usage",
+                    ]
+                )
+            except Exception:
+                await _close_shared_browser()  # don't leave the driver process running
+                raise
             logger.info("Playwright: warm browser launched (pool)")
         _pw_browser_uses += 1
+        _pw_active_renders += 1
+        _pw_last_used = time.monotonic()
+        if _pw_idle_task is None or _pw_idle_task.done():
+            _pw_idle_task = asyncio.create_task(_idle_browser_reaper(), name="pw-idle-reaper")
         return _pw_browser
+
+
+def _release_shared_browser() -> None:
+    global _pw_active_renders, _pw_last_used
+    _pw_active_renders = max(0, _pw_active_renders - 1)
+    _pw_last_used = time.monotonic()
 
 # Production: WeasyPrint tez; Playwright og'ir. Railway'da build vaqtida chromium o'rnatish yaxshi.
 def _playwright_disabled(*, cv_pdf: bool = False) -> bool:
@@ -437,11 +475,12 @@ async def _html_pdf_playwright(html_str: str, *, cv_pdf: bool = False, print_med
     media = "print" if print_media else "screen"
 
     async def _once():
-        browser = await _get_shared_browser()
+        browser = await _acquire_shared_browser()
         if browser is None:
             return None
-        page = await browser.new_page()
+        page = None
         try:
+            page = await browser.new_page()
             if cv_pdf:
                 # A4 @ 96dpi — preview iframe bilan bir xil kenglik, siqilish oldini oladi
                 await page.set_viewport_size({"width": 794, "height": 1123})
@@ -470,10 +509,12 @@ async def _html_pdf_playwright(html_str: str, *, cv_pdf: bool = False, print_med
             )
             return pdf_bytes
         finally:
-            try:
-                await page.close()
-            except Exception:
-                pass
+            _release_shared_browser()
+            if page is not None:
+                try:
+                    await page.close()
+                except Exception:
+                    pass
 
     try:
         out = await _once()

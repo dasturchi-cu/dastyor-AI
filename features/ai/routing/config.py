@@ -9,6 +9,8 @@ from features.ai.routing.types import ProviderName, ProviderConfig, RoutingConfi
 
 _ENV = os.getenv
 
+_RETIRED_GEMINI_PREFIXES = ("gemini-1.0", "gemini-1.5", "gemini-2.0", "gemini-pro")
+
 
 def _strip_bom(key: str) -> str:
     return (_ENV(key) or _ENV(f"\ufeff{key}") or "").strip()
@@ -109,8 +111,8 @@ def _collect_models(provider: ProviderName) -> tuple[str, ...]:
         ProviderName.GITHUB: "GITHUB_MODEL_FALLBACKS",
     }
     defaults = {
-        ProviderName.GEMINI: ("gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash-latest"),
-        ProviderName.OPENAI: ("gpt-4o-mini", "gpt-4o", "gpt-4.1-mini"),
+        ProviderName.GEMINI: ("gemini-2.5-flash", "gemini-2.5-flash-lite"),
+        ProviderName.OPENAI: ("gpt-4o-mini", "gpt-4.1-mini"),
         ProviderName.OPENROUTER: ("deepseek/deepseek-chat", "openai/gpt-4o-mini"),
         ProviderName.GROQ: ("llama-3.1-8b-instant", "llama-3.1-70b-versatile"),
         ProviderName.CLOUDFLARE: ("@cf/meta/llama-3.1-8b-instruct",),
@@ -141,6 +143,9 @@ def _collect_models(provider: ProviderName) -> tuple[str, ...]:
     for m in fallbacks:
         if m not in models:
             models.append(m)
+    if provider == ProviderName.GEMINI:
+        # Shut down by Google; every call 404s and only burns a round-trip.
+        models = [m for m in models if not m.startswith(_RETIRED_GEMINI_PREFIXES)]
     if not models:
         models = list(defaults[provider])
     return tuple(models)

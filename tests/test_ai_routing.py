@@ -68,7 +68,7 @@ class TestEndpointPool(unittest.TestCase):
         os.environ["GEMINI_API_KEY"] = "gk1"
         os.environ["GEMINI_API_KEY_2"] = "gk2"
         os.environ["GEMINI_MODEL"] = "gemini-2.5-flash"
-        os.environ["GEMINI_MODEL_FALLBACKS"] = "gemini-2.0-flash"
+        os.environ["GEMINI_MODEL_FALLBACKS"] = "gemini-2.0-flash,gemini-2.5-flash-lite"
         reload_routing_config()
         reset_endpoint_pool()
 
@@ -94,8 +94,9 @@ class TestEndpointPool(unittest.TestCase):
         pool = reset_endpoint_pool()
         chain = pool.iter_failover_chain()
         models_for_key1 = [e.model for e in chain if e.key_index == 1]
-        self.assertIn("gemini-2.5-flash", models_for_key1)
-        self.assertIn("gemini-2.0-flash", models_for_key1)
+        gemini_models = [m for m in models_for_key1 if m.startswith("gemini")]
+        # Configured order kept (primary first); models Google has shut down are dropped.
+        self.assertEqual(gemini_models, ["gemini-2.5-flash", "gemini-2.5-flash-lite"])
 
 
 class TestFailoverEngine(unittest.IsolatedAsyncioTestCase):
@@ -143,6 +144,34 @@ class TestFailoverEngine(unittest.IsolatedAsyncioTestCase):
         providers_tried = {c.provider for c in calls}
         self.assertIn(ProviderName.GEMINI, providers_tried)
         self.assertIn(ProviderName.OPENAI, providers_tried)
+
+    async def test_model_error_does_not_cool_down_key(self):
+        self._prepare_env()
+        os.environ["GEMINI_MODEL"] = "gemini-2.5-flash"
+        os.environ["GEMINI_MODEL_FALLBACKS"] = "gemini-2.5-flash-lite"
+        reload_routing_config()
+        reset_endpoint_pool()
+        from features.ai.routing.cooldown import get_cooldown_registry
+        from features.ai.routing.engine import generate_text_with_failover
+
+        calls: list[Endpoint] = []
+
+        async def fake_generate(endpoint: Endpoint, prompt: str, *, timeout_sec: float):
+            calls.append(endpoint)
+            if endpoint.model == "gemini-2.5-flash":
+                return AttemptResult(error="Gemini 404 model=gemini-2.5-flash: not found")
+            return AttemptResult(text="lite-ok", total_tokens=5, response_time_ms=10)
+
+        with patch("features.ai.routing.engine.generate_with_endpoint", side_effect=fake_generate):
+            with patch("features.ai.routing.engine._log_request"):
+                text = await generate_text_with_failover("hello", timeout=5)
+
+        self.assertEqual(text, "lite-ok")
+        self.assertEqual([(c.provider, c.model) for c in calls][:2], [
+            (ProviderName.GEMINI, "gemini-2.5-flash"),
+            (ProviderName.GEMINI, "gemini-2.5-flash-lite"),
+        ])
+        self.assertFalse(get_cooldown_registry().is_cooling(ProviderName.GEMINI, 1))
 
     async def test_all_exhausted_raises(self):
         self._prepare_env()

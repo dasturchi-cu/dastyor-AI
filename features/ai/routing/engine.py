@@ -40,13 +40,13 @@ async def generate_text_with_failover(
         raise AiQuotaError("No AI providers configured — check API keys in .env")
 
     last_error = "All providers exhausted"
-    attempts = 0
-    max_attempts = max(len(chain), cfg.max_retries + 1)
+    # A long chain of slow/failing endpoints must not keep the user waiting for minutes.
+    deadline = time.monotonic() + max(timeout_sec * 3, 60)
 
     for endpoint in chain:
-        if attempts >= max_attempts * 10:
+        if time.monotonic() >= deadline:
+            logger.warning("AI failover deadline reached, last error: %s", last_error[:120])
             break
-        attempts += 1
 
         if cooldown.is_cooling(endpoint.provider, endpoint.key_index):
             continue
@@ -160,12 +160,19 @@ async def _handle_failure(
     rate_limited: bool,
 ) -> None:
     pool.record_failure(endpoint, rate_limited=rate_limited)
-    cooldown.set_cooldown(
-        endpoint.provider,
-        endpoint.key_index,
-        duration_ms=cfg_cooldown_ms,
-        reason="rate_limit" if rate_limited else "error",
+    # Only key-level problems sideline the whole key; a model-level or transient error
+    # (404 retired model, 503 overload, empty reply) must not disable the key's other models.
+    err_low = error.lower()
+    key_problem = rate_limited or any(
+        t in err_low for t in ("401", "403", "invalid api key", "api key not valid", "permission")
     )
+    if key_problem:
+        cooldown.set_cooldown(
+            endpoint.provider,
+            endpoint.key_index,
+            duration_ms=cfg_cooldown_ms,
+            reason="rate_limit" if rate_limited else "auth",
+        )
     try:
         from features.ai.routing.quota import get_quota_monitor
 

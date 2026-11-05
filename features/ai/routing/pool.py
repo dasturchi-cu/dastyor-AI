@@ -136,8 +136,9 @@ class EndpointPool:
                     )
                 )
 
-        # Health-weighted: higher health first, preserve key round-robin groups
-        endpoints.sort(key=lambda e: (-e.health_score, e.key_index, e.model))
+        # Health-weighted: higher health first. The sort is stable, so equal-health endpoints
+        # keep round-robin key order and the configured model order (primary model first).
+        endpoints.sort(key=lambda e: -e.health_score)
         return endpoints
 
     def iter_failover_chain(

@@ -90,47 +90,28 @@ async def _openai_compatible_chat(
 
 
 async def _gemini_generate(endpoint: Endpoint, prompt: str, *, timeout_sec: float) -> AttemptResult:
-    import google.generativeai as genai
+    from features.ai.gemini_rest import generate_content
 
     t0 = time.perf_counter()
     try:
-        genai.configure(api_key=endpoint.api_key)
-        model = genai.GenerativeModel(endpoint.model)
-
-        async def _call():
-            return await model.generate_content_async(prompt)
-
-        result = await asyncio.wait_for(_call(), timeout=timeout_sec)
+        result = await asyncio.wait_for(
+            generate_content(endpoint.api_key, endpoint.model, prompt, timeout_sec=timeout_sec),
+            timeout=timeout_sec + 2,
+        )
         elapsed = int((time.perf_counter() - t0) * 1000)
-        text = ""
-        if result and getattr(result, "text", None):
-            text = (result.text or "").strip()
-        elif result and getattr(result, "candidates", None):
-            for cand in result.candidates:
-                parts = getattr(getattr(cand, "content", None), "parts", None) or []
-                for part in parts:
-                    t = getattr(part, "text", "") or ""
-                    if t:
-                        text += t
-            text = text.strip()
-
-        usage = getattr(result, "usage_metadata", None)
-        prompt_tok = int(getattr(usage, "prompt_token_count", 0) or 0) if usage else 0
-        completion_tok = int(getattr(usage, "candidates_token_count", 0) or 0) if usage else 0
-        total_tok = int(getattr(usage, "total_token_count", 0) or 0) if usage else prompt_tok + completion_tok
-
-        if not text:
-            return AttemptResult(response_time_ms=elapsed, error="Empty Gemini response")
-
+        if not result.text:
+            return AttemptResult(
+                response_time_ms=elapsed,
+                error=f"Empty Gemini response {result.block_reason}".strip(),
+            )
         return AttemptResult(
-            text=text,
-            prompt_tokens=prompt_tok,
-            completion_tokens=completion_tok,
-            total_tokens=total_tok,
+            text=result.text,
+            prompt_tokens=result.prompt_tokens,
+            completion_tokens=result.completion_tokens,
+            total_tokens=result.total_tokens,
             response_time_ms=elapsed,
         )
-    except asyncio.TimeoutError as e:
-        elapsed = int((time.perf_counter() - t0) * 1000)
+    except (asyncio.TimeoutError, httpx.TimeoutException) as e:
         raise TimeoutError(f"Gemini timeout after {timeout_sec}s") from e
     except Exception as e:
         elapsed = int((time.perf_counter() - t0) * 1000)

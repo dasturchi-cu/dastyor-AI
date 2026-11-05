@@ -13,8 +13,8 @@ from features.ai.routing.types import Endpoint, ProviderName
 
 logger = logging.getLogger(__name__)
 
-_CHECK_INTERVAL_SEC = 60
-_PRUNE_EVERY_N = 60  # ~once per hour at 60s interval
+_CHECK_INTERVAL_SEC = 300  # each probe is a paid API call; cooldowns expire on their own
+_PRUNE_EVERY_N = 12  # ~once per hour at 300s interval
 _task: asyncio.Task | None = None
 _stop_event: asyncio.Event | None = None
 _thread_local_started = False

@@ -101,7 +101,9 @@ def _import_legacy_database(target: Path) -> None:
 def _pooled_connection() -> sqlite3.Connection:
     conn = getattr(_local, "conn", None)
     if conn is None:
-        init_db()
+        # Migrations + schema verification once per process, not once per worker thread.
+        if not _initialized:
+            init_db()
         db_path = settings.db_path.resolve()
         logger.info("SQLite connect: %s", db_path)
         conn = sqlite3.connect(db_path, check_same_thread=False)

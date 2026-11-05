@@ -10,122 +10,23 @@ import re
 import httpx
 import subprocess
 import tempfile
-import warnings
-from difflib import SequenceMatcher
-from difflib import get_close_matches
 import shutil
 from concurrent.futures import ThreadPoolExecutor
 
-# Eski paket: google-generativeai; keyinroq google-genai ga ko'chirish mumkin
-warnings.filterwarnings("ignore", category=FutureWarning)
-
-import google.generativeai as genai  # noqa: E402
-from config import GOOGLE_API_KEY
 from config.settings import settings
-from features.ai.reliable import (
-    oby_extract_has_content,
-    parse_json_object,
-    response_text_or_empty,
-    retry_ai,
-)
-from shared.ai_errors import AiQuotaError, is_quota_error
+from features.ai.reliable import oby_extract_has_content, parse_json_object
+from shared.ai_errors import AiQuotaError
 
 logger = logging.getLogger(__name__)
 
-# Dedicated thread pool for blocking Gemini upload/ffmpeg/file I/O (keeps bot responsive)
+# Dedicated thread pool for blocking ffmpeg/file I/O (keeps bot responsive)
 _ai_executor = ThreadPoolExecutor(
     max_workers=int(os.getenv("AI_THREADPOOL_WORKERS", "4") or "4"),
     thread_name_prefix="ai",
 )
 
-# Initialize Gemini (first available key from routing config)
-def _first_gemini_api_key() -> str:
-    from features.ai.routing.config import load_routing_config
-    from features.ai.routing.types import ProviderName
-
-    cfg = load_routing_config()
-    keys = cfg.providers[ProviderName.GEMINI].api_keys
-    if keys:
-        return keys[0]
-    return GOOGLE_API_KEY or ""
-
-
-def _configure_gemini(api_key: str | None = None) -> str:
-    key = (api_key or _first_gemini_api_key()).strip()
-    if key:
-        try:
-            genai.configure(api_key=key)
-        except Exception as e:
-            logger.error("Failed to configure Gemini: %s", e)
-    return key
-
-
-_GEMINI_KEY = _configure_gemini()
-if _GEMINI_KEY:
-    logger.info("Google Gemini initialized successfully")
-
-# Models to try in order (newest first — keeps working as Gemini releases progress)
-GEMINI_MODELS = [
-    'gemini-2.5-flash',
-    'gemini-1.5-flash-latest',
-    'gemini-2.0-flash',
-]
-
-_MODEL_CACHE = None
-_MODEL_CACHE_NAME = None
-_MODEL_CACHE_LOCK = asyncio.Lock()
-
-_LANGTOOL_RU = None
-_LANGTOOL_RU_LOCK = asyncio.Lock()
-
-
-async def get_model(preferred_models: list[str] | None = None):
-    """Get Gemini model instance (cached) — tries models in order."""
-    api_key = _configure_gemini()
-    if not api_key:
-        return None
-
-    global _MODEL_CACHE, _MODEL_CACHE_NAME
-    order = preferred_models or GEMINI_MODELS
-
-    # Fast path: cached model still matches preference list (or default list).
-    if _MODEL_CACHE is not None and _MODEL_CACHE_NAME in order:
-        return _MODEL_CACHE
-
-    async with _MODEL_CACHE_LOCK:
-        if _MODEL_CACHE is not None and _MODEL_CACHE_NAME in order:
-            return _MODEL_CACHE
-
-        for model_name in order:
-            try:
-                model = genai.GenerativeModel(model_name)
-                _MODEL_CACHE = model
-                _MODEL_CACHE_NAME = model_name
-                logger.info(f"Using Gemini model: {model_name}")
-                return model
-            except Exception as e:
-                logger.warning(f"Model {model_name} unavailable: {e}")
-
-        logger.error("All Gemini models unavailable!")
-        return None
-
-
 GEMINI_TIMEOUT = settings.gemini_timeout  # seconds per API call
-STT_FILE_PROCESS_MAX_WAIT_SECONDS = float(os.getenv("STT_FILE_PROCESS_MAX_WAIT_SECONDS", "45") or "45")
-STT_FILE_PROCESS_POLL_SECONDS = float(os.getenv("STT_FILE_PROCESS_POLL_SECONDS", "0.5") or "0.5")
 STT_SKIP_AUDIO_NORMALIZE = str(os.getenv("STT_SKIP_AUDIO_NORMALIZE", "0") or "0").strip().lower() in ("1", "true", "yes")
-
-async def _gcall(coro, timeout: int = GEMINI_TIMEOUT):
-    """Wrap generate_content_async with a hard timeout so the bot never hangs."""
-    try:
-        return await asyncio.wait_for(coro, timeout=timeout)
-    except asyncio.TimeoutError:
-        logger.error(f"Gemini API call timed out after {timeout}s")
-        return None
-    except Exception as e:
-        if is_quota_error(e):
-            raise AiQuotaError(str(e)) from e
-        raise
 
 
 async def generate_text_with_fallback(
@@ -151,28 +52,6 @@ async def generate_text_with_fallback(
 
         record_error("ai_failover", str(e))
         raise
-
-
-def _set_para_text(para, text: str):
-    """Set a Word paragraph's text safely (python-docx Paragraph has no .text setter)."""
-    for run in para.runs:
-        run.text = ''
-    if para.runs:
-        para.runs[0].text = text
-    else:
-        para.add_run(text)
-
-
-def _set_pptx_paragraph_text(para, text: str):
-    """
-    Replace paragraph text while keeping at least one run style alive.
-    """
-    if para.runs:
-        para.runs[0].text = text
-        for run in para.runs[1:]:
-            run.text = ""
-    else:
-        para.add_run().text = text
 
 
 _STT_FAILURE_SUBSTRINGS = (
@@ -248,13 +127,40 @@ def _normalize_audio_for_gemini(src_path: str) -> tuple[str, bool]:
     return src_path, False
 
 
+_STT_PROMPT = (
+    "Transcribe the speech in this audio to plain text. "
+    "Preserve Uzbek (Latin or Cyrillic) as spoken; do not translate to English. "
+    "If the audio is silent or unintelligible, reply with exactly: [EMPTY]. "
+    "Otherwise output only the transcript, no labels or commentary."
+)
+
+_AUDIO_MIME_BY_EXT = {
+    ".ogg": "audio/ogg",
+    ".oga": "audio/ogg",
+    ".opus": "audio/ogg",
+    ".mp3": "audio/mp3",
+    ".wav": "audio/wav",
+    ".m4a": "audio/aac",
+    ".aac": "audio/aac",
+    ".flac": "audio/flac",
+    ".webm": "audio/webm",
+}
+
+
 async def transcribe_audio(audio_file_path: str) -> str:
-    """
-    Transcribe audio using Gemini 3 Flash (Multimodal) asynchronously
-    """
-    if not GOOGLE_API_KEY:
+    """Speech-to-text via Gemini: one inline-audio request, failing over across Gemini keys."""
+    from features.ai.gemini_rest import generate_content, inline_part, text_part
+    from features.ai.routing.config import load_routing_config
+    from features.ai.routing.cooldown import get_cooldown_registry
+    from features.ai.routing.types import ProviderName
+
+    cfg = load_routing_config()
+    pcfg = cfg.providers.get(ProviderName.GEMINI)
+    api_keys = list(pcfg.api_keys) if pcfg else []
+    if not api_keys:
         return ""
-    
+    models = [m for m in pcfg.models if m.startswith("gemini")][:2] or ["gemini-2.5-flash"]
+
     loop = asyncio.get_running_loop()
     if STT_SKIP_AUDIO_NORMALIZE:
         upload_path, temp_conv = audio_file_path, False
@@ -263,95 +169,57 @@ async def transcribe_audio(audio_file_path: str) -> str:
             _ai_executor, _normalize_audio_for_gemini, audio_file_path
         )
 
-    def blocking_upload(path: str):
-        import time
-        import mimetypes
-
-        try:
-            mime_type, _ = mimetypes.guess_type(path)
-            if not mime_type:
-                ext = os.path.splitext(path)[1].lower()
-                if ext == ".ogg":
-                    mime_type = "audio/ogg"
-                elif ext == ".opus":
-                    mime_type = "audio/opus"
-                elif ext == ".mp3":
-                    mime_type = "audio/mp3"
-                elif ext == ".wav":
-                    mime_type = "audio/wav"
-                elif ext == ".m4a":
-                    mime_type = "audio/m4a"
-
-            logger.info("STT: uploading %s with mime_type=%s", path, mime_type)
-            myfile = genai.upload_file(path, mime_type=mime_type)
-            waited = 0.0
-            while getattr(myfile.state, "name", str(myfile.state)) == "PROCESSING" and waited < STT_FILE_PROCESS_MAX_WAIT_SECONDS:
-                time.sleep(STT_FILE_PROCESS_POLL_SECONDS)
-                waited += STT_FILE_PROCESS_POLL_SECONDS
-                try:
-                    myfile = genai.get_file(myfile.name)
-                except Exception:
-                    break
-            st = getattr(myfile.state, "name", str(myfile.state))
-            if st == "PROCESSING":
-                logger.warning("STT: fayl hali PROCESSING (timeout)")
-            return myfile
-        except Exception as e:
-            logger.error(f"Upload error: {e}")
-            return None
-
     try:
-        logger.info("Uploading audio for STT: %s (normalized=%s)", upload_path, temp_conv)
-        myfile = await loop.run_in_executor(_ai_executor, blocking_upload, upload_path)
-        
-        if not myfile:
+        try:
+            with open(upload_path, "rb") as fh:
+                audio_bytes = await loop.run_in_executor(_ai_executor, fh.read)
+        except OSError as e:
+            logger.error("STT: audio read failed: %s", e)
             return "Audio yuklashda xatolik."
-            
-        if myfile.state.name == "FAILED":
-            return "Audio faylni qayta ishlashda xatolik."
-        
-        model = await get_model()
-        if not model: return "AI model xatosi."
-        
-        result = await _gcall(model.generate_content_async(
-            [
-                myfile,
-                (
-                    "Transcribe the speech in this audio to plain text. "
-                    "Preserve Uzbek (Latin or Cyrillic) as spoken; do not translate to English. "
-                    "If the audio is silent or unintelligible, reply with exactly: [EMPTY]. "
-                    "Otherwise output only the transcript, no labels or commentary."
-                ),
-            ]
-        ))
+        if not audio_bytes:
+            return "Audio yuklashda xatolik."
 
-        # Cleanup (non-blocking)
-        async def cleanup():
-            try:
-                genai.delete_file(myfile.name)
-            except Exception:
-                logger.debug("genai.delete_file failed name=%s", getattr(myfile, "name", None), exc_info=True)
-        asyncio.create_task(cleanup())
+        ext = os.path.splitext(upload_path)[1].lower()
+        parts = [
+            inline_part(audio_bytes, _AUDIO_MIME_BY_EXT.get(ext, "audio/ogg")),
+            text_part(_STT_PROMPT),
+        ]
+        cooldown = get_cooldown_registry(cfg.cooldown_ms)
+        last_error = ""
 
-        if not result or not result.candidates:
-            fb = getattr(result, "prompt_feedback", None) if result else None
-            if fb:
-                logger.warning("STT prompt_feedback: %s", fb)
-            return "Audio tanilmadi."
+        for key_index, api_key in enumerate(api_keys, start=1):
+            if cooldown.is_cooling(ProviderName.GEMINI, key_index):
+                continue
+            for model in models:
+                try:
+                    result = await generate_content(
+                        api_key, model, parts, timeout_sec=float(GEMINI_TIMEOUT), temperature=0.0
+                    )
+                except AiQuotaError as e:
+                    last_error = str(e)
+                    cooldown.set_cooldown(
+                        ProviderName.GEMINI, key_index, duration_ms=cfg.cooldown_ms, reason="rate_limit"
+                    )
+                    break
+                except Exception as e:
+                    last_error = str(e) or type(e).__name__
+                    logger.warning("STT failed key#%s model=%s: %s", key_index, model, last_error[:160])
+                    continue
 
-        raw = (result.text or "").strip()
-        if not raw:
-            raw = response_text_or_empty(result)
-        if raw.upper() in ("[EMPTY]", "[BO'SH]", "[BOSH]"):
-            return ""
-        logger.info("STT raw len=%s preview=%r", len(raw), raw[:160])
-        return raw if raw else "Bo'sh javob."
+                raw = result.text
+                if not raw:
+                    if result.block_reason:
+                        logger.warning("STT blocked: %s", result.block_reason)
+                    return "Audio tanilmadi."
+                if raw.upper() in ("[EMPTY]", "[BO'SH]", "[BOSH]"):
+                    return ""
+                logger.info("STT ok model=%s len=%s tokens=%s", model, len(raw), result.total_tokens)
+                return raw
 
-    except Exception as e:
-        logger.error(f"Gemini Async Transcription error: {e}", exc_info=True)
+        logger.error("STT: all Gemini keys failed: %s", last_error[:200])
         from shared.error_log import record_error
 
-        record_error("gemini", f"Transcription: {e}")
+        record_error("gemini", f"Transcription: {last_error[:300]}")
         return "Audio transkripsiya xatoligi."
     finally:
         if temp_conv:
@@ -359,77 +227,6 @@ async def transcribe_audio(audio_file_path: str) -> str:
                 os.remove(upload_path)
             except OSError:
                 pass
-
-
-async def translate_document_gemini(file_path: str, target_language: str = "uz") -> str:
-    """
-    Translates a document using Gemini AI asynchronously.
-    """
-    if not GOOGLE_API_KEY:
-        return ""
-        
-    try:
-        from docx import Document
-        
-        # Doc processing is CPU bound, run in Executor
-        loop = asyncio.get_running_loop()
-        doc = await loop.run_in_executor(None, Document, file_path)
-        
-        model = await get_model()
-        
-        lang_map = {"uz": "Uzbek", "ru": "Russian", "en": "English"}
-        target_lang_name = lang_map.get(target_language, "Uzbek")
-        
-        # Collect every non-empty paragraph separately (better structure preservation).
-        para_nodes = []
-        for para in doc.paragraphs:
-            if (para.text or "").strip():
-                para_nodes.append(para)
-        for table in doc.tables:
-            for row in table.rows:
-                for cell in row.cells:
-                    for para in cell.paragraphs:
-                        if (para.text or "").strip():
-                            para_nodes.append(para)
-
-        logger.info(f"Translating doc: {len(para_nodes)} paragraphs to {target_lang_name}")
-
-        async def translate_one(src_text: str) -> str:
-            prompt = (
-                f"Translate the following text to {target_lang_name}.\n"
-                "Rules:\n"
-                "- Return ONLY translated text.\n"
-                "- Keep numbers, names, abbreviations, and punctuation.\n"
-                "- Do not add explanations.\n\n"
-                f"{src_text}"
-            )
-            try:
-                resp = await _gcall(model.generate_content_async(prompt))
-                out = (resp.text if resp and resp.text else "").strip()
-                if out.startswith("```"):
-                    out = out.replace("```text", "").replace("```", "").strip()
-                return out or src_text
-            except Exception as e:
-                logger.error(f"Doc paragraph translation error: {e}")
-                return src_text
-
-        # Process paragraphs in moderate batches.
-        for i in range(0, len(para_nodes), 8):
-            batch_nodes = para_nodes[i:i + 8]
-            srcs = [p.text for p in batch_nodes]
-            outs = await asyncio.gather(*[translate_one(s) for s in srcs])
-            for p, out in zip(batch_nodes, outs):
-                _set_para_text(p, out)
-            await asyncio.sleep(0.15)
-
-        # Save
-        output_path = file_path.replace(".docx", f"_translated_{target_language}.docx")
-        await loop.run_in_executor(None, doc.save, output_path)
-        return output_path
-
-    except Exception as e:
-        logger.error(f"Async Doc Translation failed: {e}", exc_info=True)
-        return ""
 
 
 _TRANSLATE_FAILURE_MSGS = frozenset(
@@ -488,46 +285,117 @@ def is_ai_garbage(text: str) -> bool:
     return _is_ai_garbage(text)
 
 
+_DIRECTION_LANG_NAMES = {
+    "uz_en": ("O'zbek", "English"),
+    "en_uz": ("English", "O'zbek"),
+    "ru_uz": ("Russian", "O'zbek"),
+    "uz_ru": ("O'zbek", "Russian"),
+    "ru_en": ("Russian", "English"),
+    "en_ru": ("English", "Russian"),
+}
+
+_BATCH_TRANSLATE_MAX_ITEMS = 40
+_BATCH_TRANSLATE_MAX_CHARS = 6000
+
+
+async def _translate_json_chunk(texts: list[str], direction: str) -> list[str] | None:
+    """Translate many strings in ONE request. None when the reply is unusable."""
+    src, tgt = _DIRECTION_LANG_NAMES.get(direction, ("O'zbek", "English"))
+    prompt = (
+        f"Translate every string in this JSON array from {src} to {tgt}.\n"
+        "Return ONLY a JSON array of strings with exactly the same number of items, "
+        "in the same order. Keep numbers, dates, personal names and abbreviations. "
+        "No explanations, no markdown.\n\n"
+        + json.dumps(texts, ensure_ascii=False)
+    )
+    try:
+        raw = await generate_text_with_fallback(prompt, timeout=GEMINI_TIMEOUT)
+    except Exception as e:
+        logger.warning("Batch translate failed (%s items): %s", len(texts), e)
+        return None
+
+    cleaned = (raw or "").replace("```json", "").replace("```", "").strip()
+    start, end = cleaned.find("["), cleaned.rfind("]")
+    if start == -1 or end <= start:
+        return None
+    try:
+        parsed = json.loads(cleaned[start : end + 1])
+    except json.JSONDecodeError:
+        return None
+    if not isinstance(parsed, list) or len(parsed) != len(texts):
+        logger.warning(
+            "Batch translate size mismatch: sent=%s got=%s",
+            len(texts),
+            len(parsed) if isinstance(parsed, list) else "n/a",
+        )
+        return None
+    if not all(isinstance(x, str) and x.strip() for x in parsed):
+        return None
+    return [x.strip() for x in parsed]
+
+
+def _chunk_for_batch(indexes: list[int], texts: list[str]) -> list[list[int]]:
+    chunks: list[list[int]] = []
+    cur: list[int] = []
+    cur_chars = 0
+    for i in indexes:
+        n = len(texts[i])
+        if cur and (len(cur) >= _BATCH_TRANSLATE_MAX_ITEMS or cur_chars + n > _BATCH_TRANSLATE_MAX_CHARS):
+            chunks.append(cur)
+            cur, cur_chars = [], 0
+        cur.append(i)
+        cur_chars += n
+    if cur:
+        chunks.append(cur)
+    return chunks
+
+
 async def translate_strings_batch(
     texts: list[str],
     direction: str,
     *,
-    concurrency: int = 8,
+    concurrency: int = 4,
 ) -> list[str]:
-    """Translate many strings via translate_text (Gemini + Google fallback per item)."""
+    """Translate many strings: one AI request per chunk, per-string fallback if a chunk fails."""
     if not texts:
         return []
 
     from features.obyektivka.none_values import is_none_token
 
+    out: list[str] = list(texts)
+    pending: list[int] = []
+    for i, src in enumerate(texts):
+        if is_none_token(src):
+            mapped = _none_for_direction(direction)
+            if mapped is not None:
+                out[i] = mapped
+        elif (src or "").strip():
+            pending.append(i)
+
     sem = asyncio.Semaphore(max(1, concurrency))
 
     async def _one(src: str) -> str:
-        if is_none_token(src):
-            mapped = _none_for_direction(direction)
-            return mapped if mapped is not None else src
-
         async with sem:
-            out = await translate_text(src, direction=direction)
-            if out == "Tarjima vaqtincha mavjud emas.":
-                raise RuntimeError("translation_unavailable")
-            if out in _TRANSLATE_FAILURE_MSGS:
-                mapped = _none_for_direction(direction)
-                if is_none_token(src) and mapped is not None:
-                    return mapped
-                return src
-            if _is_ai_garbage(out):
-                mapped = _none_for_direction(direction)
-                if is_none_token(src) and mapped is not None:
-                    return mapped
-                logger.warning("AI garbage translation dropped for: %r -> %r", src[:80], out[:120])
-                mapped = _none_for_direction(direction)
-                if mapped is not None and not (src or "").strip():
-                    return mapped
-                return src
-            return out
+            res = await translate_text(src, direction=direction)
+        if res == "Tarjima vaqtincha mavjud emas.":
+            raise RuntimeError("translation_unavailable")
+        if res in _TRANSLATE_FAILURE_MSGS:
+            return src
+        return res
 
-    return list(await asyncio.gather(*[_one(t) for t in texts]))
+    async def _chunk(idxs: list[int]) -> None:
+        async with sem:
+            translated = await _translate_json_chunk([texts[i] for i in idxs], direction)
+        if translated is None:
+            translated = list(await asyncio.gather(*[_one(texts[i]) for i in idxs]))
+        for i, res in zip(idxs, translated):
+            if _is_ai_garbage(res):
+                logger.warning("AI garbage translation dropped for: %r -> %r", texts[i][:80], res[:120])
+                continue
+            out[i] = res
+
+    await asyncio.gather(*[_chunk(c) for c in _chunk_for_batch(pending, texts)])
+    return out
 
 
 async def translate_text(text: str, direction: str = "uz_en") -> str:
@@ -535,15 +403,7 @@ async def translate_text(text: str, direction: str = "uz_en") -> str:
     Translate plain text using Gemini. Used by /api/translate web endpoint.
     direction: uz_en | en_uz | ru_uz | uz_ru | ru_en | en_ru
     """
-    lang_map = {
-        "uz_en": ("O'zbek", "English"),
-        "en_uz": ("English", "O'zbek"),
-        "ru_uz": ("Russian", "O'zbek"),
-        "uz_ru": ("O'zbek", "Russian"),
-        "ru_en": ("Russian", "English"),
-        "en_ru": ("English", "Russian"),
-    }
-    src, tgt = lang_map.get(direction, ("O'zbek", "English"))
+    src, tgt = _DIRECTION_LANG_NAMES.get(direction, ("O'zbek", "English"))
     code_map = {
         "uz_en": ("uz", "en"),
         "en_uz": ("en", "uz"),
@@ -576,24 +436,13 @@ async def translate_text(text: str, direction: str = "uz_en") -> str:
                     parts.append(str(item[0] or ""))
         return "".join(parts).strip()
 
-    model = await get_model()
-
     prompt = (
         f"Translate the following {src} text to {tgt}.\n"
         "Return ONLY the translated text, no explanations.\n\n"
         f"{text}"
     )
     try:
-        out = ""
-        try:
-            out = await generate_text_with_fallback(prompt, timeout=GEMINI_TIMEOUT)
-        except AiQuotaError:
-            raise
-        except Exception as e:
-            logger.warning("Failover translate failed, trying direct Gemini: %s", e)
-            if model:
-                resp = await _gcall(model.generate_content_async(prompt))
-                out = resp.text.strip() if resp and resp.text else ""
+        out = await generate_text_with_fallback(prompt, timeout=GEMINI_TIMEOUT)
         if not out:
             out = await _google_fallback_translate(text, sl, tl)
         if not is_meaningfully_changed(text, out):
@@ -611,66 +460,6 @@ async def translate_text(text: str, direction: str = "uz_en") -> str:
         except Exception as e2:
             logger.error("translate_text fallback error: %s", e2, exc_info=True)
             return "Tarjima vaqtincha mavjud emas."
-
-
-async def translate_pptx(file_path: str, direction: str = "uz_en", target_language: str = "uz") -> str:
-    """
-    Translate PPTX text in-place and save as translated PPTX.
-    Keeps slide layout, only replacing paragraph text.
-    """
-    try:
-        from pptx import Presentation
-
-        loop = asyncio.get_running_loop()
-        prs = await loop.run_in_executor(None, Presentation, file_path)
-
-        def _walk_shapes(shapes):
-            for shape in shapes:
-                yield shape
-                nested = getattr(shape, "shapes", None)
-                if nested:
-                    try:
-                        yield from _walk_shapes(nested)
-                    except Exception:
-                        pass
-
-        paragraphs = []
-        for slide in prs.slides:
-            for shape in _walk_shapes(slide.shapes):
-                if getattr(shape, "has_text_frame", False) and shape.has_text_frame:
-                    for para in shape.text_frame.paragraphs:
-                        if (para.text or "").strip():
-                            paragraphs.append(para)
-                if getattr(shape, "has_table", False) and shape.has_table:
-                    for row in shape.table.rows:
-                        for cell in row.cells:
-                            for para in cell.text_frame.paragraphs:
-                                if (para.text or "").strip():
-                                    paragraphs.append(para)
-
-        for i in range(0, len(paragraphs), 6):
-            batch = paragraphs[i:i + 6]
-            srcs = [p.text for p in batch]
-            outs = await asyncio.gather(*[translate_text(s, direction) for s in srcs])
-            for para, out in zip(batch, outs):
-                if out and not out.startswith("Tarjima vaqtincha mavjud emas."):
-                    _set_pptx_paragraph_text(para, out)
-            await asyncio.sleep(0.1)
-
-        output_path = file_path.replace(".pptx", f"_translated_{target_language}.pptx")
-        await loop.run_in_executor(None, prs.save, output_path)
-        return output_path
-    except Exception as e:
-        logger.error("translate_pptx failed: %s", e, exc_info=True)
-        return ""
-
-
-def count_words_text(text: str) -> int:
-    """Whitespace-delimited tokens (works for Uzbek apostrophes and Cyrillic)."""
-    s = (text or "").strip()
-    if not s:
-        return 0
-    return len(re.findall(r"\S+", s))
 
 
 def _normalize_for_compare(text: str) -> str:
@@ -693,429 +482,6 @@ def is_meaningfully_changed(source: str, candidate: str) -> bool:
     if not a and not b:
         return False
     return a != b
-
-
-async def check_spelling_text(text: str) -> tuple[str, int]:
-    """
-    Spell-check plain text (Uzbek/Russian) with conservative corrections.
-    Returns: (corrected_text, fixes_count)
-    """
-    src = (text or "").strip()
-    if not src:
-        return "", 0
-    original_src = src
-    heuristic_fixes = 0
-
-    # If there is nothing to fix (no letters), skip spell checking.
-    if not any(ch.isalpha() for ch in src):
-        return src, 0
-
-    def _is_cyrillic(s: str) -> bool:
-        # Rough heuristic: detect Cyrillic blocks.
-        return any(("\u0400" <= ch <= "\u04FF") or ("\u0500" <= ch <= "\u052F") for ch in (s or ""))
-
-    def _apply_uz_latin_heuristics(s: str) -> tuple[str, int]:
-        """
-        Fast deterministic fixes for common Uzbek-latin typos.
-        """
-        out = s
-        rules = [
-            (r"\bbugn\b", "bugun"),
-            (r"\bozimni\b", "o'zimni"),
-            (r"\bxis\b", "his"),
-            (r"\bqildm\b", "qildim"),
-            (r"\boqip\b", "o'qib"),
-            (r"\bbolgach\b", "bo'lgach"),
-            (r"\bqoydi\b", "qo'ydi"),
-            (r"\bdstlarim\b", "do'stlarim"),
-            (r"\bkochada\b", "ko'chada"),
-            (r"\boynab\b", "o'ynab"),
-            (r"\byurganmda\b", "yurganimda"),
-            (r"\byomgr\b", "yomg'ir"),
-            (r"\byogib\b", "yog'ib"),
-        ]
-        changes = 0
-        for pat, rep in rules:
-            new_out, n = re.subn(pat, rep, out, flags=re.IGNORECASE)
-            if n:
-                out = new_out
-                changes += int(n)
-        return out, changes
-
-    uz_typo_map = {
-        "bugn": "bugun",
-        "bormadimn": "bormadim",
-        "maktabgaa": "maktabga",
-        "qacchon": "qachon",
-        "xam": "ham",
-        "bilanam": "bilan ham",
-    }
-
-    uz_dictionary = {
-        "men", "sen", "u", "biz", "siz", "ular", "bugun", "kecha", "ertaga",
-        "maktabga", "maktab", "bormadim", "bordim", "boraman", "kelaman", "keldim",
-        "uyga", "ishga", "kitob", "daftar", "yozdim", "o'qidim", "dars", "darsga",
-        "rahmat", "iltimos", "qanday", "yaxshi", "yomon", "bo'ldi", "bo'lmadi",
-        "do'stim", "do'stlarim", "o'zim", "o'zimni", "o'qib", "ko'chada", "o'ynab",
-        "yurganimda", "yomg'ir", "yog'ib", "uchun", "haqiqiy", "natija", "xato",
-        "tekshiruv", "imlo", "tarjima", "matn", "fayl",
-    }
-
-    def _preserve_case(src_word: str, rep_word: str) -> str:
-        if src_word.isupper():
-            return rep_word.upper()
-        if src_word[:1].isupper():
-            return rep_word[:1].upper() + rep_word[1:]
-        return rep_word
-
-    def _apply_uz_dictionary_pass(s: str) -> tuple[str, int]:
-        """
-        Lightweight Uzbek latin spell pass with typo map + close match.
-        Conservative by design to avoid semantic rewrites.
-        """
-        pattern = re.compile(r"[A-Za-zO'oʻʼ`’ʻ]+", flags=re.UNICODE)
-        changes = 0
-
-        def repl(m: re.Match) -> str:
-            nonlocal changes
-            word = m.group(0)
-            wnorm = _normalize_for_compare(word)
-            # Fast exact-known typo fixes.
-            direct = uz_typo_map.get(wnorm)
-            if direct:
-                changes += 1
-                return _preserve_case(word, direct)
-            # Skip short tokens and known dictionary words.
-            if len(wnorm) < 4 or wnorm in uz_dictionary:
-                return word
-            # Conservative nearest dictionary lookup.
-            cands = get_close_matches(wnorm, uz_dictionary, n=1, cutoff=0.86)
-            if not cands:
-                return word
-            best = cands[0]
-            # Avoid aggressive replacements for much longer/shorter words.
-            if abs(len(best) - len(wnorm)) > 2:
-                return word
-            changes += 1
-            return _preserve_case(word, best)
-
-        out = pattern.sub(repl, s)
-        return out, changes
-
-    def _mask_sensitive_tokens(s: str) -> tuple[str, dict[str, str]]:
-        """
-        Replace URLs/emails/numbers with placeholders to prevent the model
-        from "correcting" them into something else.
-        """
-        token_re = re.compile(r"(https?://\S+|www\.\S+|\b\S+@\S+\b|\b\d+(?:[.,]\d+)?\b)")
-        mapping: dict[str, str] = {}
-        i = 0
-
-        def repl(m: re.Match) -> str:
-            nonlocal i
-            key = f"__TOK{i}__"
-            mapping[key] = m.group(0)
-            i += 1
-            return key
-
-        masked = token_re.sub(repl, s)
-        return masked, mapping
-
-    def _unmask_sensitive_tokens(s: str, mapping: dict[str, str]) -> str:
-        out = s
-        for key, value in mapping.items():
-            out = out.replace(key, value)
-        return out
-
-    def _conservative_merge(source: str, candidate: str) -> str:
-        """
-        Apply only small, local changes from `candidate` into `source`.
-        We ignore pure insertions (to reduce hallucinations) and require
-        similarity/length closeness for "replace" blocks.
-        """
-        s = source or ""
-        c = (candidate or "")
-        if not c.strip():
-            return s
-
-        # Quick divergence guard.
-        if SequenceMatcher(None, s, c).ratio() < 0.6:
-            return s
-
-        sm = SequenceMatcher(None, s, c, autojunk=False)
-        out: list[str] = []
-
-        for tag, i1, i2, j1, j2 in sm.get_opcodes():
-            if tag == "equal":
-                out.append(s[i1:i2])
-                continue
-
-            if tag == "replace":
-                s_seg = s[i1:i2]
-                c_seg = c[j1:j2]
-                if not c_seg:
-                    out.append(s_seg)
-                    continue
-
-                seg_ratio = SequenceMatcher(None, s_seg, c_seg).ratio()
-                max_len = max(1, len(s_seg), len(c_seg))
-                len_close = abs(len(s_seg) - len(c_seg)) / max_len <= 0.35
-
-                if seg_ratio >= 0.78 and len_close:
-                    out.append(c_seg)
-                else:
-                    out.append(s_seg)
-                continue
-
-            if tag == "delete":
-                # Keep original text if model removed something.
-                out.append(s[i1:i2])
-                continue
-
-            if tag == "insert":
-                ins = c[j1:j2]
-                if not ins:
-                    continue
-                # Allow insertion of whitespace/punctuation only.
-                if ins.strip() == "":
-                    out.append(ins)
-                elif len(ins) <= 5 and not any(ch.isalnum() for ch in ins):
-                    out.append(ins)
-                elif len(ins) <= 3 and ins.isalpha():
-                    # Spellcheckda eng ko'p holat: so'z ichiga 1-3 ta harf yetishmaydi
-                    # (masalan: "beramdi" -> "beradimi"). Buni ruxsat beramiz,
-                    # lekin faqat so'z ichida bo'lsa.
-                    prev_ch = s[i1 - 1] if i1 > 0 else ""
-                    next_ch = s[i1] if i1 < len(s) else ""
-                    if prev_ch.isalpha() and next_ch.isalpha():
-                        out.append(ins)
-                else:
-                    # Ignore letter/number insertions.
-                    pass
-                continue
-
-        merged = "".join(out)
-        # Final sanity guard.
-        merged_ratio = SequenceMatcher(None, s, merged).ratio()
-        if merged_ratio < 0.55:
-            return s
-        # Agar konservativ merge juda ko'p narsani kesib yuborsa, lekin candidate juda yaqin bo'lsa,
-        # candidate'ni qabul qilamiz (real typo-fixlar yo'qolib ketmasin).
-        cand_ratio = SequenceMatcher(None, s, c).ratio()
-        if merged == s and cand_ratio >= 0.85 and abs(len(c) - len(s)) <= max(8, int(len(s) * 0.25)):
-            return c
-        return merged
-
-    def _count_fixes(source: str, corrected: str) -> int:
-        if corrected == source:
-            return 0
-        a = (source or "").split()
-        b = (corrected or "").split()
-        diff = sum(1 for i in range(min(len(a), len(b))) if a[i] != b[i]) + abs(len(a) - len(b))
-        return max(1, min(diff, 999)) if diff > 0 else 1
-
-    try:
-        # 0) Quick deterministic Uzbek-latin typo pass.
-        if not _is_cyrillic(src):
-            htxt, hfix = _apply_uz_latin_heuristics(src)
-            if hfix > 0:
-                src = htxt
-                heuristic_fixes += int(hfix)
-            dtext, dfix = _apply_uz_dictionary_pass(src)
-            if dfix > 0:
-                src = dtext
-                heuristic_fixes += int(dfix)
-
-        # 1) Deterministic spell correction for Russian (if LanguageTool is available).
-        # This reduces wrong “LLM hallucination” corrections for ru text.
-        if _is_cyrillic(src):
-            try:
-                global _LANGTOOL_RU
-                import language_tool_python  # optional dependency
-                async with _LANGTOOL_RU_LOCK:
-                    if _LANGTOOL_RU is None:
-                        # Tool initialization (downloads LanguageTool) is blocking.
-                        _LANGTOOL_RU = await asyncio.to_thread(language_tool_python.LanguageTool, "ru")
-
-                    matches = await asyncio.to_thread(_LANGTOOL_RU.check, src)
-                if not matches:
-                    return src, 0
-                # Correct needs the same lock for safety.
-                async with _LANGTOOL_RU_LOCK:
-                    corrected = await asyncio.to_thread(_LANGTOOL_RU.correct, src)
-                merged = _conservative_merge(src, corrected)
-                return merged, max(int(heuristic_fixes), _count_fixes(original_src, merged))
-            except Exception as e:
-                logger.warning(f"LanguageTool ru failed, falling back to Gemini: {e}")
-
-        # 2) Gemini fallback for Uzbek and/or when LanguageTool fails.
-        # Spellcheck should prioritize speed: try fastest models first.
-        model = await get_model(preferred_models=[
-            "gemini-2.5-flash",
-            "gemini-2.0-flash",
-            "gemini-1.5-flash-latest",
-        ])
-        if not model:
-            # No model and no local spell checker: best-effort (no changes).
-            return src, int(heuristic_fixes)
-
-        spell_timeout = int((globals().get("GEMINI_SPELLCHECK_TIMEOUT") or 30))
-
-        def _make_prompt(s: str) -> str:
-            return (
-                "You are a spelling corrector.\n"
-                "Fix ONLY obvious spelling typos (including casing and punctuation spacing if needed).\n"
-                "Do NOT rewrite sentences, change meaning, add new words, or remove existing ones.\n"
-                "Keep line breaks as in the input.\n"
-                "Return ONLY the corrected text.\n\n"
-                f"{s}"
-            )
-
-        def _correct_part(part_src: str) -> str:
-            masked, mapping = _mask_sensitive_tokens(part_src)
-            # Call site runs in async context; this function just formats.
-            return masked, mapping
-
-        async def _call_gemini(masked_part: str) -> str:
-            resp = await _gcall(
-                model.generate_content_async(
-                    _make_prompt(masked_part),
-                    generation_config={"temperature": 0.0},
-                ),
-                timeout=spell_timeout,
-            )
-            txt = (resp.text if resp and resp.text else "") or ""
-            # Safety: remove wrappers if model returns formatted block.
-            txt = txt.replace("```text", "").replace("```", "").strip()
-            if len(txt) >= 2 and txt[0] == txt[-1] and txt[0] in ("'", '"'):
-                txt = txt[1:-1].strip()
-            return txt
-
-        # For long texts, split into chunks and process concurrently (larger batches = fewer round-trips).
-        if len(src) > 2000:
-            parts: list[str] = []
-            buf: list[str] = []
-            cur = 0
-            for para in src.splitlines():
-                p = para.rstrip()
-                # preserve blank lines
-                if not p:
-                    if buf:
-                        parts.append("\n".join(buf).strip())
-                        buf, cur = [], 0
-                    parts.append("")
-                    continue
-                if cur + len(p) + 1 > 2000 and buf:
-                    parts.append("\n".join(buf).strip())
-                    buf, cur = [p], len(p)
-                else:
-                    buf.append(p)
-                    cur += len(p) + 1
-            if buf:
-                parts.append("\n".join(buf).strip())
-
-            out_parts: list[str] = []
-            batch: list[tuple[str, str, dict[str, str]]] = []
-
-            # (orig_text, masked_text, mapping)
-            for part in parts:
-                if part == "":
-                    out_parts.append("")
-                    continue
-                masked, mapping = _mask_sensitive_tokens(part)
-                batch.append((part, masked, mapping))
-                if len(batch) >= 8:
-                    resps = await asyncio.gather(*[
-                        _call_gemini(masked_part) for (_, masked_part, _) in batch
-                    ])
-                    for (orig, _, mapping), resp_text in zip(batch, resps):
-                        candidate = _unmask_sensitive_tokens(resp_text.strip(), mapping) if resp_text else orig
-                        out_parts.append(_conservative_merge(orig, candidate))
-                    batch = []
-
-            if batch:
-                resps = await asyncio.gather(*[
-                    _call_gemini(masked_part) for (_, masked_part, _) in batch
-                ])
-                for (orig, _, mapping), resp_text in zip(batch, resps):
-                    candidate = _unmask_sensitive_tokens(resp_text.strip(), mapping) if resp_text else orig
-                    out_parts.append(_conservative_merge(orig, candidate))
-
-            corrected = "\n".join(out_parts).strip()
-        else:
-            masked, mapping = _mask_sensitive_tokens(src)
-            resp_text = await _call_gemini(masked)
-            candidate = _unmask_sensitive_tokens(resp_text.strip(), mapping) if resp_text else src
-            corrected = _conservative_merge(src, candidate)
-
-        fixes = max(int(heuristic_fixes), _count_fixes(original_src, corrected))
-        return corrected, fixes
-
-    except Exception as e:
-        logger.error(f"check_spelling_text error: {e}", exc_info=True)
-        fallback_fixes = max(int(heuristic_fixes), _count_fixes(original_src, src))
-        return src, int(fallback_fixes)
-
-
-async def generate_objective(role: str, experience: str = "junior", extra: str = "", lang: str = "uz") -> str:
-    """
-    Generate a short professional CV objective/summary.
-    lang: uz | ru | en
-    experience: junior | middle | senior | lead
-    """
-    model = await get_model()
-    if not model:
-        return "AI model mavjud emas."
-
-    l = (lang or "uz").lower().strip()
-    if l not in ("uz", "ru", "en"):
-        l = "uz"
-
-    exp_map = {
-        "junior": {"uz": "boshlang'ich", "ru": "начальный", "en": "junior"},
-        "middle": {"uz": "o'rta", "ru": "средний", "en": "mid-level"},
-        "senior": {"uz": "katta mutaxassis", "ru": "старший специалист", "en": "senior"},
-        "lead":   {"uz": "rahbar", "ru": "руководитель", "en": "lead"},
-    }
-    exp_key = (experience or "junior").lower().strip()
-    exp_label = exp_map.get(exp_key, exp_map["junior"])[l]
-
-    # Keep it short and usable: 2–3 sentences, no bullet lists.
-    if l == "ru":
-        prompt = (
-            "Сгенерируй краткую профессиональную цель (objective) для резюме.\n"
-            "Требования: 2–3 предложения, без списков, без лишних объяснений, деловой стиль.\n"
-            f"Должность: {role}\n"
-            f"Уровень: {exp_label}\n"
-            f"Дополнительно (если есть): {extra}\n"
-        )
-    elif l == "en":
-        prompt = (
-            "Generate a short professional resume objective.\n"
-            "Requirements: 2–3 sentences, no bullet points, no extra explanation, professional tone.\n"
-            f"Role: {role}\n"
-            f"Level: {exp_label}\n"
-            f"Extra (if any): {extra}\n"
-        )
-    else:
-        prompt = (
-            "Rezyume uchun qisqa professional obyektivka (objective) yozing.\n"
-            "Talablar: 2–3 gap, ro'yxatsiz, ortiqcha izohsiz, rasmiy uslub.\n"
-            f"Kasb/Lavozim: {role}\n"
-            f"Daraja: {exp_label}\n"
-            f"Qo'shimcha (bo'lsa): {extra}\n"
-        )
-
-    try:
-        out = await generate_text_with_fallback(prompt, timeout=GEMINI_TIMEOUT)
-        if not out:
-            return "Natija bo'sh."
-        return out.strip()
-    except AiQuotaError:
-        raise
-    except Exception as e:
-        logger.error(f"generate_objective error: {e}", exc_info=True)
-        return f"Xatolik: {str(e)[:200]}"
 
 
 def _oby_extract_has_content(d: dict) -> bool:
@@ -1163,8 +529,7 @@ async def extract_obyektivka_data(text: str) -> dict:
             prompt,
             preferred_models=[
                 "gemini-2.5-flash",
-                "gemini-1.5-flash-latest",
-                "gemini-2.0-flash",
+                "gemini-2.5-flash-lite",
             ],
             timeout=35,
         )
@@ -1180,181 +545,3 @@ async def extract_obyektivka_data(text: str) -> dict:
     except Exception as e:
         logger.error(f"Async Data extraction error: {e}")
         return {}
-
-
-async def check_spelling_gemini(file_path: str) -> tuple[str, int, int]:
-    """
-    Checks spelling in a DOCX file using Gemini asynchronously.
-    Returns: (output_path, errors_found, errors_fixed)
-    """
-    try:
-        from docx import Document
-
-        loop = asyncio.get_running_loop()
-        doc = await loop.run_in_executor(None, Document, file_path)
-
-        output_path = file_path.replace(".docx", "_checked.docx")
-
-        paragraphs_to_check = []
-        seen: set[int] = set()
-
-        def _add_para(para):
-            if not para:
-                return
-            t = getattr(para, "text", "") or ""
-            if not t.strip():
-                return
-            pid = id(para)
-            if pid in seen:
-                return
-            seen.add(pid)
-            paragraphs_to_check.append(para)
-
-        # Main body paragraphs
-        for para in doc.paragraphs:
-            _add_para(para)
-
-        # Body tables
-        for table in getattr(doc, "tables", []):
-            for row in table.rows:
-                for cell in row.cells:
-                    for para in cell.paragraphs:
-                        _add_para(para)
-
-        # Headers/footers (often contain lots of text)
-        for section in getattr(doc, "sections", []):
-            header = getattr(section, "header", None)
-            footer = getattr(section, "footer", None)
-            for part in (header, footer):
-                if not part:
-                    continue
-                for para in getattr(part, "paragraphs", []):
-                    _add_para(para)
-                for table in getattr(part, "tables", []):
-                    for row in table.rows:
-                        for cell in row.cells:
-                            for para in cell.paragraphs:
-                                _add_para(para)
-
-        errors_fixed = 0
-
-        async def process_para(para):
-            src = para.text or ""
-            corrected, fixes = await check_spelling_text(src)
-            if corrected and corrected != src:
-                _set_para_text(para, corrected)
-                return fixes if fixes > 0 else 1
-            return 0
-
-        batch_size = 8
-        for i in range(0, len(paragraphs_to_check), batch_size):
-            batch = paragraphs_to_check[i:i + batch_size]
-            errors_fixed += sum(await asyncio.gather(*[process_para(p) for p in batch]))
-            await asyncio.sleep(0.15)
-
-        await loop.run_in_executor(None, doc.save, output_path)
-
-        return output_path, errors_fixed, errors_fixed
-
-    except Exception as e:
-        logger.error(f"Async Spell check failed: {e}", exc_info=True)
-        # Best-effort: still return a copied file so the bot can send it back.
-        try:
-            output_path = file_path.replace(".docx", "_checked.docx")
-            shutil.copyfile(file_path, output_path)
-            return output_path, 0, 0
-        except Exception:
-            return "", 0, 0
-
-
-async def check_spelling_pptx(file_path: str) -> tuple[str, int, int]:
-    """
-    Checks spelling in a PPTX file using Gemini asynchronously.
-    Iterates slides → shapes → text frames → paragraphs → runs.
-    Returns: (output_path, errors_found, errors_fixed)
-    """
-    try:
-        from pptx import Presentation
-
-        loop = asyncio.get_running_loop()
-        prs = await loop.run_in_executor(None, Presentation, file_path)
-
-        output_path = file_path.replace(".pptx", "_checked.pptx")
-
-        paragraphs_to_check = []
-        seen: set[int] = set()
-
-        def _add_para(para):
-            if not para:
-                return
-            t = getattr(para, "text", "") or ""
-            if not t.strip():
-                return
-            pid = id(para)
-            if pid in seen:
-                return
-            seen.add(pid)
-            paragraphs_to_check.append(para)
-
-        def _walk_shapes(shapes):
-            # Recursively traverse group shapes to avoid missing text.
-            for shape in shapes:
-                yield shape
-                nested = getattr(shape, "shapes", None)
-                if nested:
-                    try:
-                        yield from _walk_shapes(nested)
-                    except Exception:
-                        pass
-
-        for slide in prs.slides:
-            for shape in _walk_shapes(slide.shapes):
-                if getattr(shape, "has_text_frame", False) and shape.has_text_frame:
-                    for para in shape.text_frame.paragraphs:
-                        _add_para(para)
-                if getattr(shape, "has_table", False) and shape.has_table:
-                    for row in shape.table.rows:
-                        for cell in row.cells:
-                            for para in cell.text_frame.paragraphs:
-                                _add_para(para)
-
-            # Notes slide text (often ignored but can contain user content)
-            notes_slide = getattr(slide, "notes_slide", None)
-            if notes_slide:
-                for shape in _walk_shapes(notes_slide.shapes):
-                    if getattr(shape, "has_text_frame", False) and shape.has_text_frame:
-                        for para in shape.text_frame.paragraphs:
-                            _add_para(para)
-                    if getattr(shape, "has_table", False) and shape.has_table:
-                        for row in shape.table.rows:
-                            for cell in row.cells:
-                                for para in cell.text_frame.paragraphs:
-                                    _add_para(para)
-
-        errors_fixed = 0
-
-        async def process_para(para):
-            src = para.text or ""
-            corrected, fixes = await check_spelling_text(src)
-            if corrected and corrected != src:
-                _set_pptx_paragraph_text(para, corrected)
-                return fixes if fixes > 0 else 1
-            return 0
-
-        batch_size = 8
-        for i in range(0, len(paragraphs_to_check), batch_size):
-            batch = paragraphs_to_check[i:i + batch_size]
-            errors_fixed += sum(await asyncio.gather(*[process_para(p) for p in batch]))
-            await asyncio.sleep(0.15)
-
-        await loop.run_in_executor(None, prs.save, output_path)
-        return output_path, errors_fixed, errors_fixed
-
-    except Exception as e:
-        logger.error(f"PPTX Spell check failed: {e}", exc_info=True)
-        try:
-            output_path = file_path.replace(".pptx", "_checked.pptx")
-            shutil.copyfile(file_path, output_path)
-            return output_path, 0, 0
-        except Exception:
-            return "", 0, 0
