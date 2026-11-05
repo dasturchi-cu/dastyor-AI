@@ -4,6 +4,7 @@ from __future__ import annotations
 import asyncio
 import html
 import logging
+import time
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any
@@ -65,25 +66,43 @@ def build_dashboard_text(snapshot: dict[str, Any], *, updated_at: str | None = N
         return text
 
 
+# Live refresh is only useful while the admin is looking at it; left running it would
+# query SQLite and call Telegram every few seconds, 24/7, for every admin who ever opened it.
+_LIVE_WINDOW_SEC = 5 * 60
+
+
 async def _refresh_loop(bot: Bot, session: DashboardSession) -> None:
     interval = max(5, min(10, settings.admin_dashboard_refresh_sec))
-    while session.admin_id in _sessions:
-        try:
-            snapshot = await asyncio.to_thread(stats_repo.dashboard_snapshot)
-            text = build_dashboard_text(snapshot)
-            await bot.edit_message_text(
-                text,
-                chat_id=session.chat_id,
-                message_id=session.message_id,
-            )
-        except TelegramBadRequest as exc:
-            if "message is not modified" not in str(exc).lower():
-                logger.debug("Dashboard edit stopped: %s", exc)
+    deadline = time.monotonic() + _LIVE_WINDOW_SEC
+    try:
+        while _sessions.get(session.admin_id) is session:
+            await asyncio.sleep(interval)
+            expired = time.monotonic() >= deadline
+            try:
+                snapshot = await asyncio.to_thread(stats_repo.dashboard_snapshot)
+                text = build_dashboard_text(snapshot)
+                if expired:
+                    text += (
+                        "\n\n<i>Avto-yangilanish to'xtadi. "
+                        "Yangilash uchun Dashboard tugmasini bosing.</i>"
+                    )
+                await bot.edit_message_text(
+                    text,
+                    chat_id=session.chat_id,
+                    message_id=session.message_id,
+                )
+            except TelegramBadRequest as exc:
+                if "message is not modified" not in str(exc).lower():
+                    logger.debug("Dashboard edit stopped: %s", exc)
+                    break
+            except Exception as exc:
+                logger.warning("Dashboard refresh error: %s", exc)
                 break
-        except Exception as exc:
-            logger.warning("Dashboard refresh error: %s", exc)
-            break
-        await asyncio.sleep(interval)
+            if expired:
+                break
+    finally:
+        if _sessions.get(session.admin_id) is session:
+            _sessions.pop(session.admin_id, None)
 
 
 def stop_dashboard(admin_id: int) -> None:

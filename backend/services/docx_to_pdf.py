@@ -5,8 +5,10 @@ from __future__ import annotations
 import logging
 import os
 import shutil
+import signal
 import subprocess
 import tempfile
+import threading
 import time
 from pathlib import Path
 
@@ -27,6 +29,39 @@ def _find_soffice() -> str | None:
     return None
 
 
+# Each soffice instance costs ~200 MB; cap how many run at once.
+_LO_SLOTS = threading.BoundedSemaphore(max(1, int(os.getenv("LIBREOFFICE_MAX_PARALLEL", "2") or "2")))
+
+
+def _run_killing_tree(cmd: list[str], *, timeout: float, env: dict[str, str]) -> subprocess.CompletedProcess:
+    """subprocess.run(), but a timeout kills the whole process group.
+
+    `soffice` is a launcher: killing only it leaves a hung soffice.bin behind
+    holding its memory until the container restarts.
+    """
+    posix = os.name != "nt"
+    proc = subprocess.Popen(
+        cmd,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        env=env,
+        start_new_session=posix,
+    )
+    try:
+        stdout, stderr = proc.communicate(timeout=timeout)
+    except subprocess.TimeoutExpired:
+        try:
+            if posix:
+                os.killpg(proc.pid, signal.SIGKILL)
+            else:
+                proc.kill()
+        except OSError:
+            pass
+        proc.communicate()
+        raise
+    return subprocess.CompletedProcess(cmd, proc.returncode, stdout, stderr)
+
+
 def _libreoffice_pdf(docx_path: Path, out_dir: Path) -> bytes | None:
     soffice = _find_soffice()
     if not soffice:
@@ -40,26 +75,25 @@ def _libreoffice_pdf(docx_path: Path, out_dir: Path) -> bytes | None:
     user_install = f"file://{profile_dir}"
 
     try:
-        result = subprocess.run(
-            [
-                soffice,
-                f"-env:UserInstallation={user_install}",
-                "--headless",
-                "--nologo",
-                "--nofirststartwizard",
-                "--norestore",
-                "--nolockcheck",
-                "--convert-to",
-                "pdf",
-                "--outdir",
-                str(out_dir),
-                str(docx_path),
-            ],
-            check=False,
-            capture_output=True,
-            timeout=90,
-            env={**os.environ, "HOME": str(profile_dir), "TMPDIR": str(out_dir)},
-        )
+        with _LO_SLOTS:
+            result = _run_killing_tree(
+                [
+                    soffice,
+                    f"-env:UserInstallation={user_install}",
+                    "--headless",
+                    "--nologo",
+                    "--nofirststartwizard",
+                    "--norestore",
+                    "--nolockcheck",
+                    "--convert-to",
+                    "pdf",
+                    "--outdir",
+                    str(out_dir),
+                    str(docx_path),
+                ],
+                timeout=90,
+                env={**os.environ, "HOME": str(profile_dir), "TMPDIR": str(out_dir)},
+            )
         if result.returncode != 0:
             stderr_msg = (result.stderr or b"").decode("utf-8", errors="replace")[:600]
             stdout_msg = (result.stdout or b"").decode("utf-8", errors="replace")[:400]

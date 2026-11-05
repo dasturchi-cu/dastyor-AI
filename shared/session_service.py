@@ -118,9 +118,16 @@ def create_session(
             return token
 
     _load_file()
+    now = time.time()
+    # Drop expired sessions so the file (rewritten on every login) does not grow forever.
+    for tok in [t for t, s in _cache.items() if now - float(s.get("created_at", 0)) > SESSION_TTL]:
+        _cache.pop(tok, None)
     for tok, sess in _cache.items():
         if sess.get("telegram_id") == uid:
-            sess["last_active"] = time.time()
+            # A fresh, Telegram-verified login renews the session; otherwise the reused
+            # token would be rejected as expired by resolve_session() right after login.
+            sess["created_at"] = now
+            sess["last_active"] = now
             if first_name:
                 sess["first_name"] = first_name
             if username:

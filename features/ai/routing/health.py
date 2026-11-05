@@ -82,6 +82,11 @@ async def _health_loop() -> None:
                 deleted = await asyncio.to_thread(ai_quota_repo.prune_history, keep_days=14)
                 if deleted:
                     logger.info("Pruned %s ai_quota_history row(s)", deleted)
+                from database.maintenance import prune_log_tables
+
+                old_logs = await asyncio.to_thread(prune_log_tables, keep_days=30)
+                if old_logs:
+                    logger.info("Pruned %s old log row(s)", old_logs)
             except Exception as e:
                 logger.debug("Quota history prune skipped: %s", e)
 
