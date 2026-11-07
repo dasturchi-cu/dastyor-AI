@@ -1,15 +1,17 @@
 #!/bin/bash
 # ═══════════════════════════════════════════════════════════════
 #  DASTYOR AI — Contabo VPS Full Setup Script
-#  Ubuntu 24.04 | dastyorai.duckdns.org | 84.46.243.149
-#  Ishlatish: bash setup_contabo.sh
+#  Ubuntu 24.04 | dastyorai.duckdns.org
+#  Ishlatish:  DUCKDNS_TOKEN=<token> bash setup_contabo.sh
+#  (token: duckdns.org sahifasining yuqorisida; repoga YOZMANG — repo public)
 # ═══════════════════════════════════════════════════════════════
 set -e
 
 # ── SOZLAMALAR ──────────────────────────────────────────────────
 DOMAIN="dastyorai.duckdns.org"
-DUCKDNS_TOKEN="b94913b6-6b45-44e6-839e-fccaa0d37807"
-CONTABO_IP="84.46.243.149"
+DUCKDNS_TOKEN="${DUCKDNS_TOKEN:-}"
+# Shu serverning tashqi IPv4 manzili (qo'lda berish: CONTABO_IP=1.2.3.4 bash ...)
+CONTABO_IP="${CONTABO_IP:-$(curl -4 -s --max-time 10 https://api.ipify.org || true)}"
 APP_DIR="/opt/dastyor-ai"
 DATA_DIR="/opt/dastyor-ai/data"
 GITHUB_REPO="https://github.com/dasturchi-cu/dastyor-AI.git"
@@ -25,11 +27,19 @@ echo ""
 
 # ── 1. DuckDNS IP YANGILASH ─────────────────────────────────────
 echo "► [1/10] DuckDNS IP yangilanmoqda: $CONTABO_IP → $DOMAIN"
-RESULT=$(curl -s "https://www.duckdns.org/update?domains=dastyorai&token=${DUCKDNS_TOKEN}&ip=${CONTABO_IP}")
-if [ "$RESULT" = "OK" ]; then
-    echo "  ✅ DuckDNS muvaffaqiyatli yangilandi"
+if [ -z "$CONTABO_IP" ]; then
+    echo "  ❌ Server IP aniqlanmadi. Qo'lda bering: CONTABO_IP=1.2.3.4 bash $0"
+    exit 1
+fi
+if [ -n "$DUCKDNS_TOKEN" ]; then
+    RESULT=$(curl -s "https://www.duckdns.org/update?domains=dastyorai&token=${DUCKDNS_TOKEN}&ip=${CONTABO_IP}")
+    if [ "$RESULT" = "OK" ]; then
+        echo "  ✅ DuckDNS muvaffaqiyatli yangilandi"
+    else
+        echo "  ⚠️  DuckDNS javob: $RESULT (davom etilmoqda)"
+    fi
 else
-    echo "  ⚠️  DuckDNS javob: $RESULT (davom etilmoqda)"
+    echo "  ⚠️  DUCKDNS_TOKEN berilmadi — duckdns.org saytida IP ni qo'lda $CONTABO_IP qiling"
 fi
 sleep 3
 
