@@ -61,8 +61,7 @@ def _ad_sources_block(days: int = 30) -> str:
             f"{int(r['users'])} keldi, {int(r['paid_users'])} to'ladi, "
             f"{int(r['revenue_uzs']):,} so'm"
         )
-    return "
-".join(lines)
+    return "\n".join(lines)
 
 
 async def send_daily_report(bot: Bot) -> bool:
@@ -83,9 +82,7 @@ async def send_daily_report(bot: Bot) -> bool:
         text = build_daily_admin_report(stats, report_date=today)
         sources_block = _ad_sources_block()
         if sources_block:
-            text = f"{text}
-
-{sources_block}"
+            text = f"{text}\n\n{sources_block}"
         await _send_admin(bot, text)
         logger.info("Daily admin report sent for %s", today)
         return True
