@@ -1,6 +1,8 @@
 """Aiogram 3 — start, menu, help."""
 from __future__ import annotations
 
+import re
+
 from pathlib import Path
 
 from aiogram import F, Router
@@ -74,6 +76,10 @@ async def _blocked_reply(message: Message) -> bool:
     return False
 
 
+# t.me/<bot>?start=<payload>: letters, digits, _ and - (Telegram's own limit is 64 chars).
+_SOURCE_RE = re.compile(r"[A-Za-z0-9_-]{1,64}")
+
+
 @router.message(CommandStart())
 async def cmd_start(message: Message, state: FSMContext) -> None:
     await state.clear()
@@ -85,13 +91,17 @@ async def cmd_start(message: Message, state: FSMContext) -> None:
         return
 
     ref_id = None
+    source = None
     if message.text and len(message.text.split()) > 1:
         arg = message.text.split()[1]
         if arg.startswith("ref_"):
+            source = "referral"
             try:
                 ref_id = int(arg.replace("ref_", ""))
             except ValueError:
                 pass
+        elif _SOURCE_RE.fullmatch(arg):
+            source = arg.lower()
 
     is_new = not users_repo.get_by_telegram_id(user.id)
 
@@ -102,6 +112,7 @@ async def cmd_start(message: Message, state: FSMContext) -> None:
         first_name=user.first_name,
         last_name=user.last_name,
         referred_by_id=ref_id if (ref_id and ref_id != user.id and is_new) else None,
+        source=source if is_new else None,
     )
     if ref_id and ref_id != user.id and not is_new:
         await db_run(users_repo.attach_referrer_if_empty, user.id, ref_id)

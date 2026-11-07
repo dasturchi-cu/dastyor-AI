@@ -25,6 +25,7 @@ CREATE TABLE IF NOT EXISTS users (
     referred_active_at  TEXT,
     referrals_rewarded_batches INTEGER NOT NULL DEFAULT 0,
     pay_promo_expires_at TEXT,
+    source              TEXT,
     created_at          TEXT NOT NULL DEFAULT (datetime('now')),
     updated_at          TEXT NOT NULL DEFAULT (datetime('now'))
 );
@@ -32,6 +33,7 @@ CREATE TABLE IF NOT EXISTS users (
 CREATE INDEX IF NOT EXISTS idx_users_telegram ON users(telegram_id);
 CREATE INDEX IF NOT EXISTS idx_users_last_seen ON users(last_seen_at);
 CREATE INDEX IF NOT EXISTS idx_users_created ON users(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_users_source ON users(source);
 
 -- ── payments ───────────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS payments (

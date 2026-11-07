@@ -41,6 +41,30 @@ async def _send_admin(bot: Bot, text: str, *, reply_markup=None) -> None:
             logger.warning("Admin alert to %s failed: %s", chat_id, exc)
 
 
+def _ad_sources_block(days: int = 30) -> str:
+    """Per-ad-link funnel (from /start payloads) for the last N days."""
+    import html
+
+    from database.repositories import users as users_repo
+
+    try:
+        rows = users_repo.ad_source_report(days)
+    except Exception as exc:
+        logger.debug("ad source report skipped: %s", exc)
+        return ""
+    if not rows:
+        return ""
+    lines = [f"<b>📣 Reklama manbalari ({days} kun)</b>"]
+    for r in rows[:15]:
+        lines.append(
+            f"• <code>{html.escape(str(r['source']))}</code>: "
+            f"{int(r['users'])} keldi, {int(r['paid_users'])} to'ladi, "
+            f"{int(r['revenue_uzs']):,} so'm"
+        )
+    return "
+".join(lines)
+
+
 async def send_daily_report(bot: Bot) -> bool:
     """Send today's report. Returns True if sent."""
     tz_name = settings.admin_report_timezone or "Asia/Tashkent"
@@ -57,6 +81,11 @@ async def send_daily_report(bot: Bot) -> bool:
     try:
         stats = stats_repo.daily_report_stats()
         text = build_daily_admin_report(stats, report_date=today)
+        sources_block = _ad_sources_block()
+        if sources_block:
+            text = f"{text}
+
+{sources_block}"
         await _send_admin(bot, text)
         logger.info("Daily admin report sent for %s", today)
         return True

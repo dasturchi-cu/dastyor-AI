@@ -520,6 +520,15 @@ def migration_017_checkout_uz_gateway(conn: sqlite3.Connection) -> None:
     )
 
 
+def migration_018_user_source(conn: sqlite3.Connection) -> None:
+    """Where a user came from (/start payload, e.g. an ad link) — for ad ROI."""
+    if not _table_exists(conn, "users"):
+        return
+    if "source" not in _columns(conn, "users"):
+        _add_column(conn, "users", "source TEXT")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_users_source ON users(source)")
+
+
 MIGRATIONS: list[tuple[int, str, MigrationFn]] = [
     (1, "legacy_columns", migration_001_legacy_columns),
     (2, "new_tables", migration_002_new_tables),
@@ -538,6 +547,7 @@ MIGRATIONS: list[tuple[int, str, MigrationFn]] = [
     (15, "packages_and_promo", migration_015_packages_and_promo),
     (16, "required_channels", migration_016_required_channels),
     (17, "checkout_uz_gateway", migration_017_checkout_uz_gateway),
+    (18, "user_source", migration_018_user_source),
 ]
 
 

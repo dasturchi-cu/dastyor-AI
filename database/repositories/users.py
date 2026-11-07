@@ -26,6 +26,7 @@ def upsert_user(
     first_name: str | None = None,
     last_name: str | None = None,
     referred_by_id: int | None = None,
+    source: str | None = None,
 ) -> dict[str, Any]:
     tid = int(telegram_id)
     existed = _exists_in_db(tid)
@@ -39,10 +40,10 @@ def upsert_user(
             """
             INSERT INTO users (
                 telegram_id, username, first_name, last_name, full_name,
-                credits, referred_by_id,
+                credits, referred_by_id, source,
                 first_seen_at, last_seen_at, last_active_at
             )
-            VALUES (?, ?, ?, ?, ?, 0, ?, datetime('now'), datetime('now'), datetime('now'))
+            VALUES (?, ?, ?, ?, ?, 0, ?, ?, datetime('now'), datetime('now'), datetime('now'))
             ON CONFLICT(telegram_id) DO UPDATE SET
                 username = COALESCE(excluded.username, users.username),
                 first_name = COALESCE(excluded.first_name, users.first_name),
@@ -57,7 +58,7 @@ def upsert_user(
                 last_active_at = datetime('now'),
                 updated_at = datetime('now')
             """,
-            (tid, username, first_name, last_name, full_name, ref_for_insert),
+            (tid, username, first_name, last_name, full_name, ref_for_insert, source or None),
         )
         row = conn.execute("SELECT * FROM users WHERE telegram_id = ?", (tid,)).fetchone()
     data = row_to_dict(row) or {}
@@ -522,3 +523,24 @@ def activate_referral(telegram_id: int) -> dict[str, Any] | None:
             "batch_progress": 0,
             "batch_has_paid": False,
         }
+
+
+def ad_source_report(days: int = 30) -> list[dict[str, Any]]:
+    """Per /start source (ad link): new users, users who paid, revenue — last N days."""
+    with get_connection() as conn:
+        rows = conn.execute(
+            """
+            SELECT u.source AS source,
+                   COUNT(DISTINCT u.id) AS users,
+                   COUNT(DISTINCT CASE WHEN p.status = 'APPROVED' THEN u.id END) AS paid_users,
+                   COALESCE(SUM(CASE WHEN p.status = 'APPROVED' THEN p.amount END), 0) AS revenue_uzs
+            FROM users u
+            LEFT JOIN payments p ON p.user_id = u.id
+            WHERE u.source IS NOT NULL
+              AND u.created_at >= datetime('now', ?)
+            GROUP BY u.source
+            ORDER BY users DESC
+            """,
+            (f"-{max(1, int(days))} days",),
+        ).fetchall()
+    return [row_to_dict(r) for r in rows if r]
