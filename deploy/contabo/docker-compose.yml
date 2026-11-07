@@ -1,0 +1,60 @@
+# DASTYOR AI on the shared Contabo VPS — a fully separate stack.
+# Ports 80/443 belong to another project's Caddy on this server, so this stack
+# serves HTTPS on 8443 (Telegram webhooks accept 443/80/88/8443) and gets its
+# certificate via the DuckDNS DNS challenge, which needs neither 80 nor 443.
+#
+#   cd /opt/dastyor-ai/deploy/contabo
+#   docker compose --env-file .env up -d --build
+#
+# The explicit project name keeps it from ever touching other compose projects.
+name: dastyor
+
+services:
+  app:
+    build:
+      context: ../..
+    restart: unless-stopped
+    env_file:
+      - ../../.env
+    environment:
+      DATA_DIR: /data
+      PORT: "8000"
+      PRODUCTION: "1"
+    volumes:
+      - app_data:/data
+    expose:
+      - "8000"
+    # Keeps a runaway PDF render from starving the other project on this VPS.
+    mem_limit: 2g
+    logging:
+      driver: json-file
+      options:
+        max-size: "20m"
+        max-file: "3"
+
+  caddy:
+    build:
+      context: .
+      dockerfile: caddy.Dockerfile
+    restart: unless-stopped
+    ports:
+      - "8443:8443"
+    environment:
+      DOMAIN: ${DOMAIN:-dastyorai.duckdns.org}
+      DUCKDNS_TOKEN: ${DUCKDNS_TOKEN:?set DUCKDNS_TOKEN in deploy/contabo/.env}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - app
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  app_data:
+  caddy_data:
+  caddy_config:
